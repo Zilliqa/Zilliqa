@@ -174,9 +174,7 @@ std::string toUncompressedPubKey(std::string const& pubKey) {
   std::string ret{};
 
   if (pubKeyOut2 - &pubKeyOut[0] != UNCOMPRESSED_SIGNATURE_SIZE) {
-    LOG_GENERAL(WARNING,
-                "Pubkey size incorrect after decompressing: << pubKeyOut2 - "
-                "&pubKeyOut[0]");
+    LOG_GENERAL(WARNING, "Pubkey size incorrect after decompressing:" << pubKeyOut2 - &pubKeyOut[0]);
   } else {
     ret = std::string(reinterpret_cast<const char*>(pubKeyOut),
                       UNCOMPRESSED_SIGNATURE_SIZE);
