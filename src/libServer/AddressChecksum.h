@@ -26,7 +26,7 @@
 
 class AddressChecksum {
  public:
-  static const std::string getChecksummedAddress(std::string origAddress) {
+  static const std::string GetChecksummedAddress(std::string origAddress) {
     if (!(origAddress.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(origAddress.size() != ACC_ADDR_SIZE * 2)) {
       LOG_GENERAL(WARNING, "Size inappropriate");
@@ -80,8 +80,7 @@ class AddressChecksum {
   //  convert the address to hex, but if the ith digit is a letter (ie. it’s one
   //  of abcdef) print it in uppercase if the 4*ith bit of the hash of the
   //  lowercase hexadecimal address is 1 otherwise print it in lowercase.
-  static const std::string getChecksummedAddressEth(std::string origAddress) {
-    origAddress = "5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed";
+  static const std::string GetChecksummedAddressEth(std::string origAddress) {
 
     if (!(origAddress.size() != ACC_ADDR_SIZE * 2 + 2) &&
         !(origAddress.size() != ACC_ADDR_SIZE * 2)) {
@@ -113,25 +112,24 @@ class AddressChecksum {
         &tmpaddr[0],
         tmpaddr.size());
 
-    std::string ret = "";
-
     for (std::size_t i = 0; i < lower_case_address.size(); i++) {
       // If the address could be uppercased
       if (lower_case_address.at(i) >= 'a' && lower_case_address.at(i) <= 'f') {
         // i*4th bit, so 0, 4, 8...
-        // i/2
+        // i/2 selects each byte twice, then bit 0 or 4 is selected.
         char atPoint = lower_case_address.at(i);
         uint8_t byte_check = hash_of_address.bytes[i / 2];
         uint8_t bit_check = (i % 2) == 0 ? 0x80 : 0x08;
         uint8_t res = byte_check & bit_check;
 
+        // Lower -> upper according to bits
         if (res) {
           lower_case_address[i] = std::toupper(atPoint);
         }
       }
     }
 
-    return ret;
+    return lower_case_address;
   }
 
   static bool VerifyChecksumAddressEth(std::string address,
@@ -153,7 +151,7 @@ class AddressChecksum {
       address = address.erase(0, 2);
     }
 
-    const auto& toCompare = getChecksummedAddressEth(address);
+    const auto& toCompare = GetChecksummedAddressEth(address);
     if (toCompare != address) {
       LOG_GENERAL(WARNING, "Checksum does not compare correctly (eth) "
           << toCompare << " to " << address);
@@ -185,7 +183,7 @@ class AddressChecksum {
       address = address.erase(0, 2);
     }
 
-    const auto& toCompare = getChecksummedAddress(address);
+    const auto& toCompare = GetChecksummedAddress(address);
     if (toCompare != address) {
       LOG_GENERAL(WARNING, "Checksum does not compare correctly (zil) "
                                << toCompare << " to " << address);

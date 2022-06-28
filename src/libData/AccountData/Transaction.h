@@ -152,9 +152,6 @@ class Transaction : public SerializableDataBlock {
   /// Return whether the transaction has been correctly signed
   bool IsSigned() const;
 
-  /// Return whether the transaction is correctly formed
-  bool IsCorrectlyFormed() const;
-
   unsigned int GetShardIndex(unsigned int numShards) const;
 
   /// Set the signature

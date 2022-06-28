@@ -215,19 +215,6 @@ bool Transaction::IsSigned() const {
   return IsSignedSchnorr();
 }
 
-// Function to return whether the TX is signed
-bool Transaction::IsCorrectlyFormed() const {
-  auto const version = GetVersion();
-
-  if (version != 65538 && version != 65537) {
-    LOG_GENERAL(WARNING, "Transaction has incorrect chain ID/version");
-  }
-
-  std::cout << "ADDRXXXXXXXX: " << this->m_coreInfo.toAddr << std::endl;
-
-  return true;
-}
-
 void Transaction::SetSignature(const Signature& signature) {
   m_signature = signature;
 }

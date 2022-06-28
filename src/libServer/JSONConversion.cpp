@@ -282,7 +282,6 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t nonce = strtoull(nonce_str.c_str(), NULL, 0);
 
   string toAddr_str = _json["toAddr"].asString();
-  //toAddr_str = toAddr_str.substr(2); // Remove '0x'
   string lower_case_addr;
 
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
