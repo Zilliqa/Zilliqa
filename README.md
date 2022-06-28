@@ -106,6 +106,7 @@ export PATH=$HOME/.local/bin:$PATH
 cmake --version
 rm cmake-3.19.3-Linux-x86_64.sh
 ```
+
 ### Additional Requirements for Contributors
 
 If you intend to contribute to the code base, please perform these additional steps:
