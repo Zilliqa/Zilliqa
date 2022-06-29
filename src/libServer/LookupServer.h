@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
 #include "Server.h"
+#include "libUtils/Logger.h"
 
 class Mediator;
 
@@ -373,6 +374,8 @@ class LookupServer : public Server,
                                          Json::Value& response) {
     (void)request;
     std::cout << "GET BC INFO " << std::endl;
+    std::cerr << "GET BC INFO " << std::endl;
+    LOG_GENERAL(WARNING, "killme");
     std::exit(1);
     response = this->GetBlockchainInfo();
   }

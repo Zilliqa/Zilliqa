@@ -78,10 +78,41 @@ LookupServer::LookupServer(Mediator& mediator,
     : Server(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &Server::GetNodeTypeI);
+
+// temporary functions to add Eth style functions to the isolated server
+  //void LookupServer::AddJSONRpc() {
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetChainIdI);
+
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetBlocknumEthI);
+
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetNetVersionI);
+
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                           "param02", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetBalanceEth);
+
+    this->bindAndAddMethod(
+        jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                           "param02", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetBlockByNumber);
+
+    // AbstractServer<IsolatedServer>::bindAndAddMethod(
+    //    jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION,
+    //                       jsonrpc::JSON_OBJECT, "param01",
+    //                       jsonrpc::JSON_STRING, NULL),
+    //    &LookupServer::GetTransactionI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
