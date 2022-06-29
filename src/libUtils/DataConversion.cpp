@@ -38,7 +38,8 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
     boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
                             back_inserter(out));
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion");
+    LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: "
+                             << e.what());
     return false;
   }
   return true;

@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE(testAddress) {
 
   for (uint i = 0; i < testVector.size(); i++) {
     const auto& result =
-        AddressChecksum::GetCheckSumedAddress(testVector.at(i));
+        AddressChecksum::GetChecksummedAddress(testVector.at(i));
 
     BOOST_CHECK_MESSAGE(
         result == resultVector.at(i),

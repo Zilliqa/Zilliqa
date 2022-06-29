@@ -64,6 +64,9 @@ class Transaction : public SerializableDataBlock {
   TransactionCoreInfo m_coreInfo;
   Signature m_signature;
 
+  bool IsSignedSchnorr() const;
+  bool IsSignedECDSA() const;
+
  public:
   /// Default constructor.
   Transaction();
@@ -145,6 +148,9 @@ class Transaction : public SerializableDataBlock {
 
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
+
+  /// Return whether the transaction has been correctly signed
+  bool IsSigned() const;
 
   unsigned int GetShardIndex(unsigned int numShards) const;
 

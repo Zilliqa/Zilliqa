@@ -69,8 +69,7 @@ template <class MAP>
 bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                                            TransactionReceipt& receipt,
                                            TxnStatus& error_code) {
-  const PubKey& senderPubKey = transaction.GetSenderPubKey();
-  const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+  const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();
   const uint128_t& amount = transaction.GetAmount();
   error_code = TxnStatus::NOT_PRESENT;

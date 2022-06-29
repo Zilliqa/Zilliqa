@@ -137,7 +137,7 @@ If you intend to contribute to the code base, please perform these additional st
 Build Zilliqa from the source:
 
 ```shell
-# download the lastest stable Zilliqa source code
+# Download the lastest stable Zilliqa source code
 $ git clone https://github.com/Zilliqa/Zilliqa.git
 $ cd Zilliqa && git checkout tags/v8.1.0
 

@@ -99,7 +99,7 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
   // Prepare the result and finish.
   response.clear();
   response.append(Json::Value(found));
-  response.append(Json::Value(value));
+  response.append(Json::Value(base64_encode(value)));
   response.append(Json::Value(type));
 }
 
