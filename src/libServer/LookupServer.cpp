@@ -306,6 +306,11 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
 
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetBlockchainInfoX", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, NULL),
+      &LookupServer::GetBlockchainInfoXI);
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;

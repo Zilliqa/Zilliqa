@@ -369,6 +369,13 @@ class LookupServer : public Server,
     response = "0x1010000000000000000000000";
   }
 
+  inline virtual void GetBlockchainInfoXI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    std::cout << "GET BC INFO " << std::endl;
+    response = this->GetBlockchainInfo();
+  }
+
   std::string GetNetworkId();
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
