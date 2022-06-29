@@ -373,6 +373,7 @@ class LookupServer : public Server,
                                          Json::Value& response) {
     (void)request;
     std::cout << "GET BC INFO " << std::endl;
+    std::exit(1);
     response = this->GetBlockchainInfo();
   }
 
