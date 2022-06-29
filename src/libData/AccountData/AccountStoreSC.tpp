@@ -355,8 +355,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   error_code = TxnStatus::NOT_PRESENT;
 
-  const PubKey& senderPubKey = transaction.GetSenderPubKey();
-  const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+  const Address fromAddr = transaction.GetSenderAddr();
 
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
@@ -1176,9 +1175,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
       return false;
     }
     std::string prepend = "0x";
-    msgObj["_sender"] =
-        prepend +
-        Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
+    msgObj["_sender"] = prepend + transaction.GetSenderAddr().hex();
     msgObj["_origin"] = prepend + m_originAddr.hex();
     msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
 

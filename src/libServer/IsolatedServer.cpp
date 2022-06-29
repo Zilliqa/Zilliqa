@@ -271,8 +271,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     lock_guard<mutex> g(m_blockMutex);
 
-    LOG_GENERAL(INFO, "On the isolated server ");
-
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     Json::Value ret;
@@ -347,7 +345,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
       case Transaction::ContractType::ERROR:
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                               "Code is empty and To addr is null");
+                               "The code is empty and To addr is null");
         break;
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");

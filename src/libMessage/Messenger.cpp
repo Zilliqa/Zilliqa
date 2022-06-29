@@ -1251,16 +1251,16 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  // Verify signature
-  if (!Schnorr::Verify(txnData, signature, txnCoreInfo.senderPubKey)) {
-    LOG_GENERAL(WARNING, "Signature verification failed");
-    return false;
-  }
-
   transaction = Transaction(
       tranID, txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
       txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
       txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
+
+  if (!transaction.IsSigned()) {
+    LOG_GENERAL(WARNING,
+                "Signature verification failed when converting tx to protobuf");
+    return false;
+  }
 
   return true;
 }

@@ -1,6 +1,6 @@
 # Zilliqa Isolated Server Instructions
 
-Zilliqa Isolated Server is a test server for dApp developers to quickly test their applications. The isolated server is different from [kaya-rpc](https://github.com/Zilliqa/kaya) as it uses Zilliqa's codebase, and is therefore more regularly updated than Kaya-RPC. 
+Zilliqa Isolated Server is a test server for dApp developers to quickly test their applications.
 Transactions are validated immediately, hence improving the productivity for dApp developers.
 
 **This was tested on AWS EC2 t2.micro Ubuntu 16.04.6 LTS with 4GB swapfile**
@@ -25,10 +25,14 @@ opam install ./scilla.opam --deps-only --with-test
 make clean; make
 ```
 
+## Install EVM (Prerequisite)
+Install the evm from the repo: https://github.com/Zilliqa/evm-ds
+
 ## Steps to Build & Run Node
 1. `git clone https://github.com/Zilliqa/Zilliqa.git`
 2. cd `Zilliqa`
-3. Edit the `./constants.xml` with the following attributes. Please take note of the directory where you installed scilla.
+3. Install the build dependencies listed in the README.md
+4. Edit the `./constants.xml` with the following attributes. Please take note of the directory where you installed scilla.
 ```
 <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
 <ENABLE_SC>true</ENABLE_SC>
@@ -47,7 +51,7 @@ Create a symlink to evm-ds at `/usr/local/bin/evm-ds`:
 sudo ln -s ~/evm-ds/target/debug/evm-ds /usr/local/bin/evm-ds
 ```
 
-4. Create swapfile
+5. Create swapfile
 ```
 // Recommended to have at least 4GB of free memory
 // You can skip if you have sufficient memory to build Zilliqa
@@ -66,8 +70,8 @@ sudo vi /etc/fstab
 // verify
 sudo swapon --show
 ```
-5. Run `./build.sh` Build failures are mainly due to lack of memory. You can assign swap space if your hardware is lacking memory. (tested on AWS t2.micro with 4gb swap space)
-6. Create the file that contains the bootstrap TEST ACCOUNTS `vi isolated-server-accounts.json` with the following json
+6. Run `./build.sh` Build failures are mainly due to lack of memory. You can assign swap space if your hardware is lacking memory. (tested on AWS t2.micro with 4gb swap space). Works with gcc-7.
+7. Create the file that contains the bootstrap TEST ACCOUNTS `vi isolated-server-accounts.json` with the following json
 ```
 {
     "7bb3b0e8a59f3f61d9bff038f4aeb42cae2ecce8": {
@@ -122,14 +126,14 @@ sudo swapon --show
     }
 }
 ```
-7. Run `./build/bin/isolatedServer -f isolated-server-accounts.json &>> isolated-server.logs &`
-8. You should see the following in the log `isolated-server.logs`
+8. Run `./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &>> isolated-server.logs &`
+9. You should see the following in the log `isolated-server.logs`
 ```
 [32170][19-11-08T09:07:21.281][/AccountStore.cpp:53][AccountStore        ] Scilla IPC Server started successfully
 ```
-9. Start development on `http://<aws ec2 url>:5555`! Use the accounts found in `./isolated-server-accounts.json`!
+10. Start development on `http://<aws ec2 url>:5555`! Use the accounts found in `./isolated-server-accounts.json`!
 
-10. Other resources to help you get started with development!
+11. Other resources to help you get started with development!
 
     |          | Link(s) |
     |:---------|:-------|
