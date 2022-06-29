@@ -38,7 +38,7 @@ class IsolatedServer : public LookupServer,
   TxBlock GenerateTxBlock();
   void PostTxBlock();
 
-  void AddJSONRpc();
+  //void AddJSONRpc();
 
  public:
   std::string m_uuid;

@@ -926,7 +926,7 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
   LOG_MARKER();
-"libUtil
+
   if (Mediator::m_disableGetSmartContractState) {
     LOG_GENERAL(WARNING, "API disabled");
     throw JsonRpcException(RPC_INVALID_REQUEST, "API disabled");
