@@ -56,13 +56,11 @@ struct ApplyInstructions {
   std::string m_nonce;
 
   bool m_hasBalance{false};
-  bool m_hasGas{false};
   bool m_hasNonce{false};
   bool m_hasCode{false};
   bool m_hasAddress{false};
 
   bool hasBalance() const { return m_hasBalance; }
-  bool hasGas() const { return m_hasGas; }
   bool hasNonce() const { return m_hasNonce; }
   bool hasCode() const { return m_hasCode; }
   bool hasAddress() const { return m_hasAddress; }
