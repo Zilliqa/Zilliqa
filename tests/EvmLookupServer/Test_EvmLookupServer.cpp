@@ -21,6 +21,10 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
    */
   class EvmClientMock : public EvmClient {
    public:
+    EvmClientMock(const uint gasLimit, const uint amount)
+        : m_GasLimit(gasLimit),  //
+          m_Amount(amount){};
+
     bool OpenServer(bool /*force = false*/) final { return true; };
 
     bool CallRunner(uint32_t /*version*/,             //
@@ -28,23 +32,27 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
                     evmproj::CallResponse& response,  //
                     uint32_t /*counter = MAXRETRYCONN*/) final {
       //
-      LOG_GENERAL(DEBUG, "Callrunner json request:" << request);
+      LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
       Json::Reader _reader;
 
-      const std::string expectedRequestString{
-          "[\"a744160c3de133495ab9f9d77ea54b325b045670\","
-          "\"0000000000000000000000000000000000000000\","
-          "\"\","
-          "\"ffa1caa00000000000000000000000000000000000000000000000000000000000"
-          "00014\","
-          "\"0\","
-          "1000000"
-          "]"};
+      std::stringstream expectedRequestString;
+      expectedRequestString
+          << "["
+          << "\"a744160c3de133495ab9f9d77ea54b325b045670\","
+          << "\"0000000000000000000000000000000000000000\","
+          << "\"\","
+          << "\"ffa1caa000000000000000000000000000000000000000000000000000000"
+             "0000000014\","
+          << "\"" << m_Amount << "\"";
+      expectedRequestString << "," << std::to_string(m_GasLimit);  // gas value
+      expectedRequestString << "]";
 
       Json::Value expectedRequestJson;
-      LOG_GENERAL(DEBUG, "expectedRequestString:" << expectedRequestString);
-      BOOST_CHECK(_reader.parse(expectedRequestString, expectedRequestJson));
+      LOG_GENERAL(DEBUG,
+                  "expectedRequestString:" << expectedRequestString.str());
+      BOOST_CHECK(
+          _reader.parse(expectedRequestString.str(), expectedRequestJson));
 
       BOOST_CHECK_EQUAL(request.size(), expectedRequestJson.size());
 
@@ -109,16 +117,24 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
           "}";
 
       BOOST_CHECK(_reader.parse(evmResponseString, responseJson));
-      LOG_GENERAL(DEBUG, "Callrunner json response:" << responseJson);
+      LOG_GENERAL(DEBUG, "CallRunner json response:" << responseJson);
       evmproj::GetReturn(responseJson, response);
 
       return true;
     };
+
+   private:
+    const uint m_GasLimit{};
+    const uint m_Amount{};
   };
 
+  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT + 500U};
+  const auto amount{4200U};
   EvmClient::GetInstance(  //
       []() {               //
-        return std::make_shared<EvmClientMock>();
+        return std::make_shared<EvmClientMock>(
+            2 * DS_MICROBLOCK_GAS_LIMIT, amount);  // gas limit will not exceed
+                                                   // this max value
       });
 
   INIT_STDOUT_LOGGER();
@@ -136,15 +152,15 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
       "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["toAddr"] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
-  // values["gasLimit"] = 500;
+  values["gasLimit"] = gasLimit;
+  values["amount"] = amount;
   paramsRequest[0u] = values;
 
   Address accountAddress{"0xa744160c3De133495aB9F9D77EA54b325b045670"};
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
-  // const uint128_t initialBalance{1000000};
-  // AccountStore::GetInstance().IncreaseBalance(accountAddress,
-  // initialBalance);
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
@@ -174,9 +190,10 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
                     "1fe7663301a0be11"
                     "ecdc6d8fc9f49333262e264db564736f6c634300080f0033");
 
-  // const auto balance =
-  // AccountStore::GetInstance().GetBalance(accountAddress);
-  // BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), 77371);
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
