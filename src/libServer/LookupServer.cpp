@@ -886,7 +886,7 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
   bytes code{};
-  bool ret = false;
+  auto ret{false};
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
@@ -917,12 +917,12 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
       const auto gasLimit_str = _json["gasLimit"].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
-    EvmCallParameters params = {addr.hex(),
-                                fromAddr.hex(),
-                                DataConversion::CharArrayToString(code),
-                                _json["data"].asString(),
-                                gasRemained,
-                                amount};
+    EvmCallParameters params{addr.hex(),
+                             fromAddr.hex(),
+                             DataConversion::CharArrayToString(code),
+                             _json["data"].asString(),
+                             gasRemained,
+                             amount};
 
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
   } catch (const exception& e) {
