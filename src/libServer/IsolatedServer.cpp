@@ -38,7 +38,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &IsolatedServer::CreateTransactionI);
-
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("IncreaseBlocknum", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
@@ -108,7 +107,11 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
-
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::GetEthCallI);
   if (timeDelta > 0) {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("GetTransactionsForTxBlock",
@@ -487,10 +490,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   return m_gasPrice.str();
 }
 
-string IsolatedServer::GetMinimumGasPrice() {
-  cout << "..." << std::endl;
-  return m_gasPrice.str();
-}
+string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
