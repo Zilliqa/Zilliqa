@@ -25,8 +25,8 @@
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
-  bool StartListening() final { return true; }
-  bool StopListening() final { return true; }
+  auto StartListening() -> bool final { return true; }
+  auto StopListening() -> bool final { return true; }
 };
 
 BOOST_AUTO_TEST_SUITE(lookup_server)
@@ -42,12 +42,12 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
         : m_GasLimit(gasLimit),  //
           m_Amount(amount){};
 
-    bool OpenServer(bool /*force = false*/) final { return true; };
+    auto OpenServer(bool /*force = false*/) -> bool final { return true; };
 
-    bool CallRunner(uint32_t /*version*/,             //
+    auto CallRunner(uint32_t /*version*/,             //
                     const Json::Value& request,       //
                     evmproj::CallResponse& response,  //
-                    uint32_t /*counter = MAXRETRYCONN*/) final {
+                    uint32_t /*counter = MAXRETRYCONN*/) -> bool final {
       //
       LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
@@ -72,15 +72,16 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
           _reader.parse(expectedRequestString.str(), expectedRequestJson));
 
       BOOST_CHECK_EQUAL(request.size(), expectedRequestJson.size());
-
-      for (Json::ArrayIndex i = 0; i < request.size(); i++) {
-        LOG_GENERAL(DEBUG, "test requests(" << i << "):" << request[i] << ","
+      auto i{0U};
+      for (const auto& r : request) {
+        LOG_GENERAL(DEBUG, "test requests(" << i << "):" << r << ","
                                             << expectedRequestJson[i]);
-        if (request[i].isConvertibleTo(Json::intValue)) {
-          BOOST_CHECK_EQUAL(request[i].asInt(), expectedRequestJson[i].asInt());
+        if (r.isConvertibleTo(Json::intValue)) {
+          BOOST_CHECK_EQUAL(r.asInt(), expectedRequestJson[i].asInt());
         } else {
-          BOOST_CHECK_EQUAL(request[i], expectedRequestJson[i]);
+          BOOST_CHECK_EQUAL(r, expectedRequestJson[i]);
         }
+        i++;
       }
 
       Json::Value responseJson;
