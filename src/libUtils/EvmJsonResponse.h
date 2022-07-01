@@ -96,7 +96,7 @@ struct CallResponse {
   bool m_success{false};
 };
 
-CallResponse& GetReturn(const Json::Value& oldJason, CallResponse& fo);
+CallResponse& GetReturn(const Json::Value& oldJson, CallResponse& fo);
 
 }  // namespace evmproj
 
