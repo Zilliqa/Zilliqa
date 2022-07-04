@@ -169,12 +169,12 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   values["data"] =
       "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
       "014";
-  values["toAddr"] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
+  values["toAddr"] = "a744160c3De133495aB9F9D77EA54b325b045670";
   values["gasLimit"] = gasLimit;
   values["amount"] = amount;
   paramsRequest[0u] = values;
 
-  Address accountAddress{"0xa744160c3De133495aB9F9D77EA54b325b045670"};
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
   const uint128_t initialBalance{1'000'000};
