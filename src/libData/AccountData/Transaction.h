@@ -96,6 +96,12 @@ class Transaction : public SerializableDataBlock {
   Transaction(const TxnHash& tranID, const TransactionCoreInfo& coreInfo,
               const Signature& signature);
 
+  /// Eth style transaction construct
+  Transaction(const std::string& nonce, const std::string& gasPrice,
+  const std::string& gasLimit,const std::string& toAddr,
+  const std::string& amount, const std::string& code, const std::string& data,
+  const std::string& R, const std::string& S, const std::string& V);
+
   /// Constructor for loading transaction information from a byte stream.
   Transaction(const bytes& src, unsigned int offset);
 
