@@ -16,7 +16,15 @@
  */
 
 #include "TxnStatus.h"
+
+#include <cstdint>
+#include <ostream>
+#include <string>
+#include <utility>
+
 #include "libUtils/Logger.h"
+#include "g3log/logcapture.hpp"
+#include "g3log/loglevels.hpp"
 
 bool TTLTxns::insert(const TxnHash& txhash, const TxnStatus status,
                      const uint64_t& epochNum) {

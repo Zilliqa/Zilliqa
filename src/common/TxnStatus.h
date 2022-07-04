@@ -18,6 +18,10 @@
 #ifndef ZILLIQA_SRC_COMMON_TXNSTATUS_H_
 #define ZILLIQA_SRC_COMMON_TXNSTATUS_H_
 
+#include <bits/stdint-uintn.h>
+#include <unordered_map>
+#include <unordered_set>
+
 #include "depends/common/FixedHash.h"
 
 using TxnHash = dev::h256;

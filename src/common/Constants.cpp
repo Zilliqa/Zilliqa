@@ -15,11 +15,33 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Constants.h"
-#include "libUtils/DataConversion.h"
-#include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <stdlib.h>
+#include <boost/core/swap.hpp>
+#include <boost/cstdint.hpp>
+#include <boost/iterator/iterator_facade.hpp>
+#include <boost/multi_index/detail/bidir_node_iterator.hpp>
+#include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/cpp_int/bitwise.hpp>
+#include <boost/multiprecision/detail/no_et_ops.hpp>
+#include <boost/multiprecision/detail/number_base.hpp>
+#include <boost/multiprecision/detail/number_compare.hpp>
+#include <boost/multiprecision/number.hpp>
+#include <boost/operators.hpp>
+#include <boost/optional/optional.hpp>
+#include <boost/property_tree/detail/exception_implementation.hpp>
+#include <boost/property_tree/detail/ptree_implementation.hpp>
+#include <boost/property_tree/detail/rapidxml.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
+#include <algorithm>
+#include <cstdint>
+#include <fstream>
+#include <sstream>
+
+#include "libUtils/SafeMath.h"
+#include "libUtils/SafeMath.tpp"
 
 using namespace std;
 
