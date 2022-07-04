@@ -210,11 +210,18 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     } else {
       // Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccount(Address(it->Address()));
-      if (contractAccount == nullptr) {
+      if (targetAccount == nullptr) {
         if (!this->AddAccount(Address(it->Address()), {0, 0})) {
           LOG_GENERAL(WARNING, "AddAccount failed for contract address "
                                    << Address(it->Address()).hex());
-          return gas;
+          continue;
+        }
+        targetAccount = this->GetAccount(Address(it->Address()));
+        if (targetAccount == nullptr) {
+          LOG_GENERAL(WARNING,
+                      "failed to retrieve new account for contract address "
+                          << Address(it->Address()).hex());
+          continue;
         }
       }
 
