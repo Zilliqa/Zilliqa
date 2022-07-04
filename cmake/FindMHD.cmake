@@ -34,6 +34,6 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(mhd DEFAULT_MSG MHD_INCLUDE_DIR MHD_LIBRARY)
+find_package_handle_standard_args(MHD DEFAULT_MSG MHD_INCLUDE_DIR MHD_LIBRARY)
 mark_as_advanced(MHD_INCLUDE_DIR MHD_LIBRARY)
 

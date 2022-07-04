@@ -165,8 +165,8 @@ struct TxnPool {
 inline std::ostream& operator<<(std::ostream& os, const TxnPool& t) {
   os << "Txn in txnPool: " << std::endl;
   for (const auto& entry : t.HashIndex) {
-    os << "TranID: " << entry.first.hex() << " Sender:"
-       << Account::GetAddressFromPublicKey(entry.second.GetSenderPubKey())
+    os << "TranID: " << entry.first.hex()
+       << " Sender:" << entry.second.GetSenderAddr()
        << " Nonce: " << entry.second.GetNonce() << std::endl;
   }
   return os;

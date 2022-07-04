@@ -29,6 +29,7 @@ const unsigned int COMMON_HASH_SIZE = 32;
 const unsigned int ACC_ADDR_SIZE = 20;
 const unsigned int TRAN_HASH_SIZE = 32;
 const unsigned int TRAN_SIG_SIZE = 64;
+const unsigned int TRAN_SIG_SIZE_UNCOMPRESSED = 65;
 const unsigned int BLOCK_HASH_SIZE = 32;
 const unsigned int BLOCK_SIG_SIZE = 64;
 const unsigned int STATE_HASH_SIZE = 32;

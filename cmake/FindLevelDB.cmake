@@ -8,7 +8,7 @@ find_path(
 
 find_library(
 	LEVELDB_LIBRARY
-	NAMES leveldb
+    NAMES leveldb
     DOC "LevelDB library"
 )
 
@@ -23,5 +23,5 @@ if (NOT BUILD_SHARED_LIBS AND APPLE)
 endif()
 
 include(FindPackageHandleStandardArgs)
-find_package_handle_standard_args(leveldb DEFAULT_MSG
+find_package_handle_standard_args(LevelDB DEFAULT_MSG
 	LEVELDB_LIBRARY LEVELDB_INCLUDE_DIR)

@@ -57,7 +57,8 @@ std::vector<KeyPairAddress> get_genesis_keypair_and_address() {
       const auto& privKeyBytes{out};
       auto privKey = PrivKey{privKeyBytes, 0};
       auto pubKey = PubKey{privKey};
-      auto address = Account::GetAddressFromPublicKey(pubKey);
+      auto address = Account::GetAddressFromPublicKey(
+          pubKey);  // Edge case, assume addresses in genesis are ZIL style
       result.push_back(
           std::tuple<PrivKey, PubKey, Address>(privKey, pubKey, address));
     } else {

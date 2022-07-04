@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
 #include <string>
 #include <vector>
 
@@ -284,10 +283,15 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
 
   string toAddr_str = _json["toAddr"].asString();
   string lower_case_addr;
+
   if (!AddressChecksum::VerifyChecksumAddress(toAddr_str, lower_case_addr)) {
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "To Address checksum does not match");
+    if (!AddressChecksum::VerifyChecksumAddressEth(toAddr_str,
+                                                   lower_case_addr)) {
+      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                      "To Address checksum does not match");
+    }
   }
+
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
@@ -317,7 +321,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string sign_str = _json["signature"].asString();
   bytes sign;
   if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
-    LOG_GENERAL(WARNING, "json cointaining invalid hex str for sign");
+    LOG_GENERAL(WARNING, "***** Json cointaining invalid hex str for sign");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "Invalid Hex Str for Signature");
   }
@@ -351,7 +355,6 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
   ret = ret && _json.isMember("nonce");
   ret = ret && _json.isMember("toAddr");
   ret = ret && _json.isMember("amount");
-  ret = ret && _json.isMember("pubKey");
   ret = ret && _json.isMember("signature");
   ret = ret && _json.isMember("version");
   ret = ret && _json.isMember("code");
@@ -381,26 +384,35 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "Version not integral");
     }
+
     if (_json["pubKey"].asString().size() != PUB_KEY_SIZE * 2) {
       LOG_GENERAL(INFO,
                   "PubKey size wrong " << _json["pubKey"].asString().size());
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "Invalid PubKey Size");
     }
-    if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2) {
+
+    if (_json["signature"].asString().size() != TRAN_SIG_SIZE * 2 &&
+        _json["signature"].asString().size() !=
+            TRAN_SIG_SIZE_UNCOMPRESSED * 2) {
       LOG_GENERAL(INFO, "signature size wrong "
                             << _json["signature"].asString().size());
+      LOG_GENERAL(INFO, "***** Invalid signature size");
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                       "Invalid Signature size");
     }
+    string toAddr = _json["toAddr"].asString();
     string lower_case_addr;
-    if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
-                                                lower_case_addr)) {
-      LOG_GENERAL(INFO,
-                  "To Address checksum wrong " << _json["toAddr"].asString());
-      throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                      "To Addr checksum wrong");
+
+    if (!AddressChecksum::VerifyChecksumAddress(toAddr, lower_case_addr)) {
+      if (!AddressChecksum::VerifyChecksumAddressEth(toAddr, lower_case_addr)) {
+        LOG_GENERAL(INFO, "***** To Address checksum wrong "
+                              << _json["toAddr"].asString());
+        throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
+                                        "To Addr checksum wrong");
+      }
     }
+
     if ((_json.size() == JSON_TRAN_OBJECT_SIZE + 1) &&
         !_json["priority"].isBool()) {
       throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
@@ -421,14 +433,9 @@ Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "must contain toAddr");
   }
-  string lower_case_addr;
-  if (!AddressChecksum::VerifyChecksumAddress(_json["toAddr"].asString(),
-                                              lower_case_addr)) {
-    LOG_GENERAL(INFO,
-                "To Address checksum wrong " << _json["toAddr"].asString());
-    throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "To Addr checksum wrong");
-  }
+
+  string lower_case_addr = boost::to_lower_copy(_json["toAddr"].asString());
+
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");

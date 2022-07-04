@@ -36,7 +36,14 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  return Schnorr::Verify(txnData, tran.GetSignature(), tran.GetSenderPubKey());
+  auto result = tran.IsSigned();
+
+  if (!result) {
+    LOG_GENERAL(WARNING,
+                "Failed to verify transaction signature - will delete");
+  }
+
+  return result;
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
@@ -49,15 +56,16 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
     return true;
   }
   error_code = TxnStatus::NOT_PRESENT;
-  // LOG_MARKER();
-
-  // LOG_GENERAL(INFO, "Tran: " << tx.GetTranID());
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     LOG_GENERAL(WARNING, "CHAIN_ID incorrect");
     error_code = TxnStatus::VERIF_ERROR;
     return false;
   }
+
+  LOG_GENERAL(WARNING, "Transaction version incorrect "
+                           << "Expected:" << TRANSACTION_VERSION << " Actual:"
+                           << DataConversion::UnpackB(tx.GetVersion()));
 
   if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
     LOG_GENERAL(WARNING, "Transaction version incorrect "
@@ -68,8 +76,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   }
 
   // Check if from account is sharded here
-  const PubKey& senderPubKey = tx.GetSenderPubKey();
-  Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
+  Address fromAddr = tx.GetSenderAddr();
 
   if (IsNullAddress(fromAddr)) {
     LOG_GENERAL(WARNING, "Invalid address for issuing transactions");
