@@ -34,23 +34,24 @@ namespace evmproj {
  * throws std::exception or the original exception is passed up to the caller.
  * */
 
-evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
+evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
                                  evmproj::CallResponse& fo) {
-  nlohmann::json newJason;
+  nlohmann::json newJson;
 
   try {
-    newJason = nlohmann::json::parse(oldJason.toStyledString());
+    newJson = nlohmann::json::parse(oldJson.toStyledString());
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING,
                 "Exception JSONRPC parser to nlohman parser " << e.what())
     throw e;
   }
 
-  if (LOG_SC)
-    LOG_GENERAL(WARNING, "Response from EVM-DS " << std::endl << newJason);
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING, "Response from EVM-DS " << std::endl << newJson);
+  }
 
   try {
-    for (const auto& node : newJason.items()) {
+    for (const auto& node : newJson.items()) {
       if (node.key() == "apply" && node.value().is_array()) {
         for (const auto& ap : node.value()) {
           for (const auto& map : ap.items()) {
@@ -179,10 +180,10 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJason,
         for (const auto& er : node.value().items()) {
           try {
             if (er.key() == "Succeed") {
-              fo.m_ok = true;
+              fo.SetSuccess(true);
               fo.m_exitReason = er.value();
             } else if (er.key() == "Fatal") {
-              fo.m_ok = false;
+              fo.SetSuccess(false);
               fo.m_exitReason = to_string(er.value());
             }
           } catch (std::exception& e) {
@@ -267,7 +268,7 @@ std::ostream& operator<<(std::ostream& os, evmproj::CallResponse& evmRet) {
   }
 
   os << evmRet.m_exitReason << std::endl;
-  os << "success" << std::boolalpha << evmRet.isSuccess();
+  os << "success" << std::boolalpha << evmRet.GetSuccess();
 
   os << "gasRemaining : " << evmRet.Gas() << std::endl;
   os << "code : " << evmRet.ReturnedBytes() << std::endl;

@@ -53,7 +53,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
     } else {
       LOG_GENERAL(WARNING,
                   "Sending to EVM-DS code without a standard prefix,"
-                  " is this intended ? re-evalute this warning"
+                  " is this intended ? re-evaluate this warning"
                       << arr_ret);
       arr_ret.append(params.m_code);
     }
@@ -61,7 +61,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
     LOG_GENERAL(WARNING,
                 "Exception caught attempting to slice off prefix of "
                 "code"
-                " is this intended ? re-evalute this warning"
+                " is this intended ? re-evaluate this warning"
                     << arr_ret);
     LOG_GENERAL(WARNING, "Sending a blank code array for continuation purposes"
                              << arr_ret);
@@ -79,7 +79,9 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
 }
 
 bool EvmUtils::isEvm(const bytes& code) {
-  if (not ENABLE_EVM) return false;
+  if (not ENABLE_EVM) {
+    return false;
+  }
 
   if (code.empty()) {
     LOG_GENERAL(WARNING, "EVM is set and Code is empty, logic error");
@@ -88,6 +90,8 @@ bool EvmUtils::isEvm(const bytes& code) {
     return false;
   }
 
-  if (code.size() < 4) return false;
+  if (code.size() < 4) {
+    return false;
+  }
   return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 }
