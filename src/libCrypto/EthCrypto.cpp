@@ -18,6 +18,10 @@
 #include "EthCrypto.h"
 #include "libUtils/Logger.h"
 
+//#include <secp256k1_ecdh.h>
+//#include <secp256k1_recovery.h>
+//#include <secp256k1_sha256.h>
+
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
@@ -189,3 +193,31 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
 
   return ret;
 }
+
+//Public dev::recover(Signature const& _sig, h256 const& _message)
+//{
+//    int v = _sig[64];
+//    if (v > 3)
+//        return {};
+//
+//    auto* ctx = getCtx();
+//    secp256k1_ecdsa_recoverable_signature rawSig;
+//    if (!secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &rawSig, _sig.data(), v))
+//        return {};
+//
+//    secp256k1_pubkey rawPubkey;
+//    if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, _message.data()))
+//        return {};
+//
+//    std::array<byte, 65> serializedPubkey;
+//    size_t serializedPubkeySize = serializedPubkey.size();
+//    secp256k1_ec_pubkey_serialize(
+//            ctx, serializedPubkey.data(), &serializedPubkeySize,
+//            &rawPubkey, SECP256K1_EC_UNCOMPRESSED
+//    );
+//    assert(serializedPubkeySize == serializedPubkey.size());
+//    // Expect single byte header of value 0x04 -- uncompressed public key.
+//    assert(serializedPubkey[0] == 0x04);
+//    // Create the Public skipping the header.
+//    return Public{&serializedPubkey[1], Public::ConstructFromPointer};
+//}

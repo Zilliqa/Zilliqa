@@ -34,4 +34,7 @@ bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
 // per the 'Standards for Efficient Cryptography' specification
 std::string ToUncompressedPubKey(const std::string& pubKey);
 
+//Public dev::recover(Signature const& _sig, h256 const& _message);
+//void recoverECDSAPubSig(Signature const& _sig, h256 const& _message);
+
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

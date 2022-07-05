@@ -335,6 +335,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetBalanceEth);
 
+  //this->bindAndAddMethod(
+  //    jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
+  //                       jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+  //                       NULL),
+  //    &LookupServer::GetBalanceEth);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
