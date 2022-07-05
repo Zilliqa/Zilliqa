@@ -491,10 +491,10 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "CHAIN_ID incorrect");
   }
 
-  if (DataConversion::UnpackB(tx.GetVersion()) != TRANSACTION_VERSION) {
+  if (tx.VersionCorrect() != true) {
     throw JsonRpcException(
         ServerBase::RPC_VERIFY_REJECTED,
-        "Transaction version incorrect, Expected:" +
+        "Transaction version incorrect! Expected:" +
             to_string(TRANSACTION_VERSION) +
             " Actual:" + to_string(DataConversion::UnpackB(tx.GetVersion())));
   }

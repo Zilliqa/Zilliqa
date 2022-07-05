@@ -125,6 +125,9 @@ class Transaction : public SerializableDataBlock {
   /// Returns the current version.
   const uint32_t& GetVersion() const;
 
+  /// Returns whether the current version is correct
+  const uint32_t& VersionCorrect() const;
+
   /// Returns the transaction nonce.
   const uint64_t& GetNonce() const;
 
