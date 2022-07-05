@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_COMMON_SINGLETON_H_
 #define ZILLIQA_SRC_COMMON_SINGLETON_H_
 
+#include <functional>
+#include <memory>
 #include <type_traits>
 
 template <typename T>
@@ -26,20 +28,29 @@ class Singleton {
   Singleton() noexcept = default;
 
   Singleton(const Singleton&) = delete;
-
   Singleton& operator=(const Singleton&) = delete;
+
+  Singleton(Singleton&&) = delete;
+  Singleton& operator=(Singleton&&) = delete;
 
   virtual ~Singleton() = default;  // to silence base class Singleton<T> has a
                                    // non-virtual destructor [-Weffc++]
 
  public:
-  static T& GetInstance() noexcept(std::is_nothrow_constructible<T>::value) {
+  static T& GetInstance(
+      const std::function<std::shared_ptr<T>()>& _allocator = []() {
+        return std::make_shared<T>();
+      }) noexcept(std::is_nothrow_constructible<T>::value) {
     // Guaranteed to be destroyed.
     // Instantiated on first use.
     // Thread safe in C++11
-    static T instance;
-
-    return instance;
+    static std::shared_ptr<T> instance;
+    if (!instance) {
+      if (_allocator) {
+        instance = _allocator();
+      }
+    }
+    return *instance.get();
   }
 };
 

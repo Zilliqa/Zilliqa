@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCreate) {
     cout << "Exception caught in EVMResponse " << e.what() << std::endl;
   }
 
-  BOOST_REQUIRE(result.isSuccess() == true);
+  BOOST_REQUIRE(result.GetSuccess() == true);
   BOOST_REQUIRE(result.Apply().empty() == true);
   BOOST_REQUIRE(result.Logs().empty() == true);
   BOOST_REQUIRE(result.Gas() == 999024);
@@ -96,7 +96,7 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCreate2) {
   } catch (std::exception& e) {
     cout << "Exception caught in EVMResponse " << e.what() << std::endl;
   }
-  BOOST_REQUIRE(result.isSuccess() == true);
+  BOOST_REQUIRE(result.GetSuccess() == true);
   BOOST_REQUIRE(result.Apply().empty() == true);
   BOOST_REQUIRE(result.Logs().empty() == true);
   BOOST_REQUIRE(result.Gas() == 99823);
@@ -142,7 +142,7 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCall2) {
   } catch (std::exception& e) {
     cout << "Exception caught in EVMResponse " << e.what() << std::endl;
   }
-  BOOST_REQUIRE(result.isSuccess());
+  BOOST_REQUIRE(result.GetSuccess());
   BOOST_REQUIRE(result.Apply().empty());
   BOOST_REQUIRE(!result.Logs().empty());
   BOOST_REQUIRE(result.Gas() == 94743);
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCall3) {
 
   auto response = evmproj::GetReturn(tmp, result);
 
-  BOOST_REQUIRE(result.isSuccess());
+  BOOST_REQUIRE(result.GetSuccess());
   BOOST_REQUIRE(!result.Apply().empty());
   BOOST_REQUIRE(result.Logs().empty());
   BOOST_REQUIRE(result.Gas() == 77771);

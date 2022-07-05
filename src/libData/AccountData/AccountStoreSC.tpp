@@ -127,11 +127,10 @@ void AccountStoreSC<MAP>::EvmCallRunner(
     INVOKE_TYPE invoke_type, EvmCallParameters& params, const uint32_t& version,
     bool& ret, TransactionReceipt& receipt,
     evmproj::CallResponse& evmReturnValues) {
-  bool call_already_finished = false;
+  auto call_already_finished{false};
 
   auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
                  &call_already_finished, &evmReturnValues]() mutable -> void {
-    Json::Value jval;
     if (invoke_type == RUNNER_CREATE || invoke_type == RUNNER_CALL) {
       ret = EvmClient::GetInstance().CallRunner(
           version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
@@ -170,12 +169,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
 
-  if (not evmReturnValues.isSuccess()) {
+  if (not evmReturnValues.GetSuccess()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
 
   // switch ret to reflect our overall success
-  ret = evmReturnValues.isSuccess() ? ret : false;
+  ret = evmReturnValues.GetSuccess() ? ret : false;
 
   if (!evmReturnValues.Logs().empty()) {
     Json::Value _json = Json::arrayValue;
@@ -249,7 +248,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          // will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to reset storage " << e.what());
         }
@@ -257,13 +256,14 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         // If Instructed to reset the Code do so and call SetImmutable to reset
         // the hash
         try {
-          if (it->hasCode() && it->Code().size() > 0)
+          if (it->hasCode() && it->Code().size() > 0) {
             targetAccount->SetImmutable(
                 DataConversion::StringToCharArray("EVM" + it->Code()),
                 contractAccount->GetInitData());
+          }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          // will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(
               WARNING,
               "Exception thrown trying to update Contract code " << e.what());
@@ -286,29 +286,31 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          // will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to update state on the contract "
                           << e.what());
         }
 
         try {
-          if (it->hasBalance() && it->Balance().size())
+          if (it->hasBalance() && it->Balance().size()) {
             targetAccount->SetBalance(uint128_t(it->Balance()));
+          }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          // will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(
               WARNING,
               "Exception thrown trying to update balance on target Account "
                   << e.what());
         }
+
         try {
           if (it->hasNonce() && it->Nonce().size())
             targetAccount->SetNonce(std::stoull(it->Nonce()));
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
-          // will exmine exact possibilities and catch specific exceptions.
+          // will examine exact possibilities and catch specific exceptions.
           LOG_GENERAL(WARNING,
                       "Exception thrown trying to set Nonce on target Account "
                           << e.what());
@@ -319,10 +321,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     }
   }
 
-  if (invoke_type == RUNNER_CREATE)
+  if (invoke_type == RUNNER_CREATE) {
     contractAccount->SetImmutable(DataConversion::StringToCharArray(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
+  }
   return gas;
 }
 
@@ -335,7 +338,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
   result = response.m_return;
   if (LOG_SC) {
-    LOG_GENERAL(INFO, response);
+    LOG_GENERAL(INFO, "Called Evm, response:" << response);
   }
 
   return ret;
