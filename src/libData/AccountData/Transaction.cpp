@@ -177,7 +177,7 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
 }
 
 const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
-const bool Transaction::VersionCorrect() const { return true; }
+bool Transaction::VersionCorrect() const { return true; }
 
 const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
 
