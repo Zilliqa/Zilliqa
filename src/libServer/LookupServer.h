@@ -458,7 +458,7 @@ class LookupServer : public Server,
 
   inline virtual void GetBalanceEth(const Json::Value& request,
                                     Json::Value& response) {
-    std::cout << "GETB " << request[0u].asString() << std::endl;
+    std::cout << "GETBAL " << request[0u].asString() << std::endl;
     (void)request;
     //response = "0x1010000000000000000000000"; // for a fake response
     response = this->GetBalance(request[0u].asString());
