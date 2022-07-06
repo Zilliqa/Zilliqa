@@ -29,6 +29,24 @@ class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
   auto StopListening() -> bool final { return true; }
 };
 
+/**
+ * @brief Default Mock implementation for the evm client
+ */
+class EvmClientMock : public EvmClient {
+ public:
+  EvmClientMock() = default;
+
+  auto OpenServer(bool /*force = false*/) -> bool { return true; };
+
+  auto CallRunner(uint32_t /*version*/,                 //
+                  const Json::Value& request,           //
+                  evmproj::CallResponse& /*response*/,  //
+                  uint32_t /*counter = MAXRETRYCONN*/) -> bool {
+    LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
+    return true;
+  };
+};
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_AUTO_TEST_CASE(test_get_eth_call) {
@@ -36,13 +54,11 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
    * @brief EvmClient mock implementation te be able to inject test responses
    * from the Evm-ds server.
    */
-  class EvmClientMock : public EvmClient {
+  class GetEthCallEvmClientMock : public EvmClientMock {
    public:
-    EvmClientMock(const uint gasLimit, const uint amount)
+    GetEthCallEvmClientMock(const uint gasLimit, const uint amount)
         : m_GasLimit(gasLimit),  //
           m_Amount(amount){};
-
-    auto OpenServer(bool /*force = false*/) -> bool final { return true; };
 
     auto CallRunner(uint32_t /*version*/,             //
                     const Json::Value& request,       //
@@ -150,7 +166,7 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   const auto amount{4200U};
   EvmClient::GetInstance(  //
       [amount]() {         //
-        return std::make_shared<EvmClientMock>(
+        return std::make_shared<GetEthCallEvmClientMock>(
             2 * DS_MICROBLOCK_GAS_LIMIT, amount);  // gas limit will not exceed
                                                    // this max value
       });
@@ -216,29 +232,41 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
-BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
+BOOST_AUTO_TEST_CASE(test_get_web3_client_version) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
 
-  class EvmClientMock : public EvmClient {
-   public:
-    EvmClientMock() = default;
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-    auto OpenServer(bool /*force = false*/) -> bool final { return true; };
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
 
-    auto CallRunner(uint32_t /*version*/,                 //
-                    const Json::Value& request,           //
-                    evmproj::CallResponse& /*response*/,  //
-                    uint32_t /*counter = MAXRETRYCONN*/) -> bool final {
-      LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
-      return true;
-    };
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
-   private:
-    const uint m_GasLimit{};
-    const uint m_Amount{};
-  };
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  // call the method on the lookup server with params
+  lookupServer.GetWeb3ClientVersionI(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
+
+  BOOST_CHECK_EQUAL(response.asString(), "");
+}
+
+BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
