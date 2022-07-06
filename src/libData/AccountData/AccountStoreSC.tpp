@@ -210,12 +210,18 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       // Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccount(Address(it->Address()));
       if (targetAccount == nullptr) {
-        LOG_GENERAL(
-            WARNING,
-            "Cannot find account for address given in Apply operation from "
-            "EVM-DS"
-            " ");
-        return gas;
+        if (!this->AddAccount(Address(it->Address()), {0, 0})) {
+          LOG_GENERAL(WARNING, "AddAccount failed for contract address "
+                                   << Address(it->Address()).hex());
+          continue;
+        }
+        targetAccount = this->GetAccount(Address(it->Address()));
+        if (targetAccount == nullptr) {
+          LOG_GENERAL(WARNING,
+                      "failed to retrieve new account for contract address "
+                          << Address(it->Address()).hex());
+          continue;
+        }
       }
 
       if (it->OperationType() == "modify") {
