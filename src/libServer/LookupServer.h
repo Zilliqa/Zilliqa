@@ -461,7 +461,10 @@ class LookupServer : public Server,
     std::cout << "GETBALETH " << request[0u].asString() << std::endl;
     (void)request;
     //response = "0x1010000000000000000000000"; // for a fake response
-    response = this->GetBalance(request[0u].asString())["balance"];
+    std::string address = request[0u].asString();
+    DataConversion::NormalizeHexString(address);
+
+    response = this->GetBalance(address)["balance"];
   }
 
   inline virtual void GetBlockchainInfoXI(const Json::Value& request,
