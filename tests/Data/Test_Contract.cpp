@@ -263,9 +263,15 @@ BOOST_AUTO_TEST_CASE(salarybot) {
 
   BOOST_CHECK_MESSAGE(e2 != nullptr && e3 != nullptr,
                       "employee2 or 3 are not existing");
-
+#ifndef DONT_FIX_BUGS
+  if (e2 != nullptr && e3 != nullptr) {
+    BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
+                        "multi message failed");
+  }
+#else
   BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
                       "multi message failed");
+#endif
 }
 
 // Scilla Library
