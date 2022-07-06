@@ -17,6 +17,7 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <ethash/keccak.hpp>
 #include "JSONConversion.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -29,6 +30,7 @@
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
+#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -87,6 +89,7 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &Server::GetCurrentDSEpochI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNodeType", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -96,215 +99,265 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetNetworkId", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNetworkIdI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &LookupServer::CreateTransactionI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTransactionI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSoftConfirmedTransaction",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetSoftConfirmedTransactionI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDsBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetDsBlockI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDsBlockVerbose", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetDsBlockVerboseI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxBlockI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlockVerbose", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxBlockVerboseI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetLatestDsBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetLatestDsBlockI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetLatestTxBlockI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetBalance", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetBalanceI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinimumGasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetMinimumGasPriceI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDSDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDSDifficultyI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDifficultyI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContracts", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractsI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetContractAddressFromTransactionID",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetContractAddressFromTransactionIDI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumPeers", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &LookupServer::GetNumPeersI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTxBlocks", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxBlocksI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumDSBlocks", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumDSBlocksI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTransactionsI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionRate", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTransactionRateI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlockRate", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTxBlockRateI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDSBlockRate", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetDSBlockRateI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetShardMembers", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::GetShardMembersI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentDSComm", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetCurrentDSCommI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::DSBlockListingI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("TxBlockListing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::TxBlockListingI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetBlockchainInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetBlockchainInfoI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetShardingStructure", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetShardingStructureI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTxnsTxEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxnsTxEpochI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTxnsDSEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxnsDSEpochI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure(
           "GetSmartContractSubState", jsonrpc::PARAMS_BY_POSITION,
           jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, "param02",
           jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_ARRAY, NULL),
       &LookupServer::GetSmartContractSubStateI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractState", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractStateI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractCode", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractCodeI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractInit", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractInitI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionsForTxBlock",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionsForTxBlockEx",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, "param02",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockExI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetPendingTxnsI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetMinerInfoI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxnBodiesForTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxnBodiesForTxBlockI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxnBodiesForTxBlockEx",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, "param02",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTxnBodiesForTxBlockExI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionStatus", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTransactionStatusI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetStateProof", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
+
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &LookupServer::GetEthCallI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetWeb3ClientVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_REAL, NULL),
+      &LookupServer::GetWeb3ClientVersionI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -882,6 +935,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
+
 string LookupServer::GetEthCall(const Json::Value& _json) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
@@ -937,6 +991,20 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
 
   result = "0x" + result;
   return result;
+}
+
+std::string LookupServer::GetWeb3ClientVersion() {
+  LOG_MARKER();
+  return "";
+}
+
+string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
+  LOG_MARKER();
+
+  const auto str{_json.asString()};
+  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
+  return POW::BlockhashToHexString(ethash::keccak256(
+      reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

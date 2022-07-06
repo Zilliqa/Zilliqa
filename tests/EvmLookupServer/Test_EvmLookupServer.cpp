@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define BOOST_TEST_MODULE lookup_server
+#define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -29,7 +29,7 @@ class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
   auto StopListening() -> bool final { return true; }
 };
 
-BOOST_AUTO_TEST_SUITE(lookup_server)
+BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   /**
@@ -176,7 +176,9 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
   Account account;
-  AccountStore::GetInstance().AddAccount(accountAddress, account);
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
@@ -212,6 +214,69 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   LOG_GENERAL(DEBUG, "Balance:" << balance);
   // the balance should be unchanged
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+}
+
+BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  class EvmClientMock : public EvmClient {
+   public:
+    EvmClientMock() = default;
+
+    auto OpenServer(bool /*force = false*/) -> bool final { return true; };
+
+    auto CallRunner(uint32_t /*version*/,                 //
+                    const Json::Value& request,           //
+                    evmproj::CallResponse& /*response*/,  //
+                    uint32_t /*counter = MAXRETRYCONN*/) -> bool final {
+      LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
+      return true;
+    };
+
+   private:
+    const uint m_GasLimit{};
+    const uint m_Amount{};
+  };
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = {"68656c6c6f20776f726c64"};
+  lookupServer.GetWeb3Sha3I(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, response.asString());
+
+  BOOST_CHECK_EQUAL(
+      response.asString(),
+      "b1e9ddd229f9a21ef978f6fcd178e74e37a4fa3d87f453bc34e772ec91328181");
+
+  // test with empty string
+  paramsRequest[0u] = {""};
+  lookupServer.GetWeb3Sha3I(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, response.asString());
+
+  BOOST_CHECK_EQUAL(
+      response.asString(),
+      "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
