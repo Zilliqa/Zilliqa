@@ -1007,6 +1007,12 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
       reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
+std::string LookupServer::GetEthMining() {
+  LOG_MARKER();
+
+  return "false";
+}
+
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {

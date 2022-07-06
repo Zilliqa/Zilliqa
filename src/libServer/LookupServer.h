@@ -303,9 +303,9 @@ class LookupServer : public Server,
   }
 
   /**
-   * @brief Handles a json rpc 2.0 request on method: web3_clientVersion
-   * Params : none
-   * Result : string with the client version
+   * @brief Handles json rpc 2.0 request on method: web3_clientVersion
+   * @param request : Params none
+   * @param response : string with the client version
    */
   inline virtual void GetWeb3ClientVersionI(const Json::Value& /*request*/,
                                             Json::Value& response) {
@@ -313,17 +313,29 @@ class LookupServer : public Server,
   }
 
   /**
-   * @brief Handles a json rpc 2.0 request on method: web3_sha3
+   * @brief Handles json rpc 2.0 request on method: web3_sha3
    * Returns Keccak-256 (not the standardized SHA3-256) of the given data.
-   * Params : [] with data that will be converted into sha3
-   * Result : The SHA3 result of the given data string.
+   * @param request : params[] with data that will be converted into sha3
+   * @param response : The SHA3 result of the given data string.
    */
   inline virtual void GetWeb3Sha3I(const Json::Value& request,
                                    Json::Value& response) {
     response = this->GetWeb3Sha3(request[0u]);
   }
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_mining.
+   * Returns true if client is actively mining new blocks.
+   * @param request : params none
+   * @param response : Boolean - returns true of the client is mining, otherwise
+   * false
+   */
+  inline virtual void GetEthMiningI(const Json::Value& /*request*/,
+                                    Json::Value& response) {
+    response = this->GetEthMining();
+  }
 
   std::string GetNetworkId();
+
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
@@ -357,6 +369,8 @@ class LookupServer : public Server,
   std::string GetEthCall(const Json::Value& _json);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
+  std::string GetEthMining();
+
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();
