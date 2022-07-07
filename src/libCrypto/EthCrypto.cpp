@@ -17,10 +17,12 @@
 
 #include "EthCrypto.h"
 #include "libUtils/Logger.h"
+#include "common/BjaseType.h"
 
-//#include <secp256k1_ecdh.h>
-//#include <secp256k1_recovery.h>
-//#include <secp256k1_sha256.h>
+//#include "secp256k1.h"
+//#include "secp256k1_ecdh.h"
+//#include "secp256k1_recovery.h"
+//#include "secp256k1_sha256.h"
 
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
@@ -194,8 +196,12 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   return ret;
 }
 
-//Public dev::recover(Signature const& _sig, h256 const& _message)
-//{
+// Sig = RSV, message = the rest
+bytes recoverECDSAPubSig(bytes const& /*_sig*/, bytes const& /*_message*/)
+{
+  bytes ret;
+
+  return ret;
 //    int v = _sig[64];
 //    if (v > 3)
 //        return {};
@@ -220,4 +226,4 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
 //    assert(serializedPubkey[0] == 0x04);
 //    // Create the Public skipping the header.
 //    return Public{&serializedPubkey[1], Public::ConstructFromPointer};
-//}
+}

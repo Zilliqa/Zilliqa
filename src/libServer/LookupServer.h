@@ -428,12 +428,12 @@ class LookupServer : public Server,
     //std::cout << rlpStream1  << std::endl;
 
     std::vector<std::string> fieldsHex{};
+    std::vector<bytes> fieldsHexBytes{};
 
     for (const auto& item : rlpStream1) {
       std::cout << "parsing"  << std::endl;
-      //std::cout << item.isList()  << std::endl;
-      //std::cout << item.isData()  << std::endl;
       auto zz = item.operator bytes();
+      fieldsHexBytes.push_back(zz);
       std::string conv;
       DataConversion::Uint8VecToHexStr(zz, conv);
       std::cout << conv << std::endl;
@@ -448,6 +448,10 @@ class LookupServer : public Server,
       response = "0x0";
       return;
     }
+
+    auto rsv = fieldsHex[6] + fieldsHex[7] + fieldsHex[8];
+
+    auto publicKeyRecovered = recoverECDSAPubSig(rsv, );
 
     response = CreateTransactionEth(fieldsHex[0], fieldsHex[1], fieldsHex[2],
                                     fieldsHex[3], fieldsHex[4], fieldsHex[5], fieldsHex[5],
