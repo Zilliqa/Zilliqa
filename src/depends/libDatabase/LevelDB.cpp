@@ -160,13 +160,12 @@ string LevelDB::Lookup(const boost::multiprecision::uint256_t& blockNum) const {
   leveldb::Status s =
       m_db->Get(leveldb::ReadOptions(), blockNum.convert_to<string>(), &value);
 
-    if (!s.ok())
-    {
-        log_error(s);
-        return "";
-    }
+  if (!s.ok()) {
+    log_error(s);
+    return "";
+  }
 
-    return value;
+  return value;
 }
 
 string LevelDB::Lookup(const boost::multiprecision::uint256_t& blockNum,
