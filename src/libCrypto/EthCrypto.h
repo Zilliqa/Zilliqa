@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 
 #include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
+#include "common/BaseType.h"
 
 #include <string>
 

@@ -17,7 +17,6 @@
 
 #include "EthCrypto.h"
 #include "libUtils/Logger.h"
-#include "common/BjaseType.h"
 
 //#include "secp256k1.h"
 //#include "secp256k1_ecdh.h"
