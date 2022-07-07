@@ -14,6 +14,7 @@
 [submodule "src/depends/Schnorr"]
 	path = src/depends/Schnorr
 	url = https://github.com/Zilliqa/schnorr.git
+	branch = fix_bn
 [submodule "src/depends/mongo-c-driver"]
 	path = src/depends/mongo-c-driver
 	url = https://github.com/mongodb/mongo-c-driver.git

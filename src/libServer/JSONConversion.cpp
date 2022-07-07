@@ -434,7 +434,9 @@ Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json) {
                                     "must contain toAddr");
   }
 
-  string lower_case_addr = boost::to_lower_copy(_json["toAddr"].asString());
+  auto lower_case_addr = _json["toAddr"].asString();
+
+  DataConversion::NormalizeHexString(lower_case_addr);
 
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
