@@ -120,6 +120,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
 
+  // todo: remove when all tests are updated to use eth_call
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
@@ -127,20 +128,31 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthCallI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("GetWeb3ClientVersion", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::GetEthCallI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetWeb3ClientVersionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("GetWeb3Sha3", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+      jsonrpc::Procedure("web3_sha3", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetWeb3Sha3I);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("GetEthMining", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_mining", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthMiningI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCoinbaseI);
 
   if (timeDelta > 0) {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -148,6 +160,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, NULL),
         &IsolatedServer::GetTransactionsForTxBlockI);
+
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_OBJECT, "param01",

@@ -49,7 +49,7 @@ class EvmClientMock : public EvmClient {
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
-BOOST_AUTO_TEST_CASE(test_get_eth_call) {
+BOOST_AUTO_TEST_CASE(test_eth_call) {
   /**
    * @brief EvmClient mock implementation te be able to inject test responses
    * from the Evm-ds server.
@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(test_get_eth_call) {
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
-BOOST_AUTO_TEST_CASE(test_get_web3_client_version) {
+BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -243,14 +243,6 @@ BOOST_AUTO_TEST_CASE(test_get_web3_client_version) {
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
-
-  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
-  Account account;
-  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    AccountStore::GetInstance().AddAccount(accountAddress, account);
-  }
-  const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
@@ -260,10 +252,10 @@ BOOST_AUTO_TEST_CASE(test_get_web3_client_version) {
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "");
+  BOOST_CHECK_EQUAL(response.asString(), "to do implement web3 version string");
 }
 
-BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
+BOOST_AUTO_TEST_CASE(test_web3_sha3) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -275,19 +267,11 @@ BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
 
-  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
-  Account account;
-  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    AccountStore::GetInstance().AddAccount(accountAddress, account);
-  }
-  const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
-
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = {"68656c6c6f20776f726c64"};
+  paramsRequest[0u] = "68656c6c6f20776f726c64";
   lookupServer.GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
@@ -297,7 +281,7 @@ BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
       "b1e9ddd229f9a21ef978f6fcd178e74e37a4fa3d87f453bc34e772ec91328181");
 
   // test with empty string
-  paramsRequest[0u] = {""};
+  paramsRequest[0u] = "";
   lookupServer.GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
@@ -307,7 +291,7 @@ BOOST_AUTO_TEST_CASE(test_get_web3_sha3) {
       "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
 }
 
-BOOST_AUTO_TEST_CASE(test_get_eth_mining) {
+BOOST_AUTO_TEST_CASE(test_eth_mining) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -318,14 +302,6 @@ BOOST_AUTO_TEST_CASE(test_get_eth_mining) {
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
-
-  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
-  Account account;
-  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    AccountStore::GetInstance().AddAccount(accountAddress, account);
-  }
-  const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
@@ -338,4 +314,80 @@ BOOST_AUTO_TEST_CASE(test_get_eth_mining) {
   BOOST_CHECK_EQUAL(response.asString(), "false");
 }
 
+BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    Account account;
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  lookupServer.GetEthCoinbaseI(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, response.asString());
+
+  BOOST_CHECK_EQUAL(response.asString(), "");
+}
+
+BOOST_AUTO_TEST_CASE(test_net_version) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  lookupServer.GetNetVersionI(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, response.asString());
+
+  BOOST_CHECK_EQUAL(response.asString(), "");
+}
+
+BOOST_AUTO_TEST_CASE(test_net_listening) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  lookupServer.GetNetListening(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, response.asString());
+
+  BOOST_CHECK_EQUAL(response.asString(), "false");
+}
 BOOST_AUTO_TEST_SUITE_END()

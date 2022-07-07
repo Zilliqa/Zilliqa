@@ -322,6 +322,7 @@ class LookupServer : public Server,
                                    Json::Value& response) {
     response = this->GetWeb3Sha3(request[0u]);
   }
+
   /**
    * @brief Handles json rpc 2.0 request on method: eth_mining.
    * Returns true if client is actively mining new blocks.
@@ -332,6 +333,40 @@ class LookupServer : public Server,
   inline virtual void GetEthMiningI(const Json::Value& /*request*/,
                                     Json::Value& response) {
     response = this->GetEthMining();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_coinbase.
+   * Returns the client coinbase address. The coinbase address is the
+   * account to pay mining rewards to.
+   * @param request : params none
+   * @param response : string, 20 bytes with the current coinbase address. e.g.
+   * 0x407d73d8a49eeb85d32cf465507dd71d507100c1
+   */
+  virtual void GetEthCoinbaseI(const Json::Value& /*request*/,
+                               Json::Value& response) {
+    response = this->GetEthCoinbase();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: net_version. Returns the
+   * chain_id of zilliqa.
+   * @param request : params none
+   * @param response : string with the zilliqa chain_id
+   */
+  virtual void GetNetVersionI(const Json::Value& /*request*/,
+                              Json::Value& response) {
+    response = this->GetNetVersion();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: net_listening.
+   * @param request : params none
+   * @param response : Boolean - true when listening, otherwise false.
+   */
+  virtual void GetNetListening(const Json::Value& /*request*/,
+                               Json::Value& response) {
+    response = this->GetNetListening();
   }
 
   std::string GetNetworkId();
@@ -370,6 +405,9 @@ class LookupServer : public Server,
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
   std::string GetEthMining();
+  std::string GetEthCoinbase();
+  std::string GetNetVersion();
+  std::string GetNetListening();
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();

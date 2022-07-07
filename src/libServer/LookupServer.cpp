@@ -348,6 +348,7 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
 
+  // todo: remove when all tests are updated to use eth_call
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
@@ -355,9 +356,31 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthCallI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("GetWeb3ClientVersion", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_REAL, NULL),
+      jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::GetEthCallI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("Web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetWeb3ClientVersionI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("web3_sha3", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetWeb3Sha3I);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_mining", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetWeb3Sha3I);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCoinbaseI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -995,7 +1018,7 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
 
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
-  return "";
+  return "to do implement web3 version string";
 }
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
@@ -1011,6 +1034,21 @@ std::string LookupServer::GetEthMining() {
   LOG_MARKER();
   // @todo : the mining state a could be retrieved from the WorkServer if it can
   // provide the exact state of mining.
+  return "false";
+}
+
+std::string LookupServer::GetEthCoinbase() {
+  LOG_MARKER();
+  return "";
+}
+
+std::string LookupServer::GetNetVersion() {
+  LOG_MARKER();
+  return "";
+}
+
+std::string LookupServer::GetNetListening() {
+  LOG_MARKER();
   return "false";
 }
 
