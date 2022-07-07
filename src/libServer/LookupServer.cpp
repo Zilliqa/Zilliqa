@@ -1009,7 +1009,8 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
 
 std::string LookupServer::GetEthMining() {
   LOG_MARKER();
-
+  // @todo : the mining state a could be retrieved from the WorkServer if it can
+  // provide the exact state of mining.
   return "false";
 }
 
