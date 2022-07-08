@@ -383,6 +383,11 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthCoinbaseI);
 
   this->bindAndAddMethod(
+      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetNetListeningI);
+
+  this->bindAndAddMethod(
       jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNetListeningI);
@@ -406,6 +411,11 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_syncing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthSyncingI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_accounts", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthAccountsI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -1056,11 +1066,11 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
       reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
-std::string LookupServer::GetEthMining() {
+Json::Value LookupServer::GetEthMining() {
   LOG_MARKER();
   // @todo : the mining state a could be retrieved from the WorkServer if it can
   // provide the exact state of mining.
-  return "false";
+  return Json::Value(false);
 }
 
 std::string LookupServer::GetEthCoinbase() {
@@ -1073,9 +1083,9 @@ std::string LookupServer::GetNetVersion() {
   return "";
 }
 
-std::string LookupServer::GetNetListening() {
+Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
-  return "false";
+  return Json::Value(false);
 }
 
 std::string LookupServer::GetNetPeerCount() {
@@ -1095,8 +1105,14 @@ std::string LookupServer::GetEthChainId() {
 
 Json::Value LookupServer::GetEthSyncing() {
   LOG_MARKER();
-  Json::Value returnJson = false;
+  const Json::Value returnJson = false;
   return returnJson;
+}
+
+Json::Value LookupServer::GetEthAccounts() {
+  LOG_MARKER();
+  const Json::Value expectedResponse = Json::arrayValue;
+  return expectedResponse;
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

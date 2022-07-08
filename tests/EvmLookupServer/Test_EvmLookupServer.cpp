@@ -483,8 +483,32 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
   lookupServer.GetEthSyncingI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
-  const Json::Value expectedReponse{false};
-  BOOST_CHECK_EQUAL(response, expectedReponse);
+  const Json::Value expectedResponse{false};
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_accounts) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthAccountsI(paramsRequest, response);
+
+  LOG_GENERAL(DEBUG, response.asString());
+  const Json::Value expectedResponse = Json::arrayValue;
+  BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

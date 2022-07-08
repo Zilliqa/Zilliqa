@@ -421,6 +421,17 @@ class LookupServer : public Server,
     response = this->GetEthSyncing();
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_accounts
+   * Returns a list of addresses owned by client.
+   * @param request : params none
+   * @param response : Array of DATA, 20 Bytes - addresses owned by the client.
+   */
+  virtual void GetEthAccountsI(const Json::Value& /*request*/,
+                               Json::Value& response) {
+    response = this->GetEthAccounts();
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -456,14 +467,15 @@ class LookupServer : public Server,
   std::string GetEthCall(const Json::Value& _json);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
-  std::string GetEthMining();
+  Json::Value GetEthMining();
   std::string GetEthCoinbase();
   std::string GetNetVersion();
-  std::string GetNetListening();
+  Json::Value GetNetListening();
   std::string GetNetPeerCount();
   std::string GetProtocolVersion();
   std::string GetEthChainId();
   Json::Value GetEthSyncing();
+  Json::Value GetEthAccounts();
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
