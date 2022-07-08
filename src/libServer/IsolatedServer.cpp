@@ -154,6 +154,31 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCoinbaseI);
 
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetNetListeningI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("net_peerCount", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetNetPeerCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetProtocolVersionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthChainIdI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_syncing", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthSyncingI);
+
   if (timeDelta > 0) {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("GetTransactionsForTxBlock",

@@ -382,6 +382,31 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCoinbaseI);
 
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetNetListeningI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetProtocolVersionI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("net_peerCount", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetNetPeerCountI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthChainIdI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_syncing", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthSyncingI);
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -1026,6 +1051,7 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
 
   const auto str{_json.asString()};
   LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
+
   return POW::BlockhashToHexString(ethash::keccak256(
       reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
@@ -1050,6 +1076,27 @@ std::string LookupServer::GetNetVersion() {
 std::string LookupServer::GetNetListening() {
   LOG_MARKER();
   return "false";
+}
+
+std::string LookupServer::GetNetPeerCount() {
+  LOG_MARKER();
+  return "0x0";
+}
+
+std::string LookupServer::GetProtocolVersion() {
+  LOG_MARKER();
+  return "";
+}
+
+std::string LookupServer::GetEthChainId() {
+  LOG_MARKER();
+  return "0x0";
+}
+
+Json::Value LookupServer::GetEthSyncing() {
+  LOG_MARKER();
+  Json::Value returnJson = false;
+  return returnJson;
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

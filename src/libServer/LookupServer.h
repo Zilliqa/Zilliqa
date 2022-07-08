@@ -364,9 +364,61 @@ class LookupServer : public Server,
    * @param request : params none
    * @param response : Boolean - true when listening, otherwise false.
    */
-  virtual void GetNetListening(const Json::Value& /*request*/,
-                               Json::Value& response) {
+  virtual void GetNetListeningI(const Json::Value& /*request*/,
+                                Json::Value& response) {
     response = this->GetNetListening();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: net_peerCount.
+   * Returns number of peers currently connected to the client.
+   * @param request : params none
+   * @param response : QUANTITY - hex string of the number of connected peers.
+   */
+  virtual void GetNetPeerCountI(const Json::Value& /*request*/,
+                                Json::Value& response) {
+    response = this->GetNetPeerCount();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_protocolVersion.
+   * Returns the current Ethereum protocol version.
+   * @param request : params none
+   * @param response : String - The current Ethereum protocol version
+   */
+  virtual void GetProtocolVersionI(const Json::Value& /*request*/,
+                                   Json::Value& response) {
+    response = this->GetProtocolVersion();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_chainId.
+   * Zilliqa's chainId on ethereum
+   * @param request : params none
+   * @param response : QUANTITY - hex string of the chain id
+   */
+  virtual void GetEthChainIdI(const Json::Value& /*request*/,
+                              Json::Value& response) {
+    response = this->GetEthChainId();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_syncing
+   * Returns an object with data about the sync status or false.
+   * @param request : params none
+   * @param response : Object|Boolean, An object with sync status data or FALSE,
+   * when not syncing:
+   *
+   * startingBlock: QUANTITY - The block at which the import started (will only
+   * be reset, after the sync reached his head)
+   *
+   * currentBlock: QUANTITY - The current block, same as eth_blockNumber
+   *
+   * highestBlock: QUANTITY - The estimated highest block
+   */
+  virtual void GetEthSyncingI(const Json::Value& /*request*/,
+                              Json::Value& response) {
+    response = this->GetEthSyncing();
   }
 
   std::string GetNetworkId();
@@ -408,6 +460,10 @@ class LookupServer : public Server,
   std::string GetEthCoinbase();
   std::string GetNetVersion();
   std::string GetNetListening();
+  std::string GetNetPeerCount();
+  std::string GetProtocolVersion();
+  std::string GetEthChainId();
+  Json::Value GetEthSyncing();
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
