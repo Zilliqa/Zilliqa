@@ -506,7 +506,6 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
 
   lookupServer.GetEthAccountsI(paramsRequest, response);
 
-  LOG_GENERAL(DEBUG, response.asString());
   const Json::Value expectedResponse = Json::arrayValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
