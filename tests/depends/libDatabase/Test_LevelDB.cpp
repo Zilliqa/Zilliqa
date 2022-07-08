@@ -121,6 +121,7 @@ BOOST_AUTO_TEST_CASE(iterator_order) {
     uint64_t key = stoull(iter->key().ToString());
     LOG_GENERAL(INFO, "num: " << key)
   }
+  delete iter;
 }
 
 BOOST_AUTO_TEST_SUITE_END()
