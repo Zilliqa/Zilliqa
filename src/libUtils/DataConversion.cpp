@@ -45,6 +45,20 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   return true;
 }
 
+bytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
+  bytes out;
+  try {
+    out.clear();
+    boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
+                            back_inserter(out));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: "
+        << e.what());
+    return out;
+  }
+  return out;
+}
+
 bool DataConversion::HexStrToStdArray(const string& hex_input,
                                       array<uint8_t, 32>& d) {
   d = {{0}};
@@ -78,6 +92,18 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
     return false;
   }
   return true;
+}
+
+std::string DataConversion::Uint8VecToHexStrRet(const bytes& hex_vec) {
+  std::string str;
+  try {
+    str = "";
+    boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
+    return str;
+  }
+  return str;
 }
 
 bool DataConversion::StringToHexStr(const string& hex_str, string& str) {

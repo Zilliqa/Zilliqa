@@ -450,6 +450,18 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   // The public key must be uncompressed!
   auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
+  //for(auto const&item : publicKey) {
+  //  std::cout << std::hex << (int)item;
+  //}
+    //cout << hex << setfill('0') << setw(2) << (int)publicKey[i] << " ";
+  bytes asBytes;
+
+  for (size_t i = 0; i < publicKey.size(); ++i){
+    asBytes.push_back(publicKey[i]);
+  }
+
+  std::cout << DataConversion::Uint8VecToHexStrRet(asBytes) << std::endl;
+
   // Do not hash the first byte, as it specifies the encoding
   auto result = ethash::keccak256(
       reinterpret_cast<const uint8_t*>(&publicKey[1]), publicKey.size() - 1);

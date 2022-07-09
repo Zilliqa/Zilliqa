@@ -17,10 +17,11 @@
 
 #include "EthCrypto.h"
 #include "libUtils/Logger.h"
+#include "libUtils/DataConversion.h"
 
-//#include "secp256k1.h"
+#include "secp256k1.h"
+#include "secp256k1_recovery.h"
 //#include "secp256k1_ecdh.h"
-//#include "secp256k1_recovery.h"
 //#include "secp256k1_sha256.h"
 
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
@@ -195,10 +196,108 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   return ret;
 }
 
+secp256k1_context const* getCtx()
+{
+  static std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)> s_ctx{
+      secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY),
+      &secp256k1_context_destroy
+  };
+  return s_ctx.get();
+}
+
 // Sig = RSV, message = the rest
-bytes recoverECDSAPubSig(bytes const& /*_sig*/, bytes const& /*_message*/)
+bytes recoverECDSAPubSig(bytes rsv, std::string message)
 {
   bytes ret;
+
+  for (int i = 0;i < 4; i++) {
+    rsv = DataConversion::HexStrToUint8VecRet(
+        "28ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa63627667cbe9d8997f761aecb703304b3800ccf555c9f3dc64214b297fb1966a3b6d83");
+
+    rsv = DataConversion::HexStrToUint8VecRet(
+        "ef808533b03b2c0082520894b794f5ea0ba39494ce839613fffba742795792688906046f37e5945c000080820cef8080"); // works...
+
+    rsv = DataConversion::HexStrToUint8VecRet(
+        "b7b2d5fb893d10d57c1bc0eb7cae850dd84348da5156b492f8210ef35767e27e7cc57e63efc497817286061faf1698a0cbdc4b769c50c77f81abdf6d0c4d7ea0"); // no works...
+
+
+   //// // The reverse
+    //rsv = DataConversion::HexStrToUint8VecRet( "67cbe9d8997f761aecb703304b3800ccf555c9f3dc64214b297fb1966a3b6d8328ef61340bd939bc2195fe537567866003e1a15d3c71ff63e1590620aa636276");
+    message =
+        "ee8085e8990a460082520894b794f5ea0ba39494ce839613fffba74279579268880de0b6b3a7640000808206668080";
+
+    bytes tmp;
+
+    auto sigDataBytes = DataConversion::HexStrToUint8VecRet(message);
+    auto signingHash =
+        ethash::keccak256(sigDataBytes.data(), sigDataBytes.size());
+
+    //for (auto const& item : signingHash.bytes) {
+    //  tmp.push_back(item);
+    //}
+
+    //std::cout << DataConversion::Uint8VecToHexStrRet(tmp) << std::endl;
+
+    int v = rsv[64];
+    v = i;
+
+    // First check that the generated hash
+    auto* ctx = getCtx();
+    secp256k1_ecdsa_recoverable_signature rawSig;
+    if (!secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &rawSig,
+                                                             rsv.data(), v)) {
+      std::cerr << "RIP1" << std::endl;
+      return {};
+    } else {
+      std::cerr << "PARSED COMPACT SIGNATURE(!!)" << std::endl;
+    }
+
+    secp256k1_pubkey rawPubkey;
+    if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, &signingHash.bytes[0])) {
+      std::cerr << "RIP2" << std::endl;
+      continue;
+      //return {};
+    } else {
+      std::cerr << "PARSED PUB KEY(!!)" << std::endl;
+    }
+
+    //std::array<byte, 65> serializedPubkey;
+    bytes serializedPubkey(65);
+    size_t serializedPubkeySize = serializedPubkey.size();
+    secp256k1_ec_pubkey_serialize(
+            ctx, serializedPubkey.data(), &serializedPubkeySize,
+            &rawPubkey, SECP256K1_EC_UNCOMPRESSED
+    );
+
+    std::string pubK;
+    bytes mee{};
+
+    for (auto const& item : rawPubkey.data) {
+      mee.push_back(item);
+    }
+
+    DataConversion::Uint8VecToHexStr(mee, pubK);
+    DataConversion::NormalizeHexString(pubK);
+
+    // pubK = "1419977507436a81dd0ac7beb6c7c0deccbf1a1a1a5e595f647892628a0f65bc9d19cbf0712f881b529d39e7f75d543dc3e646880a0957f6e6df5c1b5d0eb278";
+    // pubK = "4bc2a31265153f07e70e0bab08724e6b85e217f8cd628ceb62974247bb493382ce28cab79ad7119ee1ad3ebcdb98a16805211530ecc6cfefa1b88e6dff99232a";
+
+    auto asBytes = DataConversion::HexStrToUint8VecRet(pubK);
+
+    std::cout << "PUBK: " << pubK << std::endl;
+    std::cout << "PUBK: " << DataConversion::Uint8VecToHexStrRet(serializedPubkey) << std::endl;
+
+    ////auto plzwork = ethash::keccak256(
+    // reinterpret_cast<const uint8_t*>(pubK.c_str()), pubK.size() - 1);
+
+    auto plzwork = ethash::keccak256(asBytes.data(), asBytes.size());
+
+    std::string res;
+    boost::algorithm::hex(&plzwork.bytes[12], &plzwork.bytes[32],
+                          back_inserter(res));
+
+    std::cout << "Hopeful:" << res << std::endl;
+  }
 
   return ret;
 //    int v = _sig[64];

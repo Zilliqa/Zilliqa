@@ -39,6 +39,8 @@ class DataConversion {
   /// Converts alphanumeric hex string to byte vector.
   static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
 
+  static bytes HexStrToUint8VecRet(const std::string& hex_input);
+
   /// Converts alphanumeric hex string to 32-byte array.
   static bool HexStrToStdArray(const std::string& hex_input,
                                std::array<uint8_t, 32>& d);
@@ -52,6 +54,8 @@ class DataConversion {
 
   /// Converts byte vector to alphanumeric hex string.
   static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
+
+  static std::string Uint8VecToHexStrRet(const bytes& hex_vec);
 
   /// Converts byte vector to alphanumeric hex string.
   static bool Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,

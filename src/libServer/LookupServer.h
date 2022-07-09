@@ -22,6 +22,7 @@
 #include "libUtils/Logger.h"
 #include "Server.h"
 #include "depends/common/RLP.h"
+#include "libCrypto/EthCrypto.h"
 
 class Mediator;
 
@@ -274,7 +275,7 @@ class LookupServer : public Server,
                                       Json::Value& response) {
     (void)request;
     // response = this->GetBlocknum();
-    static uint64_t block_number = 9;
+    static uint64_t block_number = 2675001;
     block_number++;
 
     std::stringstream stream;
@@ -411,28 +412,40 @@ class LookupServer : public Server,
 
     //std::string twoItemListString = "\xc5\x0f\x83""dog";
     dev::RLP rlpStream1(out);
-    //rlpStream1 << "aaa"
-               //<< "AAA";
+    dev::RLPStream rlpStream2(9);
+    dev::RLPStream rlpStream3(9);
 
-
-    //auto bytes = rlpStream1.out();
-    //std::cout << bytes[0]  << std::endl;
-    //std::cout << rlpStream1[0].toString()  << std::endl;
-    //std::cout << rlpStream1[1].toString()  << std::endl;
-    //std::cout << rlpStream1[0]  << std::endl;
-    //std::cout << rlpStream1[1]  << std::endl;
-    //std::cout << rlpStream1.isList()  << std::endl;
-    //std::cout << rlpStream1[0].isList()  << std::endl;
-    //std::cout << rlpStream1[1].isList()  << std::endl;
-    //std::cout << rlpStream1.itemCount()  << std::endl;
-    //std::cout << rlpStream1  << std::endl;
+    std::cout << "Parsed rlp stream is: " << rlpStream1  << std::endl;
 
     std::vector<std::string> fieldsHex{};
     std::vector<bytes> fieldsHexBytes{};
+    bytes message;
+    bytes rsv;
+    int i = 0;
 
     for (const auto& item : rlpStream1) {
       std::cout << "parsing"  << std::endl;
       auto zz = item.operator bytes();
+
+
+      if (i <= 5) {
+        message.insert(message.end(), zz.begin(), zz.end());
+        rlpStream3 << zz;
+      } else {
+        rsv.insert(rsv.end(), zz.begin(), zz.end());
+      }
+
+      if (i == 6) {
+        //rlpStream3 << DataConversion::HexStrToUint8VecRet("01");
+        rlpStream3 << zz;
+      }
+
+      if (i == 7 || i == 8) {
+        rlpStream3 << bytes{};
+      }
+
+      i++;
+
       fieldsHexBytes.push_back(zz);
       std::string conv;
       DataConversion::Uint8VecToHexStr(zz, conv);
@@ -449,12 +462,42 @@ class LookupServer : public Server,
       return;
     }
 
-    auto rsv = fieldsHex[6] + fieldsHex[7] + fieldsHex[8];
+    //auto rsv = fieldsHexBytes[6] + fieldsHexBytes[7] + fieldsHexBytes[8];
+    //auto message = fieldsHexBytes[6] + fieldsHexBytes[7] + fieldsHexBytes[8];
 
-    auto publicKeyRecovered = recoverECDSAPubSig(rsv, );
+    // Test the message signature thingie
+    // From EIP-155 Consider a transaction with nonce = 9,
+    // gasprice = 20 * 10**9, startgas = 21000,
+    // to = 0x3535353535353535353535353535353535353535,
+    // value = 10**18, data='' (empty).
+
+    rlpStream2 << DataConversion::HexStrToUint8VecRet("09")
+               << DataConversion::HexStrToUint8VecRet("04A817C800")
+               << DataConversion::HexStrToUint8VecRet("5208")
+               << DataConversion::HexStrToUint8VecRet("3535353535353535353535353535353535353535")
+               << DataConversion::HexStrToUint8VecRet("0de0b6b3a7640000")
+               << DataConversion::HexStrToUint8VecRet("")
+               << DataConversion::HexStrToUint8VecRet("01")
+               << DataConversion::HexStrToUint8VecRet("")
+               << DataConversion::HexStrToUint8VecRet("");
+
+    std::cout << "RLP stream is: " << std::endl;
+    auto outBytes = rlpStream2.out();
+    std::string retme;
+    DataConversion::Uint8VecToHexStr(outBytes, retme);
+    std::cout << retme << std::endl;
+
+    std::cout << "second rlp stream is: " << std::endl;
+    outBytes = rlpStream3.out();
+    DataConversion::Uint8VecToHexStr(outBytes, retme);
+
+    DataConversion::NormalizeHexString(retme);
+    std::cout << retme << std::endl;
+
+    auto publicKeyRecovered = recoverECDSAPubSig(rsv, retme);
 
     response = CreateTransactionEth(fieldsHex[0], fieldsHex[1], fieldsHex[2],
-                                    fieldsHex[3], fieldsHex[4], fieldsHex[5], fieldsHex[5],
+                                    fieldsHex[3], fieldsHex[4], fieldsHex[5],
                                     fieldsHex[6], fieldsHex[7], fieldsHex[8]);
 
     response = "0x0";
@@ -491,7 +534,6 @@ class LookupServer : public Server,
                                    const std::string& gasLimit,
                                    const std::string& toAddr,
                                    const std::string& amount,
-                                   const std::string& code,
                                    const std::string& data,
                                    const std::string& R,
                                    const std::string& S,

@@ -753,7 +753,7 @@ Json::Value LookupServer::CreateTransaction(
 Json::Value LookupServer::CreateTransactionEth(
     const std::string& nonce, const std::string& gasPrice,
     const std::string& gasLimit,const std::string& toAddr,
-    const std::string& amount, const std::string& code, const std::string& data,
+    const std::string& amount, const std::string& data,
     const std::string& R, const std::string& S, const std::string& V) {
   LOG_MARKER();
 
@@ -766,7 +766,8 @@ Json::Value LookupServer::CreateTransactionEth(
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
-  Transaction tx{nonce, gasPrice, gasLimit, toAddr, amount, code, data, R, S, V};
+  // todo: double dataaaaaaa...
+  Transaction tx{nonce, gasPrice, gasLimit, toAddr, amount, data, data, R, S, V};
 
   //Transaction tx = JSONConversion::convertJsontoTx(_json);
 
