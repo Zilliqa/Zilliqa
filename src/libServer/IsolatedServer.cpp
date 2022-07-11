@@ -157,7 +157,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetListeningI);
+      &LookupServer::GetNetVersionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,

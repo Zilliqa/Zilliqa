@@ -25,8 +25,8 @@
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
-  auto StartListening() -> bool final { return true; }
-  auto StopListening() -> bool final { return true; }
+  bool StartListening() final { return true; }
+  bool StopListening() final { return true; }
 };
 
 /**
@@ -36,12 +36,12 @@ class EvmClientMock : public EvmClient {
  public:
   EvmClientMock() = default;
 
-  auto OpenServer(bool /*force = false*/) -> bool { return true; };
+  bool OpenServer(bool /*force = false*/) { return true; };
 
-  auto CallRunner(uint32_t /*version*/,                 //
+  bool CallRunner(uint32_t /*version*/,                 //
                   const Json::Value& request,           //
                   evmproj::CallResponse& /*response*/,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) -> bool {
+                  uint32_t /*counter = MAXRETRYCONN*/) {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
     return true;
   };
@@ -60,10 +60,10 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
         : m_GasLimit(gasLimit),  //
           m_Amount(amount){};
 
-    auto CallRunner(uint32_t /*version*/,             //
+    bool CallRunner(uint32_t /*version*/,             //
                     const Json::Value& request,       //
                     evmproj::CallResponse& response,  //
-                    uint32_t /*counter = MAXRETRYCONN*/) -> bool final {
+                    uint32_t /*counter = MAXRETRYCONN*/) final {
       //
       LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
@@ -460,7 +460,7 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "0x0");
+  BOOST_CHECK_EQUAL(response.asString(), "0x814d");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_syncing) {

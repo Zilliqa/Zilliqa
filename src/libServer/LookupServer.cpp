@@ -19,6 +19,7 @@
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include "JSONConversion.h"
+#include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
@@ -362,7 +363,7 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthCallI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("Web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetWeb3ClientVersionI);
 
@@ -375,7 +376,7 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_mining", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetWeb3Sha3I);
+      &LookupServer::GetEthMiningI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
@@ -385,7 +386,7 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetListeningI);
+      &LookupServer::GetNetVersionI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,
@@ -1100,13 +1101,12 @@ std::string LookupServer::GetProtocolVersion() {
 
 std::string LookupServer::GetEthChainId() {
   LOG_MARKER();
-  return "0x0";
+  return ETH_CHAINID;
 }
 
 Json::Value LookupServer::GetEthSyncing() {
   LOG_MARKER();
-  const Json::Value returnJson = false;
-  return returnJson;
+  return Json::Value(false);
 }
 
 Json::Value LookupServer::GetEthAccounts() {
