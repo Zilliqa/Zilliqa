@@ -736,3 +736,5 @@ const std::string EVM_SERVER_SOCKET_PATH{
     ReadConstantString("EVM_SERVER_SOCKET_PATH", "node.jsonrpc.")};
 const std::string EVM_SERVER_BINARY{
     ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};
+const std::string ETH_CHAINID{
+    ReadConstantString("ETH_CHAINID", "node.jsonrpc.")};
