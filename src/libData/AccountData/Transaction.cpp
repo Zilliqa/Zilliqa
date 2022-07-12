@@ -41,36 +41,36 @@ Transaction::Transaction(const bytes& src, unsigned int offset) {
   Deserialize(src, offset);
 }
 
-Transaction::Transaction(const std::string& nonce, const std::string& gasPrice,
-  const std::string& gasLimit,const std::string& toAddr,
-  const std::string& amount, const std::string&, const std::string&,
-  const std::string&, const std::string&, const std::string&)
-{
-  // temp hardcode version as eth-style
-  this->m_coreInfo.version = 65538;
-  this->m_coreInfo.nonce = stoi(nonce);
-  this->m_coreInfo.gasPrice = stoi(gasPrice);
-  this->m_coreInfo.gasLimit = stoi(gasLimit);
-  this->m_coreInfo.amount = stoi(amount);
-  //this->m_coreInfo.code = stoi(amount);
-  //this->m_coreInfo.data = stoi(amount);
-
-  bytes toAddrBytes;
-  DataConversion::HexStrToUint8Vec(toAddr, toAddrBytes);
-
-  this->m_coreInfo.toAddr = Address{toAddrBytes};
-
-  //: version(versionInput),
-  //    nonce(nonceInput),
-  //    toAddr(toAddrInput),
-  //    senderPubKey(senderPubKeyInput),
-  //    amount(amountInput),
-  //    gasPrice(gasPriceInput),
-  //    gasLimit(gasLimitInput),
-  //    code(codeInput),
-  //    data(dataInput) {fd
-
-}
+//Transaction::Transaction(const std::string& nonce, const std::string& gasPrice,
+//  const std::string& gasLimit,const std::string& toAddr,
+//  const std::string& amount, const std::string&, const std::string&,
+//  const std::string&, const std::string&, const std::string&)
+//{
+//  // temp hardcode version as eth-style
+//  this->m_coreInfo.version = 65538;
+//  this->m_coreInfo.nonce = stoi(nonce);
+//  this->m_coreInfo.gasPrice = stoi(gasPrice);
+//  this->m_coreInfo.gasLimit = stoi(gasLimit);
+//  this->m_coreInfo.amount = stoi(amount);
+//  //this->m_coreInfo.code = stoi(amount);
+//  //this->m_coreInfo.data = stoi(amount);
+//
+//  bytes toAddrBytes;
+//  DataConversion::HexStrToUint8Vec(toAddr, toAddrBytes);
+//
+//  this->m_coreInfo.toAddr = Address{toAddrBytes};
+//
+//  //: version(versionInput),
+//  //    nonce(nonceInput),
+//  //    toAddr(toAddrInput),
+//  //    senderPubKey(senderPubKeyInput),
+//  //    amount(amountInput),
+//  //    gasPrice(gasPriceInput),
+//  //    gasLimit(gasLimitInput),
+//  //    code(codeInput),
+//  //    data(dataInput) {fd
+//
+//}
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PairOfKey& senderKeyPair,

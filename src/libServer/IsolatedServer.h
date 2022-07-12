@@ -49,6 +49,27 @@ class IsolatedServer : public LookupServer,
     response = this->CreateTransaction(request[0u]);
   }
 
+  inline virtual void SendRawTransactionI(const Json::Value& request,
+                                         Json::Value& response) {
+    (void)request;
+    std::cout << "Got raw TX (standalone)!!!" << std::endl;
+    auto rawTx = request[0u].asString();
+
+    // Erase '0x' at the beginning if it exists
+    if (rawTx[1] == 'x') {
+      rawTx.erase(0, 2);
+    }
+
+    std::cout << rawTx << std::endl;
+
+    auto pubKey = recoverECDSAPubSig(rawTx, CHAIN_ID_ETH);
+    auto fields = parseRawTxFields(rawTx);
+
+    auto resp = CreateTransactionEth(fields, pubKey);
+
+    response = resp["TranID"];
+  }
+
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
                                         Json::Value& response) {
     response = this->IncreaseBlocknum(request[0u].asUInt());
@@ -89,6 +110,7 @@ class IsolatedServer : public LookupServer,
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
+  Json::Value CreateTransactionEth(EthFields const& fields, bytes const& pubKey);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);

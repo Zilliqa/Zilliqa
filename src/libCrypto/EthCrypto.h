@@ -20,6 +20,7 @@
 
 #include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
 #include "common/BaseType.h"
+#include <Schnorr.h>
 
 #include <string>
 
@@ -35,6 +36,22 @@ bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
 // per the 'Standards for Efficient Cryptography' specification
 std::string ToUncompressedPubKey(const std::string& pubKey);
 
-bytes recoverECDSAPubSig(bytes rsv, std::string message);
+bytes recoverECDSAPubSig(std::string const& message, int chain_id);
+
+struct EthFields {
+  uint32_t version{};
+  uint64_t nonce{};  // counter: the number of tx from m_fromAddr
+  bytes toAddr;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint64_t gasLimit{};
+  bytes code;
+  bytes data;
+  bytes signature;
+};
+
+EthFields parseRawTxFields(std::string const& message);
+
+PubKey toPubKey(bytes const& key);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

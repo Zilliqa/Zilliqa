@@ -68,6 +68,27 @@ Address ToBase16AddrHelper(const std::string& addr) {
   return convertedAddr;
 }
 
+Json::Value populateReceiptHelper(std::string const& txnhash) {
+
+  Json::Value ret;
+
+  ret["transactionHash"] = txnhash;
+  ret["blockHash"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  ret["blockNumber"] = "0x429d3b";
+  ret["contractAddress"] = nullptr;
+  ret["cumulativeGasUsed"] = "0x64b559";
+  ret["from"] = "0x999"; // todo: fill
+  ret["gasUsed"] = "0xcaac";
+  ret["logs"].append(Json::Value());
+  ret["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
+  ret["root"] = "0x0000000000000000000000000000000000000000000000000000000000001010";
+  ret["status"] = nullptr;
+  ret["to"] = "0x888"; // todo: fill
+  ret["transactionIndex"] = "0x777"; // todo: fill
+
+  return ret;
+}
+
 }  // namespace
 
 //[warning] do not make this constant too big as it loops over blockchain
@@ -376,6 +397,7 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::SendRawTransactionI);
 
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -388,6 +410,43 @@ LookupServer::LookupServer(Mediator& mediator,
   random_device rd;
   m_eng = mt19937(rd());
 }
+
+//{
+//    "jsonrpc": "2.0",
+//    "id": 0,
+//    "result": {
+//        "blockHash": "0x6357724a8ccd4dc6f175267395466c005be8ca70f1a67d2232774e8b0fb968ae",
+//        "blockNumber": "0xf8ff26",
+//        "contractAddress": null,
+//        "cumulativeGasUsed": "0x24cf9c",
+//        "from": "0x0e11795884b28b08f9978bb85938280967cda041",
+//        "gasUsed": "0x303ab",
+//        "logs": [
+//            {
+//                "address": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
+//                "topics": [
+//                    "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb",
+//                    "0x000000000000000000000000cf5cea15e49b33b70a0bef2d42a46425c54c80a1",
+//                    "0x000000000000000000000000cf5cea15e49b33b70a0bef2d42a46425c54c80a1",
+//                    "0x0000000000000000000000000000000000000000000000000000000000000000"
+//                ],
+//                "data": "0x000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000002cb4e96cda2b16481b25e3d2b2cab2bd5c74e15de2495d5f78aa3b3fab67f94b87815b4e593d58ca91f171be3dd89ee2005a61df0a00445b8411dda6564c36ed0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000067d109f00000000000000000000000000000000000000000000000000000000067d109f",
+//                "blockNumber": "0xf8ff26",
+//                "transactionHash": "0x9ee9891518b06f4b5bf76a4bef4ba6d93e8d38a17b7aaad492f5555865da7dbb",
+//                "transactionIndex": "0xc",
+//                "blockHash": "0x6357724a8ccd4dc6f175267395466c005be8ca70f1a67d2232774e8b0fb968ae",
+//                "logIndex": "0x63",
+//                "removed": false
+//            }
+//        ],
+//        "logsBloom": "0x04000000020000000000000000000000000000000000000000000000002040000000000000000000000000000000000010008000000000000000000100000040000000000000000000000008000600800000000000000000002100000002000000000000020000000000000000000800000000000800000180000112000000000001000002000000000080000000000000100000020010000000000000000000200000000400800000000000000001000000000000000000000000000000024000000042000000000001800000000000000404000400000000180000000020000800008000000000040000000000000000000020000000000000000002100002",
+//        "status": "0x1",
+//        "to": "0xd216153c06e857cd7f72665e0af1d7d82172f494",
+//        "transactionHash": "0x9ee9891518b06f4b5bf76a4bef4ba6d93e8d38a17b7aaad492f5555865da7dbb",
+//        "transactionIndex": "0xc",
+//        "type": "0x0"
+//    }
+//}
 
 string LookupServer::GetNetworkId() {
   if (!LOOKUP_NODE_MODE) {
@@ -563,10 +622,10 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Nonce (" + to_string(tx.GetNonce()) +
-                               ") lower than current (" +
-                               to_string(sender->GetNonce()) + ")");
+    //throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+    //                       "Nonce (" + to_string(tx.GetNonce()) +
+    //                           ") lower than current (" +
+    //                           to_string(sender->GetNonce()) + ")");
   }
 
   // Check if transaction amount is valid
@@ -750,11 +809,8 @@ Json::Value LookupServer::CreateTransaction(
   }
 }
 
-Json::Value LookupServer::CreateTransactionEth(
-    const std::string& nonce, const std::string& gasPrice,
-    const std::string& gasLimit,const std::string& toAddr,
-    const std::string& amount, const std::string& data,
-    const std::string& R, const std::string& S, const std::string& V) {
+Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
+    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -766,133 +822,180 @@ Json::Value LookupServer::CreateTransactionEth(
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
-  // todo: double dataaaaaaa...
-  Transaction tx{nonce, gasPrice, gasLimit, toAddr, amount, data, data, R, S, V};
+  // Construct TX
+  Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
+      toPubKey(pubKey), fields.amount,
+      fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
 
-  //Transaction tx = JSONConversion::convertJsontoTx(_json);
+  try {
+    Json::Value ret;
+
+    const Address fromAddr = tx.GetSenderAddr();
+
+    bool toAccountExist;
+    bool toAccountIsContract;
+
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* sender =
+          AccountStore::GetInstance().GetAccount(fromAddr, true);
+      const Account* toAccount =
+          AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
+
+      if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
+        std::cerr << "failed to validate TX!" << std::endl;
+        return ret;
+      }
+
+      toAccountExist = (toAccount != nullptr);
+      toAccountIsContract = toAccountExist && toAccount->isContract();
+    }
+
+    const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
+    unsigned int mapIndex = shard;
+    switch (Transaction::GetTransactionType(tx)) {
+      case Transaction::ContractType::NON_CONTRACT:
+        if (ARCHIVAL_LOOKUP) {
+          mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+        }
+        if (toAccountExist) {
+          if (toAccountIsContract) {
+            throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                                   "Contract account won't accept normal txn");
+            return false;
+          }
+        }
+
+        ret["Info"] = "Non-contract txn, sent to shard";
+        break;
+      case Transaction::ContractType::CONTRACT_CREATION:
+        if (!ENABLE_SC) {
+          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+        }
+        if (ARCHIVAL_LOOKUP) {
+          mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+        }
+        ret["Info"] = "Contract Creation txn, sent to shard";
+        ret["ContractAddress"] =
+            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
+        break;
+      case Transaction::ContractType::CONTRACT_CALL: {
+        if (!ENABLE_SC) {
+          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+        }
+
+        if (!toAccountExist) {
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
+        }
+
+        else if (!toAccountIsContract) {
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                 "Non - contract address called");
+        }
+
+        unsigned int to_shard =
+            Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
+        // Use m_sendSCCallsToDS as initial setting
+        bool sendToDs = m_mediator.m_lookup->m_sendSCCallsToDS;
+
+        // Todo: fill this part appropriately
+
+        if ((to_shard == shard) && !sendToDs) {
+          if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(
+                RPC_INVALID_PARAMETER,
+                "txn gas limit exceeding shard maximum limit");
+          }
+          if (ARCHIVAL_LOOKUP) {
+            mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+          }
+          ret["Info"] =
+              "Contract Txn, Shards Match of the sender "
+              "and receiver";
+        } else {
+          if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
+            throw JsonRpcException(RPC_INVALID_PARAMETER,
+                                   "txn gas limit exceeding ds maximum limit");
+          }
+          if (ARCHIVAL_LOOKUP) {
+            mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+          } else {
+            mapIndex = num_shards;
+          }
+          ret["Info"] = "Contract Txn, Sent To Ds";
+        }
+      } break;
+      case Transaction::ContractType::ERROR:
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Code is empty and To addr is null");
+        break;
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
+    }
+    if (m_mediator.m_lookup->m_sendAllToDS) {
+      if (ARCHIVAL_LOOKUP) {
+        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+      } else {
+        mapIndex = num_shards;
+      }
+    }
+    if (!targetFunc(tx, mapIndex)) {
+      throw JsonRpcException(RPC_DATABASE_ERROR,
+                             "Txn could not be added as database exceeded "
+                             "limit or the txn was already present");
+    }
+    ret["TranID"] = tx.GetTranID().hex();
+    return ret;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: N/A");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+  }
+}
+
+Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
 
   Json::Value ret;
 
-  //const Address fromAddr = tx.GetSenderAddr();
+  try {
+    if (!REMOTESTORAGE_DB_ENABLE) {
+      std::cout << "no remote storage 1"  << std::endl;
+      throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
+    }
+    if (txnhash.size() != TRAN_HASH_SIZE * 2) {
+      std::cout << "no remote storage 2"  << std::endl;
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Txn Hash size not appropriate");
+    }
 
-  //bool toAccountExist;
-  //bool toAccountIsContract;
+    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
 
-  //{
-  //  shared_lock<shared_timed_mutex> lock(
-  //      AccountStore::GetInstance().GetPrimaryMutex());
+    std::cout << "got query hash result " << result << std::endl;
 
-  //  const Account* sender =
-  //      AccountStore::GetInstance().GetAccount(fromAddr, true);
-  //  const Account* toAccount =
-  //      AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
+    if (result.isMember("error")) {
+      std::cout << "internal error." << result << std::endl;
+      throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
+    } else if (result == Json::Value::null) {
+      // No txnhash matches the one in DB
+      std::cout << "no match" << result << std::endl;
+      return ret;
+    }
 
-  //  if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
-  //    return ret;
-  //  }
+    ret = populateReceiptHelper(txnhash);
 
-  //  toAccountExist = (toAccount != nullptr);
-  //  toAccountIsContract = toAccountExist && toAccount->isContract();
-  //}
-
-  //const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
-  //unsigned int mapIndex = shard;
-  //switch (Transaction::GetTransactionType(tx)) {
-  //  case Transaction::ContractType::NON_CONTRACT:
-  //    if (ARCHIVAL_LOOKUP) {
-  //      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-  //    }
-  //    if (toAccountExist) {
-  //      if (toAccountIsContract) {
-  //        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-  //                               "Contract account won't accept normal txn");
-  //        return false;
-  //      }
-  //    }
-
-  //    ret["Info"] = "Non-contract txn, sent to shard";
-  //    break;
-  //  case Transaction::ContractType::CONTRACT_CREATION:
-  //    if (!ENABLE_SC) {
-  //      throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-  //    }
-  //    if (ARCHIVAL_LOOKUP) {
-  //      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-  //    }
-  //    ret["Info"] = "Contract Creation txn, sent to shard";
-  //    ret["ContractAddress"] =
-  //        Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
-  //    break;
-  //  case Transaction::ContractType::CONTRACT_CALL: {
-  //    if (!ENABLE_SC) {
-  //      throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-  //    }
-
-  //    if (!toAccountExist) {
-  //      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
-  //    }
-
-  //    else if (!toAccountIsContract) {
-  //      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-  //                             "Non - contract address called");
-  //    }
-
-  //    unsigned int to_shard =
-  //        Transaction::GetShardIndex(tx.GetToAddr(), num_shards);
-  //    // Use m_sendSCCallsToDS as initial setting
-  //    bool sendToDs = m_mediator.m_lookup->m_sendSCCallsToDS;
-  //    if (_json.isMember("priority")) {
-  //      sendToDs = sendToDs || _json["priority"].asBool();
-  //    }
-  //    if ((to_shard == shard) && !sendToDs) {
-  //      if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
-  //        throw JsonRpcException(
-  //            RPC_INVALID_PARAMETER,
-  //            "txn gas limit exceeding shard maximum limit");
-  //      }
-  //      if (ARCHIVAL_LOOKUP) {
-  //        mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-  //      }
-  //      ret["Info"] =
-  //          "Contract Txn, Shards Match of the sender "
-  //          "and receiver";
-  //    } else {
-  //      if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
-  //        throw JsonRpcException(RPC_INVALID_PARAMETER,
-  //                               "txn gas limit exceeding ds maximum limit");
-  //      }
-  //      if (ARCHIVAL_LOOKUP) {
-  //        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-  //      } else {
-  //        mapIndex = num_shards;
-  //      }
-  //      ret["Info"] = "Contract Txn, Sent To Ds";
-  //    }
-  //  } break;
-  //  case Transaction::ContractType::ERROR:
-  //    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-  //                           "Code is empty and To addr is null");
-  //    break;
-  //  default:
-  //    throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
-  //}
-  //if (m_mediator.m_lookup->m_sendAllToDS) {
-  //  if (ARCHIVAL_LOOKUP) {
-  //    mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-  //  } else {
-  //    mapIndex = num_shards;
-  //  }
-  //}
-  //if (!targetFunc(tx, mapIndex)) {
-  //  throw JsonRpcException(RPC_DATABASE_ERROR,
-  //                         "Txn could not be added as database exceeded "
-  //                         "limit or the txn was already present");
-  //}
-  //ret["TranID"] = tx.GetTranID().hex();
-
-  return ret;
+    return ret;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "[Error]" << e.what());
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To Process: ") + e.what());
+  }
 }
-
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
   LOG_MARKER();
@@ -1113,6 +1216,22 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
   return result;
 }
 
+Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
+  try {
+    return this->GetBalance(address);
+  }catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+    if (noThrow) {
+      Json::Value ret;
+      ret["balance"] = "0x0";
+      ret["nonce"] = static_cast<unsigned int>(0);
+      return ret;
+    } else {
+      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    }
+  }
+}
+
 Json::Value LookupServer::GetBalance(const string& address) {
   std::cout << "Getting balance! For: " << address << std::endl;
 
@@ -1138,6 +1257,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
                   "DEBUG: Addr: " << address << " balance: " << balance.str()
                                   << " nonce: " << nonce << " " << account);
     } else if (account == nullptr) {
+
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Account is not created");
     }

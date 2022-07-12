@@ -21,8 +21,10 @@
 #include "Server.h"
 #include "libUtils/Logger.h"
 #include "Server.h"
-#include "depends/common/RLP.h"
 #include "libCrypto/EthCrypto.h"
+
+constexpr int CHAIN_ID_ETH = 1638;
+//constexpr char* CHAIN_ID_ETH_HEX_STR = "0x666";
 
 class Mediator;
 
@@ -267,8 +269,8 @@ class LookupServer : public Server,
   // Eth style functions here
   inline virtual void GetChainIdI(const Json::Value&, Json::Value& response) {
     //(void)request;
-    std::cout << "REQ" << std::endl;
-    response = "0x666";  // 1638 decimal - mainnet is reserved for chainId 1
+    std::cout << "REQ chain ID" << std::endl;
+    response = DataConversion::IntToHexString(CHAIN_ID_ETH);  // 1638 decimal - mainnet is reserved for chainId 1
   }
 
   inline virtual void GetBlocknumEthI(const Json::Value& request,
@@ -280,8 +282,6 @@ class LookupServer : public Server,
 
     std::stringstream stream;
     stream << "0x" << std::hex << block_number;
-    std::string result(stream.str());
-    std::cout << stream.str() << std::endl;
 
     response = stream.str();
   }
@@ -391,116 +391,48 @@ class LookupServer : public Server,
   inline virtual void GetTransactionCountI(const Json::Value& request,
                                    Json::Value& response) {
     (void)request;
-    response = "0x0";
+
+    std::cout << "********************************** Getting nonce: **********************************" << std::endl;
+
+    std::string address = request[0u].asString();
+    DataConversion::NormalizeHexString(address);
+
+    auto resp = this->GetBalance(address)["nonce"].asUInt() + 1;
+    std::cout << resp << std::endl;
+
+    response = DataConversion::IntToHexString(resp);
+  }
+
+  inline virtual void GetTransactionReceiptI(const Json::Value& request,
+                                           Json::Value& response) {
+    (void)request;
+
+    response = this->GetTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void SendRawTransactionI(const Json::Value& request,
                                            Json::Value& response) {
     (void)request;
-    std::cout << "Got raw TX!!!" << std::endl;
-    auto aa = request[0u].asString();
+    std::cout << "Got raw TX (lookup)!!!" << std::endl;
+    auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
-    if (aa[1] == 'x') {
-      aa.erase(0, 2);
+    if (rawTx[1] == 'x') {
+      rawTx.erase(0, 2);
     }
 
-    std::cout << aa << std::endl;
+    std::cout << rawTx << std::endl;
 
-    bytes out;
-    DataConversion::HexStrToUint8Vec(aa, out);
+    auto pubKey = recoverECDSAPubSig(rawTx, CHAIN_ID_ETH);
+    auto fields = parseRawTxFields(rawTx);
+    auto shards = m_mediator.m_lookup->GetShardPeers().size();
+    auto currentGasPrice = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
 
-    //std::string twoItemListString = "\xc5\x0f\x83""dog";
-    dev::RLP rlpStream1(out);
-    dev::RLPStream rlpStream2(9);
-    dev::RLPStream rlpStream3(9);
+    auto resp = CreateTransactionEth(fields, pubKey,
+                                    shards, currentGasPrice,
+                                    m_createTransactionTarget);
 
-    std::cout << "Parsed rlp stream is: " << rlpStream1  << std::endl;
-
-    std::vector<std::string> fieldsHex{};
-    std::vector<bytes> fieldsHexBytes{};
-    bytes message;
-    bytes rsv;
-    int i = 0;
-
-    for (const auto& item : rlpStream1) {
-      std::cout << "parsing"  << std::endl;
-      auto zz = item.operator bytes();
-
-
-      if (i <= 5) {
-        message.insert(message.end(), zz.begin(), zz.end());
-        rlpStream3 << zz;
-      } else {
-        rsv.insert(rsv.end(), zz.begin(), zz.end());
-      }
-
-      if (i == 6) {
-        //rlpStream3 << DataConversion::HexStrToUint8VecRet("01");
-        rlpStream3 << zz;
-      }
-
-      if (i == 7 || i == 8) {
-        rlpStream3 << bytes{};
-      }
-
-      i++;
-
-      fieldsHexBytes.push_back(zz);
-      std::string conv;
-      DataConversion::Uint8VecToHexStr(zz, conv);
-      std::cout << conv << std::endl;
-      //std::cout << item.toString()  << std::endl;
-      fieldsHex.push_back(conv);
-    }
-
-    // Create a TX from what we have got here
-    if (fieldsHex.size() < 9) {
-      // todo(NH): return a proper error code to the caller
-      LOG_GENERAL(WARNING, "Badly formatted raw transaction");
-      response = "0x0";
-      return;
-    }
-
-    //auto rsv = fieldsHexBytes[6] + fieldsHexBytes[7] + fieldsHexBytes[8];
-    //auto message = fieldsHexBytes[6] + fieldsHexBytes[7] + fieldsHexBytes[8];
-
-    // Test the message signature thingie
-    // From EIP-155 Consider a transaction with nonce = 9,
-    // gasprice = 20 * 10**9, startgas = 21000,
-    // to = 0x3535353535353535353535353535353535353535,
-    // value = 10**18, data='' (empty).
-
-    rlpStream2 << DataConversion::HexStrToUint8VecRet("09")
-               << DataConversion::HexStrToUint8VecRet("04A817C800")
-               << DataConversion::HexStrToUint8VecRet("5208")
-               << DataConversion::HexStrToUint8VecRet("3535353535353535353535353535353535353535")
-               << DataConversion::HexStrToUint8VecRet("0de0b6b3a7640000")
-               << DataConversion::HexStrToUint8VecRet("")
-               << DataConversion::HexStrToUint8VecRet("01")
-               << DataConversion::HexStrToUint8VecRet("")
-               << DataConversion::HexStrToUint8VecRet("");
-
-    std::cout << "RLP stream is: " << std::endl;
-    auto outBytes = rlpStream2.out();
-    std::string retme;
-    DataConversion::Uint8VecToHexStr(outBytes, retme);
-    std::cout << retme << std::endl;
-
-    std::cout << "second rlp stream is: " << std::endl;
-    outBytes = rlpStream3.out();
-    DataConversion::Uint8VecToHexStr(outBytes, retme);
-
-    DataConversion::NormalizeHexString(retme);
-    std::cout << retme << std::endl;
-
-    auto publicKeyRecovered = recoverECDSAPubSig(rsv, retme);
-
-    response = CreateTransactionEth(fieldsHex[0], fieldsHex[1], fieldsHex[2],
-                                    fieldsHex[3], fieldsHex[4], fieldsHex[5],
-                                    fieldsHex[6], fieldsHex[7], fieldsHex[8]);
-
-    response = "0x0";
+    response = resp["TranID"];
   }
 
   inline virtual void GetBalanceEth(const Json::Value& request,
@@ -511,7 +443,18 @@ class LookupServer : public Server,
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
-    response = this->GetBalance(address)["balance"];
+    auto resp = this->GetBalance(address, true)["balance"];
+
+    //resp = resp.asString() + "000000000000";
+    auto balanceStr = resp.asString();
+
+    for(int i = 0;i < 2;i++) {
+      balanceStr.pop_back();
+    }
+
+    resp = balanceStr;
+
+    response = resp;
   }
 
   inline virtual void GetBlockchainInfoXI(const Json::Value& request,
@@ -529,15 +472,6 @@ class LookupServer : public Server,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
-  Json::Value CreateTransactionEth(const std::string& nonce,
-                                   const std::string& gasPrice,
-                                   const std::string& gasLimit,
-                                   const std::string& toAddr,
-                                   const std::string& amount,
-                                   const std::string& data,
-                                   const std::string& R,
-                                   const std::string& S,
-                                   const std::string& V);
   Json::Value GetStateProof(const std::string& address,
                             const Json::Value& request,
                             const uint64_t& blockNum);
@@ -548,6 +482,7 @@ class LookupServer : public Server,
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalance(const std::string& address);
+  Json::Value GetBalance(const std::string& address, bool noThrow);
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
@@ -569,6 +504,12 @@ class LookupServer : public Server,
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
+
+  // Eth calls
+  Json::Value GetTransactionReceipt(const std::string& txnhash);
+  Json::Value CreateTransactionEth(EthFields const& fields, bytes const& pubKey,
+                                   const unsigned int num_shards,
+                                   const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

@@ -41,6 +41,7 @@ class DataConversion {
 
   static bytes HexStrToUint8VecRet(const std::string& hex_input);
 
+
   /// Converts alphanumeric hex string to 32-byte array.
   static bool HexStrToStdArray(const std::string& hex_input,
                                std::array<uint8_t, 32>& d);
@@ -136,6 +137,20 @@ class DataConversion {
     auto upper = (x >> 4) & 0x0F;
     auto lower = x & 0x0F;
     return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+  }
+
+  template <typename T>
+  static std::string IntToHexString(T number, bool withX = true){
+
+    std::stringstream stream;
+
+    if(withX) {
+      stream << "0x" << std::hex << (int)number;
+    } else {
+      stream << std::hex << (int)number;
+    }
+
+    return stream.str();
   }
 };
 
