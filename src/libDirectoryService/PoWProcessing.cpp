@@ -38,7 +38,6 @@
 #include "libUtils/SanityChecks.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();

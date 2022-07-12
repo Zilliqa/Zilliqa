@@ -27,7 +27,6 @@
 #include <boost/test/included/unit_test.hpp>
 
 using namespace std;
-using namespace boost::multiprecision;
 
 DSBlockHeader dsHeader;
 

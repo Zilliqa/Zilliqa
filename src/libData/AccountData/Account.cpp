@@ -33,7 +33,7 @@
 #include "libUtils/SafeMath.h"
 
 using namespace std;
-using namespace boost::multiprecision;
+
 using namespace dev;
 
 using namespace Contract;

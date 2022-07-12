@@ -36,7 +36,6 @@
 #include <boost/test/included/unit_test.hpp>
 
 using namespace std;
-using namespace boost::multiprecision;
 
 class tcp_client {
  private:

@@ -20,7 +20,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 uint128_t DirectoryService::GetNewGasPrice() {
   LOG_MARKER();

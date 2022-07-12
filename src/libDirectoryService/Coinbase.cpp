@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "DirectoryService.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -26,7 +27,6 @@
 #include "libNetwork/Guard.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 template <class Container>
 bool DirectoryService::SaveCoinbaseCore(const vector<bool>& b1,

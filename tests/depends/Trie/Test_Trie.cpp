@@ -41,7 +41,7 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
+
 using namespace dev;
 
 // namespace fs = boost::filesystem;

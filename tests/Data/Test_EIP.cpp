@@ -28,7 +28,6 @@
 #include "libUtils/HashUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(testeip)
 

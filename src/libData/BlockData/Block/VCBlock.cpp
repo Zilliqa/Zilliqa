@@ -20,7 +20,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 VCBlock::VCBlock() {}

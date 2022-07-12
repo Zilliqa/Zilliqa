@@ -32,7 +32,6 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
-using namespace boost::multiprecision;
 
 jmp_buf JumpBuffer;
 

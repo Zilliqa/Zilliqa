@@ -31,7 +31,7 @@
 
 using namespace std;
 using namespace dev;
-using namespace boost::multiprecision;
+
 using namespace Contract;
 
 AccountStore::AccountStore() {

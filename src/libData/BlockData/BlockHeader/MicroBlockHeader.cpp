@@ -18,9 +18,8 @@
 #include "MicroBlockHeader.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
-
+ 
 using namespace std;
-using namespace boost::multiprecision;
 
 MicroBlockHeader::MicroBlockHeader()
     : m_shardId(0),

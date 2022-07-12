@@ -20,6 +20,7 @@
 #include <thread>
 
 #include "DirectoryService.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -38,7 +39,6 @@
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 void DirectoryService::ExtractDataFromMicroblocks(
     vector<MicroBlockInfo>& mbInfos, uint64_t& allGasLimit,

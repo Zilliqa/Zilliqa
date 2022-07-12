@@ -24,16 +24,15 @@
 #include <cstring>
 #include <iostream>
 #include <string>
-
 #include "Blacklist.h"
 #include "Peer.h"
+#include "common/BaseType.h"
 #include "common/Messages.h"
 #include "libConsensus/ConsensusCommon.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 Guard::Guard() {}
 

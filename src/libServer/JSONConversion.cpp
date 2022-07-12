@@ -29,9 +29,9 @@
 #include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include "common/BaseType.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 unsigned int JSON_TRAN_OBJECT_SIZE = 10;
 

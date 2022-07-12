@@ -22,7 +22,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 BlockBase::BlockBase() : m_timestamp(0) {}
 

@@ -19,7 +19,6 @@
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
-using namespace boost::multiprecision;
 using namespace std;
 using namespace ZilliqaMessage;
 

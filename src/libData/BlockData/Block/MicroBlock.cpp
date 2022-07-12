@@ -23,7 +23,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool MicroBlock::Serialize(bytes& dst, unsigned int offset) const {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {

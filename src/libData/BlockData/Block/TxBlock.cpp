@@ -22,7 +22,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool TxBlock::Serialize(bytes& dst, unsigned int offset) const {
   if (!Messenger::SetTxBlock(dst, offset, *this)) {

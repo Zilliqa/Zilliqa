@@ -33,7 +33,7 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
+
 using namespace dev;
 
 BOOST_AUTO_TEST_SUITE(trietest)

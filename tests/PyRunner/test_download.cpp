@@ -33,7 +33,6 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
-using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_SUITE(testdownloadpy)
 

@@ -39,7 +39,6 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-using namespace boost::multiprecision;
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(contractinvokingtest)

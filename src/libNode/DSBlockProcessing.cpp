@@ -49,7 +49,6 @@
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   LOG_MARKER();

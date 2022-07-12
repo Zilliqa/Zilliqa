@@ -27,7 +27,6 @@
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 DSBlock Synchronizer::ConstructGenesisDSBlock() {
   BlockHash prevHash;

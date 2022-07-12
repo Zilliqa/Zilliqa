@@ -43,7 +43,6 @@
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 unsigned int DirectoryService::ComputeDSBlockParameters(
     const VectorOfPoWSoln& sortedDSPoWSolns, map<PubKey, Peer>& powDSWinners,

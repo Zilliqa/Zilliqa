@@ -20,7 +20,6 @@
 #include "libUtils/JsonUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 TransactionReceipt::TransactionReceipt() {
   update();

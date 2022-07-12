@@ -38,9 +38,7 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(utils)
 
 BOOST_AUTO_TEST_CASE(testBoostBigNum) {
-  using namespace boost::multiprecision;
-
-  uint256_t num = 256;
+    uint256_t num = 256;
 
   // Arithmetic ops
   num++;

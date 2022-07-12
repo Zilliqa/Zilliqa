@@ -25,7 +25,7 @@
 
 #include "ScillaTestUtil.h"
 
-using namespace boost::multiprecision;
+
 
 bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
   if (!boost::filesystem::is_regular_file(filename)) {

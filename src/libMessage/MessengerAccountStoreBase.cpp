@@ -25,7 +25,6 @@
 #include <random>
 #include <unordered_set>
 
-using namespace boost::multiprecision;
 using namespace std;
 using namespace ZilliqaMessage;
 

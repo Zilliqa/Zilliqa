@@ -24,7 +24,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 unsigned char HIGH_BITS_MASK = 0xF0;
 unsigned char LOW_BITS_MASK = 0x0F;

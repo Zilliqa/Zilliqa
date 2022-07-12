@@ -48,7 +48,6 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-using namespace boost::multiprecision;
 using namespace std;
 
 PrivKey priv1, priv2, priv3, priv4;

@@ -20,7 +20,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 DSPowSolution::DSPowSolution() {}
 

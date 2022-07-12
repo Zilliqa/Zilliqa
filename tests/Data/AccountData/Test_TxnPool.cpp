@@ -28,8 +28,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
-using namespace boost::multiprecision;
-
 template <class MAP, class KEY>
 bool checkExistenceAndAdd(MAP& m, const KEY& k) {
   if (m.find(k) != m.end()) {

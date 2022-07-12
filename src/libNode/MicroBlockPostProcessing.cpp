@@ -45,7 +45,7 @@
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
+
 using namespace boost::multi_index;
 
 bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {

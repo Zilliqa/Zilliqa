@@ -20,7 +20,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 DSBlockHeader::DSBlockHeader()
     : m_dsDifficulty(0),

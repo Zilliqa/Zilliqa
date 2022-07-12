@@ -39,7 +39,6 @@
 #include "libUtils/SanityChecks.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool DirectoryService::StoreFinalBlockToDisk() {
   LOG_MARKER();

@@ -41,7 +41,6 @@
 #include "libUtils/SanityChecks.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool DirectoryService::StoreDSBlockToStorage() {
   if (LOOKUP_NODE_MODE) {

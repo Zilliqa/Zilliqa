@@ -42,7 +42,6 @@
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
   if (!LOOKUP_NODE_MODE) {

@@ -34,7 +34,6 @@
 #include "libUtils/EvmJsonResponse.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   Json::Value arr_ret(Json::arrayValue);

@@ -38,7 +38,6 @@
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool DirectoryService::VerifyMicroBlockCoSignature(const MicroBlock& microBlock,
                                                    uint32_t shardId) {

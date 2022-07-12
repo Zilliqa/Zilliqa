@@ -30,7 +30,6 @@
 #include "libUtils/SWInfo.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1

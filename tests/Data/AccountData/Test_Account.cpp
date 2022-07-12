@@ -27,7 +27,7 @@
 #include <boost/test/unit_test.hpp>
 
 using namespace std;
-using namespace boost::multiprecision;
+
 using namespace Contract;
 
 BOOST_AUTO_TEST_SUITE(accounttest)

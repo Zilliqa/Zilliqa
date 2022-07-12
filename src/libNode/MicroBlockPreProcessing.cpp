@@ -19,9 +19,9 @@
 #include <chrono>
 #include <functional>
 #include <thread>
-
 #include "Node.h"
 #include "common/Constants.h"
+#include "common/BaseType.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "depends/common/RLP.h"
@@ -48,7 +48,6 @@
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
 bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {

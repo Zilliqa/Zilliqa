@@ -18,7 +18,6 @@
 #include "TestUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 namespace TestUtils {
 void Initialize() { rng.seed(std::random_device()()); }

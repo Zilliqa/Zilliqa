@@ -41,7 +41,6 @@
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   LOG_MARKER();

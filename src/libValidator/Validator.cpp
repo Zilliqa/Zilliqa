@@ -24,7 +24,7 @@
 #include "libUtils/BitVector.h"
 
 using namespace std;
-using namespace boost::multiprecision;
+
 
 using ShardingHash = dev::h256;
 

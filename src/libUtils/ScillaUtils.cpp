@@ -16,14 +16,11 @@
  */
 
 #include "ScillaUtils.h"
-
 #include <boost/filesystem.hpp>
-
 #include "Logger.h"
 #include "common/Constants.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 bool ScillaUtils::PrepareRootPathWVersion(const uint32_t& scilla_version,
                                           string& root_w_version) {

@@ -40,7 +40,6 @@
 #include "common/BaseType.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
 

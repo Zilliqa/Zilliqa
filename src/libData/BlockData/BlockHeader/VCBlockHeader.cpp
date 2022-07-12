@@ -20,7 +20,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 VCBlockHeader::VCBlockHeader()
     : m_VieWChangeDSEpochNo((uint64_t)-1),

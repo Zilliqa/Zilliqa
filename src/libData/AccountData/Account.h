@@ -41,10 +41,10 @@ using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version{};
-  uint128_t m_balance;
+  uint128_t m_balance{};
   uint64_t m_nonce{};
-  dev::h256 m_storageRoot;
-  dev::h256 m_codeHash;
+  dev::h256 m_storageRoot{};
+  dev::h256 m_codeHash{};
 
  public:
   AccountBase() {}

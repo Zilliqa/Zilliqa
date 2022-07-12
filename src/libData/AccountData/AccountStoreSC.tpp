@@ -61,8 +61,7 @@ template <class MAP>
 void AccountStoreSC<MAP>::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
-    const boost::multiprecision::uint128_t& balance, bool& ret,
-    TransactionReceipt& receipt) {
+    const uint128_t& balance, bool& ret, TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func = [this, &interprinterPrint, &invoke_type, &version, &is_library,
                &available_gas, &balance, &ret, &receipt,
@@ -637,9 +636,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
       // *************************************************************************
       // Summary
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+      uint128_t gasRefund;
+      if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                    gasRefund)) {
         this->RemoveAccount(contractAddress);
         error_code = TxnStatus::MATH_ERROR;
         return false;
@@ -902,9 +901,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       } else {
         CommitAtomics();
       }
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+
+      uint128_t gasRefund;
+      if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                    gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }

@@ -18,6 +18,7 @@
 /* TCP error code:
  * https://www.gnu.org/software/libc/manual/html_node/Error-Codes.html */
 
+#include "P2PComm.h"
 #include <arpa/inet.h>
 #include <errno.h>
 #include <event2/buffer.h>
@@ -36,9 +37,8 @@
 #include <memory>
 #include <string>
 #include <utility>
-
 #include "Blacklist.h"
-#include "P2PComm.h"
+#include "common/BaseType.h"
 #include "common/Messages.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
@@ -48,7 +48,6 @@
 #include "libUtils/SafeMath.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 const unsigned char START_BYTE_NORMAL = 0x11;
 const unsigned char START_BYTE_BROADCAST = 0x22;

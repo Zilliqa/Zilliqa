@@ -18,10 +18,10 @@
 #include "Peer.h"
 #include <arpa/inet.h>
 #include "common/Constants.h"
+#include "common/BaseType.h"
 #include "libMessage/Messenger.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 Peer::Peer() : m_ipAddress(0), m_listenPortHost(0) {}
 
