@@ -449,7 +449,10 @@ class LookupServer : public Server,
     auto balanceStr = resp.asString();
 
     for(int i = 0;i < 2;i++) {
-      balanceStr.pop_back();
+      // While bigger then 0x0
+      if (balanceStr.size() > 3) {
+        balanceStr.pop_back();
+      }
     }
 
     resp = balanceStr;
