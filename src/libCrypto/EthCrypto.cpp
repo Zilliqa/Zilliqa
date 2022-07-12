@@ -216,7 +216,7 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
   // to chain_id, 0, 0 in order to recreate what was signed
 
   bytes asBytes;
-  int v;
+  int v = 0;
   bytes rs;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
