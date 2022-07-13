@@ -42,11 +42,23 @@ int main(int argc, const char* argv[]) {
 
     desc.add_options()("help,h", "Print help messages")(
         "message,m", po::value<string>(&message_)->required(),
-        "Message string in hexadecimal format")(
-        "signature,s", po::value<string>(&signature_)->required(),
-        "Signature string in hexadecimal format")(
-        "pubk,u", po::value<string>(&pubk_fn)->required(),
-        "Filename containing public keys each per line");
+        "Message string in hexadecimal format")("signature,s",
+                                                po::value<string>(&signature_)
+                                                    ->required(),
+                                                "Signature string in "
+                                                "hexadecimal format")("pubk,u",
+                                                                      po::value<
+                                                                          string>(
+                                                                          &pubk_fn)
+                                                                          ->required(),
+                                                                      "Filename"
+                                                                      " contain"
+                                                                      "ing "
+                                                                      "public "
+                                                                      "keys "
+                                                                      "each "
+                                                                      "per "
+                                                                      "line");
 
     po::variables_map vm;
     try {

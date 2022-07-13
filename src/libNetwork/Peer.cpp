@@ -17,8 +17,8 @@
 
 #include "Peer.h"
 #include <arpa/inet.h>
-#include "common/Constants.h"
 #include "common/BaseType.h"
+#include "common/Constants.h"
 #include "libMessage/Messenger.h"
 
 using namespace std;

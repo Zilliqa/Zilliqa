@@ -50,9 +50,11 @@ int main(int argc, char** argv) {
 
   desc.add_options()("help, h", "Print help message")(
       "numshards, s", po::value<unsigned int>(&numShards),
-      "Total number of shards (default=3)")(
-      "numpershard, p", po::value<unsigned int>(&numPerShard),
-      "Number of accounts per shard (default=1)");
+      "Total number of shards (default=3)")("numpershard, p",
+                                            po::value<unsigned int>(
+                                                &numPerShard),
+                                            "Number of accounts per shard "
+                                            "(default=1)");
 
   po::variables_map vm;
 

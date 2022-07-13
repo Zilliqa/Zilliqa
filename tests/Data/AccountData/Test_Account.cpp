@@ -161,7 +161,7 @@ BOOST_AUTO_TEST_CASE(test_balance_check_and_overflow) {
 
   try {
     account.SetBalance(std::numeric_limits<uint256_t>::max());
-    BOOST_ASSERT(false);
+    BOOST_FAIL("Expected an exception, but did not receive it");
   } catch (const std::exception& e) {
     BOOST_CHECK_EQUAL(e.what(), "Balance overflow error");
   }
@@ -176,7 +176,7 @@ BOOST_AUTO_TEST_CASE(test_nonce_check_and_overflow) {
   BOOST_CHECK(!account.IncreaseNonceBy(42));
   try {
     account.SetNonce(std::numeric_limits<uint128_t>::max());
-    BOOST_ASSERT(false);
+    BOOST_FAIL("Expected an exception, but did not receive it");
   } catch (const std::exception& e) {
     BOOST_CHECK_EQUAL(e.what(), "Nonce overflow error");
   }
