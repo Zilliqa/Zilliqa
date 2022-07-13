@@ -24,6 +24,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libEth/Eth.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
@@ -66,27 +67,6 @@ Address ToBase16AddrHelper(const std::string& addr) {
   }
 
   return convertedAddr;
-}
-
-Json::Value populateReceiptHelper(std::string const& txnhash) {
-
-  Json::Value ret;
-
-  ret["transactionHash"] = txnhash;
-  ret["blockHash"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
-  ret["blockNumber"] = "0x429d3b";
-  ret["contractAddress"] = nullptr;
-  ret["cumulativeGasUsed"] = "0x64b559";
-  ret["from"] = "0x999"; // todo: fill
-  ret["gasUsed"] = "0xcaac";
-  ret["logs"].append(Json::Value());
-  ret["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-  ret["root"] = "0x0000000000000000000000000000000000000000000000000000000000001010";
-  ret["status"] = nullptr;
-  ret["to"] = "0x888"; // todo: fill
-  ret["transactionIndex"] = "0x777"; // todo: fill
-
-  return ret;
 }
 
 }  // namespace
