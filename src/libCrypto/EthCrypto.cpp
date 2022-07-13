@@ -106,7 +106,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   } else {
     LOG_GENERAL(WARNING,
                 "Received badly set signature bit! Should be 2, 3 or 4 and got: "
-                    << sPubKeyString[1]);
+                    << sPubKeyString[1] << "Note: signature is: " << sPubKeyString);
   }
 
   // Don't want the first byte
