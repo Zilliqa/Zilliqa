@@ -823,6 +823,8 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
   }
 
   // Construct TX
+  std::cout << "pubkey submit TX " << DataConversion::Uint8VecToHexStrRet(pubKey)  << std::endl;
+
   Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
       toPubKey(pubKey), fields.amount,
       fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
@@ -830,7 +832,9 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
   try {
     Json::Value ret;
 
+    std::cout << "Getting sender addr "  << std::endl;
     const Address fromAddr = tx.GetSenderAddr();
+    std::cout << "Got sender addr "  << std::endl;
 
     bool toAccountExist;
     bool toAccountIsContract;

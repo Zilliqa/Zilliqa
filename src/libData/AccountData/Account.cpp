@@ -460,7 +460,11 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
     asBytes.push_back(publicKey[i]);
   }
 
-  std::cout << DataConversion::Uint8VecToHexStrRet(asBytes) << std::endl;
+  std::cout << "PUBK debug1: " << DataConversion::Uint8VecToHexStrRet(asBytes) << std::endl;
+
+  if (publicKey.size() == 0) {
+    std::cout << "Bad stuff will happen soon !" << std::endl;
+  }
 
   // Do not hash the first byte, as it specifies the encoding
   auto result = ethash::keccak256(
