@@ -214,6 +214,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                    << Address(it->Address()).hex());
           continue;
         }
+
         targetAccount = this->GetAccount(Address(it->Address()));
         if (targetAccount == nullptr) {
           LOG_GENERAL(WARNING,
@@ -293,7 +294,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasBalance() && it->Balance().size()) {
-            targetAccount->SetBalance(uint128_t(it->Balance()));
+            targetAccount->SetBalance(uint256_t(it->Balance()));
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -305,8 +306,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
 
         try {
-          if (it->hasNonce() && it->Nonce().size())
+          if (it->hasNonce() && it->Nonce().size()) {
             targetAccount->SetNonce(std::stoull(it->Nonce()));
+          }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
           // will examine exact possibilities and catch specific exceptions.
@@ -378,8 +380,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
-      // LOG_GENERAL(INFO, "Normal transaction");
-
       // Disallow normal transaction to contract account
       Account* toAccount = this->GetAccount(transaction.GetToAddr());
       if (toAccount != nullptr) {

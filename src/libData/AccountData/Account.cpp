@@ -33,9 +33,7 @@
 #include "libUtils/SafeMath.h"
 
 using namespace std;
-
 using namespace dev;
-
 using namespace Contract;
 
 // =======================================
@@ -70,8 +68,6 @@ bool AccountBase::Deserialize(const bytes& src, unsigned int offset) {
 }
 
 bool AccountBase::Deserialize(const string& src, unsigned int offset) {
-  // LOG_MARKER();
-
   if (!Messenger::GetAccountBase(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
     return false;
@@ -84,36 +80,51 @@ void AccountBase::SetVersion(const uint32_t& version) { m_version = version; }
 
 const uint32_t& AccountBase::GetVersion() const { return m_version; }
 
-bool AccountBase::IncreaseBalance(const uint128_t& delta) {
-  return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
+bool AccountBase::IncreaseBalance(const uint256_t& delta) {
+  if (uint256_t(m_balance) + delta > std::numeric_limits<uint128_t>::max()) {
+    return false;
+  }
+  return SafeMath<uint128_t>::add(m_balance, uint128_t(delta), m_balance);
 }
 
-bool AccountBase::DecreaseBalance(const uint128_t& delta) {
-  if (m_balance < delta) {
+bool AccountBase::DecreaseBalance(const uint256_t& delta) {
+  if (m_balance < delta || delta > std::numeric_limits<uint128_t>::max()) {
     return false;
   }
 
-  return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
+  return SafeMath<uint128_t>::sub(m_balance, uint128_t(delta), m_balance);
 }
 
-bool AccountBase::ChangeBalance(const int256_t& delta) {
-  return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
-                      : DecreaseBalance(uint128_t(-delta));
+bool AccountBase::ChangeBalance(const int512_t& delta) {
+  return (delta >= 0) ? IncreaseBalance(uint256_t(delta))
+                      : DecreaseBalance(uint256_t(-delta));
 }
 
-void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
+void AccountBase::SetBalance(const uint256_t& balance) {
+  if (balance > std::numeric_limits<uint128_t>::max()) {
+    throw std::runtime_error("Balance overflow error");
+  }
+
+  m_balance = uint128_t(balance);
+}
 
 const uint128_t& AccountBase::GetBalance() const { return m_balance; }
 
-bool AccountBase::IncreaseNonce() {
-  return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
-}
+bool AccountBase::IncreaseNonce() { return IncreaseNonceBy(1); }
 
 bool AccountBase::IncreaseNonceBy(const uint64_t& nonceDelta) {
+  if (uint128_t(m_nonce) + nonceDelta > std::numeric_limits<uint64_t>::max()) {
+    return false;
+  }
   return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
 }
 
-void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
+void AccountBase::SetNonce(const uint128_t& nonce) {
+  if (nonce > std::numeric_limits<uint64_t>::max()) {
+    throw std::runtime_error("Nonce overflow error");
+  }
+  m_nonce = uint64_t(nonce);
+}
 
 const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
 

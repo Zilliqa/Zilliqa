@@ -18,6 +18,7 @@
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
+#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
@@ -106,9 +107,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
           "["
           "{\"modify\":"
           "{\"address\":\"0x4b68ebd5c54ae9ad1f069260b4c89f0d3be70a45\","
-          "\"balance\":\"0x0\","
+          "\"balance\":\"12345\","
           "\"code\":null,"
-          "\"nonce\":\"0x0\","
+          "\"nonce\":\"12353545\","
           "\"reset_storage\":false,"
           "\"storage\":[ ["
           "\"CgxfZXZtX3N0b3JhZ2UQARpAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD"

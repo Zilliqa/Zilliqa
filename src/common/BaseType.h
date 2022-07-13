@@ -27,13 +27,20 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/multiprecision/detail/min_max.hpp>
 #pragma GCC diagnostic pop
 
 using bytes = std::vector<uint8_t>;
+
 using uint128_t = boost::multiprecision::uint128_t;
 using uint256_t = boost::multiprecision::uint256_t;
+
+using int128_t = boost::multiprecision::int128_t;
 using int256_t = boost::multiprecision::int256_t;
+using int512_t = boost::multiprecision::int512_t;
+
 using float_50_t = boost::multiprecision::cpp_dec_float_50;
+
 using GovDSShardVotesMap =
     std::map<uint32_t, std::pair<std::map<uint32_t, uint32_t>,
                                  std::map<uint32_t, uint32_t>>>;
