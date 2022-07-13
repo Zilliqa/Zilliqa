@@ -25,7 +25,6 @@
 
 using namespace std;
 
-
 using ShardingHash = dev::h256;
 
 Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}

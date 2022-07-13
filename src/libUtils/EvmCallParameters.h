@@ -28,8 +28,8 @@ struct EvmCallParameters {
   std::string m_caller;
   std::string m_code;
   std::string m_data;
-  uint64_t m_available_gas {};
-  uint128_t m_apparent_value {};
+  uint64_t m_available_gas{};
+  uint128_t m_apparent_value{};
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_

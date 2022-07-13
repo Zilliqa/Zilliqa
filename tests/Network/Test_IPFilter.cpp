@@ -26,7 +26,6 @@
 
 using namespace std;
 
-
 BOOST_AUTO_TEST_SUITE(ipfilter_test)
 
 BOOST_AUTO_TEST_CASE(test1) {

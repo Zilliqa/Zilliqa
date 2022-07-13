@@ -25,8 +25,6 @@
 
 #include "ScillaTestUtil.h"
 
-
-
 bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
   if (!boost::filesystem::is_regular_file(filename)) {
     return false;

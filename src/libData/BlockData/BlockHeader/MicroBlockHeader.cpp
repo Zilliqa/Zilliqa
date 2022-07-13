@@ -18,7 +18,7 @@
 #include "MicroBlockHeader.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/Logger.h"
- 
+
 using namespace std;
 
 MicroBlockHeader::MicroBlockHeader()

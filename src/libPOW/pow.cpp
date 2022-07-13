@@ -21,8 +21,8 @@
 #include <iomanip>
 #include <iostream>
 
-#include "common/Serializable.h"
 #include "common/BaseType.h"
+#include "common/Serializable.h"
 #include "ethash/ethash.hpp"
 // TODO: Move contents of internal to ethash.hpp
 #include "depends/cryptoutils/lib/ethash/ethash-internal.hpp"
@@ -38,7 +38,6 @@
 #ifdef CUDA_MINE
 #include "depends/libethash-cuda/CUDAMiner.h"
 #endif
-
 
 POW::POW() {
   m_currentBlockNum = 0;

@@ -40,7 +40,6 @@
 namespace po = boost::program_options;
 using namespace std;
 
-
 void description() {
   std::cout << endl << "Description:\n";
   std::cout << "\tAccepts public key and prints computed address on stdout."

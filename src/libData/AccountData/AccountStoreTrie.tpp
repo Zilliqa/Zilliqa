@@ -63,7 +63,6 @@ template <class MAP>
 Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
                                            bool resetRoot) {
   // LOG_MARKER();
-  
 
   Account* account = AccountStoreBase<MAP>::GetAccount(address);
   if (account != nullptr) {

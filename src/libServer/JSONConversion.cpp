@@ -22,6 +22,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "common/BaseType.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -29,7 +30,6 @@
 #include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include "common/BaseType.h"
 
 using namespace std;
 
