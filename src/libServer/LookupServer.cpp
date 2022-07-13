@@ -365,7 +365,7 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
+                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
       &LookupServer::GetBlockByNumber);
 
   this->bindAndAddMethod(
@@ -826,8 +826,8 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
   std::cout << "pubkey submit TX " << DataConversion::Uint8VecToHexStrRet(pubKey)  << std::endl;
 
   Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
-      toPubKey(pubKey), fields.amount,
-      fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
+                 toPubKey(pubKey), fields.amount,
+                 fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
 
   try {
     Json::Value ret;

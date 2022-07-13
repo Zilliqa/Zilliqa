@@ -77,8 +77,10 @@ void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign) {
 bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   // X co-ordinate
   std::unique_ptr<BIGNUM, decltype(bnFree)> gx(NULL, bnFree);
+  std::unique_ptr<BIGNUM, decltype(bnFree)> gy(NULL, bnFree);
 
   BIGNUM* gx_ptr = gx.get();
+  BIGNUM* gy_ptr = gy.get();
 
   EC_KEY_set_asn1_flag(pKey, OPENSSL_EC_NAMED_CURVE);
 
@@ -86,6 +88,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   // https://www.oreilly.com/library/view/mastering-ethereum/9781491971932/ch04.html
   // The first byte indicates whether the y coordinate is odd or even
   int y_chooser_bit = 0;
+  bool notCompressed = false;
 
   if (sPubKeyString[0] != '0') {
     LOG_GENERAL(WARNING,
@@ -98,6 +101,8 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
     y_chooser_bit = 0;
   } else if (sPubKeyString[1] == '3') {
     y_chooser_bit = 1;
+  } else if (sPubKeyString[1] == '4') {
+    notCompressed = true;
   } else {
     LOG_GENERAL(WARNING,
                 "Received badly set signature bit! Should be 2 or 3 and got: "
@@ -118,8 +123,18 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
       EC_POINT_new(curve_group.get()), epFree);
 
   // This performs the decompression at the same time as setting the pubKey
-  EC_POINT_set_compressed_coordinates_GFp(curve_group.get(), point.get(),
-                                          gx_ptr, y_chooser_bit, NULL);
+  if (notCompressed) {
+    LOG_GENERAL(WARNING, "Not compressed - setting...");
+
+    if (!BN_hex2bn(&gy_ptr, sPubKeyString + 2 + 64)) {
+      LOG_GENERAL(WARNING, "Error getting to y binary format");
+    }
+
+    EC_POINT_set_affine_coordinates(curve_group.get(), point.get(), gx_ptr, gy_ptr, NULL);
+  } else {
+    EC_POINT_set_compressed_coordinates_GFp(curve_group.get(), point.get(),
+                                            gx_ptr, y_chooser_bit, NULL);
+  }
 
   if (!EC_KEY_set_public_key(pKey, point.get())) {
     LOG_GENERAL(WARNING, "ERROR! setting public key attributes");
