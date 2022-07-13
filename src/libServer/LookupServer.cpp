@@ -829,6 +829,8 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
                  toPubKey(pubKey), fields.amount,
                  fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
 
+  std::cout << "pubkey submitted TX " << DataConversion::Uint8VecToHexStrRet(pubKey)  << std::endl;
+
   try {
     Json::Value ret;
 

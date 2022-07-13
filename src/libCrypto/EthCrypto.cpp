@@ -105,7 +105,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
     notCompressed = true;
   } else {
     LOG_GENERAL(WARNING,
-                "Received badly set signature bit! Should be 2 or 3 and got: "
+                "Received badly set signature bit! Should be 2, 3 or 4 and got: "
                     << sPubKeyString[1]);
   }
 

@@ -135,6 +135,9 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   if (!IsSigned()) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
+  } else {
+    LOG_GENERAL(WARNING,
+                "Verified input signature :)");
   }
 }
 
