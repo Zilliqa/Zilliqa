@@ -101,3 +101,6 @@ persistence/
 scilla/
 scilla_files/
 evm-ds/
+config.xml
+isolated-server-accounts.json
+isolated-server.logs
