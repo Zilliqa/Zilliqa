@@ -493,6 +493,8 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
     uint64_t senderNonce;
     uint128_t senderBalance;
 
+    std::cout << "From ADDR GETXXXX: " << std::endl;
+
     const Address fromAddr = tx.GetSenderAddr();
 
     std::cout << "From ADDR: " << fromAddr << std::endl;

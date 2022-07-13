@@ -461,6 +461,7 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   }
 
   std::cout << "PUBK debug1: " << DataConversion::Uint8VecToHexStrRet(asBytes) << std::endl;
+  std::cout << "PUBK debug2: " << std::string(pubKey) << std::endl;
 
   if (publicKey.size() == 0) {
     std::cout << "Bad stuff will happen soon !" << std::endl;
