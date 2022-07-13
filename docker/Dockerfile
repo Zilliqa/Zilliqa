@@ -200,6 +200,7 @@ COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=rust_builder /evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
+COPY --from=rust_builder /evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
