@@ -96,3 +96,8 @@ compile_commands.json
 .vscode
 .history
 cmake-build-debug
+
+persistence/
+scilla/
+scilla_files/
+evm-ds/
