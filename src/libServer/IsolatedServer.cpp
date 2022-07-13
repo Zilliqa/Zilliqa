@@ -495,6 +495,8 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
 
     const Address fromAddr = tx.GetSenderAddr();
 
+    std::cout << "From ADDR: " << fromAddr << std::endl;
+
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
