@@ -153,7 +153,6 @@ const Address& Transaction::GetToAddr() const { return m_coreInfo.toAddr; }
 const PubKey& Transaction::GetSenderPubKey() const {
   return m_coreInfo.senderPubKey;
 }
-
 Address Transaction::GetSenderAddr() const {
   // If a V2 Tx
   if ((GetVersion() & 0xffff) == 0x2) {

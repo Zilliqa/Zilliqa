@@ -122,11 +122,6 @@ void AccountStore::InitRevertibles() {
   ContractStorage::GetContractStorage().InitRevertibles();
 }
 
-AccountStore& AccountStore::GetInstance() {
-  static AccountStore accountstore;
-  return accountstore;
-}
-
 bool AccountStore::Serialize(bytes& src, unsigned int offset) {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);

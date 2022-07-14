@@ -41,22 +41,21 @@ int main(int argc, const char* argv[]) {
   try {
     po::options_description desc("Options");
 
-    desc
-        .add_options()("help,h", "Print help messages")(
-            "message,m", po::value<string>(&message_)->required(),
-            "Message string in hexadecimal format")("privk,i",
-                                                    po::value<string>(&privk_fn)
-                                                        ->required(),
-                                                    "Filename containing "
-                                                    "private keys each per "
-                                                    "line")("pubk,u",
-                                                            po::value<string>(
-                                                                &pubk_fn)
-                                                                ->required(),
-                                                            "Filename "
-                                                            "containing public "
-                                                            "keys each per "
-                                                            "line");
+    desc.add_options()("help,h", "Print help messages")(
+        "message,m", po::value<string>(&message_)->required(),
+        "Message string in hexadecimal format")("privk,i",
+                                                po::value<string>(&privk_fn)
+                                                    ->required(),
+                                                "Filename containing "
+                                                "private keys each per "
+                                                "line")("pubk,u",
+                                                        po::value<string>(
+                                                            &pubk_fn)
+                                                            ->required(),
+                                                        "Filename "
+                                                        "containing public "
+                                                        "keys each per "
+                                                        "line");
 
     po::variables_map vm;
     try {

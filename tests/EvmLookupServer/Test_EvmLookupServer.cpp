@@ -20,7 +20,7 @@
 
 #include <boost/multiprecision/cpp_int.hpp>
 #include <boost/test/unit_test.hpp>
-#include "libData/AccountData/EvmClient.h"
+#include "EvmClientMock.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
 
@@ -28,24 +28,6 @@ class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
   bool StartListening() final { return true; }
   bool StopListening() final { return true; }
-};
-
-/**
- * @brief Default Mock implementation for the evm client
- */
-class EvmClientMock : public EvmClient {
- public:
-  EvmClientMock() = default;
-
-  bool OpenServer(bool /*force = false*/) { return true; };
-
-  bool CallRunner(uint32_t /*version*/,                 //
-                  const Json::Value& request,           //
-                  evmproj::CallResponse& /*response*/,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) {
-    LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
-    return true;
-  };
 };
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
@@ -68,12 +50,12 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
       //
       LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
-      Json::Reader _reader;
+      
 
       std::stringstream expectedRequestString;
       expectedRequestString
           << "["
-          << "\"a744160c3de133495ab9f9d77ea54b325b045670\","
+          << "\"a744160c3De133495aB9F9D77EA54b325b045670\","
           << "\"0000000000000000000000000000000000000000\","
           << "\"\","
           << "\"ffa1caa000000000000000000000000000000000000000000000000000000"
@@ -85,6 +67,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
       Json::Value expectedRequestJson;
       LOG_GENERAL(DEBUG,
                   "expectedRequestString:" << expectedRequestString.str());
+      Json::Reader _reader;
       BOOST_CHECK(
           _reader.parse(expectedRequestString.str(), expectedRequestJson));
 
@@ -106,7 +89,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
           "{\"apply\":"
           "["
           "{\"modify\":"
-          "{\"address\":\"0x4b68ebd5c54ae9ad1f069260b4c89f0d3be70a45\","
+          "{\"address\":\"0xa744160c3De133495aB9F9D77EA54b325b045670\","
           "\"balance\":\"12345\","
           "\"code\":null,"
           "\"nonce\":\"12353545\","
@@ -192,8 +175,8 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   paramsRequest[0u] = values;
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
-  Account account;
   if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    Account account;
     AccountStore::GetInstance().AddAccount(accountAddress, account);
   }
   const uint128_t initialBalance{1'000'000};
