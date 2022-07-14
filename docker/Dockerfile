@@ -105,31 +105,31 @@ RUN cmake --build ${BUILD_DIR} --target install
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
 RUN echo "mongo files:" && ls -lh ${MONGO_INSTALL_DIR}/lib
 
-## strip all exes
-#RUN strip /usr/local/bin/grepperf \
-#   /usr/local/bin/zilliqad \
-#   /usr/local/bin/genkeypair \
-#   /usr/local/bin/signmultisig \
-#   /usr/local/bin/verifymultisig \
-#   /usr/local/bin/getpub \
-#   /usr/local/bin/getaddr \
-#   /usr/local/bin/genaccounts \
-#   /usr/local/bin/sendcmd \
-#   /usr/local/bin/gentxn \
-#   /usr/local/bin/restore \
-#   /usr/local/bin/gensigninitialds \
-#   /usr/local/bin/validateDB \
-#   /usr/local/bin/genTxnBodiesFromS3 \
-#   /usr/local/bin/getnetworkhistory \
-#   /usr/local/bin/isolatedServer \
-#   /usr/local/bin/getrewardhistory \
-##    /usr/local/bin/zilliqa \
-#   /usr/local/bin/data_migrate \
-#   /usr/local/lib/libSchnorr.so \
-#   /usr/local/lib/libCryptoUtils.so \
-#   /usr/local/lib/libNAT.so \
-#   /usr/local/lib/libCommon.so \
-#   /usr/local/lib/libTrie.so
+# strip all exes
+RUN strip /usr/local/bin/grepperf \
+   /usr/local/bin/zilliqad \
+   /usr/local/bin/genkeypair \
+   /usr/local/bin/signmultisig \
+   /usr/local/bin/verifymultisig \
+   /usr/local/bin/getpub \
+   /usr/local/bin/getaddr \
+   /usr/local/bin/genaccounts \
+   /usr/local/bin/sendcmd \
+   /usr/local/bin/gentxn \
+   /usr/local/bin/restore \
+   /usr/local/bin/gensigninitialds \
+   /usr/local/bin/validateDB \
+   /usr/local/bin/genTxnBodiesFromS3 \
+   /usr/local/bin/getnetworkhistory \
+   /usr/local/bin/isolatedServer \
+   /usr/local/bin/getrewardhistory \
+#    /usr/local/bin/zilliqa \
+   /usr/local/bin/data_migrate \
+   /usr/local/lib/libSchnorr.so \
+   /usr/local/lib/libCryptoUtils.so \
+   /usr/local/lib/libNAT.so \
+   /usr/local/lib/libCommon.so \
+   /usr/local/lib/libTrie.so
 
 # start from a new ubuntu as the runner image
 FROM ubuntu:18.04

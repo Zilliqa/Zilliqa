@@ -18,7 +18,20 @@
 #ifndef ZILLIQA_SRC_LIB_ETH_H_
 #define ZILLIQA_SRC_LIB_ETH_H_
 
+struct EthFields {
+  uint32_t version{};
+  uint64_t nonce{};
+  bytes toAddr;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint64_t gasLimit{};
+  bytes code;
+  bytes data;
+  bytes signature;
+};
 
 Json::Value populateReceiptHelper(std::string const& txnhash);
+
+EthFields parseRawTxFields(std::string const& message);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

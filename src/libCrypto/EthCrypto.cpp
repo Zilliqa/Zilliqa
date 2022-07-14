@@ -23,14 +23,11 @@
 
 #include "secp256k1.h"
 #include "secp256k1_recovery.h"
-//#include "secp256k1_ecdh.h"
-//#include "secp256k1_sha256.h"
 
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
 #include <ethash/keccak.hpp>
-#include <functional>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -229,7 +226,6 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
 
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
-
   bytes asBytes;
   int v = 0;
   bytes rs;
@@ -238,9 +234,11 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
   dev::RLP rlpStream1(asBytes);
   dev::RLPStream rlpStreamRecreated(9);
 
-  std::cout << "Parsed rlp stream is: " << rlpStream1  << std::endl;
   int i = 0;
 
+  // Iterate through the RLP message and build up what the message was before
+  // it was hashed and signed. That is, same size, same fields, except
+  // v = chain_id, R and S = 0
   for (const auto& item : rlpStream1) {
 
     auto itemBytes = item.operator bytes();
@@ -269,48 +267,35 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
   vSelect = vSelect == 35 ? 0 : vSelect;
   vSelect = vSelect == 36 ? 1 : vSelect;
 
-  if (!(vSelect >= 0 || vSelect <= 3)) {
+  if (!(vSelect >= 0 && vSelect <= 3)) {
     LOG_GENERAL(WARNING,
                 "Received badly parsed recid in raw transaction: "
                     << v << " with chainID " << chain_id << " for " << vSelect);
-    return {};
   }
 
   auto messageRecreatedBytes = rlpStreamRecreated.out();
-  auto messageRecreated = DataConversion::Uint8VecToHexStrRet(messageRecreatedBytes);
 
-  std::cout << "RLP " << messageRecreated << std::endl;
-
-  //rs = DataConversion::HexStrToUint8VecRet(
-  //    "b7b2d5fb893d10d57c1bc0eb7cae850dd84348da5156b492f8210ef35767e27e7cc57e63efc497817286061faf1698a0cbdc4b769c50c77f81abdf6d0c4d7ea0"); // no works...
-
-  //message =
-  //    "ee8085e8990a460082520894b794f5ea0ba39494ce839613fffba74279579268880de0b6b3a7640000808206668080";
-
+  // Sign original message
   auto signingHash =
       ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
 
-  // First check that the generated hash
+  // Load the RS into the library
   auto* ctx = getCtx();
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &rawSig,
                                                            rs.data(), vSelect)) {
-    std::cerr << "RIP1" << std::endl;
+    LOG_GENERAL(WARNING, "Error getting RS signature during public key reconstruction");
     return {};
-  } else {
-    std::cerr << "PARSED COMPACT SIGNATURE(!!)" << std::endl;
   }
 
+  // Re-create public key given signature, and message
   secp256k1_pubkey rawPubkey;
   if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, &signingHash.bytes[0])) {
-    std::cerr << "RIP2" << std::endl;
-    //continue;
+    LOG_GENERAL(WARNING, "Error recovering public key during public key reconstruction");
     return {};
-  } else {
-    std::cerr << "PARSED PUB KEY(!!)" << std::endl;
   }
 
-  //std::array<byte, 65> serializedPubkey;
+  // Parse the public key out of the library format
   bytes serializedPubkey(65);
   size_t serializedPubkeySize = serializedPubkey.size();
   secp256k1_ec_pubkey_serialize(
@@ -318,103 +303,5 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
       &rawPubkey, SECP256K1_EC_UNCOMPRESSED
   );
 
-  std::string pubK;
-  bytes mee{};
-
-  for (auto const& item : rawPubkey.data) {
-    mee.push_back(item);
-  }
-
-  DataConversion::Uint8VecToHexStr(mee, pubK);
-  DataConversion::NormalizeHexString(pubK);
-
-  // pubK = "1419977507436a81dd0ac7beb6c7c0deccbf1a1a1a5e595f647892628a0f65bc9d19cbf0712f881b529d39e7f75d543dc3e646880a0957f6e6df5c1b5d0eb278";
-  // pubK = "4bc2a31265153f07e70e0bab08724e6b85e217f8cd628ceb62974247bb493382ce28cab79ad7119ee1ad3ebcdb98a16805211530ecc6cfefa1b88e6dff99232a";
-
-  auto asBytesPubK = DataConversion::HexStrToUint8VecRet(pubK);
-
-  std::cout << "PUBK: " << pubK << std::endl;
-  std::cout << "PUBK: " << DataConversion::Uint8VecToHexStrRet(serializedPubkey) << std::endl;
-
-  ////auto plzwork = ethash::keccak256(
-  // reinterpret_cast<const uint8_t*>(pubK.c_str()), pubK.size() - 1);
-
-  auto plzwork = ethash::keccak256(serializedPubkey.data() + 1, serializedPubkey.size() - 1);
-
-  std::string res;
-  boost::algorithm::hex(&plzwork.bytes[12], &plzwork.bytes[32],
-                        back_inserter(res));
-
-  std::cout << "Hopeful:" << res << std::endl;
   return serializedPubkey;
-}
-
-EthFields parseRawTxFields(std::string const& message) {
-
-  EthFields ret;
-
-  bytes asBytes;
-  DataConversion::HexStrToUint8Vec(message, asBytes);
-
-  dev::RLP rlpStream1(asBytes);
-  int i = 0;
-  // todo: checks on size of rlp stream etc.
-
-  ret.version = 65538;
-
-  // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
-  for (auto it = rlpStream1.begin(); it != rlpStream1.end(); ) {
-    auto byteIt = (*it).operator bytes();
-
-    switch (i) {
-      case 0:
-        ret.nonce = uint32_t(*it);
-        break;
-      case 1:
-        ret.gasPrice = uint128_t(*it);
-        break;
-      case 2:
-        ret.gasLimit = uint64_t(*it);
-        break;
-      case 3:
-        ret.toAddr = byteIt;
-        break;
-      case 4:
-        ret.amount = uint128_t(*it);
-        break;
-      case 5:
-        ret.data = byteIt;
-        break;
-      case 6: // V - only needed for pub sig recovery
-        break;
-      case 7: // R
-        ret.signature.insert(ret.signature.begin(), byteIt.begin(), byteIt.end());
-        break;
-      case 8: // S
-        ret.signature.insert(ret.signature.begin(), byteIt.begin(), byteIt.end());
-        break;
-      default:
-      LOG_GENERAL(WARNING,
-                  "too many fields received in rlp!");
-    }
-
-    i++;
-    it++;
-  }
-
-  return ret;
-}
-
-PubKey toPubKey(bytes const& key) {
-  // Convert to compressed if neccesary
-
-  bytes compressed = key;
-
-  //if (compressed.size() != 999) {
-  //  compressed.resize(64);
-  //}
-
-  auto ret = PubKey(compressed, 0);
-
-  return ret;
 }

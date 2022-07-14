@@ -268,15 +268,12 @@ class LookupServer : public Server,
 
   // Eth style functions here
   inline virtual void GetChainIdI(const Json::Value&, Json::Value& response) {
-    //(void)request;
-    std::cout << "REQ chain ID" << std::endl;
     response = DataConversion::IntToHexString(CHAIN_ID_ETH);  // 1638 decimal - mainnet is reserved for chainId 1
   }
 
   inline virtual void GetBlocknumEthI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
-    // response = this->GetBlocknum();
     static uint64_t block_number = 2675001;
     block_number++;
 
@@ -289,8 +286,6 @@ class LookupServer : public Server,
   inline virtual void GetBlockByNumber(const Json::Value& request,
                                        Json::Value& response) {
     (void)request;
-    std::cout << "GBBN " << request[0u].asString() << std::endl;
-    std::cout << "GBBN2 " << request[1u].asString() << std::endl;
 
     Json::Value ret;
 
@@ -361,13 +356,10 @@ class LookupServer : public Server,
                                    Json::Value& response) {
     (void)request;
 
-    std::cout << "********************************** Getting nonce: **********************************" << std::endl;
-
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
     auto resp = this->GetBalance(address)["nonce"].asUInt() + 1;
-    std::cout << resp << std::endl;
 
     response = DataConversion::IntToHexString(resp);
   }
@@ -382,15 +374,12 @@ class LookupServer : public Server,
   inline virtual void SendRawTransactionI(const Json::Value& request,
                                            Json::Value& response) {
     (void)request;
-    std::cout << "Got raw TX (lookup)!!!" << std::endl;
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
     if (rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
-
-    std::cout << rawTx << std::endl;
 
     auto pubKey = recoverECDSAPubSig(rawTx, CHAIN_ID_ETH);
     auto fields = parseRawTxFields(rawTx);
@@ -406,7 +395,6 @@ class LookupServer : public Server,
 
   inline virtual void GetBalanceEth(const Json::Value& request,
                                     Json::Value& response) {
-    std::cout << "GETBALETH " << request[0u].asString() << std::endl;
     (void)request;
     //response = "0x1010000000000000000000000"; // for a fake response
     std::string address = request[0u].asString();
@@ -432,10 +420,6 @@ class LookupServer : public Server,
   inline virtual void GetBlockchainInfoXI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
-    std::cout << "GET BC INFO " << std::endl;
-    std::cerr << "GET BC INFO " << std::endl;
-    LOG_GENERAL(WARNING, "killme");
-    std::exit(1);
     response = this->GetBlockchainInfo();
   }
 

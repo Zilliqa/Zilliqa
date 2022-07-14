@@ -41,37 +41,6 @@ Transaction::Transaction(const bytes& src, unsigned int offset) {
   Deserialize(src, offset);
 }
 
-//Transaction::Transaction(const std::string& nonce, const std::string& gasPrice,
-//  const std::string& gasLimit,const std::string& toAddr,
-//  const std::string& amount, const std::string&, const std::string&,
-//  const std::string&, const std::string&, const std::string&)
-//{
-//  // temp hardcode version as eth-style
-//  this->m_coreInfo.version = 65538;
-//  this->m_coreInfo.nonce = stoi(nonce);
-//  this->m_coreInfo.gasPrice = stoi(gasPrice);
-//  this->m_coreInfo.gasLimit = stoi(gasLimit);
-//  this->m_coreInfo.amount = stoi(amount);
-//  //this->m_coreInfo.code = stoi(amount);
-//  //this->m_coreInfo.data = stoi(amount);
-//
-//  bytes toAddrBytes;
-//  DataConversion::HexStrToUint8Vec(toAddr, toAddrBytes);
-//
-//  this->m_coreInfo.toAddr = Address{toAddrBytes};
-//
-//  //: version(versionInput),
-//  //    nonce(nonceInput),
-//  //    toAddr(toAddrInput),
-//  //    senderPubKey(senderPubKeyInput),
-//  //    amount(amountInput),
-//  //    gasPrice(gasPriceInput),
-//  //    gasLimit(gasLimitInput),
-//  //    code(codeInput),
-//  //    data(dataInput) {fd
-//
-//}
-
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PairOfKey& senderKeyPair,
                          const uint128_t& amount, const uint128_t& gasPrice,
@@ -135,9 +104,6 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   if (!IsSigned()) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
-  } else {
-    LOG_GENERAL(WARNING,
-                "Verified input signature :)");
   }
 }
 
@@ -180,7 +146,7 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
 }
 
 const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
-bool Transaction::VersionCorrect() const { return true; }
+bool Transaction::VersionCorrect() const { return m_coreInfo.version == 65538 || m_coreInfo.version == 65537; }
 
 const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
 

@@ -267,10 +267,10 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    //throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-    //                       "Nonce (" + to_string(tx.GetNonce()) +
-    //                           ") lower than current (" +
-    //                           to_string(sender->GetNonce()) + ")");
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
   }
 
   return true;
@@ -357,10 +357,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
       senderBalance = sender->GetBalance();
     }
 
-    //if (senderNonce + 1 != tx.GetNonce()) {
-    //  throw JsonRpcException(RPC_INVALID_PARAMETER,
-    //                         "Expected Nonce: " + to_string(senderNonce + 1));
-    //}
+    if (senderNonce + 1 != tx.GetNonce()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Expected Nonce: " + to_string(senderNonce + 1));
+    }
 
     if (senderBalance < tx.GetAmount()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
@@ -485,7 +485,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
     lock_guard<mutex> g(m_blockMutex);
 
     Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
-                   toPubKey(pubKey), fields.amount,
+                   PubKey(pubKey, 0), fields.amount,
                    fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
 
     Json::Value ret;
@@ -493,11 +493,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
     uint64_t senderNonce;
     uint128_t senderBalance;
 
-    std::cout << "From ADDR GETXXXX: " << std::endl;
-
     const Address fromAddr = tx.GetSenderAddr();
-
-    std::cout << "From ADDR: " << fromAddr << std::endl;
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -576,8 +572,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
     if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3  // Arbitrary values
-        ,
+                                                        3,  // Arbitrary values
                                                         true, tx, txreceipt,
                                                         error_code)) {
       throwError = true;

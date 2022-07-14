@@ -52,15 +52,12 @@ class IsolatedServer : public LookupServer,
   inline virtual void SendRawTransactionI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
-    std::cout << "Got raw TX (standalone)!!!" << std::endl;
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
     if (rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
-
-    std::cout << rawTx << std::endl;
 
     auto pubKey = recoverECDSAPubSig(rawTx, CHAIN_ID_ETH);
     auto fields = parseRawTxFields(rawTx);

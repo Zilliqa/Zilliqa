@@ -97,6 +97,7 @@ compile_commands.json
 .history
 cmake-build-debug
 
+# Files from running isolated server
 persistence/
 scilla/
 scilla_files/

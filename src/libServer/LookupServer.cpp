@@ -336,12 +336,6 @@ LookupServer::LookupServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetBalanceEth);
 
-  //this->bindAndAddMethod(
-  //    jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
-  //                       jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-  //                       NULL),
-  //    &LookupServer::GetBalanceEth);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
@@ -390,43 +384,6 @@ LookupServer::LookupServer(Mediator& mediator,
   random_device rd;
   m_eng = mt19937(rd());
 }
-
-//{
-//    "jsonrpc": "2.0",
-//    "id": 0,
-//    "result": {
-//        "blockHash": "0x6357724a8ccd4dc6f175267395466c005be8ca70f1a67d2232774e8b0fb968ae",
-//        "blockNumber": "0xf8ff26",
-//        "contractAddress": null,
-//        "cumulativeGasUsed": "0x24cf9c",
-//        "from": "0x0e11795884b28b08f9978bb85938280967cda041",
-//        "gasUsed": "0x303ab",
-//        "logs": [
-//            {
-//                "address": "0x4d97dcd97ec945f40cf65f87097ace5ea0476045",
-//                "topics": [
-//                    "0x4a39dc06d4c0dbc64b70af90fd698a233a518aa5d07e595d983b8c0526c8f7fb",
-//                    "0x000000000000000000000000cf5cea15e49b33b70a0bef2d42a46425c54c80a1",
-//                    "0x000000000000000000000000cf5cea15e49b33b70a0bef2d42a46425c54c80a1",
-//                    "0x0000000000000000000000000000000000000000000000000000000000000000"
-//                ],
-//                "data": "0x000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000002cb4e96cda2b16481b25e3d2b2cab2bd5c74e15de2495d5f78aa3b3fab67f94b87815b4e593d58ca91f171be3dd89ee2005a61df0a00445b8411dda6564c36ed0000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000067d109f00000000000000000000000000000000000000000000000000000000067d109f",
-//                "blockNumber": "0xf8ff26",
-//                "transactionHash": "0x9ee9891518b06f4b5bf76a4bef4ba6d93e8d38a17b7aaad492f5555865da7dbb",
-//                "transactionIndex": "0xc",
-//                "blockHash": "0x6357724a8ccd4dc6f175267395466c005be8ca70f1a67d2232774e8b0fb968ae",
-//                "logIndex": "0x63",
-//                "removed": false
-//            }
-//        ],
-//        "logsBloom": "0x04000000020000000000000000000000000000000000000000000000002040000000000000000000000000000000000010008000000000000000000100000040000000000000000000000008000600800000000000000000002100000002000000000000020000000000000000000800000000000800000180000112000000000001000002000000000080000000000000100000020010000000000000000000200000000400800000000000000001000000000000000000000000000000024000000042000000000001800000000000000404000400000000180000000020000800008000000000040000000000000000000020000000000000000002100002",
-//        "status": "0x1",
-//        "to": "0xd216153c06e857cd7f72665e0af1d7d82172f494",
-//        "transactionHash": "0x9ee9891518b06f4b5bf76a4bef4ba6d93e8d38a17b7aaad492f5555865da7dbb",
-//        "transactionIndex": "0xc",
-//        "type": "0x0"
-//    }
-//}
 
 string LookupServer::GetNetworkId() {
   if (!LOOKUP_NODE_MODE) {
@@ -602,10 +559,10 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
-    //throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-    //                       "Nonce (" + to_string(tx.GetNonce()) +
-    //                           ") lower than current (" +
-    //                           to_string(sender->GetNonce()) + ")");
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
   }
 
   // Check if transaction amount is valid
@@ -802,21 +759,14 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
-  // Construct TX
-  std::cout << "pubkey submit TX " << DataConversion::Uint8VecToHexStrRet(pubKey)  << std::endl;
-
   Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
-                 toPubKey(pubKey), fields.amount,
+                 PubKey(pubKey, 0), fields.amount,
                  fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
-
-  std::cout << "pubkey submitted TX " << DataConversion::Uint8VecToHexStrRet(pubKey)  << std::endl;
 
   try {
     Json::Value ret;
 
-    std::cout << "Getting sender addr "  << std::endl;
     const Address fromAddr = tx.GetSenderAddr();
-    std::cout << "Got sender addr "  << std::endl;
 
     bool toAccountExist;
     bool toAccountIsContract;
@@ -949,25 +899,19 @@ Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
 
   try {
     if (!REMOTESTORAGE_DB_ENABLE) {
-      std::cout << "no remote storage 1"  << std::endl;
       throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
     }
     if (txnhash.size() != TRAN_HASH_SIZE * 2) {
-      std::cout << "no remote storage 2"  << std::endl;
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Txn Hash size not appropriate");
     }
 
     const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
 
-    std::cout << "got query hash result " << result << std::endl;
-
     if (result.isMember("error")) {
-      std::cout << "internal error." << result << std::endl;
       throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
     } else if (result == Json::Value::null) {
       // No txnhash matches the one in DB
-      std::cout << "no match" << result << std::endl;
       return ret;
     }
 
@@ -1108,7 +1052,6 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
 }
 
 string LookupServer::GetMinimumGasPrice() {
-  std::cout << "GetMinGasPrice! " << std::endl;
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1219,7 +1162,6 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 }
 
 Json::Value LookupServer::GetBalance(const string& address) {
-  std::cout << "Getting balance! For: " << address << std::endl;
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
