@@ -50,7 +50,7 @@ class EvmClientMock : public EvmClient {
 std::unique_ptr<LookupServer> getLookupServer() {
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  const PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;

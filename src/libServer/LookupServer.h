@@ -325,10 +325,10 @@ class LookupServer : public Server,
 
   /**
    * @brief Handles json rpc 2.0 request on method:
-   * eth_getUncleByBlockHashAndIndex. Returns true if client is actively mining
-   * new blocks.
-   * @param request : params[] with hash of a block and uncle's index position
-   * (both ignored)
+   * eth_getUncleByBlock[Hash|Number]AndIndex. Returns true if client is
+   * actively mining new blocks.
+   * @param request : params[] with hash/number of a block and uncle's index
+   * position (both ignored)
    * @param response : Object - returns compound type representing Block
    */
   inline virtual void GetEthUncleBlockI(const Json::Value& /*request*/,
