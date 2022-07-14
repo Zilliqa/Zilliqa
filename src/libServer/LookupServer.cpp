@@ -1067,6 +1067,13 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
       reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
+Json::Value LookupServer::GetEthUncleBlock() {
+  LOG_MARKER();
+  // There's no concept of longest chain hence there will be no uncles
+  // Return null instead
+  return Json::nullValue;
+}
+
 Json::Value LookupServer::GetEthMining() {
   LOG_MARKER();
   // @todo : the mining state a could be retrieved from the WorkServer if it can

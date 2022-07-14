@@ -324,6 +324,19 @@ class LookupServer : public Server,
   }
 
   /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getUncleByBlockHashAndIndex. Returns true if client is actively mining
+   * new blocks.
+   * @param request : params[] with hash of a block and uncle's index position
+   * (both ignored)
+   * @param response : Object - returns compound type representing Block
+   */
+  inline virtual void GetEthUncleBlockI(const Json::Value& /*request*/,
+                                        Json::Value& response) {
+    response = this->GetEthUncleBlock();
+  }
+
+  /**
    * @brief Handles json rpc 2.0 request on method: eth_mining.
    * Returns true if client is actively mining new blocks.
    * @param request : params none
@@ -467,6 +480,7 @@ class LookupServer : public Server,
   std::string GetEthCall(const Json::Value& _json);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
+  Json::Value GetEthUncleBlock();
   Json::Value GetEthMining();
   std::string GetEthCoinbase();
   std::string GetNetVersion();
