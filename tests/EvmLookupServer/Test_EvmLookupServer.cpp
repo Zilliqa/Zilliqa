@@ -219,7 +219,8 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -242,7 +243,8 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -278,7 +280,8 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -301,7 +304,8 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -332,7 +336,8 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -355,7 +360,8 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -378,7 +384,8 @@ BOOST_AUTO_TEST_CASE(test_net_peer_count) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -402,7 +409,8 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -426,7 +434,8 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -450,7 +459,8 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -474,7 +484,8 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); }, true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
+                         true);
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;

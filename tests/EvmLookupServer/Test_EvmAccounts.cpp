@@ -132,15 +132,18 @@ BOOST_AUTO_TEST_CASE(test_evm_account_balance_nonce_check) {
   const auto expectedBalance{12345U};
   const auto expectedNonce{4389567U};
   const std::string address = "a744160c3De133495aB9F9D77EA54b325b045670";
-  EvmClient::GetInstance([&expectedBalance, &expectedNonce, &address]() {
-    return std::make_shared<EvmAccountEvmClientMock>(
-        std::to_string(expectedBalance),  //
-        std::to_string(expectedNonce), address);
-  }, true);
+  EvmClient::GetInstance(
+      [&expectedBalance, &expectedNonce, &address]() {
+        return std::make_shared<EvmAccountEvmClientMock>(
+            std::to_string(expectedBalance),  //
+            std::to_string(expectedNonce), address);
+      },
+      true);
 
   const auto accountStoreMock{std::make_shared<AccountStoreMock>()};
 
-  AccountStore::GetInstance([&accountStoreMock]() { return accountStoreMock; }, true);
+  AccountStore::GetInstance([&accountStoreMock]() { return accountStoreMock; },
+                            true);
   AccountStore::GetInstance().Init();
 
   Address accountAddress{address};
@@ -187,15 +190,19 @@ BOOST_AUTO_TEST_CASE(test_evm_account_balance_nonce_overflow) {
   LOG_GENERAL(DEBUG, "Expected balance:0x" << std::hex << expectedBalance);
   LOG_GENERAL(DEBUG, "Expected Nonce:0x" << std::hex << expectedNonce);
   const std::string address = "b744160c3De133495aB9F9D77EA54b325b045670";
-  EvmClient::GetInstance([&expectedBalance, &expectedNonce, &address]() {
-    return std::make_shared<EvmAccountEvmClientMock>(expectedBalance.str(),
-                                                     expectedNonce.str(),  //
-                                                     address);
-  }, true);
+  EvmClient::GetInstance(
+      [&expectedBalance, &expectedNonce, &address]() {
+        return std::make_shared<EvmAccountEvmClientMock>(
+            expectedBalance.str(),
+            expectedNonce.str(),  //
+            address);
+      },
+      true);
 
   const auto accountStoreMock{std::make_shared<AccountStoreMock>()};
 
-  AccountStore::GetInstance([&accountStoreMock]() { return accountStoreMock; }, true);
+  AccountStore::GetInstance([&accountStoreMock]() { return accountStoreMock; },
+                            true);
   AccountStore::GetInstance().Init();
 
   Address accountAddress{address};
