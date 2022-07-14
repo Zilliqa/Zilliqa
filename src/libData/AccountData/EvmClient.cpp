@@ -40,7 +40,8 @@ bool EvmClient::OpenServer(bool force) {
       boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
   const std::string cmdStr = "pkill " + programName + " ; " +
                              EVM_SERVER_BINARY + " --socket " +
-                             EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
+                             EVM_SERVER_SOCKET_PATH + " --tracing --log4rs '" +
+                             EVM_LOG_CONFIG + "'>/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
