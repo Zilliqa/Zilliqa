@@ -293,8 +293,8 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
   return true;
 }
 
-bool Node::OnCommitFailure(
-    [[gnu::unused]] const std::map<unsigned int, bytes>& commitFailureMap) {
+bool Node::OnCommitFailure([
+    [gnu::unused]] const std::map<unsigned int, bytes>& commitFailureMap) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "
