@@ -1,6 +1,7 @@
 #include "jsonrpccpp/server.h"
 #include "depends/common/RLP.h"
 #include "Eth.h"
+#include "libUtils/DataConversion.h"
 
 using namespace jsonrpc;
 

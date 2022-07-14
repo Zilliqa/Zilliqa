@@ -22,6 +22,7 @@
 #include "libUtils/Logger.h"
 #include "Server.h"
 #include "libCrypto/EthCrypto.h"
+#include "libEth/Eth.h"
 
 constexpr int CHAIN_ID_ETH = 1638;
 //constexpr char* CHAIN_ID_ETH_HEX_STR = "0x666";
