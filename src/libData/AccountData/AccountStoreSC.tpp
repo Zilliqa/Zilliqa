@@ -144,18 +144,35 @@ void AccountStoreSC<MAP>::EvmCallRunner(
   DetachedFunction(1, worker);
   // Wait for the worker to finish
   {
+    std::chrono::duration<int, std::milli> ks(30000);  // 30 seconds
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
     if (!call_already_finished) {
-      cv_callContract.wait(lk);
+      if (LOG_SC) {
+        LOG_GENERAL(WARNING, "Waiting on lock");
+      }
+      auto tv = cv_callContract.wait_for(lk, ks);
+      if (tv == std::cv_status::no_timeout) {
+        if (LOG_SC) {
+          LOG_GENERAL(WARNING, "lock released normally");
+        }
+      } else {
+        if (LOG_SC) {
+          LOG_GENERAL(WARNING, "lock released due to timeout");
+        }
+        m_txnProcessTimeout = true;
+      }
     } else {
       LOG_GENERAL(INFO, "Call functions already finished!");
     }
   }
-  // not sure how timeout can be set - investigate
   if (m_txnProcessTimeout) {
-    LOG_GENERAL(WARNING, "Txn processing timeout!");
-
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING, "Txn processing timeout!");
+    }
     EvmClient::GetInstance().CheckClient(0, true);
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING, "Txn Checked Client returned!");
+    }
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     ret = false;
   }

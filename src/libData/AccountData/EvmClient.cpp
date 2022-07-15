@@ -29,11 +29,25 @@ void EvmClient::Init() {
   LOG_MARKER();
 
   CheckClient(0, false);
-
-  m_initialised = true;
 }
 
-bool EvmClient::OpenServer(bool force) {
+EvmClient::~EvmClient() {
+  std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
+  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
+
+  try {
+    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error encountered");
+  }
+}
+
+bool EvmClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
   const std::string programName =
@@ -59,16 +73,7 @@ bool EvmClient::OpenServer(bool force) {
     return false;
   }
 
-  LOG_GENERAL(WARNING, "Executed: " << cmdStr);
-
-  std::this_thread::sleep_for(
-      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS));
-
-  if (force) {
-    m_initialised = false;
-    CheckClient(0, false);
-    m_initialised = true;
-  }
+  LOG_GENERAL(WARNING, "Executed: " << cmdStr << "on " << version);
 
   return true;
 }
@@ -76,7 +81,7 @@ bool EvmClient::OpenServer(bool force) {
 bool EvmClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
-  if (m_initialised) {
+  if (m_clients.find(version) != m_clients.end() && !enforce) {
     return true;
   }
 
@@ -134,12 +139,13 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                 "restart "
                     << e.what());
 
-    m_initialised = false;
     if (!CheckClient(version, true)) {
-      LOG_GENERAL(WARNING,
-                  "Restart OpenServer for version " << version << "failed");
+      LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+      return CallRunner(version, _json, result, counter - 1);
+    } else {
       result.SetSuccess(false);
     }
+    return false;
   }
-  return false;
+  return true;
 }
