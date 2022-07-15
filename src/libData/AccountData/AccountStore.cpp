@@ -37,7 +37,7 @@ using namespace Contract;
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
 
-  if (ENABLE_SC && (!LOOKUP_NODE_MODE || ISOLATED_SERVER)) {
+  if (ENABLE_SC) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
@@ -47,8 +47,9 @@ AccountStore::AccountStore() {
         SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
-
-    ScillaClient::GetInstance().Init();
+    if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
+      ScillaClient::GetInstance().Init();
+    }
 
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
