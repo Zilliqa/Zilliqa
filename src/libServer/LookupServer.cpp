@@ -1067,6 +1067,13 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
       reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
+Json::Value LookupServer::GetEthUncleCount() {
+  LOG_MARKER();
+  // There's no concept of longest chain hence there will be no uncles
+  // Return 0 instead
+  return Json::Value{0};
+}
+
 Json::Value LookupServer::GetEthUncleBlock() {
   LOG_MARKER();
   // There's no concept of longest chain hence there will be no uncles

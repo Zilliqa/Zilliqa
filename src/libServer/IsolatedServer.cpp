@@ -164,6 +164,18 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthUncleBlockI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCoinbaseI);

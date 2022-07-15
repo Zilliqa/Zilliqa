@@ -481,4 +481,40 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
+BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  const auto lookupServer = getLookupServer();
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  paramsRequest[0u] = "0x68656c6c6f20776f726c64";
+
+  lookupServer->GetEthUncleCountI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::Value{0};
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  const auto lookupServer = getLookupServer();
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  paramsRequest[0u] = "0x10";
+
+  lookupServer->GetEthUncleCountI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::Value{0};
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
