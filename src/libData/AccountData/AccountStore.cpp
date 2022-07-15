@@ -47,7 +47,7 @@ AccountStore::AccountStore() {
         SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
-    if (!LOOKUP_NODE_MODE) {
+    if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
     }
 
