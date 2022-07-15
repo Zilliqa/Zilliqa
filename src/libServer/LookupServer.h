@@ -328,7 +328,7 @@ class LookupServer : public Server,
    * eth_getUncleCountByBlock[Hash|Number]. Returns number of uncles.
    * @param request : params[] with hash/number of a block and uncle's index
    * position (both ignored).
-   * @param response : Object - returns compound type representing Block
+   * @param response : Integer: Number of uncles
    */
   inline virtual void GetEthUncleCountI(const Json::Value& /*request*/,
                                         Json::Value& response) {
