@@ -88,7 +88,7 @@ bool AccountBase::IncreaseBalance(const uint256_t& delta) {
 }
 
 bool AccountBase::DecreaseBalance(const uint256_t& delta) {
-  if (m_balance < delta || delta > std::numeric_limits<uint128_t>::max()) {
+  if (m_balance < delta) {
     return false;
   }
 

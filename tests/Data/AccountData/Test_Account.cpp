@@ -146,16 +146,14 @@ BOOST_AUTO_TEST_CASE(testOstream) {
 }
 
 BOOST_AUTO_TEST_CASE(test_balance_check_and_overflow) {
-  Account account(std::numeric_limits<uint128_t>::max(), 0, 1);
+  const auto maxBalance{std::numeric_limits<uint128_t>::max()};
+  Account account(maxBalance, 0, 1);
 
   /// balance checks
-  BOOST_CHECK_EQUAL(account.GetBalance(),
-                    std::numeric_limits<uint128_t>::max());
+  BOOST_CHECK_EQUAL(account.GetBalance(), maxBalance);
   BOOST_CHECK(!account.IncreaseBalance(0x01));
-
   BOOST_CHECK(account.DecreaseBalance(0x01));
-  BOOST_CHECK_EQUAL(account.GetBalance(),
-                    std::numeric_limits<uint128_t>::max() - 1);
+  BOOST_CHECK_EQUAL(account.GetBalance(), maxBalance - 1);
   BOOST_CHECK(
       !account.ChangeBalance(std::numeric_limits<int256_t>::max() * -1));
 
