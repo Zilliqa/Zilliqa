@@ -131,7 +131,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "detected an Error in decoding json response " << e.what());
-      result.SetSuccess(false);
+      //result.SetSuccess(false);
     }
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING,
