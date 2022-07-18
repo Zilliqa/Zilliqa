@@ -22,13 +22,12 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 FROM ubuntu:18.04 as rust_builder
 RUN apt-get update && apt-get install -y protobuf-compiler && \
 apt-get install -y git && \
-apt-get install -y vim && \
 apt-get install -y curl && \
 apt-get install -y build-essential && \
 apt-get install -y pkg-config && \
 apt-get install -y libssl-dev && \
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
-sh install_script.sh -y
+sh install_script.sh -y 
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
     cd /evm-ds && \
