@@ -23,9 +23,9 @@
 #include "Server.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
+#include "common/Constants.h"
 
-constexpr int CHAIN_ID_ETH = 1638;
-//constexpr char* CHAIN_ID_ETH_HEX_STR = "0x666";
+//constexpr int CHAIN_ID_ETH = 1638;
 
 class Mediator;
 
@@ -309,6 +309,7 @@ class LookupServer : public Server,
     response = this->GetEthCall(request[0u]);
   }
 
+  // Eth style functions here
   inline virtual void GetBlocknumEthI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
@@ -366,12 +367,6 @@ class LookupServer : public Server,
     response = ret;
   }
 
-  inline virtual void GetNetVersionI(const Json::Value& request,
-                                     Json::Value& response) {
-    (void)request;
-    response = "0x666";  // 1638 decimal - mainnet is reserved for chainId 1
-  }
-
   inline virtual void GetGasPriceI(const Json::Value& request,
                                      Json::Value& response) {
     (void)request;
@@ -419,7 +414,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = recoverECDSAPubSig(rawTx, CHAIN_ID_ETH);
+    auto pubKey = RecoverECDSAPubSig(rawTx, stoi(ETH_CHAINID));
     auto fields = parseRawTxFields(rawTx);
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
     auto currentGasPrice = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();

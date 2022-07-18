@@ -103,7 +103,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   } else {
     LOG_GENERAL(WARNING,
                 "Received badly set signature bit! Should be 2, 3 or 4 and got: "
-                    << sPubKeyString[1] << "Note: signature is: " << sPubKeyString);
+                    << sPubKeyString[1] << " Note: signature is: " << sPubKeyString);
   }
 
   // Don't want the first byte
@@ -145,7 +145,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   }
 }
 
-bool VerifyEcdsaSecp256k1(const std::string& /*sRandomNumber*/,
+bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex) {
   std::unique_ptr<ECDSA_SIG, decltype(esFree)> zSignature(ECDSA_SIG_new(),
@@ -160,10 +160,12 @@ bool VerifyEcdsaSecp256k1(const std::string& /*sRandomNumber*/,
     LOG_GENERAL(WARNING, "Failed to get the public key from the hex input");
   }
 
-  auto result_prelude = ethash::keccak256(prelude, sizeof(prelude));
+  //auto result_prelude = ethash::keccak256(prelude, sizeof(prelude));
 
-  return ECDSA_do_verify(result_prelude.bytes, SHA256_DIGEST_LENGTH,
-                         zSignature.get(), zPublicKey.get()) || true;
+  auto result = ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
+                         zSignature.get(), zPublicKey.get());
+
+  return result;
 }
 
 // Given a hex string representing the pubkey (secp256k1), return the hex
@@ -222,7 +224,7 @@ secp256k1_context const* getCtx()
 // EIP-155 : assume the chain height is high enough that the signing scheme
 // is in line with EIP-155.
 // message shall not contain '0x'
-bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
+bytes RecoverECDSAPubSig(std::string const &message, int chain_id) {
 
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
@@ -232,6 +234,9 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes);
+  std::cout << "RLP stream orig: " << message << std::endl;
+  std::cout << "RLP stream rec: " << rlpStream1 << std::endl;
+
   dev::RLPStream rlpStreamRecreated(9);
 
   int i = 0;
@@ -271,6 +276,7 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
     LOG_GENERAL(WARNING,
                 "Received badly parsed recid in raw transaction: "
                     << v << " with chainID " << chain_id << " for " << vSelect);
+    return {};
   }
 
   auto messageRecreatedBytes = rlpStreamRecreated.out();
@@ -278,6 +284,9 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
   // Sign original message
   auto signingHash =
       ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
+
+  std::cout << "Signing hash is: "
+            << DataConversion::Uint8VecToHexStrRet(bytes{&signingHash.bytes[0], &signingHash.bytes[32]}) << std::endl;
 
   // Load the RS into the library
   auto* ctx = getCtx();
@@ -304,4 +313,30 @@ bytes recoverECDSAPubSig(std::string const &message, int chain_id) {
   );
 
   return serializedPubkey;
+}
+
+// nonce, gasprice, startgas, to, value, data, chainid, 0, 0
+bytes GetOriginalHash(TransactionCoreInfo const &info, uint64_t chainId){
+
+  dev::RLPStream rlpStreamRecreated(9);
+
+  rlpStreamRecreated << info.nonce;
+  rlpStreamRecreated << info.gasPrice;
+  rlpStreamRecreated << info.gasLimit;
+  rlpStreamRecreated << info.toAddr;
+  rlpStreamRecreated << info.amount;
+  rlpStreamRecreated << info.data;
+  rlpStreamRecreated << chainId;
+  rlpStreamRecreated << bytes{};
+  rlpStreamRecreated << bytes{};
+
+  std::cout << "RLP stream recreated: " << DataConversion::Uint8VecToHexStrRet(rlpStreamRecreated.out()) << std::endl;
+
+  auto signingHash =
+      ethash::keccak256(rlpStreamRecreated.out().data(), rlpStreamRecreated.out().size());
+
+  std::cout << "Recreated signing hash is: "
+            << DataConversion::Uint8VecToHexStrRet(bytes{&signingHash.bytes[0], &signingHash.bytes[32]}) << std::endl;
+
+  return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }

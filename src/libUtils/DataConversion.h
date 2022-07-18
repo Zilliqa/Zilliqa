@@ -36,6 +36,8 @@ class DataConversion {
   /// Converts alphanumeric hex string to Uint64.
   static bool HexStringToUint64(const std::string& s, uint64_t* res);
 
+  static uint64_t HexStringToUint64Ret(const std::string& s);
+
   /// Converts alphanumeric hex string to byte vector.
   static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
 

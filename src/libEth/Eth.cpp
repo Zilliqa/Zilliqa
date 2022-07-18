@@ -1,20 +1,3 @@
-/*
- * Copyright (C) 2022 Zilliqa
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 #include "jsonrpccpp/server.h"
 #include "depends/common/RLP.h"
 #include "Eth.h"
@@ -83,10 +66,10 @@ EthFields parseRawTxFields(std::string const& message) {
       case 6: // V - only needed for pub sig recovery
         break;
       case 7: // R
-        ret.signature.insert(ret.signature.begin(), byteIt.begin(), byteIt.end());
+        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
         break;
       case 8: // S
-        ret.signature.insert(ret.signature.begin(), byteIt.begin(), byteIt.end());
+        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
         break;
       default:
         LOG_GENERAL(WARNING,

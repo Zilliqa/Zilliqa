@@ -21,12 +21,12 @@
 #include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
 #include "common/BaseType.h"
 #include <Schnorr.h>
-
+#include "libData/AccountData/Transaction.h"
 #include <string>
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
-bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
+bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex);
 
@@ -36,6 +36,8 @@ bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
 // per the 'Standards for Efficient Cryptography' specification
 std::string ToUncompressedPubKey(const std::string& pubKey);
 
-bytes recoverECDSAPubSig(std::string const& message, int chain_id);
+bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
+
+bytes GetOriginalHash(TransactionCoreInfo const &info, uint64_t chainId);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

@@ -32,6 +32,18 @@ bool DataConversion::HexStringToUint64(const std::string& s, uint64_t* res) {
   return true;
 }
 
+uint64_t DataConversion::HexStringToUint64Ret(const std::string& s) {
+  uint64_t ret = 0;
+
+  if (s.size() > 2 &&  s[1] == 'x') {
+    HexStringToUint64(std::string(s.c_str()+2), &ret);
+  } else {
+    HexStringToUint64(s, &ret);
+  }
+
+  return ret;
+}
+
 bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   try {
     out.clear();

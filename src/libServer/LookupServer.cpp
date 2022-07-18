@@ -352,6 +352,7 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
 
+  // Add Eth compatible RPC endpoints
   // todo: remove when all tests are updated to use eth_call
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
@@ -359,11 +360,16 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::GetEthCallI);
 
-  // Add Eth compatible RPC endpoints
   this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetChainIdI);
+      jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::GetEthCallI);
+
+  //this->bindAndAddMethod(
+  //    jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
+  //                       jsonrpc::JSON_STRING, NULL),
+  //    &LookupServer::GetChainIdI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
@@ -417,12 +423,6 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::SendRawTransactionI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallI);
-
-  this->bindAndAddMethod(
       jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetWeb3ClientVersionI);
@@ -442,11 +442,6 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCoinbaseI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetVersionI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,

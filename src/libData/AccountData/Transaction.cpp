@@ -203,7 +203,9 @@ bool Transaction::IsSignedECDSA() const {
   sigString = sigString.substr(2);
   pubKeyStr = pubKeyStr.substr(2);
 
-  return VerifyEcdsaSecp256k1("", sigString, pubKeyStr);
+  auto hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
+
+  return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }
 
 // Function to return whether the TX is signed

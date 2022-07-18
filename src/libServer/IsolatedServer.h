@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_
 
 #include "LookupServer.h"
+#include "common/Constants.h"
 
 class Mediator;
 
@@ -58,10 +59,20 @@ class IsolatedServer : public LookupServer,
     if (rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
+    int chainid = ETH_CHAINID_INT;
 
-    auto pubKey = recoverECDSAPubSig(rawTx, CHAIN_ID_ETH);
+    std::cout << "chid: " << chainid << std::endl;
+    std::cout << "chid: " << ETH_CHAINID << std::endl;
+
+    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
+
+    //if (pubKey.size() == 0) {
+    //
+    //}
+
+    std::cout << "Got PUBK: " << DataConversion::Uint8VecToHexStrRet(pubKey) << std::endl;
+
     auto fields = parseRawTxFields(rawTx);
-
     auto resp = CreateTransactionEth(fields, pubKey);
 
     response = resp["TranID"];

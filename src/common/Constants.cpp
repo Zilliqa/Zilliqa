@@ -740,3 +740,5 @@ const std::string EVM_LOG_CONFIG{
     ReadConstantString("EVM_LOG_CONFIG", "node.jsonrpc.")};
 const std::string ETH_CHAINID{
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.")};
+const uint64_t ETH_CHAINID_INT{
+    DataConversion::HexStringToUint64Ret(ReadConstantString("ETH_CHAINID", "node.jsonrpc."))};

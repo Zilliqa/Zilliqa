@@ -224,11 +224,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 
   // Add the JSON-RPC eth style methods
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetChainIdI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetBlocknumEthI);

@@ -12,6 +12,9 @@ ProcessorCount(N)
 
 message(STATUS "Building and installing mongo driver. This could take longer")
 
+
+message(STATUS "Updating submodule...")
+
 set(INSTALL_MONGO_LOG ${CMAKE_BINARY_DIR}/src/depends/install_mongo.log)
 
 # update submodule to the locked commit
@@ -22,6 +25,8 @@ execute_process(
     OUTPUT_FILE ${INSTALL_MONGO_LOG}
     ERROR_FILE ${INSTALL_MONGO_LOG}
 )
+
+message(STATUS "run cmake...")
 
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
@@ -43,6 +48,8 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
 
+message(STATUS "building and installing")
+
 # build and install mongo-c-driver
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_C_BINARY_DIR} -- -j${N}
@@ -54,6 +61,8 @@ execute_process(
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongoc, see more in log ${INSTALL_MONGO_LOG}")
 endif()
+
+message(STATUS "building and installing2")
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_C_BINARY_DIR} --target install
@@ -67,6 +76,8 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
 endif()
 
 
+message(STATUS "cxx driver submodule pull ")
+
 # update submodule to the locked commit
 execute_process(
     COMMAND git submodule update --init --recursive src/depends/mongo-cxx-driver
@@ -79,6 +90,8 @@ execute_process(
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongocxx, see more in log ${INSTALL_MONGO_LOG}")
 endif()
+
+message(STATUS "cxx driver cmake")
 
 # generate build directory
 execute_process(
@@ -97,6 +110,8 @@ if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongocxx, see more in log ${INSTALL_MONGO_LOG}")
 endif()
 
+message(STATUS "cxx driver build")
+
 # build and install mongo-cxx-driver
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_CXX_BINARY_DIR} -- -j${N}
@@ -108,6 +123,8 @@ execute_process(
 if(NOT "${INSTALL_MONGO_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing mongocxx, see more in log ${INSTALL_MONGO_LOG}")
 endif()
+
+message(STATUS "cxx driver build2 ${MONGO_CXX_BINARY_DIR}")
 
 execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${MONGO_CXX_BINARY_DIR} --target install
