@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIB_ETH_H_
-#define ZILLIQA_SRC_LIB_ETH_H_
+#ifndef ZILLIQA_SRC_LIBETH_ETH_H_
+#define ZILLIQA_SRC_LIBETH_ETH_H_
 
 struct EthFields {
   uint32_t version{};
@@ -34,4 +34,4 @@ Json::Value populateReceiptHelper(std::string const& txnhash);
 
 EthFields parseRawTxFields(std::string const& message);
 
-#endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
+#endif  // ZILLIQA_SRC_LIBETH_ETH_H_
