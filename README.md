@@ -169,7 +169,7 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
     $ cd build && ./tests/Node/pre_run.sh && ./tests/Node/test_node_lookup.sh && ./tests/Node/test_node_simple.sh
     ```
 
-2. Logs of each node can be found at `./local_run`.
+2. Logs of each node can be found at `./local_run`
 
 3. To terminate Zilliqa:
 
