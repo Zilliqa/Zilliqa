@@ -23,8 +23,8 @@
 
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
-
 #include "common/Constants.h"
+#include "common/Singleton.h"
 
 namespace evmproj {
 
@@ -32,33 +32,30 @@ struct CallResponse;
 
 }
 
-class EvmClient {
+class EvmClient : public Singleton<EvmClient> {
  public:
-  static EvmClient& GetInstance() {
-    static EvmClient evmClient;
-    return evmClient;
-  }
+  EvmClient(){};
+
+  virtual ~EvmClient();
 
   void Init();
 
   bool CheckClient(uint32_t version,
                    __attribute__((unused)) bool enforce = false);
 
-  bool CallRunner(uint32_t version, const Json::Value& _json,
-                  evmproj::CallResponse& result,
-                  uint32_t counter = MAXRETRYCONN);
+  virtual bool CallRunner(uint32_t version, const Json::Value& _json,
+                          evmproj::CallResponse& result,
+                          uint32_t counter = MAXRETRYCONN);
+
+ protected:
+  virtual bool OpenServer(uint32_t version);
 
  private:
-  EvmClient() {}
-  virtual ~EvmClient() {}
-  bool OpenServer(bool force = false);
-
   std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
   std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
       m_connectors;
 
   std::mutex m_mutexMain;
-  bool m_initialised{false};
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_

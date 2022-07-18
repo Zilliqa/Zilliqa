@@ -29,18 +29,33 @@ void EvmClient::Init() {
   LOG_MARKER();
 
   CheckClient(0, false);
-
-  m_initialised = true;
 }
 
-bool EvmClient::OpenServer(bool force) {
+EvmClient::~EvmClient() {
+  std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
+  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
+
+  try {
+    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
+      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+    }
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING,
+                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error encountered");
+  }
+}
+
+bool EvmClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
-  std::string programName =
+  const std::string programName =
       boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  std::string cmdStr = "pkill " + programName + " ; " + EVM_SERVER_BINARY +
-                       " --socket " + EVM_SERVER_SOCKET_PATH +
-                       " --tracing >/dev/null &";
+  const std::string cmdStr = "pkill " + programName + " ; " +
+                             EVM_SERVER_BINARY + " --socket " +
+                             EVM_SERVER_SOCKET_PATH + " --tracing --log4rs '" +
+                             EVM_LOG_CONFIG + "'>/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
@@ -58,16 +73,7 @@ bool EvmClient::OpenServer(bool force) {
     return false;
   }
 
-  LOG_GENERAL(WARNING, "Executed: " << cmdStr);
-
-  std::this_thread::sleep_for(
-      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS));
-
-  if (force) {
-    m_initialised = false;
-    CheckClient(0, false);
-    m_initialised = true;
-  }
+  LOG_GENERAL(WARNING, "Executed: " << cmdStr << "on " << version);
 
   return true;
 }
@@ -75,21 +81,20 @@ bool EvmClient::OpenServer(bool force) {
 bool EvmClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
-  if (m_initialised) return true;
+  if (m_clients.find(version) != m_clients.end() && !enforce) {
+    return true;
+  }
 
   if (!OpenServer(enforce)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
 
-  std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
+  m_connectors[version] =
       std::make_shared<jsonrpc::UnixDomainSocketClient>(EVM_SERVER_SOCKET_PATH);
 
-  m_connectors[version] = conn;
-
-  std::shared_ptr<jsonrpc::Client> c = std::make_shared<jsonrpc::Client>(
+  m_clients[version] = std::make_shared<jsonrpc::Client>(
       *m_connectors.at(version), jsonrpc::JSONRPC_CLIENT_V2);
-  m_clients[version] = c;
 
   return true;
 }
@@ -99,8 +104,8 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   //
   // Fail the call if counter is zero
   //
-  if (counter == 0) {
-    if (LOG_SC) LOG_GENERAL(INFO, "Call counter was zero returning");
+  if (counter == 0 && LOG_SC) {
+    LOG_GENERAL(INFO, "Call counter was zero returning");
     return false;
   }
 
@@ -113,32 +118,34 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
-    Json::Value oldJson;
-    evmproj::CallResponse reply;
-    oldJson = m_clients.at(version)->CallMethod("run", _json);
+    LOG_GENERAL(DEBUG, "Call evem with request:" << _json);
+    const auto oldJson = m_clients.at(version)->CallMethod("run", _json);
+
     // Populate the C++ struct with the return values
     try {
-      reply = evmproj::GetReturn(oldJson, result);
-      if (reply.isSuccess()) {
-        if (LOG_SC) LOG_GENERAL(INFO, "Parsed Json response correctly");
+      const auto reply = evmproj::GetReturn(oldJson, result);
+      if (reply.GetSuccess() && LOG_SC) {
+        LOG_GENERAL(INFO, "Parsed Json response correctly");
       }
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "detected an Error in decoding json response " << e.what());
-      result.m_ok = false;
+      result.SetSuccess(false);
     }
   } catch (jsonrpc::JsonRpcException& e) {
     LOG_GENERAL(WARNING,
                 "RPC Exception calling EVM-DS : attempting server "
                 "restart "
                     << e.what());
-    m_initialised = false;
+
     if (!CheckClient(version, true)) {
-      LOG_GENERAL(WARNING,
-                  "Restart OpenServer for version " << version << "failed");
-      result.m_ok = false;
+      LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+      return CallRunner(version, _json, result, counter - 1);
+    } else {
+      result.SetSuccess(false);
     }
+    return false;
   }
-  return false;
+  return true;
 }

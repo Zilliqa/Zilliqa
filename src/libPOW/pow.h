@@ -30,11 +30,10 @@
 #include "jsonrpccpp/client/connectors/httpclient.h"
 #pragma GCC diagnostic pop
 
+#include <Schnorr.h>
 #include "common/Constants.h"
 #include "depends/common/Miner.h"
 #include "ethash/ethash.hpp"
-//#include "ethash/ethash.hpp"
-#include <Schnorr.h>
 #include "libNetwork/Peer.h"
 #include "libUtils/Logger.h"
 

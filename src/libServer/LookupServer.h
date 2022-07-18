@@ -65,6 +65,7 @@ class LookupServer : public Server,
     (void)request;
     response = this->GetNetworkId();
   }
+
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
     response = CreateTransaction(
@@ -72,167 +73,203 @@ class LookupServer : public Server,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
         m_createTransactionTarget);
   }
+
   inline virtual void GetTransactionI(const Json::Value& request,
                                       Json::Value& response) {
     response = this->GetTransaction(request[0u].asString());
   }
+
   inline virtual void GetSoftConfirmedTransactionI(const Json::Value& request,
                                                    Json::Value& response) {
     response = this->GetSoftConfirmedTransaction(request[0u].asString());
   }
+
   inline virtual void GetDsBlockI(const Json::Value& request,
                                   Json::Value& response) {
     response = this->GetDsBlock(request[0u].asString());
   }
+
   inline virtual void GetDsBlockVerboseI(const Json::Value& request,
                                          Json::Value& response) {
     response = this->GetDsBlock(request[0u].asString(), true);
   }
+
   inline virtual void GetTxBlockI(const Json::Value& request,
                                   Json::Value& response) {
     response = this->GetTxBlock(request[0u].asString());
   }
+
   inline virtual void GetTxBlockVerboseI(const Json::Value& request,
                                          Json::Value& response) {
     response = this->GetTxBlock(request[0u].asString(), true);
   }
+
   inline virtual void GetLatestDsBlockI(const Json::Value& request,
                                         Json::Value& response) {
     (void)request;
     response = this->GetLatestDsBlock();
   }
+
   inline virtual void GetLatestTxBlockI(const Json::Value& request,
                                         Json::Value& response) {
     (void)request;
     response = this->GetLatestTxBlock();
   }
+
   inline virtual void GetBalanceI(const Json::Value& request,
                                   Json::Value& response) {
     response = this->GetBalance(request[0u].asString());
   }
+
   inline virtual void GetMinimumGasPriceI(const Json::Value& request,
                                           Json::Value& response) {
     (void)request;
     response = this->GetMinimumGasPrice();
   }
+
   inline virtual void GetSmartContractsI(const Json::Value& request,
                                          Json::Value& response) {
     response = this->GetSmartContracts(request[0u].asString());
   }
+
   inline virtual void GetContractAddressFromTransactionIDI(
       const Json::Value& request, Json::Value& response) {
     response =
         this->GetContractAddressFromTransactionID(request[0u].asString());
   }
+
   inline virtual void GetNumPeersI(const Json::Value& request,
                                    Json::Value& response) {
     (void)request;
     response = this->GetNumPeers();
   }
+
   inline virtual void GetNumTxBlocksI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->GetNumTxBlocks();
   }
+
   inline virtual void GetNumDSBlocksI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->GetNumDSBlocks();
   }
+
   inline virtual void GetNumTransactionsI(const Json::Value& request,
                                           Json::Value& response) {
     (void)request;
     response = this->GetNumTransactions();
   }
+
   inline virtual void GetTransactionRateI(const Json::Value& request,
                                           Json::Value& response) {
     (void)request;
     response = this->GetTransactionRate();
   }
+
   inline virtual void GetTxBlockRateI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->GetTxBlockRate();
   }
+
   inline virtual void GetDSBlockRateI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->GetDSBlockRate();
   }
+
   inline virtual void DSBlockListingI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->DSBlockListing(request[0u].asUInt());
   }
+
   inline virtual void TxBlockListingI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->TxBlockListing(request[0u].asUInt());
   }
+
   inline virtual void GetBlockchainInfoI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
     response = this->GetBlockchainInfo();
   }
+
   inline virtual void GetRecentTransactionsI(const Json::Value& request,
                                              Json::Value& response) {
     (void)request;
     response = this->GetRecentTransactions();
   }
+
   inline virtual void GetShardingStructureI(const Json::Value& request,
                                             Json::Value& response) {
     (void)request;
     response = this->GetShardingStructure();
   }
+
   inline virtual void GetNumTxnsTxEpochI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
     response = this->GetNumTxnsTxEpoch();
   }
+
   inline virtual void GetNumTxnsDSEpochI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
     response = this->GetNumTxnsDSEpoch();
   }
+
   inline virtual void GetSmartContractSubStateI(const Json::Value& request,
                                                 Json::Value& response) {
     response = this->GetSmartContractState(request[0u].asString(),
                                            request[1u].asString(), request[2u]);
   }
+
   inline virtual void GetSmartContractStateI(const Json::Value& request,
                                              Json::Value& response) {
     response = this->GetSmartContractState(request[0u].asString());
   }
+
   inline virtual void GetSmartContractCodeI(const Json::Value& request,
                                             Json::Value& response) {
     response = this->GetSmartContractCode(request[0u].asString());
   }
+
   inline virtual void GetSmartContractInitI(const Json::Value& request,
                                             Json::Value& response) {
     response = this->GetSmartContractInit(request[0u].asString());
   }
+
   inline virtual void GetTransactionsForTxBlockI(const Json::Value& request,
                                                  Json::Value& response) {
     response = this->GetTransactionsForTxBlock(request[0u].asString(), "");
   }
+
   inline virtual void GetTransactionsForTxBlockExI(const Json::Value& request,
                                                    Json::Value& response) {
     response = this->GetTransactionsForTxBlock(request[0u].asString(),
                                                request[1u].asString());
   }
+
   inline virtual void GetTxnBodiesForTxBlockI(const Json::Value& request,
                                               Json::Value& response) {
     response = this->GetTxnBodiesForTxBlock(request[0u].asString(), "");
   }
+
   inline virtual void GetTxnBodiesForTxBlockExI(const Json::Value& request,
                                                 Json::Value& response) {
     response = this->GetTxnBodiesForTxBlock(request[0u].asString(),
                                             request[1u].asString());
   }
+
   inline virtual void GetShardMembersI(const Json::Value& request,
                                        Json::Value& response) {
     response = this->GetShardMembers(request[0u].asUInt());
   }
+
   inline virtual void GetCurrentDSCommI(const Json::Value& request,
                                         Json::Value& response) {
     (void)request;
@@ -244,32 +281,32 @@ class LookupServer : public Server,
     (void)request;
     response = this->GetTotalCoinSupply();
   }
+
   inline virtual void GetPendingTxnsI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     response = this->GetPendingTxns();
   }
+
   inline virtual void GetMinerInfoI(const Json::Value& request,
                                     Json::Value& response) {
     response = this->GetMinerInfo(request[0u].asString());
   }
+
   inline virtual void GetTransactionStatusI(const Json::Value& request,
                                             Json::Value& response) {
     response = this->GetTransactionStatus(request[0u].asString());
   }
+
   inline virtual void GetStateProofI(const Json::Value& request,
                                      Json::Value& response) {
     response = this->GetStateProof(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
+
   inline virtual void GetEthCallI(const Json::Value& request,
                                   Json::Value& response) {
     response = this->GetEthCall(request[0u]);
-  }
-
-  // Eth style functions here
-  inline virtual void GetChainIdI(const Json::Value&, Json::Value& response) {
-    response = DataConversion::IntToHexString(CHAIN_ID_ETH);  // 1638 decimal - mainnet is reserved for chainId 1
   }
 
   inline virtual void GetBlocknumEthI(const Json::Value& request,
@@ -418,13 +455,138 @@ class LookupServer : public Server,
     response = resp;
   }
 
-  inline virtual void GetBlockchainInfoXI(const Json::Value& request,
-                                         Json::Value& response) {
-    (void)request;
-    response = this->GetBlockchainInfo();
+  /**
+   * @brief Handles json rpc 2.0 request on method: web3_clientVersion
+   * @param request : Params none
+   * @param response : string with the client version
+   */
+  inline virtual void GetWeb3ClientVersionI(const Json::Value& /*request*/,
+                                            Json::Value& response) {
+    response = this->GetWeb3ClientVersion();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: web3_sha3
+   * Returns Keccak-256 (not the standardized SHA3-256) of the given data.
+   * @param request : params[] with data that will be converted into sha3
+   * @param response : The SHA3 result of the given data string.
+   */
+  inline virtual void GetWeb3Sha3I(const Json::Value& request,
+                                   Json::Value& response) {
+    response = this->GetWeb3Sha3(request[0u]);
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_mining.
+   * Returns true if client is actively mining new blocks.
+   * @param request : params none
+   * @param response : Boolean - returns true of the client is mining, otherwise
+   * false
+   */
+  inline virtual void GetEthMiningI(const Json::Value& /*request*/,
+                                    Json::Value& response) {
+    response = this->GetEthMining();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_coinbase.
+   * Returns the client coinbase address. The coinbase address is the
+   * account to pay mining rewards to.
+   * @param request : params none
+   * @param response : string, 20 bytes with the current coinbase address. e.g.
+   * 0x407d73d8a49eeb85d32cf465507dd71d507100c1
+   */
+  virtual void GetEthCoinbaseI(const Json::Value& /*request*/,
+                               Json::Value& response) {
+    response = this->GetEthCoinbase();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: net_version. Returns the
+   * chain_id of zilliqa.
+   * @param request : params none
+   * @param response : string with the zilliqa chain_id
+   */
+  virtual void GetNetVersionI(const Json::Value& /*request*/,
+                              Json::Value& response) {
+    response = this->GetNetVersion();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: net_listening.
+   * @param request : params none
+   * @param response : Boolean - true when listening, otherwise false.
+   */
+  virtual void GetNetListeningI(const Json::Value& /*request*/,
+                                Json::Value& response) {
+    response = this->GetNetListening();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: net_peerCount.
+   * Returns number of peers currently connected to the client.
+   * @param request : params none
+   * @param response : QUANTITY - hex string of the number of connected peers.
+   */
+  virtual void GetNetPeerCountI(const Json::Value& /*request*/,
+                                Json::Value& response) {
+    response = this->GetNetPeerCount();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_protocolVersion.
+   * Returns the current Ethereum protocol version.
+   * @param request : params none
+   * @param response : String - The current Ethereum protocol version
+   */
+  virtual void GetProtocolVersionI(const Json::Value& /*request*/,
+                                   Json::Value& response) {
+    response = this->GetProtocolVersion();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_chainId.
+   * Zilliqa's chainId on ethereum
+   * @param request : params none
+   * @param response : QUANTITY - hex string of the chain id
+   */
+  virtual void GetEthChainIdI(const Json::Value& /*request*/,
+                              Json::Value& response) {
+    response = this->GetEthChainId();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_syncing
+   * Returns an object with data about the sync status or false.
+   * @param request : params none
+   * @param response : Object|Boolean, An object with sync status data or FALSE,
+   * when not syncing:
+   *
+   * startingBlock: QUANTITY - The block at which the import started (will only
+   * be reset, after the sync reached his head)
+   *
+   * currentBlock: QUANTITY - The current block, same as eth_blockNumber
+   *
+   * highestBlock: QUANTITY - The estimated highest block
+   */
+  virtual void GetEthSyncingI(const Json::Value& /*request*/,
+                              Json::Value& response) {
+    response = this->GetEthSyncing();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_accounts
+   * Returns a list of addresses owned by client.
+   * @param request : params none
+   * @param response : Array of DATA, 20 Bytes - addresses owned by the client.
+   */
+  virtual void GetEthAccountsI(const Json::Value& /*request*/,
+                               Json::Value& response) {
+    response = this->GetEthAccounts();
   }
 
   std::string GetNetworkId();
+
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
@@ -457,6 +619,18 @@ class LookupServer : public Server,
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
   std::string GetEthCall(const Json::Value& _json);
+  std::string GetWeb3ClientVersion();
+  std::string GetWeb3Sha3(const Json::Value& _json);
+  Json::Value GetEthMining();
+  std::string GetEthCoinbase();
+  std::string GetNetVersion();
+  Json::Value GetNetListening();
+  std::string GetNetPeerCount();
+  std::string GetProtocolVersion();
+  std::string GetEthChainId();
+  Json::Value GetEthSyncing();
+  Json::Value GetEthAccounts();
+
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();

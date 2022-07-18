@@ -31,7 +31,8 @@ sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
     cd /evm-ds && \
-    cargo build --verbose --release --package evm-ds && \
+    git checkout 11e46175078d13e60933a4a64760a143693e635b && \
+    cargo build --release --package evm-ds && \
     cargo test --verbose --release --package evm-ds
 
 
@@ -200,6 +201,7 @@ COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=rust_builder /evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
+COPY --from=rust_builder /evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
