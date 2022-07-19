@@ -10,7 +10,7 @@ on:
     branches: [ master ]
 
 jobs:
-  code_quality_checks:
+  install_dependencies:
 
     continue-on-error: False
     runs-on: ubuntu-18.04
@@ -27,7 +27,22 @@ jobs:
         python -m pip install --upgrade pip
         pip install wheel
         pip install tox
-    - name: Check it can build
+    - name: Install dependencies
       run: ./scripts/install_dependencies_18_04.sh
+    - name: Install cmake
+      run: |
+        wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
+        mkdir -p "${HOME}"/.local
+        bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+        export PATH=$HOME/.local/bin:$PATH
+        cmake --version
+        rm cmake-3.19.3-Linux-x86_64.sh
+    - name: Build
+      run: |
+        ls
+        ./build.sh
+
+
+
 
 
