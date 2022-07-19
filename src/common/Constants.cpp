@@ -49,9 +49,14 @@ double ReadConstantDouble(const string& propertyName,
 }
 
 string ReadConstantString(const string& propertyName,
-                          const char* path = "node.general.") {
+                          const char* path = "node.general.", const char* defaultVal = "defaulted") {
   auto pt = PTree::GetInstance();
-  return pt.get<string>(path + propertyName);
+
+  try {
+    return pt.get<string>(path + propertyName);
+  } catch (exception e) {
+    return defaultVal;
+  }
 }
 
 uint64_t ReadConstantUInt64(const string& propertyName,
@@ -739,7 +744,7 @@ const std::string EVM_SERVER_SOCKET_PATH{
 const std::string EVM_SERVER_BINARY{
     ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};
 const std::string EVM_LOG_CONFIG{
-    ReadConstantString("EVM_LOG_CONFIG", "node.jsonrpc.")};
+    ReadConstantString("EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
 const std::string ETH_CHAINID{
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.")};
 const uint64_t ETH_CHAINID_INT{

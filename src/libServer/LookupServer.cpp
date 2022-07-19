@@ -1282,9 +1282,26 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
   return result;
 }
 
+// Get balance, but return the result as hex rather than decimal string
 Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
   try {
-    return this->GetBalance(address);
+    auto ret = this->GetBalance(address);
+
+    // Will fit into 128 since that is the native zil balance
+    // size
+    uint128_t balance{ret["balance"].asString()};
+
+    // Convert the result from decimal string to hex string
+    std::stringstream ss;
+    ss<< std::hex << balance; // int decimal_value
+    std::string res ( ss.str() );
+
+    std::cout << "hex response is: " << std::endl;
+    std::cout << res << std::endl;
+
+    ret["balance"] = res;
+
+    return ret;
   }catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     if (noThrow) {
