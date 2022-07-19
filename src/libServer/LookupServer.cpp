@@ -384,6 +384,32 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthCoinbaseI);
 
   this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleByBlockHashAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleBlockI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleByBlockNumberAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleBlockI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  this->bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNetVersionI);
