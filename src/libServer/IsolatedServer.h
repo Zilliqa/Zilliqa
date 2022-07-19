@@ -61,16 +61,7 @@ class IsolatedServer : public LookupServer,
     }
     int chainid = ETH_CHAINID_INT;
 
-    std::cout << "chid: " << chainid << std::endl;
-    std::cout << "chid: " << ETH_CHAINID << std::endl;
-
     auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
-
-    //if (pubKey.size() == 0) {
-    //
-    //}
-
-    std::cout << "Got PUBK: " << DataConversion::Uint8VecToHexStrRet(pubKey) << std::endl;
 
     auto fields = parseRawTxFields(rawTx);
     auto resp = CreateTransactionEth(fields, pubKey);

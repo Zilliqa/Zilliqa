@@ -130,6 +130,8 @@ const unsigned int MSG_VERSION{
     ReadConstantNumeric("MSG_VERSION", "node.version.")};
 const unsigned int TRANSACTION_VERSION{
     ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
+const unsigned int TRANSACTION_VERSION_ETH{
+    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.") + 1};
 const unsigned int DSBLOCK_VERSION{
     ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
 const unsigned int TXBLOCK_VERSION{

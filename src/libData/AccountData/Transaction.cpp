@@ -146,7 +146,17 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
 }
 
 const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
-bool Transaction::VersionCorrect() const { return m_coreInfo.version == 65538 || m_coreInfo.version == 65537; }
+
+// Check if the version is 1 or 2 - the only valid ones for now
+// this will look like 65538 or 65537
+bool Transaction::VersionCorrect() const {
+  auto version = DataConversion::UnpackB(this.GetVersion());
+
+  if (version != TRANSACTION_VERSION && version != TRANSACTION_VERSION_ETH) {
+    return false;
+  }
+  return true;
+}
 
 const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
 

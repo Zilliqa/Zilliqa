@@ -83,7 +83,6 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
 
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -365,11 +364,6 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &LookupServer::GetEthCallI);
-
-  //this->bindAndAddMethod(
-  //    jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
-  //                       jsonrpc::JSON_STRING, NULL),
-  //    &LookupServer::GetChainIdI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
@@ -882,7 +876,7 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
           AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
       if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
-        std::cerr << "failed to validate TX!" << std::endl;
+        LOG_GENERAL(WARNING, "failed to validate TX!");
         return ret;
       }
 

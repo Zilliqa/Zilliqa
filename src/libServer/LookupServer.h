@@ -25,8 +25,6 @@
 #include "libEth/Eth.h"
 #include "common/Constants.h"
 
-//constexpr int CHAIN_ID_ETH = 1638;
-
 class Mediator;
 
 typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
@@ -429,15 +427,14 @@ class LookupServer : public Server,
   inline virtual void GetBalanceEth(const Json::Value& request,
                                     Json::Value& response) {
     (void)request;
-    //response = "0x1010000000000000000000000"; // for a fake response
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
     auto resp = this->GetBalance(address, true)["balance"];
 
-    //resp = resp.asString() + "000000000000";
     auto balanceStr = resp.asString();
 
+    // todo: remove
     for(int i = 0;i < 3;i++) {
       // While bigger then 0x0
       if (balanceStr.size() > 3) {

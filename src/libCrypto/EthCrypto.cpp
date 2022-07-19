@@ -160,8 +160,6 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
     LOG_GENERAL(WARNING, "Failed to get the public key from the hex input");
   }
 
-  //auto result_prelude = ethash::keccak256(prelude, sizeof(prelude));
-
   auto result = ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
                          zSignature.get(), zPublicKey.get());
 
@@ -234,9 +232,6 @@ bytes RecoverECDSAPubSig(std::string const &message, int chain_id) {
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes);
-  std::cout << "RLP stream orig: " << message << std::endl;
-  std::cout << "RLP stream rec: " << rlpStream1 << std::endl;
-
   dev::RLPStream rlpStreamRecreated(9);
 
   int i = 0;
@@ -285,9 +280,6 @@ bytes RecoverECDSAPubSig(std::string const &message, int chain_id) {
   auto signingHash =
       ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
 
-  std::cout << "Signing hash is: "
-            << DataConversion::Uint8VecToHexStrRet(bytes{&signingHash.bytes[0], &signingHash.bytes[32]}) << std::endl;
-
   // Load the RS into the library
   auto* ctx = getCtx();
   secp256k1_ecdsa_recoverable_signature rawSig;
@@ -330,13 +322,8 @@ bytes GetOriginalHash(TransactionCoreInfo const &info, uint64_t chainId){
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};
 
-  std::cout << "RLP stream recreated: " << DataConversion::Uint8VecToHexStrRet(rlpStreamRecreated.out()) << std::endl;
-
   auto signingHash =
       ethash::keccak256(rlpStreamRecreated.out().data(), rlpStreamRecreated.out().size());
-
-  std::cout << "Recreated signing hash is: "
-            << DataConversion::Uint8VecToHexStrRet(bytes{&signingHash.bytes[0], &signingHash.bytes[32]}) << std::endl;
 
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
