@@ -368,7 +368,7 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetBlocknumEthI);
+      &LookupServer::GetEthBlockNumberI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
@@ -379,18 +379,18 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetBalanceEth);
+      &LookupServer::GetEthBalanceI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_BOOLEAN, NULL),
-      &LookupServer::GetBlockByNumber);
+      &LookupServer::GetEthBlockByNumberI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetGasPriceI);
+      &LookupServer::GetEthGasPriceI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
@@ -402,19 +402,19 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::EstimateGasI);
+      &LookupServer::GetEthEstimateGasI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getTransactionCount", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
                          NULL),
-      &LookupServer::GetTransactionCountI);
+      &LookupServer::GetEthTransactionCountI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_sendRawTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
-      &LookupServer::SendRawTransactionI);
+      &LookupServer::GetEthSendRawTransactionI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,

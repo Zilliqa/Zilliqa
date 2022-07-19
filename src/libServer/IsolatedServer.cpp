@@ -226,7 +226,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetBlocknumEthI);
+      &LookupServer::GetEthBlockNumberI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
@@ -237,18 +237,18 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetBalanceEth);
+      &LookupServer::GetEthBalanceI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_BOOLEAN, NULL),
-      &LookupServer::GetBlockByNumber);
+      &LookupServer::GetEthBlockByNumberI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetGasPriceI);
+      &LookupServer::GetEthGasPriceI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
@@ -259,19 +259,19 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT, NULL),
-      &LookupServer::EstimateGasI);
+      &LookupServer::GetEthEstimateGasI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getTransactionCount", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetTransactionCountI);
+      &LookupServer::GetEthTransactionCountI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_sendRawTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
-      &IsolatedServer::SendRawTransactionI);
+      &IsolatedServer::GetEthSendRawTransactionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getTransactionReceipt", jsonrpc::PARAMS_BY_POSITION,

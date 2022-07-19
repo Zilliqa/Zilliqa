@@ -308,7 +308,7 @@ class LookupServer : public Server,
   }
 
   // Eth style functions here
-  inline virtual void GetBlocknumEthI(const Json::Value& request,
+  inline virtual void GetEthBlockNumberI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
     static uint64_t block_number = 2675001;
@@ -320,7 +320,7 @@ class LookupServer : public Server,
     response = stream.str();
   }
 
-  inline virtual void GetBlockByNumber(const Json::Value& request,
+  inline virtual void GetEthBlockByNumberI(const Json::Value& request,
                                        Json::Value& response) {
     (void)request;
 
@@ -365,7 +365,7 @@ class LookupServer : public Server,
     response = ret;
   }
 
-  inline virtual void GetGasPriceI(const Json::Value& request,
+  inline virtual void GetEthGasPriceI(const Json::Value& request,
                                      Json::Value& response) {
     (void)request;
     response = "0xd9e63a68c";
@@ -377,13 +377,13 @@ class LookupServer : public Server,
     response = "0x";
   }
 
-  inline virtual void EstimateGasI(const Json::Value& request,
+  inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                Json::Value& response) {
     (void)request;
     response = "0x5208";
   }
 
-  inline virtual void GetTransactionCountI(const Json::Value& request,
+  inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                    Json::Value& response) {
     (void)request;
 
@@ -402,7 +402,7 @@ class LookupServer : public Server,
     response = this->GetTransactionReceipt(request[0u].asString());
   }
 
-  inline virtual void SendRawTransactionI(const Json::Value& request,
+  inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                            Json::Value& response) {
     (void)request;
     auto rawTx = request[0u].asString();
@@ -424,7 +424,7 @@ class LookupServer : public Server,
     response = resp["TranID"];
   }
 
-  inline virtual void GetBalanceEth(const Json::Value& request,
+  inline virtual void GetEthBalanceI(const Json::Value& request,
                                     Json::Value& response) {
     (void)request;
     std::string address = request[0u].asString();
