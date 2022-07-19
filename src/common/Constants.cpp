@@ -49,9 +49,14 @@ double ReadConstantDouble(const string& propertyName,
 }
 
 string ReadConstantString(const string& propertyName,
-                          const char* path = "node.general.") {
+                          const char* path = "node.general.", const char* defaultVal = "defaulted") {
   auto pt = PTree::GetInstance();
-  return pt.get<string>(path + propertyName);
+
+  try {
+    return pt.get<string>(path + propertyName);
+  } catch (exception e) {
+    return defaultVal;
+  }
 }
 
 uint64_t ReadConstantUInt64(const string& propertyName,
@@ -130,6 +135,8 @@ const unsigned int MSG_VERSION{
     ReadConstantNumeric("MSG_VERSION", "node.version.")};
 const unsigned int TRANSACTION_VERSION{
     ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
+const unsigned int TRANSACTION_VERSION_ETH{
+    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.") + 1};
 const unsigned int DSBLOCK_VERSION{
     ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
 const unsigned int TXBLOCK_VERSION{
@@ -737,6 +744,8 @@ const std::string EVM_SERVER_SOCKET_PATH{
 const std::string EVM_SERVER_BINARY{
     ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};
 const std::string EVM_LOG_CONFIG{
-    ReadConstantString("EVM_LOG_CONFIG", "node.jsonrpc.")};
+    ReadConstantString("EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
 const std::string ETH_CHAINID{
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.")};
+const uint64_t ETH_CHAINID_INT{
+    DataConversion::HexStringToUint64Ret(ReadConstantString("ETH_CHAINID", "node.jsonrpc."))};
