@@ -59,7 +59,6 @@ class IsolatedServer : public LookupServer,
     if (rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
-    int chainid = ETH_CHAINID_INT;
 
     auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
