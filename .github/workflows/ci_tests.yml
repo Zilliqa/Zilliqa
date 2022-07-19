@@ -28,6 +28,6 @@ jobs:
         pip install wheel
         pip install tox
     - name: Check it can build
-      run: ./scripts/install_dependencies.sh
+      run: ./scripts/install_dependencies_18_04.sh
 
 
