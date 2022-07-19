@@ -40,7 +40,10 @@ jobs:
     - name: Build
       run: |
         ls
-        ./build.sh
+        mkdir build
+        cmake -H. -B ./build -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
+        cmake --build ./build -- -j2
+
 
 
 
