@@ -34,7 +34,19 @@
 class DataConversion {
  public:
   /// Converts alphanumeric hex string to Uint64.
-  static bool HexStringToUint64(const std::string& s, uint64_t* res);
+  static bool HexStringToUint64(const std::string& s, uint64_t* res) {
+    try {
+      *res = std::stoull(s, nullptr, 16);
+    } catch (const std::invalid_argument& e) {
+      LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
+      return false;
+    } catch (const std::out_of_range& e) {
+      LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
+      return false;
+    }
+    return true;
+  }
+
 
   static uint64_t HexStringToUint64Ret(const std::string& s) {
     uint64_t ret = 0;
