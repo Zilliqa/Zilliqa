@@ -152,10 +152,8 @@ const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 bool Transaction::VersionCorrect() const {
   auto version = DataConversion::UnpackB(this->GetVersion());
 
-  if (version != TRANSACTION_VERSION && version != TRANSACTION_VERSION_ETH) {
-    return false;
-  }
-  return true;
+  return !(version != TRANSACTION_VERSION &&
+           version != TRANSACTION_VERSION_ETH);
 }
 
 const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }

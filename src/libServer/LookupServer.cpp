@@ -587,7 +587,7 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "CHAIN_ID incorrect");
   }
 
-  if (tx.VersionCorrect() != true) {
+  if (!tx.VersionCorrect()) {
     throw JsonRpcException(
         ServerBase::RPC_VERIFY_REJECTED,
         "Transaction version incorrect! Expected:" +
