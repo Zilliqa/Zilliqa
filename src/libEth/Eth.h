@@ -18,6 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBETH_ETH_H_
 #define ZILLIQA_SRC_LIBETH_ETH_H_
 
+#include <json/value.h>
+#include <cstdint>
+#include "common/BaseType.h"
+
 struct EthFields {
   uint32_t version{};
   uint64_t nonce{};
