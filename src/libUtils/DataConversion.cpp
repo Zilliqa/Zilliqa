@@ -40,7 +40,7 @@ bytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
                             back_inserter(out));
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: "
-        << e.what());
+                             << e.what());
     return out;
   }
   return out;

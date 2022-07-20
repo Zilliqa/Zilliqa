@@ -51,7 +51,7 @@ class IsolatedServer : public LookupServer,
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
-                                         Json::Value& response) {
+                                                Json::Value& response) {
     (void)request;
     auto rawTx = request[0u].asString();
 
@@ -108,7 +108,8 @@ class IsolatedServer : public LookupServer,
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
-  Json::Value CreateTransactionEth(EthFields const& fields, bytes const& pubKey);
+  Json::Value CreateTransactionEth(EthFields const& fields,
+                                   bytes const& pubKey);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);

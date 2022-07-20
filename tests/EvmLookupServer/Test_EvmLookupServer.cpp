@@ -553,7 +553,7 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
 
   lookupServer.GetNetVersionI(paramsRequest, response);
 
-  if(response.asString().size() > 0) {
+  if (response.asString().size() > 0) {
     BOOST_FAIL("Failed to get net version");
   }
 }
@@ -578,7 +578,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
 
   lookupServer.GetEthBalanceI(paramsRequest, response);
 
-  if(!(response.asString() == "0x0")) {
+  if (!(response.asString() == "0x0")) {
     BOOST_FAIL("Failed to get empty balance!");
   }
 }
@@ -625,7 +625,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
 
   lookupServer.GetEthGasPriceI(paramsRequest, response);
 
-  if(response.asString()[0] != '0') {
+  if (response.asString()[0] != '0') {
     BOOST_FAIL("Failed to get gas price");
   }
 }
@@ -649,7 +649,7 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
 
   lookupServer.GetEthEstimateGasI(paramsRequest, response);
 
-  if(response.asString()[0] != '0') {
+  if (response.asString()[0] != '0') {
     BOOST_FAIL("Failed to get gas price");
   }
 }
@@ -695,7 +695,8 @@ BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
   // call the method on the lookup server with params
 
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = "f86e80850d9e63a68c82520894673e5ef1ae0a2ef7d0714a96a734ffcd1d8a381f881bc16d674ec8000080820cefa04728e87b280814295371adf0b7ccc3ec802a45bd31d13668b5ab51754c110f8ea02d0450641390c9ed56fcbbc64dcb5b07f7aece78739ef647f10cc93d4ecaa496";
+  paramsRequest[0u] =
+"f86e80850d9e63a68c82520894673e5ef1ae0a2ef7d0714a96a734ffcd1d8a381f881bc16d674ec8000080820cefa04728e87b280814295371adf0b7ccc3ec802a45bd31d13668b5ab51754c110f8ea02d0450641390c9ed56fcbbc64dcb5b07f7aece78739ef647f10cc93d4ecaa496";
 
   lookupServer.GetEthSendRawTransactionI(paramsRequest, response);
 

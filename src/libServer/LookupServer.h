@@ -19,11 +19,10 @@
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
 #include "Server.h"
-#include "libUtils/Logger.h"
-#include "Server.h"
+#include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
-#include "common/Constants.h"
+#include "libUtils/Logger.h"
 
 class Mediator;
 
@@ -309,7 +308,7 @@ class LookupServer : public Server,
 
   // Eth style functions here
   inline virtual void GetEthBlockNumberI(const Json::Value& request,
-                                      Json::Value& response) {
+                                         Json::Value& response) {
     (void)request;
     static uint64_t block_number = 2675001;
     block_number++;
@@ -321,7 +320,7 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
-                                       Json::Value& response) {
+                                           Json::Value& response) {
     (void)request;
 
     Json::Value ret;
@@ -366,25 +365,25 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetEthGasPriceI(const Json::Value& request,
-                                     Json::Value& response) {
+                                      Json::Value& response) {
     (void)request;
     response = "0xd9e63a68c";
   }
 
   inline virtual void GetCodeI(const Json::Value& request,
-                                   Json::Value& response) {
+                               Json::Value& response) {
     (void)request;
     response = "0x";
   }
 
   inline virtual void GetEthEstimateGasI(const Json::Value& request,
-                               Json::Value& response) {
+                                         Json::Value& response) {
     (void)request;
     response = "0x5208";
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
-                                   Json::Value& response) {
+                                              Json::Value& response) {
     (void)request;
 
     std::string address = request[0u].asString();
@@ -396,14 +395,14 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetTransactionReceiptI(const Json::Value& request,
-                                           Json::Value& response) {
+                                             Json::Value& response) {
     (void)request;
 
     response = this->GetTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
-                                           Json::Value& response) {
+                                                Json::Value& response) {
     (void)request;
     auto rawTx = request[0u].asString();
 
@@ -415,17 +414,17 @@ class LookupServer : public Server,
     auto pubKey = RecoverECDSAPubSig(rawTx, stoi(ETH_CHAINID));
     auto fields = parseRawTxFields(rawTx);
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
-    auto currentGasPrice = m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+    auto currentGasPrice =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
 
-    auto resp = CreateTransactionEth(fields, pubKey,
-                                    shards, currentGasPrice,
-                                    m_createTransactionTarget);
+    auto resp = CreateTransactionEth(fields, pubKey, shards, currentGasPrice,
+                                     m_createTransactionTarget);
 
     response = resp["TranID"];
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
-                                    Json::Value& response) {
+                                     Json::Value& response) {
     (void)request;
     std::string address = request[0u].asString();
     std::cout << "ADDR IS " << address << std::endl;
@@ -623,9 +622,10 @@ class LookupServer : public Server,
 
   // Eth calls
   Json::Value GetTransactionReceipt(const std::string& txnhash);
-  Json::Value CreateTransactionEth(EthFields const& fields, bytes const& pubKey,
-                                   const unsigned int num_shards,
-                                   const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc);
+  Json::Value CreateTransactionEth(
+      EthFields const& fields, bytes const& pubKey,
+      const unsigned int num_shards, const uint128_t& gasPrice,
+      const CreateTransactionTargetFunc& targetFunc);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

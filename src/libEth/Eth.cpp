@@ -15,37 +15,45 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "jsonrpccpp/server.h"
-#include "depends/common/RLP.h"
 #include "Eth.h"
+#include "depends/common/RLP.h"
+#include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
 
 using namespace jsonrpc;
 
 Json::Value populateReceiptHelper(std::string const& txnhash) {
-
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
-  ret["blockHash"] = "0x0000000000000000000000000000000000000000000000000000000000000000";
+  ret["blockHash"] =
+      "0x0000000000000000000000000000000000000000000000000000000000000000";
   ret["blockNumber"] = "0x429d3b";
   ret["contractAddress"] = nullptr;
   ret["cumulativeGasUsed"] = "0x64b559";
-  ret["from"] = "0x999"; // todo: fill
+  ret["from"] = "0x999";  // todo: fill
   ret["gasUsed"] = "0xcaac";
   ret["logs"].append(Json::Value());
-  ret["logsBloom"] = "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000";
-  ret["root"] = "0x0000000000000000000000000000000000000000000000000000000000001010";
+  ret["logsBloom"] =
+      "0x0000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "0000000000";
+  ret["root"] =
+      "0x0000000000000000000000000000000000000000000000000000000000001010";
   ret["status"] = nullptr;
-  ret["to"] = "0x888"; // todo: fill
-  ret["transactionIndex"] = "0x777"; // todo: fill
+  ret["to"] = "0x888";                // todo: fill
+  ret["transactionIndex"] = "0x777";  // todo: fill
 
   return ret;
 }
 
 // Given a RLP message, parse out the fields and return a EthFields object
 EthFields parseRawTxFields(std::string const& message) {
-
   EthFields ret;
 
   bytes asBytes;
@@ -58,7 +66,7 @@ EthFields parseRawTxFields(std::string const& message) {
   ret.version = 65538;
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
-  for (auto it = rlpStream1.begin(); it != rlpStream1.end(); ) {
+  for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
     auto byteIt = (*it).operator bytes();
 
     switch (i) {
@@ -80,17 +88,16 @@ EthFields parseRawTxFields(std::string const& message) {
       case 5:
         ret.data = byteIt;
         break;
-      case 6: // V - only needed for pub sig recovery
+      case 6:  // V - only needed for pub sig recovery
         break;
-      case 7: // R
+      case 7:  // R
         ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
         break;
-      case 8: // S
+      case 8:  // S
         ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
         break;
       default:
-        LOG_GENERAL(WARNING,
-                    "too many fields received in rlp!");
+        LOG_GENERAL(WARNING, "too many fields received in rlp!");
     }
 
     i++;

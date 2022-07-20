@@ -18,11 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 #define ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 
-#include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
-#include "common/BaseType.h"
 #include <Schnorr.h>
-#include "libData/AccountData/Transaction.h"
+#include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
 #include <string>
+#include "common/BaseType.h"
+#include "libData/AccountData/Transaction.h"
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
@@ -38,6 +38,6 @@ std::string ToUncompressedPubKey(const std::string& pubKey);
 
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
 
-bytes GetOriginalHash(TransactionCoreInfo const &info, uint64_t chainId);
+bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

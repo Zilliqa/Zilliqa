@@ -82,7 +82,6 @@ LookupServer::LookupServer(Mediator& mediator,
     : Server(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -406,8 +405,8 @@ LookupServer::LookupServer(Mediator& mediator,
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getTransactionCount", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING,
-                         NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthTransactionCountI);
 
   this->bindAndAddMethod(
@@ -841,7 +840,8 @@ Json::Value LookupServer::CreateTransaction(
   }
 }
 
-Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
+Json::Value LookupServer::CreateTransactionEth(
+    EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
     const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
@@ -854,9 +854,16 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
-  Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
-                 PubKey(pubKey, 0), fields.amount,
-                 fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
+  Transaction tx{fields.version,
+                 fields.nonce,
+                 Address(fields.toAddr),
+                 PubKey(pubKey, 0),
+                 fields.amount,
+                 fields.gasPrice,
+                 fields.gasLimit,
+                 bytes(),
+                 fields.data,
+                 Signature(fields.signature, 0)};
 
   try {
     Json::Value ret;
@@ -982,14 +989,12 @@ Json::Value LookupServer::CreateTransactionEth(EthFields const& fields, bytes co
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(INFO,
-                "[Error]" << e.what() << " Input: N/A");
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: N/A");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }
 
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
-
   Json::Value ret;
 
   try {
@@ -1293,8 +1298,8 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 
     // Convert the result from decimal string to hex string
     std::stringstream ss;
-    ss<< std::hex << balance; // int decimal_value
-    std::string res ( ss.str() );
+    ss << std::hex << balance;  // int decimal_value
+    std::string res(ss.str());
 
     std::cout << "hex response is: " << std::endl;
     std::cout << res << std::endl;
@@ -1302,7 +1307,7 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
     ret["balance"] = res;
 
     return ret;
-  }catch (exception& e) {
+  } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     if (noThrow) {
       Json::Value ret;

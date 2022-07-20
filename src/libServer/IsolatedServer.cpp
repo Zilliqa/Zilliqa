@@ -258,7 +258,8 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT, NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
       &LookupServer::GetEthEstimateGasI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -274,11 +275,10 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &IsolatedServer::GetEthSendRawTransactionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_getTransactionReceipt", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
+      jsonrpc::Procedure("eth_getTransactionReceipt",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionReceiptI);
-
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -549,7 +549,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   }
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes const& pubKey) {
+Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
+                                                 bytes const& pubKey) {
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
@@ -557,9 +558,16 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
 
     lock_guard<mutex> g(m_blockMutex);
 
-    Transaction tx{fields.version, fields.nonce, Address(fields.toAddr),
-                   PubKey(pubKey, 0), fields.amount,
-                   fields.gasPrice, fields.gasLimit, bytes(), fields.data, Signature(fields.signature, 0)};
+    Transaction tx{fields.version,
+                   fields.nonce,
+                   Address(fields.toAddr),
+                   PubKey(pubKey, 0),
+                   fields.amount,
+                   fields.gasPrice,
+                   fields.gasLimit,
+                   bytes(),
+                   fields.data,
+                   Signature(fields.signature, 0)};
 
     Json::Value ret;
 
@@ -588,8 +596,10 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
     }
 
     if (senderBalance < tx.GetAmount()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Insufficient Balance: " + senderBalance.str() + " with an attempt to send: " + tx.GetAmount().str());
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Insufficient Balance: " + senderBalance.str() +
+              " with an attempt to send: " + tx.GetAmount().str());
     }
 
     if (m_gasPrice > tx.GetGasPrice()) {
@@ -694,8 +704,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields, bytes 
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(INFO,
-                "[Error]" << e.what() << " Input: NA");
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }

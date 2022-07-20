@@ -16,8 +16,8 @@
  */
 
 #include "EthCrypto.h"
-#include "libUtils/Logger.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 #include "depends/common/RLP.h"
 
@@ -101,9 +101,10 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   } else if (sPubKeyString[1] == '4') {
     notCompressed = true;
   } else {
-    LOG_GENERAL(WARNING,
-                "Received badly set signature bit! Should be 2, 3 or 4 and got: "
-                    << sPubKeyString[1] << " Note: signature is: " << sPubKeyString);
+    LOG_GENERAL(
+        WARNING,
+        "Received badly set signature bit! Should be 2, 3 or 4 and got: "
+            << sPubKeyString[1] << " Note: signature is: " << sPubKeyString);
   }
 
   // Don't want the first byte
@@ -127,7 +128,8 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
       LOG_GENERAL(WARNING, "Error getting to y binary format");
     }
 
-    EC_POINT_set_affine_coordinates(curve_group.get(), point.get(), gx_ptr, gy_ptr, NULL);
+    EC_POINT_set_affine_coordinates(curve_group.get(), point.get(), gx_ptr,
+                                    gy_ptr, NULL);
   } else {
     EC_POINT_set_compressed_coordinates_GFp(curve_group.get(), point.get(),
                                             gx_ptr, y_chooser_bit, NULL);
@@ -161,7 +163,7 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
   }
 
   auto result = ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
-                         zSignature.get(), zPublicKey.get());
+                                zSignature.get(), zPublicKey.get());
 
   return result;
 }
@@ -210,20 +212,19 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   return ret;
 }
 
-secp256k1_context const* getCtx()
-{
-  static std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)> s_ctx{
-      secp256k1_context_create(SECP256K1_CONTEXT_SIGN | SECP256K1_CONTEXT_VERIFY),
-      &secp256k1_context_destroy
-  };
+secp256k1_context const* getCtx() {
+  static std::unique_ptr<secp256k1_context,
+                         decltype(&secp256k1_context_destroy)>
+      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                                     SECP256K1_CONTEXT_VERIFY),
+            &secp256k1_context_destroy};
   return s_ctx.get();
 }
 
 // EIP-155 : assume the chain height is high enough that the signing scheme
 // is in line with EIP-155.
 // message shall not contain '0x'
-bytes RecoverECDSAPubSig(std::string const &message, int chain_id) {
-
+bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
   bytes asBytes;
@@ -240,7 +241,6 @@ bytes RecoverECDSAPubSig(std::string const &message, int chain_id) {
   // it was hashed and signed. That is, same size, same fields, except
   // v = chain_id, R and S = 0
   for (const auto& item : rlpStream1) {
-
     auto itemBytes = item.operator bytes();
 
     // First 5 fields stay the same
@@ -268,48 +268,49 @@ bytes RecoverECDSAPubSig(std::string const &message, int chain_id) {
   vSelect = vSelect == 36 ? 1 : vSelect;
 
   if (!(vSelect >= 0 && vSelect <= 3)) {
-    LOG_GENERAL(WARNING,
-                "Received badly parsed recid in raw transaction: "
-                    << v << " with chainID " << chain_id << " for " << vSelect);
+    LOG_GENERAL(WARNING, "Received badly parsed recid in raw transaction: "
+                             << v << " with chainID " << chain_id << " for "
+                             << vSelect);
     return {};
   }
 
   auto messageRecreatedBytes = rlpStreamRecreated.out();
 
   // Sign original message
-  auto signingHash =
-      ethash::keccak256(messageRecreatedBytes.data(), messageRecreatedBytes.size());
+  auto signingHash = ethash::keccak256(messageRecreatedBytes.data(),
+                                       messageRecreatedBytes.size());
 
   // Load the RS into the library
   auto* ctx = getCtx();
   secp256k1_ecdsa_recoverable_signature rawSig;
-  if (!secp256k1_ecdsa_recoverable_signature_parse_compact(ctx, &rawSig,
-                                                           rs.data(), vSelect)) {
-    LOG_GENERAL(WARNING, "Error getting RS signature during public key reconstruction");
+  if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
+          ctx, &rawSig, rs.data(), vSelect)) {
+    LOG_GENERAL(WARNING,
+                "Error getting RS signature during public key reconstruction");
     return {};
   }
 
   // Re-create public key given signature, and message
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, &signingHash.bytes[0])) {
-    LOG_GENERAL(WARNING, "Error recovering public key during public key reconstruction");
+  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig,
+                               &signingHash.bytes[0])) {
+    LOG_GENERAL(WARNING,
+                "Error recovering public key during public key reconstruction");
     return {};
   }
 
   // Parse the public key out of the library format
   bytes serializedPubkey(65);
   size_t serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(
-      ctx, serializedPubkey.data(), &serializedPubkeySize,
-      &rawPubkey, SECP256K1_EC_UNCOMPRESSED
-  );
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(),
+                                &serializedPubkeySize, &rawPubkey,
+                                SECP256K1_EC_UNCOMPRESSED);
 
   return serializedPubkey;
 }
 
 // nonce, gasprice, startgas, to, value, data, chainid, 0, 0
-bytes GetOriginalHash(TransactionCoreInfo const &info, uint64_t chainId){
-
+bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   dev::RLPStream rlpStreamRecreated(9);
 
   rlpStreamRecreated << info.nonce;
@@ -322,8 +323,8 @@ bytes GetOriginalHash(TransactionCoreInfo const &info, uint64_t chainId){
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};
 
-  auto signingHash =
-      ethash::keccak256(rlpStreamRecreated.out().data(), rlpStreamRecreated.out().size());
+  auto signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
+                                       rlpStreamRecreated.out().size());
 
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
