@@ -371,7 +371,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   LOG_MARKER();
 
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+    LOG_GENERAL(INFO, "STEVO - DevNet test Process txn: " << transaction.GetTranID());
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
