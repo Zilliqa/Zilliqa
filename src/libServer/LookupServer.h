@@ -388,8 +388,9 @@ class LookupServer : public Server,
 
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
+    int resp = 0;
 
-    auto resp = this->GetBalance(address)["nonce"].asUInt() + 1;
+    resp = this->GetBalance(address)["nonce"].asUInt() + 1;
 
     response = DataConversion::IntToHexString(resp);
   }

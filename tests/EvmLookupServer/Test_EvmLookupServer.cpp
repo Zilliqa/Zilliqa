@@ -572,9 +572,19 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
 
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
+
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
+
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = "0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7";
+  paramsRequest[0u] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
 
   lookupServer.GetEthBalanceI(paramsRequest, response);
 
@@ -666,15 +676,24 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
 
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
+
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
 
   lookupServer.GetEthTransactionCountI(paramsRequest, response);
 
-  const Json::Value expectedResponse = Json::arrayValue;
-  BOOST_CHECK_EQUAL(response, expectedResponse);
+  // 0x response
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get TX count");
+  }
 }
 
 /*
