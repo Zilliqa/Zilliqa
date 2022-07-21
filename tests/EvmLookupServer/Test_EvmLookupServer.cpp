@@ -573,18 +573,9 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
 
-  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
-  Account account;
-  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    AccountStore::GetInstance().AddAccount(accountAddress, account);
-  }
-
-  const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
-
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
+  paramsRequest[0u] = "0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7";
 
   lookupServer.GetEthBalanceI(paramsRequest, response);
 
