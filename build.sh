@@ -16,6 +16,21 @@
 
 set -e
 
+# set n_parallel to fully utilize the resources
+os=$(uname)
+case $os in
+    'Linux')
+        n_parallel=$(nproc)
+        ;;
+    'Darwin')
+        n_parallel=$(sysctl -n hw.ncpu)
+        ;;
+    *)
+        n_parallel=2
+        ;;
+esac
+
+echo "n_parallel=${n_parallel}"
 dir=build
 
 run_clang_format_fix=0
@@ -154,7 +169,7 @@ do
 done
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
-cmake --build ${dir} -- -j4
+cmake --build ${dir} -- -j${n_parallel}
 ./scripts/license_checker.sh
 ./scripts/depends/check_guard.sh
 [ ${run_clang_tidy_fix} -ne 0 ] && cmake --build ${dir} --target clang-tidy-fix
