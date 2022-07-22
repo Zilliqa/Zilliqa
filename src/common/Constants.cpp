@@ -737,16 +737,14 @@ const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
-const bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.") ==
-                      "true"};
+const bool ENABLE_EVM{
+    ReadConstantString("ENABLE_EVM", "node.jsonrpc.", "true") == "true"};
 
-const std::string EVM_SERVER_SOCKET_PATH{
-    ReadConstantString("EVM_SERVER_SOCKET_PATH", "node.jsonrpc.")};
-const std::string EVM_SERVER_BINARY{
-    ReadConstantString("EVM_SERVER_BINARY", "node.jsonrpc.")};
+const std::string EVM_SERVER_SOCKET_PATH{ReadConstantString(
+    "EVM_SERVER_SOCKET_PATH", "node.jsonrpc.", "/tmp/evm-server.sock")};
+const std::string EVM_SERVER_BINARY{ReadConstantString(
+    "EVM_SERVER_BINARY", "node.jsonrpc.", "/usr/local/bin/evm-ds")};
 const std::string EVM_LOG_CONFIG{ReadConstantString(
     "EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
 const std::string ETH_CHAINID{
-    ReadConstantString("ETH_CHAINID", "node.jsonrpc.")};
-const uint64_t ETH_CHAINID_INT{DataConversion::HexStringToUint64Ret(
-    ReadConstantString("ETH_CHAINID", "node.jsonrpc."))};
+    ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d")};
