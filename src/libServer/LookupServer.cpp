@@ -994,6 +994,10 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
+Json::Value LookupServer::GetEthBlockByNumber() {
+  return populateBlockHelper();
+}
+
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
   Json::Value ret;
 
