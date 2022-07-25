@@ -19,7 +19,7 @@
 #define ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_
 
 #include <event2/util.h>
-#include <boost/lockfree/queue.hpp>
+// XXX #include <boost/lockfree/queue.hpp>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -32,6 +32,7 @@
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
+#include "libUtils/Queue.h"
 
 struct evconnlistener;
 
@@ -114,7 +115,8 @@ class P2PComm {
 
   ThreadPool m_SendPool{MAXSENDMESSAGE, "SendPool"};
 
-  boost::lockfree::queue<SendJob*> m_sendQueue;
+  // XXX boost::lockfree::queue<SendJob*> m_sendQueue;
+  utility::Queue<SendJob*> m_sendQueue;
   void ProcessSendJob(SendJob* job);
 
   static void ProcessBroadCastMsg(bytes& message, const Peer& from);
