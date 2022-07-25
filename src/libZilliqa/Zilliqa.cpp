@@ -487,7 +487,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 }
 
 Zilliqa::~Zilliqa() {
-  pair<bytes, Peer>* message = NULL;
+  std::pair<bytes, std::pair<Peer, const unsigned char>>* message = NULL;
   while (m_msgQueue.pop(message)) {
     delete message;
   }

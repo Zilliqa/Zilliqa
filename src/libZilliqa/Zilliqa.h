@@ -28,6 +28,7 @@
 #include "libServer/LookupServer.h"
 #include "libServer/StakingServer.h"
 #include "libServer/StatusServer.h"
+#include "libUtils/Queue.h"
 #include "libUtils/ThreadPool.h"
 
 /// Main Zilliqa class.
@@ -39,7 +40,8 @@ class Zilliqa {
   Node m_n;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
-  boost::lockfree::queue<
+  // XXX  boost::lockfree::queue<
+  utility::Queue<
       std::pair<bytes, std::pair<Peer, const unsigned char>>*>
       m_msgQueue;
 
