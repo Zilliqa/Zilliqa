@@ -176,7 +176,7 @@ int main(int argc, const char* argv[]) {
     INIT_EPOCHINFO_LOGGER("epochinfo", logpath.c_str());
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
-    LOG_GENERAL(INFO, "Master TEst Build");
+    LOG_GENERAL(INFO, "Master Test Build");
 
     if (SyncType::NEW_SYNC == syncType && CHAIN_ID == MAINNET_CHAIN_ID) {
       SWInfo::IsLatestVersion();
