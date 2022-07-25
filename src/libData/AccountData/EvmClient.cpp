@@ -78,7 +78,7 @@ bool EvmClient::OpenServer(uint32_t version) {
   // Sleep an extra 5x because of very slow networks on Devnet
 
   std::this_thread::sleep_for(
-      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS*5));
+      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS * 5));
 
   return true;
 }
