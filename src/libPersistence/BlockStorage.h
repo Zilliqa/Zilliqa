@@ -80,6 +80,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_metadataDB;
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
+  std::shared_ptr<LevelDB> m_txBlockHashToNumDB;
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
@@ -110,6 +111,7 @@ class BlockStorage : public Singleton<BlockStorage> {
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
+        m_txBlockHashToNumDB(std::make_shared<LevelDB>("txBlockHashToNum")),
         m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
         m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
@@ -157,7 +159,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     PROCESSED_TEMP,
     MINER_INFO_DSCOMM,
     MINER_INFO_SHARDS,
-    EXTSEED_PUBKEYS
+    EXTSEED_PUBKEYS,
+    TX_BLOCK_HASH_TO_NUM
   };
 
   /// Returns the singleton BlockStorage instance.
@@ -173,7 +176,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
   /// Adds a Tx block to storage.
-  bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
+  bool PutTxBlock(const TxBlockHeader& header, const bytes& body);
 
   // /// Adds a micro block to storage.
   bool PutMicroBlock(const BlockHash& blockHash, const uint64_t& epochNum,
@@ -399,6 +402,7 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   std::shared_ptr<LevelDB> GetMicroBlockDB(const uint64_t& epochNum);
   std::shared_ptr<LevelDB> GetTxBodyDB(const uint64_t& epochNum);
+  void BuildHashToNumberMappingForTxBlocks();
 };
 
 #endif  // ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_

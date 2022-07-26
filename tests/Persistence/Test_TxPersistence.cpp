@@ -90,7 +90,8 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
   bytes serializedTxBlock;
   block1.Serialize(serializedTxBlock, 0);
 
-  BlockStorage::GetBlockStorage().PutTxBlock(0, serializedTxBlock);
+  BlockStorage::GetBlockStorage().PutTxBlock(block1.GetHeader(),
+                                             serializedTxBlock);
 
   TxBlockSharedPtr block2;
   BlockStorage::GetBlockStorage().GetTxBlock(0, block2);
@@ -113,19 +114,23 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
   bytes serializedTxBlock;
 
   block1.Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(1, serializedTxBlock);
+  BlockStorage::GetBlockStorage().PutTxBlock(block1.GetHeader(),
+                                             serializedTxBlock);
 
   serializedTxBlock.clear();
   block2.Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(2, serializedTxBlock);
+  BlockStorage::GetBlockStorage().PutTxBlock(block2.GetHeader(),
+                                             serializedTxBlock);
 
   serializedTxBlock.clear();
   block3.Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(3, serializedTxBlock);
+  BlockStorage::GetBlockStorage().PutTxBlock(block3.GetHeader(),
+                                             serializedTxBlock);
 
   serializedTxBlock.clear();
   block4.Serialize(serializedTxBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(4, serializedTxBlock);
+  BlockStorage::GetBlockStorage().PutTxBlock(block4.GetHeader(),
+                                             serializedTxBlock);
 
   TxBlockSharedPtr blockRetrieved;
   BlockStorage::GetBlockStorage().GetTxBlock(2, blockRetrieved);
@@ -163,7 +168,8 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
     bytes serializedTxBlock;
 
     block.Serialize(serializedTxBlock, 0);
-    BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
+    BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
+                                               serializedTxBlock);
   }
 
   TxBlockSharedPtr blockRetrieved1;
@@ -189,7 +195,8 @@ void writeBlock(int id) {
   bytes serializedDSBlock;
 
   block.Serialize(serializedDSBlock, 0);
-  BlockStorage::GetBlockStorage().PutTxBlock(id, serializedDSBlock);
+  BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
+                                             serializedDSBlock);
 }
 
 void readBlock(int id) {
@@ -224,7 +231,7 @@ void bootstrap(int num_threads) {
       bytes serializedTxBlock;
 
       block.Serialize(serializedTxBlock, 0);
-      BlockStorage::GetBlockStorage().PutTxBlock(i * 1000 + j,
+      BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
                                                  serializedTxBlock);
     }
   }
@@ -277,7 +284,8 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles) {
     bytes serializedTxBlock;
 
     block.Serialize(serializedTxBlock, 0);
-    BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
+    BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
+                                               serializedTxBlock);
   }
 
   TxBlockSharedPtr blockRetrieved;
@@ -307,7 +315,8 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
 
       block.Serialize(serializedTxBlock, 0);
 
-      BlockStorage::GetBlockStorage().PutTxBlock(i, serializedTxBlock);
+      BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
+                                                 serializedTxBlock);
       in_blocks.emplace_back(block);
     }
 

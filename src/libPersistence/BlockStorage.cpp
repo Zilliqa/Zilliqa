@@ -77,8 +77,9 @@ bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
   return (ret == 0);
 }
 
-bool BlockStorage::PutTxBlock(const uint64_t& blockNum, const bytes& body) {
-  return PutBlock(blockNum, body, BlockType::Tx);
+bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
+                              const bytes& body) {
+  return PutBlock(blockHeader.GetBlockNum(), body, BlockType::Tx);
 }
 
 bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
@@ -372,6 +373,11 @@ bool BlockStorage::ReleaseDB() {
     unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
     m_txBlockchainDB.reset();
   }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    m_txBlockHashToNumDB.reset();
+  }
+
   {
     unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
     m_dsBlockchainDB.reset();
@@ -1474,6 +1480,12 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_txBlockchainDB->ResetDB();
       break;
     }
+    case TX_BLOCK_HASH_TO_NUM: {
+      unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+      ret = m_txBlockHashToNumDB->ResetDB();
+      break;
+    }
+
     case TX_BODY: {
       lock_guard<mutex> g(m_mutexTxBody);
       ret = m_txEpochDB->ResetDB();
@@ -1584,6 +1596,11 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
     case TX_BLOCK: {
       unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret = m_txBlockchainDB->RefreshDB();
+      break;
+    }
+    case TX_BLOCK_HASH_TO_NUM: {
+      unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+      ret = m_txBlockHashToNumDB->RefreshDB();
       break;
     }
     case TX_BODY: {
@@ -1698,6 +1715,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
       ret.push_back(m_txBlockchainDB->GetDBName());
       break;
     }
+    case TX_BLOCK_HASH_TO_NUM: {
+      shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+      ret.push_back(m_txBlockHashToNumDB->GetDBName());
+      break;
+    }
     case TX_BODY: {
       lock_guard<mutex> g(m_mutexTxBody);
       ret.push_back(m_txBodyDBs.at(0)->GetDBName());
@@ -1783,16 +1805,18 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   if (!LOOKUP_NODE_MODE) {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
-           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP);
+           ResetDB(TX_BLOCK_HASH_TO_NUM) & ResetDB(MICROBLOCK) &
+           ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(BLOCKLINK) &
+           ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
+           ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
+           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
+           ResetDB(PROCESSED_TEMP);
   } else  // IS_LOOKUP_NODE
   {
     return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(TX_BODY) & ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) &
-           ResetDB(VC_BLOCK) & ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
+           ResetDB(TX_BLOCK_HASH_TO_NUM) & ResetDB(TX_BODY) &
+           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
+           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
            ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
            ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
            ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
@@ -1804,28 +1828,32 @@ bool BlockStorage::ResetAll() {
 // Don't use short-circuit logical AND (&&) here so that we attempt to refresh
 // all databases
 bool BlockStorage::RefreshAll() {
+  bool retVal = false;
   if (!LOOKUP_NODE_MODE) {
-    return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-           RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
-           RefreshDB(VC_BLOCK) & RefreshDB(BLOCKLINK) &
-           RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-           RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
-           RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
-           RefreshDB(PROCESSED_TEMP) &
-           Contract::ContractStorage::GetContractStorage().RefreshAll();
+    retVal = RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
+             RefreshDB(TX_BLOCK_HASH_TO_NUM) & RefreshDB(MICROBLOCK) &
+             RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) &
+             RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
+             RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
+             RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
+             RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
+             Contract::ContractStorage::GetContractStorage().RefreshAll();
+
   } else  // IS_LOOKUP_NODE
   {
-    return RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-           RefreshDB(TX_BODY) & RefreshDB(MICROBLOCK) &
-           RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) &
-           RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-           RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
-           RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-           RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
-           RefreshDB(MINER_INFO_DSCOMM) & RefreshDB(MINER_INFO_SHARDS) &
-           RefreshDB(EXTSEED_PUBKEYS) &
-           Contract::ContractStorage::GetContractStorage().RefreshAll();
+    retVal = RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
+             RefreshDB(TX_BLOCK_HASH_TO_NUM) & RefreshDB(TX_BODY) &
+             RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
+             RefreshDB(VC_BLOCK) & RefreshDB(BLOCKLINK) &
+             RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
+             RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
+             RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
+             RefreshDB(PROCESSED_TEMP) & RefreshDB(MINER_INFO_DSCOMM) &
+             RefreshDB(MINER_INFO_SHARDS) & RefreshDB(EXTSEED_PUBKEYS) &
+             Contract::ContractStorage::GetContractStorage().RefreshAll();
   }
+  BuildHashToNumberMappingForTxBlocks();
+  return retVal;
 }
 
 shared_ptr<LevelDB> BlockStorage::GetMicroBlockDB(const uint64_t& epochNum) {
@@ -1844,4 +1872,47 @@ shared_ptr<LevelDB> BlockStorage::GetTxBodyDB(const uint64_t& epochNum) {
         string("txBodies_") + to_string(m_txBodyDBs.size())));
   }
   return m_txBodyDBs.at(dbindex);
+}
+
+void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
+  LOG_MARKER();
+
+  // Genesis block is added upon node start so relation (genesisHash -> 0)
+  // always exists We should check for presence of a block with number 1
+
+  constexpr auto NEXT_AFTER_GENESIS_BLOCK_NUM = 1;
+  TxBlockSharedPtr nextAfterGenesisBlock;
+  // Block with num = 0 doesn't exists so there's nothing to do atm
+  if (!GetTxBlock(NEXT_AFTER_GENESIS_BLOCK_NUM, nextAfterGenesisBlock)) {
+    return;
+  }
+
+  const auto nextAfterGenesisHash = nextAfterGenesisBlock->GetBlockHash();
+
+  const auto numAsString = m_txBlockHashToNumDB->Lookup(nextAfterGenesisHash);
+  try {
+    if (!numAsString.empty() &&
+        std::stoull(numAsString) == NEXT_AFTER_GENESIS_BLOCK_NUM) {
+      return;
+    }
+  } catch (std::exception&) {
+    LOG_GENERAL(WARNING,
+                "TxBlockHashToNumber leveldb seems to be inconsistent, will "
+                "rebuild mapping");
+  }
+
+  {
+    std::unique_lock<shared_timed_mutex> lock{m_mutexTxBlockchain};
+    const auto it = std::unique_ptr<leveldb::Iterator>(
+        m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions()));
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      uint64_t blockNum = std::stoull(it->key().ToString());
+
+      const auto blockString = m_txBlockchainDB->Lookup(blockNum);
+      const TxBlock block{bytes(blockString.begin(), blockString.end()), 0};
+
+      m_txBlockHashToNumDB->Insert(block.GetBlockHash(),
+                                   std::to_string(blockNum));
+    }
+  }
 }
