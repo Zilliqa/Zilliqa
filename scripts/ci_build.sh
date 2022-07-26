@@ -67,6 +67,7 @@ then
     #cmake --build ${dir} --target clang-tidy || exit 1
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
     cmake --build ${dir} --target Zilliqa_coverage || exit 1
+    ./scripts/integration_test.sh || exit 1
 else
     cd build && ctest --output-on-failure -j1 || exit 1
 fi

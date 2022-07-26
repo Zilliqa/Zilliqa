@@ -374,7 +374,13 @@ class LookupServer : public Server,
     }
 
     auto pubKey = RecoverECDSAPubSig(rawTx, stoi(ETH_CHAINID));
+
+    if (pubKey.empty()) {
+      return;
+    }
+
     auto fields = parseRawTxFields(rawTx);
+
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
     auto currentGasPrice =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();

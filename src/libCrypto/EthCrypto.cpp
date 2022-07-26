@@ -31,6 +31,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 // Inspiration from:
 // https://stackoverflow.com/questions/10906524
@@ -234,6 +235,10 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
 
   dev::RLP rlpStream1(asBytes);
   dev::RLPStream rlpStreamRecreated(9);
+
+  if (rlpStream1.isNull()) {
+    return {};
+  }
 
   int i = 0;
 
