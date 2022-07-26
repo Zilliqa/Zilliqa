@@ -20,6 +20,17 @@ import os
 
 FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+def get_result(response: requests.models.Response) -> any:
+    if response.status_code != 200:
+        raise Exception(f"Bad status code {response.status_code} - {response.text}")
+
+    res = response.json()
+
+    if "result" not in res.keys():
+        raise Exception(f"Bad JSON, no result found: {response.text}")
+
+    return res["result"]
+
 def test_eth_feeHistory(url: str) -> bool:
     """
       Returns a collection of historical gas information from which you can decide what
@@ -28,9 +39,7 @@ def test_eth_feeHistory(url: str) -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_feeHistory", "params": [4, "latest", [25, 75]] })
-
-        if response.status_code != 200:
-            raise Exception(f"Bad status code {response.status_code} - {response.text}")
+        get_result(response)
 
     except Exception as e:
         print(f"Failed test test_eth_feeHistory with error: '{e}'")
@@ -46,9 +55,7 @@ def test_eth_getStorageAt(url: str) -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"]})
-
-        if response.status_code != 200:
-            raise Exception(f"Bad status code {response.status_code} - {response.text}")
+        get_result(response)
 
     except Exception as e:
         print(f"Failed test test_eth_feeHistory with error: '{e}'")
@@ -62,9 +69,7 @@ def test_eth_getCode(url: str)    -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getCode", "params":["0xb59f67a8bff5d8cd03f6ac17265c550ed8f33907", "latest"]})
-
-        if response.status_code != 200:
-            raise Exception(f"Bad status code {response.status_code} - {response.text}")
+        get_result(response)
 
     except Exception as e:
         print(f"Failed test test_eth_feeHistory with error: '{e}'")
@@ -80,9 +85,7 @@ def test_eth_getProof(url: str)   -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getProof", "params":["0xb59f67a8bff5d8cd03f6ac17265c550ed8f33907", "latest"]})
-
-        if response.status_code != 200:
-            raise Exception(f"Bad status code {response.status_code} - {response.text}")
+        get_result(response)
 
     except Exception as e:
         print(f"Failed test test_eth_getProof with error: '{e}'")
@@ -96,9 +99,7 @@ def test_eth_getBalance(url: str) -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBalance", "params":["0xc94770007dda54cF92009BFF0dE90c06F603a09f", "latest"]})
-
-        if response.status_code != 200:
-            raise Exception(f"Bad status code {response.status_code} - {response.text}")
+        get_result(response)
 
     except Exception as e:
         print(f"Failed test test_eth_getBalance with error: '{e}'")
@@ -107,18 +108,90 @@ def test_eth_getBalance(url: str) -> bool:
     return True
 
 def test_web3_clientVersion(url: str) -> bool:
+    """
+        Returns the current client version.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_web3_clientVersion"})
+        res = get_result(response)
+
+        if "0x66" not in res:
+            raise Exception(f"Bad client version: {res}")
+
+    except Exception as e:
+        print(f"Failed test eth_web3_clientVersion with error: '{e}'")
+        return False
+
     return True
 
 def test_web3_sha3(url: str) -> bool:
+    """
+        Returns the string provided as a sha3.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_web3_sha3", "params":["0x68656c6c6f20776f726c64"]})
+        res = get_result(response)
+
+        if "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad" not in res.lower():
+            raise Exception(f"Bad sha3 return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_web3_sha3 with error: '{e}'")
+        return False
+
     return True
 
 def test_net_version(url: str) -> bool:
+    """
+        net_version should return a network id like Ethereum which is a number that looks like it is predefined.
+        Some sites show it as deprecated and some tell you should use chain_id. To be save we can decide
+        to make it unsupported.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "net_version"})
+        res = get_result(response)
+
+        if "" not in res.lower():
+            raise Exception(f"Bad net_version return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_net_version with error: '{e}'")
+        return False
+
     return True
 
 def test_net_listening(url: str) -> bool:
+    """
+        Returns true if client is actively listening for network connections. Always false
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "net_listening"})
+        res = get_result(response)
+
+        if res is not False:
+            raise Exception(f"Bad net_listening return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_net_listening with error: '{e}'")
+        return False
+
     return True
 
 def test_net_peerCount(url: str) -> bool:
+    """
+        will always return 0x0
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "net_peerCount"})
+        res = get_result(response)
+
+        if "0x0" not in res.lower():
+            raise Exception(f"Bad net_listening return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_net_peerCount with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_protocolVersion(url: str) -> bool:
@@ -248,14 +321,9 @@ def test_eth_chainId(url: str) -> bool:
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_chainId"})
 
-        if response.status_code != 200:
-            raise Exception(f"Bad status code {response.status_code} - {response.text}")
+        res = get_result(response)
 
-        res = response.json()["result"]
-        if "0x" not in res:
-            raise Exception(f"Bad json or response {response.status_code} - {response.text}")
-
-        if "0x66" not in res:
+        if "0x814d" not in res.lower():
             raise Exception(f"Bad chain ID: {res}")
 
     except Exception as e:
@@ -279,56 +347,56 @@ def main():
         args.api[-1].append('/')
 
     ret = test_eth_chainId(args.api)
-    ret |= test_eth_feeHistory(args.api)
-    ret |= test_eth_getStorageAt(args.api)
-    ret |= test_eth_getCode(args.api)
-    ret |= test_eth_getProof(args.api)
-    ret |= test_eth_getBalance(args.api)
-    ret |= test_web3_clientVersion(args.api)
-    ret |= test_web3_sha3(args.api)
-    ret |= test_net_version(args.api)
-    ret |= test_net_listening(args.api)
-    ret |= test_net_peerCount(args.api)
-    ret |= test_eth_protocolVersion(args.api)
-    ret |= test_eth_syncing(args.api)
-    ret |= test_eth_coinbase(args.api)
-    ret |= test_eth_mining(args.api)
-    ret |= test_eth_accounts(args.api)
-    ret |= test_eth_blockNumber(args.api)
-    ret |= test_eth_getBlockTransactionCountByHash(args.api)
-    ret |= test_eth_getBlockTransactionCountByNumber(args.api)
-    ret |= test_eth_getUncleCountByBlockHash(args.api)
-    ret |= test_eth_getUncleCountByBlockNumber(args.api)
-    ret |= test_eth_getBlockByHash(args.api)
-    ret |= test_eth_getBlockByNumber(args.api)
-    ret |= test_eth_getUncleByBlockHashAndIndex(args.api)
-    ret |= test_eth_getUncleByBlockNumberAndIndex(args.api)
-    ret |= test_eth_getCompilers(args.api)
-    ret |= test_eth_compileSolidity(args.api)
-    ret |= test_eth_compileLLL(args.api)
-    ret |= test_eth_compileSerpent(args.api)
-    ret |= test_eth_hashrate(args.api)
-    ret |= test_eth_gasPrice(args.api)
-    ret |= test_eth_newFilter(args.api)
-    ret |= test_eth_newBlockFilter(args.api)
-    ret |= test_eth_newPendingTransactionFilter(args.api)
-    ret |= test_eth_uninstallFilter(args.api)
-    ret |= test_eth_getFilterChanges(args.api)
-    ret |= test_eth_getFilterLogs(args.api)
-    ret |= test_eth_getLogs(args.api)
-    ret |= test_eth_subscribe(args.api)
-    ret |= test_eth_unsubscribe(args.api)
-    ret |= test_eth_call(args.api)
-    ret |= test_eth_estimateGas(args.api)
-    ret |= test_eth_getTransactionCount(args.api)
-    ret |= test_eth_getTransactionByHash(args.api)
-    ret |= test_eth_getTransactionByBlockHashAndIndex(args.api)
-    ret |= test_eth_getTransactionByBlockNumberAndIndex(args.api)
-    ret |= test_eth_getTransactionReceipt(args.api)
-    ret |= test_eth_sign(args.api)
-    ret |= test_eth_signTransaction(args.api)
-    ret |= test_eth_sendTransaction(args.api)
-    ret |= test_eth_sendRawTransaction(args.api)
+    ret &= test_eth_feeHistory(args.api)
+    ret &= test_eth_getStorageAt(args.api)
+    ret &= test_eth_getCode(args.api)
+    ret &= test_eth_getProof(args.api)
+    ret &= test_eth_getBalance(args.api)
+    ret &= test_web3_clientVersion(args.api)
+    ret &= test_web3_sha3(args.api)
+    ret &= test_net_version(args.api)
+    ret &= test_net_listening(args.api)
+    ret &= test_net_peerCount(args.api)
+    ret &= test_eth_protocolVersion(args.api)
+    ret &= test_eth_syncing(args.api)
+    ret &= test_eth_coinbase(args.api)
+    ret &= test_eth_mining(args.api)
+    ret &= test_eth_accounts(args.api)
+    ret &= test_eth_blockNumber(args.api)
+    ret &= test_eth_getBlockTransactionCountByHash(args.api)
+    ret &= test_eth_getBlockTransactionCountByNumber(args.api)
+    ret &= test_eth_getUncleCountByBlockHash(args.api)
+    ret &= test_eth_getUncleCountByBlockNumber(args.api)
+    ret &= test_eth_getBlockByHash(args.api)
+    ret &= test_eth_getBlockByNumber(args.api)
+    ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
+    ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
+    ret &= test_eth_getCompilers(args.api)
+    ret &= test_eth_compileSolidity(args.api)
+    ret &= test_eth_compile(args.api)
+    ret &= test_eth_compileSerpent(args.api)
+    ret &= test_eth_hashrate(args.api)
+    ret &= test_eth_gasPrice(args.api)
+    ret &= test_eth_newFilter(args.api)
+    ret &= test_eth_newBlockFilter(args.api)
+    ret &= test_eth_newPendingTransactionFilter(args.api)
+    ret &= test_eth_uninstallFilter(args.api)
+    ret &= test_eth_getFilterChanges(args.api)
+    ret &= test_eth_getFilterLogs(args.api)
+    ret &= test_eth_getLogs(args.api)
+    ret &= test_eth_subscribe(args.api)
+    ret &= test_eth_unsubscribe(args.api)
+    ret &= test_eth_call(args.api)
+    ret &= test_eth_estimateGas(args.api)
+    ret &= test_eth_getTransactionCount(args.api)
+    ret &= test_eth_getTransactionByHash(args.api)
+    ret &= test_eth_getTransactionByBlockHashAndIndex(args.api)
+    ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
+    ret &= test_eth_getTransactionReceipt(args.api)
+    ret &= test_eth_sign(args.api)
+    ret &= test_eth_signTransaction(args.api)
+    ret &= test_eth_sendTransaction(args.api)
+    ret &= test_eth_sendRawTransaction(args.api)
 
     if not ret:
         print(f"Test failed")
