@@ -25,8 +25,7 @@
 using namespace std;
 chrono::high_resolution_clock::time_point startTime;
 
-void process_message(
-    pair<bytes, std::pair<Peer, const unsigned char>>* message) {
+void process_message(P2PComm::Msg message) {
   LOG_MARKER();
 
   if (message->first.size() < 10) {
@@ -38,15 +37,13 @@ void process_message(
   } else {
     chrono::duration<double, std::milli> time_span =
         chrono::high_resolution_clock::now() - startTime;
-    LOG_GENERAL(INFO, "Received " << message->first.size() / (1024 * 1024)
+    LOG_GENERAL(INFO, "Received " << message->first.size() / (1024u * 1024)
                                   << " MB message in " << time_span.count()
                                   << " ms");
     LOG_GENERAL(INFO, "Benchmark: " << (1000 * message->first.size()) /
                                            (time_span.count() * 1024 * 1024)
                                     << " MBps");
   }
-
-  delete message;
 }
 
 static bool comparePairSecond(
@@ -119,11 +116,11 @@ void TestRemoveBroadcast() {
 
     queue<unsigned int> answer;
     answer.push(100000);
-    unsigned int cur = 99950;
+    unsigned int current = 99950;
 
     for (unsigned int i = 0; i < 19; ++i) {
-      answer.push(cur);
-      cur -= 250;
+      answer.push(current);
+      current -= 250;
     }
 
     bytes emptyHash;
@@ -207,7 +204,7 @@ int main() {
 
   P2PComm::GetInstance().SendMessage(peers, message2);
 
-  bytes longMsg(1024 * 1024 * 1024, 'z');
+  bytes longMsg(1024u * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
