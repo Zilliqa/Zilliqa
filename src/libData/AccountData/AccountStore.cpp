@@ -38,7 +38,7 @@ AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
 
-  if (ENABLE_SC && (!LOOKUP_NODE_MODE || ISOLATED_SERVER)) {
+  if ((ENABLE_SC && ENABLE_EVM) || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
@@ -49,8 +49,10 @@ AccountStore::AccountStore() {
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 
-    ScillaClient::GetInstance().Init();
-    ipcScillaInit = true;
+    if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
+      ScillaClient::GetInstance().Init();
+      ipcScillaInit = true;
+    }
 
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
@@ -59,16 +61,17 @@ AccountStore::AccountStore() {
       if (m_scillaIPCServer->StartListening()) {
         LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
       } else {
-        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start")
+        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start");
       }
     }
   }
   // EVM required to run on Lookup nodes too for view calls
   if (ENABLE_EVM) {
-    EvmClient::GetInstance().Init();
     if (not ipcScillaInit) {
-      ScillaClient::GetInstance().Init();
+      LOG_GENERAL(WARNING, "Scilla IPC Server wasn't started for EVM lookup ("
+                               << LOOKUP_NODE_MODE << ")");
     }
+    EvmClient::GetInstance().Init();
   }
 }
 
