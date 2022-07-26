@@ -17,8 +17,10 @@ import sys
 import argparse
 import requests
 import os
+import time
 
 FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+BLOCK_TIME_S = 2
 
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
@@ -58,7 +60,7 @@ def test_eth_getStorageAt(url: str) -> bool:
         get_result(response)
 
     except Exception as e:
-        print(f"Failed test test_eth_feeHistory with error: '{e}'")
+        print(f"Failed test test_eth_getStorageAt with error: '{e}'")
         return False
 
     return True
@@ -195,123 +197,721 @@ def test_net_peerCount(url: str) -> bool:
     return True
 
 def test_eth_protocolVersion(url: str) -> bool:
+    """
+        will always return ''
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_protocolVersion"})
+        res = get_result(response)
+
+        if res != "":
+            raise Exception(f"Bad eth_protocolVersion return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_protocolVersion with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_syncing(url: str) -> bool:
+    """
+        will always return false
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_syncing"})
+        res = get_result(response)
+
+        if res is not False:
+            raise Exception(f"Bad eth_syncing return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_syncing with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_coinbase(url: str) -> bool:
+    """
+        Returns the client coinbase address. The coinbase address is the account to pay mining rewards to.
+        return all 0s
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_coinbase"})
+        res = get_result(response)
+
+        if res.lower() != "0x0000000000000000000000000000000000000000":
+            raise Exception(f"Bad eth_coinbase return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_coinbase with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_mining(url: str) -> bool:
+    """
+        Returns whether mining is happening. Returns false.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_mining"})
+        res = get_result(response)
+
+        if res is not False:
+            raise Exception(f"Bad eth_mining return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_mining with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_accounts(url: str) -> bool:
+    """
+        Returns a list of addresses owned by client.
+        Should be always empty list.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_accounts"})
+        res = get_result(response)
+
+        if res != "":
+            raise Exception(f"Bad eth_accounts return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_accounts with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_blockNumber(url: str) -> bool:
+    """
+        Returns the block number. Should be non zero and should increment over time.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_blockNumber"})
+        res = get_result(response)
+
+        if "0x" not in res.lower():
+            raise Exception(f"Bad eth_blockNumber return value: {res}")
+
+        time.sleep(BLOCK_TIME_S * 2)
+
+        response2 = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_blockNumber"})
+        res2 = get_result(response2)
+
+        if not int(res, base=16) < int(res2, base=16):
+            raise Exception(f"Bad eth_blockNumber, did not increment: {res} vs {res2}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_blockNumber with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getBlockTransactionCountByHash(url: str) -> bool:
+    """
+        Returns the information about a transaction requested by transaction hash.
+        In the response object, `blockHash`, `blockNumber`, and `transactionIndex` are `null`
+        when the transaction is pending.
+        We will assume the TX is not pending for this test
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockTransactionCountByHash"})
+        res = get_result(response)
+
+        if "0x" not in res.lower():
+            raise Exception(f"Bad eth_getBlockTransactionCountByHash return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getBlockTransactionCountByHash with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getBlockTransactionCountByNumber(url: str) -> bool:
+    """
+        Returns the information about a transaction requested by transaction hash.
+        In the response object, `blockHash`, `blockNumber`, and `transactionIndex` are `null`
+        when the transaction is pending.
+        We will assume the TX is not pending for this test
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockTransactionCountByNumber"})
+        res = get_result(response)
+
+        if "0x" not in res.lower():
+            raise Exception(f"Bad eth_getBlockTransactionCountByNumber return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getBlockTransactionCountByNumber with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getUncleCountByBlockHash(url: str) -> bool:
+    """
+        Returns the number of uncles in a block matching the given block hash - so 0.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getUncleCountByBlockHash",
+                                            "params":["0xb3b20624f8f0f86eb50dd04688409e5cea4bd02d700bf6e79e9384d47d6a5a35"]})
+        res = get_result(response)
+
+        if res.lower() != "0x0":
+            raise Exception(f"Bad eth_getUncleCountByBlockHash return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getUncleCountByBlockHash with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getUncleCountByBlockNumber(url: str) -> bool:
+    """
+        Returns the number of uncles in a block matching the give block number - so 0
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getUncleCountByBlockNumber",
+                                            "params":["0xe8"]})
+        res = get_result(response)
+
+        if res.lower() != "0x0":
+            raise Exception(f"Bad eth_getUncleCountByBlockNumber return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getUncleCountByBlockNumber with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getBlockByHash(url: str) -> bool:
+    """
+        Returns information about a block by hash.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getBlockByHash",
+                                            "params": [
+                                                "0xc0f4906fea23cf6f3cce98cb44e8e1449e455b28d684dfa9ff65426495584de6",
+                                                True
+                                            ]})
+        res = get_result(response)
+
+        if res.lower() != "0x0":
+            raise Exception(f"Bad eth_getBlockByHash return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getBlockByHash with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getBlockByNumber(url: str) -> bool:
+    """
+        Returns information about a block by number.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_blockNumber"})
+        res = get_result(response)
+
+        if "0x" not in res.lower():
+            raise Exception(f"Did not get block height for use in block by number test")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getBlockByNumber",
+                                            "params": [
+                                                res,
+                                                True
+                                            ]})
+        res = get_result(response)
+
+        if res.lower() != "0x0":
+            raise Exception(f"Bad eth_getBlockByNumber return value: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getBlockByNumber with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getUncleByBlockHashAndIndex(url: str) -> bool:
+    """
+        Returns information about an uncle of a block by hash and uncle index position. Always return null.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getUncleByBlockHashAndIndex",
+                                            "params":["0xb3b20624f8f0f86eb50dd04688409e5cea4bd02d700bf6e79e9384d47d6a5a35",
+                                                      "0x0"]})
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get None/null for uncle call")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getBlockByNumber with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getUncleByBlockNumberAndIndex(url: str) -> bool:
+    """
+        Returns information about an uncle of a block by number and uncle index position. Always return null.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getUncleByBlockNumberAndIndex",
+                                            "params":["0x29c",
+                                                      "0x0"]})
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get None/null for uncle call (by index)")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getUncleByBlockNumberAndIndex with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getCompilers(url: str) -> bool:
+    """
+        Returns information about an uncle of a block by number and uncle index position. Always return null.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getCompilers"})
+        res = get_result(response)
+
+        if res is not []:
+            raise Exception(f"Did not get empty list for eth get compilers")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getCompilers with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_compileSolidity(url: str) -> bool:
+    """
+        Always return null.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_compileSolidity"})
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get None/null for solidity compile call (by index)")
+
+    except Exception as e:
+        print(f"Failed test test_eth_compileSolidity with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_compile(url: str) -> bool:
+    """
+        Always return null.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_compile"})
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get None/null for solidity call")
+
+    except Exception as e:
+        print(f"Failed test test_eth_compile with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_compileSerpent(url: str) -> bool:
+    """
+        Always return empty string.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_compileSerpent", "params": "0x000"})
+        res = get_result(response)
+
+        if res is not "":
+            raise Exception(f"Did not get empty string for compile serpent")
+
+    except Exception as e:
+        print(f"Failed test test_eth_compile with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_hashrate(url: str) -> bool:
+    """
+        Return the number of hashes per second the node is mining with. Always return 0x1.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_hashrate"})
+        res = get_result(response)
+
+        if res is not "0x1":
+            raise Exception(f"Did not get 1 for hashrate. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_hashrate with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_gasPrice(url: str) -> bool:
+    """
+        Return the gas price in wei.
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_gasPrice", "params": [] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for gasPrice. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_gasPrice with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_newFilter(url: str) -> bool:
+    """
+        Creates a filter object. Not yet implemented so will return null
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_newFilter", "params": []})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_newFilter with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_newBlockFilter(url: str) -> bool:
+    """
+        Creates a block filter object. Not yet implemented so will return null
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_newBlockFilter", "params": []})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_newBlockFilter with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_newPendingTransactionFilter(url: str) -> bool:
+    """
+        Creates a pending transaction filter object. Not yet implemented so will return null
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_newPendingTransactionFilter", "params": []})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_newPendingTransactionFilter with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_uninstallFilter(url: str) -> bool:
+    """
+        Creates a pending transaction filter object. Not yet implemented so will return null
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_uninstallFilter", "params": []})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_uninstallFilter with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getFilterChanges(url: str) -> bool:
+    """
+        Get filter changes. Returns null for now
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getFilterChanges", "params": []})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_getFilterChanges with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getFilterLogs(url: str) -> bool:
+    """
+        Get filter logs. Returns null for now
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getFilterLogs", "params": []})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_getFilterLogs with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getLogs(url: str) -> bool:
+    """
+        Get logs. Returns null for now
+    """
+    try:
+        # Get the block at the head of the chain
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
+                                            "method": "eth_getLogs"})
+        res = get_result(response)
+    except Exception as e:
+        print(f"Failed test test_eth_getLogs with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_subscribe(url: str) -> bool:
+    """
+        Subscribe to a websocket. TODO for now.
+    """
     return True
 
 def test_eth_unsubscribe(url: str) -> bool:
+    """
+        Unsubscribe to a websocket. TODO for now.
+    """
     return True
 
 def test_eth_call(url: str) -> bool:
+    """
+        Executes a new message call immediately without creating a transaction on the block chain.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_call", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_call. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_call with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_estimateGas(url: str) -> bool:
+    """
+        Generates and returns an estimate of how much gas is necessary to allow the transaction to complete.
+        The transaction will not be added to the blockchain. Note that the estimate may be significantly
+        more than the amount of gas actually used by the transaction,
+        for a variety of reasons including EVM mechanics and node performance."
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_estimateGas", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_estimateGas. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_estimateGas with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getTransactionCount(url: str) -> bool:
+    """
+        Returns the number of transactions sent from an address.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionCount", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_getTransactionCount. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getTransactionCount with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getTransactionByHash(url: str) -> bool:
+    """
+        Returns the information about a transaction requested by transaction hash.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByHash", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_getTransactionByHash. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getTransactionByHash with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getTransactionByBlockHashAndIndex(url: str) -> bool:
+    """
+        Returns information about a transaction by block hash and transaction index position.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_getTransactionByBlockHashAndIndex. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getTransactionByBlockHashAndIndex with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getTransactionByBlockNumberAndIndex(url: str) -> bool:
+    """
+        Returns information about a transaction by block number and transaction index position.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_getTransactionByBlockNumberAndIndex. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getTransactionByBlockNumberAndIndex with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_getTransactionReceipt(url: str) -> bool:
+    """
+        Returns the receipt of a transaction by transaction hash.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "0x123":
+            raise Exception(f"Did not get 1 for eth_getTransactionReceipt. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_getTransactionReceipt with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_sign(url: str) -> bool:
+    """
+        The sign method calculates an Ethereum specific signature with:
+        sign(keccak256(""\x19Ethereum Signed Message:\n"" + len(message) + message))).
+
+        By adding a prefix to the message makes the calculated signature recognisable
+        as an Ethereum specific signature. This prevents misuse where a malicious DApp can
+         sign arbitrary data (e.g. transaction) and use the signature to impersonate the victim.
+
+        Note the address to sign with must be unlocked."
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sign",
+                                            "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "":
+            raise Exception(f"Did not get 1 for eth_sign. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_sign with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_signTransaction(url: str) -> bool:
+    """
+        Signs a transaction that can be submitted to the network
+        at a later time using with eth_sendRawTransaction.
+        Is this just a local API, not really an RPC call?"
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_signTransaction",
+                                            "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "":
+            raise Exception(f"Did not get 1 for eth_signTransaction. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_signTransaction with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_sendTransaction(url: str) -> bool:
+    """
+        Creates new message call transaction or a contract creation, if the data field contains code.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendTransaction",
+                                            "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "":
+            raise Exception(f"Did not get 1 for eth_sendTransaction. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_sendTransaction with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_sendRawTransaction(url: str) -> bool:
+    """
+        Creates new message call transaction or a contract creation, if the data field contains code. Raw transactions
+        are in the RLP data format.
+    """
+    try:
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": ["latest"] })
+        res = get_result(response)
+
+        if res is not "":
+            raise Exception(f"Did not get 1 for eth_sendRawTransaction. Got: {res}")
+
+    except Exception as e:
+        print(f"Failed test test_eth_sendRawTransaction with error: '{e}'")
+        return False
+
     return True
 
 def test_eth_chainId(url: str) -> bool:
@@ -337,7 +937,6 @@ def parse_commandline():
     parser.add_argument('--api', type=str, required=True, help='API to test against')
     return parser.parse_args()
 
-
 def main():
     args = parse_commandline()
 
@@ -347,6 +946,7 @@ def main():
         args.api[-1].append('/')
 
     ret = test_eth_chainId(args.api)
+    ret &= test_eth_blockNumber(args.api)
     ret &= test_eth_feeHistory(args.api)
     ret &= test_eth_getStorageAt(args.api)
     ret &= test_eth_getCode(args.api)
@@ -362,13 +962,11 @@ def main():
     ret &= test_eth_coinbase(args.api)
     ret &= test_eth_mining(args.api)
     ret &= test_eth_accounts(args.api)
-    ret &= test_eth_blockNumber(args.api)
-    ret &= test_eth_getBlockTransactionCountByHash(args.api)
     ret &= test_eth_getBlockTransactionCountByNumber(args.api)
     ret &= test_eth_getUncleCountByBlockHash(args.api)
     ret &= test_eth_getUncleCountByBlockNumber(args.api)
-    ret &= test_eth_getBlockByHash(args.api)
-    ret &= test_eth_getBlockByNumber(args.api)
+    #ret &= test_eth_getBlockByHash(args.api)
+    #ret &= test_eth_getBlockByNumber(args.api)
     ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
     ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
     ret &= test_eth_getCompilers(args.api)
@@ -397,6 +995,7 @@ def main():
     ret &= test_eth_signTransaction(args.api)
     ret &= test_eth_sendTransaction(args.api)
     ret &= test_eth_sendRawTransaction(args.api)
+    ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:
         print(f"Test failed")
