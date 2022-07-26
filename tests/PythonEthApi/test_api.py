@@ -546,7 +546,7 @@ def test_eth_compileSerpent(url: str) -> bool:
                                             "method": "eth_compileSerpent", "params": "0x000"})
         res = get_result(response)
 
-        if res is not "":
+        if res != "":
             raise Exception(f"Did not get empty string for compile serpent")
 
     except Exception as e:
@@ -565,7 +565,7 @@ def test_eth_hashrate(url: str) -> bool:
                                             "method": "eth_hashrate"})
         res = get_result(response)
 
-        if res is not "0x1":
+        if res != "0x1":
             raise Exception(f"Did not get 1 for hashrate. Got: {res}")
 
     except Exception as e:
@@ -584,7 +584,7 @@ def test_eth_gasPrice(url: str) -> bool:
                                             "method": "eth_gasPrice", "params": [] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for gasPrice. Got: {res}")
 
     except Exception as e:
@@ -718,7 +718,7 @@ def test_eth_call(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_call", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_call. Got: {res}")
 
     except Exception as e:
@@ -738,7 +738,7 @@ def test_eth_estimateGas(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_estimateGas", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_estimateGas. Got: {res}")
 
     except Exception as e:
@@ -755,7 +755,7 @@ def test_eth_getTransactionCount(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionCount", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_getTransactionCount. Got: {res}")
 
     except Exception as e:
@@ -772,7 +772,7 @@ def test_eth_getTransactionByHash(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByHash", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_getTransactionByHash. Got: {res}")
 
     except Exception as e:
@@ -789,7 +789,7 @@ def test_eth_getTransactionByBlockHashAndIndex(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_getTransactionByBlockHashAndIndex. Got: {res}")
 
     except Exception as e:
@@ -806,7 +806,7 @@ def test_eth_getTransactionByBlockNumberAndIndex(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_getTransactionByBlockNumberAndIndex. Got: {res}")
 
     except Exception as e:
@@ -823,7 +823,7 @@ def test_eth_getTransactionReceipt(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "0x123":
+        if res != "0x123":
             raise Exception(f"Did not get 1 for eth_getTransactionReceipt. Got: {res}")
 
     except Exception as e:
@@ -848,7 +848,7 @@ def test_eth_sign(url: str) -> bool:
                                             "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "":
+        if res != "":
             raise Exception(f"Did not get 1 for eth_sign. Got: {res}")
 
     except Exception as e:
@@ -868,7 +868,7 @@ def test_eth_signTransaction(url: str) -> bool:
                                             "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "":
+        if res != "":
             raise Exception(f"Did not get 1 for eth_signTransaction. Got: {res}")
 
     except Exception as e:
@@ -886,7 +886,7 @@ def test_eth_sendTransaction(url: str) -> bool:
                                             "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "":
+        if res != "":
             raise Exception(f"Did not get 1 for eth_sendTransaction. Got: {res}")
 
     except Exception as e:
@@ -905,7 +905,7 @@ def test_eth_sendRawTransaction(url: str) -> bool:
                                             "params": ["latest"] })
         res = get_result(response)
 
-        if res is not "":
+        if res != "":
             raise Exception(f"Did not get 1 for eth_sendRawTransaction. Got: {res}")
 
     except Exception as e:
@@ -943,7 +943,7 @@ def main():
     print(f"args are {args.api}")
 
     if args.api[-1] != '/':
-        args.api[-1].append('/')
+        args.api += '/'
 
     ret = test_eth_chainId(args.api)
     ret &= test_eth_blockNumber(args.api)
