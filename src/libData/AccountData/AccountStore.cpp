@@ -67,7 +67,7 @@ AccountStore::AccountStore() {
   }
   // EVM required to run on Lookup nodes too for view calls
   if (ENABLE_EVM) {
-    if (not ipcScillaInit) {
+    if (not ipcScillaInit && !LOOKUP_NODE_MODE) {
       ScillaClient::GetInstance().Init();
     }
     EvmClient::GetInstance().Init();
