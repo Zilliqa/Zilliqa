@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUILS_QUEUE_H_
-#define ZILLIQA_SRC_LIBUILS_QUEUE_H_
+#ifndef ZILLIQA_SRC_LIBUTILS_QUEUE_H_
+#define ZILLIQA_SRC_LIBUTILS_QUEUE_H_
 
 #include <condition_variable>
 #include <deque>
@@ -34,21 +34,21 @@ class Queue {
   explicit Queue(size_t maxSize = std::numeric_limits<size_t>::max())
       : m_maxSize(maxSize), m_stopped(false) {}
 
-  bool bounded_push(const T &job) {
+  bool bounded_push(T item) {
     {
       std::lock_guard<Mutex> lk(m_mutex);
       if (m_stopped || m_queue.size() >= m_maxSize) return false;
-      m_queue.push_back(job);
+      m_queue.push_back(std::move(item));
     }
     m_condition.notify_one();
     return true;
   }
 
-  bool pop(T &job) {
+  bool pop(T &item) {
     std::unique_lock<Mutex> lk(m_mutex);
     m_condition.wait(lk, [this] { return !m_queue.empty() || m_stopped; });
     if (m_stopped) return false;
-    job = m_queue.front();
+    item = std::move(m_queue.front());
     m_queue.pop_front();
     return true;
   }
@@ -57,6 +57,7 @@ class Queue {
     {
       std::lock_guard<Mutex> lk(m_mutex);
       m_stopped = true;
+      m_queue.clear();
     }
     m_condition.notify_one();
   }
@@ -71,4 +72,4 @@ class Queue {
 
 }  // namespace utility
 
-#endif  // ZILLIQA_SRC_LIBUILS_QUEUE_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_QUEUE_H_

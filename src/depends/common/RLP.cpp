@@ -118,7 +118,7 @@ void RLP::requireGood() const
 {
     if (isNull())
         BOOST_THROW_EXCEPTION(BadRLP());
-    byte n = m_data[0];
+    uint8_t n = m_data[0];
     if (n != c_rlpDataImmLenStart + 1)
         return;
     if (m_data.size() < 2)
@@ -132,7 +132,7 @@ bool RLP::isInt() const
     if (isNull())
         return false;
     requireGood();
-    byte n = m_data[0];
+    uint8_t n = m_data[0];
     if (n < c_rlpDataImmLenStart)
         return !!n;
     else if (n == c_rlpDataImmLenStart)
@@ -160,7 +160,7 @@ size_t RLP::length() const
         return 0;
     requireGood();
     size_t ret = 0;
-    byte const n = m_data[0];
+    uint8_t const n = m_data[0];
     if (n < c_rlpDataImmLenStart)
         return 1;
     else if (n <= c_rlpDataIndLenZero)
@@ -256,13 +256,13 @@ void RLPStream::noteAppended(size_t _itemCount)
             m_out.resize(os + encodeSize);
             memmove(m_out.data() + p + encodeSize, m_out.data() + p, os - p);
             if (s < c_rlpListImmLenCount)
-                m_out[p] = (byte)(c_rlpListStart + s);
+                m_out[p] = (uint8_t)(c_rlpListStart + s);
             else if (c_rlpListIndLenZero + brs <= 0xff)
             {
-                m_out[p] = (byte)(c_rlpListIndLenZero + brs);
-                byte* b = &(m_out[p + brs]);
+                m_out[p] = (uint8_t)(c_rlpListIndLenZero + brs);
+                uint8_t* b = &(m_out[p + brs]);
                 for (; s; s >>= 8)
-                    *(b--) = (byte)s;
+                    *(b--) = (uint8_t)s;
             }
             else
                 BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("itemCount too large for RLP"));
@@ -284,7 +284,7 @@ RLPStream& RLPStream::appendList(size_t _items)
 RLPStream& RLPStream::appendList(bytesConstRef _rlp)
 {
     if (_rlp.size() < c_rlpListImmLenCount)
-        m_out.push_back((byte)(_rlp.size() + c_rlpListStart));
+        m_out.push_back((uint8_t)(_rlp.size() + c_rlpListStart));
     else
         pushCount(_rlp.size(), c_rlpListIndLenZero);
     appendRaw(_rlp, 1);
@@ -294,7 +294,7 @@ RLPStream& RLPStream::appendList(bytesConstRef _rlp)
 RLPStream& RLPStream::append(bytesConstRef _s, bool _compact)
 {
     size_t s = _s.size();
-    byte const* d = _s.data();
+    uint8_t const* d = _s.data();
     if (_compact)
         for (size_t i = 0; i < _s.size() && !*d; ++i, --s, ++d) {}
 
@@ -303,7 +303,7 @@ RLPStream& RLPStream::append(bytesConstRef _s, bool _compact)
     else
     {
         if (s < c_rlpDataImmLenCount)
-            m_out.push_back((byte)(s + c_rlpDataImmLenStart));
+            m_out.push_back((uint8_t)(s + c_rlpDataImmLenStart));
         else
             pushCount(s, c_rlpDataIndLenZero);
         appendRaw(bytesConstRef(d, s), 0);
@@ -317,18 +317,18 @@ RLPStream& RLPStream::append(bigint _i)
     if (!_i)
         m_out.push_back(c_rlpDataImmLenStart);
     else if (_i < c_rlpDataImmLenStart)
-        m_out.push_back((byte)_i);
+        m_out.push_back((uint8_t)_i);
     else
     {
         unsigned br = bytesRequired(_i);
         if (br < c_rlpDataImmLenCount)
-            m_out.push_back((byte)(br + c_rlpDataImmLenStart));
+            m_out.push_back((uint8_t)(br + c_rlpDataImmLenStart));
         else
         {
             auto brbr = bytesRequired(br);
             if (c_rlpDataIndLenZero + brbr > 0xff)
                 BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("Number too large for RLP"));
-            m_out.push_back((byte)(c_rlpDataIndLenZero + brbr));
+            m_out.push_back((uint8_t)(c_rlpDataIndLenZero + brbr));
             pushInt(br, brbr);
         }
         pushInt(_i, br);
@@ -337,12 +337,12 @@ RLPStream& RLPStream::append(bigint _i)
     return *this;
 }
 
-void RLPStream::pushCount(size_t _count, byte _base)
+void RLPStream::pushCount(size_t _count, uint8_t _base)
 {
     auto br = bytesRequired(_count);
     if (int(br) + _base > 0xff)
         BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("Count too large for RLP"));
-    m_out.push_back((byte)(br + _base));	// max 8 bytes.
+    m_out.push_back((uint8_t)(br + _base));	// max 8 bytes.
     pushInt(_count, br);
 }
 

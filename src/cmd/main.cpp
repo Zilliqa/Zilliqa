@@ -232,8 +232,8 @@ int main(int argc, const char* argv[]) {
                     make_pair(extSeedPrivKey, extSeedPubKey));
     auto dispatcher =
         [&zilliqa](
-            pair<bytes, std::pair<Peer, const unsigned char>>* message) mutable
-        -> void { zilliqa.Dispatch(message); };
+            Zilliqa::Msg message) mutable
+        -> void { zilliqa.Dispatch(std::move(message)); };
     // Only start the incoming message queue
     P2PComm::GetInstance().StartMessagePump(dispatcher);
 
