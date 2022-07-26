@@ -68,8 +68,7 @@ AccountStore::AccountStore() {
   // EVM required to run on Lookup nodes too for view calls
   if (ENABLE_EVM) {
     if (not ipcScillaInit) {
-      LOG_GENERAL(WARNING, "Scilla IPC Server wasn't started for EVM lookup ("
-                               << LOOKUP_NODE_MODE << ")");
+      ScillaClient::GetInstance().Init();
     }
     EvmClient::GetInstance().Init();
   }
