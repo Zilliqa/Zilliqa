@@ -35,9 +35,11 @@
 /// Main Zilliqa class.
 class Zilliqa {
  public:
-  // TODO shared instead of unique due to lambda move capture limitations in old compilers
+  // TODO shared instead of unique due to lambda move capture limitations in old
+  // compilers
   using Msg =
       std::shared_ptr<std::pair<bytes, std::pair<Peer, const unsigned char>>>;
+
  private:
   Mediator m_mediator;
   DirectoryService m_ds;

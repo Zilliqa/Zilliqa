@@ -230,10 +230,9 @@ int main(int argc, const char* argv[]) {
                     (SyncType)syncType, vm.count("recovery"),
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));
-    auto dispatcher =
-        [&zilliqa](
-            Zilliqa::Msg message) mutable
-        -> void { zilliqa.Dispatch(std::move(message)); };
+    auto dispatcher = [&zilliqa](Zilliqa::Msg message) mutable -> void {
+      zilliqa.Dispatch(std::move(message));
+    };
     // Only start the incoming message queue
     P2PComm::GetInstance().StartMessagePump(dispatcher);
 

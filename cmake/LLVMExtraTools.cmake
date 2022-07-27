@@ -51,6 +51,8 @@ if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
 
     string(REGEX REPLACE "^.*version ([.0-9]+).*" "\\1" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION_OUTPUT}")
 
+    message(STATUS "clang-format version (${CLANG_FORMAT_VERSION}) (${_CLANG_FORMAT_VERSION_RESULT})")
+
     if("${CLANG_FORMAT_VERSION}" VERSION_EQUAL "7.0.0" OR "${CLANG_FORMAT_VERSION}" VERSION_GREATER "7.0.0")
         # message(${CLANG_FORMAT_VERSION})
         add_custom_target(
