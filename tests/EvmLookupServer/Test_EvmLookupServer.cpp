@@ -47,6 +47,19 @@ class EvmClientMock : public EvmClient {
   };
 };
 
+std::unique_ptr<LookupServer> getLookupServer() {
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  const PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  auto lookupServer =
+      std::make_unique<LookupServer>(mediator, abstractServerConnector);
+  return lookupServer;
+}
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_AUTO_TEST_CASE(test_eth_call) {
@@ -175,10 +188,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
 
   LOG_MARKER();
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
+  const auto lookupServer = getLookupServer();
 
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
@@ -198,9 +208,8 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
-  LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
-  lookupServer.GetEthCallI(paramsRequest, response);
+  lookupServer->GetEthCallI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(),
@@ -237,18 +246,11 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  const Json::Value paramsRequest = Json::Value(Json::arrayValue);
   // call the method on the lookup server with params
-  lookupServer.GetWeb3ClientVersionI(paramsRequest, response);
+  const auto lookupServer = getLookupServer();
+  lookupServer->GetWeb3ClientVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
@@ -260,19 +262,12 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   paramsRequest[0u] = "68656c6c6f20776f726c64";
-  lookupServer.GetWeb3Sha3I(paramsRequest, response);
+  lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -282,7 +277,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   // test with empty string
   paramsRequest[0u] = "";
-  lookupServer.GetWeb3Sha3I(paramsRequest, response);
+  lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -296,18 +291,11 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetEthMiningI(paramsRequest, response);
+  lookupServer->GetEthMiningI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -319,12 +307,7 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
+  const auto lookupServer = getLookupServer();
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
   if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
@@ -334,11 +317,10 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
-  LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetEthCoinbaseI(paramsRequest, response);
+  lookupServer->GetEthCoinbaseI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -350,18 +332,11 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetNetVersionI(paramsRequest, response);
+  lookupServer->GetNetVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -373,18 +348,11 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetNetListeningI(paramsRequest, response);
+  lookupServer->GetNetListeningI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -396,19 +364,12 @@ BOOST_AUTO_TEST_CASE(test_net_peer_count) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer.GetNetPeerCountI(paramsRequest, response);
+  lookupServer->GetNetPeerCountI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -420,19 +381,12 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer.GetProtocolVersionI(paramsRequest, response);
+  lookupServer->GetProtocolVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -444,19 +398,12 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer.GetEthChainIdI(paramsRequest, response);
+  lookupServer->GetEthChainIdI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -468,19 +415,12 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer.GetEthSyncingI(paramsRequest, response);
+  lookupServer->GetEthSyncingI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
   const Json::Value expectedResponse{false};
@@ -492,21 +432,88 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
+  const auto lookupServer = getLookupServer();
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer.GetEthAccountsI(paramsRequest, response);
+  lookupServer->GetEthAccountsI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::arrayValue;
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  const auto lookupServer = getLookupServer();
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  paramsRequest[0u] = "0x68656c6c6f20776f726c64";
+  paramsRequest[1u] = "0x1";
+
+  lookupServer->GetEthUncleBlockI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::nullValue;
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  const auto lookupServer = getLookupServer();
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  paramsRequest[0u] = "0x666";
+  paramsRequest[1u] = "0x1";
+
+  lookupServer->GetEthUncleBlockI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::nullValue;
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  const auto lookupServer = getLookupServer();
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  paramsRequest[0u] = "0x68656c6c6f20776f726c64";
+
+  lookupServer->GetEthUncleCountI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::Value{0};
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  const auto lookupServer = getLookupServer();
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  paramsRequest[0u] = "0x10";
+
+  lookupServer->GetEthUncleCountI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::Value{0};
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
