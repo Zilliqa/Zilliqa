@@ -162,8 +162,9 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
     LOG_GENERAL(WARNING, "Failed to get the public key from the hex input");
   }
 
-  auto const result = ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
-                                zSignature.get(), zPublicKey.get());
+  auto const result =
+      ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
+                      zSignature.get(), zPublicKey.get());
 
   return result;
 }
@@ -324,7 +325,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << bytes{};
 
   auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
-                                       rlpStreamRecreated.out().size());
+                                             rlpStreamRecreated.out().size());
 
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
