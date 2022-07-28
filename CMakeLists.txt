@@ -337,7 +337,10 @@ endif()
 
 # installation
 
-set_target_properties(zilliqa sendcmd genaccounts genkeypair getpub getaddr gentxn signmultisig verifymultisig zilliqad gensigninitialds grepperf getnetworkhistory getrewardhistory validateDB restore genTxnBodiesFromS3 isolatedServer data_migrate
+set_target_properties(buildTxBlockHashesToNums data_migrate genaccounts genkeypair genTxnBodiesFromS3 
+                      getpub getaddr gentxn signmultisig verifymultisig gensigninitialds getnetworkhistory grepperf  
+                      getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
+
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie CryptoUtils NAT

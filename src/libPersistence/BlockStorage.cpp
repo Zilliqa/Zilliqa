@@ -375,6 +375,10 @@ bool BlockStorage::ReleaseDB() {
   }
   {
     unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    m_txBlockchainAuxDB.reset();
+  }
+  {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
     m_txBlockHashToNumDB.reset();
   }
 
@@ -1480,6 +1484,11 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_txBlockchainDB->ResetDB();
       break;
     }
+    case TX_BLOCK_AUX: {
+      unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+      ret = m_txBlockchainAuxDB->ResetDB();
+      break;
+    }
     case TX_BLOCK_HASH_TO_NUM: {
       unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret = m_txBlockHashToNumDB->ResetDB();
@@ -1598,6 +1607,11 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_txBlockchainDB->RefreshDB();
       break;
     }
+    case TX_BLOCK_AUX: {
+      unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+      ret = m_txBlockchainAuxDB->RefreshDB();
+      break;
+    }
     case TX_BLOCK_HASH_TO_NUM: {
       unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret = m_txBlockHashToNumDB->RefreshDB();
@@ -1713,6 +1727,11 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
     case TX_BLOCK: {
       shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
       ret.push_back(m_txBlockchainDB->GetDBName());
+      break;
+    }
+    case TX_BLOCK_AUX: {
+      shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+      ret.push_back(m_txBlockchainAuxDB->GetDBName());
       break;
     }
     case TX_BLOCK_HASH_TO_NUM: {

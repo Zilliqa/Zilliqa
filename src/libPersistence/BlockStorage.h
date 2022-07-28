@@ -80,6 +80,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_metadataDB;
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
+  std::shared_ptr<LevelDB> m_txBlockchainAuxDB;
   std::shared_ptr<LevelDB> m_txBlockHashToNumDB;
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
@@ -111,6 +112,7 @@ class BlockStorage : public Singleton<BlockStorage> {
       : m_metadataDB(std::make_shared<LevelDB>("metadata")),
         m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
         m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
+        m_txBlockchainAuxDB(std::make_shared<LevelDB>("txBlocksAux")),
         m_txBlockHashToNumDB(std::make_shared<LevelDB>("txBlockHashToNum")),
         m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
         m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
@@ -160,7 +162,8 @@ class BlockStorage : public Singleton<BlockStorage> {
     MINER_INFO_DSCOMM,
     MINER_INFO_SHARDS,
     EXTSEED_PUBKEYS,
-    TX_BLOCK_HASH_TO_NUM
+    TX_BLOCK_HASH_TO_NUM,
+    TX_BLOCK_AUX
   };
 
   /// Returns the singleton BlockStorage instance.
