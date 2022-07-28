@@ -431,8 +431,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    lock_guard<mutex> g(m_blockMutex);
-
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     Json::Value ret;
@@ -441,6 +439,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     uint128_t senderBalance;
 
     const Address fromAddr = tx.GetSenderAddr();
+
+    lock_guard<mutex> g(m_blockMutex);
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -582,8 +582,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    lock_guard<mutex> g(m_blockMutex);
-
     Transaction tx{fields.version,
                    fields.nonce,
                    Address(fields.toAddr),
@@ -601,6 +599,8 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     uint128_t senderBalance;
 
     const Address fromAddr = tx.GetSenderAddr();
+
+    lock_guard<mutex> g(m_blockMutex);
 
     {
       shared_lock<shared_timed_mutex> lock(

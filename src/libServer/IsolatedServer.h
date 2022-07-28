@@ -52,7 +52,6 @@ class IsolatedServer : public LookupServer,
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
-    (void)request;
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
@@ -60,10 +59,10 @@ class IsolatedServer : public LookupServer,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
+    auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
-    auto fields = parseRawTxFields(rawTx);
-    auto resp = CreateTransactionEth(fields, pubKey);
+    auto const fields = parseRawTxFields(rawTx);
+    auto const resp = CreateTransactionEth(fields, pubKey);
 
     response = resp["TranID"];
   }
