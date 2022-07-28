@@ -389,7 +389,6 @@ class LookupServer : public Server,
                                      Json::Value& response) {
     (void)request;
     std::string address = request[0u].asString();
-    std::cout << "ADDR IS " << address << std::endl;
     DataConversion::NormalizeHexString(address);
 
     auto resp = this->GetBalance(address, true)["balance"];

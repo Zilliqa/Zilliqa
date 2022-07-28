@@ -1336,9 +1336,6 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
     ss << std::hex << balance;  // int decimal_value
     std::string res(ss.str());
 
-    std::cout << "hex response is: " << std::endl;
-    std::cout << res << std::endl;
-
     ret["balance"] = res;
 
     return ret;
