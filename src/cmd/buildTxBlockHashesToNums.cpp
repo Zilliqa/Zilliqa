@@ -16,7 +16,6 @@
  */
 
 #include <iostream>
-#include <memory>
 
 #include <libData/AccountData/AccountStore.h>
 #include <libData/BlockData/Block/TxBlock.h>
@@ -24,7 +23,7 @@
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " PERSISTENCE_PATH" << std::endl;
-    // For some reason a few symbols are missing without the below invocation,
+    // For some reason a few symbols are missing without the invocation below,
     // leading to unresolved externals during linking stage.
     AccountStore::GetInstance();
     exit(1);
@@ -36,18 +35,36 @@ int main(int argc, char* argv[]) {
 
   // Pass explicitly subdir as an empty std::string type to invoke proper ctor
   LevelDB txBlockchainDB{"txBlocks", persistencePath, EMPTY_SUBDIR};
+  LevelDB txBlockchainAuxDB{"txBlocksAux", persistencePath, EMPTY_SUBDIR};
+  LevelDB txBlockHashToNumDB{"txBlockHashToNum", persistencePath, EMPTY_SUBDIR};
+
+  // Algo is as follows:
+  // MaxBlockNum = 0
+  // For each (blockNum, block) in txBlocks:
+  //   Insert (block->GetBlockHash(), blockNum) into TxBlockHashToNum
+  //   MaxBlockNum = max(MaxBlockNum, blockNum)
+  // Insert ('MaxTxBlockNumber', MaxBlockNum) into txBlocksAux
+  //
+
+  uint64_t maxKnownBlockNum = 0;
+
+  std::cerr << "Starting main loop" << std::endl;
 
   const auto it = std::unique_ptr<leveldb::Iterator>(
       txBlockchainDB.GetDB()->NewIterator(leveldb::ReadOptions()));
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
-    uint64_t blockNum = std::stoull(it->key().ToString());
-    std::cerr << "Got blockNum: " << blockNum << std::endl;
+    const uint64_t blockNum = std::stoull(it->key().ToString());
     const auto blockString = txBlockchainDB.Lookup(blockNum);
     const TxBlock block{bytes(blockString.begin(), blockString.end()), 0};
+    txBlockHashToNumDB.Insert(block.GetBlockHash(), std::to_string(blockNum));
+    maxKnownBlockNum = std::max(maxKnownBlockNum, blockNum);
   }
 
-  // std::shared_ptr<LevelDB> txBlockchainAuxDB;
-  // std::shared_ptr<LevelDB> txBlockHashToNumDB;
+  std::cerr << "Greates block number found: " << maxKnownBlockNum << std::endl;
+
+  constexpr auto MAX_KNOWN_BLOCK_NUM_KEY = "MaxTxBlockNumber";
+  txBlockchainAuxDB.Insert(leveldb::Slice(MAX_KNOWN_BLOCK_NUM_KEY),
+                           leveldb::Slice(std::to_string(maxKnownBlockNum)));
 
   return 0;
 }
