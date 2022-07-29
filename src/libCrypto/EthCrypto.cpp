@@ -82,18 +82,18 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
 
   EC_KEY_set_asn1_flag(pKey, OPENSSL_EC_NAMED_CURVE);
 
-  // From
-  // https://www.oreilly.com/library/view/mastering-ethereum/9781491971932/ch04.html
-  // The first byte indicates whether the y coordinate is odd or even
-  int y_chooser_bit = 0;
-  bool notCompressed = false;
-
   if (sPubKeyString[0] != '0') {
     LOG_GENERAL(WARNING,
                 "Received badly set signature bit! Should be 0 and got: "
                     << sPubKeyString[0]);
     return false;
   }
+
+  // From
+  // https://www.oreilly.com/library/view/mastering-ethereum/9781491971932/ch04.html
+  // The first byte indicates whether the y coordinate is odd or even
+  int y_chooser_bit = 0;
+  bool notCompressed = false;
 
   if (sPubKeyString[1] == '2') {
     y_chooser_bit = 0;
@@ -163,8 +163,9 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
     LOG_GENERAL(WARNING, "Failed to get the public key from the hex input");
   }
 
-  auto result = ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
-                                zSignature.get(), zPublicKey.get());
+  auto const result =
+      ECDSA_do_verify(sRandomNumber.data(), SHA256_DIGEST_LENGTH,
+                      zSignature.get(), zPublicKey.get());
 
   return result;
 }
@@ -229,8 +230,6 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
   bytes asBytes;
-  int v = 0;
-  bytes rs;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes);
@@ -241,6 +240,8 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   }
 
   int i = 0;
+  int v = 0;
+  bytes rs;
 
   // Iterate through the RLP message and build up what the message was before
   // it was hashed and signed. That is, same size, same fields, except
@@ -328,8 +329,8 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};
 
-  auto signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
-                                       rlpStreamRecreated.out().size());
+  auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
+                                             rlpStreamRecreated.out().size());
 
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }

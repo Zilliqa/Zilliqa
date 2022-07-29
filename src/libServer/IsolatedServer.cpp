@@ -150,6 +150,32 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthMiningI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleByBlockHashAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleBlockI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleByBlockNumberAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleBlockI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCoinbaseI);
@@ -405,8 +431,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    lock_guard<mutex> g(m_blockMutex);
-
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     Json::Value ret;
@@ -415,6 +439,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     uint128_t senderBalance;
 
     const Address fromAddr = tx.GetSenderAddr();
+
+    lock_guard<mutex> g(m_blockMutex);
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -556,8 +582,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    lock_guard<mutex> g(m_blockMutex);
-
     Transaction tx{fields.version,
                    fields.nonce,
                    Address(fields.toAddr),
@@ -575,6 +599,8 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     uint128_t senderBalance;
 
     const Address fromAddr = tx.GetSenderAddr();
+
+    lock_guard<mutex> g(m_blockMutex);
 
     {
       shared_lock<shared_timed_mutex> lock(

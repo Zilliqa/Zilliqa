@@ -152,8 +152,7 @@ const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 bool Transaction::VersionCorrect() const {
   auto version = DataConversion::UnpackB(this->GetVersion());
 
-  return !(version != TRANSACTION_VERSION &&
-           version != TRANSACTION_VERSION_ETH);
+  return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
 
 const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
@@ -211,7 +210,7 @@ bool Transaction::IsSignedECDSA() const {
   sigString = sigString.substr(2);
   pubKeyStr = pubKeyStr.substr(2);
 
-  auto hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
+  auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
 
   return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }

@@ -55,7 +55,7 @@ string ReadConstantString(const string& propertyName,
 
   try {
     return pt.get<string>(path + propertyName);
-  } catch (exception e) {
+  } catch (exception& e) {
     return defaultVal;
   }
 }
