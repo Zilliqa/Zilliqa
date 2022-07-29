@@ -18,15 +18,11 @@
 #include <iostream>
 
 #include <common/Constants.h>
-#include <libData/AccountData/AccountStore.h>
 #include <libData/BlockData/Block/TxBlock.h>
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " PERSISTENCE_PATH" << std::endl;
-    // For some reason a few symbols are missing without the invocation below,
-    // leading to unresolved externals during linking stage.
-    AccountStore::GetInstance();
     exit(1);
   }
   const std::string persistencePath = argv[1];
