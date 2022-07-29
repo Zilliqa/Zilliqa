@@ -136,6 +136,8 @@ const unsigned int MSG_VERSION{
     ReadConstantNumeric("MSG_VERSION", "node.version.")};
 const unsigned int TRANSACTION_VERSION{
     ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
+const unsigned int TRANSACTION_VERSION_ETH{
+    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.") + 1};
 const unsigned int DSBLOCK_VERSION{
     ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
 const unsigned int TXBLOCK_VERSION{
@@ -737,7 +739,6 @@ const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
 const bool ENABLE_EVM{
     ReadConstantString("ENABLE_EVM", "node.jsonrpc.", "true") == "true"};
-
 const std::string EVM_SERVER_SOCKET_PATH{ReadConstantString(
     "EVM_SERVER_SOCKET_PATH", "node.jsonrpc.", "/tmp/evm-server.sock")};
 const std::string EVM_SERVER_BINARY{ReadConstantString(
@@ -746,3 +747,5 @@ const std::string EVM_LOG_CONFIG{ReadConstantString(
     "EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
 const std::string ETH_CHAINID{
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d")};
+const uint64_t ETH_CHAINID_INT{DataConversion::HexStringToUint64Ret(
+    ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d"))};

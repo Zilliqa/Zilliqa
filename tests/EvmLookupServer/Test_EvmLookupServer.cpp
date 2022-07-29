@@ -517,4 +517,209 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
+BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthBlockNumberI(paramsRequest, response);
+
+  if (!(response.asString()[0] == '0' && response.asString()[1] == 'x')) {
+    BOOST_FAIL("Failed to get block number!");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_net_version) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetNetVersionI(paramsRequest, response);
+
+  if (response.asString().size() > 0) {
+    BOOST_FAIL("Failed to get net version");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = "0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7";
+
+  lookupServer.GetEthBalanceI(paramsRequest, response);
+
+  if (!(response.asString() == "0x0")) {
+    BOOST_FAIL("Failed to get empty balance!");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = "0x0";
+
+  lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+
+  // Todo: proper checks for block structure
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthGasPriceI(paramsRequest, response);
+
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get gas price");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthEstimateGasI(paramsRequest, response);
+
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get gas price");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  }
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
+
+  lookupServer.GetEthTransactionCountI(paramsRequest, response);
+
+  // 0x response
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get TX count");
+  }
+}
+
+/*
+BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] =
+"f86e80850d9e63a68c82520894673e5ef1ae0a2ef7d0714a96a734ffcd1d8a381f881bc16d674ec8000080820cefa04728e87b280814295371adf0b7ccc3ec802a45bd31d13668b5ab51754c110f8ea02d0450641390c9ed56fcbbc64dcb5b07f7aece78739ef647f10cc93d4ecaa496";
+
+  lookupServer.GetEthSendRawTransactionI(paramsRequest, response);
+
+  const Json::Value expectedResponse = Json::arrayValue;
+  BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+*/
+
 BOOST_AUTO_TEST_SUITE_END()

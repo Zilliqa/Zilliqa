@@ -19,19 +19,6 @@
 
 using namespace std;
 
-bool DataConversion::HexStringToUint64(const std::string& s, uint64_t* res) {
-  try {
-    *res = std::stoull(s, nullptr, 16);
-  } catch (const std::invalid_argument& e) {
-    LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
-    return false;
-  } catch (const std::out_of_range& e) {
-    LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
-    return false;
-  }
-  return true;
-}
-
 bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   try {
     out.clear();
@@ -43,6 +30,20 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
     return false;
   }
   return true;
+}
+
+bytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
+  bytes out;
+  try {
+    out.clear();
+    boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
+                            back_inserter(out));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: "
+                             << e.what());
+    return out;
+  }
+  return out;
 }
 
 bool DataConversion::HexStrToStdArray(const string& hex_input,
@@ -78,6 +79,18 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
     return false;
   }
   return true;
+}
+
+std::string DataConversion::Uint8VecToHexStrRet(const bytes& hex_vec) {
+  std::string str;
+  try {
+    str = "";
+    boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
+  } catch (exception& e) {
+    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
+    return str;
+  }
+  return str;
 }
 
 bool DataConversion::StringToHexStr(const string& hex_str, string& str) {
