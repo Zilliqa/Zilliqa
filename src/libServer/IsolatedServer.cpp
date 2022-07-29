@@ -553,7 +553,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Manual trigger disallowed");
   }
   try {
-    newGasPrice = move(uint128_t(gasPrice));
+    newGasPrice = uint128_t(gasPrice);
   } catch (exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER,
                            "Gas price should be numeric");

@@ -34,7 +34,7 @@ void AccountStoreTrie<MAP>::InitTrie() {
 }
 
 template <class MAP>
-bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) {
+bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   if (LOOKUP_NODE_MODE) {
     if (m_prevRoot != dev::h256()) {

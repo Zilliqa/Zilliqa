@@ -127,7 +127,7 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
-bool AccountStore::Serialize(bytes& src, unsigned int offset) {
+bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
   return AccountStoreTrie<std::unordered_map<Address, Account>>::Serialize(

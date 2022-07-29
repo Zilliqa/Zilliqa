@@ -89,7 +89,7 @@ class BlockChain {
 
   template <class U = T, typename std::enable_if<
                              std::is_same<U, TxBlock>::value>::type* = nullptr>
-  T GetBlockByHash(const dev::h256& blockHash) {
+  T GetBlockByHash(const dev::h256& /*blockHash*/) {
     return T();
   }
 

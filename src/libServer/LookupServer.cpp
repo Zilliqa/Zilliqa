@@ -2182,10 +2182,9 @@ Json::Value LookupServer::GetPendingTxns() {
   }
 
   try {
-    const Json::Value result =
-        std::move(RemoteStorageDB::GetInstance().QueryPendingTxns(
-            m_mediator.m_currentEpochNum - PENDING_TXN_QUERY_NUM_EPOCHS,
-            m_mediator.m_currentEpochNum));
+    const Json::Value result = RemoteStorageDB::GetInstance().QueryPendingTxns(
+        m_mediator.m_currentEpochNum - PENDING_TXN_QUERY_NUM_EPOCHS,
+        m_mediator.m_currentEpochNum);
     if (result.isMember("error")) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
     }
