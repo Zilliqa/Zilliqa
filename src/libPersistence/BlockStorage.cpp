@@ -1896,42 +1896,40 @@ shared_ptr<LevelDB> BlockStorage::GetTxBodyDB(const uint64_t& epochNum) {
 void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   LOG_MARKER();
 
-  // Genesis block is added upon node start so relation (genesisHash -> 0)
-  // always exists We should check for presence of a block with number 1
+  std::unique_lock<shared_timed_mutex> lock{m_mutexTxBlockchain};
 
-  constexpr auto NEXT_AFTER_GENESIS_BLOCK_NUM = 1;
-  TxBlockSharedPtr nextAfterGenesisBlock;
-  // Block with num = 0 doesn't exists so there's nothing to do atm
-  if (!GetTxBlock(NEXT_AFTER_GENESIS_BLOCK_NUM, nextAfterGenesisBlock)) {
+  const auto maxKnownBlockNumStr =
+      m_txBlockchainAuxDB->Lookup(MAX_TX_BLOCK_NUM_KEY);
+  // buildTxBlockHashesToNums should be run first to build relevant mapping and
+  // storing last known block num in Aux DB.
+  if (maxKnownBlockNumStr.empty()) {
+    LOG_GENERAL(WARNING,
+                "TxBlockAuxiliary databased doesn't contain max known txBlock "
+                "number, Eth-api will be malfunctioning");
     return;
   }
 
-  const auto nextAfterGenesisHash = nextAfterGenesisBlock->GetBlockHash();
-
-  const auto numAsString = m_txBlockHashToNumDB->Lookup(nextAfterGenesisHash);
-  try {
-    if (!numAsString.empty() &&
-        std::stoull(numAsString) == NEXT_AFTER_GENESIS_BLOCK_NUM) {
-      return;
+  const auto maxKnownBlock = stoull(maxKnownBlockNumStr);
+  // Iterate over a range of (maxKnownBlock + 1, maxTxBlockMined) and fill
+  // missing gap if needed Block Numbers are guaranteed to be increasing
+  // linearly
+  uint64_t currBlock = maxKnownBlock + 1;
+  for (;; currBlock++) {
+    const auto blockContent = m_txBlockchainDB->Lookup(currBlock);
+    if (blockContent.empty()) {
+      // There's nothing more to do at this point
+      break;
     }
-  } catch (std::exception&) {
-    LOG_GENERAL(WARNING,
-                "TxBlockHashToNumber leveldb seems to be inconsistent, will "
-                "rebuild mapping");
+    const TxBlock block{{blockContent.begin(), blockContent.end()}, 0};
+
+    m_txBlockHashToNumDB->Insert(block.GetBlockHash(),
+                                 std::to_string(currBlock));
   }
 
-  {
-    std::unique_lock<shared_timed_mutex> lock{m_mutexTxBlockchain};
-    const auto it = std::unique_ptr<leveldb::Iterator>(
-        m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions()));
-    for (it->SeekToFirst(); it->Valid(); it->Next()) {
-      uint64_t blockNum = std::stoull(it->key().ToString());
-
-      const auto blockString = m_txBlockchainDB->Lookup(blockNum);
-      const TxBlock block{bytes(blockString.begin(), blockString.end()), 0};
-
-      m_txBlockHashToNumDB->Insert(block.GetBlockHash(),
-                                   std::to_string(blockNum));
-    }
+  // Update max known block number if there was anything to process
+  currBlock -= 1;
+  if (currBlock > maxKnownBlock) {
+    m_txBlockchainAuxDB->Insert(leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
+                                leveldb::Slice(std::to_string(currBlock)));
   }
 }
