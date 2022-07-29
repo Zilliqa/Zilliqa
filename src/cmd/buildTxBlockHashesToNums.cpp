@@ -17,6 +17,7 @@
 
 #include <iostream>
 
+#include <common/Constants.h>
 #include <libData/AccountData/AccountStore.h>
 #include <libData/BlockData/Block/TxBlock.h>
 
@@ -62,8 +63,7 @@ int main(int argc, char* argv[]) {
 
   std::cerr << "Greates block number found: " << maxKnownBlockNum << std::endl;
 
-  constexpr auto MAX_KNOWN_BLOCK_NUM_KEY = "MaxTxBlockNumber";
-  txBlockchainAuxDB.Insert(leveldb::Slice(MAX_KNOWN_BLOCK_NUM_KEY),
+  txBlockchainAuxDB.Insert(leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
                            leveldb::Slice(std::to_string(maxKnownBlockNum)));
 
   return 0;
