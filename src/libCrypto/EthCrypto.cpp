@@ -30,8 +30,8 @@
 #include <ethash/keccak.hpp>
 #include <iostream>
 #include <memory>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 // Inspiration from:
 // https://stackoverflow.com/questions/10906524
