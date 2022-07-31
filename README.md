@@ -23,7 +23,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 
 ## Zilliqa Mainnet
 
-The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.0) and Scilla [v0.11.0](https://github.com/Zilliqa/scilla/releases/tag/v0.11.0).
+The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.2) and Scilla [v0.11.1](https://github.com/Zilliqa/scilla/releases/tag/v0.11.1).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -139,7 +139,7 @@ Build Zilliqa from the source:
 ```shell
 # Download the lastest stable Zilliqa source code
 $ git clone https://github.com/Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tags/v8.1.0
+$ cd Zilliqa && git checkout tags/v8.1.2
 
 # build Zilliqa binary
 $ ./build.sh
