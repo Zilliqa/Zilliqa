@@ -42,7 +42,8 @@ class BlockChain {
   ~BlockChain() {}
 
   virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
-  virtual T GetBlockFromPersistentStorage(const BlockHash& /* blockHash */) {
+  virtual T GetBlockFromPersistentStorage(
+      const BlockHash& /* blockHash */) const {
     return {};
   };
 
@@ -87,10 +88,16 @@ class BlockChain {
     }
   }
 
+  // This is only allowed for TxBlocks. Otherwise trigger compilation error
   template <class U = T, typename std::enable_if<
                              std::is_same<U, TxBlock>::value>::type* = nullptr>
-  T GetBlockByHash(const dev::h256& /*blockHash*/) {
-    return T();
+  T GetBlockByHash(const dev::h256& blockHash) {
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
+    const auto block = m_lru_blocks.get(blockHash);
+    if (!block) {
+      return GetBlockFromPersistentStorage(blockHash);
+    }
+    return *block;
   }
 
   /// Adds a block to the chain.
@@ -154,6 +161,17 @@ class TxBlockChain : public BlockChain<TxBlock> {
     }
     return *block;
   }
+
+  TxBlock GetBlockFromPersistentStorage(
+      const BlockHash& blockHash) const override {
+    TxBlockSharedPtr block;
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockHash, block)) {
+      LOG_GENERAL(WARNING, "BlockHash not in persistent storage "
+                               << blockHash << " Dummy block used");
+      return {};
+    }
+    return *block;
+  };
 };
 
 class VCBlockChain : public BlockChain<VCBlock> {

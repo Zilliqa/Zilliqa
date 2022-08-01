@@ -44,6 +44,37 @@ BlockStorage& BlockStorage::GetBlockStorage(const std::string& path,
   return bs;
 }
 
+void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
+  m_metadataDB = std::make_shared<LevelDB>("metadata");
+
+  m_dsBlockchainDB = std::make_shared<LevelDB>("dsBlocks");
+  m_txBlockchainDB = std::make_shared<LevelDB>("txBlocks");
+  m_txBlockchainAuxDB = std::make_shared<LevelDB>("txBlocksAux");
+  m_txBlockHashToNumDB = std::make_shared<LevelDB>("txBlockHashToNum");
+  m_microBlockKeyDB = std::make_shared<LevelDB>("microBlockKeys");
+  m_dsCommitteeDB = std::make_shared<LevelDB>("dsCommittee");
+  m_VCBlockDB = std::make_shared<LevelDB>("VCBlocks");
+  m_blockLinkDB = std::make_shared<LevelDB>("blockLinks");
+  m_shardStructureDB = std::make_shared<LevelDB>("shardStructure");
+  m_stateDeltaDB = std::make_shared<LevelDB>("stateDelta");
+  m_tempStateDB = std::make_shared<LevelDB>("tempState");
+  m_processedTxnTmpDB = std::make_shared<LevelDB>("processedTxnTmp");
+  m_diagnosticDBNodes =
+      std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic);
+  m_diagnosticDBCoinbase =
+      std::make_shared<LevelDB>("diagnosticCoinb", path, diagnostic);
+  m_stateRootDB = std::make_shared<LevelDB>("stateRoot");
+
+  if (LOOKUP_NODE_MODE) {
+    m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
+    m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
+    m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
+    m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
+    m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
+  }
+  m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
+}
+
 bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
                             const BlockType& blockType) {
   int ret = -1;  // according to LevelDB::Insert return value
@@ -79,7 +110,16 @@ bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
 
 bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
                               const bytes& body) {
-  return PutBlock(blockHeader.GetBlockNum(), body, BlockType::Tx);
+  const auto status = PutBlock(blockHeader.GetBlockNum(), body, BlockType::Tx);
+  if (status) {
+    unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    m_txBlockHashToNumDB->Insert(blockHeader.GetMyHash(),
+                                 std::to_string(blockHeader.GetBlockNum()));
+    m_txBlockchainAuxDB->Insert(
+        leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
+        leveldb::Slice(std::to_string(blockHeader.GetBlockNum())));
+  }
+  return status;
 }
 
 bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
@@ -433,7 +473,7 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
 }
 
 bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
-                              TxBlockSharedPtr& block) {
+                              TxBlockSharedPtr& block) const {
   string blockString;
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -447,6 +487,22 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
       new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
 
   return true;
+}
+
+bool BlockStorage::GetTxBlock(const BlockHash& blockhash,
+                              TxBlockSharedPtr& block) const {
+  const bytes& keyBytes = blockhash.asBytes();
+  std::string blockNumStr;
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+    blockNumStr = m_txBlockHashToNumDB->Lookup(keyBytes);
+  }
+
+  if (blockNumStr.empty()) {
+    return false;
+  }
+
+  return GetTxBlock(std::stoull(blockNumStr), block);
 }
 
 bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {

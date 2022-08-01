@@ -60,6 +60,18 @@ TxBlock constructDummyTxBlock(int instanceNum) {
       vector<MicroBlockInfo>(1), CoSignatures());
 }
 
+void purgeTxBlockData() {
+  {
+    LevelDB txBlockchainDB{"txBlocks"};
+    LevelDB txBlockchainHashToNum{"txBlockHashToNum"};
+    LevelDB txBlockchainAux{"txBlocksAux"};
+
+    txBlockchainDB.DeleteDBForNormalNode();
+    txBlockchainHashToNum.DeleteDBForNormalNode();
+    txBlockchainAux.DeleteDBForNormalNode();
+  }
+}
+
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
   INIT_STDOUT_LOGGER();
 
@@ -334,6 +346,233 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
             equal(in_blocks.begin(), in_blocks.end(), out_blocks.begin()),
         "DSBlocks shouldn't change after writting to/ reading from disk");
   }
+}
+
+BOOST_AUTO_TEST_CASE(testBuildPendingTxHashToNumMapping) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  // Release held lock
+  BlockStorage::GetBlockStorage().ReleaseDB();
+
+  // Cleanup any db files, release lock afterwards
+  purgeTxBlockData();
+
+  constexpr auto INIT_SIZE = 4;
+  constexpr auto REMAINING_SIZE = 8;
+  std::vector<TxBlock> alreadyKnownBlocks;
+
+  {
+    LevelDB txBlockchainDB{"txBlocks"};
+    LevelDB txBlockchainHashToNum{"txBlockHashToNum"};
+    LevelDB txBlockchainAux{"txBlocksAux"};
+
+    // Build some initial hash to block mapping
+    for (uint32_t i = 0; i < INIT_SIZE; i++) {
+      const TxBlock block = constructDummyTxBlock(i);
+      bytes serializedTxBlock;
+      block.Serialize(serializedTxBlock, 0);
+
+      const auto blockNum = block.GetHeader().GetBlockNum();
+      txBlockchainDB.Insert(blockNum, serializedTxBlock);
+      txBlockchainHashToNum.Insert(block.GetBlockHash(),
+                                   std::to_string(blockNum));
+      alreadyKnownBlocks.emplace_back(block);
+
+      txBlockchainAux.Insert(leveldb::Slice{MAX_TX_BLOCK_NUM_KEY},
+                             leveldb::Slice{std::to_string(blockNum)});
+    }
+
+    // Store remaining blocks only by 'blockNum'
+    for (uint32_t i = INIT_SIZE; i < REMAINING_SIZE; i++) {
+      TxBlock block = constructDummyTxBlock(i);
+      bytes serializedTxBlock;
+      block.Serialize(serializedTxBlock, 0);
+
+      txBlockchainDB.Insert(block.GetHeader().GetBlockNum(), serializedTxBlock);
+      alreadyKnownBlocks.emplace_back(block);
+    }
+  }
+
+  BlockStorage::GetBlockStorage().Initialize();
+  // This should trigger proper rebuilt of the missing hash->num mapping
+  BlockStorage::GetBlockStorage().RefreshAll();
+
+  // All blocks should be now queried by hash/num
+  for (uint32_t i = 0; i < alreadyKnownBlocks.size(); ++i) {
+    const auto& iteratedBlock = alreadyKnownBlocks[i];
+    TxBlockSharedPtr blockRetrieved;
+
+    // Query by num
+    BlockStorage::GetBlockStorage().GetTxBlock(
+        iteratedBlock.GetHeader().GetBlockNum(), blockRetrieved);
+    BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+                iteratedBlock.GetHeader().GetBlockNum());
+    BOOST_CHECK(blockRetrieved->GetBlockHash() == iteratedBlock.GetBlockHash());
+
+    blockRetrieved.reset();
+
+    // Query by hash
+    BlockStorage::GetBlockStorage().GetTxBlock(iteratedBlock.GetBlockHash(),
+                                               blockRetrieved);
+    BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+                iteratedBlock.GetHeader().GetBlockNum());
+    BOOST_CHECK(blockRetrieved->GetBlockHash() == iteratedBlock.GetBlockHash());
+  }
+}
+
+BOOST_AUTO_TEST_CASE(testSkipBuildMappingEmptyAuxData) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  // Release held lock
+  BlockStorage::GetBlockStorage().ReleaseDB();
+
+  // Cleanup any db files, release lock afterwards
+  purgeTxBlockData();
+
+  std::vector<TxBlock> alreadyKnownBlocks;
+  TxBlock block = constructDummyTxBlock(0);
+
+  {
+    LevelDB txBlockchainDB{"txBlocks"};
+    const auto blockNum = block.GetHeader().GetBlockNum();
+    bytes serializedTxBlock;
+    block.Serialize(serializedTxBlock, 0);
+    txBlockchainDB.Insert(blockNum, serializedTxBlock);
+  }
+
+  BlockStorage::GetBlockStorage().Initialize();
+  // This should not trigger proper rebuilt of the missing hash->num mapping
+  // (due to missing Aux info)
+  BlockStorage::GetBlockStorage().RefreshAll();
+
+  TxBlockSharedPtr blockRetrieved;
+
+  // Query by num (this is ok)
+  BlockStorage::GetBlockStorage().GetTxBlock(block.GetHeader().GetBlockNum(),
+                                             blockRetrieved);
+  BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+              block.GetHeader().GetBlockNum());
+  BOOST_CHECK(blockRetrieved->GetBlockHash() == block.GetBlockHash());
+
+  blockRetrieved.reset();
+
+  // Query by hash (should be empty)
+  BlockStorage::GetBlockStorage().GetTxBlock(block.GetBlockHash(),
+                                             blockRetrieved);
+  BOOST_CHECK(blockRetrieved.get() == nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(testNoNeedToBuildTxHashToNumMapping) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  // Release held lock
+  BlockStorage::GetBlockStorage().ReleaseDB();
+
+  // Cleanup any db files, release lock afterwards
+  purgeTxBlockData();
+
+  constexpr auto NUM_BLOCKS = 4;
+  std::vector<TxBlock> alreadyKnownBlocks;
+
+  {
+    LevelDB txBlockchainDB{"txBlocks"};
+    LevelDB txBlockchainHashToNum{"txBlockHashToNum"};
+    LevelDB txBlockchainAux{"txBlocksAux"};
+
+    // Build some initial hash to block mapping
+    for (uint32_t i = 0; i < NUM_BLOCKS; i++) {
+      TxBlock block = constructDummyTxBlock(i);
+      bytes serializedTxBlock;
+      block.Serialize(serializedTxBlock, 0);
+
+      const auto blockNum = block.GetHeader().GetBlockNum();
+      txBlockchainDB.Insert(blockNum, serializedTxBlock);
+      txBlockchainHashToNum.Insert(block.GetBlockHash(),
+                                   std::to_string(blockNum));
+      alreadyKnownBlocks.emplace_back(block);
+
+      txBlockchainAux.Insert(leveldb::Slice{MAX_TX_BLOCK_NUM_KEY},
+                             leveldb::Slice{std::to_string(blockNum)});
+    }
+  }
+
+  BlockStorage::GetBlockStorage().Initialize();
+  // This should trigger proper rebuilt of the missing hash->num mapping (if
+  // needed)
+  BlockStorage::GetBlockStorage().RefreshAll();
+
+  // All blocks should be queried by hash/num
+  for (uint32_t i = 0; i < alreadyKnownBlocks.size(); ++i) {
+    const auto& iteratedBlock = alreadyKnownBlocks[i];
+    TxBlockSharedPtr blockRetrieved;
+
+    // Query by num
+    BlockStorage::GetBlockStorage().GetTxBlock(
+        iteratedBlock.GetHeader().GetBlockNum(), blockRetrieved);
+    BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+                iteratedBlock.GetHeader().GetBlockNum());
+    BOOST_CHECK(blockRetrieved->GetBlockHash() == iteratedBlock.GetBlockHash());
+
+    blockRetrieved.reset();
+
+    // Query by hash
+    BlockStorage::GetBlockStorage().GetTxBlock(iteratedBlock.GetBlockHash(),
+                                               blockRetrieved);
+    BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+                iteratedBlock.GetHeader().GetBlockNum());
+    BOOST_CHECK(blockRetrieved->GetBlockHash() == iteratedBlock.GetBlockHash());
+  }
+
+  // Out of range blocks should be null for both num/hashq-type queries
+  TxBlock block = constructDummyTxBlock(NUM_BLOCKS);
+  TxBlockSharedPtr blockRetrieved;
+
+  BlockStorage::GetBlockStorage().GetTxBlock(block.GetHeader().GetBlockNum(),
+                                             blockRetrieved);
+  BOOST_CHECK(blockRetrieved.get() == nullptr);
+
+  BlockStorage::GetBlockStorage().GetTxBlock(block.GetBlockHash(),
+                                             blockRetrieved);
+  BOOST_CHECK(blockRetrieved.get() == nullptr);
+}
+
+BOOST_AUTO_TEST_CASE(testInsertTxBlockAndQuery) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  constexpr auto BLOCK_NUM = 123;
+
+  TxBlock block = constructDummyTxBlock(BLOCK_NUM);
+  bytes serializedTxBlock;
+  block.Serialize(serializedTxBlock, 0);
+
+  BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
+                                             serializedTxBlock);
+  TxBlockSharedPtr blockRetrieved;
+
+  // Query by num
+  BlockStorage::GetBlockStorage().GetTxBlock(BLOCK_NUM, blockRetrieved);
+  BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+              block.GetHeader().GetBlockNum());
+  BOOST_CHECK(blockRetrieved->GetBlockHash() == block.GetBlockHash());
+
+  blockRetrieved.reset();
+
+  // Query by hash
+  BlockStorage::GetBlockStorage().GetTxBlock(block.GetBlockHash(),
+                                             blockRetrieved);
+  BOOST_CHECK(blockRetrieved->GetHeader().GetBlockNum() ==
+              block.GetHeader().GetBlockNum());
+  BOOST_CHECK(blockRetrieved->GetBlockHash() == block.GetBlockHash());
 }
 
 BOOST_AUTO_TEST_SUITE_END()
