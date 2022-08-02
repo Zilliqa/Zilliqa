@@ -57,7 +57,7 @@ int main(int argc, char* argv[]) {
     maxKnownBlockNum = std::max(maxKnownBlockNum, blockNum);
   }
 
-  std::cerr << "Greates block number found: " << maxKnownBlockNum << std::endl;
+  std::cerr << "Greatest block number found: " << maxKnownBlockNum << std::endl;
 
   txBlockchainAuxDB.Insert(leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
                            leveldb::Slice(std::to_string(maxKnownBlockNum)));

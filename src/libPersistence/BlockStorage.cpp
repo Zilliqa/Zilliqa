@@ -1967,7 +1967,7 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
 
   const auto maxKnownBlock = stoull(maxKnownBlockNumStr);
   // Iterate over a range of (maxKnownBlock + 1, maxTxBlockMined) and fill
-  // missing gap if needed Block Numbers are guaranteed to be increasing
+  // missing gap if needed. Block Numbers are guaranteed to be increasing
   // linearly
   uint64_t currBlock = maxKnownBlock + 1;
   for (;; currBlock++) {
