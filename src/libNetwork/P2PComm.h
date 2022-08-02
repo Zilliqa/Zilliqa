@@ -115,11 +115,9 @@ class P2PComm {
 
   ThreadPool m_SendPool{MAXSENDMESSAGE, "SendPool"};
 
-  // TODO shared instead of unique due to lambda move capture limitations in old
-  // compilers
+  // TODO shared instead of unique due to lambda move capture limitations
   using SendJobPtr = std::shared_ptr<SendJob>;
 
-  // XXX boost::lockfree::queue<SendJob*> m_sendQueue;
   utility::Queue<SendJobPtr> m_sendQueue;
   void ProcessSendJob(SendJobPtr& job);
 
@@ -155,8 +153,7 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  // TODO shared instead of unique due to lambda move capture limitations in old
-  // compilers
+  // TODO shared instead of unique due to lambda move capture limitations
   using Msg =
       std::shared_ptr<std::pair<bytes, std::pair<Peer, const unsigned char>>>;
 

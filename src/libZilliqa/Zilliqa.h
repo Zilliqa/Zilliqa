@@ -35,9 +35,10 @@
 /// Main Zilliqa class.
 class Zilliqa {
  public:
-  // TODO shared instead of unique due to lambda move capture limitations in old compilers
+  // TODO shared instead of unique due to lambda move capture limitations
   using Msg =
       std::shared_ptr<std::pair<bytes, std::pair<Peer, const unsigned char>>>;
+
  private:
   Mediator m_mediator;
   DirectoryService m_ds;
@@ -47,7 +48,6 @@ class Zilliqa {
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
 
-  // XXX  boost::lockfree::queue<
   utility::Queue<Msg> m_msgQueue;
 
   std::shared_ptr<LookupServer> m_lookupServer;
