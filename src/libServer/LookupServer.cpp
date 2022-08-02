@@ -1429,6 +1429,12 @@ Json::Value LookupServer::GetEthAccounts() {
   return expectedResponse;
 }
 
+Json::Value LookupServer::GetEthFeeHistory() {
+  LOG_MARKER();
+  const Json::Value expectedResponse = Json::arrayValue;
+  return expectedResponse;
+}
+
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {

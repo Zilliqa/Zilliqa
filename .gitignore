@@ -105,3 +105,4 @@ evm-ds/
 config.xml
 isolated-server-accounts.json
 isolated-server.logs
+venv/

@@ -560,6 +560,13 @@ class LookupServer : public Server,
     response = this->GetEthAccounts();
   }
 
+  inline virtual void GetEthFeeHistoryI(const Json::Value& request,
+                                             Json::Value& response) {
+    (void)request;
+
+    response = this->GetEthFeeHistory();
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,

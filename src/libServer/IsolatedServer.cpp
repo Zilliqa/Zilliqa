@@ -305,6 +305,18 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionReceiptI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthFeeHistoryI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthStorageAtI);
+
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -733,6 +745,11 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+}
+
+Json::Value IsolatedServer::GetEthStorageAt(std::string const& address,
+                                                 std::string const& position,
+                                                 std::string const& blockNum) {
 }
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(
