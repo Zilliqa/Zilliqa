@@ -112,8 +112,10 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   if (m_txnProcessTimeout) {
     LOG_GENERAL(WARNING, "Txn processing timeout!");
 
-    //ScillaClient::GetInstance().CheckClient(version, true);
-    //receipt.AddError(EXECUTE_CMD_TIMEOUT);
+    ScillaClient::GetInstance().CheckClient(version, true);
+    LOG_GENERAL(INFO, "Chetan5");
+    receipt.AddError(EXECUTE_CMD_TIMEOUT);
+    LOG_GENERAL(INFO, "Chetan6");
     ret = false;
   }
 }

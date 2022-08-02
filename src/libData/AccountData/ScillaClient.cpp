@@ -122,15 +122,19 @@ bool ScillaClient::OpenServer(uint32_t version) {
 
 bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
+  LOG_MARKER();
 
   if (m_clients.find(version) != m_clients.end() && !enforce) {
+    LOG_GENERAL(INFO, "chetan1")
     return true;
   }
+  LOG_GENERAL(INFO, "chetan2")
 
   if (!OpenServer(version)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
+  LOG_GENERAL(INFO, "chetan3")
 
   std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
       std::make_shared<jsonrpc::UnixDomainSocketClient>(
