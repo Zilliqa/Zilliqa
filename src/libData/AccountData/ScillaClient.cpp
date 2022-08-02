@@ -121,6 +121,7 @@ bool ScillaClient::OpenServer(uint32_t version) {
 }
 
 bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
+  LOG_GENERAL(INFO, "mutex1");
   std::lock_guard<std::mutex> g(m_mutexMain);
   LOG_MARKER();
 
@@ -166,6 +167,7 @@ bool ScillaClient::CallChecker(uint32_t version, const Json::Value& _json,
   }
 
   try {
+    LOG_GENERAL(INFO, "mutex2");
     std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("check", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
@@ -202,6 +204,7 @@ bool ScillaClient::CallRunner(uint32_t version, const Json::Value& _json,
   }
 
   try {
+    LOG_GENERAL(INFO, "mutex3");
     std::lock_guard<std::mutex> g(m_mutexMain);
     result = m_clients.at(version)->CallMethod("run", _json).asString();
   } catch (jsonrpc::JsonRpcException& e) {
@@ -238,6 +241,7 @@ bool ScillaClient::CallDisambiguate(uint32_t version, const Json::Value& _json,
   }
 
   try {
+    LOG_GENERAL(INFO, "mutex4");
     std::lock_guard<std::mutex> g(m_mutexMain);
     result =
         m_clients.at(version)->CallMethod("disambiguate", _json).asString();
