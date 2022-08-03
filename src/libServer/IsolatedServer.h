@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_
 
 #include "LookupServer.h"
+#include "common/Constants.h"
 
 class Mediator;
 
@@ -47,6 +48,27 @@ class IsolatedServer : public LookupServer,
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
     response = this->CreateTransaction(request[0u]);
+  }
+
+  inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
+                                                Json::Value& response) {
+    auto rawTx = request[0u].asString();
+
+    // Erase '0x' at the beginning if it exists
+    if (rawTx[1] == 'x') {
+      rawTx.erase(0, 2);
+    }
+
+    auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
+
+    if (pubKey.empty()) {
+      return;
+    }
+
+    auto const fields = parseRawTxFields(rawTx);
+    auto const resp = CreateTransactionEth(fields, pubKey);
+
+    response = resp["TranID"];
   }
 
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
@@ -89,6 +111,8 @@ class IsolatedServer : public LookupServer,
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
+  Json::Value CreateTransactionEth(EthFields const& fields,
+                                   bytes const& pubKey);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);

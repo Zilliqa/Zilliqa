@@ -150,6 +150,32 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthMiningI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleByBlockHashAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleBlockI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleByBlockNumberAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleBlockI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getUncleCountByBlockNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
+                         "param01", jsonrpc::JSON_STRING, nullptr),
+      &LookupServer::GetEthUncleCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCoinbaseI);
@@ -221,6 +247,64 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 
     StartBlocknumIncrement();
   }
+
+  // Add the JSON-RPC eth style methods
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockNumberI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetNetVersionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBalanceI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
+      &LookupServer::GetEthBlockByNumberI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthGasPriceI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetCodeI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::GetEthEstimateGasI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionCount", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionCountI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_sendRawTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &IsolatedServer::GetEthSendRawTransactionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionReceipt",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetTransactionReceiptI);
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -347,8 +431,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    lock_guard<mutex> g(m_blockMutex);
-
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     Json::Value ret;
@@ -357,6 +439,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     uint128_t senderBalance;
 
     const Address fromAddr = tx.GetSenderAddr();
+
+    lock_guard<mutex> g(m_blockMutex);
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -487,6 +571,166 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+  }
+}
+
+Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
+                                                 bytes const& pubKey) {
+  try {
+    if (m_pause) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
+    }
+
+    Transaction tx{fields.version,
+                   fields.nonce,
+                   Address(fields.toAddr),
+                   PubKey(pubKey, 0),
+                   fields.amount,
+                   fields.gasPrice,
+                   fields.gasLimit,
+                   bytes(),
+                   fields.data,
+                   Signature(fields.signature, 0)};
+
+    Json::Value ret;
+
+    uint64_t senderNonce;
+    uint128_t senderBalance;
+
+    const Address fromAddr = tx.GetSenderAddr();
+
+    lock_guard<mutex> g(m_blockMutex);
+
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+
+      const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
+
+      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
+        return ret;
+      }
+
+      senderNonce = sender->GetNonce();
+      senderBalance = sender->GetBalance();
+    }
+
+    if (senderNonce + 1 != tx.GetNonce()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Expected Nonce: " + to_string(senderNonce + 1));
+    }
+
+    if (senderBalance < tx.GetAmount()) {
+      throw JsonRpcException(
+          RPC_INVALID_PARAMETER,
+          "Insufficient Balance: " + senderBalance.str() +
+              " with an attempt to send: " + tx.GetAmount().str());
+    }
+
+    if (m_gasPrice > tx.GetGasPrice()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Minimum gas price greater: " + m_gasPrice.str());
+    }
+
+    switch (Transaction::GetTransactionType(tx)) {
+      case Transaction::ContractType::NON_CONTRACT:
+        break;
+      case Transaction::ContractType::CONTRACT_CREATION:
+        if (!ENABLE_SC) {
+          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+        }
+        ret["ContractAddress"] =
+            Account::GetAddressForContract(fromAddr, senderNonce).hex();
+        break;
+      case Transaction::ContractType::CONTRACT_CALL: {
+        if (!ENABLE_SC) {
+          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
+        }
+
+        {
+          shared_lock<shared_timed_mutex> lock(
+              AccountStore::GetInstance().GetPrimaryMutex());
+
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+          if (account == nullptr) {
+            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                   "To addr is null");
+          }
+
+          else if (!account->isContract()) {
+            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                   "Non - contract address called");
+          }
+        }
+      } break;
+
+      case Transaction::ContractType::ERROR:
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "The code is empty and To addr is null");
+        break;
+      default:
+        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
+    }
+
+    TransactionReceipt txreceipt;
+
+    TxnStatus error_code;
+    bool throwError = false;
+    txreceipt.SetEpochNum(m_blocknum);
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
+                                                        3,  // Arbitrary values
+                                                        true, tx, txreceipt,
+                                                        error_code)) {
+      throwError = true;
+    }
+    LOG_GENERAL(INFO, "Processing On the isolated server ");
+    AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+    AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
+
+    AccountStore::GetInstance().SerializeDelta();
+    AccountStore::GetInstance().CommitTemp();
+
+    if (!m_timeDelta) {
+      AccountStore::GetInstance().InitTemp();
+    }
+
+    if (throwError) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Error Code: " + to_string(error_code));
+    }
+
+    TransactionWithReceipt twr(tx, txreceipt);
+
+    bytes twr_ser;
+
+    twr.Serialize(twr_ser, 0);
+
+    m_currEpochGas += txreceipt.GetCumGas();
+
+    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
+                                                   twr_ser)) {
+      LOG_GENERAL(WARNING, "Unable to put tx body");
+    }
+    const auto& txHash = tx.GetTranID();
+    LookupServer::AddToRecentTransactions(txHash);
+    {
+      lock_guard<mutex> g(m_txnBlockNumMapMutex);
+      m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
+    }
+    LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
+    ret["TranID"] = txHash.hex();
+    ret["Info"] = "Txn processed";
+    WebsocketServer::GetInstance().ParseTxn(twr);
+    LOG_GENERAL(INFO, "Processing On the isolated server completed");
+    return ret;
+
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }
