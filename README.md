@@ -23,7 +23,7 @@ Zilliqa is a scalable smart contract platform that aims to tackle the congestion
 
 ## Zilliqa Mainnet
 
-The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.0) and Scilla [v0.11.0](https://github.com/Zilliqa/scilla/releases/tag/v0.11.0).
+The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.2) and Scilla [v0.11.1](https://github.com/Zilliqa/scilla/releases/tag/v0.11.1).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -106,6 +106,7 @@ export PATH=$HOME/.local/bin:$PATH
 cmake --version
 rm cmake-3.19.3-Linux-x86_64.sh
 ```
+
 ### Additional Requirements for Contributors
 
 If you intend to contribute to the code base, please perform these additional steps:
@@ -138,7 +139,7 @@ Build Zilliqa from the source:
 ```shell
 # Download the lastest stable Zilliqa source code
 $ git clone https://github.com/Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tags/v8.1.0
+$ cd Zilliqa && git checkout tags/v8.1.2
 
 # build Zilliqa binary
 $ ./build.sh
@@ -168,7 +169,7 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
     $ cd build && ./tests/Node/pre_run.sh && ./tests/Node/test_node_lookup.sh && ./tests/Node/test_node_simple.sh
     ```
 
-2. Logs of each node can be found at `./local_run`.
+2. Logs of each node can be found at `./local_run`
 
 3. To terminate Zilliqa:
 

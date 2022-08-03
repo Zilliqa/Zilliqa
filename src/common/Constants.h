@@ -163,6 +163,7 @@ extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 // Version constants
 extern const unsigned int MSG_VERSION;
 extern const unsigned int TRANSACTION_VERSION;
+extern const unsigned int TRANSACTION_VERSION_ETH;
 extern const unsigned int DSBLOCK_VERSION;
 extern const unsigned int TXBLOCK_VERSION;
 extern const unsigned int MICROBLOCK_VERSION;
@@ -310,6 +311,7 @@ extern const std::string EVM_SERVER_SOCKET_PATH;
 extern const std::string EVM_SERVER_BINARY;
 extern const std::string EVM_LOG_CONFIG;
 extern const std::string ETH_CHAINID;
+extern const uint64_t ETH_CHAINID_INT;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;

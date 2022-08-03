@@ -36,6 +36,7 @@ using namespace Contract;
 
 AccountStore::AccountStore() {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
+  bool ipcScillaInit = false;
 
   if ((ENABLE_SC && ENABLE_EVM) || ISOLATED_SERVER) {
     /// Scilla IPC Server
@@ -49,6 +50,7 @@ AccountStore::AccountStore() {
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
+      ipcScillaInit = true;
     }
 
     if (m_scillaIPCServer == nullptr) {
@@ -58,12 +60,15 @@ AccountStore::AccountStore() {
       if (m_scillaIPCServer->StartListening()) {
         LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
       } else {
-        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start")
+        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start");
       }
     }
   }
   // EVM required to run on Lookup nodes too for view calls
   if (ENABLE_EVM) {
+    if (not ipcScillaInit && !LOOKUP_NODE_MODE) {
+      ScillaClient::GetInstance().Init();
+    }
     EvmClient::GetInstance().Init();
   }
 }
