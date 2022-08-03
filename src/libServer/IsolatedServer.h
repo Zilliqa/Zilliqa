@@ -61,6 +61,10 @@ class IsolatedServer : public LookupServer,
 
     auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
+    if (pubKey.empty()) {
+      return;
+    }
+
     auto const fields = parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey);
 

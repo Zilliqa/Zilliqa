@@ -30,6 +30,7 @@
 #include <ethash/keccak.hpp>
 #include <iostream>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 // Inspiration from:
@@ -233,6 +234,10 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
 
   dev::RLP rlpStream1(asBytes);
   dev::RLPStream rlpStreamRecreated(9);
+
+  if (rlpStream1.isNull()) {
+    return {};
+  }
 
   int i = 0;
   int v = 0;

@@ -517,30 +517,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetEthBlockNumberI(paramsRequest, response);
-
-  if (!(response.asString()[0] == '0' && response.asString()[1] == 'x')) {
-    BOOST_FAIL("Failed to get block number!");
-  }
-}
-
 BOOST_AUTO_TEST_CASE(test_eth_net_version) {
   INIT_STDOUT_LOGGER();
 
@@ -638,30 +614,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetEthEstimateGasI(paramsRequest, response);
-
-  if (response.asString()[0] != '0') {
-    BOOST_FAIL("Failed to get gas price");
-  }
-}
-
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
   INIT_STDOUT_LOGGER();
 
@@ -721,5 +673,53 @@ BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 */
+
+BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthBlockNumberI(paramsRequest, response);
+
+  if (!(response.asString()[0] == '0' && response.asString()[1] == 'x')) {
+    BOOST_FAIL("Failed to get block number!");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthEstimateGasI(paramsRequest, response);
+
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get gas price");
+  }
+}
 
 BOOST_AUTO_TEST_SUITE_END()
