@@ -405,7 +405,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (LOOKUP_NODE_MODE) {
-      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT, MAXSENDMESSAGE/4);
+      m_lookupServerConnector =
+          make_unique<SafeHttpServer>(LOOKUP_RPC_PORT, MAXSENDMESSAGE / 4);
       m_lookupServer =
           make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
 
@@ -456,7 +457,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (ENABLE_STAKING_RPC) {
-      m_stakingServerConnector = make_unique<SafeHttpServer>(STAKING_RPC_PORT, MAXSENDMESSAGE/4);
+      m_stakingServerConnector =
+          make_unique<SafeHttpServer>(STAKING_RPC_PORT, MAXSENDMESSAGE / 4);
       m_stakingServer =
           make_shared<StakingServer>(m_mediator, *m_stakingServerConnector);
 
