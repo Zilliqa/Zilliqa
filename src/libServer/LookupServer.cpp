@@ -1025,8 +1025,60 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
-Json::Value LookupServer::GetEthBlockByNumber() {
-  return populateBlockHelper();
+Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
+                                              bool includeFullTransactions) {
+  try {
+    uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    static const TxBlock NON_EXISTING_TX_BLOCK{};
+    if (txBlock == NON_EXISTING_TX_BLOCK) {
+      return Json::nullValue;
+    }
+    const auto dsBlock =
+        m_mediator.m_dsBlockChain.GetBlock(txBlock.GetHeader().GetDSBlockNum());
+
+    std::vector<TxBodySharedPtr> transactions;
+    std::vector<TxnHash> transactionHashes;
+
+    // Gather either transaction hashes or full transactions
+    const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
+    for (auto const& mbInfo : microBlockInfos) {
+      MicroBlockSharedPtr microBlockPtr;
+
+      if (mbInfo.m_txnRootHash == TxnHash{}) {
+        continue;
+      }
+
+      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
+              mbInfo.m_microBlockHash, microBlockPtr)) {
+        continue;
+      }
+
+      const auto& currTranHashes = microBlockPtr->GetTranHashes();
+      if (!includeFullTransactions) {
+        transactionHashes.insert(transactionHashes.end(),
+                                 currTranHashes.begin(), currTranHashes.end());
+        continue;
+      }
+      for (const auto& transactionHash : currTranHashes) {
+        TxBodySharedPtr transactioBodyPtr;
+        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                       transactioBodyPtr)) {
+          continue;
+        }
+        transactions.push_back(std::move(transactioBodyPtr));
+      }
+    }
+
+    return JSONConversion::convertTxBlocktoEthJson(
+        txBlock, dsBlock, transactions, transactionHashes,
+        includeFullTransactions);
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
+                                << ", includeFullTransactions: "
+                                << includeFullTransactions);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
