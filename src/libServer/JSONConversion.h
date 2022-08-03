@@ -43,7 +43,7 @@ class JSONConversion {
       const TxBlock& txblock, const DSBlock& dsBlock,
       const std::vector<TxBodySharedPtr>& transactions,
       const std::vector<TxnHash>& transactionHashes,
-      bool includeTransactionHashes = false);
+      bool includeFullTransactions = false);
   // converts raw TxBlock to JSON object (for staking)
   static const Json::Value convertRawTxBlocktoJson(const TxBlock& txblock);
   // converts a DSBlocck to JSON object
