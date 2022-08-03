@@ -29,7 +29,7 @@ struct mhd_coninfo {
     int code;
 };
 
-SafeHttpServer::SafeHttpServer(int port, const std::string &sslcert, const std::string &sslkey, int threads) :
+SafeHttpServer::SafeHttpServer(int port, int threads, const std::string &sslcert, const std::string &sslkey) :
     AbstractServerConnector(),
     port(port),
     threads(threads),
@@ -37,7 +37,13 @@ SafeHttpServer::SafeHttpServer(int port, const std::string &sslcert, const std::
     path_sslcert(sslcert),
     path_sslkey(sslkey),
     daemon(NULL),
-    bindlocalhost(false) {}
+    bindlocalhost(false) {
+  if (threads < 1) {
+    threads = 1;
+  } else if (threads > 50) {
+    threads = 50;
+  }
+}
 
 SafeHttpServer::~SafeHttpServer() {}
 
