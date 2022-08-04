@@ -17,6 +17,11 @@
 # This script will start an isolated server and run the python API against it
 #
 
+# Need to build evm...
+git clone git@github.com:Zilliqa/evm-ds.git
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+cargo build --release
+
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
 sed -i 's/.ENABLE_SC.true/<ENABLE_SC>false/g' constants.xml
