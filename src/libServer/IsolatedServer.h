@@ -71,13 +71,6 @@ class IsolatedServer : public LookupServer,
     response = resp["TranID"];
   }
 
-  //inline virtual void GetEthStorageAtI(const Json::Value& request,
-  //                                              Json::Value& response) {
-  //  response = this->GetEthStorageAt(request[0u].asString(),
-  //                                   request[1u].asString(),
-  //                                   request[2u].asString());
-  //}
-
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
                                         Json::Value& response) {
     response = this->IncreaseBlocknum(request[0u].asUInt());

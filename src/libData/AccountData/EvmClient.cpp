@@ -125,7 +125,6 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     std::lock_guard<std::mutex> g(m_mutexMain);
     LOG_GENERAL(DEBUG, "Call evm with request:" << _json);
     const auto oldJson = m_clients.at(version)->CallMethod("run", _json);
-    LOG_GENERAL(DEBUG, "Called evm");
 
     // Populate the C++ struct with the return values
     try {

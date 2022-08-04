@@ -1446,15 +1446,9 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
                                             std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  std::cout << "getting strg at: " << address  << std::endl;
-  std::cout << "getting strg posjj: " << position  << std::endl;
-
-  //const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
   const auto& addr = Address(address);
 
   bytes code{};
-  bytes thing{};
-  //auto ret{false};
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
@@ -1464,11 +1458,7 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
       throw JsonRpcException(RPC_INVALID_PARAMS, "Account does not exist");
     }
     code = contractAccount->GetCode();
-    //thing = contractAccount->GetAddress();
   }
-
-  std::cout << "code is: "  << DataConversion::Uint8VecToHexStrRet(code) << std::endl;
-  std::cout << "thing is: "  << DataConversion::Uint8VecToHexStrRet(thing) << std::endl;
 
   return DataConversion::Uint8VecToHexStrRet(code);
 }

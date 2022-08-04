@@ -128,9 +128,7 @@ EthFields parseRawTxFields(std::string const& message) {
         ret.amount = uint128_t(*it);
         break;
       case 5:
-        //ret.data = byteIt;
         ret.code = byteIt;
-        std::cout << "code is: " <<  DataConversion::Uint8VecToHexStrRet(byteIt) << std::endl;
         break;
       case 6:  // V - only needed for pub sig recovery
         break;
@@ -147,11 +145,6 @@ EthFields parseRawTxFields(std::string const& message) {
     i++;
     it++;
   }
-
-  //// Workaround to indicate that TX is EVM
-  //if(!ret.data.empty()) {
-  //
-  //}
 
   return ret;
 }

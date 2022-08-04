@@ -114,14 +114,10 @@ bool AccountStore::RefreshDB() {
 void AccountStore::InitTemp() {
   lock_guard<mutex> g(m_mutexDelta);
 
-  std::cout << "ehh" << std::endl;
   m_accountStoreTemp->Init();
-  std::cout << "eh1" << std::endl;
   m_stateDeltaSerialized.clear();
-  std::cout << "eh3" << std::endl;
 
   ContractStorage::GetContractStorage().InitTempState();
-  std::cout << "eh4j" << std::endl;
 }
 
 void AccountStore::InitRevertibles() {
