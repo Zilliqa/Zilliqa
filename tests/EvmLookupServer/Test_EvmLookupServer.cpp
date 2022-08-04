@@ -60,6 +60,58 @@ std::unique_ptr<LookupServer> getLookupServer() {
   return lookupServer;
 }
 
+TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
+                                              const PairOfKey& keyPair) {
+  return TransactionWithReceipt(
+      // Ctor: (version, nonce, toAddr, keyPair, amount, gasPrice, gasLimit,
+      // code, data)
+      Transaction{0,
+                  nonce,
+                  Account::GetAddressFromPublicKey(keyPair.second),
+                  keyPair,
+                  1,
+                  1,
+                  2,
+                  {},
+                  {}},
+      TransactionReceipt{});
+}
+
+MicroBlock constructMicroBlockWithTransactions(
+    uint64_t blockNum, const std::vector<TransactionWithReceipt>& transactions,
+    PairOfKey& keyPair) {
+  MicroBlockHashSet mbhs{dev::h256::random(), {}, {}};
+  // CTor: (shardId, gasLimit, gasUsed, rewards, epochNum, mbHashSet, numTxs,
+  // minerPubKey, dsBlockNum, version, commiteeHash, prevHash)
+  MicroBlockHeader mbh(0, 2, 1, 0, blockNum, mbhs, transactions.size(),
+                       keyPair.first, 0, {}, {});
+
+  std::vector<TxnHash> transactionHashes;
+  for (const auto& transaction : transactions) {
+    transactionHashes.push_back(transaction.GetTransaction().GetTranID());
+  }
+
+  MicroBlock mb(mbh, transactionHashes, CoSignatures{});
+  return mb;
+}
+
+TxBlock constructTxBlockWithTransactions(uint64_t blockNum,
+                                         const MicroBlock& microBlock,
+                                         PairOfKey& keyPair) {
+  // CTor: (gasLimit, gasUsed, rewards, blockNum, blockHashSet, numTxs,
+  // minerPubKey, dsBlocknum, version, commiteeHash, prevHash)
+  TxBlockHeader txblockheader(2, 1, 0, blockNum, {},
+                              microBlock.GetTranHashes().size(), keyPair.first,
+                              TXBLOCK_VERSION);
+
+  MicroBlockInfo mbInfo{microBlock.GetBlockHash(),
+                        microBlock.GetHeader().GetTxRootHash(),
+                        microBlock.GetHeader().GetShardId()};
+  TxBlock txblock(txblockheader, {mbInfo}, CoSignatures{});
+
+  return txblock;
+}
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_AUTO_TEST_CASE(test_eth_call) {
@@ -580,14 +632,38 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
   AbstractServerConnectorMock abstractServerConnector;
 
   LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 2;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto BLOCK_NUM = 1;
+
+  const auto microBlock =
+      constructMicroBlockWithTransactions(BLOCK_NUM, transactions, pairOfKey);
+  const auto txBlock =
+      constructTxBlockWithTransactions(BLOCK_NUM, microBlock, pairOfKey);
+
+  bytes microBlockSerialized;
+  microBlock.Serialize(microBlockSerialized, 0);
+  BlockStorage::GetBlockStorage().PutMicroBlock(
+      microBlock.GetBlockHash(), BLOCK_NUM, BLOCK_NUM, microBlockSerialized);
+  mediator.m_txBlockChain.AddBlock(txBlock);
+
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = "0x0";
+  paramsRequest[0u] = std::to_string(BLOCK_NUM);
+  paramsRequest[1u] = false;
 
+  Json::Value response;
   lookupServer.GetEthBlockByNumberI(paramsRequest, response);
 
-  // Todo: proper checks for block structure
+  BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {

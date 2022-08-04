@@ -130,7 +130,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
 
   retJson["number"] = std::to_string(txheader.GetBlockNum());
   retJson["hash"] = txblock.GetBlockHash().hex();
-  retJson["PrevBlockHash"] = txheader.GetPrevHash().hex();
+  retJson["parentHash"] = txheader.GetPrevHash().hex();
   retJson["sha3Uncles"] = Json::arrayValue;
   retJson["stateRoot"] = txheader.GetStateRootHash().hex();
   retJson["miner"] =
@@ -144,7 +144,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["gasLimit"] = std::to_string(txheader.GetGasLimit());
   retJson["gasUsed"] = std::to_string(txheader.GetGasUsed());
   retJson["gasLimit"] = std::to_string(txblock.GetTimestamp());
-  retJson["Version"] = txheader.GetVersion();
+  retJson["version"] = txheader.GetVersion();
 
   // Todo: prepare transaction to eth-like json conversion
   if (!includeFullTransactions) {
