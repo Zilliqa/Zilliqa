@@ -305,6 +305,18 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionReceiptI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthFeeHistoryI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthStorageAtI);
+
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -525,22 +537,31 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                                                         error_code)) {
       throwError = true;
     }
-    LOG_GENERAL(INFO, "Processing On the isolated server ");
+    LOG_GENERAL(INFO, "Processing On the isolated server ...");
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+    LOG_GENERAL(INFO, "Processing On the isolated server 1");
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
+    LOG_GENERAL(INFO, "Processing On the isolated server 2");
 
+    LOG_GENERAL(INFO, "Processing On the isolated server 3");
     AccountStore::GetInstance().SerializeDelta();
+    LOG_GENERAL(INFO, "Processing On the isolated server 4");
     AccountStore::GetInstance().CommitTemp();
+    LOG_GENERAL(INFO, "Processing On the isolated server 5");
 
     if (!m_timeDelta) {
+      LOG_GENERAL(INFO, "Processing On the isolated server 6");
       AccountStore::GetInstance().InitTemp();
+      LOG_GENERAL(INFO, "Processing On the isolated server 7");
     }
 
     if (throwError) {
+      LOG_GENERAL(INFO, "Processing On the isolated server 8");
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Error Code: " + to_string(error_code));
     }
 
+    LOG_GENERAL(INFO, "Processing On the isolated server 9");
     TransactionWithReceipt twr(tx, txreceipt);
 
     bytes twr_ser;
@@ -549,6 +570,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     m_currEpochGas += txreceipt.GetCumGas();
 
+    LOG_GENERAL(INFO, "Processing On the isolated server 10");
     if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
                                                    twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
@@ -589,7 +611,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                    fields.amount,
                    fields.gasPrice,
                    fields.gasLimit,
-                   bytes(),
+                   ToEVM(fields.code),
                    fields.data,
                    Signature(fields.signature, 0)};
 
@@ -686,18 +708,25 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                                                         error_code)) {
       throwError = true;
     }
-    LOG_GENERAL(INFO, "Processing On the isolated server ");
+    LOG_GENERAL(INFO, "Processing On the isolated server ¬¬¬¬");
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+    LOG_GENERAL(INFO, "Processing On the isolated server 88");
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
+    LOG_GENERAL(INFO, "Processing On the isolated server 89jyy");
 
+    LOG_GENERAL(INFO, "Processing On the isolated server 89jyy");
     AccountStore::GetInstance().SerializeDelta();
+    LOG_GENERAL(INFO, "Processing On the isolated server 89jyy");
     AccountStore::GetInstance().CommitTemp();
+    LOG_GENERAL(INFO, "Processing On the isolated server 89jyxj");
 
     if (!m_timeDelta) {
+      LOG_GENERAL(INFO, "Processing On the isolated server 001");
       AccountStore::GetInstance().InitTemp();
     }
 
     if (throwError) {
+      LOG_GENERAL(INFO, "Processing On the isolated server 002");
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Error Code: " + to_string(error_code));
     }
@@ -728,12 +757,23 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     return ret;
 
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: NA");
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }
+
+//Json::Value IsolatedServer::GetEthStorageAt(std::string const& address,
+//                            std::string const& position,
+//                            std::string const& /*blockNum*/){
+//  std::cout << "getting strg at: " << address  << std::endl;
+//  std::cout << "getting strg posjj: " << position  << std::endl;
+//
+//  const Json::Value expectedResponse = Json::arrayValue;
+//  return expectedResponse;
+//}
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(
     const string& txBlockNum) {

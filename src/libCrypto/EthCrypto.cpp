@@ -324,7 +324,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.gasLimit;
   rlpStreamRecreated << info.toAddr;
   rlpStreamRecreated << info.amount;
-  rlpStreamRecreated << info.data;
+  rlpStreamRecreated << FromEVM(info.code);
   rlpStreamRecreated << chainId;
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};
@@ -334,3 +334,34 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
+
+bytes ToEVM(bytes const &in) {
+  if (in.empty()){
+    return in;
+  }
+
+  std::string prefixedEvm{"EVM"};
+  prefixedEvm += DataConversion::Uint8VecToHexStrRet(in);
+  bytes  ret;
+
+  for(const auto &a: prefixedEvm){
+    ret.push_back(a);
+  }
+
+  return ret;
+}
+
+bytes FromEVM(bytes const &in) {
+
+  if (in.empty()){
+    return in;
+  }
+
+  std::string conv = std::string(reinterpret_cast<const char*>(in.data()), in.size());
+  conv.erase(0,3);
+
+  //;bytes ret = DataConversion::HexStrToUint8VecRet(in);
+  //return in;
+  return DataConversion::HexStrToUint8VecRet(conv);
+}
+

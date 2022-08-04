@@ -96,12 +96,3 @@ compile_commands.json
 .vscode
 .history
 cmake-build-debug
-
-# Files from running isolated server
-persistence/
-scilla/
-scilla_files/
-evm-ds/
-config.xml
-isolated-server-accounts.json
-isolated-server.logs

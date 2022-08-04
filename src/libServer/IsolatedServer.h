@@ -71,6 +71,13 @@ class IsolatedServer : public LookupServer,
     response = resp["TranID"];
   }
 
+  //inline virtual void GetEthStorageAtI(const Json::Value& request,
+  //                                              Json::Value& response) {
+  //  response = this->GetEthStorageAt(request[0u].asString(),
+  //                                   request[1u].asString(),
+  //                                   request[2u].asString());
+  //}
+
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
                                         Json::Value& response) {
     response = this->IncreaseBlocknum(request[0u].asUInt());
@@ -113,6 +120,9 @@ class IsolatedServer : public LookupServer,
   Json::Value CreateTransaction(const Json::Value& _json);
   Json::Value CreateTransactionEth(EthFields const& fields,
                                    bytes const& pubKey);
+  Json::Value GetEthStorageAt(std::string const& address,
+                             std::string const& position,
+                             std::string const& blockNum);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);

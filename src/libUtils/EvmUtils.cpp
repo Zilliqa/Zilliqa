@@ -93,5 +93,8 @@ bool EvmUtils::isEvm(const bytes& code) {
   if (code.size() < 4) {
     return false;
   }
-  return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
+
+  auto const hasEvm = (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
+
+  return  hasEvm;
 }

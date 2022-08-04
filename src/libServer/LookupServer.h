@@ -560,6 +560,26 @@ class LookupServer : public Server,
     response = this->GetEthAccounts();
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_accounts
+   * Returns a list of addresses owned by client.
+   * @param request : params none
+   * @param response : Array of DATA, 20 Bytes - addresses owned by the client.
+   */
+  virtual void GetEthStorageAtI(const Json::Value& request,
+                               Json::Value& response) {
+    response = this->GetEthStorageAt(request[0u].asString(),
+                                     request[1u].asString(),
+                                     request[2u].asString());
+  }
+
+  inline virtual void GetEthFeeHistoryI(const Json::Value& request,
+                                             Json::Value& response) {
+    (void)request;
+
+    response = this->GetEthFeeHistory();
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -581,6 +601,7 @@ class LookupServer : public Server,
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
   unsigned int GetNumPeers();
+
   std::string GetNumTxBlocks();
   std::string GetNumDSBlocks();
   std::string GetNumTransactions();
@@ -607,6 +628,10 @@ class LookupServer : public Server,
   std::string GetEthChainId();
   Json::Value GetEthSyncing();
   Json::Value GetEthAccounts();
+  Json::Value GetEthFeeHistory();
+  Json::Value GetEthStorageAt(std::string const& address,
+                              std::string const& position,
+                              std::string const& blockNum);
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();

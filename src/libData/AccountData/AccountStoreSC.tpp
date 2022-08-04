@@ -338,6 +338,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     }
   }
 
+  // send code to be executed
   if (invoke_type == RUNNER_CREATE) {
     contractAccount->SetImmutable(DataConversion::StringToCharArray(
                                       "EVM" + evmReturnValues.ReturnedBytes()),

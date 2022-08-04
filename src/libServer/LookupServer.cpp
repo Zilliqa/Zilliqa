@@ -497,6 +497,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthAccountsI);
 
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetEthStorageAtI);
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -1427,6 +1433,44 @@ Json::Value LookupServer::GetEthAccounts() {
   LOG_MARKER();
   const Json::Value expectedResponse = Json::arrayValue;
   return expectedResponse;
+}
+
+Json::Value LookupServer::GetEthFeeHistory() {
+  LOG_MARKER();
+  const Json::Value expectedResponse = Json::arrayValue;
+  return expectedResponse;
+}
+
+Json::Value LookupServer::GetEthStorageAt(std::string const& address,
+                                            std::string const& position,
+                                            std::string const& /*blockNum*/) {
+  LOG_MARKER();
+
+  std::cout << "getting strg at: " << address  << std::endl;
+  std::cout << "getting strg posjj: " << position  << std::endl;
+
+  //const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
+  const auto& addr = Address(address);
+
+  bytes code{};
+  bytes thing{};
+  //auto ret{false};
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    Account* contractAccount =
+        AccountStore::GetInstance().GetAccount(addr, true);
+    if (contractAccount == nullptr) {
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Account does not exist");
+    }
+    code = contractAccount->GetCode();
+    //thing = contractAccount->GetAddress();
+  }
+
+  std::cout << "code is: "  << DataConversion::Uint8VecToHexStrRet(code) << std::endl;
+  std::cout << "thing is: "  << DataConversion::Uint8VecToHexStrRet(thing) << std::endl;
+
+  return DataConversion::Uint8VecToHexStrRet(code);
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,
