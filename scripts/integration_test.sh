@@ -19,7 +19,7 @@
 
 # Need to build evm...
 git clone git@github.com:Zilliqa/evm-ds.git
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 cargo build --release
 
 # Modify constants.xml for use by isolated server
