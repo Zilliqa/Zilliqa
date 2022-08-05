@@ -360,8 +360,6 @@ bytes FromEVM(bytes const &in) {
   std::string conv = std::string(reinterpret_cast<const char*>(in.data()), in.size());
   conv.erase(0,3);
 
-  //;bytes ret = DataConversion::HexStrToUint8VecRet(in);
-  //return in;
   return DataConversion::HexStrToUint8VecRet(conv);
 }
 

@@ -1442,7 +1442,7 @@ Json::Value LookupServer::GetEthFeeHistory() {
 }
 
 Json::Value LookupServer::GetEthStorageAt(std::string const& address,
-                                            std::string const& position,
+                                            std::string const& /*position*/,
                                             std::string const& /*blockNum*/) {
   LOG_MARKER();
 
