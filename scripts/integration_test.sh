@@ -34,15 +34,15 @@ sleep 15
 echo "Starting python test"
 python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
 
-# Make constants.xml as it was
-mv constants_backup.xml constants.xml
-
 retVal=$?
 if [ $retVal -ne 0 ]; then
     echo "Error with integration test"
     cat out.txt
     exit 1
 fi
+
+# Make constants.xml as it was
+mv constants_backup.xml constants.xml
 
 echo "Success with integration test"
 exit 0
