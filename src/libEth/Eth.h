@@ -35,7 +35,6 @@ struct EthFields {
 };
 
 Json::Value populateReceiptHelper(std::string const& txnhash);
-Json::Value populateBlockHelper();
 
 EthFields parseRawTxFields(std::string const& message);
 

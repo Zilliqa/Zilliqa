@@ -26,6 +26,8 @@
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
 class JSONConversion {
+  using TxBodySharedPtr = std::shared_ptr<TransactionWithReceipt>;
+
  public:
   // converts a uint32_t array to JSON array containing shard ids
   static const Json::Value convertMicroBlockInfoArraytoJson(
@@ -36,6 +38,12 @@ class JSONConversion {
   // converts a TxBlock to JSON object
   static const Json::Value convertTxBlocktoJson(const TxBlock& txblock,
                                                 bool verbose = false);
+  // converts a TxBlock to JSON object (Eth style)
+  static const Json::Value convertTxBlocktoEthJson(
+      const TxBlock& txblock, const DSBlock& dsBlock,
+      const std::vector<TxBodySharedPtr>& transactions,
+      const std::vector<TxnHash>& transactionHashes,
+      bool includeFullTransactions = false);
   // converts raw TxBlock to JSON object (for staking)
   static const Json::Value convertRawTxBlocktoJson(const TxBlock& txblock);
   // converts a DSBlocck to JSON object

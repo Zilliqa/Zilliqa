@@ -321,8 +321,8 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
                                            Json::Value& response) {
-    (void)request;
-    response = this->GetEthBlockByNumber();
+    response =
+        this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
 
   inline virtual void GetEthGasPriceI(const Json::Value& request,
@@ -615,7 +615,8 @@ class LookupServer : public Server,
 
   // Eth calls
   Json::Value GetTransactionReceipt(const std::string& txnhash);
-  Json::Value GetEthBlockByNumber();
+  Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
+                                  bool includeTransactionHashes);
   Json::Value CreateTransactionEth(
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,
