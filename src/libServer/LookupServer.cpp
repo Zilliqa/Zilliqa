@@ -1043,12 +1043,11 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
     // Gather either transaction hashes or full transactions
     const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
     for (auto const& mbInfo : microBlockInfos) {
-      MicroBlockSharedPtr microBlockPtr;
-
       if (mbInfo.m_txnRootHash == TxnHash{}) {
         continue;
       }
 
+      MicroBlockSharedPtr microBlockPtr;
       if (!BlockStorage::GetBlockStorage().GetMicroBlock(
               mbInfo.m_microBlockHash, microBlockPtr)) {
         continue;
