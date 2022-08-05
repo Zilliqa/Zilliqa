@@ -1446,21 +1446,52 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
                                             std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  const auto& addr = Address(address);
+  string vname{};
+  Json::Value indices{};
 
-  bytes code{};
-  {
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
-    Account* contractAccount =
-        AccountStore::GetInstance().GetAccount(addr, true);
-    if (contractAccount == nullptr) {
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Account does not exist");
-    }
-    code = contractAccount->GetCode();
+  if (Mediator::m_disableGetSmartContractState) {
+    LOG_GENERAL(WARNING, "API disabled");
+    throw JsonRpcException(RPC_INVALID_REQUEST, "API disabled");
   }
 
-  return DataConversion::Uint8VecToHexStrRet(code);
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  try {
+    Address addr{ToBase16AddrHelper(address)};
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
+
+    if (account == nullptr) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist");
+    }
+
+    if (!account->isContract()) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address not contract address");
+    }
+    LOG_GENERAL(INFO, "Contract address: " << address);
+    Json::Value root;
+    const auto indices_vector =
+        JSONConversion::convertJsonArrayToVector(indices);
+    if (!account->FetchStateJson(root, vname, indices_vector)) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
+    }
+
+    std::cout << "root is" << std::endl;
+    std::cout << root.asString() << std::endl;
+
+    return root;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

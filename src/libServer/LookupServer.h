@@ -568,6 +568,7 @@ class LookupServer : public Server,
    */
   virtual void GetEthStorageAtI(const Json::Value& request,
                                Json::Value& response) {
+    std::cout << "GetEthStorageAtI call " << std::endl;
     response = this->GetEthStorageAt(request[0u].asString(),
                                      request[1u].asString(),
                                      request[2u].asString());
