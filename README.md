@@ -151,7 +151,7 @@ If you want to build the development branch instead, do:
 $ git checkout master
 ```
 
-If you want to contribute by submitting code changes in a pull request, perform the build with `clang-format` and `clang-tidy` enabled by doing:
+If you want to contribute by submitting code changes in a pull request perform the build with `clang-format` and `clang-tidy` enabled by doing:
 
 ```shell
 $ ./build.sh style
