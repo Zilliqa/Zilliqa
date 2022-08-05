@@ -664,6 +664,23 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
   lookupServer.GetEthBlockByNumberI(paramsRequest, response);
 
   BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
+
+  std::vector<std::string> expectedHashes;
+  for (uint32_t i = 0; i < transactions.size(); ++i) {
+    expectedHashes.emplace_back(
+        transactions[i].GetTransaction().GetTranID().hex());
+  }
+  std::sort(expectedHashes.begin(), expectedHashes.end());
+
+  std::vector<std::string> receivedHashes;
+  const Json::Value arrayOfHashes = response["transactions"];
+  for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
+       ++jsonIter) {
+    receivedHashes.emplace_back(jsonIter->asString());
+  }
+  std::sort(receivedHashes.begin(), receivedHashes.end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(expectedHashes.cbegin(), expectedHashes.cend(),
+                                receivedHashes.cbegin(), receivedHashes.cend());
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
