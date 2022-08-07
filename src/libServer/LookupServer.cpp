@@ -736,14 +736,16 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
   }
 
-  else if (!toAccountIsContract) {
+  else if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL &&
+           !toAccountIsContract) {
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                            "Non - contract address called");
   }
 
   Address affectedAddress =
       (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
-          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
+          ? Account::GetAddressForContract(tx.GetSenderAddr(),
+                                           tx.GetNonce() - 1)
           : tx.GetToAddr();
 
   unsigned int to_shard =
@@ -846,16 +848,18 @@ Json::Value LookupServer::CreateTransaction(
         // We use the same logic for CONTRACT_CREATION and CONTRACT_CALL.
         // TODO(valeryz): once we stop using Zilliqa APIs for EVM, revert
         // to the old behavior where CONTRACT_CREATION can be sharded.
-        auto check = CheckContractTxnShards(
-            priority, shard, tx, num_shards, toAccountExist, toAccountIsContract);
+        auto check =
+            CheckContractTxnShards(priority, shard, tx, num_shards,
+                                   toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
-        auto check = CheckContractTxnShards(
-            priority, shard, tx, num_shards, toAccountExist, toAccountIsContract);
+        auto check =
+            CheckContractTxnShards(priority, shard, tx, num_shards,
+                                   toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         mapIndex = check.second;
       } break;
@@ -959,16 +963,18 @@ Json::Value LookupServer::CreateTransactionEth(
         ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
-        auto check = CheckContractTxnShards(
-            priority, shard, tx, num_shards, toAccountExist, toAccountIsContract);
+        auto check =
+            CheckContractTxnShards(priority, shard, tx, num_shards,
+                                   toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
-        auto check = CheckContractTxnShards(
-            priority, shard, tx, num_shards, toAccountExist, toAccountIsContract);
+        auto check =
+            CheckContractTxnShards(priority, shard, tx, num_shards,
+                                   toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         mapIndex = check.second;
       } break;
