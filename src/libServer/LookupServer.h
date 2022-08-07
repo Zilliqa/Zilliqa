@@ -53,6 +53,10 @@ class LookupServer : public Server,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
 
+  std::pair<std::string, unsigned int> CheckContractTxnShards(
+      bool priority, unsigned int shard, const Transaction& tx,
+      unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
+
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
