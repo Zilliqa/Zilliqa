@@ -32,7 +32,7 @@ echo "Starting isolated server"
 sleep 15
 
 echo "Starting python test"
-sudo apt-get install python3-pip
+sudo apt-get install python3-pip python3-setuptools
 python3 -m pip install -r ./tests/PythonEthApi/requirements.txt
 python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
 
