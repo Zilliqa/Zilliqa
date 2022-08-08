@@ -705,8 +705,8 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                                    "To addr is null");
           }
 
-          std::cout << "we are her17" << std::endl;
           else if (!account->isContract()) {
+            std::cout << "we are her17" << std::endl;
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "Non - contract address called");
           }
