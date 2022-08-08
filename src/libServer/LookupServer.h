@@ -331,11 +331,11 @@ class LookupServer : public Server,
     response = "0xd9e63a68c";
   }
 
-  inline virtual void GetCodeI(const Json::Value& request,
-                               Json::Value& response) {
-    (void)request;
-    response = "0x";
-  }
+  //inline virtual void GetCodeI(const Json::Value& request,
+  //                             Json::Value& response) {
+  //  (void)request;
+  //  response = "0x";
+  //}
 
   inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                          Json::Value& response) {
@@ -574,6 +574,12 @@ class LookupServer : public Server,
                                      request[2u].asString());
   }
 
+  virtual void GetEthCodeI(const Json::Value& request,
+                                Json::Value& response) {
+    response = this->GetEthCode(request[0u].asString(),
+                                     request[1u].asString());
+  }
+
   virtual void GetEthSignI(const Json::Value& /*request*/,
                                 Json::Value& response) {
     response = this->GetEmptyResponse();
@@ -641,10 +647,11 @@ class LookupServer : public Server,
   std::string GetProtocolVersion();
   std::string GetEthChainId();
   Json::Value GetEthSyncing();
-  //Json::Value GetEthAccounts();
   Json::Value GetEmptyResponse();
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
+                              std::string const& blockNum);
+  Json::Value GetEthCode(std::string const& address,
                               std::string const& blockNum);
 
   static Json::Value GetRecentTransactions();

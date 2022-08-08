@@ -395,7 +395,7 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetCodeI);
+      &LookupServer::GetEthCodeI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
@@ -1522,6 +1522,24 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process23");
   }
+}
+
+
+Json::Value LookupServer::GetEthCode(std::string const& address,
+                                          std::string const& /*blockNum*/) {
+  LOG_MARKER();
+
+  auto code = GetSmartContractCode(address);
+  auto codeStr = code["code"].asString();
+
+  // Erase 'EVM' from beginning, put '0x'
+  if (codeStr.size() > 3) {
+    codeStr[1] = '0';
+    codeStr[2] = 'x';
+    codeStr.erase(0,1);
+  }
+
+  return codeStr;
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

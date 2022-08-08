@@ -276,11 +276,11 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthGasPriceI);
 
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetCodeI);
+//  AbstractServer<IsolatedServer>::bindAndAddMethod(
+//      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
+//                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+//                         "param02", jsonrpc::JSON_STRING, NULL),
+//      &LookupServer::GetCodeI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
@@ -331,6 +331,12 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_sendTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthSendTransactionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCodeI);
 
 }
 
