@@ -54,7 +54,8 @@ pragma solidity >=0.7.0 <0.9.0;
  */
 contract Storage {
 
-    uint256 number = 1024;
+    uint256 number = 1234;
+    uint256 numberSecond = 1025;
     /**
      * @dev Store value in variable
      * @param num value to store
@@ -64,7 +65,7 @@ contract Storage {
     }
 
     /**
-     * @dev Return value
+     * @dev Return value 
      * @return value of 'number'
      */
     function retrieve() public view returns (uint256){
@@ -76,9 +77,6 @@ contract Storage {
     }
 }
 """
-
-FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-BLOCK_TIME_S = 2
 
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
@@ -97,42 +95,6 @@ def compile_solidity(contract_string):
     )
     result = result.popitem()[1]
     return w3.eth.contract(abi=result["abi"], bytecode=result["bin"])
-
-def compile_solidity_file(contract_file):
-    file_name = pkg_resources.resource_filename(
-        "tests", "contracts/" + contract_file
-    )
-    print("file_name: ", file_name)
-    result = solcx.compile_files(file_name, output_values=["abi", "bin", "asm"])
-    result = result.popitem()[1]
-    return w3.eth.contract(abi=result["abi"], bytecode=result["bin"])
-
-def install_contract(account, contract_class, *args):
-    """
-    Send a Eth style transaction that creates a given contract.
-
-    Returns: contract address.
-    """
-    code = contract_class.constructor(*args).data_in_transaction
-
-    #txn_details = account.transfer(
-    #    to_addr="0x0000000000000000000000000000000000000000",
-    #    zils=0,
-    #    code=code.replace("0x", "EVM"),
-    #    gas_limit=99_000,
-    #    gas_price=2000000000,
-    #    priority=True,
-    #    data="",
-    #    confirm=True,
-    #)
-    #if "ID" in txn_details:
-    #    address = Web3.toChecksumAddress(
-    #        active_chain.api.GetContractAddressFromTransactionID(txn_details["ID"])
-    #    )
-    #    print("Contract created, address: {}".format(address))
-    #    return contract_class(address=address)
-    #else:
-    #    raise "No ID in the contract"
 
 def install_contract_bytes(account, data_bytes):
     txn_details = account.transfer(
@@ -196,49 +158,42 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
     """
     try:
         # In order to do this test, we can write a contract to storage and check its state is there correctly
-        #response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"]})
-
-        #nonce = account.getTransactionCount()
-        print("x")
         nonce = w3.eth.getTransactionCount(account.address)
-        print("y")
+
+        compilation_result = compile_solidity(contract)
+        code = compilation_result.constructor().data_in_transaction
 
         transaction = {
             'to': "0x0000000000000000000000000000000000000000",
             'from':account.address,
             'value':int(0),
+            'data':code,
             'gas':GAS_LIMIT,
             'gasPrice':int(GAS_PRICE*(10**9)),
             'chainId':CHAIN_ID,
-            'nonce':int(nonce + 1)
+            'nonce':int(nonce)
             }
 
-        signed_transaction = account.signTransaction(transaction, key)
-        #transaction_id = w.eth.sendRawTransaction(signed_transaction.rawTransaction)#get_result(response)
+        signed_transaction = account.signTransaction(transaction)
 
-        print("we got hereeeee")
-        print(f"thingie we are {signed_transaction}")
-        print(f"thingie we are {signed_transaction.rawTransaction}")
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+        res = get_result(response)
 
-        ##self.init()
-        #global contract
-        #compilation_result = compile_solidity(contract)
-        #contract = install_contract(account, compilation_result)
-        #time.sleep(2)
-        ## Check correctness of the contract installation.
-        #result = call_contract(account, contract, 0, "store", 256)
-        #print(result)
-        #time.sleep(2)
-        #state = get_state(contract.address)
-        #print(state)
-        #assert (
-        #        int_from_bytes(
-        #            state["_evm_storage"][
-        #                "0000000000000000000000000000000000000000000000000000000000000000"
-        #            ]
-        #        )
-        #        == 256
-        #)
+        # Get the address of the contract (ZIL API, TODO: CHANGE THIS)
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "GetContractAddressFromTransactionID",
+                                            "params": [res]})
+
+        res = get_result(response)
+        res.replace("0x", "")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt",
+                                            "params": [res, "0x0", "latest"]})
+
+        res = get_result(response)
+
+        if "0x00000000000000000000000000000000000000000000000000000000000004d2" != res.lower():
+            raise Exception(f"Failed to retrieve correct contract amount: {res} when expected 0x00000000000000000000000000000000000000000000000000000000000004d2")
 
     except Exception as e:
         print(f"Failed test test_eth_getStorageAt with error: '{e}'")
@@ -1015,6 +970,8 @@ def test_eth_getTransactionReceipt(url: str) -> bool:
 
 def test_eth_sign(url: str) -> bool:
     """
+        Not implemented since this requires the node to have your private key.
+
         The sign method calculates an Ethereum specific signature with:
         sign(keccak256(""\x19Ethereum Signed Message:\n"" + len(message) + message))).
 
@@ -1040,6 +997,8 @@ def test_eth_sign(url: str) -> bool:
 
 def test_eth_signTransaction(url: str) -> bool:
     """
+        Not implemented since this requires the node to have your private key.
+
         Signs a transaction that can be submitted to the network
         at a later time using with eth_sendRawTransaction.
         Is this just a local API, not really an RPC call?"
@@ -1060,6 +1019,8 @@ def test_eth_signTransaction(url: str) -> bool:
 
 def test_eth_sendTransaction(url: str) -> bool:
     """
+        Not implemented since this requires the node to have your private key.
+
         Creates new message call transaction or a contract creation, if the data field contains code.
     """
     try:
@@ -1076,18 +1037,34 @@ def test_eth_sendTransaction(url: str) -> bool:
 
     return True
 
-def test_eth_sendRawTransaction(url: str) -> bool:
+def test_eth_sendRawTransaction(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Creates new message call transaction or a contract creation, if the data field contains code. Raw transactions
         are in the RLP data format.
     """
     try:
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': "0xaaB168343e743141A10CE6C3D454454A7D522506",
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
-                                            "params": ["latest"] })
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if res != "":
-            raise Exception(f"Did not get 1 for eth_sendRawTransaction. Got: {res}")
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sendRawTransaction with error: '{e}'")
@@ -1114,10 +1091,8 @@ def test_move_funds(url: str, genesis_privkey: pyzil.account, test_privkey: eth_
         to_address = test_privkey.address
         to_address = to_checksum_address(to_address, prefix="0x")
 
-        print(f"Transferring...")
         # Note the address needs to be ZIL style checksum or the pyzil api will reject it (and possibly the node too)
         genesis_privkey.transfer(to_addr=to_address, zils=to_move, confirm=True, gas_limit=50)
-        print(f"Transferred!")
 
         # Now check balance of eth address (annoyingly, does not accept '0x')
         newBal = api.GetBalance(to_checksum_address(to_address, prefix=""))
@@ -1126,8 +1101,6 @@ def test_move_funds(url: str, genesis_privkey: pyzil.account, test_privkey: eth_
             raise Exception(f"Bad response from balance query: {newBal}")
 
         newBal = newBal["balance"]
-
-        print(newBal)
 
         if bal == 0:
             raise Exception(f"Failed to see funds for eth style test address. Subsequent tests will likely fail.")
@@ -1187,7 +1160,6 @@ def main():
     w3 = Web3(Web3.HTTPProvider(args.api))
 
     account = web3.eth.Account.from_key(args.private_key_test)
-    print(account.address)
 
     ret = True
 
@@ -1241,7 +1213,7 @@ def main():
     #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
-    #ret &= test_eth_sendRawTransaction(args.api)
+    ret &= test_eth_sendRawTransaction(args.api, account, w3)
     #ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:
