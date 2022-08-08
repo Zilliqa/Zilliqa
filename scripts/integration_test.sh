@@ -32,7 +32,7 @@ echo "Starting isolated server"
 sleep 15
 
 echo "Starting python test"
-sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev || exit 1
+sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1
 
 python3 -m pip install cython || exit 1
 

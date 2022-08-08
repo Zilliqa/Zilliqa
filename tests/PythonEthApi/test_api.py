@@ -983,7 +983,7 @@ def test_eth_sign(url: str) -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sign",
-                                            "params": ["latest"] })
+                                            "params": ["0x9b2055d370f73ec7d8a03e965129118dc8f5bf83", "0xdeadbeaf"] })
         res = get_result(response)
 
         if res != "":
@@ -1005,7 +1005,7 @@ def test_eth_signTransaction(url: str) -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_signTransaction",
-                                            "params": ["latest"] })
+                                            "params": [{"data":"0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675","from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155","gas": "0x76c0","gasPrice": "0x9184e72a000","to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567","value": "0x9184e72a"}] })
         res = get_result(response)
 
         if res != "":
@@ -1024,8 +1024,10 @@ def test_eth_sendTransaction(url: str) -> bool:
         Creates new message call transaction or a contract creation, if the data field contains code.
     """
     try:
+
+
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendTransaction",
-                                            "params": ["latest"] })
+                                            "params": [{ "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155", "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567", "gas": "0x76c0", "gasPrice": "0x9184e72a000", "value": "0x9184e72a", "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675" }] })
         res = get_result(response)
 
         if res != "":
