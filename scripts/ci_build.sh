@@ -19,7 +19,7 @@
 
 set -e
 
-time ./scripts/integration_test.sh || exit 1
+#time ./scripts/integration_test.sh || exit 1
 
 # set n_parallel to fully utilize the resources
 os=$(uname)
@@ -61,7 +61,7 @@ cmake --build ${dir} -- -j${n_parallel}
 # remember to append `|| exit` after the commands added in if-then-else
 if [ "$os" = "Linux" ]
 then
-    ./scripts/integration_test.sh || exit 1
+    time ./scripts/integration_test.sh || exit 1
     ./scripts/ci_xml_checker.sh constants.xml || exit 1
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
     ./scripts/license_checker.sh || exit 1

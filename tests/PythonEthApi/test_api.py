@@ -986,8 +986,8 @@ def test_eth_sign(url: str) -> bool:
                                             "params": ["0x9b2055d370f73ec7d8a03e965129118dc8f5bf83", "0xdeadbeaf"] })
         res = get_result(response)
 
-        if res != "":
-            raise Exception(f"Did not get '' for eth_sign. Got: {res}")
+        if res != []:
+            raise Exception(f"Did not get [] for eth_sign. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sign with error: '{e}'")
