@@ -482,6 +482,9 @@ extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
 
+// TxBlockAux constants
+constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";
+
 // Viewchange constants
 extern const unsigned int POST_VIEWCHANGE_BUFFER;
 extern const unsigned int VIEWCHANGE_EXTRA_TIME;

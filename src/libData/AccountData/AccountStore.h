@@ -102,7 +102,7 @@ class AccountStore
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 
-  bool Serialize(bytes& src, unsigned int offset);
+  bool Serialize(bytes& src, unsigned int offset) const override;
 
   bool Deserialize(const bytes& src, unsigned int offset) override;
 

@@ -65,7 +65,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-               &available_gas, &balance, &ret, &receipt,
+               &available_gas, &balance,
                &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
@@ -129,7 +129,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(
     evmproj::CallResponse& evmReturnValues) {
   auto call_already_finished{false};
 
-  auto worker = [this, &params, &invoke_type, &ret, &receipt, &version,
+  auto worker = [this, &params, &invoke_type, &ret, &version,
                  &call_already_finished, &evmReturnValues]() mutable -> void {
     if (invoke_type == RUNNER_CREATE || invoke_type == RUNNER_CALL) {
       ret = EvmClient::GetInstance().CallRunner(
