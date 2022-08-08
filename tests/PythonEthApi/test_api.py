@@ -211,16 +211,52 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
 
     return True
 
-def test_eth_getCode(url: str) -> bool:
+def test_eth_getCode(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Get a code at the specified address. Which is a smart contract address.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getCode", "params":["0xb59f67a8bff5d8cd03f6ac17265c550ed8f33907", "latest"]})
-        get_result(response)
+        # In order to do this test, we can write a contract to storage and check its state is there correctly
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        compilation_result = compile_solidity(contract)
+        code = compilation_result.constructor().data_in_transaction
+
+        transaction = {
+            'to': "0x0000000000000000000000000000000000000000",
+            'from':account.address,
+            'value':int(0),
+            'data':code,
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+        rawHex = signed_transaction.rawTransaction.hex()
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [rawHex]})
+        res = get_result(response)
+
+        # Get the address of the contract (ZIL API, TODO: CHANGE THIS)
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "GetContractAddressFromTransactionID",
+                                            "params": [res]})
+
+        res = get_result(response)
+        res.replace("0x", "")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getCode",
+                                            "params": [res, "latest"]})
+
+        res = get_result(response)
+
+        if code[0:4] != res[0:4].lower():
+            raise Exception(f"Failed to retrieve correct contract amount: {res} when expected {code}")
 
     except Exception as e:
-        print(f"Failed test test_eth_feeHistory with error: '{e}'")
+        print(f"Failed test test_eth_getCode with error: '{e}'")
         return False
 
     return True
@@ -1179,8 +1215,8 @@ def main():
     ret &= test_eth_chainId(args.api)
     ret &= test_eth_blockNumber(args.api)
     ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    ret &= test_eth_getStorageAt(args.api, account, w3)
-    #ret &= test_eth_getCode(args.api)
+    ret &= test_eth_getCode(args.api, account, w3)
+    #ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getProof(args.api)
     #ret &= test_eth_getBalance(args.api)
     #ret &= test_web3_clientVersion(args.api)
