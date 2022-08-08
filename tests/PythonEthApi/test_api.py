@@ -18,6 +18,7 @@ import sys
 import argparse
 
 import solcx
+solcx.install_solc()
 
 import eth_account.signers.local
 import pyzil.account
