@@ -22,13 +22,17 @@ git clone git@github.com:Zilliqa/evm-ds.git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 cargo build --release
 
+find / -name evm-ds
+exit 1
+
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
+#sed -i 's/.ENABLE_SC.true/<ENABLE_SC>false/g' constants.xml
 
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
 
-sleep 30
+sleep 15
 
 echo "Starting python test"
 sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1

@@ -1212,11 +1212,11 @@ def main():
     ret = True
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
-    ret &= test_eth_chainId(args.api)
-    ret &= test_eth_blockNumber(args.api)
-    ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    ret &= test_eth_getCode(args.api, account, w3)
-    #ret &= test_eth_getStorageAt(args.api, account, w3)
+    #ret &= test_eth_chainId(args.api)
+    #ret &= test_eth_blockNumber(args.api)
+    #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    #ret &= test_eth_getCode(args.api, account, w3)
+    ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getProof(args.api)
     #ret &= test_eth_getBalance(args.api)
     #ret &= test_web3_clientVersion(args.api)
