@@ -112,6 +112,22 @@ TxBlock constructTxBlockWithTransactions(uint64_t blockNum,
   return txblock;
 }
 
+TxBlock buildCommonEthBlockCase(
+    Mediator& mediator, uint64_t blockNum,
+    const std::vector<TransactionWithReceipt>& transactions,
+    PairOfKey& keyPair) {
+  const MicroBlock microBlock =
+      constructMicroBlockWithTransactions(blockNum, transactions, keyPair);
+  bytes microBlockSerialized;
+  microBlock.Serialize(microBlockSerialized, 0);
+  BlockStorage::GetBlockStorage().PutMicroBlock(
+      microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);
+  const TxBlock txBlock =
+      constructTxBlockWithTransactions(blockNum, microBlock, keyPair);
+  mediator.m_txBlockChain.AddBlock(txBlock);
+  return txBlock;
+}
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_AUTO_TEST_CASE(test_eth_call) {
@@ -643,17 +659,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
   }
 
   constexpr auto BLOCK_NUM = 1;
-
-  const auto microBlock =
-      constructMicroBlockWithTransactions(BLOCK_NUM, transactions, pairOfKey);
   const auto txBlock =
-      constructTxBlockWithTransactions(BLOCK_NUM, microBlock, pairOfKey);
-
-  bytes microBlockSerialized;
-  microBlock.Serialize(microBlockSerialized, 0);
-  BlockStorage::GetBlockStorage().PutMicroBlock(
-      microBlock.GetBlockHash(), BLOCK_NUM, BLOCK_NUM, microBlockSerialized);
-  mediator.m_txBlockChain.AddBlock(txBlock);
+      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
 
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
@@ -664,6 +671,63 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
   lookupServer.GetEthBlockByNumberI(paramsRequest, response);
 
   BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
+
+  std::vector<std::string> expectedHashes;
+  for (uint32_t i = 0; i < transactions.size(); ++i) {
+    expectedHashes.emplace_back(
+        transactions[i].GetTransaction().GetTranID().hex());
+  }
+  std::sort(expectedHashes.begin(), expectedHashes.end());
+
+  std::vector<std::string> receivedHashes;
+  const Json::Value arrayOfHashes = response["transactions"];
+  for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
+       ++jsonIter) {
+    receivedHashes.emplace_back(jsonIter->asString());
+  }
+  std::sort(receivedHashes.begin(), receivedHashes.end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(expectedHashes.cbegin(), expectedHashes.cend(),
+                                receivedHashes.cbegin(), receivedHashes.cend());
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 2;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto BLOCK_NUM = 1;
+  const auto txBlock =
+      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
+
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = txBlock.GetBlockHash().hex();
+  paramsRequest[1u] = false;
+
+  Json::Value response;
+  lookupServer.GetEthBlockByHashI(paramsRequest, response);
+
+  BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
+  BOOST_CHECK_EQUAL(response["number"].asString(),
+                    std::to_string(txBlock.GetHeader().GetBlockNum()));
 
   std::vector<std::string> expectedHashes;
   for (uint32_t i = 0; i < transactions.size(); ++i) {
