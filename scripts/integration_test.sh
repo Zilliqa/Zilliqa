@@ -24,7 +24,6 @@ cargo build --release
 
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
-sed -i 's/.ENABLE_SC.true/<ENABLE_SC>false/g' constants.xml
 
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
