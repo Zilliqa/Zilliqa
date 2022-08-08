@@ -557,7 +557,7 @@ class LookupServer : public Server,
    */
   virtual void GetEthAccountsI(const Json::Value& /*request*/,
                                Json::Value& response) {
-    response = this->GetEthAccounts();
+    response = this->GetEmptyResponse();
   }
 
   /**
@@ -574,11 +574,24 @@ class LookupServer : public Server,
                                      request[2u].asString());
   }
 
-  inline virtual void GetEthFeeHistoryI(const Json::Value& request,
-                                             Json::Value& response) {
-    (void)request;
+  virtual void GetEthSignI(const Json::Value& /*request*/,
+                                Json::Value& response) {
+    response = this->GetEmptyResponse();
+  }
 
-    response = this->GetEthFeeHistory();
+  virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
+                           Json::Value& response) {
+    response = this->GetEmptyResponse();
+  }
+
+  virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
+                                      Json::Value& response) {
+    response = this->GetEmptyResponse();
+  }
+
+  inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
+                                             Json::Value& response) {
+    response = this->GetEmptyResponse();
   }
 
   std::string GetNetworkId();
@@ -628,8 +641,8 @@ class LookupServer : public Server,
   std::string GetProtocolVersion();
   std::string GetEthChainId();
   Json::Value GetEthSyncing();
-  Json::Value GetEthAccounts();
-  Json::Value GetEthFeeHistory();
+  //Json::Value GetEthAccounts();
+  Json::Value GetEmptyResponse();
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
                               std::string const& blockNum);
