@@ -177,11 +177,13 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
             }
 
         signed_transaction = account.signTransaction(transaction)
+        rawHex = signed_transaction.rawTransaction.hex()
 
-        print(f"Sending raw tx.")
+        print(f"Sending raw tx. {rawHex}")
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
-                                            "params": [signed_transaction.rawTransaction.hex()]})
-        print(f"get result")
+                                            "params": [rawHex]})
+        print(f"get result {response}")
+        print(f"get result {response.text}")
         res = get_result(response)
 
         # Get the address of the contract (ZIL API, TODO: CHANGE THIS)

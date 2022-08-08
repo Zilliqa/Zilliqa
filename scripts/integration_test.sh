@@ -28,7 +28,7 @@ cp constants.xml constants_backup.xml
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
 
-sleep 15
+sleep 30
 
 echo "Starting python test"
 sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1
