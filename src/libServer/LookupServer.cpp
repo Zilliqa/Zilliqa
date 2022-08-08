@@ -1429,13 +1429,13 @@ Json::Value LookupServer::GetEthSyncing() {
   return Json::Value(false);
 }
 
-Json::Value LookupServer::GetEthAccounts() {
-  LOG_MARKER();
-  const Json::Value expectedResponse = Json::arrayValue;
-  return expectedResponse;
-}
+//Json::Value LookupServer::GetEthAccounts() {
+//  LOG_MARKER();
+//  const Json::Value expectedResponse = Json::arrayValue;
+//  return expectedResponse;
+//}
 
-Json::Value LookupServer::GetEthFeeHistory() {
+Json::Value LookupServer::GetEmptyResponse() {
   LOG_MARKER();
   const Json::Value expectedResponse = Json::arrayValue;
   return expectedResponse;
@@ -1506,15 +1506,7 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
       } while(positionIterator != position.begin() && *positionIterator != 'x');
     }
 
-    std::cout << "root is" << std::endl;
-    std::cout << "position is: " << position << std::endl;
-    std::cout << "zeroes is: " << zeroes << std::endl;
-    //std::cout << root["_evm_storage"] << std::endl;
-    std::cout << root["_evm_storage"][zeroes] << std::endl;
-    std::cout << root["_evm_storage"][zeroes].size() << std::endl;
-
     auto res = root["_evm_storage"][zeroes];
-    //auto resAsString = res.asString();
     bytes resAsStringBytes;
 
     for (const auto &item : res.asString()) {
@@ -1522,10 +1514,6 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     }
 
     auto resAsStringHex = std::string("0x") + DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
-
-    //for (const auto &item : res.asString()) {
-    //  std::cout << item << std::endl;
-    //}
 
     return resAsStringHex;
   } catch (const JsonRpcException& je) {
