@@ -987,7 +987,7 @@ def test_eth_sign(url: str) -> bool:
         res = get_result(response)
 
         if res != "":
-            raise Exception(f"Did not get 1 for eth_sign. Got: {res}")
+            raise Exception(f"Did not get '' for eth_sign. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sign with error: '{e}'")
@@ -1009,7 +1009,7 @@ def test_eth_signTransaction(url: str) -> bool:
         res = get_result(response)
 
         if res != "":
-            raise Exception(f"Did not get 1 for eth_signTransaction. Got: {res}")
+            raise Exception(f"Did not get '' for eth_signTransaction. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_signTransaction with error: '{e}'")
@@ -1029,7 +1029,7 @@ def test_eth_sendTransaction(url: str) -> bool:
         res = get_result(response)
 
         if res != "":
-            raise Exception(f"Did not get 1 for eth_sendTransaction. Got: {res}")
+            raise Exception(f"Did not get '' for eth_sendTransaction. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sendTransaction with error: '{e}'")
@@ -1210,10 +1210,11 @@ def main():
     #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api)
     #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
     #ret &= test_eth_getTransactionReceipt(args.api)
-    #ret &= test_eth_sign(args.api)
-    #ret &= test_eth_signTransaction(args.api)
-    #ret &= test_eth_sendTransaction(args.api)
+    ret &= test_eth_sign(args.api)
+    ret &= test_eth_signTransaction(args.api)
+    ret &= test_eth_sendTransaction(args.api)
     ret &= test_eth_sendRawTransaction(args.api, account, w3)
+
     #ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:
