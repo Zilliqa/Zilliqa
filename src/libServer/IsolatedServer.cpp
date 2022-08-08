@@ -755,10 +755,10 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     return ret;
 
   } catch (const JsonRpcException& je) {
-    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: NA");
+    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: NA");
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }
