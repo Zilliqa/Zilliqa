@@ -739,7 +739,7 @@ Json::Value LookupServer::CreateTransaction(
 
   if (Mediator::m_disableTxns) {
     LOG_GENERAL(INFO, "Txns disabled - rejecting new txn");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process12");
   }
 
   try {
@@ -873,7 +873,7 @@ Json::Value LookupServer::CreateTransaction(
   } catch (exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process13");
   }
 }
 
@@ -888,7 +888,7 @@ Json::Value LookupServer::CreateTransactionEth(
 
   if (Mediator::m_disableTxns) {
     LOG_GENERAL(INFO, "Txns disabled - rejecting new txn");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process14");
   }
 
   Transaction tx{fields.version,
@@ -1027,7 +1027,7 @@ Json::Value LookupServer::CreateTransactionEth(
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: N/A");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process15");
   }
 }
 
@@ -1092,7 +1092,7 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process16");
   }
 }
 
@@ -1126,7 +1126,7 @@ Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txnHash);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process17");
   }
 }
 
@@ -1162,7 +1162,7 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process18");
   }
 }
 
@@ -1188,7 +1188,7 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process19");
   }
 }
 
@@ -1267,7 +1267,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process20");
   }
 }
 
@@ -1317,7 +1317,7 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process21");
   }
 
   if (!ret) {
@@ -1353,7 +1353,7 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
       ret["nonce"] = static_cast<unsigned int>(0);
       return ret;
     } else {
-      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process22");
     }
   }
 }
@@ -1442,12 +1442,12 @@ Json::Value LookupServer::GetEthFeeHistory() {
 }
 
 Json::Value LookupServer::GetEthStorageAt(std::string const& address,
-                                            std::string const& /*position*/,
+                                            std::string const& position,
                                             std::string const& /*blockNum*/) {
   LOG_MARKER();
 
   string vname{};
-  Json::Value indices{};
+  Json::Value indices = Json::arrayValue;
 
   if (Mediator::m_disableGetSmartContractState) {
     LOG_GENERAL(WARNING, "API disabled");
@@ -1478,19 +1478,61 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     Json::Value root;
     const auto indices_vector =
         JSONConversion::convertJsonArrayToVector(indices);
+    std::cout << "wheeeejA"  << std::endl;
+
     if (!account->FetchStateJson(root, vname, indices_vector)) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
     }
 
-    std::cout << "root is" << std::endl;
-    std::cout << root.asString() << std::endl;
+    // Attempt to get storage at position.
+    // Left-pad position with 0s up to 64
+    std::string zeroes = "0000000000000000000000000000000000000000000000000000000000000000";
 
-    return root;
+    if (position.size() > zeroes.size()) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "Position string is too long! " + position);
+    }
+
+    if (!position.empty()) {
+      // Iterate bacwards on both strings replacing
+      auto zeroesIterator = zeroes.end();
+      auto positionIterator = position.end();
+
+      do{
+        if(*positionIterator != 'x'){
+          *zeroesIterator = *positionIterator;
+        }
+        zeroesIterator--;
+        positionIterator--;
+      } while(positionIterator != position.begin() && *positionIterator != 'x');
+    }
+
+    std::cout << "root is" << std::endl;
+    std::cout << "position is: " << position << std::endl;
+    std::cout << "zeroes is: " << zeroes << std::endl;
+    //std::cout << root["_evm_storage"] << std::endl;
+    std::cout << root["_evm_storage"][zeroes] << std::endl;
+    std::cout << root["_evm_storage"][zeroes].size() << std::endl;
+
+    auto res = root["_evm_storage"][zeroes];
+    //auto resAsString = res.asString();
+    bytes resAsStringBytes;
+
+    for (const auto &item : res.asString()) {
+      resAsStringBytes.push_back(item);
+    }
+
+    auto resAsStringHex = std::string("0x") + DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
+
+    //for (const auto &item : res.asString()) {
+    //  std::cout << item << std::endl;
+    //}
+
+    return resAsStringHex;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process23");
   }
 }
 
@@ -1498,6 +1540,7 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
   LOG_MARKER();
+  std::cout << "GetSmartContractState" << std::endl;
 
   if (Mediator::m_disableGetSmartContractState) {
     LOG_GENERAL(WARNING, "API disabled");
@@ -1524,7 +1567,8 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Address not contract address");
     }
-    LOG_GENERAL(INFO, "Contract address: " << address);
+    LOG_GENERAL(INFO, "Contract address1: " << address);
+    //std::cout << "XXXX " << indices.asString() << std::endl;
     Json::Value root;
     const auto indices_vector =
         JSONConversion::convertJsonArrayToVector(indices);
@@ -1536,7 +1580,9 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    std::cout<<  "woe is me" << std::endl;
+    std::cout<<  e.what() << std::endl;
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process012");
   }
 }
 
@@ -1581,7 +1627,7 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process1");
   }
 }
 
@@ -1616,7 +1662,7 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process2");
   }
 }
 
@@ -1667,7 +1713,7 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process3");
   }
 }
 
@@ -1700,7 +1746,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "[Error]" << e.what() << " Input " << tranID);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process4");
   }
 }
 
@@ -2208,7 +2254,7 @@ Json::Value LookupServer::GetShardingStructure() {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process5");
   }
 }
 
@@ -2353,7 +2399,7 @@ Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum,
     throw je;
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process6");
   }
 
   if (pageNumber == "") {
@@ -2515,7 +2561,7 @@ Json::Value LookupServer::GetCurrentDSComm() {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process7");
   }
 }
 
@@ -2546,7 +2592,7 @@ Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
     throw je;
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "[Error] " << e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process8");
   }
 }
 
@@ -2694,7 +2740,7 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process10");
   }
 }
 
@@ -2761,7 +2807,7 @@ Json::Value LookupServer::GetStateProof(const string& address,
     } catch (exception& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
-      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process11");
     }
 
     if (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
