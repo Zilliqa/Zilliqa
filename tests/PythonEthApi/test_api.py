@@ -1213,8 +1213,8 @@ def main():
     #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
     #ret &= test_eth_getTransactionReceipt(args.api)
     ret &= test_eth_sign(args.api)
-    ret &= test_eth_signTransaction(args.api)
-    ret &= test_eth_sendTransaction(args.api)
+    #ret &= test_eth_signTransaction(args.api)
+    #ret &= test_eth_sendTransaction(args.api)
     ret &= test_eth_sendRawTransaction(args.api, account, w3)
 
     #ret &= test_eth_getBlockTransactionCountByHash(args.api)
