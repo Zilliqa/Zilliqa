@@ -729,10 +729,18 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     txreceipt.SetEpochNum(m_blocknum);
 
     std::cout << "we are her19" << std::endl;
+    std::cout << m_blocknum << std::endl;
+    std::cout << tx.GetNonce() << std::endl;
+    std::cout << tx.GetAmount() << std::endl;
+    std::cout << DataConversion::Uint8VecToHexStrRet(tx.GetData()) << std::endl;
+    std::cout << DataConversion::Uint8VecToHexStrRet(tx.GetCode()) << std::endl;
+    std::cout << tx.VersionCorrect() << std::endl;
+
     if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
                                                         3,  // Arbitrary values
                                                         true, tx, txreceipt,
                                                         error_code)) {
+      LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server...");
