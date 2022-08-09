@@ -20,17 +20,20 @@
 # Need to build evm...
 git clone git@github.com:Zilliqa/evm-ds.git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+find / -wholename "*cargo*" 
 source "$HOME/.cargo/env"
 cargo build --release
 
-find ./ -name evm-ds
-find ./ -name cargo.toml 2>&1 > /dev/null
+#find ./ -name evm-ds
+#find ./ -name cargo.toml 2>&1 > /dev/null
+#
+## Modify constants.xml for use by isolated server
+#cp constants.xml constants_backup.xml
+#sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
+#sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+#sudo mkdir -p /usr/local/etc/
 
-# Modify constants.xml for use by isolated server
-cp constants.xml constants_backup.xml
-sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
-sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
-sudo mkdir -p /usr/local/etc/
+exit 1
 
 cat constants.xml
 echo ""
