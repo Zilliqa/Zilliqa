@@ -19,8 +19,6 @@
 
 set -e
 
-#time ./scripts/integration_test.sh || exit 1
-
 # set n_parallel to fully utilize the resources
 os=$(uname)
 case $os in
