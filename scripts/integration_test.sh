@@ -24,7 +24,9 @@ git clone https://github.com/Zilliqa/evm-ds.git
 #find / -wholename "*cargo*" 
 #source "$HOME/.cargo/env"
 cd evm-ds
-cargo build --release
+cargo --version
+echo "building"
+cargo build --verbose --release --package evm-ds && cargo test --verbose --release --package evm-ds
 
 #find ./ -name evm-ds
 #find ./ -name cargo.toml 2>&1 > /dev/null
