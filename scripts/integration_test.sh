@@ -19,9 +19,9 @@
 
 # Need to build evm...
 git clone git@github.com:Zilliqa/evm-ds.git
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+#curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 find / -wholename "*cargo*" 
-source "$HOME/.cargo/env"
+#source "$HOME/.cargo/env"
 cargo build --release
 
 #find ./ -name evm-ds
