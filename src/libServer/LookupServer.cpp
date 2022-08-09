@@ -1267,6 +1267,7 @@ Json::Value LookupServer::GetBalance(const string& address) {
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
 
