@@ -1565,7 +1565,7 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                              "Address not contract address");
     }
-    LOG_GENERAL(INFO, "Contract address1: " << address);
+    LOG_GENERAL(INFO, "Contract address: " << address);
     Json::Value root;
     const auto indices_vector =
         JSONConversion::convertJsonArrayToVector(indices);
