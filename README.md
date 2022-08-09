@@ -62,7 +62,7 @@ The current release has the following features implemented:
 * State delta forwarding
 * Lookup nodes and Seed nodes for receiving and dispatching transactions
 * Persistent storage for transactions and state
-* S3 storage retrieval from archival nodes
+* S3 storage retrieval from archival node
 * [View change mechanism](https://dev.zilliqa.com/docs/contributors/core-view-change)
 * Node recovery mechanism
 * Protocol upgrade mechanism
