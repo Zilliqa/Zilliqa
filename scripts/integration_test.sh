@@ -20,9 +20,10 @@
 # Need to build evm...
 git clone git@github.com:Zilliqa/evm-ds.git
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
 cargo build --release
 
-find / -name evm-ds
+find ./ -name evm-ds
 exit 1
 
 # Modify constants.xml for use by isolated server
