@@ -40,7 +40,7 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
 
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 
-bytes ToEVM(bytes const &in);
-bytes FromEVM(bytes const &in);
+bytes ToEVM(bytes const& in);
+bytes FromEVM(bytes const& in);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

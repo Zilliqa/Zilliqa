@@ -499,8 +499,9 @@ LookupServer::LookupServer(Mediator& mediator,
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_STRING,
-                         NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthStorageAtI);
 
   m_StartTimeTx = 0;
@@ -1436,8 +1437,8 @@ Json::Value LookupServer::GetEmptyResponse() {
 }
 
 Json::Value LookupServer::GetEthStorageAt(std::string const& address,
-                                            std::string const& position,
-                                            std::string const& /*blockNum*/) {
+                                          std::string const& position,
+                                          std::string const& /*blockNum*/) {
   LOG_MARKER();
 
   string vname{};
@@ -1479,10 +1480,12 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
 
     // Attempt to get storage at position.
     // Left-pad position with 0s up to 64
-    std::string zeroes = "0000000000000000000000000000000000000000000000000000000000000000";
+    std::string zeroes =
+        "0000000000000000000000000000000000000000000000000000000000000000";
 
     if (position.size() > zeroes.size()) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR, "Position string is too long! " + position);
+      throw JsonRpcException(RPC_INTERNAL_ERROR,
+                             "Position string is too long! " + position);
     }
 
     if (!position.empty()) {
@@ -1490,23 +1493,25 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
       auto zeroesIterator = zeroes.end();
       auto positionIterator = position.end();
 
-      do{
-        if(*positionIterator != 'x'){
+      do {
+        if (*positionIterator != 'x') {
           *zeroesIterator = *positionIterator;
         }
         zeroesIterator--;
         positionIterator--;
-      } while(positionIterator != position.begin() && *positionIterator != 'x');
+      } while (positionIterator != position.begin() &&
+               *positionIterator != 'x');
     }
 
     auto res = root["_evm_storage"][zeroes];
     bytes resAsStringBytes;
 
-    for (const auto &item : res.asString()) {
+    for (const auto& item : res.asString()) {
       resAsStringBytes.push_back(item);
     }
 
-    auto resAsStringHex = std::string("0x") + DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
+    auto resAsStringHex = std::string("0x") +
+                          DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
 
     return resAsStringHex;
   } catch (const JsonRpcException& je) {
@@ -1517,9 +1522,8 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
   }
 }
 
-
 Json::Value LookupServer::GetEthCode(std::string const& address,
-                                          std::string const& /*blockNum*/) {
+                                     std::string const& /*blockNum*/) {
   LOG_MARKER();
 
   auto code = GetSmartContractCode(address);
@@ -1529,7 +1533,7 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
   if (codeStr.size() > 3) {
     codeStr[1] = '0';
     codeStr[2] = 'x';
-    codeStr.erase(0,1);
+    codeStr.erase(0, 1);
   }
 
   return codeStr;

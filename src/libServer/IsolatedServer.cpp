@@ -308,22 +308,26 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_STRING, NULL),
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthStorageAtI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_sign", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01",jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthSignI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_signTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
       &LookupServer::GetEthSignTransactionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_sendTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, NULL),
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
       &LookupServer::GetEthSendTransactionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -331,7 +335,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCodeI);
-
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,

@@ -561,26 +561,23 @@ class LookupServer : public Server,
    * @param response : Array of DATA, 20 Bytes - addresses owned by the client.
    */
   virtual void GetEthStorageAtI(const Json::Value& request,
-                               Json::Value& response) {
+                                Json::Value& response) {
     std::cout << "GetEthStorageAtI call " << std::endl;
-    response = this->GetEthStorageAt(request[0u].asString(),
-                                     request[1u].asString(),
-                                     request[2u].asString());
+    response = this->GetEthStorageAt(
+        request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
 
-  virtual void GetEthCodeI(const Json::Value& request,
-                                Json::Value& response) {
-    response = this->GetEthCode(request[0u].asString(),
-                                     request[1u].asString());
+  virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
+    response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
   virtual void GetEthSignI(const Json::Value& /*request*/,
-                                Json::Value& response) {
+                           Json::Value& response) {
     response = this->GetEmptyResponse();
   }
 
   virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
-                           Json::Value& response) {
+                                      Json::Value& response) {
     response = this->GetEmptyResponse();
   }
 
@@ -590,7 +587,7 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
-                                             Json::Value& response) {
+                                        Json::Value& response) {
     response = this->GetEmptyResponse();
   }
 
@@ -646,7 +643,7 @@ class LookupServer : public Server,
                               std::string const& position,
                               std::string const& blockNum);
   Json::Value GetEthCode(std::string const& address,
-                              std::string const& blockNum);
+                         std::string const& blockNum);
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();

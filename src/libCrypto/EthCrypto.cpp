@@ -335,31 +335,30 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
 
-bytes ToEVM(bytes const &in) {
-  if (in.empty()){
+bytes ToEVM(bytes const& in) {
+  if (in.empty()) {
     return in;
   }
 
   std::string prefixedEvm{"EVM"};
   prefixedEvm += DataConversion::Uint8VecToHexStrRet(in);
-  bytes  ret;
+  bytes ret;
 
-  for(const auto &a: prefixedEvm){
+  for (const auto& a : prefixedEvm) {
     ret.push_back(a);
   }
 
   return ret;
 }
 
-bytes FromEVM(bytes const &in) {
-
-  if (in.empty()){
+bytes FromEVM(bytes const& in) {
+  if (in.empty()) {
     return in;
   }
 
-  std::string conv = std::string(reinterpret_cast<const char*>(in.data()), in.size());
-  conv.erase(0,3);
+  std::string conv =
+      std::string(reinterpret_cast<const char*>(in.data()), in.size());
+  conv.erase(0, 3);
 
   return DataConversion::HexStrToUint8VecRet(conv);
 }
-

@@ -172,7 +172,6 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-
     auto const nullAddr = IsNullAddress(tx.GetToAddr());
 
     if ((!tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {

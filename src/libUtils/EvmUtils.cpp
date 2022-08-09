@@ -96,5 +96,5 @@ bool EvmUtils::isEvm(const bytes& code) {
 
   auto const hasEvm = (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 
-  return  hasEvm;
+  return hasEvm;
 }
