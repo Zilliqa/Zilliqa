@@ -23,18 +23,11 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
 source "$HOME/.cargo/env"
 cargo build --release
 
-find ./ -name evm-ds
-find ./ -name cargo.toml 2>&1 > /dev/null
-
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
 sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
 sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
 sudo mkdir -p /usr/local/etc/
-
-cat constants.xml
-echo ""
-echo ""
 
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
@@ -42,12 +35,12 @@ echo "Starting isolated server"
 sleep 15
 
 echo "Starting python test"
-sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1
+sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
 
 python3 -m pip install cython || exit 1
 
 python3 --version
-python3 -m pip install -r ./tests/PythonEthApi/requirements.txt || exit 1
+python3 -m pip install -r ./tests/PythonEthApi/requirements.txt  2>&1 > /dev/null
 python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
 
 retVal=$?
