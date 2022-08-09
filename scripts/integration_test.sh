@@ -24,7 +24,8 @@ source "$HOME/.cargo/env"
 cargo build --release
 
 find ./ -name evm-ds
-exit 1
+find ./ -name cargo.toml 2>&1 > /dev/null
+#exit 1
 
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
