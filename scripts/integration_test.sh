@@ -29,8 +29,8 @@ find ./ -name cargo.toml 2>&1 > /dev/null
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
 sed -i 's/.LOOKUP_NODE_MODE.true/<LOOKUP_NODE_MODE>false/g' constants.xml
-#sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
-#sudo mkdir -p /usr/local/etc/
+sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+sudo mkdir -p /usr/local/etc/
 
 cat constants.xml
 echo ""
