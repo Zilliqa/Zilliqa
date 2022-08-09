@@ -331,12 +331,6 @@ class LookupServer : public Server,
     response = "0xd9e63a68c";
   }
 
-  //inline virtual void GetCodeI(const Json::Value& request,
-  //                             Json::Value& response) {
-  //  (void)request;
-  //  response = "0x";
-  //}
-
   inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;

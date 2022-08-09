@@ -276,12 +276,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthGasPriceI);
 
-//  AbstractServer<IsolatedServer>::bindAndAddMethod(
-//      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
-//                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-//                         "param02", jsonrpc::JSON_STRING, NULL),
-//      &LookupServer::GetCodeI);
-
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
@@ -615,9 +609,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    std::cout << "we are her1" << std::endl;
-    std::cout << DataConversion::Uint8VecToHexStrRet(pubKey) << std::endl;
-
     Transaction tx{fields.version,
                    fields.nonce,
                    Address(fields.toAddr),
@@ -629,57 +620,46 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                    fields.data,
                    Signature(fields.signature, 0)};
 
-    std::cout << "we are her2" << std::endl;
     Json::Value ret;
 
     uint64_t senderNonce;
     uint128_t senderBalance;
 
-    std::cout << "we are her3" << std::endl;
     const Address fromAddr = tx.GetSenderAddr();
 
     lock_guard<mutex> g(m_blockMutex);
 
     {
-      std::cout << "we are her4" << std::endl;
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
 
-      std::cout << "we are her5" << std::endl;
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      std::cout << "we are her6" << std::endl;
       if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
         return ret;
       }
 
-      std::cout << "we are her7j" << std::endl;
       senderNonce = sender->GetNonce();
       senderBalance = sender->GetBalance();
     }
 
-    std::cout << "we are her8j" << std::endl;
     if (senderNonce + 1 != tx.GetNonce()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Expected Nonce: " + to_string(senderNonce + 1));
     }
 
-    std::cout << "we are her9j" << std::endl;
     if (senderBalance < tx.GetAmount()) {
-      std::cout << "we are her10j" << std::endl;
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
               " with an attempt to send: " + tx.GetAmount().str());
     }
 
-    std::cout << "we are her11j" << std::endl;
     if (m_gasPrice > tx.GetGasPrice()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Minimum gas price greater: " + m_gasPrice.str());
     }
 
-    std::cout << "we are her12" << std::endl;
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         break;
@@ -687,7 +667,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        std::cout << "we are her13" << std::endl;
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, senderNonce).hex();
         break;
@@ -697,22 +676,18 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
         }
 
         {
-          std::cout << "we are her14jyyjjj" << std::endl;
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
 
-          std::cout << "we are her15" << std::endl;
           const Account* account =
               AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
-          std::cout << "we are her16" << std::endl;
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "To addr is null");
           }
 
           else if (!account->isContract()) {
-            std::cout << "we are her17" << std::endl;
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "Non - contract address called");
           }
@@ -720,7 +695,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       } break;
 
       case Transaction::ContractType::ERROR:
-        std::cout << "we are her18" << std::endl;
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                "The code is empty and To addr is null");
         break;
@@ -734,14 +708,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
-    std::cout << "we are her19" << std::endl;
-    std::cout << m_blocknum << std::endl;
-    std::cout << tx.GetNonce() << std::endl;
-    std::cout << tx.GetAmount() << std::endl;
-    std::cout << DataConversion::Uint8VecToHexStrRet(tx.GetData()) << std::endl;
-    std::cout << DataConversion::Uint8VecToHexStrRet(tx.GetCode()) << std::endl;
-    std::cout << tx.VersionCorrect() << std::endl;
-
     if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
                                                         3,  // Arbitrary values
                                                         true, tx, txreceipt,
@@ -751,24 +717,17 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
     LOG_GENERAL(INFO, "Processing On the isolated server...");
 
-    std::cout << "we are her1a" << std::endl;
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
-    std::cout << "we are her1b" << std::endl;
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
-    std::cout << "we are her1c" << std::endl;
 
-    std::cout << "we are her1d" << std::endl;
     AccountStore::GetInstance().SerializeDelta();
-    std::cout << "we are her1e" << std::endl;
     AccountStore::GetInstance().CommitTemp();
 
     if (!m_timeDelta) {
-      std::cout << "we are her1f" << std::endl;
       AccountStore::GetInstance().InitTemp();
     }
 
     if (throwError) {
-      std::cout << "we are her1g" << std::endl;
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Error Code: " + to_string(error_code));
     }
@@ -781,7 +740,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
 
     m_currEpochGas += txreceipt.GetCumGas();
 
-    std::cout << "we are her1h" << std::endl;
     if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
                                                    twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
