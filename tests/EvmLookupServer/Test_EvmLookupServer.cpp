@@ -879,4 +879,23 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
   }
 }
 
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  BOOST_TEST_CHECK(true == true);
+}
+
 BOOST_AUTO_TEST_SUITE_END()
