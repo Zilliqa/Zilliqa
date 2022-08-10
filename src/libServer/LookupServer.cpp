@@ -1441,7 +1441,6 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
                                           std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  string vname{};
   Json::Value indices = Json::arrayValue;
 
   if (Mediator::m_disableGetSmartContractState) {
@@ -1474,6 +1473,7 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     const auto indices_vector =
         JSONConversion::convertJsonArrayToVector(indices);
 
+    string vname{};
     if (!account->FetchStateJson(root, vname, indices_vector)) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
     }
@@ -1485,23 +1485,20 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
 
     if (position.size() > zeroes.size()) {
       throw JsonRpcException(RPC_INTERNAL_ERROR,
-                             "Position string is too long! " + position);
+                             "position string is too long! " + position);
     }
 
-    if (!position.empty()) {
-      // Iterate bacwards on both strings replacing
-      auto zeroesIterator = zeroes.end();
-      auto positionIterator = position.end();
+    auto positionIter = position.begin();
+    auto zeroIter = zeroes.begin();
 
-      do {
-        if (*positionIterator != 'x') {
-          *zeroesIterator = *positionIterator;
-        }
-        zeroesIterator--;
-        positionIterator--;
-      } while (positionIterator != position.begin() &&
-               *positionIterator != 'x');
+    // Move position iterator past '0x' if it exists
+    if (position.size() > 2 && position[0] == '0' && position[1] == 'x') {
+      std::advance(positionIter, 2);
     }
+
+    std::advance(zeroIter, zeroes.size() - std::distance(positionIter, position.end()));
+
+    zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
 
     auto res = root["_evm_storage"][zeroes];
     bytes resAsStringBytes;
@@ -1510,7 +1507,7 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
       resAsStringBytes.push_back(item);
     }
 
-    auto resAsStringHex = std::string("0x") +
+    auto const resAsStringHex = std::string("0x") +
                           DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
 
     return resAsStringHex;
