@@ -36,6 +36,7 @@ addons:
       - libminiupnpc-dev
       - libsnappy-dev
       - libssl-dev
+      - cargo
       - pkg-config
       # Development dependency
       - ccache

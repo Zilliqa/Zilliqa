@@ -159,7 +159,6 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
     """
     try:
         # In order to do this test, we can write a contract to storage and check its state is there correctly
-        print(f"getting nonce..jyy")
         nonce = w3.eth.getTransactionCount(account.address)
 
         compilation_result = compile_solidity(contract)
@@ -179,31 +178,24 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
         signed_transaction = account.signTransaction(transaction)
         rawHex = signed_transaction.rawTransaction.hex()
 
-        print(f"Sending raw tx. {rawHex}")
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
                                             "params": [rawHex]})
-        print(f"get result {response}")
-        print(f"get result {response.text}")
         res = get_result(response)
 
         # Get the address of the contract (ZIL API, TODO: CHANGE THIS)
-        print(f"get contract addr from ID")
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "GetContractAddressFromTransactionID",
                                             "params": [res]})
 
         res = get_result(response)
         res.replace("0x", "")
 
-        print(f"get storage with res {res}")
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt",
                                             "params": [res, "0x0", "latest"]})
 
-        print(f"have {response}")
-        print(f"have {response.text}")
         res = get_result(response)
 
-        if "0x00000000000000000000000000000000000000000000000000000000000004d2" != res.lower():
-            raise Exception(f"Failed to retrieve correct contract amount: {res} when expected 0x00000000000000000000000000000000000000000000000000000000000004d2")
+        if "0x0000000000000000000000000000000000000000000000000000000000000401" != res.lower():
+            raise Exception(f"Failed to retrieve correct contract amount: {res} when expected 0x0000000000000000000000000000000000000000000000000000000000000401")
 
     except Exception as e:
         print(f"Failed test test_eth_getStorageAt with error: '{e}'")
