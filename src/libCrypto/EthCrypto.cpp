@@ -354,13 +354,7 @@ bytes FromEVM(bytes const& in) {
     return in;
   }
 
-  // Copy all but the first three characters('EVM') into a string for conversion
-  // Advance iterator at beginning
-  auto copyAt = in.begin();
-  std::advance(copyAt, 3);
-  std::string ret{copyAt, in.end()};
-
-  std::copy(copyAt, in.end(), std::back_inserter(ret));
+  std::string ret{in.begin() + 3, in.end()};
 
   return DataConversion::HexStrToUint8VecRet(ret);
 }
