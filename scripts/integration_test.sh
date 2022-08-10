@@ -19,22 +19,12 @@
 
 # Need to build evm...
 git clone git@github.com:Zilliqa/evm-ds.git
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-source "$HOME/.cargo/env"
-cargo build --release
-
-find ./ -name evm-ds
-find ./ -name cargo.toml 2>&1 > /dev/null
 
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
 sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
 sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
 sudo mkdir -p /usr/local/etc/
-
-cat constants.xml
-echo ""
-echo ""
 
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
