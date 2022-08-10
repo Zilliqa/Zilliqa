@@ -190,7 +190,7 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
         res.replace("0x", "")
 
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt",
-                                            "params": [res, "0x0", "latest"]})
+                                            "params": [res, "0x1", "latest"]})
 
         res = get_result(response)
 
