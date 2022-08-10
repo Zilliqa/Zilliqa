@@ -26,11 +26,11 @@ git clone https://github.com/Zilliqa/evm-ds.git
 cd evm-ds
 cargo --version
 echo "building"
-sudo apt-get install protobuf-compiler
+#sudp apt-get install protobuf-compiler
 sudo snap install protobuf --classic
 cargo build --verbose --release --package evm-ds && cargo test --verbose --release --package evm-ds
 
-#find ./ -name evm-ds
+find ./ -name evm-ds
 #find ./ -name cargo.toml 2>&1 > /dev/null
 #
 ## Modify constants.xml for use by isolated server
