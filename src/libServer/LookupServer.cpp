@@ -1496,7 +1496,8 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
       std::advance(positionIter, 2);
     }
 
-    std::advance(zeroIter, zeroes.size() - std::distance(positionIter, position.end()));
+    std::advance(zeroIter,
+                 zeroes.size() - std::distance(positionIter, position.end()));
 
     zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
 
@@ -1507,8 +1508,9 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
       resAsStringBytes.push_back(item);
     }
 
-    auto const resAsStringHex = std::string("0x") +
-                          DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
+    auto const resAsStringHex =
+        std::string("0x") +
+        DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
 
     return resAsStringHex;
   } catch (const JsonRpcException& je) {
