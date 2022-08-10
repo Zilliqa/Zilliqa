@@ -35,8 +35,8 @@ ls /home/travis/build/Zilliqa/Zilliqa/evm-ds/target/release/evm-ds
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
 sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
-sed -i 's/.ENABLE_EVM.*/<ENABLE_EVM>true</ENABLE_EVM>/g' constants.xml
-sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds</EVM_SERVER_BINARY>/g' constants.xml
+sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
+sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
 sudo mkdir -p /usr/local/etc/
 ls -lath /usr/local/etc/
 
