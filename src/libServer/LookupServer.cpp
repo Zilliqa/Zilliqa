@@ -1037,7 +1037,7 @@ Json::Value LookupServer::GetEthBlockByHash(const std::string& inputHash,
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
-    static const TxBlock NON_EXISTING_TX_BLOCK{};
+    const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
