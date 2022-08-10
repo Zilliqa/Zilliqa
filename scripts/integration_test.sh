@@ -26,6 +26,7 @@ git clone https://github.com/Zilliqa/evm-ds.git
 cd evm-ds
 cargo --version
 echo "building"
+sudp apt-get install protobuf-compiler
 cargo build --verbose --release --package evm-ds && cargo test --verbose --release --package evm-ds
 
 #find ./ -name evm-ds
