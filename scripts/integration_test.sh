@@ -17,14 +17,20 @@
 # This script will start an isolated server and run the python API against it
 #
 
+# Install dependencies silently
+sudo snap install protobuf --classic 2>&1 > /dev/null
+sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
+python3 -m pip install cython 2>&1 > /dev/null
+python3 -m pip install -r ./tests/PythonEthApi/requirements.txt 2>&1 > /dev/null
+
 # Need to build evm...
 git clone https://github.com/Zilliqa/evm-ds.git
 
 cd evm-ds
 cargo --version
-echo "building"
-sudo snap install protobuf --classic
-cargo build --verbose --release --package evm-ds
+echo "building evm ds"
+
+cargo build --verbose --release --package evm-ds 2>&1 > /dev/null
 
 cd -
 
@@ -48,20 +54,15 @@ echo "Starting isolated server"
 sleep 15
 
 echo "Starting python test"
-sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1
-
-python3 -m pip install cython || exit 1
-
-python3 --version
-python3 -m pip install -r ./tests/PythonEthApi/requirements.txt || exit 1
 python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
 
 retVal=$?
 if [ $retVal -ne 0 ]; then
     echo "Error with integration test"
-    cat out.txt
     exit 1
 fi
+
+cat out.txt
 
 # Make constants.xml as it was
 mv constants_backup.xml constants.xml
