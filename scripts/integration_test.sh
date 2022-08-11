@@ -26,10 +26,6 @@ echo "building"
 sudo snap install protobuf --classic
 cargo build --verbose --release --package evm-ds
 
-sudo mkdir -p /usr/local/etc/
-cp log4rs.yml /usr/local/etc/
-ls -lath /usr/local/etc/
-
 cd -
 
 # Just to check evm-ds has been built
@@ -40,6 +36,7 @@ cp constants.xml constants_backup.xml
 sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
 sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
 sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
 
 cat constants.xml
 echo ""
