@@ -387,6 +387,12 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthBlockByNumberI);
 
   this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockByHash", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
+      &LookupServer::GetEthBlockByHashI);
+
+  this->bindAndAddMethod(
       jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthGasPriceI);
@@ -1023,50 +1029,75 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
-    const auto dsBlock =
-        m_mediator.m_dsBlockChain.GetBlock(txBlock.GetHeader().GetDSBlockNum());
+    return GetEthBlockCommon(txBlock, includeFullTransactions);
 
-    std::vector<TxBodySharedPtr> transactions;
-    std::vector<TxnHash> transactionHashes;
-
-    // Gather either transaction hashes or full transactions
-    const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
-    for (auto const& mbInfo : microBlockInfos) {
-      if (mbInfo.m_txnRootHash == TxnHash{}) {
-        continue;
-      }
-
-      MicroBlockSharedPtr microBlockPtr;
-      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
-              mbInfo.m_microBlockHash, microBlockPtr)) {
-        continue;
-      }
-
-      const auto& currTranHashes = microBlockPtr->GetTranHashes();
-      if (!includeFullTransactions) {
-        transactionHashes.insert(transactionHashes.end(),
-                                 currTranHashes.begin(), currTranHashes.end());
-        continue;
-      }
-      for (const auto& transactionHash : currTranHashes) {
-        TxBodySharedPtr transactioBodyPtr;
-        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                       transactioBodyPtr)) {
-          continue;
-        }
-        transactions.push_back(std::move(transactioBodyPtr));
-      }
-    }
-
-    return JSONConversion::convertTxBlocktoEthJson(
-        txBlock, dsBlock, transactions, transactionHashes,
-        includeFullTransactions);
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "
                                 << includeFullTransactions);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
+}
+
+Json::Value LookupServer::GetEthBlockByHash(const std::string& inputHash,
+                                            bool includeFullTransactions) {
+  try {
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    const TxBlock NON_EXISTING_TX_BLOCK{};
+    if (txBlock == NON_EXISTING_TX_BLOCK) {
+      return Json::nullValue;
+    }
+    return GetEthBlockCommon(txBlock, includeFullTransactions);
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash
+                                << ", includeFullTransactions: "
+                                << includeFullTransactions);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
+                                            bool includeFullTransactions) {
+  const auto dsBlock =
+      m_mediator.m_dsBlockChain.GetBlock(txBlock.GetHeader().GetDSBlockNum());
+
+  std::vector<TxBodySharedPtr> transactions;
+  std::vector<TxnHash> transactionHashes;
+
+  // Gather either transaction hashes or full transactions
+  const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
+  for (auto const& mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+
+    MicroBlockSharedPtr microBlockPtr;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto& currTranHashes = microBlockPtr->GetTranHashes();
+    if (!includeFullTransactions) {
+      transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
+                               currTranHashes.end());
+      continue;
+    }
+    for (const auto& transactionHash : currTranHashes) {
+      TxBodySharedPtr transactioBodyPtr;
+      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                     transactioBodyPtr)) {
+        continue;
+      }
+      transactions.push_back(std::move(transactioBodyPtr));
+    }
+  }
+
+  return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
+                                                 transactionHashes,
+                                                 includeFullTransactions);
 }
 
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
@@ -1223,33 +1254,6 @@ Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
-  }
-}
-
-Json::Value LookupServer::GetTxBlockByHash(const string& inputHash,
-                                           bool verbose) {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-  }
-
-  try {
-    const BlockHash hash{inputHash};
-    return JSONConversion::convertTxBlocktoJson(
-        m_mediator.m_txBlockChain.GetBlockByHash(hash), verbose);
-  } catch (const JsonRpcException& je) {
-    throw je;
-  } catch (runtime_error& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
-  } catch (invalid_argument& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
-  } catch (out_of_range& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }

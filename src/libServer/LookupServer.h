@@ -329,6 +329,12 @@ class LookupServer : public Server,
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
 
+  inline virtual void GetEthBlockByHashI(const Json::Value& request,
+                                         Json::Value& response) {
+    response =
+        this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
+  }
+
   inline virtual void GetEthGasPriceI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
@@ -609,7 +615,6 @@ class LookupServer : public Server,
   Json::Value GetDsBlock(const std::string& blockNum, bool verbose = false);
   Json::Value GetTxBlockByNum(const std::string& blockNum,
                               bool verbose = false);
-  Json::Value GetTxBlockByHash(const std::string& hash, bool verbose = false);
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalance(const std::string& address);
@@ -659,7 +664,11 @@ class LookupServer : public Server,
   // Eth calls
   Json::Value GetTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
-                                  bool includeTransactionHashes);
+                                  bool includeFullTransactions);
+  Json::Value GetEthBlockByHash(const std::string& blockHash,
+                                bool includeFullTransactions);
+  Json::Value GetEthBlockCommon(const TxBlock& txBlock,
+                                bool includeFullTransactions);
   Json::Value CreateTransactionEth(
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,
