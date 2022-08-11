@@ -445,7 +445,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
   {
     std::lock_guard<std::mutex> guard(m_continueRoundMutex);
     if (!m_continueRound) {
-      // LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
+      LOG_GENERAL(WARNING, "Round is not running. Ignoring message!!")
       return {false, {}};
     }
   }
@@ -466,6 +466,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
 
   auto result = VerifyMessage(message, t, from);
   if (!result.first) {
+    LOG_GENERAL(DEBUG, "looks like VerifyMessage told us to return");
     return {false, {}};
   }
   bytes message_wo_keysig(result.second);
