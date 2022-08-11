@@ -1193,7 +1193,8 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
   }
 }
 
-Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
+Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
+                                          bool verbose) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1215,6 +1216,33 @@ Json::Value LookupServer::GetTxBlock(const string& blockNum, bool verbose) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetTxBlockByHash(const string& inputHash,
+                                           bool verbose) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  try {
+    const BlockHash hash{inputHash};
+    return JSONConversion::convertTxBlocktoJson(
+        m_mediator.m_txBlockChain.GetBlockByHash(hash), verbose);
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (runtime_error& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+    throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
+  } catch (invalid_argument& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+  } catch (out_of_range& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
 }
@@ -2529,10 +2557,9 @@ Json::Value LookupServer::GetPendingTxns() {
   }
 
   try {
-    const Json::Value result =
-        std::move(RemoteStorageDB::GetInstance().QueryPendingTxns(
-            m_mediator.m_currentEpochNum - PENDING_TXN_QUERY_NUM_EPOCHS,
-            m_mediator.m_currentEpochNum));
+    const Json::Value result = RemoteStorageDB::GetInstance().QueryPendingTxns(
+        m_mediator.m_currentEpochNum - PENDING_TXN_QUERY_NUM_EPOCHS,
+        m_mediator.m_currentEpochNum);
     if (result.isMember("error")) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
     }

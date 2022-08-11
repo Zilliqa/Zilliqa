@@ -19,6 +19,9 @@
 #define ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKCHAIN_H_
 
 #include <mutex>
+#include <type_traits>
+
+#include <boost/compute/detail/lru_cache.hpp>
 
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/DataStructures/CircularArray.h"
@@ -30,18 +33,26 @@ template <class T>
 class BlockChain {
   std::mutex m_mutexBlocks;
   CircularArray<T> m_blocks;
+  boost::compute::detail::lru_cache<dev::h256, T> m_lru_blocks;
 
  protected:
   /// Constructor.
-  BlockChain() { Reset(); }
+  BlockChain() : m_lru_blocks{BLOCKCHAIN_SIZE} { Reset(); }
 
   ~BlockChain() {}
 
   virtual T GetBlockFromPersistentStorage(const uint64_t& blockNum) = 0;
+  virtual T GetBlockFromPersistentStorage(
+      const BlockHash& /* blockHash */) const {
+    return {};
+  };
 
  public:
   /// Reset
-  void Reset() { m_blocks.resize(BLOCKCHAIN_SIZE); }
+  void Reset() {
+    m_blocks.resize(BLOCKCHAIN_SIZE);
+    m_lru_blocks.clear();
+  }
 
   /// Returns the number of blocks.
   uint64_t GetBlockCount() {
@@ -77,6 +88,18 @@ class BlockChain {
     }
   }
 
+  // This is only allowed for TxBlocks. Otherwise trigger compilation error
+  template <class U = T, typename std::enable_if<
+                             std::is_same<U, TxBlock>::value>::type* = nullptr>
+  T GetBlockByHash(const dev::h256& blockHash) {
+    std::lock_guard<std::mutex> g(m_mutexBlocks);
+    const auto block = m_lru_blocks.get(blockHash);
+    if (!block) {
+      return GetBlockFromPersistentStorage(blockHash);
+    }
+    return *block;
+  }
+
   /// Adds a block to the chain.
   int AddBlock(const T& block) {
     uint64_t blockNumOfNewBlock = block.GetHeader().GetBlockNum();
@@ -103,6 +126,7 @@ class BlockChain {
         m_blocks.increase_size(blockNumOfNewBlock);
       }
       m_blocks.insert_new(blockNumOfNewBlock, block);
+      m_lru_blocks.insert(block.GetBlockHash(), block);
     } else {
       LOG_GENERAL(WARNING, "Failed to add " << blockNumOfNewBlock << " "
                                             << blockNumOfExistingBlock);
@@ -137,6 +161,17 @@ class TxBlockChain : public BlockChain<TxBlock> {
     }
     return *block;
   }
+
+  TxBlock GetBlockFromPersistentStorage(
+      const BlockHash& blockHash) const override {
+    TxBlockSharedPtr block;
+    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockHash, block)) {
+      LOG_GENERAL(WARNING, "BlockHash not in persistent storage "
+                               << blockHash << " Dummy block used");
+      return {};
+    }
+    return *block;
+  };
 };
 
 class VCBlockChain : public BlockChain<VCBlock> {
