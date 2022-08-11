@@ -53,8 +53,9 @@ echo "Starting isolated server"
 
 sleep 15
 
+# Cat the python test so it doesn't interleave with the isolated server.
 echo "Starting python test"
-python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
+python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 2>&1 out.txt
 
 retVal=$?
 if [ $retVal -ne 0 ]; then
