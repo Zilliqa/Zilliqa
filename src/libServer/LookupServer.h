@@ -410,6 +410,11 @@ class LookupServer : public Server,
     response = resp;
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_getTransactionByHash
+   * @param request : transaction hash
+   * @param response : string with the client version
+   */
   inline virtual void GetEthTransactionByHashI(const Json::Value& request,
                                                Json::Value& response) {
     response = this->GetEthTransactionByHash(request[0u].asString());

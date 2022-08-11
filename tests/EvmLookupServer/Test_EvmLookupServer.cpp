@@ -892,10 +892,50 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   AbstractServerConnectorMock abstractServerConnector;
 
   LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 2;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr uint64_t EPOCH_NUM = 1;
+  for (const auto& transaction : transactions) {
+    bytes body;
+    transaction.Serialize(body, 0);
+    BlockStorage::GetBlockStorage().PutTxBody(
+        EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
+  }
+
+  for (uint32_t i = 0; i < transactions.size(); ++i) {
+    // call the method on the lookup server with params
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = transactions[i].GetTransaction().GetTranID().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthTransactionByHashI(paramsRequest, response);
+
+    BOOST_TEST_CHECK(response["hash"] ==
+                     transactions[i].GetTransaction().GetTranID().hex());
+    BOOST_TEST_CHECK(
+        response["nonce"] ==
+        std::to_string(transactions[i].GetTransaction().GetNonce()));
+    BOOST_TEST_CHECK(response["value"] ==
+                     transactions[i].GetTransaction().GetAmount().str());
+  }
+
+  // Get non-existing transaction
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  BOOST_TEST_CHECK(true == true);
+  paramsRequest[0u] = "abcdeffedcba";
+
+  Json::Value response;
+
+  lookupServer.GetEthTransactionByHashI(paramsRequest, response);
+  BOOST_TEST_CHECK(response == Json::nullValue);
 }
 
 BOOST_AUTO_TEST_SUITE_END()
