@@ -335,12 +335,6 @@ class LookupServer : public Server,
     response = "0xd9e63a68c";
   }
 
-  inline virtual void GetCodeI(const Json::Value& request,
-                               Json::Value& response) {
-    (void)request;
-    response = "0x";
-  }
-
   inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                          Json::Value& response) {
     (void)request;
@@ -561,7 +555,44 @@ class LookupServer : public Server,
    */
   virtual void GetEthAccountsI(const Json::Value& /*request*/,
                                Json::Value& response) {
-    response = this->GetEthAccounts();
+    response = this->GetEmptyResponse();
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: eth_accounts
+   * Returns a list of addresses owned by client.
+   * @param request : params none
+   * @param response : Array of DATA, 20 Bytes - addresses owned by the client.
+   */
+  virtual void GetEthStorageAtI(const Json::Value& request,
+                                Json::Value& response) {
+    std::cout << "GetEthStorageAtI call " << std::endl;
+    response = this->GetEthStorageAt(
+        request[0u].asString(), request[1u].asString(), request[2u].asString());
+  }
+
+  virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
+    response = this->GetEthCode(request[0u].asString(), request[1u].asString());
+  }
+
+  virtual void GetEthSignI(const Json::Value& /*request*/,
+                           Json::Value& response) {
+    response = this->GetEmptyResponse();
+  }
+
+  virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
+                                      Json::Value& response) {
+    response = this->GetEmptyResponse();
+  }
+
+  virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
+                                      Json::Value& response) {
+    response = this->GetEmptyResponse();
+  }
+
+  inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
+                                        Json::Value& response) {
+    response = this->GetEmptyResponse();
   }
 
   std::string GetNetworkId();
@@ -587,6 +618,7 @@ class LookupServer : public Server,
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
   unsigned int GetNumPeers();
+
   std::string GetNumTxBlocks();
   std::string GetNumDSBlocks();
   std::string GetNumTransactions();
@@ -612,7 +644,12 @@ class LookupServer : public Server,
   std::string GetProtocolVersion();
   std::string GetEthChainId();
   Json::Value GetEthSyncing();
-  Json::Value GetEthAccounts();
+  Json::Value GetEmptyResponse();
+  Json::Value GetEthStorageAt(std::string const& address,
+                              std::string const& position,
+                              std::string const& blockNum);
+  Json::Value GetEthCode(std::string const& address,
+                         std::string const& blockNum);
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();

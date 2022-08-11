@@ -17,9 +17,14 @@
 # This script will start an isolated server and run the python API against it
 #
 
+# Need to build evm...
+git clone git@github.com:Zilliqa/evm-ds.git
+
 # Modify constants.xml for use by isolated server
 cp constants.xml constants_backup.xml
-sed -i 's/.ENABLE_SC.true/<ENABLE_SC>false/g' constants.xml
+sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
+sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+sudo mkdir -p /usr/local/etc/
 
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
@@ -27,10 +32,13 @@ echo "Starting isolated server"
 sleep 15
 
 echo "Starting python test"
-python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
+sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1
 
-# Make constants.xml as it was
-mv constants_backup.xml constants.xml
+python3 -m pip install cython || exit 1
+
+python3 --version
+python3 -m pip install -r ./tests/PythonEthApi/requirements.txt || exit 1
+python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
 
 retVal=$?
 if [ $retVal -ne 0 ]; then
@@ -38,6 +46,9 @@ if [ $retVal -ne 0 ]; then
     cat out.txt
     exit 1
 fi
+
+# Make constants.xml as it was
+mv constants_backup.xml constants.xml
 
 echo "Success with integration test"
 exit 0

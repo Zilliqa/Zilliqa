@@ -395,7 +395,7 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetCodeI);
+      &LookupServer::GetEthCodeI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
@@ -496,6 +496,13 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_accounts", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthAccountsI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthStorageAtI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -1484,10 +1491,112 @@ Json::Value LookupServer::GetEthSyncing() {
   return Json::Value(false);
 }
 
-Json::Value LookupServer::GetEthAccounts() {
+Json::Value LookupServer::GetEmptyResponse() {
   LOG_MARKER();
   const Json::Value expectedResponse = Json::arrayValue;
   return expectedResponse;
+}
+
+Json::Value LookupServer::GetEthStorageAt(std::string const& address,
+                                          std::string const& position,
+                                          std::string const& /*blockNum*/) {
+  LOG_MARKER();
+
+  Json::Value indices = Json::arrayValue;
+
+  if (Mediator::m_disableGetSmartContractState) {
+    LOG_GENERAL(WARNING, "API disabled");
+    throw JsonRpcException(RPC_INVALID_REQUEST, "API disabled");
+  }
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+
+  try {
+    Address addr{ToBase16AddrHelper(address)};
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
+
+    if (account == nullptr) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address does not exist");
+    }
+
+    if (!account->isContract()) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                             "Address not contract address");
+    }
+    LOG_GENERAL(INFO, "Contract address: " << address);
+    Json::Value root;
+    const auto indices_vector =
+        JSONConversion::convertJsonArrayToVector(indices);
+
+    string vname{};
+    if (!account->FetchStateJson(root, vname, indices_vector)) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
+    }
+
+    // Attempt to get storage at position.
+    // Left-pad position with 0s up to 64
+    std::string zeroes =
+        "0000000000000000000000000000000000000000000000000000000000000000";
+
+    if (position.size() > zeroes.size()) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR,
+                             "position string is too long! " + position);
+    }
+
+    auto positionIter = position.begin();
+    auto zeroIter = zeroes.begin();
+
+    // Move position iterator past '0x' if it exists
+    if (position.size() > 2 && position[0] == '0' && position[1] == 'x') {
+      std::advance(positionIter, 2);
+    }
+
+    std::advance(zeroIter,
+                 zeroes.size() - std::distance(positionIter, position.end()));
+
+    zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
+
+    auto res = root["_evm_storage"][zeroes];
+    bytes resAsStringBytes;
+
+    for (const auto& item : res.asString()) {
+      resAsStringBytes.push_back(item);
+    }
+
+    auto const resAsStringHex =
+        std::string("0x") +
+        DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
+
+    return resAsStringHex;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthCode(std::string const& address,
+                                     std::string const& /*blockNum*/) {
+  LOG_MARKER();
+
+  auto code = GetSmartContractCode(address);
+  auto codeStr = code["code"].asString();
+
+  // Erase 'EVM' from beginning, put '0x'
+  if (codeStr.size() > 3) {
+    codeStr[1] = '0';
+    codeStr[2] = 'x';
+    codeStr.erase(0, 1);
+  }
+
+  return codeStr;
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

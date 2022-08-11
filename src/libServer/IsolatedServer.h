@@ -113,6 +113,9 @@ class IsolatedServer : public LookupServer,
   Json::Value CreateTransaction(const Json::Value& _json);
   Json::Value CreateTransactionEth(EthFields const& fields,
                                    bytes const& pubKey);
+  Json::Value GetEthStorageAt(std::string const& address,
+                              std::string const& position,
+                              std::string const& blockNum);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);

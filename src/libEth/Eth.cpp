@@ -86,7 +86,7 @@ EthFields parseRawTxFields(std::string const& message) {
         ret.amount = uint128_t(*it);
         break;
       case 5:
-        ret.data = byteIt;
+        ret.code = byteIt;
         break;
       case 6:  // V - only needed for pub sig recovery
         break;

@@ -277,12 +277,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthGasPriceI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetCodeI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
@@ -305,6 +299,42 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionReceiptI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthFeeHistoryI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthStorageAtI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_sign", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthSignI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_signTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetEthSignTransactionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_sendTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::GetEthSendTransactionI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCodeI);
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -525,7 +555,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                                                         error_code)) {
       throwError = true;
     }
-    LOG_GENERAL(INFO, "Processing On the isolated server ");
+    LOG_GENERAL(INFO, "Processing On the isolated server");
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
@@ -589,7 +619,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                    fields.amount,
                    fields.gasPrice,
                    fields.gasLimit,
-                   bytes(),
+                   ToEVM(fields.code),
                    fields.data,
                    Signature(fields.signature, 0)};
 
@@ -680,13 +710,16 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     TxnStatus error_code;
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
+
     if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
                                                         3,  // Arbitrary values
                                                         true, tx, txreceipt,
                                                         error_code)) {
+      LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }
-    LOG_GENERAL(INFO, "Processing On the isolated server ");
+    LOG_GENERAL(INFO, "Processing On the isolated server...");
+
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
@@ -728,9 +761,10 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     return ret;
 
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: NA");
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 }

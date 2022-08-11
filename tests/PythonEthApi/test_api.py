@@ -16,12 +16,68 @@
 
 import sys
 import argparse
+
+import solcx
+solcx.install_solc()
+
+import eth_account.signers.local
+import pyzil.account
 import requests
 import os
 import time
 
+import web3
+from web3 import Web3
+from web3._utils.abi import get_constructor_abi, get_abi_output_types
+from web3._utils.contracts import encode_abi, get_function_info
+
+from pyzil.zilliqa.chain import BlockChain, set_active_chain, active_chain, ZilliqaAPI
+from pyzil.account import Account
+from pyzil.crypto.zilkey import to_checksum_address
+
+w3 = Web3()
+
 FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 BLOCK_TIME_S = 2
+
+GAS_LIMIT = 250000
+GAS_PRICE = 60
+CHAIN_ID = 33101
+
+contract = """
+// SPDX-License-Identifier: GPL-3.0
+
+pragma solidity >=0.7.0 <0.9.0;
+
+/**
+ * @title Storage
+ * @dev Store & retrieve value in a variable
+ */
+contract Storage {
+
+    uint256 number = 1234;
+    uint256 numberSecond = 1025;
+    /**
+     * @dev Store value in variable
+     * @param num value to store
+     */
+    function store(uint256 num) public {
+        number = num;
+    }
+
+    /**
+     * @dev Return value 
+     * @return value of 'number'
+     */
+    function retrieve() public view returns (uint256){
+        return number;
+    }
+
+   function wtf() public {
+        selfdestruct(payable(address(0)));
+    }
+}
+"""
 
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
@@ -34,6 +90,52 @@ def get_result(response: requests.models.Response) -> any:
 
     return res["result"]
 
+def compile_solidity(contract_string):
+    result = solcx.compile_source(
+        contract_string, output_values=["abi", "bin", "asm"]
+    )
+    result = result.popitem()[1]
+    return w3.eth.contract(abi=result["abi"], bytecode=result["bin"])
+
+def install_contract_bytes(account, data_bytes):
+    txn_details = account.transfer(
+        to_addr="0x0000000000000000000000000000000000000000",
+        zils=0,
+        code=data_bytes.replace("0x", "EVM"),
+        gas_limit=99_000,
+        gas_price=2000000000,
+        priority=True,
+        data="",  # TODO: Change for constructor params.
+        confirm=True,
+    )
+    if "ID" in txn_details:
+        address = Web3.toChecksumAddress(
+            active_chain.api.GetContractAddressFromTransactionID(txn_details["ID"])
+        )
+        print("Contract created, address: {}".format(address))
+        return w3.eth.contract(address=address)
+    else:
+        raise "No ID in the contract"
+
+def call_contract(account, contract, value, method, *arguments):
+    """
+    Call the contract's method with arguments as transaction.
+    """
+    # Use contract ABI to encode arguments.
+    calldata = contract.encodeABI(fn_name=method, args=arguments).replace("0x", "")
+    print("Calldata:", calldata)
+    contract_addr = to_checksum_address(contract.address)
+    print("Contract addr:", contract_addr)
+    txn_details = account.transfer(
+        to_addr=contract_addr,
+        zils=value,
+        gas_limit=99_000,
+        gas_price=2000000000,
+        data=calldata,
+        confirm=True,
+    )
+    return txn_details
+
 def test_eth_feeHistory(url: str) -> bool:
     """
       Returns a collection of historical gas information from which you can decide what
@@ -43,22 +145,65 @@ def test_eth_feeHistory(url: str) -> bool:
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_feeHistory", "params": [4, "latest", [25, 75]] })
         get_result(response)
-
     except Exception as e:
         print(f"Failed test test_eth_feeHistory with error: '{e}'")
         return False
 
     return True
 
-def test_eth_getStorageAt(url: str) -> bool:
+def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns the value from a storage position at a given address, or in other words,
         returns the state of the contract's storage, which may not be exposed
         via the contract's methods
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt", "params": ["0x295a70b2de5e3953354a6a8344e616ed314d7251", "0x0", "latest"]})
-        get_result(response)
+        # In order to do this test, we can write a contract to storage and check its state is there correctly
+        print(f"getting nonce..jyy")
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        compilation_result = compile_solidity(contract)
+        code = compilation_result.constructor().data_in_transaction
+
+        transaction = {
+            'to': "0x0000000000000000000000000000000000000000",
+            'from':account.address,
+            'value':int(0),
+            'data':code,
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+            }
+
+        signed_transaction = account.signTransaction(transaction)
+        rawHex = signed_transaction.rawTransaction.hex()
+
+        print(f"Sending raw tx. {rawHex}")
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [rawHex]})
+        print(f"get result {response}")
+        print(f"get result {response.text}")
+        res = get_result(response)
+
+        # Get the address of the contract (ZIL API, TODO: CHANGE THIS)
+        print(f"get contract addr from ID")
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "GetContractAddressFromTransactionID",
+                                            "params": [res]})
+
+        res = get_result(response)
+        res.replace("0x", "")
+
+        print(f"get storage with res {res}")
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt",
+                                            "params": [res, "0x0", "latest"]})
+
+        print(f"have {response}")
+        print(f"have {response.text}")
+        res = get_result(response)
+
+        if "0x00000000000000000000000000000000000000000000000000000000000004d2" != res.lower():
+            raise Exception(f"Failed to retrieve correct contract amount: {res} when expected 0x00000000000000000000000000000000000000000000000000000000000004d2")
 
     except Exception as e:
         print(f"Failed test test_eth_getStorageAt with error: '{e}'")
@@ -66,16 +211,52 @@ def test_eth_getStorageAt(url: str) -> bool:
 
     return True
 
-def test_eth_getCode(url: str)    -> bool:
+def test_eth_getCode(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Get a code at the specified address. Which is a smart contract address.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getCode", "params":["0xb59f67a8bff5d8cd03f6ac17265c550ed8f33907", "latest"]})
-        get_result(response)
+        # In order to do this test, we can write a contract to storage and check its state is there correctly
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        compilation_result = compile_solidity(contract)
+        code = compilation_result.constructor().data_in_transaction
+
+        transaction = {
+            'to': "0x0000000000000000000000000000000000000000",
+            'from':account.address,
+            'value':int(0),
+            'data':code,
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+        rawHex = signed_transaction.rawTransaction.hex()
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [rawHex]})
+        res = get_result(response)
+
+        # Get the address of the contract (ZIL API, TODO: CHANGE THIS)
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "GetContractAddressFromTransactionID",
+                                            "params": [res]})
+
+        res = get_result(response)
+        res.replace("0x", "")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getCode",
+                                            "params": [res, "latest"]})
+
+        res = get_result(response)
+
+        if code[0:4] != res[0:4].lower():
+            raise Exception(f"Failed to retrieve correct contract amount: {res} when expected {code}")
 
     except Exception as e:
-        print(f"Failed test test_eth_feeHistory with error: '{e}'")
+        print(f"Failed test test_eth_getCode with error: '{e}'")
         return False
 
     return True
@@ -835,6 +1016,8 @@ def test_eth_getTransactionReceipt(url: str) -> bool:
 
 def test_eth_sign(url: str) -> bool:
     """
+        Not implemented since this requires the node to have your private key.
+
         The sign method calculates an Ethereum specific signature with:
         sign(keccak256(""\x19Ethereum Signed Message:\n"" + len(message) + message))).
 
@@ -846,11 +1029,11 @@ def test_eth_sign(url: str) -> bool:
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sign",
-                                            "params": ["latest"] })
+                                            "params": ["0x9b2055d370f73ec7d8a03e965129118dc8f5bf83", "0xdeadbeaf"] })
         res = get_result(response)
 
-        if res != "":
-            raise Exception(f"Did not get 1 for eth_sign. Got: {res}")
+        if res != []:
+            raise Exception(f"Did not get [] for eth_sign. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sign with error: '{e}'")
@@ -860,17 +1043,19 @@ def test_eth_sign(url: str) -> bool:
 
 def test_eth_signTransaction(url: str) -> bool:
     """
+        Not implemented since this requires the node to have your private key.
+
         Signs a transaction that can be submitted to the network
         at a later time using with eth_sendRawTransaction.
         Is this just a local API, not really an RPC call?"
     """
     try:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_signTransaction",
-                                            "params": ["latest"] })
+                                            "params": [{"data":"0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675","from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155","gas": "0x76c0","gasPrice": "0x9184e72a000","to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567","value": "0x9184e72a"}] })
         res = get_result(response)
 
         if res != "":
-            raise Exception(f"Did not get 1 for eth_signTransaction. Got: {res}")
+            raise Exception(f"Did not get '' for eth_signTransaction. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_signTransaction with error: '{e}'")
@@ -880,15 +1065,19 @@ def test_eth_signTransaction(url: str) -> bool:
 
 def test_eth_sendTransaction(url: str) -> bool:
     """
+        Not implemented since this requires the node to have your private key.
+
         Creates new message call transaction or a contract creation, if the data field contains code.
     """
     try:
+
+
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendTransaction",
-                                            "params": ["latest"] })
+                                            "params": [{ "from": "0xb60e8dd61c5d32be8058bb8eb970870f07233155", "to": "0xd46e8dd67c5d32be8058bb8eb970870f07244567", "gas": "0x76c0", "gasPrice": "0x9184e72a000", "value": "0x9184e72a", "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675" }] })
         res = get_result(response)
 
         if res != "":
-            raise Exception(f"Did not get 1 for eth_sendTransaction. Got: {res}")
+            raise Exception(f"Did not get '' for eth_sendTransaction. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sendTransaction with error: '{e}'")
@@ -896,21 +1085,75 @@ def test_eth_sendTransaction(url: str) -> bool:
 
     return True
 
-def test_eth_sendRawTransaction(url: str) -> bool:
+def test_eth_sendRawTransaction(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Creates new message call transaction or a contract creation, if the data field contains code. Raw transactions
         are in the RLP data format.
     """
     try:
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': "0xaaB168343e743141A10CE6C3D454454A7D522506",
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
-                                            "params": ["latest"] })
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if res != "":
-            raise Exception(f"Did not get 1 for eth_sendRawTransaction. Got: {res}")
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_sendRawTransaction with error: '{e}'")
+        return False
+
+    return True
+
+def test_move_funds(url: str, genesis_privkey: pyzil.account, test_privkey: eth_account.signers.local.LocalAccount, api: ZilliqaAPI) -> bool:
+    """
+        Test the genesis funds are there, and can be moved to the new key (using eth style addressing)
+    """
+    try:
+        # Check genesis has funds using pyzil api
+        bal = genesis_privkey.get_balance()
+
+        print(f"Balance is {bal}")
+        print(f"Account is {genesis_privkey.address}")
+
+        if bal == 0:
+            raise Exception(f"Genesis provided balance is 0! Most tests will fail.")
+
+        # Move half of these funds to the address that will be used for testing
+        to_move = bal / 2
+        to_address = test_privkey.address
+        to_address = to_checksum_address(to_address, prefix="0x")
+
+        # Note the address needs to be ZIL style checksum or the pyzil api will reject it (and possibly the node too)
+        genesis_privkey.transfer(to_addr=to_address, zils=to_move, confirm=True, gas_limit=50)
+
+        # Now check balance of eth address (annoyingly, does not accept '0x')
+        newBal = api.GetBalance(to_checksum_address(to_address, prefix=""))
+
+        if "balance" not in newBal:
+            raise Exception(f"Bad response from balance query: {newBal}")
+
+        newBal = newBal["balance"]
+
+        if bal == 0:
+            raise Exception(f"Failed to see funds for eth style test address. Subsequent tests will likely fail.")
+    except Exception as e:
+        print(f"Failed test test_move_funds with error: '{e}'")
         return False
 
     return True
@@ -936,21 +1179,44 @@ def test_eth_chainId(url: str) -> bool:
 def parse_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('--api', type=str, required=True, help='API to test against')
+    parser.add_argument('--private-key-genesis', type=str, help='Private key found in genesis',
+                        default="db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3")
+    parser.add_argument('--private-key-test', type=str, help='Private key to move genesis funds to, for test usage',
+                        default="a8b68f4800bc7513fca14a752324e41b2fa0a7c06e80603aac9e5961e757d906")
+
     return parser.parse_args()
 
 def main():
     args = parse_commandline()
 
-    print(f"args are {args.api}")
-
+    # Force API to end with slash
     if args.api[-1] != '/':
         args.api += '/'
 
-    ret = test_eth_chainId(args.api)
+    print(f"args are {args.api}")
+
+    # Set up ZIL api
+    api = ZilliqaAPI(args.api)
+    blockchain = BlockChain(api_url=args.api, version=65537, network_id=1)
+    set_active_chain(blockchain)
+
+    print(f"Moving funds to private addr.")
+
+    genesis_privkey = Account(private_key=args.private_key_genesis) # Zil style
+
+    # Set up w3 API
+    w3 = Web3(Web3.HTTPProvider(args.api))
+
+    account = web3.eth.Account.from_key(args.private_key_test)
+
+    ret = True
+
+    ret &= test_move_funds(args.api, genesis_privkey, account, api)
+    #ret &= test_eth_chainId(args.api)
     #ret &= test_eth_blockNumber(args.api)
-    #ret &= test_eth_feeHistory(args.api)
-    #ret &= test_eth_getStorageAt(args.api)
-    #ret &= test_eth_getCode(args.api)
+    #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    #ret &= test_eth_getCode(args.api, account, w3)
+    #ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getProof(args.api)
     #ret &= test_eth_getBalance(args.api)
     #ret &= test_web3_clientVersion(args.api)
@@ -992,10 +1258,11 @@ def main():
     #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api)
     #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
     #ret &= test_eth_getTransactionReceipt(args.api)
-    #ret &= test_eth_sign(args.api)
+    ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
-    #ret &= test_eth_sendRawTransaction(args.api)
+    ret &= test_eth_sendRawTransaction(args.api, account, w3)
+
     #ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:
