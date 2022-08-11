@@ -210,6 +210,9 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   }
 
   try {
+    LOG_GENERAL(INFO, "Opening connection to"
+                          << peer.GetPrintableIPAddress()
+                          << " at port 0. Investigate why!");
     int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
@@ -318,6 +321,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
     LOG_GENERAL(WARNING, "Error with write socket." << ' ' << e.what());
     return false;
   }
+  LOG_GENERAL(INFO, "Sent Message to" << peer.GetPrintableIPAddress() << " at "
+                                      << peer.m_listenPortHost);
   return true;
 }
 
