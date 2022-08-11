@@ -1020,6 +1020,29 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
+Json::Value LookupServer::GetEthBlockNumber() {
+  Json::Value ret;
+
+  try {
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    std::cout << "Getting block height: " << std::endl;
+    std::cout << "Getting block height: " << txBlock.GetHeader().GetBlockNum() << std::endl;
+
+    std::ostringstream returnVal;
+    returnVal << "0x" << std::hex << txBlock.GetHeader().GetBlockNum() << std::dec;
+    ret = returnVal.str();
+
+    std::cout << "Returning block height: " << ret << std::endl;
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+
+  return ret;
+}
+
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
