@@ -228,18 +228,20 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       Account* targetAccount = this->GetAccount(Address(it->Address()));
       if (targetAccount == nullptr) {
         if (!this->AddAccount(Address(it->Address()), {0, 0})) {
-          LOG_GENERAL(WARNING, "AddAccount failed for contract address "
+          LOG_GENERAL(WARNING, "AddAccount failed for address "
                                    << Address(it->Address()).hex());
           continue;
         }
         targetAccount = this->GetAccount(Address(it->Address()));
         if (targetAccount == nullptr) {
           LOG_GENERAL(WARNING,
-                      "failed to retrieve new account for contract address "
+                      "failed to retrieve new account for address "
                           << Address(it->Address()).hex());
           continue;
         }
       }
+
+      LOG_GENERAL(INFO, "Target Account " << (size_t)targetAccount);
 
       if (it->OperationType() == "modify") {
         try {
@@ -311,7 +313,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasBalance() && it->Balance().size()) {
+            LOG_GENERAL(INFO, "Setting balance " << it->Balance());
             targetAccount->SetBalance(uint128_t(it->Balance()));
+            LOG_GENERAL(INFO, "Balance: " << targetAccount->GetBalance());
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -323,8 +327,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
 
         try {
-          if (it->hasNonce() && it->Nonce().size())
-            targetAccount->SetNonce(std::stoull(it->Nonce()));
+          if (it->hasNonce() && it->Nonce().size()) {
+            LOG_GENERAL(INFO, "Setting nonce " << it->Nonce());
+            targetAccount->SetNonce(std::stoull(it->Nonce(), nullptr, 0));
+            LOG_GENERAL(INFO, "Nonce:  " << targetAccount->GetNonce());
+          }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
           // will examine exact possibilities and catch specific exceptions.

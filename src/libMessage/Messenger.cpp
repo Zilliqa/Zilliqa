@@ -607,12 +607,14 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
 
   accbase.SetVersion(newAccount.GetVersion());
 
+  LOG_GENERAL(INFO, "Balances " << ": new " << newAccount.GetBalance() << " old " << oldAccount->GetBalance());
   int256_t balanceDelta =
       int256_t(newAccount.GetBalance()) - int256_t(oldAccount->GetBalance());
   protoAccount.set_numbersign(balanceDelta > 0);
   accbase.SetBalance(uint128_t(abs(balanceDelta)));
 
   uint64_t nonceDelta = 0;
+  LOG_GENERAL(INFO, "Nonces: new " << newAccount.GetNonce() << " old " << oldAccount->GetNonce());
   if (!SafeMath<uint64_t>::sub(newAccount.GetNonce(), oldAccount->GetNonce(),
                                nonceDelta)) {
     return false;
@@ -2630,6 +2632,7 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
+    LOG_GENERAL(INFO, "Account " << entry.first << " addr " << (size_t)&entry.second);
     if (!AccountDeltaToProtobuf(accountStore.GetAccount(entry.first, true),
                                 entry.second, *protoEntryAccount)) {
       LOG_GENERAL(WARNING, "AccountDeltaToProtobuf failed");
