@@ -26,11 +26,11 @@ echo "building"
 sudo snap install protobuf --classic
 cargo build --verbose --release --package evm-ds
 
-cd -
-
 sudo mkdir -p /usr/local/etc/
 cp log4rs.yml /usr/local/etc/
 ls -lath /usr/local/etc/
+
+cd -
 
 # Just to check evm-ds has been built
 ls /home/travis/build/Zilliqa/Zilliqa/evm-ds/target/release/evm-ds
