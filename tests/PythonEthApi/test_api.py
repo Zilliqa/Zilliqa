@@ -66,7 +66,7 @@ contract Storage {
     }
 
     /**
-     * @dev Return value 
+     * @dev Return value
      * @return value of 'number'
      */
     function retrieve() public view returns (uint256){

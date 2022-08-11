@@ -80,6 +80,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_metadataDB;
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
+  std::shared_ptr<LevelDB> m_txBlockchainAuxDB;
+  std::shared_ptr<LevelDB> m_txBlockHashToNumDB;
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
@@ -107,32 +109,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::shared_ptr<LevelDB> m_extSeedPubKeysDB;
 
   BlockStorage(const std::string& path = "", bool diagnostic = false)
-      : m_metadataDB(std::make_shared<LevelDB>("metadata")),
-        m_dsBlockchainDB(std::make_shared<LevelDB>("dsBlocks")),
-        m_txBlockchainDB(std::make_shared<LevelDB>("txBlocks")),
-        m_microBlockKeyDB(std::make_shared<LevelDB>("microBlockKeys")),
-        m_dsCommitteeDB(std::make_shared<LevelDB>("dsCommittee")),
-        m_VCBlockDB(std::make_shared<LevelDB>("VCBlocks")),
-        m_blockLinkDB(std::make_shared<LevelDB>("blockLinks")),
-        m_shardStructureDB(std::make_shared<LevelDB>("shardStructure")),
-        m_stateDeltaDB(std::make_shared<LevelDB>("stateDelta")),
-        m_tempStateDB(std::make_shared<LevelDB>("tempState")),
-        m_processedTxnTmpDB(std::make_shared<LevelDB>("processedTxnTmp")),
-        m_diagnosticDBNodes(
-            std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic)),
-        m_diagnosticDBCoinbase(
-            std::make_shared<LevelDB>("diagnosticCoinb", path, diagnostic)),
-        m_stateRootDB(std::make_shared<LevelDB>("stateRoot")),
-        m_diagnosticDBNodesCounter(0),
-        m_diagnosticDBCoinbaseCounter(0) {
-    if (LOOKUP_NODE_MODE) {
-      m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
-      m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
-      m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
-      m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
-      m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
-    }
-    m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
+      : m_diagnosticDBNodesCounter(0), m_diagnosticDBCoinbaseCounter(0) {
+    Initialize(path, diagnostic);
   };
   ~BlockStorage() = default;
   bool PutBlock(const uint64_t& blockNum, const bytes& body,
@@ -157,12 +135,16 @@ class BlockStorage : public Singleton<BlockStorage> {
     PROCESSED_TEMP,
     MINER_INFO_DSCOMM,
     MINER_INFO_SHARDS,
-    EXTSEED_PUBKEYS
+    EXTSEED_PUBKEYS,
+    TX_BLOCK_HASH_TO_NUM,
+    TX_BLOCK_AUX
   };
 
   /// Returns the singleton BlockStorage instance.
   static BlockStorage& GetBlockStorage(const std::string& path = "",
                                        bool diagnostic = false);
+
+  void Initialize(const std::string& path = "", bool diagnostic = false);
 
   /// Get the size of current TxBodyDB
   unsigned int GetTxBodyDBSize();
@@ -173,7 +155,7 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutBlockLink(const uint64_t& index, const bytes& body);
 
   /// Adds a Tx block to storage.
-  bool PutTxBlock(const uint64_t& blockNum, const bytes& body);
+  bool PutTxBlock(const TxBlockHeader& header, const bytes& body);
 
   // /// Adds a micro block to storage.
   bool PutMicroBlock(const BlockHash& blockHash, const uint64_t& epochNum,
@@ -191,7 +173,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetVCBlock(const BlockHash& blockhash, VCBlockSharedPtr& block);
   bool GetBlockLink(const uint64_t& index, BlockLinkSharedPtr& block);
   /// Retrieves the requested Tx block.
-  bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block);
+  bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block) const;
+  bool GetTxBlock(const BlockHash& blockhash, TxBlockSharedPtr& block) const;
 
   bool GetLatestTxBlock(TxBlockSharedPtr& block);
 
@@ -399,6 +382,7 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   std::shared_ptr<LevelDB> GetMicroBlockDB(const uint64_t& epochNum);
   std::shared_ptr<LevelDB> GetTxBodyDB(const uint64_t& epochNum);
+  void BuildHashToNumberMappingForTxBlocks();
 };
 
 #endif  // ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_

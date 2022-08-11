@@ -233,4 +233,39 @@ BOOST_AUTO_TEST_CASE(TxBlockChain_test) {
   test_BlockChain(txbc, txb_0, txb_1, lastBlock, txb_empty);
 }
 
+BOOST_AUTO_TEST_CASE(TxBlockChain_insertByHash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  TxBlockChain txbc;
+
+  for (uint32_t i = 0; i < BLOCKCHAIN_SIZE; ++i) {
+    const TxBlock txBlock{TestUtils::createTxBlockHeader(i),
+                          std::vector<MicroBlockInfo>(), CoSignatures()};
+
+    txbc.AddBlock(txBlock);
+    const auto retrievedBlock = txbc.GetBlockByHash(txBlock.GetBlockHash());
+    BOOST_ASSERT(txBlock.GetHeader().GetBlockNum() ==
+                 retrievedBlock.GetHeader().GetBlockNum());
+    BOOST_ASSERT(txBlock.GetBlockHash() == retrievedBlock.GetBlockHash());
+  }
+
+  const TxBlock txBlock{TestUtils::createTxBlockHeader(BLOCKCHAIN_SIZE),
+                        std::vector<MicroBlockInfo>(), CoSignatures()};
+  txbc.AddBlock(txBlock);
+  const auto retrievedBlock = txbc.GetBlockByHash(txBlock.GetBlockHash());
+  BOOST_ASSERT(txBlock.GetHeader().GetBlockNum() ==
+               retrievedBlock.GetHeader().GetBlockNum());
+  BOOST_ASSERT(txBlock.GetBlockHash() == retrievedBlock.GetBlockHash());
+
+  // Block with num 0 should no longer be in LRU cache
+  const TxBlock firstBlock{TestUtils::createTxBlockHeader(0),
+                           std::vector<MicroBlockInfo>(), CoSignatures()};
+  const auto nonExistingBlock = txbc.GetBlockByHash(firstBlock.GetBlockHash());
+  const TxBlock EMPTY_BLOCK{};
+
+  BOOST_ASSERT(nonExistingBlock == EMPTY_BLOCK);
+}
+
 BOOST_AUTO_TEST_SUITE_END()

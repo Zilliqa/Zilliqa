@@ -48,9 +48,9 @@ echo "Starting isolated server"
 sleep 15
 
 echo "Starting python test"
-sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
+sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel || exit 1
 
-python3 -m pip install cython 2>&1 > /dev/null
+python3 -m pip install cython || exit 1
 
 python3 --version
 python3 -m pip install -r ./tests/PythonEthApi/requirements.txt || exit 1

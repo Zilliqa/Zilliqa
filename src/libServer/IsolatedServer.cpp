@@ -272,6 +272,12 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthBlockByNumberI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockByHash", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
+      &LookupServer::GetEthBlockByHashI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthGasPriceI);
@@ -831,7 +837,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Manual trigger disallowed");
   }
   try {
-    newGasPrice = move(uint128_t(gasPrice));
+    newGasPrice = uint128_t(gasPrice);
   } catch (exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER,
                            "Gas price should be numeric");
@@ -932,8 +938,8 @@ void IsolatedServer::PostTxBlock() {
 
   bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
-  if (!BlockStorage::GetBlockStorage().PutTxBlock(
-          txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
+                                                  serializedTxBlock)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
   }
   AccountStore::GetInstance().MoveUpdatesToDisk();

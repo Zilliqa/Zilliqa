@@ -350,24 +350,11 @@ bytes ToEVM(bytes const& in) {
 }
 
 bytes FromEVM(bytes const& in) {
-  if (in.empty()) {
+  if (in.size() < 4) {
     return in;
   }
 
-  // std::string ret =
-  // std::string(reinterpret_cast<const char*>(in.data()), in.size());
-  // ret.erase(0, 3);
-
-  // Copy all but the first three characters('EVM') into a string for conversion
-  // Advance iterator at beginning
-  std::string ret;
-  auto copyAt = in.begin();
-
-  for (int i = 0; i < 3 && copyAt != in.end(); i++) {
-    copyAt++;
-  }
-
-  std::copy(copyAt, in.end(), std::back_inserter(ret));
+  std::string ret{in.begin() + 3, in.end()};
 
   return DataConversion::HexStrToUint8VecRet(ret);
 }

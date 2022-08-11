@@ -53,6 +53,10 @@ class LookupServer : public Server,
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum,
                                         const std::string& pageNumber);
 
+  std::pair<std::string, unsigned int> CheckContractTxnShards(
+      bool priority, unsigned int shard, const Transaction& tx,
+      unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
+
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
@@ -93,12 +97,12 @@ class LookupServer : public Server,
 
   inline virtual void GetTxBlockI(const Json::Value& request,
                                   Json::Value& response) {
-    response = this->GetTxBlock(request[0u].asString());
+    response = this->GetTxBlockByNum(request[0u].asString());
   }
 
   inline virtual void GetTxBlockVerboseI(const Json::Value& request,
                                          Json::Value& response) {
-    response = this->GetTxBlock(request[0u].asString(), true);
+    response = this->GetTxBlockByNum(request[0u].asString(), true);
   }
 
   inline virtual void GetLatestDsBlockI(const Json::Value& request,
@@ -321,8 +325,14 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
                                            Json::Value& response) {
-    (void)request;
-    response = this->GetEthBlockByNumber();
+    response =
+        this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
+  }
+
+  inline virtual void GetEthBlockByHashI(const Json::Value& request,
+                                         Json::Value& response) {
+    response =
+        this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
   }
 
   inline virtual void GetEthGasPriceI(const Json::Value& request,
@@ -603,7 +613,8 @@ class LookupServer : public Server,
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum, bool verbose = false);
-  Json::Value GetTxBlock(const std::string& blockNum, bool verbose = false);
+  Json::Value GetTxBlockByNum(const std::string& blockNum,
+                              bool verbose = false);
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalance(const std::string& address);
@@ -652,7 +663,12 @@ class LookupServer : public Server,
 
   // Eth calls
   Json::Value GetTransactionReceipt(const std::string& txnhash);
-  Json::Value GetEthBlockByNumber();
+  Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
+                                  bool includeFullTransactions);
+  Json::Value GetEthBlockByHash(const std::string& blockHash,
+                                bool includeFullTransactions);
+  Json::Value GetEthBlockCommon(const TxBlock& txBlock,
+                                bool includeFullTransactions);
   Json::Value CreateTransactionEth(
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,

@@ -118,6 +118,45 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   return ret;
 }
 
+const Json::Value JSONConversion::convertTxBlocktoEthJson(
+    const TxBlock& txblock, const DSBlock& dsBlock,
+    const std::vector<TxBodySharedPtr>& transactions,
+    const std::vector<TxnHash>& transactionHashes,
+    bool includeFullTransactions) {
+  (void)transactions;
+  const TxBlockHeader& txheader = txblock.GetHeader();
+
+  Json::Value retJson;
+
+  retJson["number"] = std::to_string(txheader.GetBlockNum());
+  retJson["hash"] = txblock.GetBlockHash().hex();
+  retJson["parentHash"] = txheader.GetPrevHash().hex();
+  retJson["sha3Uncles"] = Json::arrayValue;
+  retJson["stateRoot"] = txheader.GetStateRootHash().hex();
+  retJson["miner"] =
+      Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
+  retJson["difficulty"] = dsBlock.GetHeader().GetDifficulty();
+
+  bytes serializedTxBlock;
+  txblock.Serialize(serializedTxBlock, 0);
+
+  retJson["size"] = std::to_string(serializedTxBlock.size());
+  retJson["gasLimit"] = std::to_string(txheader.GetGasLimit());
+  retJson["gasUsed"] = std::to_string(txheader.GetGasUsed());
+  retJson["gasLimit"] = std::to_string(txblock.GetTimestamp());
+  retJson["version"] = txheader.GetVersion();
+
+  // Todo: prepare transaction to eth-like json conversion
+  if (!includeFullTransactions) {
+    auto transactionHashesJson = Json::Value(Json::arrayValue);
+    for (const auto& hash : transactionHashes) {
+      transactionHashesJson.append(hash.hex());
+    }
+    retJson["transactions"] = transactionHashesJson;
+  }
+  return retJson;
+}
+
 const Json::Value JSONConversion::convertRawTxBlocktoJson(
     const TxBlock& txblock) {
   Json::Value ret;
