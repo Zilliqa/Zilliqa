@@ -210,8 +210,7 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   }
 
   try {
-    LOG_GENERAL(INFO, "Opening connection to"
-                          << peer.GetPrintableIPAddress());
+    LOG_GENERAL(INFO, "Opening connection to" << peer.GetPrintableIPAddress());
     int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
     unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
 
