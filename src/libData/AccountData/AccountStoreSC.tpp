@@ -424,6 +424,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      // TODO: for EVM, replace this with the Yellow paper gas check.
       uint64_t createGasPenalty = std::max(
           CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
                                               transaction.GetData().size()));
@@ -617,6 +618,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                   << gasRemained << " alleged "
                                   << transaction.GetAmount() << " limit "
                                   << transaction.GetGasLimit());
+
+            if (!TransferBalanceAtomic(fromAddr, contractAddress,
+                                       transaction.GetAmount())) {
+              error_code = TxnStatus::INSUFFICIENT_BALANCE;
+              LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
+              return false;
+            }
 
             EvmCallParameters params = {
                 contractAddress.hex(),
@@ -881,6 +889,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             this->GetBalance(transaction.GetToAddr()), ret, receipt);
 
       } else {
+        if (!TransferBalanceAtomic(fromAddr, m_curContractAddr,
+                                   transaction.GetAmount())) {
+          error_code = TxnStatus::INSUFFICIENT_BALANCE;
+          LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
+          return false;
+        }
+
         EvmCallParameters params = {
             m_curContractAddr.hex(),
             fromAddr.hex(),
