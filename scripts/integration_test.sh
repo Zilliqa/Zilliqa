@@ -23,11 +23,14 @@ git clone https://github.com/Zilliqa/evm-ds.git
 cd evm-ds
 cargo --version
 echo "building"
-#sudp apt-get install protobuf-compiler
 sudo snap install protobuf --classic
-cargo build --verbose --release --package evm-ds && cargo test --verbose --release --package evm-ds
+cargo build --verbose --release --package evm-ds
 
 cd -
+
+sudo mkdir -p /usr/local/etc/
+cp log4rs.yml /usr/local/etc/
+ls -lath /usr/local/etc/
 
 # Just to check evm-ds has been built
 ls /home/travis/build/Zilliqa/Zilliqa/evm-ds/target/release/evm-ds
@@ -37,8 +40,6 @@ cp constants.xml constants_backup.xml
 sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
 sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
 sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
-sudo mkdir -p /usr/local/etc/
-ls -lath /usr/local/etc/
 
 cat constants.xml
 echo ""
