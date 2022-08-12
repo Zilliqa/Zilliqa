@@ -116,11 +116,11 @@ void TestRemoveBroadcast() {
 
     queue<unsigned int> answer;
     answer.push(100000);
-    unsigned int current = 99950;
+    unsigned int cur = 99950;
 
     for (unsigned int i = 0; i < 19; ++i) {
-      answer.push(current);
-      current -= 250;
+      answer.push(cur);
+      cur -= 250;
     }
 
     bytes emptyHash;
@@ -204,7 +204,7 @@ int main() {
 
   P2PComm::GetInstance().SendMessage(peers, message2);
 
-  bytes longMsg(1024u * 1024 * 1024, 'z');
+  bytes longMsg(1024 * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
