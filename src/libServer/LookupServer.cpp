@@ -1143,7 +1143,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     hash.erase(0,2);
   }
 
-  std::cout << "XXX LOOKUP XXX Getting TXN recpt for: " << txnhash << std::endl;
+  std::cout << "XXX lookup XXX Getting TXN recpt for: " << txnhash << std::endl;
 
   try {
     auto const result = GetTransaction(hash);
@@ -1152,20 +1152,45 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
 
     auto height = txBlock.GetHeader().GetBlockNum() ==
-                        std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
-    while (height > 0) {
+                  std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
+
+    std::string blockHash = "";
+
+    do {
 
       std::stringstream ss;
       ss << height;  // int decimal_value
       std::string useMe(ss.str());
       height--;
 
-      auto const block = GetEthBlockByNumber(useMe, true);
+      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
+      const auto microBlockHash =  txBlockRetrieve.GetMicroBlockInfos();
+
+      std::cout << "TXBR: " << txBlockRetrieve << std::endl << std::endl;
+
+      auto const block = GetEthBlockByNumber(useMe, false);
       std::cout << "H: " << height << std::endl;
       std::cout << block << std::endl;
-    }
 
-    std::cout << "Here we go!" << hash << std::endl;
+      // Attempt to find if the TX is within this block
+      auto const TxnHashes = block["transactions"];
+
+      for (auto const &item : TxnHashes) {
+        std::cout << item.asString() << std::endl;
+
+        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
+        //if (txnhash.compare(item.asString()) == 0) {
+          blockHash = block["hash"].asString();
+          std::cout << "FOUND!" << std::endl;
+          break;
+        } else {
+          std::cout << txnhash << " didnt match " << item.asString() << std::endl;
+        }
+      }
+    } while(height != 0 && blockHash == "");
+
+    std::cout << "Here we go! " << hash << std::endl;
+    std::cout << "block hash " << blockHash << std::endl;
     std::cout << result << std::endl;
     //std::cout << result.asString() << std::endl;
     auto receipt = result["receipt"];
@@ -1176,7 +1201,16 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string toAddr = result["toAddr"].asString();
     std::string cumGas = result["cumulative_gas"].asString();
 
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas, "");
+    if (blockHash == "") {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      return "";
+    }
+
+    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
+      blockHash = std::string("0x") + blockHash;
+    }
+
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas, blockHash);
 
     return res;
   } catch (const JsonRpcException& je) {

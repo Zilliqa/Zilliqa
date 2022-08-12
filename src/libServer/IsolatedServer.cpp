@@ -769,7 +769,10 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
-    LOG_GENERAL(INFO, "Processing On the isolated server completed");
+    LOG_GENERAL(INFO, "Processing On the isolated server completed. Minting a block...");
+
+    PostTxBlock();
+
     return ret;
 
   } catch (const JsonRpcException& je) {
@@ -864,94 +867,94 @@ Json::Value IsolatedServer::GetEthBlockNumber() {
   return ret;
 }
 
-Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash) {
-  //Json::Value ret;
-
-  auto hash = txnhash;
-
-  if (hash[0] == '0' && hash[1] == 'x') {
-    hash.erase(0,2);
-  }
-
-  std::cout << "XXX ISOLATED XXX Getting TXN recpt for: " << txnhash << std::endl;
-
-  try {
-    auto const result = GetTransaction(hash);
-
-    // Scan downwards looking for the block hash with our TX in it
-    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-
-    auto height = txBlock.GetHeader().GetBlockNum() ==
-                  std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
-
-    std::string blockHash = "";
-
-    do {
-
-      std::stringstream ss;
-      ss << height;  // int decimal_value
-      std::string useMe(ss.str());
-      height--;
-
-      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
-      const auto microBlockHash =  txBlockRetrieve.GetMicroBlockInfos();
-
-      std::cout << "TXBR: " << txBlockRetrieve << std::endl << std::endl;
-
-      auto const block = GetEthBlockByNumber(useMe, false);
-      std::cout << "H: " << height << std::endl;
-      std::cout << block << std::endl;
-
-      // Attempt to find if the TX is within this block
-      auto const TxnHashes = block["transactions"];
-
-      for (auto const &item : TxnHashes) {
-        std::cout << item.asString() << std::endl;
-
-        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
-        //if (txnhash.compare(item.asString()) == 0) {
-          blockHash = block["hash"].asString();
-          std::cout << "FOUND!" << std::endl;
-          break;
-        } else {
-          std::cout << txnhash << " didnt match " << item.asString() << std::endl;
-        }
-      }
-    } while(height != 0 && blockHash == "");
-
-    std::cout << "Here we go! " << hash << std::endl;
-    std::cout << "block hash " << blockHash << std::endl;
-    std::cout << result << std::endl;
-    //std::cout << result.asString() << std::endl;
-    auto receipt = result["receipt"];
-
-    std::string hashId = result["ID"].asString();
-    bool success = receipt["success"].asBool();
-    std::string sender = receipt["senderPubkey"].asString();
-    std::string toAddr = result["toAddr"].asString();
-    std::string cumGas = result["cumulative_gas"].asString();
-
-    if (blockHash == "") {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
-      return "";
-    }
-
-    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
-      blockHash = std::string("0x") + blockHash;
-    }
-
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas, blockHash);
-
-    return res;
-  } catch (const JsonRpcException& je) {
-    throw je;
-  } catch (exception& e) {
-    throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To find hash for txn: ") + e.what());
-  }
-
-  return "";
-}
+//Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash) {
+//  //Json::Value ret;
+//
+//  auto hash = txnhash;
+//
+//  if (hash[0] == '0' && hash[1] == 'x') {
+//    hash.erase(0,2);
+//  }
+//
+//  std::cout << "XXX ISOLATED XXX Getting TXN recpt for: " << txnhash << std::endl;
+//
+//  try {
+//    auto const result = GetTransaction(hash);
+//
+//    // Scan downwards looking for the block hash with our TX in it
+//    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+//
+//    auto height = txBlock.GetHeader().GetBlockNum() ==
+//                  std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
+//
+//    std::string blockHash = "";
+//
+//    do {
+//
+//      std::stringstream ss;
+//      ss << height;  // int decimal_value
+//      std::string useMe(ss.str());
+//      height--;
+//
+//      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
+//      const auto microBlockHash =  txBlockRetrieve.GetMicroBlockInfos();
+//
+//      std::cout << "TXBR: " << txBlockRetrieve << std::endl << std::endl;
+//
+//      auto const block = GetEthBlockByNumber(useMe, false);
+//      std::cout << "H: " << height << std::endl;
+//      std::cout << block << std::endl;
+//
+//      // Attempt to find if the TX is within this block
+//      auto const TxnHashes = block["transactions"];
+//
+//      for (auto const &item : TxnHashes) {
+//        std::cout << item.asString() << std::endl;
+//
+//        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
+//        //if (txnhash.compare(item.asString()) == 0) {
+//          blockHash = block["hash"].asString();
+//          std::cout << "FOUND!" << std::endl;
+//          break;
+//        } else {
+//          std::cout << txnhash << " didnt match " << item.asString() << std::endl;
+//        }
+//      }
+//    } while(height != 0 && blockHash == "");
+//
+//    std::cout << "Here we go! " << hash << std::endl;
+//    std::cout << "block hash " << blockHash << std::endl;
+//    std::cout << result << std::endl;
+//    //std::cout << result.asString() << std::endl;
+//    auto receipt = result["receipt"];
+//
+//    std::string hashId = result["ID"].asString();
+//    bool success = receipt["success"].asBool();
+//    std::string sender = receipt["senderPubkey"].asString();
+//    std::string toAddr = result["toAddr"].asString();
+//    std::string cumGas = result["cumulative_gas"].asString();
+//
+//    if (blockHash == "") {
+//      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+//      return "";
+//    }
+//
+//    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
+//      blockHash = std::string("0x") + blockHash;
+//    }
+//
+//    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas, blockHash);
+//
+//    return res;
+//  } catch (const JsonRpcException& je) {
+//    throw je;
+//  } catch (exception& e) {
+//    throw JsonRpcException(RPC_MISC_ERROR,
+//                           string("Unable To find hash for txn: ") + e.what());
+//  }
+//
+//  return "";
+//}
 
 string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   uint128_t newGasPrice;
