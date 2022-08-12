@@ -19,6 +19,12 @@
 
 set -e
 
+re="\\bNOCI\\b"
+if [[ "$TRAVIS_COMMIT_MESSAGE" =~ $re ]]
+then
+    exit 0
+fi
+
 # set n_parallel to fully utilize the resources
 os=$(uname)
 case $os in
