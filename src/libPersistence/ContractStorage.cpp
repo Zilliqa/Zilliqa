@@ -442,7 +442,6 @@ bool ContractStorage::FetchExternalStateValue(
     dev::h256 codeHash = account->GetCodeHash();
     special_query = "\"0x" + codeHash.hex() + "\"";
     type = "ByStr32";
-    return true;
   } else if (query.name() == "_code") {
     // Get the code directly from the account storage.
     bytes code = account->GetCode();
