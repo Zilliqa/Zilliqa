@@ -619,6 +619,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
 Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                                                  bytes const& pubKey) {
+  Json::Value ret;
+
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
@@ -634,8 +636,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                    ToEVM(fields.code),
                    fields.data,
                    Signature(fields.signature, 0)};
-
-    Json::Value ret;
 
     uint64_t senderNonce;
     uint128_t senderBalance;
@@ -770,11 +770,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(INFO, "Processing On the isolated server completed. Minting a block...");
-
-    PostTxBlock();
-
-    return ret;
-
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     throw je;
@@ -782,6 +777,16 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+
+  if (m_timeDelta == 0) {
+    LOG_GENERAL(INFO, "Manual minting...");
+    PostTxBlock();
+    PostTxBlock();
+  }
+
+  LOG_GENERAL(INFO, "Manual minting done.");
+
+  return ret;
 }
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(
@@ -857,8 +862,6 @@ Json::Value IsolatedServer::GetEthBlockNumber() {
     ret = returnVal.str();
 
     std::cout << "Returning block height: " << ret << std::endl;
-    StartBlocknumIncrement();
-
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
