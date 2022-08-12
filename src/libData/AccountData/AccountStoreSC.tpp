@@ -221,18 +221,20 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   // parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.m_apply) {
     if (it->OperationType() == "delete") {
-      // be careful with this call needs further testing
+      // be careful with this call needs further testing.
+      // TODO: likely needs fixing, test case: remove an account and then revert a transaction.
+      // this will likely remove the account anyways, despite the revert.
       this->RemoveAccount(Address(it->Address()));
     } else {
       // Get the account that this apply instruction applies to
-      Account* targetAccount = this->GetAccount(Address(it->Address()));
+      Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
       if (targetAccount == nullptr) {
-        if (!this->AddAccount(Address(it->Address()), {0, 0})) {
+        if (!this->AddAccountAtomic(Address(it->Address()), {0, 0})) {
           LOG_GENERAL(WARNING, "AddAccount failed for address "
                                    << Address(it->Address()).hex());
           continue;
         }
-        targetAccount = this->GetAccount(Address(it->Address()));
+        targetAccount = this->GetAccountAtomic(Address(it->Address()));
         if (targetAccount == nullptr) {
           LOG_GENERAL(WARNING,
                       "failed to retrieve new account for address "
@@ -240,8 +242,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
           continue;
         }
       }
-
-      LOG_GENERAL(INFO, "Target Account " << (size_t)targetAccount);
 
       if (it->OperationType() == "modify") {
         try {
@@ -313,9 +313,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasBalance() && it->Balance().size()) {
-            LOG_GENERAL(INFO, "Setting balance " << it->Balance());
             targetAccount->SetBalance(uint128_t(it->Balance()));
-            LOG_GENERAL(INFO, "Balance: " << targetAccount->GetBalance());
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -328,9 +326,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasNonce() && it->Nonce().size()) {
-            LOG_GENERAL(INFO, "Setting nonce " << it->Nonce());
             targetAccount->SetNonce(std::stoull(it->Nonce(), nullptr, 0));
-            LOG_GENERAL(INFO, "Nonce:  " << targetAccount->GetNonce());
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -1905,6 +1901,11 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
 template <class MAP>
 Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
   return m_accountStoreAtomic->GetAccount(addr);
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address, const Account& account) {
+  return m_accountStoreAtomic->AddAccount(address, account);
 }
 
 template <class MAP>
