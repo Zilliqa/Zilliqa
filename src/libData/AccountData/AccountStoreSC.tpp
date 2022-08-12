@@ -222,8 +222,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   for (const auto& it : evmReturnValues.m_apply) {
     if (it->OperationType() == "delete") {
       // be careful with this call needs further testing.
-      // TODO: likely needs fixing, test case: remove an account and then revert a transaction.
-      // this will likely remove the account anyways, despite the revert.
+      // TODO: likely needs fixing, test case: remove an account and then revert
+      // a transaction. this will likely remove the account anyways, despite the
+      // revert.
       this->RemoveAccount(Address(it->Address()));
     } else {
       // Get the account that this apply instruction applies to
@@ -236,9 +237,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
         targetAccount = this->GetAccountAtomic(Address(it->Address()));
         if (targetAccount == nullptr) {
-          LOG_GENERAL(WARNING,
-                      "failed to retrieve new account for address "
-                          << Address(it->Address()).hex());
+          LOG_GENERAL(WARNING, "failed to retrieve new account for address "
+                                   << Address(it->Address()).hex());
           continue;
         }
       }
@@ -1904,7 +1904,8 @@ Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address, const Account& account) {
+bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
+                                           const Account& account) {
   return m_accountStoreAtomic->AddAccount(address, account);
 }
 
