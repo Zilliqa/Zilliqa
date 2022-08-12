@@ -1052,6 +1052,7 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
     const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     static const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
+      std::cout << "empty block..." << std::endl;
       return Json::nullValue;
     }
     return GetEthBlockCommon(txBlock, includeFullTransactions);
@@ -1094,13 +1095,18 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
   // Gather either transaction hashes or full transactions
   const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
   for (auto const& mbInfo : microBlockInfos) {
+    std::cout << "Getting MB infos... " << std::endl;
     if (mbInfo.m_txnRootHash == TxnHash{}) {
+      std::cout << "nothing here." << std::endl;
       continue;
     }
 
     MicroBlockSharedPtr microBlockPtr;
+    std::cout << "we continue..." << std::endl;
+
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        microBlockPtr)) {
+      std::cout << "NOT FOUND here." << std::endl;
       continue;
     }
 
@@ -1108,15 +1114,18 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
     if (!includeFullTransactions) {
       transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
                                currTranHashes.end());
+      std::cout << "don't include full TXS " << std::endl;
       continue;
     }
     for (const auto& transactionHash : currTranHashes) {
-      TxBodySharedPtr transactioBodyPtr;
+      TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                     transactioBodyPtr)) {
+                                                     transactionBodyPtr)) {
+        std::cout << "continue here" << std::endl;
         continue;
       }
-      transactions.push_back(std::move(transactioBodyPtr));
+      transactions.push_back(std::move(transactionBodyPtr));
+      std::cout << "TXS size " << transactions.size() << std::endl;
     }
   }
 
@@ -1134,7 +1143,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     hash.erase(0,2);
   }
 
-  std::cout << "Getting TXN recpt for: " << txnhash << std::endl;
+  std::cout << "XXX LOOKUP XXX Getting TXN recpt for: " << txnhash << std::endl;
 
   try {
     auto const result = GetTransaction(hash);

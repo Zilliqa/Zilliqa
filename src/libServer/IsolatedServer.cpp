@@ -304,7 +304,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getTransactionReceipt",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthTransactionReceiptI);
+      &IsolatedServer::GetEthTransactionReceiptI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
@@ -864,31 +864,65 @@ Json::Value IsolatedServer::GetEthBlockNumber() {
   return ret;
 }
 
-//Json::Value IsolatedServer::GetEthTransactionReceipt(std::string const& txnHash) {
-//  Json::Value ret;
-//
-//  std::cout << "NONONON Getting TXN receipt for : " << txnHash << std::endl;
-//
-//  try {
-//    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-//
-//    std::cout << "Getting block height (lookup): " << txBlock.GetHeader().GetBlockNum() << std::endl;
-//    std::cout << "Getting block height (isolated): " << m_blocknum << std::endl;
-//
-//    std::ostringstream returnVal;
-//    returnVal << "0x" << std::hex << m_blocknum << std::dec;
-//    ret = returnVal.str();
-//
-//    std::cout << "Returning block height: " << ret << std::endl;
-//    StartBlocknumIncrement();
-//
-//  } catch (std::exception& e) {
-//    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
-//    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
-//  }
-//
-//  return ret;
-//}
+Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash) {
+  //Json::Value ret;
+
+  auto hash = txnhash;
+
+  if (hash[0] == '0' && hash[1] == 'x') {
+    hash.erase(0,2);
+  }
+
+  std::cout << "XXX ISOLATED XXX Getting TXN recpt for: " << txnhash << std::endl;
+
+  try {
+    auto const result = GetTransaction(hash);
+
+    // Scan downwards looking for the block hash with our TX in it
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto height = txBlock.GetHeader().GetBlockNum() ==
+                  std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
+    do {
+
+      std::stringstream ss;
+      ss << height;  // int decimal_value
+      std::string useMe(ss.str());
+      height--;
+
+      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
+      const auto microBlockHash =  txBlockRetrieve.GetMicroBlockInfos();
+
+      std::cout << "TXBR: " << txBlockRetrieve << std::endl << std::endl;
+
+      auto const block = GetEthBlockByNumber(useMe, false);
+      std::cout << "H: " << height << std::endl;
+      std::cout << block << std::endl;
+    } while(height != 0);
+
+    std::cout << "Here we go!" << hash << std::endl;
+    std::cout << result << std::endl;
+    //std::cout << result.asString() << std::endl;
+    auto receipt = result["receipt"];
+
+    std::string hashId = result["ID"].asString();
+    bool success = receipt["success"].asBool();
+    std::string sender = receipt["senderPubkey"].asString();
+    std::string toAddr = result["toAddr"].asString();
+    std::string cumGas = result["cumulative_gas"].asString();
+
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas);
+
+    return res;
+  } catch (const JsonRpcException& je) {
+    throw je;
+  } catch (exception& e) {
+    throw JsonRpcException(RPC_MISC_ERROR,
+                           string("Unable To find hash for txn: ") + e.what());
+  }
+
+  return "";
+}
 
 string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   uint128_t newGasPrice;
@@ -956,7 +990,15 @@ TxBlock IsolatedServer::GenerateTxBlock() {
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
                               TxBlockHashSet(), numtxns, m_key.first,
                               TXBLOCK_VERSION);
-  MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, {}, numtxns,
+
+  // In order that the m_txRootHash is not empty if there are actually TXs
+  // in the microblock, set the root hash to a TXn hash if there is one
+  MicroBlockHashSet hashSet{};
+  if (txnhashes.size() > 0) {
+    hashSet.m_txRootHash = txnhashes[0];
+  }
+
+  MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, hashSet, numtxns,
                        m_key.first, 0);
   MicroBlock mb(mbh, txnhashes, CoSignatures());
   MicroBlockInfo mbInfo{mb.GetBlockHash(), mb.GetHeader().GetTxRootHash(),
