@@ -883,6 +883,9 @@ Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash)
 
     auto height = txBlock.GetHeader().GetBlockNum() ==
                   std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
+
+    std::string blockHash = "";
+
     do {
 
       std::stringstream ss;
@@ -898,9 +901,26 @@ Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash)
       auto const block = GetEthBlockByNumber(useMe, false);
       std::cout << "H: " << height << std::endl;
       std::cout << block << std::endl;
-    } while(height != 0);
 
-    std::cout << "Here we go!" << hash << std::endl;
+      // Attempt to find if the TX is within this block
+      auto const TxnHashes = block["transactions"];
+
+      for (auto const &item : TxnHashes) {
+        std::cout << item.asString() << std::endl;
+
+        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
+        //if (txnhash.compare(item.asString()) == 0) {
+          blockHash = block["hash"].asString();
+          std::cout << "FOUND!" << std::endl;
+          break;
+        } else {
+          std::cout << txnhash << " didnt match " << item.asString() << std::endl;
+        }
+      }
+    } while(height != 0 && blockHash == "");
+
+    std::cout << "Here we go! " << hash << std::endl;
+    std::cout << "block hash " << blockHash << std::endl;
     std::cout << result << std::endl;
     //std::cout << result.asString() << std::endl;
     auto receipt = result["receipt"];
@@ -910,6 +930,11 @@ Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash)
     std::string sender = receipt["senderPubkey"].asString();
     std::string toAddr = result["toAddr"].asString();
     std::string cumGas = result["cumulative_gas"].asString();
+
+    if (blockHash == "") {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      return "";
+    }
 
     auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas);
 
