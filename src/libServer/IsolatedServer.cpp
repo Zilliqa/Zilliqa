@@ -900,9 +900,6 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     txnhashes = m_txnBlockNumMap[m_blocknum];
     m_txnBlockNumMap[m_blocknum].clear();
   }
-  TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
-                              TxBlockHashSet(), numtxns, m_key.first,
-                              TXBLOCK_VERSION);
 
   // In order that the m_txRootHash is not empty if there are actually TXs
   // in the microblock, set the root hash to a TXn hash if there is one
@@ -911,6 +908,9 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     hashSet.m_txRootHash = txnhashes[0];
   }
 
+  TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
+                              TxBlockHashSet(), numtxns, m_key.first,
+                              TXBLOCK_VERSION);
   MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, hashSet, numtxns,
                        m_key.first, 0);
   MicroBlock mb(mbh, txnhashes, CoSignatures());
@@ -922,8 +922,8 @@ TxBlock IsolatedServer::GenerateTxBlock() {
   mb.Serialize(body, 0);
 
   if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-      mb.GetBlockHash(), mb.GetHeader().GetEpochNum(),
-      mb.GetHeader().GetShardId(), body)) {
+          mb.GetBlockHash(), mb.GetHeader().GetEpochNum(),
+          mb.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
   }
   TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());
