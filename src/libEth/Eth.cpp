@@ -22,12 +22,11 @@
 
 using namespace jsonrpc;
 
-Json::Value populateReceiptHelper(std::string const& txnhash, bool success, const std::string &from, const std::string &to, const std::string &gasUsed) {
+Json::Value populateReceiptHelper(std::string const& txnhash, bool success, const std::string &from, const std::string &to, const std::string &gasUsed, const std::string &blockHash) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
-  ret["blockHash"] =
-      "0x0000000000000000000000000000000000000000000000000000000000000000";
+  ret["blockHash"] = blockHash;
   ret["blockNumber"] = "0x429d3b";
   ret["contractAddress"] = "";
   ret["cumulativeGasUsed"] = gasUsed; // todo: figure this out

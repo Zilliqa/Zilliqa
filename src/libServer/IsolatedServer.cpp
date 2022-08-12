@@ -936,7 +936,11 @@ Json::Value IsolatedServer::GetEthTransactionReceipt(const std::string& txnhash)
       return "";
     }
 
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas);
+    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
+      blockHash = std::string("0x") + blockHash;
+    }
+
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas, blockHash);
 
     return res;
   } catch (const JsonRpcException& je) {

@@ -1176,7 +1176,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string toAddr = result["toAddr"].asString();
     std::string cumGas = result["cumulative_gas"].asString();
 
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas);
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas, "");
 
     return res;
   } catch (const JsonRpcException& je) {
