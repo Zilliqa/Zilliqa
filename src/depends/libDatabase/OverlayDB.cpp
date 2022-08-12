@@ -45,7 +45,6 @@ namespace dev
 
 	bool OverlayDB::commit(bool keepHistory, std::vector<h256>& toPurge, unordered_set<h256>& inserted)
 	{
-		LOG_MARKER();
 	// #if DEV_GUARDED_DB
 	// 		DEV_READ_GUARDED(x_this)
 	// #endif

@@ -252,7 +252,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthBlockNumberI);
+      &IsolatedServer::GetEthBlockNumberI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
@@ -304,7 +304,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getTransactionReceipt",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetTransactionReceiptI);
+      &LookupServer::GetEthTransactionReceiptI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
@@ -341,6 +341,12 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCodeI);
+
+//  AbstractServer<IsolatedServer>::bindAndAddMethod(
+//      jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
+//                         jsonrpc::JSON_STRING,
+//                         NULL),
+//      &IsolatedServer::GetEthBlockNumberI);
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -830,6 +836,59 @@ string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
 }
 
 string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }
+
+Json::Value IsolatedServer::GetEthBlockNumber() {
+  Json::Value ret;
+
+  try {
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    std::cout << "Getting block height (lookup): " << txBlock.GetHeader().GetBlockNum() << std::endl;
+    std::cout << "Getting block height (isolated): " << m_blocknum << std::endl;
+
+    auto blockHeight = txBlock.GetHeader().GetBlockNum();
+    blockHeight = blockHeight == std::numeric_limits<uint64_t>::max() ? 1 : blockHeight;
+
+    std::ostringstream returnVal;
+    returnVal << "0x" << std::hex << blockHeight << std::dec;
+    ret = returnVal.str();
+
+    std::cout << "Returning block height: " << ret << std::endl;
+    StartBlocknumIncrement();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+
+  return ret;
+}
+
+//Json::Value IsolatedServer::GetEthTransactionReceipt(std::string const& txnHash) {
+//  Json::Value ret;
+//
+//  std::cout << "NONONON Getting TXN receipt for : " << txnHash << std::endl;
+//
+//  try {
+//    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+//
+//    std::cout << "Getting block height (lookup): " << txBlock.GetHeader().GetBlockNum() << std::endl;
+//    std::cout << "Getting block height (isolated): " << m_blocknum << std::endl;
+//
+//    std::ostringstream returnVal;
+//    returnVal << "0x" << std::hex << m_blocknum << std::dec;
+//    ret = returnVal.str();
+//
+//    std::cout << "Returning block height: " << ret << std::endl;
+//    StartBlocknumIncrement();
+//
+//  } catch (std::exception& e) {
+//    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+//    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+//  }
+//
+//  return ret;
+//}
 
 string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   uint128_t newGasPrice;

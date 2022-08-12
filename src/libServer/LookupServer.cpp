@@ -1026,11 +1026,13 @@ Json::Value LookupServer::GetEthBlockNumber() {
   try {
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
 
-    std::cout << "Getting block height: " << std::endl;
-    std::cout << "Getting block height: " << txBlock.GetHeader().GetBlockNum() << std::endl;
+    std::cout << "Getting block heighttt..: " << std::endl;
+
+    auto const height = txBlock.GetHeader().GetBlockNum() ==
+                                std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
 
     std::ostringstream returnVal;
-    returnVal << "0x" << std::hex << txBlock.GetHeader().GetBlockNum() << std::dec;
+    returnVal << "0x" << std::hex << height << std::dec;
     ret = returnVal.str();
 
     std::cout << "Returning block height: " << ret << std::endl;
@@ -1123,37 +1125,59 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
-  Json::Value ret;
+Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
+  //Json::Value ret;
+
+  auto hash = txnhash;
+
+  if (hash[0] == '0' && hash[1] == 'x') {
+    hash.erase(0,2);
+  }
+
+  std::cout << "Getting TXN recpt for: " << txnhash << std::endl;
 
   try {
-    if (!REMOTESTORAGE_DB_ENABLE) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
+    auto const result = GetTransaction(hash);
+
+    // Scan downwards looking for the block hash with our TX in it
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto height = txBlock.GetHeader().GetBlockNum() ==
+                        std::numeric_limits<uint64_t>::max() ? 1 : txBlock.GetHeader().GetBlockNum();
+    while (height > 0) {
+
+      std::stringstream ss;
+      ss << height;  // int decimal_value
+      std::string useMe(ss.str());
+      height--;
+
+      auto const block = GetEthBlockByNumber(useMe, true);
+      std::cout << "H: " << height << std::endl;
+      std::cout << block << std::endl;
     }
-    if (txnhash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Txn Hash size not appropriate");
-    }
 
-    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
+    std::cout << "Here we go!" << hash << std::endl;
+    std::cout << result << std::endl;
+    //std::cout << result.asString() << std::endl;
+    auto receipt = result["receipt"];
 
-    if (result.isMember("error")) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
-    } else if (result == Json::Value::null) {
-      // No txnhash matches the one in DB
-      return ret;
-    }
+    std::string hashId = result["ID"].asString();
+    bool success = receipt["success"].asBool();
+    std::string sender = receipt["senderPubkey"].asString();
+    std::string toAddr = result["toAddr"].asString();
+    std::string cumGas = result["cumulative_gas"].asString();
 
-    ret = populateReceiptHelper(txnhash);
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas);
 
-    return ret;
+    return res;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what());
     throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To Process: ") + e.what());
+                           string("Unable To find hash for txn: ") + e.what());
   }
+
+  return "";
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
@@ -1613,8 +1637,20 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
                                      std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  auto code = GetSmartContractCode(address);
+  std::cout << "getting eth code: " << address << std::endl;
+
+  // Strip off "0x" if exists
+  auto addressCopy = address;
+
+  if (addressCopy[0] == '0' && addressCopy[1] == 'x') {
+    addressCopy.erase(0,2);
+  }
+  std::cout << "getting eth code: " << addressCopy << std::endl;
+
+  auto code = GetSmartContractCode(addressCopy);
+  std::cout << "getting eth code: " << addressCopy << std::endl;
   auto codeStr = code["code"].asString();
+  std::cout << "getting eth code: " << addressCopy << std::endl;
 
   // Erase 'EVM' from beginning, put '0x'
   if (codeStr.size() > 3) {
@@ -1622,6 +1658,8 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
     codeStr[2] = 'x';
     codeStr.erase(0, 1);
   }
+
+  std::cout << "getting eth code: " << addressCopy << std::endl;
 
   return codeStr;
 }

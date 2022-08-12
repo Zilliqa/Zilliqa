@@ -363,11 +363,11 @@ class LookupServer : public Server,
     response = DataConversion::IntToHexString(resp);
   }
 
-  inline virtual void GetTransactionReceiptI(const Json::Value& request,
+  inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                              Json::Value& response) {
     (void)request;
 
-    response = this->GetTransactionReceipt(request[0u].asString());
+    response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
@@ -665,7 +665,7 @@ class LookupServer : public Server,
   std::string GetNumTxnsTxEpoch();
 
   // Eth calls
-  Json::Value GetTransactionReceipt(const std::string& txnhash);
+  Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
                                   bool includeFullTransactions);
   Json::Value GetEthBlockNumber();

@@ -71,6 +71,16 @@ class IsolatedServer : public LookupServer,
     response = resp["TranID"];
   }
 
+  //inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
+  //                                              Json::Value& response) {
+  //  response = this->GetEthTransactionReceipt(request[0u].asString());
+  //}
+
+  inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
+                                                Json::Value& response) {
+    response = this->GetEthBlockNumber();
+  }
+
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
                                         Json::Value& response) {
     response = this->IncreaseBlocknum(request[0u].asUInt());
@@ -118,6 +128,8 @@ class IsolatedServer : public LookupServer,
                               std::string const& blockNum);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
+  Json::Value GetEthBlockNumber();
+  //Json::Value GetEthTransactionReceipt(const std::string& txnHash);
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);

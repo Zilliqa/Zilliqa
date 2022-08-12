@@ -34,7 +34,7 @@ struct EthFields {
   bytes signature;
 };
 
-Json::Value populateReceiptHelper(std::string const& txnhash);
+Json::Value populateReceiptHelper(std::string const& txnhash, bool success, const std::string &from, const std::string &to, const std::string &gasUsed);
 
 EthFields parseRawTxFields(std::string const& message);
 
