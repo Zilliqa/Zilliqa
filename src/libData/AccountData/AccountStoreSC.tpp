@@ -277,8 +277,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         try {
           if (it->hasCode() && it->Code().size() > 0) {
             targetAccount->SetImmutable(
-                DataConversion::StringToCharArray("EVM" + it->Code()),
-                contractAccount->GetInitData());
+                DataConversion::StringToCharArray("EVM" + it->Code()), {});
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
