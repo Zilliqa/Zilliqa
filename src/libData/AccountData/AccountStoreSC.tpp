@@ -669,20 +669,18 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 transaction.GetGasLimit(),
                 transaction.GetAmount()};
 
-            // // The code leading up to the call to InvokeEVMInterpreter is
-            // // likely not required.
-            // std::map<std::string, bytes> t_newmetadata;
+            std::map<std::string, bytes> t_newmetadata;
 
-            // t_newmetadata.emplace(
-            //     Contract::ContractStorage::GenerateStorageKey(
-            //         contractAddress, CONTRACT_ADDR_INDICATOR, {}),
-            //     contractAddress.asBytes());
+            t_newmetadata.emplace(
+                Contract::ContractStorage::GenerateStorageKey(
+                    contractAddress, CONTRACT_ADDR_INDICATOR, {}),
+                contractAddress.asBytes());
 
-            // if (!contractAccount->UpdateStates(contractAddress, t_newmetadata,
-            //                                    {}, true)) {
-            //   LOG_GENERAL(WARNING, "Account::UpdateStates failed");
-            //   return false;
-            // }
+            if (!contractAccount->UpdateStates(contractAddress, t_newmetadata,
+                                               {}, true)) {
+              LOG_GENERAL(WARNING, "Account::UpdateStates failed");
+              return false;
+            }
             evmproj::CallResponse response;
             gasRemained =
                 InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
