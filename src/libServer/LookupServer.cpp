@@ -422,6 +422,12 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthSendRawTransactionI);
 
   this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByHashI);
+
+  this->bindAndAddMethod(
       jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetWeb3ClientVersionI);
@@ -1570,6 +1576,26 @@ Json::Value LookupServer::GetEmptyResponse() {
   LOG_MARKER();
   const Json::Value expectedResponse = Json::arrayValue;
   return expectedResponse;
+}
+
+Json::Value LookupServer::GetEthTransactionByHash(
+    const std::string& transactionHash) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
+  }
+  try {
+    TxBodySharedPtr transactioBodyPtr;
+    TxnHash tranHash(transactionHash);
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactioBodyPtr);
+    if (!isPresent) {
+      return Json::nullValue;
+    }
+    return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
+  }
 }
 
 Json::Value LookupServer::GetEthStorageAt(std::string const& address,

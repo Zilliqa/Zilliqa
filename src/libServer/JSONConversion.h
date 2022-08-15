@@ -67,6 +67,9 @@ class JSONConversion {
                                            bool isSoftConfirmed = false);
   // Convert Tx (without reciept) to JSON object
   static const Json::Value convertTxtoJson(const Transaction& txn);
+  // Convert Tx to ETH-like JSON Object
+  static const Json::Value convertTxtoEthJson(
+      const TransactionWithReceipt& txn);
   // Convert a node to json
   static const Json::Value convertNode(const PairOfNode& node);
   // conver a node with reputation to json

@@ -621,6 +621,34 @@ const Json::Value JSONConversion::convertTxtoJson(
   return _json;
 }
 
+const Json::Value JSONConversion::convertTxtoEthJson(
+    const TransactionWithReceipt& txn) {
+  Json::Value retJson;
+  retJson["from"] = txn.GetTransaction().GetSenderAddr().hex();
+  retJson["gas"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
+  retJson["gasPrice"] = txn.GetTransaction().GetGasPrice().str();
+  retJson["hash"] = txn.GetTransaction().GetTranID().hex();
+
+  // Concatenated Code and CallData form input entry in response json
+  std::string inputField;
+
+  if (!txn.GetTransaction().GetCode().empty()) {
+    inputField =
+        DataConversion::CharArrayToString(txn.GetTransaction().GetCode());
+  }
+
+  if (!txn.GetTransaction().GetData().empty()) {
+    inputField +=
+        DataConversion::CharArrayToString(txn.GetTransaction().GetData());
+  }
+
+  retJson["input"] = inputField;
+  retJson["nonce"] = std::to_string(txn.GetTransaction().GetNonce());
+  retJson["to"] = txn.GetTransaction().GetToAddr().hex();
+  retJson["value"] = txn.GetTransaction().GetAmount().str();
+  return retJson;
+}
+
 const Json::Value JSONConversion::convertNode(const PairOfNode& node) {
   Json::Value _json;
   _json["PubKey"] = static_cast<string>(node.first);
