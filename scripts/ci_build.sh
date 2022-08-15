@@ -65,7 +65,7 @@ cmake --build ${dir} -- -j${n_parallel}
 # remember to append `|| exit` after the commands added in if-then-else
 if [ "$os" = "Linux" ]
 then
-    time ./scripts/integration_test.sh || exit 1
+    ./scripts/integration_test.sh || exit 1
     ./scripts/ci_xml_checker.sh constants.xml || exit 1
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
     ./scripts/license_checker.sh || exit 1
