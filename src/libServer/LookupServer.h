@@ -380,10 +380,10 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, stoi(ETH_CHAINID));
+    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
     if (pubKey.empty()) {
-      return;
+      return "Failed to recover ECDSA pub sig";
     }
 
     auto fields = parseRawTxFields(rawTx);
