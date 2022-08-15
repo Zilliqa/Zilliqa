@@ -314,16 +314,15 @@ class LookupServer : public Server,
   inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                          Json::Value& response) {
     //(void)request;
-    //static uint64_t block_number = 2675001;
-    //block_number++;
+    // static uint64_t block_number = 2675001;
+    // block_number++;
 
-    //std::stringstream stream;
-    //stream << "0x" << std::hex << block_number;
+    // std::stringstream stream;
+    // stream << "0x" << std::hex << block_number;
 
-    //response = stream.str();
+    // response = stream.str();
 
-    response =
-        this->GetEthBlockNumber();
+    response = this->GetEthBlockNumber();
   }
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
@@ -364,7 +363,7 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
-                                             Json::Value& response) {
+                                                Json::Value& response) {
     (void)request;
 
     response = this->GetEthTransactionReceipt(request[0u].asString());

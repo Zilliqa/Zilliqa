@@ -80,7 +80,7 @@ class DataConversion {
 
   /// Returns true when both strings are the same hex string. Ignores '0x' and
   /// casing.
-  static bool HexStringsSame(const std::string &a, const std::string &b);
+  static bool HexStringsSame(const std::string& a, const std::string& b);
 
   static std::string Uint8VecToHexStrRet(const bytes& hex_vec);
 
