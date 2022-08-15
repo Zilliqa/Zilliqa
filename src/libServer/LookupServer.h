@@ -383,7 +383,7 @@ class LookupServer : public Server,
     auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
     if (pubKey.empty()) {
-      return "Failed to recover ECDSA pub sig";
+      return;
     }
 
     auto fields = parseRawTxFields(rawTx);
