@@ -313,15 +313,6 @@ class LookupServer : public Server,
   // Eth style functions here
   inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    //(void)request;
-    // static uint64_t block_number = 2675001;
-    // block_number++;
-
-    // std::stringstream stream;
-    // stream << "0x" << std::hex << block_number;
-
-    // response = stream.str();
-
     response = this->GetEthBlockNumber();
   }
 

@@ -1032,8 +1032,6 @@ Json::Value LookupServer::GetEthBlockNumber() {
   try {
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
 
-    std::cout << "Getting block heighttt..: " << std::endl;
-
     auto const height = txBlock.GetHeader().GetBlockNum() ==
                                 std::numeric_limits<uint64_t>::max()
                             ? 1
@@ -1042,9 +1040,6 @@ Json::Value LookupServer::GetEthBlockNumber() {
     std::ostringstream returnVal;
     returnVal << "0x" << std::hex << height << std::dec;
     ret = returnVal.str();
-
-    std::cout << "Returning block height: " << ret << std::endl;
-
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -1060,7 +1055,6 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
     const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     static const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
-      std::cout << "empty block..." << std::endl;
       return Json::nullValue;
     }
     return GetEthBlockCommon(txBlock, includeFullTransactions);
@@ -1103,18 +1097,14 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
   // Gather either transaction hashes or full transactions
   const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
   for (auto const& mbInfo : microBlockInfos) {
-    std::cout << "Getting MB infos... " << std::endl;
     if (mbInfo.m_txnRootHash == TxnHash{}) {
-      std::cout << "nothing here." << std::endl;
       continue;
     }
 
     MicroBlockSharedPtr microBlockPtr;
-    std::cout << "we continue..." << std::endl;
 
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        microBlockPtr)) {
-      std::cout << "NOT FOUND here." << std::endl;
       continue;
     }
 
@@ -1122,18 +1112,15 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
     if (!includeFullTransactions) {
       transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
                                currTranHashes.end());
-      std::cout << "don't include full TXS " << std::endl;
       continue;
     }
     for (const auto& transactionHash : currTranHashes) {
       TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
                                                      transactionBodyPtr)) {
-        std::cout << "continue here" << std::endl;
         continue;
       }
       transactions.push_back(std::move(transactionBodyPtr));
-      std::cout << "TXS size " << transactions.size() << std::endl;
     }
   }
 
@@ -1143,15 +1130,11 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
-  // Json::Value ret;
-
   auto hash = txnhash;
 
   if (hash[0] == '0' && hash[1] == 'x') {
     hash.erase(0, 2);
   }
-
-  std::cout << "XXX lookup XXX Getting TXN recpt for: " << txnhash << std::endl;
 
   try {
     auto const result = GetTransaction(hash);
@@ -1166,6 +1149,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     std::string blockHash = "";
 
+    // Scan downwards through the chain until the TX can be found
     do {
       std::stringstream ss;
       ss << height;  // int decimal_value
@@ -1175,34 +1159,20 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
       const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
 
-      std::cout << "TXBR: " << txBlockRetrieve << std::endl << std::endl;
-
       auto const block = GetEthBlockByNumber(useMe, false);
-      std::cout << "H: " << height << std::endl;
-      std::cout << block << std::endl;
 
       // Attempt to find if the TX is within this block
       auto const TxnHashes = block["transactions"];
 
       for (auto const& item : TxnHashes) {
-        std::cout << item.asString() << std::endl;
-
         if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
           // if (txnhash.compare(item.asString()) == 0) {
           blockHash = block["hash"].asString();
-          std::cout << "FOUND!" << std::endl;
           break;
-        } else {
-          std::cout << txnhash << " didnt match " << item.asString()
-                    << std::endl;
         }
       }
     } while (height != 0 && blockHash == "");
 
-    std::cout << "Here we go! " << hash << std::endl;
-    std::cout << "block hash " << blockHash << std::endl;
-    std::cout << result << std::endl;
-    // std::cout << result.asString() << std::endl;
     auto receipt = result["receipt"];
 
     std::string hashId = result["ID"].asString();
@@ -1691,20 +1661,15 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
                                      std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  std::cout << "getting eth code: " << address << std::endl;
-
   // Strip off "0x" if exists
   auto addressCopy = address;
 
   if (addressCopy[0] == '0' && addressCopy[1] == 'x') {
     addressCopy.erase(0, 2);
   }
-  std::cout << "getting eth code: " << addressCopy << std::endl;
 
   auto code = GetSmartContractCode(addressCopy);
-  std::cout << "getting eth code: " << addressCopy << std::endl;
   auto codeStr = code["code"].asString();
-  std::cout << "getting eth code: " << addressCopy << std::endl;
 
   // Erase 'EVM' from beginning, put '0x'
   if (codeStr.size() > 3) {
@@ -1712,8 +1677,6 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
     codeStr[2] = 'x';
     codeStr.erase(0, 1);
   }
-
-  std::cout << "getting eth code: " << addressCopy << std::endl;
 
   return codeStr;
 }
