@@ -221,22 +221,24 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   // parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.m_apply) {
     if (it->OperationType() == "delete") {
-      // be careful with this call needs further testing
+      // be careful with this call needs further testing.
+      // TODO: likely needs fixing, test case: remove an account and then revert
+      // a transaction. this will likely remove the account anyways, despite the
+      // revert.
       this->RemoveAccount(Address(it->Address()));
     } else {
       // Get the account that this apply instruction applies to
-      Account* targetAccount = this->GetAccount(Address(it->Address()));
+      Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
       if (targetAccount == nullptr) {
-        if (!this->AddAccount(Address(it->Address()), {0, 0})) {
-          LOG_GENERAL(WARNING, "AddAccount failed for contract address "
+        if (!this->AddAccountAtomic(Address(it->Address()), {0, 0})) {
+          LOG_GENERAL(WARNING, "AddAccount failed for address "
                                    << Address(it->Address()).hex());
           continue;
         }
-        targetAccount = this->GetAccount(Address(it->Address()));
+        targetAccount = this->GetAccountAtomic(Address(it->Address()));
         if (targetAccount == nullptr) {
-          LOG_GENERAL(WARNING,
-                      "failed to retrieve new account for contract address "
-                          << Address(it->Address()).hex());
+          LOG_GENERAL(WARNING, "failed to retrieve new account for address "
+                                   << Address(it->Address()).hex());
           continue;
         }
       }
@@ -323,8 +325,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
 
         try {
-          if (it->hasNonce() && it->Nonce().size())
-            targetAccount->SetNonce(std::stoull(it->Nonce()));
+          if (it->hasNonce() && it->Nonce().size()) {
+            targetAccount->SetNonce(std::stoull(it->Nonce(), nullptr, 0));
+          }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
           // will examine exact possibilities and catch specific exceptions.
@@ -425,6 +428,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      // TODO: for EVM, replace this with the Yellow paper gas check.
       uint64_t createGasPenalty = std::max(
           CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
                                               transaction.GetData().size()));
@@ -618,6 +622,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                   << gasRemained << " alleged "
                                   << transaction.GetAmount() << " limit "
                                   << transaction.GetGasLimit());
+
+            if (!TransferBalanceAtomic(fromAddr, contractAddress,
+                                       transaction.GetAmount())) {
+              error_code = TxnStatus::INSUFFICIENT_BALANCE;
+              LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
+              return false;
+            }
 
             EvmCallParameters params = {
                 contractAddress.hex(),
@@ -882,6 +893,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             this->GetBalance(transaction.GetToAddr()), ret, receipt);
 
       } else {
+        if (!TransferBalanceAtomic(fromAddr, m_curContractAddr,
+                                   transaction.GetAmount())) {
+          error_code = TxnStatus::INSUFFICIENT_BALANCE;
+          LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
+          return false;
+        }
+
         EvmCallParameters params = {
             m_curContractAddr.hex(),
             fromAddr.hex(),
@@ -1884,6 +1902,12 @@ void AccountStoreSC<MAP>::NotifyTimeout() {
 template <class MAP>
 Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
   return m_accountStoreAtomic->GetAccount(addr);
+}
+
+template <class MAP>
+bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
+                                           const Account& account) {
+  return m_accountStoreAtomic->AddAccount(address, account);
 }
 
 template <class MAP>

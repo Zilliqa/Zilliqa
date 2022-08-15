@@ -301,6 +301,12 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &IsolatedServer::GetEthSendRawTransactionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByHashI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getTransactionReceipt",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),

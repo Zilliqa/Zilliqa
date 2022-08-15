@@ -44,17 +44,14 @@ sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
 sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
 sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
 
-cat constants.xml
-echo ""
-echo ""
-
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
 
 sleep 15
 
+# Cat the python test so it doesn't interleave with the isolated server.
 echo "Starting python test"
-python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 > out.txt
+python3 ./tests/PythonEthApi/test_api.py --api http://localhost:5555 2>&1 > out.txt
 
 retVal=$?
 if [ $retVal -ne 0 ]; then
