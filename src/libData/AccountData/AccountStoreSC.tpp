@@ -468,11 +468,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
-      Account *contractAccount;
+      Account* contractAccount;
       if (isScilla) {
         if (!this->AddAccount(contractAddress, {0, 0})) {
           LOG_GENERAL(WARNING, "AddAccount failed for contract address "
-                      << contractAddress.hex());
+                                   << contractAddress.hex());
           error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
           return false;
         }
@@ -483,12 +483,12 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
       } else {
-        // For the EVM, we create the temporary account in Atomics, so that we can remove
-        // it easily if something doesn't work out.
+        // For the EVM, we create the temporary account in Atomics, so that we
+        // can remove it easily if something doesn't work out.
         DiscardAtomics();  // We start by making sure our new state is clean.
         if (!this->AddAccountAtomic(contractAddress, {0, 0})) {
           LOG_GENERAL(WARNING, "AddAccount failed for contract address "
-                      << contractAddress.hex());
+                                   << contractAddress.hex());
           error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
           return false;
         }
@@ -808,8 +808,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       uint64_t callGasPenalty = 0;
       if (isScilla) {
-        callGasPenalty = std::max(
-            CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
+        callGasPenalty = std::max(CONTRACT_INVOKE_GAS,
+                                  (unsigned int)(transaction.GetData().size()));
 
         if (transaction.GetGasLimit() < callGasPenalty) {
           LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
