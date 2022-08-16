@@ -900,10 +900,18 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     txnhashes = m_txnBlockNumMap[m_blocknum];
     m_txnBlockNumMap[m_blocknum].clear();
   }
+
+  // In order that the m_txRootHash is not empty if there are actually TXs
+  // in the microblock, set the root hash to a TXn hash if there is one
+  MicroBlockHashSet hashSet{};
+  if (txnhashes.size() > 0) {
+    hashSet.m_txRootHash = txnhashes[0];
+  }
+
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
                               TxBlockHashSet(), numtxns, m_key.first,
                               TXBLOCK_VERSION);
-  MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, {}, numtxns,
+  MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, hashSet, numtxns,
                        m_key.first, 0);
   MicroBlock mb(mbh, txnhashes, CoSignatures());
   MicroBlockInfo mbInfo{mb.GetBlockHash(), mb.GetHeader().GetTxRootHash(),
