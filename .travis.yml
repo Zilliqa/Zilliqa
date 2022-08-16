@@ -62,7 +62,7 @@ install:
   - ls /scilla/0/
 
 script:
-  - ./scripts/ci_build.sh;
+  - exit 1
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
