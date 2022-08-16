@@ -931,6 +931,7 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     txnhashes = m_txnBlockNumMap[m_blocknum];
     m_txnBlockNumMap[m_blocknum].clear();
   }
+
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
                               TxBlockHashSet(), numtxns, m_key.first,
                               TXBLOCK_VERSION);
