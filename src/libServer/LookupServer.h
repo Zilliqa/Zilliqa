@@ -611,6 +611,32 @@ class LookupServer : public Server,
     response = this->GetEmptyResponse();
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getBlockTransactionCountByHash Returns transactions count for given
+   * block.
+   * @param request : params: block hash
+   * @param response : numbner of transactions.
+   */
+
+  inline virtual void GetBlockTransactionCountByHashI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetBlockTransactionCountByHash(request[0u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getBlockTransactionCountByNumber Returns transactions count for given
+   * block.
+   * @param request : params: block hash
+   * @param response : numbner of transactions.
+   */
+
+  inline virtual void GetBlockTransactionCountByNumberI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetBlockTransactionCountByNumber(request[0u].asString());
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -684,6 +710,9 @@ class LookupServer : public Server,
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,
       const CreateTransactionTargetFunc& targetFunc);
+
+  Json::Value GetBlockTransactionCountByHash(const std::string& blockHash);
+  Json::Value GetBlockTransactionCountByNumber(const std::string& blockNumber);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

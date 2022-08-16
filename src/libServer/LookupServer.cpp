@@ -1106,6 +1106,34 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
+Json::Value LookupServer::GetBlockTransactionCountByHash(
+    const std::string& inputHash) {
+  try {
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetBlockTransactionCountByNumber(
+    const std::string& blockNumberStr) {
+  try {
+    const uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
   Json::Value ret;
 
