@@ -1106,7 +1106,7 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetBlockTransactionCountByHash(
+Json::Value LookupServer::GetEthBlockTransactionCountByHash(
     const std::string& inputHash) {
   try {
     const BlockHash blockHash{inputHash};
@@ -1120,7 +1120,7 @@ Json::Value LookupServer::GetBlockTransactionCountByHash(
   }
 }
 
-Json::Value LookupServer::GetBlockTransactionCountByNumber(
+Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
     const std::string& blockNumberStr) {
   try {
     const uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);

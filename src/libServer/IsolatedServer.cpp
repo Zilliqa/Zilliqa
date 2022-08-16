@@ -352,13 +352,13 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getBlockTransactionCountByHash",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetBlockTransactionCountByHashI);
+      &LookupServer::GetEthBlockTransactionCountByHashI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetBlockTransactionCountByNumberI);
+      &LookupServer::GetEthBlockTransactionCountByNumberI);
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,

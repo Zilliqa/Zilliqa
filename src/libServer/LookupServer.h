@@ -619,9 +619,9 @@ class LookupServer : public Server,
    * @param response : numbner of transactions.
    */
 
-  inline virtual void GetBlockTransactionCountByHashI(
+  inline virtual void GetEthBlockTransactionCountByHashI(
       const Json::Value& request, Json::Value& response) {
-    response = this->GetBlockTransactionCountByHash(request[0u].asString());
+    response = this->GetEthBlockTransactionCountByHash(request[0u].asString());
   }
 
   /**
@@ -632,9 +632,10 @@ class LookupServer : public Server,
    * @param response : numbner of transactions.
    */
 
-  inline virtual void GetBlockTransactionCountByNumberI(
+  inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
-    response = this->GetBlockTransactionCountByNumber(request[0u].asString());
+    response =
+        this->GetEthBlockTransactionCountByNumber(request[0u].asString());
   }
 
   std::string GetNetworkId();
@@ -711,8 +712,9 @@ class LookupServer : public Server,
       const unsigned int num_shards, const uint128_t& gasPrice,
       const CreateTransactionTargetFunc& targetFunc);
 
-  Json::Value GetBlockTransactionCountByHash(const std::string& blockHash);
-  Json::Value GetBlockTransactionCountByNumber(const std::string& blockNumber);
+  Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
+  Json::Value GetEthBlockTransactionCountByNumber(
+      const std::string& blockNumber);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

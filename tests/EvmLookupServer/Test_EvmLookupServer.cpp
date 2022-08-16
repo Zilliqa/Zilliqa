@@ -972,7 +972,18 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 
     Json::Value response;
 
-    lookupServer.GetBlockTransactionCountByHashI(paramsRequest, response);
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Existing block by Hash (with extra '0x' prefix)
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "0x" + txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
     BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
   }
 
@@ -983,7 +994,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 
     Json::Value response;
 
-    lookupServer.GetBlockTransactionCountByHashI(paramsRequest, response);
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
     BOOST_TEST_CHECK(response.asUInt64() == 0);
   }
 
@@ -994,7 +1005,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 
     Json::Value response;
 
-    lookupServer.GetBlockTransactionCountByNumberI(paramsRequest, response);
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
     BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
   }
 
@@ -1005,7 +1016,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 
     Json::Value response;
 
-    lookupServer.GetBlockTransactionCountByNumberI(paramsRequest, response);
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
     BOOST_TEST_CHECK(response.asUInt64() == 0);
   }
 }
