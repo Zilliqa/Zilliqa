@@ -752,7 +752,8 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   }
 
   if (!toAccountExist) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Target account does not exist");
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Target account does not exist");
   }
 
   else if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL &&
