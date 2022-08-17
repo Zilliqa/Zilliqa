@@ -1347,18 +1347,18 @@ Json::Value LookupServer::GetBalance(const string& address) {
 // TODO: remove once we fully move to Eth compatible APIs.
 string LookupServer::GetEthCallZil(const Json::Value& _json) {
   return this->GetEthCallImpl(_json,
-                              {"fromAddr", "amount", "gasLimit", "data"});
+                              {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
 }
 
 string LookupServer::GetEthCallEth(const Json::Value& _json) {
-  return this->GetEthCallImpl(_json, {"from", "value", "gas", "data"});
+  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
 
 string LookupServer::GetEthCallImpl(const Json::Value& _json,
                                     const std::vector<std::string>& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
+  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys[1]);
   bytes code{};
   auto ret{false};
   {
@@ -1381,20 +1381,20 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 
     uint64_t amount{0};
     if (_json.isMember(apiKeys[1])) {
-      const auto amount_str = _json[apiKeys[1]].asString();
+      const auto amount_str = _json[apiKeys[2]].asString();
       amount = strtoull(amount_str.c_str(), NULL, 0);
     }
 
     // for now set total gas as twice the ds gas limit
     uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
-    if (_json.isMember(apiKeys[2])) {
+    if (_json.isMember(apiKeys[3])) {
       const auto gasLimit_str = _json[apiKeys[2]].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
     EvmCallParameters params{addr.hex(),
                              fromAddr.hex(),
                              DataConversion::CharArrayToString(code),
-                             _json[apiKeys[3]].asString(),
+                             _json[apiKeys[4]].asString(),
                              gasRemained,
                              amount};
 

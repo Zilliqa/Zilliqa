@@ -467,21 +467,21 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
 }
 
 // if successfull returns lower-case to zil address
-Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json) {
-  if (!_json.isMember("toAddr")) {
+Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json, const std::string& toKey) {
+  if (!_json.isMember(toKey)) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "must contain toAddr");
+                                    "must contain " + toKey);
   }
 
-  auto lower_case_addr = _json["toAddr"].asString();
+  auto lower_case_addr = _json[toKey].asString();
 
   DataConversion::NormalizeHexString(lower_case_addr);
 
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
-    LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
+    LOG_GENERAL(WARNING, "json containing invalid hex str for " << toKey);
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for toAddr");
+                                    "Invalid Hex Str for " + toKey);
   }
 
   return Address(toAddr_ser);

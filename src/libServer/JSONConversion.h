@@ -56,7 +56,7 @@ class JSONConversion {
   // check if a Json is a valid Tx
   static bool checkJsonTx(const Json::Value& _json);
 
-  static Address checkJsonGetEthCall(const Json::Value& _json);
+  static Address checkJsonGetEthCall(const Json::Value& _json, const std::string& toKey);
   // check is string address is a valid address
   static bool checkStringAddress(const std::string& address);
   // Convert a json array of strings to a vector of strings
