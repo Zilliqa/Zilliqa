@@ -704,7 +704,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
       new_transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
     }
 
-    constexpr auto SECOND_VALID_BLOCK_NUM = 1;
+    constexpr auto SECOND_VALID_BLOCK_NUM = 2;
     const auto secondValidTxBlock = buildCommonEthBlockCase(
         mediator, SECOND_VALID_BLOCK_NUM, new_transactions, pairOfKey);
 

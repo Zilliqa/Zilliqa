@@ -1038,7 +1038,7 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
       txBlock = m_mediator.m_txBlockChain.GetBlock(0);
     } else if (blockNumberStr == "pending") {
       // Not supported
-      return Json::Value{0};
+      return Json::nullValue;
     } else {
       const uint64_t blockNum =
           std::strtoull(blockNumberStr.c_str(), nullptr, 0);
@@ -1046,7 +1046,7 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
     }
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
-      return Json::Value{0};
+      return Json::nullValue;
     }
     return GetEthBlockCommon(txBlock, includeFullTransactions);
 
@@ -1144,7 +1144,7 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
       txBlock = m_mediator.m_txBlockChain.GetBlock(0);
     } else if (blockNumberStr == "pending") {
       // Not supported
-      return Json::nullValue;
+      return Json::Value{0};
     } else {
       const uint64_t blockNum =
           std::strtoull(blockNumberStr.c_str(), nullptr, 0);
