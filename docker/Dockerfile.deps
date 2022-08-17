@@ -1,0 +1,59 @@
+# Copyright (C) 2022 Zilliqa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+# start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
+FROM ubuntu:18.04 AS builder
+# Format guideline: one package per line and keep them alphabetically sorted
+RUN apt-get update \
+    && apt-get install -y software-properties-common \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    autoconf \
+    build-essential \
+    ca-certificates \
+    cmake \
+    wget \
+    curl \
+    git \
+    libtool \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    zip \
+    unzip \
+    tar \
+    && rm -rf /var/lib/apt/lists/*
+
+# This tag must be equivalent to the hash specified by "builtin-baseline" in vcpkg.json
+# in the Zilliqa repository.
+ARG VCPKG_COMMIT_OR_TAG=2022.07.25
+ARG VCPKG_ROOT=/vcpkg
+
+# Clone vcpkg
+RUN git clone https://github.com/microsoft/vcpkg ${VCPKG_ROOT}
+RUN git -C ${VCPKG_ROOT} checkout ${VCPKG_COMMIT_OR_TAG}
+RUN ${VCPKG_ROOT}/bootstrap-vcpkg.sh
+
+# Manually input tag or commit, can be overwritten by docker build-args
+ARG COMMIT_OR_TAG=feat/ZIL-4688
+ARG REPO=https://github.com/yaron-zilliqa/Zilliqa.git
+ARG SOURCE_DIR=/zilliqa
+ARG BUILD_TRIPLET=x64-linux-dynamic
+ARG EXTRA_CMAKE_ARGS=
+
+RUN git clone ${REPO} ${SOURCE_DIR}
+RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
+RUN cd ${SOURCE_DIR} && ${VCPKG_ROOT}/vcpkg install --triplet=${BUILD_TRIPLET}
+
