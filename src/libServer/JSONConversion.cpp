@@ -467,7 +467,8 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
 }
 
 // if successfull returns lower-case to zil address
-Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json, const std::string& toKey) {
+Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json,
+                                            const std::string& toKey) {
   if (!_json.isMember(toKey)) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "must contain " + toKey);

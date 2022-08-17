@@ -1346,8 +1346,8 @@ Json::Value LookupServer::GetBalance(const string& address) {
 
 // TODO: remove once we fully move to Eth compatible APIs.
 string LookupServer::GetEthCallZil(const Json::Value& _json) {
-  return this->GetEthCallImpl(_json,
-                              {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
+  return this->GetEthCallImpl(
+      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
 }
 
 string LookupServer::GetEthCallEth(const Json::Value& _json) {
