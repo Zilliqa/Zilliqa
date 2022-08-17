@@ -263,9 +263,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   values["data"] =
       "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
       "014";
-  values["toAddr"] = "a744160c3De133495aB9F9D77EA54b325b045670";
-  values["gasLimit"] = gasLimit;
-  values["amount"] = amount;
+  values["to"] = "a744160c3De133495aB9F9D77EA54b325b045670";
+  values["gas"] = gasLimit;
+  values["value"] = amount;
   paramsRequest[0u] = values;
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   Json::Value response;
-  lookupServer->GetEthCallI(paramsRequest, response);
+  lookupServer->GetEthCallEthI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(),

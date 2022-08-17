@@ -305,9 +305,15 @@ class LookupServer : public Server,
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
 
-  inline virtual void GetEthCallI(const Json::Value& request,
-                                  Json::Value& response) {
-    response = this->GetEthCall(request[0u]);
+  inline virtual void GetEthCallEthI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetEthCallEth(request[0u]);
+  }
+
+  // TODO: remove once we fully move to Eth compatible APIs.
+  inline virtual void GetEthCallZilI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetEthCallZil(request[0u]);
   }
 
   // Eth style functions here
@@ -646,7 +652,10 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
-  std::string GetEthCall(const Json::Value& _json);
+  std::string GetEthCallZil(const Json::Value& _json);
+  std::string GetEthCallEth(const Json::Value& _json);
+  std::string GetEthCallImpl(const Json::Value& _json,
+                             const std::vector<std::string>& apiKeys);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
   Json::Value GetEthUncleCount();
