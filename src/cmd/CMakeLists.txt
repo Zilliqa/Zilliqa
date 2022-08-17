@@ -68,14 +68,14 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getaddr> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getaddr PUBLIC ${CMAKE_SOURCE_DIR}/src Schnorr)
-target_link_libraries(getaddr PUBLIC Schnorr Utils crypto -s)
+target_link_libraries(getaddr PUBLIC Schnorr Utils OpenSSL::Crypto -s)
 
 add_executable(getpub GetPubKeyFromPrivKey.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Schnorr)
-target_link_libraries(getpub PUBLIC Schnorr Utils crypto -s)
+target_link_libraries(getpub PUBLIC Schnorr Utils OpenSSL::Crypto -s)
 
 add_executable(validateDB validateDB.cpp)
 add_custom_command(TARGET zilliqa
