@@ -47,8 +47,8 @@ include(InstallCryptoUtils)
 
 include(ProjectSecp256k1)
 
-find_package(libmongocxx REQUIRED)
-find_package(libbsoncxx REQUIRED)
+find_package(mongocxx REQUIRED)
+find_package(bsoncxx REQUIRED)
  
 find_package(websocketpp REQUIRED)
 
@@ -116,7 +116,7 @@ endif()
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
-find_package(LevelDB REQUIRED)
+find_package(leveldb REQUIRED)
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
