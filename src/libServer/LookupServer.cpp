@@ -356,13 +356,13 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallZilI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallEthI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
@@ -1372,10 +1372,29 @@ Json::Value LookupServer::GetBalance(const string& address) {
   }
 }
 
-string LookupServer::GetEthCall(const Json::Value& _json) {
+struct LookupServer::ApiKeys {
+  std::string from;
+  std::string to;
+  std::string value;
+  std::string gas;
+  std::string data;
+};
+
+// TODO: remove once we fully move to Eth compatible APIs.
+string LookupServer::GetEthCallZil(const Json::Value& _json) {
+  return this->GetEthCallImpl(
+      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
+}
+
+string LookupServer::GetEthCallEth(const Json::Value& _json) {
+  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
+}
+
+string LookupServer::GetEthCallImpl(const Json::Value& _json,
+                                    const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
+  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
   auto ret{false};
   {
@@ -1392,26 +1411,26 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
   string result;
   try {
     Address fromAddr;
-    if (_json.isMember("fromAddr")) {
-      fromAddr = Address(_json["fromAddr"].asString());
+    if (_json.isMember(apiKeys.from)) {
+      fromAddr = Address(_json[apiKeys.from].asString());
     }
 
     uint64_t amount{0};
-    if (_json.isMember("amount")) {
-      const auto amount_str = _json["amount"].asString();
+    if (_json.isMember(apiKeys.value)) {
+      const auto amount_str = _json[apiKeys.value].asString();
       amount = strtoull(amount_str.c_str(), NULL, 0);
     }
 
     // for now set total gas as twice the ds gas limit
     uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
-    if (_json.isMember("gasLimit")) {
-      const auto gasLimit_str = _json["gasLimit"].asString();
+    if (_json.isMember(apiKeys.gas)) {
+      const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
     EvmCallParameters params{addr.hex(),
                              fromAddr.hex(),
                              DataConversion::CharArrayToString(code),
-                             _json["data"].asString(),
+                             _json[apiKeys.data].asString(),
                              gasRemained,
                              amount};
 
