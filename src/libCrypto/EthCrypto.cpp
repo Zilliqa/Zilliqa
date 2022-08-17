@@ -324,7 +324,13 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.gasLimit;
   rlpStreamRecreated << info.toAddr;
   rlpStreamRecreated << info.amount;
-  rlpStreamRecreated << FromEVM(info.code);
+  if (IsNullAddress(info.toAddr)) {
+    rlpStreamRecreated << FromEVM(info.code);
+  } else {
+    // TODO: remove hexing here.
+    rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
+        DataConversion::CharArrayToString(info.data));
+  }
   rlpStreamRecreated << chainId;
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};

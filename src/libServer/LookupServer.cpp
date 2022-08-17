@@ -927,16 +927,31 @@ Json::Value LookupServer::CreateTransactionEth(
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
-  Transaction tx{fields.version,
-                 fields.nonce,
-                 Address(fields.toAddr),
-                 PubKey(pubKey, 0),
-                 fields.amount,
-                 fields.gasPrice,
-                 fields.gasLimit,
-                 bytes(),
-                 fields.data,
-                 Signature(fields.signature, 0)};
+  Address toAddr{fields.toAddr};
+  Transaction tx =
+      IsNullAddress(toAddr)
+          ? Transaction{fields.version,
+                        fields.nonce,
+                        Address(fields.toAddr),
+                        PubKey(pubKey, 0),
+                        fields.amount,
+                        fields.gasPrice,
+                        fields.gasLimit,
+                        ToEVM(fields.code),
+                        {},
+                        Signature(fields.signature, 0)}
+          : Transaction{fields.version,
+                        fields.nonce,
+                        Address(fields.toAddr),
+                        PubKey(pubKey, 0),
+                        fields.amount,
+                        fields.gasPrice,
+                        fields.gasLimit,
+                        {},
+                        DataConversion::StringToCharArray(
+                            DataConversion::Uint8VecToHexStrRet(
+                                fields.code)),  // TODO remove hex'ing.
+                        Signature(fields.signature, 0)};
 
   try {
     Json::Value ret;
@@ -1030,8 +1045,13 @@ Json::Value LookupServer::CreateTransactionEth(
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
-    uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    TxBlock txBlock;
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else {
+      uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
     static const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
@@ -1594,17 +1614,17 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     std::string zeroes =
         "0000000000000000000000000000000000000000000000000000000000000000";
 
-    if (position.size() > zeroes.size()) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR,
-                             "position string is too long! " + position);
-    }
-
     auto positionIter = position.begin();
     auto zeroIter = zeroes.begin();
 
     // Move position iterator past '0x' if it exists
     if (position.size() > 2 && position[0] == '0' && position[1] == 'x') {
       std::advance(positionIter, 2);
+    }
+
+    if ((position.end() - positionIter) > static_cast<int>(zeroes.size())) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR,
+                             "position string is too long! " + position);
     }
 
     std::advance(zeroIter,
