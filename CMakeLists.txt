@@ -47,11 +47,10 @@ include(InstallCryptoUtils)
 
 include(ProjectSecp256k1)
 
-include(InstallMongo)
-find_package(mongocxx CONFIG REQUIRED)
+find_package(libmongocxx REQUIRED)
+find_package(libbsoncxx REQUIRED)
  
-include(InstallWebsocketpp)
-find_package(websocketpp CONFIG REQUIRED)
+find_package(websocketpp REQUIRED)
 
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
@@ -247,8 +246,8 @@ endif()
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
-find_package(Protobuf CONFIG REQUIRED)
-include_directories(${PROTOBUF_INSTALL_DIR}/include)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
 
