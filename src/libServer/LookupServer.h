@@ -652,10 +652,10 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
+  struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json);
-  std::string GetEthCallImpl(const Json::Value& _json,
-                             const std::vector<std::string>& apiKeys);
+  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys &apiKeys);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
   Json::Value GetEthUncleCount();

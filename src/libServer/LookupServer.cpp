@@ -1344,6 +1344,14 @@ Json::Value LookupServer::GetBalance(const string& address) {
   }
 }
 
+struct LookupServer::ApiKeys {
+  std::string from;
+  std::string to;
+  std::string value;
+  std::string gas;
+  std::string data;
+};
+
 // TODO: remove once we fully move to Eth compatible APIs.
 string LookupServer::GetEthCallZil(const Json::Value& _json) {
   return this->GetEthCallImpl(
@@ -1355,10 +1363,10 @@ string LookupServer::GetEthCallEth(const Json::Value& _json) {
 }
 
 string LookupServer::GetEthCallImpl(const Json::Value& _json,
-                                    const std::vector<std::string>& apiKeys) {
+                                    const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys[1]);
+  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
   auto ret{false};
   {
@@ -1375,26 +1383,26 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
   string result;
   try {
     Address fromAddr;
-    if (_json.isMember(apiKeys[0])) {
-      fromAddr = Address(_json[apiKeys[0]].asString());
+    if (_json.isMember(apiKeys.from)) {
+      fromAddr = Address(_json[apiKeys.from].asString());
     }
 
     uint64_t amount{0};
-    if (_json.isMember(apiKeys[1])) {
-      const auto amount_str = _json[apiKeys[2]].asString();
+    if (_json.isMember(apiKeys.value)) {
+      const auto amount_str = _json[apiKeys.value].asString();
       amount = strtoull(amount_str.c_str(), NULL, 0);
     }
 
     // for now set total gas as twice the ds gas limit
     uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
-    if (_json.isMember(apiKeys[3])) {
-      const auto gasLimit_str = _json[apiKeys[2]].asString();
+    if (_json.isMember(apiKeys.gas)) {
+      const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
     EvmCallParameters params{addr.hex(),
                              fromAddr.hex(),
                              DataConversion::CharArrayToString(code),
-                             _json[apiKeys[4]].asString(),
+                             _json[apiKeys.data].asString(),
                              gasRemained,
                              amount};
 
