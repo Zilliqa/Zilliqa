@@ -752,7 +752,8 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   }
 
   if (!toAccountExist) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Target account does not exist");
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Target account does not exist");
   }
 
   else if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL &&
@@ -1104,6 +1105,34 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
                                                  transactionHashes,
                                                  includeFullTransactions);
+}
+
+Json::Value LookupServer::GetEthBlockTransactionCountByHash(
+    const std::string& inputHash) {
+  try {
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
+    const std::string& blockNumberStr) {
+  try {
+    const uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {

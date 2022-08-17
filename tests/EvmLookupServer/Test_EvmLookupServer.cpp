@@ -938,4 +938,87 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   BOOST_TEST_CHECK(response == Json::nullValue);
 }
 
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 31;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto BLOCK_NUM = 1;
+  const auto txBlock =
+      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
+
+  // Existing block by Hash
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Existing block by Hash (with extra '0x' prefix)
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "0x" + txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Non existing block by Hash
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "abcdeffedcba01234567890";
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == 0);
+  }
+
+  // Existing block by number
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = std::to_string(txBlock.GetHeader().GetBlockNum());
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Non Existing block by number
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "1234";
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == 0);
+  }
+}
+
 BOOST_AUTO_TEST_SUITE_END()
