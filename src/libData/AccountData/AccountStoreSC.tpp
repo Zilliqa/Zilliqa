@@ -277,8 +277,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         try {
           if (it->hasCode() && it->Code().size() > 0) {
             targetAccount->SetImmutable(
-                DataConversion::StringToCharArray("EVM" + it->Code()),
-                contractAccount->GetInitData());
+                DataConversion::StringToCharArray("EVM" + it->Code()), {});
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -428,10 +427,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      // TODO: for EVM, replace this with the Yellow paper gas check.
-      uint64_t createGasPenalty = std::max(
-          CONTRACT_CREATE_GAS, (unsigned int)(transaction.GetCode().size() +
-                                              transaction.GetData().size()));
+      isScilla = !EvmUtils::isEvm(transaction.GetCode());
+
+      uint64_t createGasPenalty =
+          isScilla ? std::max(CONTRACT_CREATE_GAS,
+                              (unsigned int)(transaction.GetCode().size() +
+                                             transaction.GetData().size()))
+                   : 32000 / 100;  //  100 is the current gas scaling factor.
+                                   //  TODO: move to config.
 
       // Check if gaslimit meets the minimum requirement for contract deployment
       if (transaction.GetGasLimit() < createGasPenalty) {
@@ -442,19 +445,22 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // Check if the sender has enough balance to pay gasDeposit
-      if (fromAccount->GetBalance() < gasDeposit) {
+      if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmount()) {
         LOG_GENERAL(WARNING,
                     "The account doesn't have enough gas to create a contract");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
-      // deduct scilla checker invoke gas
-      if (gasRemained < SCILLA_CHECKER_INVOKE_GAS) {
-        LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla checker");
-        error_code = TxnStatus::INSUFFICIENT_GAS;
-        return false;
-      } else {
-        gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
+
+      if (isScilla) {
+        // deduct scilla checker invoke gas
+        if (gasRemained < SCILLA_CHECKER_INVOKE_GAS) {
+          LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla checker");
+          error_code = TxnStatus::INSUFFICIENT_GAS;
+          return false;
+        } else {
+          gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
+        }
       }
 
       // generate address for new contract account
@@ -462,17 +468,36 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
-      if (!this->AddAccount(contractAddress, {0, 0})) {
-        LOG_GENERAL(WARNING, "AddAccount failed for contract address "
-                                 << contractAddress.hex());
-        error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
-        return false;
-      }
-      Account* contractAccount = this->GetAccount(contractAddress);
-      if (contractAccount == nullptr) {
-        LOG_GENERAL(WARNING, "contractAccount is null ptr");
-        error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
-        return false;
+      Account* contractAccount;
+      if (isScilla) {
+        if (!this->AddAccount(contractAddress, {0, 0})) {
+          LOG_GENERAL(WARNING, "AddAccount failed for contract address "
+                                   << contractAddress.hex());
+          error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
+          return false;
+        }
+        contractAccount = this->GetAccount(contractAddress);
+        if (contractAccount == nullptr) {
+          LOG_GENERAL(WARNING, "contractAccount is null ptr");
+          error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
+          return false;
+        }
+      } else {
+        // For the EVM, we create the temporary account in Atomics, so that we
+        // can remove it easily if something doesn't work out.
+        DiscardAtomics();  // We start by making sure our new state is clean.
+        if (!this->AddAccountAtomic(contractAddress, {0, 0})) {
+          LOG_GENERAL(WARNING, "AddAccount failed for contract address "
+                                   << contractAddress.hex());
+          error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
+          return false;
+        }
+        contractAccount = this->GetAccountAtomic(contractAddress);
+        if (contractAccount == nullptr) {
+          LOG_GENERAL(WARNING, "contractAccount is null ptr");
+          error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
+          return false;
+        }
       }
       if (transaction.GetCode().empty()) {
         LOG_GENERAL(WARNING,
@@ -480,7 +505,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      isScilla = !EvmUtils::isEvm(transaction.GetCode());
 
       bool init = true;
       bool is_library;
@@ -491,11 +515,13 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       try {
         // Initiate the contract account, including setting the contract code
         // store the immutable states
-        if (!contractAccount->InitContract(transaction.GetCode(),
-                                           transaction.GetData(),
-                                           contractAddress, blockNum)) {
-          LOG_GENERAL(WARNING, "InitContract failed");
-          init = false;
+        if (isScilla) {  // For the EVM we don't need to before we make a call.
+          if (!contractAccount->InitContract(transaction.GetCode(),
+                                             transaction.GetData(),
+                                             contractAddress, blockNum)) {
+            LOG_GENERAL(WARNING, "InitContract failed");
+            init = false;
+          }
         }
 
         std::vector<Address> extlibs;
@@ -540,7 +566,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       if (!init) {
-        this->RemoveAccount(contractAddress);
+        if (isScilla) {
+          this->RemoveAccount(contractAddress);
+        }
         error_code = TxnStatus::FAIL_CONTRACT_INIT;
         return false;
       }
@@ -586,13 +614,15 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       bool ret = true;
 
       if (ret_checker) {
-        // deduct scilla runner invoke gas
-        if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
-          LOG_GENERAL(WARNING, "Not enough gas to invoke the runner");
-          receipt.AddError(GAS_NOT_SUFFICIENT);
-          ret = false;
-        } else {
-          gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+        if (isScilla) {
+          // deduct scilla runner invoke gas
+          if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
+            LOG_GENERAL(WARNING, "Not enough gas to invoke the runner");
+            receipt.AddError(GAS_NOT_SUFFICIENT);
+            ret = false;
+          } else {
+            gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+          }
         }
 
         if (ret) {
@@ -638,8 +668,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                 transaction.GetGasLimit(),
                 transaction.GetAmount()};
 
-            // The code leading up to the call to InvokeEVMInterpreter is
-            // likely not required.
             std::map<std::string, bytes> t_newmetadata;
 
             t_newmetadata.emplace(
@@ -656,7 +684,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             gasRemained =
                 InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
                                      evm_version, ret, receipt, response);
-
             ret_checker = true;
           }
         }
@@ -669,7 +696,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
               gasRemained, transaction.GetGasPrice(), gasRefund)) {
-        this->RemoveAccount(contractAddress);
+        if (isScilla) {
+          this->RemoveAccount(contractAddress);
+        }
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
@@ -677,7 +706,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
       if (!ret || !ret_checker) {
-        this->m_addressToAccount->erase(contractAddress);
+        if (!isScilla) {
+          DiscardAtomics();
+        } else {
+          this->m_addressToAccount->erase(contractAddress);
+        }
 
         receipt.SetResult(false);
         if (!ret) {
@@ -690,7 +723,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         receipt.update();
 
         if (!this->IncreaseNonce(fromAddr)) {
-          this->RemoveAccount(contractAddress);
+          if (isScilla) {
+            this->RemoveAccount(contractAddress);
+          }
           error_code = TxnStatus::MATH_ERROR;
           return false;
         }
@@ -711,6 +746,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           return false;
         }
         return true;  // Return true because the states already changed
+      } else {
+        if (!isScilla) {
+          CommitAtomics();
+        }
       }
 
       if (transaction.GetGasLimit() < gasRemained) {
@@ -757,17 +796,28 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
+      Account* contractAccount = this->GetAccount(transaction.GetToAddr());
+      if (contractAccount == nullptr) {
+        LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+        error_code = TxnStatus::INVALID_TO_ACCOUNT;
+        return false;
+      }
+      isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
+
       LOG_GENERAL(INFO, "Call contract");
 
-      uint64_t callGasPenalty = std::max(
-          CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
+      uint64_t callGasPenalty = 0;
+      if (isScilla) {
+        callGasPenalty = std::max(CONTRACT_INVOKE_GAS,
+                                  (unsigned int)(transaction.GetData().size()));
 
-      if (transaction.GetGasLimit() < callGasPenalty) {
-        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                          << " less than " << callGasPenalty);
-        error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
+        if (transaction.GetGasLimit() < callGasPenalty) {
+          LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+                                            << " less than " << callGasPenalty);
+          error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
 
-        return false;
+          return false;
+        }
       }
 
       if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmount()) {
@@ -786,24 +836,20 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      // deduct scilla checker invoke gas
-      if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
-        LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
-        error_code = TxnStatus::INSUFFICIENT_GAS;
-        return false;
-      } else {
-        gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+      if (isScilla) {
+        // deduct scilla checker invoke gas
+        if (gasRemained < SCILLA_RUNNER_INVOKE_GAS) {
+          LOG_GENERAL(WARNING, "Not enough gas to invoke the scilla runner");
+          error_code = TxnStatus::INSUFFICIENT_GAS;
+          return false;
+        } else {
+          gasRemained -= SCILLA_RUNNER_INVOKE_GAS;
+        }
       }
 
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
 
-      Account* contractAccount = this->GetAccount(transaction.GetToAddr());
-      if (contractAccount == nullptr) {
-        LOG_GENERAL(WARNING, "The target contract account doesn't exist");
-        error_code = TxnStatus::INVALID_TO_ACCOUNT;
-        return false;
-      }
       if (contractAccount->GetCode().empty()) {
         LOG_GENERAL(
             WARNING,
@@ -811,7 +857,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         error_code = TxnStatus::NOT_PRESENT;
         return false;
       }
-      isScilla = !EvmUtils::isEvm(contractAccount->GetCode());
       bool is_library;
       uint32_t scilla_version;
       uint32_t evm_version{0};

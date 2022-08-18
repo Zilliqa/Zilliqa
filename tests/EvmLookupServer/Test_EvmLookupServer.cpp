@@ -263,9 +263,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   values["data"] =
       "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
       "014";
-  values["toAddr"] = "a744160c3De133495aB9F9D77EA54b325b045670";
-  values["gasLimit"] = gasLimit;
-  values["amount"] = amount;
+  values["to"] = "a744160c3De133495aB9F9D77EA54b325b045670";
+  values["gas"] = gasLimit;
+  values["value"] = amount;
   paramsRequest[0u] = values;
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
@@ -277,7 +277,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   Json::Value response;
-  lookupServer->GetEthCallI(paramsRequest, response);
+  lookupServer->GetEthCallEthI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(),
@@ -635,10 +635,12 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
@@ -649,8 +651,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
 
   LookupServer lookupServer(mediator, abstractServerConnector);
 
-  // Construct all relevant structures (sample transactions, microblock and
-  // txBlock)
   std::vector<TransactionWithReceipt> transactions;
 
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
@@ -658,42 +658,89 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
     transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
   }
 
-  constexpr auto BLOCK_NUM = 1;
-  const auto txBlock =
-      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
+  constexpr auto FIRST_VALID_BLOCK_NUM = 1;
+  const auto firstValidTxBlock = buildCommonEthBlockCase(
+      mediator, FIRST_VALID_BLOCK_NUM, transactions, pairOfKey);
 
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = std::to_string(BLOCK_NUM);
-  paramsRequest[1u] = false;
+  // Case with retrieving block by number
+  {
+    // Construct all relevant structures (sample transactions, microblock and
+    // txBlock)
 
-  Json::Value response;
-  lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    // call the method on the lookup server with params
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = std::to_string(FIRST_VALID_BLOCK_NUM);
+    paramsRequest[1u] = false;
 
-  BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
+    Json::Value response;
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
 
-  std::vector<std::string> expectedHashes;
-  for (uint32_t i = 0; i < transactions.size(); ++i) {
-    expectedHashes.emplace_back(
-        transactions[i].GetTransaction().GetTranID().hex());
+    BOOST_CHECK_EQUAL(response["hash"].asString(),
+                      firstValidTxBlock.GetBlockHash().hex());
+
+    std::vector<std::string> expectedHashes;
+    for (uint32_t i = 0; i < transactions.size(); ++i) {
+      expectedHashes.emplace_back(
+          transactions[i].GetTransaction().GetTranID().hex());
+    }
+    std::sort(expectedHashes.begin(), expectedHashes.end());
+
+    std::vector<std::string> receivedHashes;
+    const Json::Value arrayOfHashes = response["transactions"];
+    for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
+         ++jsonIter) {
+      receivedHashes.emplace_back(jsonIter->asString());
+    }
+    std::sort(receivedHashes.begin(), receivedHashes.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+        expectedHashes.cbegin(), expectedHashes.cend(), receivedHashes.cbegin(),
+        receivedHashes.cend());
   }
-  std::sort(expectedHashes.begin(), expectedHashes.end());
 
-  std::vector<std::string> receivedHashes;
-  const Json::Value arrayOfHashes = response["transactions"];
-  for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
-       ++jsonIter) {
-    receivedHashes.emplace_back(jsonIter->asString());
+  // Case with retrieving block by TAGs (previous block already exists)
+  {
+    std::vector<TransactionWithReceipt> new_transactions;
+
+    constexpr uint32_t NEW_TRANSACTIONS_COUNT = 123;
+    for (uint32_t i = 0; i < NEW_TRANSACTIONS_COUNT; ++i) {
+      new_transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    }
+
+    constexpr auto SECOND_VALID_BLOCK_NUM = 2;
+    const auto secondValidTxBlock = buildCommonEthBlockCase(
+        mediator, SECOND_VALID_BLOCK_NUM, new_transactions, pairOfKey);
+
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+    // Latest
+    paramsRequest[0u] = "latest";
+    Json::Value response;
+
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response["hash"].asString(),
+                      secondValidTxBlock.GetBlockHash().hex());
+
+    // Pending
+    paramsRequest[0u] = "pending";
+
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response, Json::nullValue);
+
+    // Earliest
+    paramsRequest[0u] = "earliest";
+
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response,
+                      Json::nullValue);
   }
-  std::sort(receivedHashes.begin(), receivedHashes.end());
-  BOOST_CHECK_EQUAL_COLLECTIONS(expectedHashes.cbegin(), expectedHashes.cend(),
-                                receivedHashes.cbegin(), receivedHashes.cend());
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
@@ -936,6 +983,127 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
 
   lookupServer.GetEthTransactionByHashI(paramsRequest, response);
   BOOST_TEST_CHECK(response == Json::nullValue);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 31;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto BLOCK_NUM = 1;
+  const auto txBlock =
+      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
+
+  // Existing block by Hash
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Existing block by Hash (with extra '0x' prefix)
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "0x" + txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Non existing block by Hash
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "abcdeffedcba01234567890";
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == 0);
+  }
+
+  // Existing block by number
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = std::to_string(txBlock.GetHeader().GetBlockNum());
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Non Existing block by number
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "1234";
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == 0);
+  }
+  // Block by TAGs
+  {
+    std::vector<TransactionWithReceipt> new_transactions;
+
+    constexpr uint32_t NEW_TRANSACTIONS_COUNT = 2;
+    for (uint32_t i = 0; i < NEW_TRANSACTIONS_COUNT; ++i) {
+      new_transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    }
+
+    constexpr auto SECOND_VALID_BLOCK_NUM = 2;
+    const auto secondValidTxBlock = buildCommonEthBlockCase(
+        mediator, SECOND_VALID_BLOCK_NUM, new_transactions, pairOfKey);
+
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+    // Latest
+    paramsRequest[0u] = "latest";
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response.asUInt64(), NEW_TRANSACTIONS_COUNT);
+
+    // Pending
+    paramsRequest[0u] = "pending";
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response.asUInt64(), 0);
+
+    // Earliest
+    paramsRequest[0u] = "earliest";
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(
+        response.asUInt64(),
+        mediator.m_txBlockChain.GetBlock(0).GetHeader().GetNumTxs());
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -305,9 +305,15 @@ class LookupServer : public Server,
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
 
-  inline virtual void GetEthCallI(const Json::Value& request,
-                                  Json::Value& response) {
-    response = this->GetEthCall(request[0u]);
+  inline virtual void GetEthCallEthI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetEthCallEth(request[0u]);
+  }
+
+  // TODO: remove once we fully move to Eth compatible APIs.
+  inline virtual void GetEthCallZilI(const Json::Value& request,
+                                     Json::Value& response) {
+    response = this->GetEthCallZil(request[0u]);
   }
 
   // Eth style functions here
@@ -604,6 +610,33 @@ class LookupServer : public Server,
     response = this->GetEmptyResponse();
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getBlockTransactionCountByHash Returns transactions count for given
+   * block.
+   * @param request : params: block hash
+   * @param response : numbner of transactions.
+   */
+
+  inline virtual void GetEthBlockTransactionCountByHashI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetEthBlockTransactionCountByHash(request[0u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getBlockTransactionCountByNumber Returns transactions count for given
+   * block.
+   * @param request : params: block hash
+   * @param response : numbner of transactions.
+   */
+
+  inline virtual void GetEthBlockTransactionCountByNumberI(
+      const Json::Value& request, Json::Value& response) {
+    response =
+        this->GetEthBlockTransactionCountByNumber(request[0u].asString());
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -639,7 +672,10 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
-  std::string GetEthCall(const Json::Value& _json);
+  struct ApiKeys;
+  std::string GetEthCallZil(const Json::Value& _json);
+  std::string GetEthCallEth(const Json::Value& _json);
+  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
   Json::Value GetEthUncleCount();
@@ -678,6 +714,10 @@ class LookupServer : public Server,
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,
       const CreateTransactionTargetFunc& targetFunc);
+
+  Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
+  Json::Value GetEthBlockTransactionCountByNumber(
+      const std::string& blockNumber);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

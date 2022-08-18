@@ -31,7 +31,7 @@ sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
     cd /evm-ds && \
-    git checkout ed68e05c11eee6db447806df41d4051f8596f1f9 && \
+    git checkout 70dfb1488e39b7c1e5fab6f040916c32ee714838 && \
     cargo build --release --package evm-ds && \
     cargo test --verbose --release --package evm-ds
 
