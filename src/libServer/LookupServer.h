@@ -411,7 +411,7 @@ class LookupServer : public Server,
 
     auto balanceStr = resp.asString();
 
-    resp = balanceStr;
+    resp = "0x" + balanceStr;
 
     response = resp;
   }
