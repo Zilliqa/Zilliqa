@@ -635,10 +635,12 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
@@ -728,8 +730,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_nummber) {
     paramsRequest[0u] = "earliest";
 
     lookupServer.GetEthBlockByNumberI(paramsRequest, response);
-    BOOST_CHECK_EQUAL(response["hash"].asString(),
-                      mediator.m_txBlockChain.GetBlock(0).GetBlockHash().hex());
+    BOOST_CHECK_EQUAL(response,
+                      Json::nullValue);
   }
 }
 
@@ -737,6 +739,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
@@ -985,6 +989,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
