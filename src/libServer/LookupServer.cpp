@@ -1138,7 +1138,7 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   auto hash = txnhash;
 
-  if (hash[0] == '0' && hash[1] == 'x') {
+  if (hash.size() >= 2 && hash[0] == '0' && hash[1] == 'x') {
     hash.erase(0, 2);
   }
 
@@ -1157,22 +1157,17 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     // Scan downwards through the chain until the TX can be found
     do {
-      std::stringstream ss;
-      ss << height;  // int decimal_value
-      std::string useMe(ss.str());
-      height--;
-
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
       const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
 
-      auto const block = GetEthBlockByNumber(useMe, false);
+      auto const block = GetEthBlockByNumber(std::to_string(height), false);
+      height--;
 
       // Attempt to find if the TX is within this block
       auto const TxnHashes = block["transactions"];
 
       for (auto const& item : TxnHashes) {
         if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
-          // if (txnhash.compare(item.asString()) == 0) {
           blockHash = block["hash"].asString();
           break;
         }
