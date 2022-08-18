@@ -252,7 +252,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthBlockNumberI);
+      &IsolatedServer::GetEthBlockNumberI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
@@ -310,7 +310,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getTransactionReceipt",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetTransactionReceiptI);
+      &IsolatedServer::GetEthTransactionReceiptI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
@@ -631,6 +631,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
 Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                                                  bytes const& pubKey) {
+  Json::Value ret;
+
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
@@ -646,8 +648,6 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
                    ToEVM(fields.code),
                    fields.data,
                    Signature(fields.signature, 0)};
-
-    Json::Value ret;
 
     uint64_t senderNonce;
     uint128_t senderBalance;
@@ -781,9 +781,9 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
-    LOG_GENERAL(INFO, "Processing On the isolated server completed");
-    return ret;
-
+    LOG_GENERAL(
+        INFO,
+        "Processing On the isolated server completed. Minting a block...");
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     throw je;
@@ -791,6 +791,16 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+
+  // Double create a block to make sure TXs are 'flushed'
+  // This will make sure the block height advances, the
+  // TX can be found in a block etc.
+  if (m_timeDelta == 0) {
+    PostTxBlock();
+    PostTxBlock();
+  }
+
+  return ret;
 }
 
 Json::Value IsolatedServer::GetTransactionsForTxBlock(
@@ -848,6 +858,27 @@ string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
 }
 
 string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }
+
+Json::Value IsolatedServer::GetEthBlockNumber() {
+  Json::Value ret;
+
+  try {
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto blockHeight = txBlock.GetHeader().GetBlockNum();
+    blockHeight =
+        blockHeight == std::numeric_limits<uint64_t>::max() ? 1 : blockHeight;
+
+    std::ostringstream returnVal;
+    returnVal << "0x" << std::hex << blockHeight << std::dec;
+    ret = returnVal.str();
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+
+  return ret;
+}
 
 string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   uint128_t newGasPrice;
@@ -913,6 +944,10 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     m_txnBlockNumMap[m_blocknum].clear();
   }
 
+  TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
+                              TxBlockHashSet(), numtxns, m_key.first,
+                              TXBLOCK_VERSION);
+
   // In order that the m_txRootHash is not empty if there are actually TXs
   // in the microblock, set the root hash to a TXn hash if there is one
   MicroBlockHashSet hashSet{};
@@ -920,9 +955,6 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     hashSet.m_txRootHash = txnhashes[0];
   }
 
-  TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
-                              TxBlockHashSet(), numtxns, m_key.first,
-                              TXBLOCK_VERSION);
   MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, hashSet, numtxns,
                        m_key.first, 0);
   MicroBlock mb(mbh, txnhashes, CoSignatures());

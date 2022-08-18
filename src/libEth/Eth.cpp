@@ -22,17 +22,20 @@
 
 using namespace jsonrpc;
 
-Json::Value populateReceiptHelper(std::string const& txnhash) {
+Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
+                                  const std::string &from,
+                                  const std::string &to,
+                                  const std::string &gasUsed,
+                                  const std::string &blockHash) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
-  ret["blockHash"] =
-      "0x0000000000000000000000000000000000000000000000000000000000000000";
+  ret["blockHash"] = blockHash;
   ret["blockNumber"] = "0x429d3b";
-  ret["contractAddress"] = nullptr;
-  ret["cumulativeGasUsed"] = "0x64b559";
-  ret["from"] = "0x999";  // todo: fill
-  ret["gasUsed"] = "0xcaac";
+  ret["contractAddress"] = "";
+  ret["cumulativeGasUsed"] = gasUsed;
+  ret["from"] = from;
+  ret["gasUsed"] = gasUsed;
   ret["logs"].append(Json::Value());
   ret["logsBloom"] =
       "0x0000000000000000000000000000000000000000000000000000000000000000000000"
@@ -45,15 +48,15 @@ Json::Value populateReceiptHelper(std::string const& txnhash) {
       "0000000000";
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
-  ret["status"] = nullptr;
-  ret["to"] = "0x888";                // todo: fill
-  ret["transactionIndex"] = "0x777";  // todo: fill
+  ret["status"] = success;
+  ret["to"] = to;                   // todo: fill
+  ret["transactionIndex"] = "0x0";  // todo: fill
 
   return ret;
 }
 
 // Given a RLP message, parse out the fields and return a EthFields object
-EthFields parseRawTxFields(std::string const& message) {
+EthFields parseRawTxFields(std::string const &message) {
   EthFields ret;
 
   bytes asBytes;

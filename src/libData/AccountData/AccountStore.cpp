@@ -254,8 +254,6 @@ bool AccountStore::MoveRootToDisk(const dev::h256& root) {
 }
 
 bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
-  LOG_MARKER();
-
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);

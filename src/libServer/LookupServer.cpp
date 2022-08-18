@@ -516,6 +516,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthStorageAtI);
 
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionReceipt",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionReceiptI);
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -1027,6 +1033,28 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
+Json::Value LookupServer::GetEthBlockNumber() {
+  Json::Value ret;
+
+  try {
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto const height = txBlock.GetHeader().GetBlockNum() ==
+                                std::numeric_limits<uint64_t>::max()
+                            ? 1
+                            : txBlock.GetHeader().GetBlockNum();
+
+    std::ostringstream returnVal;
+    returnVal << "0x" << std::hex << height << std::dec;
+    ret = returnVal.str();
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+
+  return ret;
+}
+
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
@@ -1093,6 +1121,7 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
     }
 
     MicroBlockSharedPtr microBlockPtr;
+
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        microBlockPtr)) {
       continue;
@@ -1105,12 +1134,12 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
       continue;
     }
     for (const auto& transactionHash : currTranHashes) {
-      TxBodySharedPtr transactioBodyPtr;
+      TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                     transactioBodyPtr)) {
+                                                     transactionBodyPtr)) {
         continue;
       }
-      transactions.push_back(std::move(transactioBodyPtr));
+      transactions.push_back(std::move(transactionBodyPtr));
     }
   }
 
@@ -1159,37 +1188,79 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
   }
 }
 
-Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
-  Json::Value ret;
+Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
+  auto hash = txnhash;
+
+  if (hash[0] == '0' && hash[1] == 'x') {
+    hash.erase(0, 2);
+  }
 
   try {
-    if (!REMOTESTORAGE_DB_ENABLE) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
+    auto const result = GetTransaction(hash);
+
+    // Scan downwards looking for the block hash with our TX in it
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto height = txBlock.GetHeader().GetBlockNum() ==
+                          std::numeric_limits<uint64_t>::max()
+                      ? 1
+                      : txBlock.GetHeader().GetBlockNum();
+
+    std::string blockHash = "";
+
+    // Scan downwards through the chain until the TX can be found
+    do {
+      std::stringstream ss;
+      ss << height;  // int decimal_value
+      std::string useMe(ss.str());
+      height--;
+
+      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
+      const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
+
+      auto const block = GetEthBlockByNumber(useMe, false);
+
+      // Attempt to find if the TX is within this block
+      auto const TxnHashes = block["transactions"];
+
+      for (auto const& item : TxnHashes) {
+        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
+          // if (txnhash.compare(item.asString()) == 0) {
+          blockHash = block["hash"].asString();
+          break;
+        }
+      }
+    } while (height != 0 && blockHash == "");
+
+    auto receipt = result["receipt"];
+
+    std::string hashId = result["ID"].asString();
+    bool success = receipt["success"].asBool();
+    std::string sender = receipt["senderPubkey"].asString();
+    std::string toAddr = result["toAddr"].asString();
+    std::string cumGas = result["cumulative_gas"].asString();
+
+    if (blockHash == "") {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      return "";
     }
-    if (txnhash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Txn Hash size not appropriate");
+
+    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
+      blockHash = std::string("0x") + blockHash;
     }
 
-    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                     blockHash);
 
-    if (result.isMember("error")) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
-    } else if (result == Json::Value::null) {
-      // No txnhash matches the one in DB
-      return ret;
-    }
-
-    ret = populateReceiptHelper(txnhash);
-
-    return ret;
+    return res;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what());
     throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To Process: ") + e.what());
+                           string("Unable To find hash for txn: ") + e.what());
   }
+
+  return "";
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
@@ -1688,7 +1759,14 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
                                      std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  auto code = GetSmartContractCode(address);
+  // Strip off "0x" if exists
+  auto addressCopy = address;
+
+  if (addressCopy[0] == '0' && addressCopy[1] == 'x') {
+    addressCopy.erase(0, 2);
+  }
+
+  auto code = GetSmartContractCode(addressCopy);
   auto codeStr = code["code"].asString();
 
   // Erase 'EVM' from beginning, put '0x'
