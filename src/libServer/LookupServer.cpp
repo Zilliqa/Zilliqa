@@ -1030,9 +1030,21 @@ Json::Value LookupServer::CreateTransactionEth(
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
-    uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
-    static const TxBlock NON_EXISTING_TX_BLOCK{};
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::nullValue;
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
+    const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
@@ -1124,8 +1136,20 @@ Json::Value LookupServer::GetEthBlockTransactionCountByHash(
 Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
     const std::string& blockNumberStr) {
   try {
-    const uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::Value{0};
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
     return txBlock.GetHeader().GetNumTxs();
 
   } catch (std::exception& e) {
