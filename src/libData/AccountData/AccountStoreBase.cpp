@@ -17,58 +17,79 @@
 
 #include <type_traits>
 
+#include "AccountStoreBase.h"
+#include "boost/variant.hpp"
 #include "libMessage/MessengerAccountStoreBase.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
-template <class MAP>
-AccountStoreBase<MAP>::AccountStoreBase() {
-  m_addressToAccount = std::make_shared<MAP>();
+AccountStoreBase::AccountStoreBase(acMapClass& init)
+    : m_addressToAccounts(init) {}
+
+void AccountStoreBase::Init() {
+  if (m_addressToAccounts.GetType() == map_type::MAP) {
+    m_addressToAccounts.GetMap()->clear();
+  } else {
+    m_addressToAccounts.GetUMap()->clear();
+  }
 }
 
-template <class MAP>
-void AccountStoreBase<MAP>::Init() {
-  m_addressToAccount->clear();
+bool AccountStoreBase::Serialize(bytes& dst, unsigned int offset) const {
+  if (m_addressToAccounts.GetType() == map_type::MAP) {
+    if (!MessengerAccountStoreBase::SetAccountStore(
+            dst, offset, *m_addressToAccounts.GetMap())) {
+      LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
+      return false;
+    }
+  } else {
+    if (!MessengerAccountStoreBase::SetAccountStore(
+            dst, offset, *m_addressToAccounts.GetUMap())) {
+      LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
+      return false;
+    }
+  }
+  return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::Serialize(bytes& dst, unsigned int offset) const {
-  if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
-                                                  *m_addressToAccount)) {
-    LOG_GENERAL(WARNING, "Messenger::SetAccountStore failed.");
-    return false;
+bool AccountStoreBase::Deserialize(const bytes& src, unsigned int offset) {
+  if (m_addressToAccounts.GetType() == map_type::MAP) {
+    if (!MessengerAccountStoreBase::GetAccountStore(
+            src, offset, *m_addressToAccounts.GetMap())) {
+      LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+      return false;
+    }
+  } else {
+    if (!MessengerAccountStoreBase::GetAccountStore(
+            src, offset, *m_addressToAccounts.GetUMap())) {
+      LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+      return false;
+    }
+  }
+  return true;
+}
+
+bool AccountStoreBase::Deserialize(const std::string& src,
+                                   unsigned int offset) {
+  if (m_addressToAccounts.GetType() == map_type::MAP) {
+    if (!MessengerAccountStoreBase::GetAccountStore(
+            src, offset, *m_addressToAccounts.GetMap())) {
+      LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+      return false;
+    }
+  } else {
+    if (!MessengerAccountStoreBase::GetAccountStore(
+            src, offset, *m_addressToAccounts.GetUMap())) {
+      LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
+      return false;
+    }
   }
 
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::Deserialize(const bytes& src, unsigned int offset) {
-  if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
-                                                  *m_addressToAccount)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
-    return false;
-  }
-
-  return true;
-}
-
-template <class MAP>
-bool AccountStoreBase<MAP>::Deserialize(const std::string& src,
-                                        unsigned int offset) {
-  if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
-                                                  *m_addressToAccount)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
-    return false;
-  }
-
-  return true;
-}
-
-template <class MAP>
-bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
-                                           TransactionReceipt& receipt,
-                                           TxnStatus& error_code) {
+bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
+                                      TransactionReceipt& receipt,
+                                      TxnStatus& error_code) {
   const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();
   const uint128_t& amount = transaction.GetAmount();
@@ -152,11 +173,10 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
-                                               const uint64_t& gasUnit,
-                                               const uint128_t& gasPrice,
-                                               uint128_t& gasRefund) {
+bool AccountStoreBase::CalculateGasRefund(const uint128_t& gasDeposit,
+                                          const uint64_t& gasUnit,
+                                          const uint128_t& gasPrice,
+                                          uint128_t& gasRefund) {
   uint128_t gasFee;
   if (!SafeMath<uint128_t>::mul(gasUnit, gasPrice, gasFee)) {
     LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
@@ -172,20 +192,19 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
+bool AccountStoreBase::IsAccountExist(const Address& address) {
   // LOG_MARKER();
   return (nullptr != GetAccount(address));
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::AddAccount(const Address& address,
-                                       const Account& account, bool toReplace) {
+bool AccountStoreBase::AddAccount(const Address& address,
+                                  const Account& account, bool toReplace) {
   // LOG_MARKER();
 
   if (toReplace || !IsAccountExist(address)) {
-    (*m_addressToAccount)[address] = account;
-
+    m_addressToAccounts.GetType() == map_type::MAP
+        ? (*m_addressToAccounts.GetMap())[address] = account
+        : (*m_addressToAccounts.GetUMap())[address] = account;
     return true;
   }
   LOG_GENERAL(WARNING, "Address "
@@ -194,37 +213,43 @@ bool AccountStoreBase<MAP>::AddAccount(const Address& address,
   return false;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::AddAccount(const PubKey& pubKey,
-                                       const Account& account) {
+bool AccountStoreBase::AddAccount(const PubKey& pubKey,
+                                  const Account& account) {
   return AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
 
-template <class MAP>
-void AccountStoreBase<MAP>::RemoveAccount(const Address& address) {
+void AccountStoreBase::RemoveAccount(const Address& address) {
   if (IsAccountExist(address)) {
-    m_addressToAccount->erase(address);
+    m_addressToAccounts.GetType() == map_type::MAP
+        ? m_addressToAccounts.GetMap()->erase(address)
+        : m_addressToAccounts.GetUMap()->erase(address);
   }
 }
 
-template <class MAP>
-Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
-  auto it = m_addressToAccount->find(address);
-  if (it != m_addressToAccount->end()) {
-    return &it->second;
+Account* AccountStoreBase::GetAccount(const Address& address) {
+  if (m_addressToAccounts.GetType() == map_type::MAP) {
+    auto it = m_addressToAccounts.GetMap()->find(address);
+    if (it != m_addressToAccounts.GetMap()->end()) {
+      return &it->second;
+    }
+  } else {
+    auto it = m_addressToAccounts.GetUMap()->find(address);
+    if (it != m_addressToAccounts.GetUMap()->end()) {
+      return &it->second;
+    }
   }
   return nullptr;
 }
 
-template <class MAP>
-size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
+size_t AccountStoreBase::GetNumOfAccounts() const {
   // LOG_MARKER();
-  return m_addressToAccount->size();
+  return m_addressToAccounts.GetType() == map_type::MAP
+             ? m_addressToAccounts.GetMap()->size()
+             : m_addressToAccounts.GetUMap()->size();
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
-                                            const uint128_t& delta) {
+bool AccountStoreBase::IncreaseBalance(const Address& address,
+                                       const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -244,9 +269,8 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
   return false;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
-                                            const uint128_t& delta) {
+bool AccountStoreBase::DecreaseBalance(const Address& address,
+                                       const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -268,10 +292,8 @@ bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
-                                            const Address& to,
-                                            const uint128_t& delta) {
+bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
+                                       const uint128_t& delta) {
   // LOG_MARKER();
   // FIXME: Is there any elegent way to implement this atomic change on balance?
   if (DecreaseBalance(from, delta)) {
@@ -287,8 +309,7 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
   return false;
 }
 
-template <class MAP>
-uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
+uint128_t AccountStoreBase::GetBalance(const Address& address) {
   // LOG_MARKER();
 
   const Account* account = GetAccount(address);
@@ -300,8 +321,7 @@ uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
   return 0;
 }
 
-template <class MAP>
-bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
+bool AccountStoreBase::IncreaseNonce(const Address& address) {
   // LOG_MARKER();
 
   Account* account = GetAccount(address);
@@ -324,8 +344,7 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
   }
 }
 
-template <class MAP>
-uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
+uint64_t AccountStoreBase::GetNonce(const Address& address) {
   // LOG_MARKER();
 
   Account* account = GetAccount(address);
@@ -337,10 +356,15 @@ uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
   return 0;
 }
 
-template <class MAP>
-void AccountStoreBase<MAP>::PrintAccountState() {
+void AccountStoreBase::PrintAccountState() {
   LOG_MARKER();
-  for (const auto& entry : *m_addressToAccount) {
-    LOG_GENERAL(INFO, entry.first << " " << entry.second);
+  if (m_addressToAccounts.GetType() == map_type::MAP){
+    for (const auto& entry : *m_addressToAccounts.GetMap() ) {
+      LOG_GENERAL(INFO, entry.first << " " << entry.second);
+    }
+  } else {
+    for (const auto& entry : *m_addressToAccounts.GetUMap() ) {
+      LOG_GENERAL(INFO, entry.first << " " << entry.second);
+    }
   }
 }

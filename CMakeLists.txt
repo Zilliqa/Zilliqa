@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.16.1)
+set(CMAKE_VERBOSE_MAKEFILE ON)
 
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)

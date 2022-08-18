@@ -17,7 +17,6 @@
 
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
-
 #include <Schnorr.h>
 #include "Account.h"
 #include "Address.h"
@@ -27,13 +26,17 @@
 #include "common/Serializable.h"
 #include "common/TxnStatus.h"
 #include "depends/common/FixedHash.h"
+#include "AccountStoreCommon.hpp"
 
-template <class MAP>
+
+
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<MAP> m_addressToAccount;
+  acMapClass m_addressToAccounts;
 
-  AccountStoreBase();
+  AccountStoreBase() = delete;
+
+  AccountStoreBase( acMapClass& init ) ;
 
   bool CalculateGasRefund(const uint128_t& gasDeposit, const uint64_t& gasUnit,
                           const uint128_t& gasPrice, uint128_t& gasRefund);
@@ -82,6 +85,6 @@ class AccountStoreBase : public SerializableDataBlock {
   virtual void PrintAccountState();
 };
 
-#include "AccountStoreBase.tpp"
+#include "AccountStoreBase.cpp"
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_

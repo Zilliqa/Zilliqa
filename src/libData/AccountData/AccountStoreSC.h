@@ -41,7 +41,7 @@ struct CallResponse;
 
 template <class MAP>
 class AccountStoreAtomic
-    : public AccountStoreBase<std::unordered_map<Address, Account>> {
+    : public AccountStoreBase {
   AccountStoreSC<MAP>& m_parent;
 
  public:
