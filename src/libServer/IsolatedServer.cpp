@@ -127,13 +127,13 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallEthI);
+      &LookupServer::GetEthCallZilI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallZilI);
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCallEthI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,

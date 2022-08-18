@@ -361,7 +361,7 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
+                         "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCallEthI);
 
   this->bindAndAddMethod(
@@ -1425,7 +1425,12 @@ string LookupServer::GetEthCallZil(const Json::Value& _json) {
       _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
 }
 
-string LookupServer::GetEthCallEth(const Json::Value& _json) {
+string LookupServer::GetEthCallEth(const Json::Value& _json,
+                                   const string& block_or_tag) {
+  if (block_or_tag != "latest") {
+    throw JsonRpcException(RPC_INVALID_PARAMS,
+                           "Only latest block is supported in eth_call");
+  }
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
 
@@ -1466,12 +1471,13 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
       const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
-    EvmCallParameters params{addr.hex(),
-                             fromAddr.hex(),
-                             DataConversion::CharArrayToString(code),
-                             _json[apiKeys.data].asString(),
-                             gasRemained,
-                             amount};
+    string data = _json[apiKeys.data].asString();
+    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
+      data = data.substr(2);
+    }
+    EvmCallParameters params{
+        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
+        data,       gasRemained,    amount};
 
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
   } catch (const exception& e) {
