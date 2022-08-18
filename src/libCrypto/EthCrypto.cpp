@@ -275,7 +275,7 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
 
   if (!(vSelect >= 0 && vSelect <= 3)) {
     LOG_GENERAL(WARNING, "Received badly parsed recid in raw transaction: "
-                             << v << " with chainID " << chain_id << " for "
+                             << v << " . Your chainID should be: " << chain_id << " for "
                              << vSelect);
     return {};
   }
