@@ -730,8 +730,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     paramsRequest[0u] = "earliest";
 
     lookupServer.GetEthBlockByNumberI(paramsRequest, response);
-    BOOST_CHECK_EQUAL(response,
-                      Json::nullValue);
+    BOOST_CHECK_EQUAL(response, Json::nullValue);
   }
 }
 
