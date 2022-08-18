@@ -1046,13 +1046,20 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
     TxBlock txBlock;
+
     if (blockNumberStr == "latest") {
       txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::nullValue;
     } else {
-      uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
       txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     }
-    static const TxBlock NON_EXISTING_TX_BLOCK{};
+    const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
@@ -1125,6 +1132,46 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
                                                  transactionHashes,
                                                  includeFullTransactions);
+}
+
+Json::Value LookupServer::GetEthBlockTransactionCountByHash(
+    const std::string& inputHash) {
+  try {
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
+    const std::string& blockNumberStr) {
+  try {
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::Value{0};
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
