@@ -18,6 +18,7 @@
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
+#include <boost/range/numeric.hpp>
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
@@ -1103,6 +1104,122 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     BOOST_CHECK_EQUAL(
         response.asUInt64(),
         mediator.m_txBlockChain.GetBlock(0).GetHeader().GetNumTxs());
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  constexpr std::array<uint32_t, 4> TRANSACTIONS_IN_BLOCKS = {3, 15, 22, 7};
+
+  std::vector<TransactionWithReceipt> transactions;
+  std::vector<MicroBlock> microBlocks;
+  uint32_t nonce = 0;
+
+  for (uint32_t i = 0; i < TRANSACTIONS_IN_BLOCKS.size(); ++i) {
+    std::vector<TransactionWithReceipt> thisBlockTransactions;
+    for (uint32_t txCount = 0; txCount < TRANSACTIONS_IN_BLOCKS[i]; ++txCount) {
+      const auto transaction = constructTxWithReceipt(nonce++, pairOfKey);
+      thisBlockTransactions.push_back(transaction);
+      transactions.push_back(transaction);
+      bytes body;
+      transaction.Serialize(body, 0);
+      BlockStorage::GetBlockStorage().PutTxBody(
+          1, transaction.GetTransaction().GetTranID(), body);
+    }
+    const auto blockNum = i + 1;
+    const MicroBlock microBlock = constructMicroBlockWithTransactions(
+        blockNum, thisBlockTransactions, pairOfKey);
+    bytes microBlockSerialized;
+    microBlock.Serialize(microBlockSerialized, 0);
+    BlockStorage::GetBlockStorage().PutMicroBlock(
+        microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);
+    microBlocks.push_back(microBlock);
+  }
+
+  // CTor: (gasLimit, gasUsed, rewards, blockNum, blockHashSet, numTxs,
+  // minerPubKey, blockVersion)
+  TxBlockHeader txblockheader(2, 1, 0, 1, {}, transactions.size(),
+                              pairOfKey.first, TXBLOCK_VERSION);
+  std::vector<MicroBlockInfo> mbInfos;
+  for (const auto& microBlock : microBlocks) {
+    mbInfos.emplace_back(MicroBlockInfo{microBlock.GetBlockHash(),
+                                        microBlock.GetHeader().GetTxRootHash(),
+                                        microBlock.GetHeader().GetShardId()});
+  }
+
+  TxBlock txBlock(txblockheader, {mbInfos}, CoSignatures{});
+  mediator.m_txBlockChain.AddBlock(txBlock);
+
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  Json::Value response;
+
+  // Query for all existing transactions using block hash
+  {
+    for (uint32_t i = 0; i < transactions.size(); ++i) {
+      paramsRequest[0u] = txBlock.GetBlockHash().hex();
+      paramsRequest[1u] = std::to_string(i);
+
+      lookupServer.GetEthTransactionByBlockHashAndIndexI(paramsRequest,
+                                                         response);
+      BOOST_TEST_CHECK(response["hash"].asString() ==
+                       transactions[i].GetTransaction().GetTranID().hex());
+    }
+  }
+
+  // Query non-existing transaction using block hash
+  {
+    uint32_t onePassRange = boost::accumulate(TRANSACTIONS_IN_BLOCKS, 0);
+    paramsRequest[0u] = txBlock.GetBlockHash().hex();
+    paramsRequest[1u] = std::to_string(onePassRange);
+
+    Json::Value response;
+    lookupServer.GetEthTransactionByBlockHashAndIndexI(paramsRequest, response);
+    BOOST_TEST_CHECK(response == Json::nullValue);
+  }
+
+  // Query by valid block num and Tag = 'latest'
+  {
+    const std::vector<std::string> BLOCKS = {"1", "latest"};
+    for (const auto& block : BLOCKS) {
+      for (uint32_t i = 0; i < transactions.size(); ++i) {
+        paramsRequest[0u] = block;
+        paramsRequest[1u] = std::to_string(i);
+
+        lookupServer.GetEthTransactionByBlockNumberAndIndexI(paramsRequest,
+                                                             response);
+        BOOST_TEST_CHECK(response["hash"].asString() ==
+                         transactions[i].GetTransaction().GetTranID().hex());
+      }
+    }
+  }
+
+  // Query by non-existing block number or Tags: 'earliest' and 'pending'
+  {
+    const std::vector<std::string> BLOCKS = {"123", "earliest", "pending"};
+    for (const auto& block : BLOCKS) {
+      for (uint32_t i = 0; i < transactions.size(); ++i) {
+        paramsRequest[0u] = block;
+        paramsRequest[1u] = std::to_string(i);
+
+        lookupServer.GetEthTransactionByBlockNumberAndIndexI(paramsRequest,
+                                                             response);
+        BOOST_TEST_CHECK(response == Json::nullValue);
+      }
+    }
   }
 }
 
