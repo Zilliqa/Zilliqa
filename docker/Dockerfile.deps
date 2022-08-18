@@ -21,6 +21,7 @@ RUN apt-get update \
     && apt-get install -y software-properties-common \
     && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
+    bison \
     build-essential \
     ca-certificates \
     cmake \
@@ -55,5 +56,7 @@ ARG EXTRA_CMAKE_ARGS=
 
 RUN git clone ${REPO} ${SOURCE_DIR}
 RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
-RUN cd ${SOURCE_DIR} && ${VCPKG_ROOT}/vcpkg install --triplet=${BUILD_TRIPLET}
-
+WORKDIR ${SOURCE_DIR}
+RUN ${VCPKG_ROOT}/vcpkg install --triplet=${BUILD_TRIPLET}
+WORKDIR /
+RUN rm -rf ${SOURCE_DIR}
