@@ -54,7 +54,7 @@ class AccountStoreAtomic
 };
 
 template <class MAP>
-class AccountStoreSC : public AccountStoreBase<MAP> {
+class AccountStoreSC : public AccountStoreBase {
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
