@@ -231,6 +231,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                       const bool& isDS, const Transaction& transaction,
                       TransactionReceipt& receipt, TxnStatus& error_code);
 
+  bool UpdateAccountsEvm(const uint64_t& blockNum,
+                         const unsigned int& numShards, const bool& isDS,
+                         const Transaction& transaction,
+                         TransactionReceipt& receipt, TxnStatus& error_code);
+
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,
       std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
@@ -266,5 +271,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
 #include "AccountStoreAtomic.tpp"
 #include "AccountStoreSC.tpp"
+
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
