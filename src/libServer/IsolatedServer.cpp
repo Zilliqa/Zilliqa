@@ -125,13 +125,13 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallEthI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallZilI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
@@ -347,6 +347,18 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCodeI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockTransactionCountByHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockTransactionCountByHashI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockTransactionCountByNumberI);
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -931,6 +943,7 @@ TxBlock IsolatedServer::GenerateTxBlock() {
     txnhashes = m_txnBlockNumMap[m_blocknum];
     m_txnBlockNumMap[m_blocknum].clear();
   }
+
   TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
                               TxBlockHashSet(), numtxns, m_key.first,
                               TXBLOCK_VERSION);

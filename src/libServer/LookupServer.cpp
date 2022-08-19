@@ -356,13 +356,13 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallZilI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallEthI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
@@ -758,7 +758,8 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   }
 
   if (!toAccountExist) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "To addr is null");
+    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                           "Target account does not exist");
   }
 
   else if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL &&
@@ -1057,9 +1058,21 @@ Json::Value LookupServer::GetEthBlockNumber() {
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
-    uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
-    static const TxBlock NON_EXISTING_TX_BLOCK{};
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::nullValue;
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
+    const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
@@ -1133,6 +1146,46 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
                                                  transactionHashes,
                                                  includeFullTransactions);
+}
+
+Json::Value LookupServer::GetEthBlockTransactionCountByHash(
+    const std::string& inputHash) {
+  try {
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
+    const std::string& blockNumberStr) {
+  try {
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::Value{0};
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
+    return txBlock.GetHeader().GetNumTxs();
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
@@ -1409,10 +1462,29 @@ Json::Value LookupServer::GetBalance(const string& address) {
   }
 }
 
-string LookupServer::GetEthCall(const Json::Value& _json) {
+struct LookupServer::ApiKeys {
+  std::string from;
+  std::string to;
+  std::string value;
+  std::string gas;
+  std::string data;
+};
+
+// TODO: remove once we fully move to Eth compatible APIs.
+string LookupServer::GetEthCallZil(const Json::Value& _json) {
+  return this->GetEthCallImpl(
+      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
+}
+
+string LookupServer::GetEthCallEth(const Json::Value& _json) {
+  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
+}
+
+string LookupServer::GetEthCallImpl(const Json::Value& _json,
+                                    const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
+  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
   auto ret{false};
   {
@@ -1429,26 +1501,26 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
   string result;
   try {
     Address fromAddr;
-    if (_json.isMember("fromAddr")) {
-      fromAddr = Address(_json["fromAddr"].asString());
+    if (_json.isMember(apiKeys.from)) {
+      fromAddr = Address(_json[apiKeys.from].asString());
     }
 
     uint64_t amount{0};
-    if (_json.isMember("amount")) {
-      const auto amount_str = _json["amount"].asString();
+    if (_json.isMember(apiKeys.value)) {
+      const auto amount_str = _json[apiKeys.value].asString();
       amount = strtoull(amount_str.c_str(), NULL, 0);
     }
 
     // for now set total gas as twice the ds gas limit
     uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
-    if (_json.isMember("gasLimit")) {
-      const auto gasLimit_str = _json["gasLimit"].asString();
+    if (_json.isMember(apiKeys.gas)) {
+      const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
     EvmCallParameters params{addr.hex(),
                              fromAddr.hex(),
                              DataConversion::CharArrayToString(code),
-                             _json["data"].asString(),
+                             _json[apiKeys.data].asString(),
                              gasRemained,
                              amount};
 
