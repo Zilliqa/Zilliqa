@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libMessage/MessengerAccountStoreTrie.h"
 #include "AccountStoreTrie.h"
+#include "libMessage/MessengerAccountStoreTrie.h"
 
 template <class MAP>
 AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
