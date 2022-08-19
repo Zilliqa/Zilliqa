@@ -19,6 +19,8 @@
 #include "JSONConversion.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
+#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -125,13 +127,13 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallEthI);
+      &LookupServer::GetEthCallZilI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallZilI);
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCallEthI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
@@ -636,16 +638,31 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    Transaction tx{fields.version,
-                   fields.nonce,
-                   Address(fields.toAddr),
-                   PubKey(pubKey, 0),
-                   fields.amount,
-                   fields.gasPrice,
-                   fields.gasLimit,
-                   ToEVM(fields.code),
-                   fields.data,
-                   Signature(fields.signature, 0)};
+    Address toAddr{fields.toAddr};
+    Transaction tx =
+        IsNullAddress(toAddr)
+            ? Transaction{fields.version,
+                          fields.nonce,
+                          Address(fields.toAddr),
+                          PubKey(pubKey, 0),
+                          fields.amount,
+                          fields.gasPrice,
+                          fields.gasLimit,
+                          ToEVM(fields.code),
+                          {},
+                          Signature(fields.signature, 0)}
+            : Transaction{fields.version,
+                          fields.nonce,
+                          Address(fields.toAddr),
+                          PubKey(pubKey, 0),
+                          fields.amount,
+                          fields.gasPrice,
+                          fields.gasLimit,
+                          {},
+                          DataConversion::StringToCharArray(
+                              DataConversion::Uint8VecToHexStrRet(
+                                  fields.code)),  // TODO remove hex'ing.
+                          Signature(fields.signature, 0)};
 
     Json::Value ret;
 
