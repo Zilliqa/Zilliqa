@@ -16,6 +16,7 @@
  */
 
 #include "libMessage/MessengerAccountStoreTrie.h"
+#include "AccountStoreTrie.h"
 
 template <class MAP>
 AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
@@ -279,3 +280,7 @@ void AccountStoreTrie<MAP>::PrintTrie() {
     LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << ab);
   }
 }
+
+// Explicit instantiations.
+template class AccountStoreTrie<std::map<Address, Account>>;
+template class AccountStoreTrie<std::unordered_map<Address, Account>>;
