@@ -19,14 +19,19 @@
 #include <regex>
 
 #include "AccountStore.h"
+#include "ScillaClient.h"
+#include "EvmClient.h"
+
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
 #include "libServer/ScillaIPCServer.h"
+#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;

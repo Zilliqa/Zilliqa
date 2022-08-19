@@ -53,6 +53,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/RandomGenerator.h"
+#include "libUtils/SafeMath.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
 

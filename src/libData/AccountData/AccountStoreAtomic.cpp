@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "AccountStoreSC.h"
+
 template <class MAP>
 AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
     : m_parent(parent) {}
@@ -46,3 +48,6 @@ const std::shared_ptr<std::unordered_map<Address, Account>>&
 AccountStoreAtomic<MAP>::GetAddressToAccount() {
   return this->m_addressToAccount;
 }
+
+template class AccountStoreAtomic<std::map<Address, Account>>;
+template class AccountStoreAtomic<std::unordered_map<Address, Account>>;

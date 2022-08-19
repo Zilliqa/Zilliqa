@@ -82,6 +82,4 @@ class AccountStoreBase : public SerializableDataBlock {
   virtual void PrintAccountState();
 };
 
-#include "AccountStoreBase.tpp"
-
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
