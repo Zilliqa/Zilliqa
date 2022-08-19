@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_
 
 #include <event2/util.h>
-// XXX #include <boost/lockfree/queue.hpp>
 #include <deque>
 #include <functional>
 #include <mutex>
