@@ -1,19 +1,19 @@
 /*
-* Copyright (C) 2019 Zilliqa
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
 #include <vector>
 #include "EvmClient.h"
@@ -264,11 +264,11 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
 
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
-                                         const unsigned int& numShards,
-                                         const bool& isDS,
-                                         const Transaction& transaction,
-                                         TransactionReceipt& receipt,
-                                         TxnStatus& error_code) {
+                                            const unsigned int& numShards,
+                                            const bool& isDS,
+                                            const Transaction& transaction,
+                                            TransactionReceipt& receipt,
+                                            TxnStatus& error_code) {
   LOG_MARKER();
 
   if (LOG_SC) {
