@@ -956,3 +956,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   return true;
 }
+
+template <class MAP>
+bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
+                                           const Account& account) {
+  return m_accountStoreAtomic->AddAccount(address, account);
+}
