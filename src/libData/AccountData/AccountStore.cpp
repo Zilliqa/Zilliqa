@@ -19,8 +19,8 @@
 #include <regex>
 
 #include "AccountStore.h"
-#include "ScillaClient.h"
 #include "EvmClient.h"
+#include "ScillaClient.h"
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"

@@ -80,7 +80,6 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
   return SerializeToArray(result, dst, offset);
 }
 
-
 // Explicit specializations
 template bool
 MessengerAccountStoreTrie::SetAccountStoreTrie<std::map<Address, Account>>(
@@ -93,4 +92,3 @@ template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
     bytes& dst, const unsigned int offset,
     const dev::GenericTrieDB<TraceableDB>& stateTrie,
     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
-

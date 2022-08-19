@@ -21,8 +21,8 @@
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#include "libUtils/SafeMath.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
