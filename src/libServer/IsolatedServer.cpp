@@ -487,6 +487,15 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
+    LOG_GENERAL(WARNING, "iso::createTx  : " << _json);
+
+
+    if (tx.GetCode().empty())
+      LOG_GENERAL(WARNING, "iso::createTx txn code empty : ");
+
+    if (tx.GetData().empty())
+      LOG_GENERAL(WARNING, "iso::createTx txn data empty");
+
     Json::Value ret;
 
     uint64_t senderNonce;

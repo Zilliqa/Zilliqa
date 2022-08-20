@@ -499,8 +499,13 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
 
-  return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt, error_code);
+  if (ENABLE_EVM && EvmUtils::isEvm(transaction.GetCode())) {
+    return UpdateAccountsEvm(blockNum, numShards, isDS, transaction, receipt,
+                             error_code);
+  } else {
+    return UpdateAccounts(blockNum, numShards, isDS, transaction, receipt,
+                          error_code);
+  }
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,

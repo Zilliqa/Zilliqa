@@ -127,14 +127,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TransactionReceipt& receipt,
                                          TxnStatus& error_code) {
   LOG_MARKER();
-  //
-  // EVM VERSION change, in order to preserve code comparison with original
-  // If this is an EVM Transaction Handle it with the EVM enabled method.
-  //
-  if (ENABLE_EVM && EvmUtils::isEvm(transaction.GetCode())) {
-    return UpdateAccountsEvm(blockNum, numShards, isDS, transaction, receipt,
-                             error_code);
-  }
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
@@ -183,6 +175,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
+
 
       // bool validToTransferBalance = true;
 

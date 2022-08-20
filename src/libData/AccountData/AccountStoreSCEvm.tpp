@@ -275,10 +275,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   }
 
-  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
-  bool isScilla{true};
+  bool isScilla{false};
 
   error_code = TxnStatus::NOT_PRESENT;
 
@@ -296,22 +295,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   }
 
   switch (Transaction::GetTransactionType(transaction)) {
-    case Transaction::NON_CONTRACT: {
-      // LOG_GENERAL(INFO, "Normal transaction");
 
-      // Disallow normal transaction to contract account
-      Account* toAccount = this->GetAccount(transaction.GetToAddr());
-      if (toAccount != nullptr) {
-        if (toAccount->isContract()) {
-          LOG_GENERAL(WARNING, "Contract account won't accept normal txn");
-          error_code = TxnStatus::INVALID_TO_ACCOUNT;
-          return false;
-        }
-      }
-
-      return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
-                                                   error_code);
-    }
+    case Transaction::NON_CONTRACT:
+      break;
 
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
@@ -326,6 +312,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       isScilla = !EvmUtils::isEvm(transaction.GetCode());
+
+      if (isScilla){
+        LOG_GENERAL(WARNING, "No Code");
+      }
 
       uint64_t createGasPenalty =
           isScilla ? std::max(CONTRACT_CREATE_GAS,
@@ -682,6 +672,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
     }
 
     case Transaction::CONTRACT_CALL: {
+
+      if (isScilla){
+        LOG_GENERAL(WARNING, "No Code");
+      }
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
