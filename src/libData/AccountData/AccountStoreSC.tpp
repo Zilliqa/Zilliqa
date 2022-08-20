@@ -28,8 +28,6 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
-// EVM include file
-#include "libUtils/EvmUtils.h"
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
@@ -175,7 +173,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
-
 
       // bool validToTransferBalance = true;
 

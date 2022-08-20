@@ -500,11 +500,11 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   lock(g, g2);
 
   if (ENABLE_EVM && EvmUtils::isEvm(transaction.GetCode())) {
-    return UpdateAccountsEvm(blockNum, numShards, isDS, transaction, receipt,
-                             error_code);
+    return m_accountStoreTemp->UpdateAccountsEvm(
+        blockNum, numShards, isDS, transaction, receipt, error_code);
   } else {
-    return UpdateAccounts(blockNum, numShards, isDS, transaction, receipt,
-                          error_code);
+    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
+                                              transaction, receipt, error_code);
   }
 }
 
