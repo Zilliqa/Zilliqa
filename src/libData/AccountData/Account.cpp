@@ -31,6 +31,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/MemoryStats.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/EvmUtils.h"
 
 using namespace std;
 using namespace boost::multiprecision;

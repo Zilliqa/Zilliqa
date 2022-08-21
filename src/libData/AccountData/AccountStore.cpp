@@ -28,6 +28,8 @@
 #pragma GCC diagnostic pop
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/SysCommand.h"
+#include "EvmClient.h"
+#include "libUtils/EvmUtils.h"
 
 using namespace std;
 using namespace dev;

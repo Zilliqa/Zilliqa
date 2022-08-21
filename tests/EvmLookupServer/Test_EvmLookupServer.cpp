@@ -22,6 +22,7 @@
 #include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
+#include "libUtils/EvmJsonResponse.h"
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:

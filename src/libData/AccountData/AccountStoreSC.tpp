@@ -1608,4 +1608,3 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
   m_newLibrariesCreated.clear();
 }
 
-#include "AccountStoreSCEvm.tpp"

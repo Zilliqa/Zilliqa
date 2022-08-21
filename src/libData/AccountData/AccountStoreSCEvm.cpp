@@ -20,6 +20,7 @@
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
+#include "AccountStoreSC.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
@@ -34,7 +35,6 @@ void AccountStoreSC<MAP>::EvmCallRunner(
       ret = EvmClient::GetInstance().CallRunner(
           version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
     }
-
     call_already_finished = true;
     cv_callContract.notify_all();
   };
@@ -247,8 +247,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   return gas;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
+template <>
+bool AccountStoreSC<std::unordered_map<Address,Account>>::ViewAccounts
+    (EvmCallParameters& params, bool& ret,
                                        std::string& result) {
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
@@ -262,8 +263,9 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   return ret;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
+template<>
+bool AccountStoreSC<std::map<Address,Account>>::UpdateAccountsEvm(const
+                                                                    uint64_t& blockNum,
                                             const unsigned int& numShards,
                                             const bool& isDS,
                                             const Transaction& transaction,
