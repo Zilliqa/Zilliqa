@@ -16,11 +16,11 @@
  */
 
 #include <vector>
+#include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
-#include "AccountStoreSC.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
@@ -248,9 +248,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <>
-bool AccountStoreSC<std::unordered_map<Address,Account>>::ViewAccounts
-    (EvmCallParameters& params, bool& ret,
-                                       std::string& result) {
+bool AccountStoreSC<std::unordered_map<Address, Account>>::ViewAccounts(
+    EvmCallParameters& params, bool& ret, std::string& result) {
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
   evmproj::CallResponse response;
@@ -263,14 +262,11 @@ bool AccountStoreSC<std::unordered_map<Address,Account>>::ViewAccounts
   return ret;
 }
 
-template<>
-bool AccountStoreSC<std::map<Address,Account>>::UpdateAccountsEvm(const
-                                                                    uint64_t& blockNum,
-                                            const unsigned int& numShards,
-                                            const bool& isDS,
-                                            const Transaction& transaction,
-                                            TransactionReceipt& receipt,
-                                            TxnStatus& error_code) {
+template <>
+bool AccountStoreSC<std::map<Address, Account>>::UpdateAccountsEvm(
+    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
+    const Transaction& transaction, TransactionReceipt& receipt,
+    TxnStatus& error_code) {
   LOG_MARKER();
 
   if (LOG_SC) {

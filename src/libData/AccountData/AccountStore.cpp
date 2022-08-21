@@ -26,10 +26,10 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
-#include "libServer/ScillaIPCServer.h"
-#include "libUtils/SysCommand.h"
 #include "EvmClient.h"
+#include "libServer/ScillaIPCServer.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/SysCommand.h"
 
 using namespace std;
 using namespace dev;
