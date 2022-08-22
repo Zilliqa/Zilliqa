@@ -59,7 +59,14 @@ EthFields parseRawTxFields(std::string const& message) {
   bytes asBytes;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
-  dev::RLP rlpStream1(asBytes);
+  dev::RLP rlpStream1(asBytes,
+                      dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
+
+  if (rlpStream1.isNull()) {
+    LOG_GENERAL(WARNING, "Failed to parse RLP stream in raw TX! " << message);
+    return {};
+  }
+
   int i = 0;
   // todo: checks on size of rlp stream etc.
 
