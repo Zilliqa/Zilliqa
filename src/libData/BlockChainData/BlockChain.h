@@ -142,7 +142,7 @@ class DSBlockChain : public BlockChain<DSBlock> {
   DSBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) override {
     DSBlockSharedPtr block;
     if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum, block)) {
-      LOG_GENERAL(WARNING, "BlockNum not in persistent storage "
+      LOG_GENERAL(WARNING, "DS BlockNum not in persistent storage "
                                << blockNum << " Dummy block used");
       return DSBlock();
     }
@@ -155,7 +155,7 @@ class TxBlockChain : public BlockChain<TxBlock> {
   TxBlock GetBlockFromPersistentStorage(const uint64_t& blockNum) override {
     TxBlockSharedPtr block;
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, block)) {
-      LOG_GENERAL(WARNING, "BlockNum not in persistent storage "
+      LOG_GENERAL(WARNING, "TX BlockNum not in persistent storage "
                                << blockNum << " Dummy block used");
       return TxBlock();
     }
@@ -166,7 +166,7 @@ class TxBlockChain : public BlockChain<TxBlock> {
       const BlockHash& blockHash) const override {
     TxBlockSharedPtr block;
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockHash, block)) {
-      LOG_GENERAL(WARNING, "BlockHash not in persistent storage "
+      LOG_GENERAL(WARNING, "TX BlockHash not in persistent storage "
                                << blockHash << " Dummy block used");
       return {};
     }
