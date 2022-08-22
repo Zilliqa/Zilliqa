@@ -108,6 +108,17 @@ def GetStateDeltaFromS3():
 	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
 
+# When the DS epoch crossover happens, currTxBlk and newTxBlk will be from different DSepoch.
+# As per the current behavior, Persistence is overwritten after every NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW.
+# This function ensures that if currTxBlk DS epoch is different from the persistence overwritten DS epoch, then the node restart the download again.
+# If we don't restart the download, In such a case, the node will receive 404 during persistence download and the node can get leveldb related issues.
+def IsDownloadRestartRequired(currTxBlk, latestTxBlk) :
+    print("currTxBlk = "+ str(currTxBlk) + " latestTxBlk = "+ str(latestTxBlk) + " NUM_DSBLOCK = " +str(NUM_DSBLOCK))
+    if((latestTxBlk // (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW)) != (currTxBlk // (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW))):
+        return True
+    return False
+
+
 def RsyncBlockChainData(source,destination):
 	bashCommand = "rsync --recursive --inplace "
 	bashCommand = bashCommand + source + " "
@@ -301,6 +312,25 @@ def calculate_multipart_etag(source_path, chunk_size):
 	return new_etag
 				
 def run():
+	dir_name = STORAGE_PATH + "/historical-data"
+	main_persistence = STORAGE_PATH + "/persistence"
+	try:
+		if(Exclude_microBlocks == False and Exclude_txnBodies == False):
+			if os.path.exists(dir_name) and os.path.isdir(dir_name):
+				if not os.listdir(dir_name):
+					# download the static db
+					print("Downloading static historical data")
+					download_static_DB.start(STORAGE_PATH)
+				else:
+					print("Already have historical blockchain-data!. Skip downloading again!")
+			else:
+				# download the static db
+				print("Downloading static historical data")
+				download_static_DB.start(STORAGE_PATH)
+	except Exception as e:
+		print("Failed to download static historical data! " + str(e))
+		pass
+
 	while (True):
 		try:
 			currTxBlk = -1
@@ -325,9 +355,9 @@ def run():
 					time.sleep(1)
 			else:
 				break
-			if(newTxBlk % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0):
-				# new base persistence already. So start again :(
-				continue					
+			if(IsDownloadRestartRequired(currTxBlk, newTxBlk)):
+				print("Redownload persistence as the persistence is overwritten")
+				continue
 			#get diff of persistence and stadedeltas for newly mined txblocks
 			lst = []
 			while(currTxBlk < newTxBlk):
@@ -343,30 +373,10 @@ def run():
 			print("Error downloading!! Will try again")
 			time.sleep(5)
 			continue
+	if os.path.exists(dir_name):
+		RsyncBlockChainData(dir_name+"/", main_persistence)
 
 	print("[" + str(datetime.datetime.now()) + "] Done!")
-
-	try:
-		if(Exclude_microBlocks == False and Exclude_txnBodies == False):
-			dir_name = STORAGE_PATH + "/historical-data"
-			main_persistence = STORAGE_PATH + "/persistence"
-			if os.path.exists(dir_name) and os.path.isdir(dir_name):
-				if not os.listdir(dir_name):
-					# download the static db
-					print("Dowloading static historical-data")
-					download_static_DB.start(STORAGE_PATH)
-				else:    
-					print("Already have historical blockchain-data!. Skip downloading again!")
-			else:
-				# download the static db
-				print("Dowloading static historical-data")
-				download_static_DB.start(STORAGE_PATH)
-			if os.path.exists(dir_name):
-				RsyncBlockChainData(dir_name+"/", main_persistence)
-	except Exception as e:
-		print(e)
-		print("Failed to download static historical-data!")
-		pass
 
 	return True
 
