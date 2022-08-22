@@ -25,7 +25,14 @@ inline bool HasZilHrp(const string& input) {
   return input.substr(0, 4) == string("zil1");
 }
 
-AddressConversionCode ToAddressStructure(const string& addr, Address& retAddr) {
+AddressConversionCode ToAddressStructure(const string& input_addr,
+                                         Address& retAddr) {
+  string addr;
+  if (input_addr.size() >= 2 && input_addr[0] == '0' && input_addr[1] == 'x') {
+    addr = input_addr.substr(2);
+  } else {
+    addr = input_addr;
+  }
   if (addr.size() != HEX_ADDR_SIZE) {
     return AddressConversionCode::WRONG_ADDR_SIZE;
   }
@@ -41,6 +48,7 @@ AddressConversionCode ToAddressStructure(const string& addr, Address& retAddr) {
 
 AddressConversionCode ToBase16Addr(const string& addr, Address& retAddr) {
   // Accept both bech32 or base16 string, and convert to our structure
+
   if (HasZilHrp(addr)) {
     bytes tmpaddr(ACC_ADDR_SIZE);
     size_t tmpaddrSize = 0;

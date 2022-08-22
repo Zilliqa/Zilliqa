@@ -356,13 +356,13 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
-      &LookupServer::GetEthCallI);
+      &LookupServer::GetEthCallZilI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallI);
+                         "param02", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthCallEthI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
@@ -927,6 +927,15 @@ Json::Value LookupServer::CreateTransactionEth(
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
+  Address toAddr{fields.toAddr};
+  bytes data;
+  bytes code;
+  if (IsNullAddress(toAddr)) {
+    code = ToEVM(fields.code);
+  } else {
+    data = DataConversion::StringToCharArray(
+        DataConversion::Uint8VecToHexStrRet(fields.code));
+  }
   Transaction tx{fields.version,
                  fields.nonce,
                  Address(fields.toAddr),
@@ -934,8 +943,8 @@ Json::Value LookupServer::CreateTransactionEth(
                  fields.amount,
                  fields.gasPrice,
                  fields.gasLimit,
-                 bytes(),
-                 fields.data,
+                 code,  // either empty or stripped EVM-less code
+                 data,  // either empty or un-hexed byte-stream
                  Signature(fields.signature, 0)};
 
   try {
@@ -1030,9 +1039,21 @@ Json::Value LookupServer::CreateTransactionEth(
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
-    uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
-    static const TxBlock NON_EXISTING_TX_BLOCK{};
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::nullValue;
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
+    const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
@@ -1124,8 +1145,20 @@ Json::Value LookupServer::GetEthBlockTransactionCountByHash(
 Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
     const std::string& blockNumberStr) {
   try {
-    const uint64_t blockNum = std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    TxBlock txBlock;
+
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::Value{0};
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
     return txBlock.GetHeader().GetNumTxs();
 
   } catch (std::exception& e) {
@@ -1372,10 +1405,34 @@ Json::Value LookupServer::GetBalance(const string& address) {
   }
 }
 
-string LookupServer::GetEthCall(const Json::Value& _json) {
+struct LookupServer::ApiKeys {
+  std::string from;
+  std::string to;
+  std::string value;
+  std::string gas;
+  std::string data;
+};
+
+// TODO: remove once we fully move to Eth compatible APIs.
+string LookupServer::GetEthCallZil(const Json::Value& _json) {
+  return this->GetEthCallImpl(
+      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
+}
+
+string LookupServer::GetEthCallEth(const Json::Value& _json,
+                                   const string& block_or_tag) {
+  if (block_or_tag != "latest") {
+    throw JsonRpcException(RPC_INVALID_PARAMS,
+                           "Only latest block is supported in eth_call");
+  }
+  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
+}
+
+string LookupServer::GetEthCallImpl(const Json::Value& _json,
+                                    const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json);
+  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
   auto ret{false};
   {
@@ -1392,28 +1449,29 @@ string LookupServer::GetEthCall(const Json::Value& _json) {
   string result;
   try {
     Address fromAddr;
-    if (_json.isMember("fromAddr")) {
-      fromAddr = Address(_json["fromAddr"].asString());
+    if (_json.isMember(apiKeys.from)) {
+      fromAddr = Address(_json[apiKeys.from].asString());
     }
 
     uint64_t amount{0};
-    if (_json.isMember("amount")) {
-      const auto amount_str = _json["amount"].asString();
+    if (_json.isMember(apiKeys.value)) {
+      const auto amount_str = _json[apiKeys.value].asString();
       amount = strtoull(amount_str.c_str(), NULL, 0);
     }
 
     // for now set total gas as twice the ds gas limit
     uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
-    if (_json.isMember("gasLimit")) {
-      const auto gasLimit_str = _json["gasLimit"].asString();
+    if (_json.isMember(apiKeys.gas)) {
+      const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
-    EvmCallParameters params{addr.hex(),
-                             fromAddr.hex(),
-                             DataConversion::CharArrayToString(code),
-                             _json["data"].asString(),
-                             gasRemained,
-                             amount};
+    string data = _json[apiKeys.data].asString();
+    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
+      data = data.substr(2);
+    }
+    EvmCallParameters params{
+        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
+        data,       gasRemained,    amount};
 
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
   } catch (const exception& e) {
@@ -1603,17 +1661,17 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     std::string zeroes =
         "0000000000000000000000000000000000000000000000000000000000000000";
 
-    if (position.size() > zeroes.size()) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR,
-                             "position string is too long! " + position);
-    }
-
     auto positionIter = position.begin();
     auto zeroIter = zeroes.begin();
 
     // Move position iterator past '0x' if it exists
     if (position.size() > 2 && position[0] == '0' && position[1] == 'x') {
       std::advance(positionIter, 2);
+    }
+
+    if ((position.end() - positionIter) > static_cast<int>(zeroes.size())) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR,
+                             "position string is too long! " + position);
     }
 
     std::advance(zeroIter,
