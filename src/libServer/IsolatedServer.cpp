@@ -628,7 +628,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
-  // Double create a block to make sure TXs are 'flushed'
   // This will make sure the block height advances, the
   // TX can be found in a block etc.
   if (m_timeDelta == 0) {
