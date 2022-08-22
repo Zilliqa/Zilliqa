@@ -91,11 +91,15 @@ EthFields parseRawTxFields(std::string const& message) {
       case 6:  // V - only needed for pub sig recovery
         break;
       case 7:  // R
-        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
-        break;
+      {
+        bytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
       case 8:  // S
-        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
-        break;
+      {
+        bytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
       default:
         LOG_GENERAL(WARNING, "too many fields received in rlp!");
     }
