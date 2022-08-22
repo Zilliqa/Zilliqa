@@ -273,10 +273,13 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   vSelect = vSelect == 35 ? 0 : vSelect;
   vSelect = vSelect == 36 ? 1 : vSelect;
 
+  // Chain ID of sender is a mismatch. Attempt to determine what it was
   if (!(vSelect >= 0 && vSelect <= 3)) {
+    auto const clientId = -(35 - v)/2;
+    auto const clientIdAlt = -(36 - v)/2;
     LOG_GENERAL(WARNING, "Received badly parsed recid in raw transaction: "
-                             << v << " . Your chainID should be: " << chain_id
-                             << " for " << vSelect);
+        << v << " . The client chain ID should match ours: " << chain_id
+        << " but it seems to be: " << clientId << " or " << clientIdAlt);
     return {};
   }
 
