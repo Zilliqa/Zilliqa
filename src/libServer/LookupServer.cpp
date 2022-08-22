@@ -958,7 +958,6 @@ Json::Value LookupServer::CreateTransactionEth(
                             DataConversion::Uint8VecToHexStrRet(
                                 fields.code)),  // TODO remove hex'ing.
                         Signature(fields.signature, 0)};
-
   try {
     Json::Value ret;
 

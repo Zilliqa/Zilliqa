@@ -87,6 +87,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {
+  LOG_GENERAL(INFO, "Signature after tx creation " << GetSignature());
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
@@ -100,6 +101,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   }
   copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
+  LOG_GENERAL(INFO, "Signature before  tx verification " << GetSignature());
   // Verify the signature
   if (!IsSigned()) {
     LOG_GENERAL(WARNING,
@@ -210,7 +212,12 @@ bool Transaction::IsSignedECDSA() const {
   sigString = sigString.substr(2);
   pubKeyStr = pubKeyStr.substr(2);
 
+  LOG_GENERAL(INFO, "sigString " << sigString);
+  LOG_GENERAL(INFO, "PubKeyStr " << pubKeyStr);
+
   auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
+
+  LOG_GENERAL(INFO, "Hash: " << DataConversion::Uint8VecToHexStrRet(hash));
 
   return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }

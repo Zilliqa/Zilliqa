@@ -16,9 +16,13 @@
  */
 
 #include "Eth.h"
+#include <iterator>
+#include "depends/common/Common.h"
+#include "depends/common/CommonData.h"
 #include "depends/common/RLP.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 using namespace jsonrpc;
 
@@ -75,30 +79,46 @@ EthFields parseRawTxFields(std::string const &message) {
     switch (i) {
       case 0:
         ret.nonce = uint32_t(*it);
+        LOG_GENERAL(INFO, "nonce " << ret.nonce);
         break;
       case 1:
         ret.gasPrice = uint128_t(*it);
+        LOG_GENERAL(INFO, "gasPrice " << ret.gasPrice);
         break;
       case 2:
         ret.gasLimit = uint64_t(*it);
+        LOG_GENERAL(INFO, "gasLimit " << ret.gasLimit);
         break;
       case 3:
         ret.toAddr = byteIt;
+        LOG_GENERAL(
+            INFO, "toAddr " << DataConversion::Uint8VecToHexStrRet(ret.toAddr));
         break;
       case 4:
         ret.amount = uint128_t(*it);
+        LOG_GENERAL(INFO, "amount " << ret.amount);
         break;
       case 5:
         ret.code = byteIt;
+        LOG_GENERAL(INFO,
+                    "code " << DataConversion::Uint8VecToHexStrRet(ret.code));
         break;
       case 6:  // V - only needed for pub sig recovery
         break;
       case 7:  // R
-        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
-        break;
+      {
+        bytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+        LOG_GENERAL(INFO, "signature R " << DataConversion::Uint8VecToHexStrRet(
+                              ret.signature));
+      } break;
       case 8:  // S
-        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
-        break;
+      {
+        bytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+        LOG_GENERAL(INFO, "signature S " << DataConversion::Uint8VecToHexStrRet(
+                              ret.signature));
+      } break;
       default:
         LOG_GENERAL(WARNING, "too many fields received in rlp!");
     }

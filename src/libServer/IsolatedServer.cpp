@@ -641,6 +641,9 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
 
     Address toAddr{fields.toAddr};
+    LOG_GENERAL(INFO,
+                "fields.signature "
+                    << DataConversion::Uint8VecToHexStrRet(fields.signature));
     Transaction tx =
         IsNullAddress(toAddr)
             ? Transaction{fields.version,
