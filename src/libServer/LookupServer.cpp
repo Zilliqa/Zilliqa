@@ -361,7 +361,7 @@ LookupServer::LookupServer(Mediator& mediator,
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
+                         "param02", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthCallEthI);
 
   this->bindAndAddMethod(
@@ -933,6 +933,15 @@ Json::Value LookupServer::CreateTransactionEth(
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
+  Address toAddr{fields.toAddr};
+  bytes data;
+  bytes code;
+  if (IsNullAddress(toAddr)) {
+    code = ToEVM(fields.code);
+  } else {
+    data = DataConversion::StringToCharArray(
+        DataConversion::Uint8VecToHexStrRet(fields.code));
+  }
   Transaction tx{fields.version,
                  fields.nonce,
                  Address(fields.toAddr),
@@ -940,8 +949,8 @@ Json::Value LookupServer::CreateTransactionEth(
                  fields.amount,
                  fields.gasPrice,
                  fields.gasLimit,
-                 bytes(),
-                 fields.data,
+                 code,  // either empty or stripped EVM-less code
+                 data,  // either empty or un-hexed byte-stream
                  Signature(fields.signature, 0)};
 
   try {
@@ -1476,7 +1485,12 @@ string LookupServer::GetEthCallZil(const Json::Value& _json) {
       _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
 }
 
-string LookupServer::GetEthCallEth(const Json::Value& _json) {
+string LookupServer::GetEthCallEth(const Json::Value& _json,
+                                   const string& block_or_tag) {
+  if (block_or_tag != "latest") {
+    throw JsonRpcException(RPC_INVALID_PARAMS,
+                           "Only latest block is supported in eth_call");
+  }
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
 
@@ -1517,12 +1531,13 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
       const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
     }
-    EvmCallParameters params{addr.hex(),
-                             fromAddr.hex(),
-                             DataConversion::CharArrayToString(code),
-                             _json[apiKeys.data].asString(),
-                             gasRemained,
-                             amount};
+    string data = _json[apiKeys.data].asString();
+    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
+      data = data.substr(2);
+    }
+    EvmCallParameters params{
+        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
+        data,       gasRemained,    amount};
 
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
   } catch (const exception& e) {
@@ -1712,17 +1727,17 @@ Json::Value LookupServer::GetEthStorageAt(std::string const& address,
     std::string zeroes =
         "0000000000000000000000000000000000000000000000000000000000000000";
 
-    if (position.size() > zeroes.size()) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR,
-                             "position string is too long! " + position);
-    }
-
     auto positionIter = position.begin();
     auto zeroIter = zeroes.begin();
 
     // Move position iterator past '0x' if it exists
     if (position.size() > 2 && position[0] == '0' && position[1] == 'x') {
       std::advance(positionIter, 2);
+    }
+
+    if ((position.end() - positionIter) > static_cast<int>(zeroes.size())) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR,
+                             "position string is too long! " + position);
     }
 
     std::advance(zeroIter,

@@ -307,7 +307,7 @@ class LookupServer : public Server,
 
   inline virtual void GetEthCallEthI(const Json::Value& request,
                                      Json::Value& response) {
-    response = this->GetEthCallEth(request[0u]);
+    response = this->GetEthCallEth(request[0u], request[1u].asString());
   }
 
   // TODO: remove once we fully move to Eth compatible APIs.
@@ -674,7 +674,8 @@ class LookupServer : public Server,
   Json::Value GetBlockchainInfo();
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
-  std::string GetEthCallEth(const Json::Value& _json);
+  std::string GetEthCallEth(const Json::Value& _json,
+                            const std::string& block_or_tag);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
