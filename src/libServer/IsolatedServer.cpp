@@ -478,6 +478,8 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
+  Json::Value ret;
+
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
@@ -488,8 +490,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     }
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
-
-    Json::Value ret;
 
     uint64_t senderNonce;
     uint128_t senderBalance;
@@ -620,8 +620,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(INFO, "Processing On the isolated server completed");
-    return ret;
-
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
@@ -629,6 +627,15 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+
+  // Double create a block to make sure TXs are 'flushed'
+  // This will make sure the block height advances, the
+  // TX can be found in a block etc.
+  if (m_timeDelta == 0) {
+    PostTxBlock();
+  }
+
+  return ret;
 }
 
 Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,

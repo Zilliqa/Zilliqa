@@ -1198,14 +1198,8 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
-  auto hash = txnhash;
-
-  if (hash.size() >= 2 && hash[0] == '0' && hash[1] == 'x') {
-    hash.erase(0, 2);
-  }
-
   try {
-    auto const result = GetTransaction(hash);
+    auto const result = GetTransaction(txnhash);
 
     // Scan downwards looking for the block hash with our TX in it
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
@@ -1229,7 +1223,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       auto const TxnHashes = block["transactions"];
 
       for (auto const& item : TxnHashes) {
-        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
+        TxnHash hash_1{item.asString()};
+        TxnHash hash_2{txnhash};
+
+        if (hash_1 == hash_2) {
           blockHash = block["hash"].asString();
           break;
         }
@@ -1277,9 +1274,7 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(transactionHash);
-    if (transactionHash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
-    }
+
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (isPresent) {
       Json::Value _json;

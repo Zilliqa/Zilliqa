@@ -81,36 +81,6 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
   return true;
 }
 
-bool DataConversion::HexStringsSame(const std::string& a,
-                                    const std::string& b) {
-  auto iterA = a.begin();
-  auto iterB = b.begin();
-
-  if (a.size() >= 2 && a[0] == '0' && a[1] == 'x') {
-    std::advance(iterA, 2);
-  }
-
-  if (b.size() >= 2 && b[0] == '0' && b[1] == 'x') {
-    std::advance(iterB, 2);
-  }
-
-  while (iterA != a.end() && iterB != b.end()) {
-    if (tolower(*iterA) != tolower(*iterB)) {
-      return false;
-    }
-
-    iterA++;
-    iterB++;
-  }
-
-  // Both same length after comparison
-  if (iterA == a.end() && iterB == b.end()) {
-    return true;
-  }
-
-  return false;
-}
-
 std::string DataConversion::Uint8VecToHexStrRet(const bytes& hex_vec) {
   std::string str;
   try {

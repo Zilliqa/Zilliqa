@@ -78,10 +78,6 @@ class DataConversion {
   /// Converts byte vector to alphanumeric hex string.
   static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
 
-  /// Returns true when both strings are the same hex string. Ignores '0x' and
-  /// casing.
-  static bool HexStringsSame(const std::string& a, const std::string& b);
-
   static std::string Uint8VecToHexStrRet(const bytes& hex_vec);
 
   /// Converts byte vector to alphanumeric hex string.
