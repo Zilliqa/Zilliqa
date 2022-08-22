@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
@@ -67,6 +68,17 @@ void setup() {
   priv1.Deserialize(priv1bytes, 0);
   priv2.Deserialize(priv2bytes, 0);
   priv3.Deserialize(priv3bytes, 0);
+}
+
+TxBlock constructDummyTxBlock(int instanceNum) {
+  // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };
+
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
+
+  return TxBlock(
+      TxBlockHeader(1, 1, 1, instanceNum, TxBlockHashSet(), 5, pubKey1.second,
+                    instanceNum, TXBLOCK_VERSION, CommitteeHash(), BlockHash()),
+      vector<MicroBlockInfo>(1), CoSignatures());
 }
 
 BOOST_AUTO_TEST_SUITE(contracttest)
@@ -266,6 +278,554 @@ BOOST_AUTO_TEST_CASE(salarybot) {
 
   BOOST_CHECK_MESSAGE(e2->GetBalance() == 11000 && e3->GetBalance() == 12000,
                       "multi message failed");
+}
+
+BOOST_AUTO_TEST_CASE(timestamp) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  uint64_t dummyTimestampVal = 123456789;
+  uint64_t blkNum = 100;
+  std::shared_ptr<TxBlock> dummyBlock =
+      std::make_shared<TxBlock>(constructDummyTxBlock(blkNum));
+  dummyBlock->SetTimestamp(dummyTimestampVal);
+
+  bytes serializedTxBlock;
+  dummyBlock->Serialize(serializedTxBlock, 0);
+  BlockStorage::GetBlockStorage().PutTxBlock(blkNum, serializedTxBlock);
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Timestamp Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest timestampTest;
+  if (!ScillaTestUtil::GetScillaTest(timestampTest, "timestamp", 1)) {
+    BOOST_FAIL("Unable to fetch test timestamp.");
+  }
+
+  uint64_t bnumTimestamp =
+      ScillaTestUtil::GetBlockNumberFromJson(timestampTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(timestampTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(timestampTest.init);
+
+  // Transaction to deploy timestamp.
+  std::string initStrTimestamp =
+      JSONUtils::GetInstance().convertJsontoStr(timestampTest.init);
+  bytes dataTimestamp(initStrTimestamp.begin(), initStrTimestamp.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, timestampTest.code,
+                  dataTimestamp);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumTimestamp, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountTimestamp =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountTimestamp != nullptr,
+                      "Error with creation of timestamp account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(timestampTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumTimestamp, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value timestampState;
+  BOOST_CHECK_MESSAGE(
+      accountTimestamp->FetchStateJson(timestampState, "", {}, true),
+      "Fetch timestampState failed");
+  uint64_t timestampCount = 0;
+
+  auto result = tr1.GetJsonValue();
+
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value") &&
+      resultParam["value"].isMember("arguments") &&
+      resultParam["value"]["arguments"].isArray() &&
+      resultParam["value"]["arguments"].size() > 0) {
+    LOG_GENERAL(INFO, "Value found");
+    try {
+      timestampCount = stoull(resultParam["value"]["arguments"][0].asCString());
+    } catch (...) {
+      BOOST_FAIL("Unable to convert timestamp to uint64");
+    }
+  }
+
+  BOOST_CHECK_MESSAGE(dummyTimestampVal == timestampCount,
+                      "Error with timestamp, expect"
+                          << dummyTimestampVal
+                          << ", received: " << timestampCount);
+}
+
+BOOST_AUTO_TEST_CASE(chainid) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Chainid Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest chainidTest;
+  if (!ScillaTestUtil::GetScillaTest(chainidTest, "chainid", 1)) {
+    BOOST_FAIL("Unable to fetch test chainid.");
+  }
+
+  uint64_t bnumChainid =
+      ScillaTestUtil::GetBlockNumberFromJson(chainidTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(chainidTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(chainidTest.init);
+
+  // Transaction to deploy Chainid.
+  std::string initStrChainid =
+      JSONUtils::GetInstance().convertJsontoStr(chainidTest.init);
+
+  bytes dataChainid(initStrChainid.begin(), initStrChainid.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, chainidTest.code, dataChainid);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumChainid, 1, true, tx0, tr0,
+                                                 error_code);
+  Account* accountChainid =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountChainid != nullptr,
+                      "Error with creation of chainid account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(chainidTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumChainid, 1, true, tx1, tr1,
+                                                 error_code);
+
+  Json::Value chainidState;
+  BOOST_CHECK_MESSAGE(
+      accountChainid->FetchStateJson(chainidState, "", {}, true),
+      "Fetch chainidState failed");
+
+  uint32_t chainId = 0;
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+
+  if (resultParam.isMember("value")) {
+    try {
+      chainId = std::stoul(resultParam["value"].asCString());
+    } catch (...) {
+      BOOST_FAIL("Unable to convert chain id to uint32_t");
+    }
+  }
+
+  BOOST_CHECK_MESSAGE(
+      static_cast<uint16_t>(chainId) == CHAIN_ID,
+      "Error with chain id, expect" << CHAIN_ID << ", received: " << chainId);
+}
+
+/*
+  codehashOnContract - Have codehash
+  codehashOnLibrary - Have codehash
+  codehashOnAccount - No codehash
+  codehashOnNonExistenceAddr - No codehash
+*/
+BOOST_AUTO_TEST_CASE(codehashOnContract) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+
+  // Set query to this contract address.
+  codehashTest.message["params"][0]["value"] = "0x" + contrAddr.hex();
+
+  bytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value")) {
+    dev::h256 codeHash;
+    if (!accountCodehash->GetContractCodeHash(codeHash)) {
+      BOOST_FAIL("Unable to get contract code hash");
+    }
+    auto codeHashStr = "0x" + codeHash.hex();
+    BOOST_CHECK_MESSAGE(resultParam["value"] == codeHashStr,
+                        "Code hash expected: " << codeHashStr << ", result: "
+                                               << resultParam["value"]);
+  } else {
+    BOOST_FAIL("Unable to get result for contract code hash");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr, dummyLibAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  dummyLibAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+  LOG_GENERAL(INFO, "dummyLibAddr Address: " << dummyLibAddr);
+
+  // Preparing dummyLib
+  ScillaTestUtil::ScillaTest dummyLibTest;
+  if (!ScillaTestUtil::GetScillaTest(dummyLibTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+  uint64_t bnumDummyLib =
+      ScillaTestUtil::GetBlockNumberFromJson(dummyLibTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(dummyLibTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(dummyLibTest.init);
+
+  Json::Value libPartValue;
+  libPartValue["constructor"] = "True";
+  libPartValue["argtypes"] = Json::arrayValue;
+  libPartValue["arguments"] = Json::arrayValue;
+  Json::Value libPart;
+  libPart["vname"] = "_library";
+  libPart["type"] = "Bool";
+  libPart["value"] = libPartValue;
+
+  dummyLibTest.init.append(libPart);
+  string dummyLibCode =
+      "scilla_version 0\nimport IntUtils\n\nlibrary AdditionLib\n\nlet "
+      "add_if_equal =\n  fun (a: Uint128) =>\n  fun (b: Uint128) =>\n  let eq "
+      "= uint128_eq a b in\n  match eq with\n  | True => builtin add a b\n  | "
+      "False => Uint128 0\n  end";
+  dummyLibTest.code = bytes(dummyLibCode.begin(), dummyLibCode.end());
+
+  Account* accountDummyLib = nullptr;  // For verification later
+
+  // Transaction to deploy dummyLib.
+  {
+    std::string initStrDummyLib =
+        JSONUtils::GetInstance().convertJsontoStr(dummyLibTest.init);
+
+    bytes dataCodehash(initStrDummyLib.begin(), initStrDummyLib.end());
+    Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress,
+                    owner, 0, PRECISION_MIN_VALUE, 50000, dummyLibTest.code,
+                    dataCodehash);
+    TransactionReceipt tr0;
+    TxnStatus error_code;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnumDummyLib, 1, true, tx0,
+                                                   tr0, error_code);
+    accountDummyLib = AccountStore::GetInstance().GetAccountTemp(dummyLibAddr);
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountDummyLib != nullptr,
+                        "Error with creation of codehash account");
+  }
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+  // Set query to this contract address.
+  codehashTest.message["params"][0]["value"] = "0x" + dummyLibAddr.hex();
+  bytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce + 1, NullAddress,
+                  owner, 0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value")) {
+    dev::h256 codeHash;
+    if (!accountDummyLib->GetContractCodeHash(codeHash)) {
+      BOOST_FAIL("Unable to get contract code hash");
+    }
+    auto codeHashStr = "0x" + codeHash.hex();
+    BOOST_CHECK_MESSAGE(resultParam["value"] == codeHashStr,
+                        "Code hash expected: " << codeHashStr << ", result: "
+                                               << resultParam["value"]);
+  } else {
+    BOOST_FAIL("Unable to get result for contract code hash");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(codehashOnAccount) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  // Add account from test
+  AccountStore::GetInstance().AddAccountTemp(
+      Address("0x12345678901234567890123456789012345678ff"),
+      {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+
+  bytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+
+  if (result.isMember("success")) {
+    BOOST_CHECK_MESSAGE(result["success"] == false,
+                        "Expecting to be a failure call");
+  } else {
+    BOOST_FAIL("Unexpected result: " << result);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(codehashOnNonExistenceAddr) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+
+  bytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  bytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+  if (result.isMember("success")) {
+    BOOST_CHECK_MESSAGE(result["success"] == false,
+                        "Expecting to be a failure call");
+  } else {
+    BOOST_FAIL("Unexpected result: " << result);
+  }
 }
 
 // Scilla Library

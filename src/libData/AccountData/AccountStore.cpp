@@ -792,8 +792,11 @@ bool AccountStore::MigrateContractStates(
 
     account.SetStorageRoot(dev::h256());
     // invoke scilla checker
-    m_scillaIPCServer->setContractAddressVerRoot(address, scilla_version,
-                                                 account.GetStorageRoot());
+    // prepare IPC with current blockchain info provider.
+    auto sbcip = std::make_unique<ScillaBCInfo>(
+        getCurBlockNum(), address, account.GetStorageRoot(), scilla_version);
+    m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+
     std::string checkerPrint;
     bool ret_checker = true;
     TransactionReceipt receipt;
