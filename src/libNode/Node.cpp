@@ -15,19 +15,18 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "Node.h"
+#include <Schnorr.h>
 #include <arpa/inet.h>
 #include <array>
+#include <boost/filesystem.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
 #include <chrono>
 #include <functional>
 #include <thread>
 #include <tuple>
-
-#include <boost/filesystem.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-
-#include <Schnorr.h>
-#include "Node.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -55,7 +54,6 @@
 #include "libValidator/Validator.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
 const unsigned int MIN_CLUSTER_SIZE = 2;

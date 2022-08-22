@@ -19,6 +19,7 @@
 #include <vector>
 
 #include "DirectoryService.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"

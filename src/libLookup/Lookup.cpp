@@ -28,8 +28,8 @@
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
-
 #include "Lookup.h"
+#include "common/BaseType.h"
 #include "common/Messages.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -57,7 +57,6 @@
 #include "libUtils/SysCommand.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 const int32_t MAX_FETCH_BLOCK_RETRIES = 5;
 

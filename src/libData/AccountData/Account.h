@@ -41,10 +41,10 @@ using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 class AccountBase : public SerializableDataBlock {
  protected:
   uint32_t m_version{};
-  uint128_t m_balance;
+  uint128_t m_balance{};
   uint64_t m_nonce{};
-  dev::h256 m_storageRoot;
-  dev::h256 m_codeHash;
+  dev::h256 m_storageRoot{};
+  dev::h256 m_codeHash{};
 
  public:
   AccountBase() {}
@@ -66,19 +66,19 @@ class AccountBase : public SerializableDataBlock {
   const uint32_t& GetVersion() const;
 
   /// Increases account balance by the specified delta amount.
-  bool IncreaseBalance(const uint128_t& delta);
+  bool IncreaseBalance(const uint256_t& delta);
 
   /// Decreases account balance by the specified delta amount.
-  bool DecreaseBalance(const uint128_t& delta);
+  bool DecreaseBalance(const uint256_t& delta);
 
-  bool ChangeBalance(const boost::multiprecision::int256_t& delta);
+  bool ChangeBalance(const int512_t& delta);
 
-  void SetBalance(const uint128_t& balance);
+  void SetBalance(const uint256_t& balance);
 
   /// Returns the account balance.
   const uint128_t& GetBalance() const;
 
-  void SetNonce(const uint64_t& nonce);
+  void SetNonce(const uint128_t& nonce);
 
   /// Returns the account nonce.
   const uint64_t& GetNonce() const;

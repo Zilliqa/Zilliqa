@@ -24,6 +24,7 @@
 #include <Schnorr.h>
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libData/AccountData/Transaction.h"

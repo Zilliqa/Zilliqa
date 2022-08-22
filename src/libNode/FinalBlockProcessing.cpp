@@ -16,13 +16,12 @@
  */
 
 #include <array>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <chrono>
 #include <functional>
 #include <limits>
 #include <thread>
-
 #include "Node.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -811,8 +810,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
     const double oneMillion = 1000000.0;
 
-    cpp_dec_float_50 td_float(timeDiff);
-    cpp_dec_float_50 numTxns(txBlock.GetHeader().GetNumTxs());
+    float_50_t td_float(timeDiff);
+    float_50_t numTxns(txBlock.GetHeader().GetNumTxs());
     td_float = td_float / 1000;
 
     LOG_STATE("[FBSTAT][" << m_mediator.m_currentEpochNum

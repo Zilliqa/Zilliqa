@@ -40,7 +40,8 @@ bool EvmClient::OpenServer(bool force) {
       boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
   const std::string cmdStr = "pkill " + programName + " ; " +
                              EVM_SERVER_BINARY + " --socket " +
-                             EVM_SERVER_SOCKET_PATH + " --tracing >/dev/null &";
+                             EVM_SERVER_SOCKET_PATH + " --tracing --log4rs '" +
+                             EVM_LOG_CONFIG + "'>/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
@@ -112,7 +113,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
-    LOG_GENERAL(DEBUG, "Call evem with request:" << _json);
+    LOG_GENERAL(DEBUG, "Call evm with request:" << _json);
     const auto oldJson = m_clients.at(version)->CallMethod("run", _json);
 
     // Populate the C++ struct with the return values

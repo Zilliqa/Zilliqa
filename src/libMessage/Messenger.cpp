@@ -16,19 +16,19 @@
  */
 
 #include "Messenger.h"
-#include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/BlockLinkChain.h"
-#include "libDirectoryService/DirectoryService.h"
-#include "libMessage/ZilliqaMessage.pb.h"
-#include "libUtils/Logger.h"
-
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 #include <algorithm>
 #include <map>
 #include <random>
 #include <unordered_set>
+#include "common/BaseType.h"
+#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/Transaction.h"
+#include "libData/BlockChainData/BlockLinkChain.h"
+#include "libDirectoryService/DirectoryService.h"
+#include "libMessage/ZilliqaMessage.pb.h"
+#include "libUtils/Logger.h"
 
 using namespace boost::multiprecision;
 using namespace std;

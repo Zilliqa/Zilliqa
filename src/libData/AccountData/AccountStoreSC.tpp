@@ -61,8 +61,7 @@ template <class MAP>
 void AccountStoreSC<MAP>::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
-    const boost::multiprecision::uint128_t& balance, bool& ret,
-    TransactionReceipt& receipt) {
+    const uint128_t& balance, bool& ret, TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func = [this, &interprinterPrint, &invoke_type, &version, &is_library,
                &available_gas, &balance, &ret, &receipt,
@@ -215,6 +214,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                    << Address(it->Address()).hex());
           continue;
         }
+
         targetAccount = this->GetAccount(Address(it->Address()));
         if (targetAccount == nullptr) {
           LOG_GENERAL(WARNING,
@@ -294,7 +294,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasBalance() && it->Balance().size()) {
-            targetAccount->SetBalance(uint128_t(it->Balance()));
+            targetAccount->SetBalance(uint256_t(it->Balance()));
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -306,8 +306,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         }
 
         try {
-          if (it->hasNonce() && it->Nonce().size())
+          if (it->hasNonce() && it->Nonce().size()) {
             targetAccount->SetNonce(std::stoull(it->Nonce()));
+          }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
           // will examine exact possibilities and catch specific exceptions.
@@ -379,8 +380,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
-      // LOG_GENERAL(INFO, "Normal transaction");
-
       // Disallow normal transaction to contract account
       Account* toAccount = this->GetAccount(transaction.GetToAddr());
       if (toAccount != nullptr) {
@@ -397,8 +396,6 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
-
-      // bool validToTransferBalance = true;
 
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
@@ -439,7 +436,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
       // instantiate the object for contract account
-      // ** Remeber to call RemoveAccount if deployment failed halfway
+      // ** Remember to call RemoveAccount if deployment failed halfway
       if (!this->AddAccount(contractAddress, {0, 0})) {
         LOG_GENERAL(WARNING, "AddAccount failed for contract address "
                                  << contractAddress.hex());
@@ -637,9 +634,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
       // *************************************************************************
       // Summary
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+      uint128_t gasRefund;
+      if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                    gasRefund)) {
         this->RemoveAccount(contractAddress);
         error_code = TxnStatus::MATH_ERROR;
         return false;
@@ -902,9 +899,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       } else {
         CommitAtomics();
       }
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+
+      uint128_t gasRefund;
+      if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+                                    gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }

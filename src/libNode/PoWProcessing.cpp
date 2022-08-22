@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <Schnorr.h>
 #include <array>
 #include <chrono>
 #include <functional>
 #include <thread>
-
-#include <Schnorr.h>
 #include "Node.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"

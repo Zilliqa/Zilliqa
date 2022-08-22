@@ -38,7 +38,7 @@ class JSONUtils {
 
     Json::StreamWriterBuilder writeBuilder;
     writeBuilder["commentStyle"] = "None";
-    writeBuilder["indentaion"] = "";
+    writeBuilder["indentation"] = "";
     m_writer =
         std::unique_ptr<Json::StreamWriter>(writeBuilder.newStreamWriter());
   }

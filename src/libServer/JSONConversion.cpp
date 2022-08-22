@@ -22,6 +22,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "common/BaseType.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"

@@ -157,7 +157,9 @@ int main(int argc, char** argv) {
         "begin, b", po::value<unsigned long>(&begin),
         "Start of transaction batch (default to 0)")(
         "end, e", po::value<unsigned long>(&end),
-        "End of transaction batch (default to parameter value --begin + "
+        "End of transaction batch "
+        "(default to parameter "
+        "value --begin + "
         "10000)");
 
     po::variables_map vm;

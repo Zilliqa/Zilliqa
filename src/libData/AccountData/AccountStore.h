@@ -69,7 +69,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 // Singleton class for providing interface related Account System
 class AccountStore
     : public AccountStoreTrie<std::unordered_map<Address, Account>>,
-      Singleton<AccountStore> {
+      public Singleton<AccountStore> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
@@ -92,15 +92,12 @@ class AccountStore
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<jsonrpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
-  AccountStore();
-  ~AccountStore();
-
   /// Store the trie root to leveldb
   bool MoveRootToDisk(const dev::h256& root);
 
  public:
-  /// Returns the singleton AccountStore instance.
-  static AccountStore& GetInstance();
+  AccountStore();
+  ~AccountStore();
 
   bool Serialize(bytes& src, unsigned int offset);
 

@@ -15,21 +15,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
-#define ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
+#pragma once
 
-#include <string>
-#include "common/BaseType.h"
+#include "libData/AccountData/EvmClient.h"
 
-// input parameters to Json call
+/**
+ * @brief Default Mock implementation for the evm client
+ */
+class EvmClientMock : public EvmClient {
+ public:
+  EvmClientMock() = default;
 
-struct EvmCallParameters {
-  std::string m_contract;
-  std::string m_caller;
-  std::string m_code;
-  std::string m_data;
-  uint64_t m_available_gas{};
-  uint128_t m_apparent_value{};
+  bool OpenServer(bool /*force = false*/) { return true; };
+
+  virtual bool CallRunner(uint32_t /*version*/,                 //
+                          const Json::Value& request,           //
+                          evmproj::CallResponse& /*response*/,  //
+                          uint32_t /*counter = MAXRETRYCONN*/) {
+    LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
+    return true;
+  };
 };
-
-#endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_

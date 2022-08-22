@@ -18,11 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_
 
-#include <array>
-
 #include <Schnorr.h>
+#include <array>
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 
@@ -31,11 +31,11 @@ class MicroBlockHeader : public BlockHeaderBase {
   uint32_t m_shardId{};
   uint64_t m_gasLimit{};
   uint64_t m_gasUsed{};
-  uint128_t m_rewards;
+  uint128_t m_rewards{};
   uint64_t m_epochNum{};  // Epoch Num
-  MicroBlockHashSet m_hashset;
-  uint32_t m_numTxs{};   // Total number of txs included in the block
-  PubKey m_minerPubKey;  // Leader of the committee who proposed this block
+  MicroBlockHashSet m_hashset{};
+  uint32_t m_numTxs{};     // Total number of txs included in the block
+  PubKey m_minerPubKey{};  // Leader of the committee who proposed this block
   uint64_t
       m_dsBlockNum{};  // DS Block index at the time this Tx Block was proposed
 

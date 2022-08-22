@@ -45,9 +45,13 @@ int main(int argc, const char* argv[]) {
         "message,m", po::value<string>(&message_)->required(),
         "Message string in hexadecimal format")(
         "privk,i", po::value<string>(&privk_fn)->required(),
-        "Filename containing private keys each per line")(
-        "pubk,u", po::value<string>(&pubk_fn)->required(),
-        "Filename containing public keys each per line");
+        "Filename containing "
+        "private keys each per "
+        "line")("pubk,u", po::value<string>(&pubk_fn)->required(),
+                "Filename "
+                "containing public "
+                "keys each per "
+                "line");
 
     po::variables_map vm;
     try {

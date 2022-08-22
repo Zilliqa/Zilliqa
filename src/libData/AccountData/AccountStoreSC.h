@@ -27,6 +27,7 @@
 #include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
 #include "InvokeType.h"
+#include "common/BaseType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
 
@@ -207,8 +208,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          std::string& interprinterPrint,
                          const uint32_t& version, bool is_library,
                          const uint64_t& available_gas,
-                         const boost::multiprecision::uint128_t& balance,
-                         bool& ret, TransactionReceipt& receipt);
+                         const uint128_t& balance, bool& ret,
+                         TransactionReceipt& receipt);
 
   uint64_t InvokeEvmInterpreter(Account* contractAccount,
                                 INVOKE_TYPE invoke_type,
