@@ -401,12 +401,11 @@ class LookupServer : public Server,
 
     const auto resp = this->GetBalance(address, true)["balance"].asString();
 
-    if (res == "0x") {
+    if (resp == "0x") {
       response = resp;
     } else {
       response = "0x" + resp;
     }
-    return response;
   }
 
   /**
