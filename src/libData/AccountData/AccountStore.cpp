@@ -503,13 +503,13 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
 
   bool isEvm{false};
 
-  if (Transaction:: GetTransactionType(transaction) ==
-      Transaction:: CONTRACT_CREATION) {
-    isEvm = EvmUtils:: isEvm(transaction.GetCode());
-  } else if (Transaction:: GetTransactionType(transaction) ==
-             Transaction:: CONTRACT_CALL) {
+  if (Transaction::GetTransactionType(transaction) ==
+      Transaction::CONTRACT_CREATION) {
+    isEvm = EvmUtils::isEvm(transaction.GetCode());
+  } else if (Transaction::GetTransactionType(transaction) ==
+             Transaction::CONTRACT_CALL) {
     Account* contractAccount = this->GetAccount(transaction.GetToAddr());
-    isEvm = EvmUtils:: isEvm(contractAccount->GetCode());
+    isEvm = EvmUtils::isEvm(contractAccount->GetCode());
   } else {
     isEvm = false;
   }
