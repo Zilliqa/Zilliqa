@@ -507,9 +507,9 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   } else if (Transaction::GetTransactionType(transaction) ==
              Transaction::CONTRACT_CALL) {
     Account* contractAccount = this->GetAccount(transaction.GetToAddr());
-    isEvm = EvmUtils::isEvm(contractAccount->GetCode());
-  } else {
-    isEvm = false;
+    if (contractAccount != nullptr) {
+      isEvm = EvmUtils::isEvm(contractAccount->GetCode());
+    }
   }
   if (ENABLE_EVM == false && isEvm) {
     LOG_GENERAL(WARNING,
