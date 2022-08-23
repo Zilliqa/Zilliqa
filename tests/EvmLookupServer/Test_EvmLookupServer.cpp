@@ -248,10 +248,11 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
   values["data"] =
       "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
       "014";
-  values["toAddr"] = "a744160c3De133495aB9F9D77EA54b325b045670";
-  values["gasLimit"] = gasLimit;
-  values["amount"] = amount;
+  values["to"] = "a744160c3De133495aB9F9D77EA54b325b045670";
+  values["gas"] = gasLimit;
+  values["value"] = amount;
   paramsRequest[0u] = values;
+  paramsRequest[1u] = Json::Value("latest");
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
   if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
@@ -349,7 +350,7 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
 
   LOG_MARKER();
 
-    Json::Value response;
+  Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
