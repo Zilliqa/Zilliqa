@@ -11,6 +11,7 @@ target_link_libraries (Server PUBLIC
                               AccountData 
                               Validator 
                               RemoteStorageDB 
+                              Eth 
                               ${JSONCPP_LINK_TARGETS}
                               ${WEBSOCKETPP_LIB} 
                               Utils 
@@ -20,4 +21,3 @@ target_link_libraries (Server PUBLIC
 target_link_libraries (Server PRIVATE 
                               CryptoUtils 
                               SafeServer)
-

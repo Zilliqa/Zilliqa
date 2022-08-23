@@ -30,6 +30,87 @@ class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
   bool StopListening() final { return true; }
 };
 
+std::unique_ptr<LookupServer> getLookupServer() {
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  const PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  auto lookupServer =
+      std::make_unique<LookupServer>(mediator, abstractServerConnector);
+  return lookupServer;
+}
+
+TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
+                                              const PairOfKey& keyPair) {
+  return TransactionWithReceipt(
+      // Ctor: (version, nonce, toAddr, keyPair, amount, gasPrice, gasLimit,
+      // code, data)
+      Transaction{0,
+                  nonce,
+                  Account::GetAddressFromPublicKey(keyPair.second),
+                  keyPair,
+                  1,
+                  1,
+                  2,
+                  {},
+                  {}},
+      TransactionReceipt{});
+}
+
+MicroBlock constructMicroBlockWithTransactions(
+    uint64_t blockNum, const std::vector<TransactionWithReceipt>& transactions,
+    PairOfKey& keyPair) {
+  MicroBlockHashSet mbhs{dev::h256::random(), {}, {}};
+  // CTor: (shardId, gasLimit, gasUsed, rewards, epochNum, mbHashSet, numTxs,
+  // minerPubKey, dsBlockNum, version, commiteeHash, prevHash)
+  MicroBlockHeader mbh(0, 2, 1, 0, blockNum, mbhs, transactions.size(),
+                       keyPair.first, 0, {}, {});
+
+  std::vector<TxnHash> transactionHashes;
+  for (const auto& transaction : transactions) {
+    transactionHashes.push_back(transaction.GetTransaction().GetTranID());
+  }
+
+  MicroBlock mb(mbh, transactionHashes, CoSignatures{});
+  return mb;
+}
+
+TxBlock constructTxBlockWithTransactions(uint64_t blockNum,
+                                         const MicroBlock& microBlock,
+                                         PairOfKey& keyPair) {
+  // CTor: (gasLimit, gasUsed, rewards, blockNum, blockHashSet, numTxs,
+  // minerPubKey, dsBlocknum, version, commiteeHash, prevHash)
+  TxBlockHeader txblockheader(2, 1, 0, blockNum, {},
+                              microBlock.GetTranHashes().size(), keyPair.first,
+                              TXBLOCK_VERSION);
+
+  MicroBlockInfo mbInfo{microBlock.GetBlockHash(),
+                        microBlock.GetHeader().GetTxRootHash(),
+                        microBlock.GetHeader().GetShardId()};
+  TxBlock txblock(txblockheader, {mbInfo}, CoSignatures{});
+
+  return txblock;
+}
+
+TxBlock buildCommonEthBlockCase(
+    Mediator& mediator, uint64_t blockNum,
+    const std::vector<TransactionWithReceipt>& transactions,
+    PairOfKey& keyPair) {
+  const MicroBlock microBlock =
+      constructMicroBlockWithTransactions(blockNum, transactions, keyPair);
+  bytes microBlockSerialized;
+  microBlock.Serialize(microBlockSerialized, 0);
+  BlockStorage::GetBlockStorage().PutMicroBlock(
+      microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);
+  const TxBlock txBlock =
+      constructTxBlockWithTransactions(blockNum, microBlock, keyPair);
+  mediator.m_txBlockChain.AddBlock(txBlock);
+  return txBlock;
+}
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 BOOST_AUTO_TEST_CASE(test_eth_call) {
@@ -182,7 +263,8 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
 
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
-  lookupServer.GetEthCallI(paramsRequest, response);
+
+  lookupServer.GetEthCallEthI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(),
@@ -219,19 +301,12 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   // call the method on the lookup server with params
-  lookupServer.GetWeb3ClientVersionI(paramsRequest, response);
+
+  const auto lookupServer = getLookupServer();
+  lookupServer->GetWeb3ClientVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
@@ -243,20 +318,13 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   paramsRequest[0u] = "68656c6c6f20776f726c64";
-  lookupServer.GetWeb3Sha3I(paramsRequest, response);
+
+  const auto lookupServer = getLookupServer();
+  lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -266,7 +334,8 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   // test with empty string
   paramsRequest[0u] = "";
-  lookupServer.GetWeb3Sha3I(paramsRequest, response);
+
+  lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -280,8 +349,208 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
+    Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  const auto lookupServer = getLookupServer();
+  lookupServer->GetNetVersionI(paramsRequest, response);
+
+  if (response.asString().size() > 0) {
+    BOOST_FAIL("Failed to get net version");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = "0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7";
+
+  lookupServer.GetEthBalanceI(paramsRequest, response);
+
+  if (!(response.asString() == "0x0")) {
+    BOOST_FAIL("Failed to get empty balance!");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 2;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto FIRST_VALID_BLOCK_NUM = 1;
+  const auto firstValidTxBlock = buildCommonEthBlockCase(
+      mediator, FIRST_VALID_BLOCK_NUM, transactions, pairOfKey);
+
+  // Case with retrieving block by number
+  {
+    // Construct all relevant structures (sample transactions, microblock and
+    // txBlock)
+
+    // call the method on the lookup server with params
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = std::to_string(FIRST_VALID_BLOCK_NUM);
+    paramsRequest[1u] = false;
+
+    Json::Value response;
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+
+    BOOST_CHECK_EQUAL(response["hash"].asString(),
+                      firstValidTxBlock.GetBlockHash().hex());
+
+    std::vector<std::string> expectedHashes;
+    for (uint32_t i = 0; i < transactions.size(); ++i) {
+      expectedHashes.emplace_back(
+          transactions[i].GetTransaction().GetTranID().hex());
+    }
+    std::sort(expectedHashes.begin(), expectedHashes.end());
+
+    std::vector<std::string> receivedHashes;
+    const Json::Value arrayOfHashes = response["transactions"];
+    for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
+         ++jsonIter) {
+      receivedHashes.emplace_back(jsonIter->asString());
+    }
+    std::sort(receivedHashes.begin(), receivedHashes.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+        expectedHashes.cbegin(), expectedHashes.cend(), receivedHashes.cbegin(),
+        receivedHashes.cend());
+  }
+
+  // Case with retrieving block by TAGs (previous block already exists)
+  {
+    std::vector<TransactionWithReceipt> new_transactions;
+
+    constexpr uint32_t NEW_TRANSACTIONS_COUNT = 123;
+    for (uint32_t i = 0; i < NEW_TRANSACTIONS_COUNT; ++i) {
+      new_transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    }
+
+    constexpr auto SECOND_VALID_BLOCK_NUM = 2;
+    const auto secondValidTxBlock = buildCommonEthBlockCase(
+        mediator, SECOND_VALID_BLOCK_NUM, new_transactions, pairOfKey);
+
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+    // Latest
+    paramsRequest[0u] = "latest";
+    Json::Value response;
+
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response["hash"].asString(),
+                      secondValidTxBlock.GetBlockHash().hex());
+
+    // Pending
+    paramsRequest[0u] = "pending";
+
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response, Json::nullValue);
+
+    // Earliest
+    paramsRequest[0u] = "earliest";
+
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response, Json::nullValue);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 2;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto BLOCK_NUM = 1;
+  const auto txBlock =
+      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
+
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = txBlock.GetBlockHash().hex();
+  paramsRequest[1u] = false;
+
+  Json::Value response;
+  lookupServer.GetEthBlockByHashI(paramsRequest, response);
+
+  BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
+  BOOST_CHECK_EQUAL(response["number"].asString(),
+                    std::to_string(txBlock.GetHeader().GetBlockNum()));
+
+  std::vector<std::string> expectedHashes;
+  for (uint32_t i = 0; i < transactions.size(); ++i) {
+    expectedHashes.emplace_back(
+        transactions[i].GetTransaction().GetTranID().hex());
+  }
+  std::sort(expectedHashes.begin(), expectedHashes.end());
+
+  std::vector<std::string> receivedHashes;
+  const Json::Value arrayOfHashes = response["transactions"];
+  for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
+       ++jsonIter) {
+    receivedHashes.emplace_back(jsonIter->asString());
+  }
+  std::sort(receivedHashes.begin(), receivedHashes.end());
+  BOOST_CHECK_EQUAL_COLLECTIONS(expectedHashes.cbegin(), expectedHashes.cend(),
+                                receivedHashes.cbegin(), receivedHashes.cend());
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -292,20 +561,20 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetEthMiningI(paramsRequest, response);
 
-  LOG_GENERAL(DEBUG, response.asString());
+  lookupServer.GetEthGasPriceI(paramsRequest, response);
 
-  BOOST_CHECK_EQUAL(response.asString(), "false");
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get gas price");
+  }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -313,31 +582,32 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
   AbstractServerConnectorMock abstractServerConnector;
 
   Address accountAddress{"a744160c3De133495aB9F9D77EA54b325b045670"};
+  Account account;
   if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    Account account;
     AccountStore::GetInstance().AddAccount(accountAddress, account);
   }
-  const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetEthCoinbaseI(paramsRequest, response);
+  paramsRequest[0u] = "0xa744160c3De133495aB9F9D77EA54b325b045670";
 
-  LOG_GENERAL(DEBUG, response.asString());
+  lookupServer.GetEthTransactionCountI(paramsRequest, response);
 
-  BOOST_CHECK_EQUAL(response.asString(), "");
+  // 0x response
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get TX count");
+  }
 }
 
-BOOST_AUTO_TEST_CASE(test_net_version) {
+/*
+BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
   PairOfKey pairOfKey = Schnorr::GenKeyPair();
   Peer peer;
@@ -347,160 +617,244 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
   LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
   // call the method on the lookup server with params
+
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetNetVersionI(paramsRequest, response);
+  paramsRequest[0u] =
+"f86e80850d9e63a68c82520894673e5ef1ae0a2ef7d0714a96a734ffcd1d8a381f881bc16d674ec8000080820cefa04728e87b280814295371adf0b7ccc3ec802a45bd31d13668b5ab51754c110f8ea02d0450641390c9ed56fcbbc64dcb5b07f7aece78739ef647f10cc93d4ecaa496";
 
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(), "");
-}
-
-BOOST_AUTO_TEST_CASE(test_net_listening) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.GetNetListeningI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(), "false");
-}
-
-BOOST_AUTO_TEST_CASE(test_net_peer_count) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetNetPeerCountI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(), "0x0");
-}
-
-BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetProtocolVersionI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(), "");
-}
-
-BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetEthChainIdI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(), "0x814d");
-}
-
-BOOST_AUTO_TEST_CASE(test_eth_syncing) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetEthSyncingI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-  const Json::Value expectedResponse{false};
-  BOOST_CHECK_EQUAL(response, expectedResponse);
-}
-
-BOOST_AUTO_TEST_CASE(test_eth_accounts) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
-                         true);
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
-  Json::Value response;
-  // call the method on the lookup server with params
-  Json::Value paramsRequest = Json::Value(Json::arrayValue);
-
-  lookupServer.GetEthAccountsI(paramsRequest, response);
+  lookupServer.GetEthSendRawTransactionI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::arrayValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
+}
+*/
+
+BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthBlockNumberI(paramsRequest, response);
+
+  if (!(response.asString()[0] == '0' && response.asString()[1] == 'x')) {
+    BOOST_FAIL("Failed to get block number!");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+  Json::Value response;
+  // call the method on the lookup server with params
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  lookupServer.GetEthEstimateGasI(paramsRequest, response);
+
+  if (response.asString()[0] != '0') {
+    BOOST_FAIL("Failed to get gas price");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 2;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr uint64_t EPOCH_NUM = 1;
+  for (const auto& transaction : transactions) {
+    bytes body;
+    transaction.Serialize(body, 0);
+    BlockStorage::GetBlockStorage().PutTxBody(
+        EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
+  }
+
+  for (uint32_t i = 0; i < transactions.size(); ++i) {
+    // call the method on the lookup server with params
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = transactions[i].GetTransaction().GetTranID().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthTransactionByHashI(paramsRequest, response);
+
+    BOOST_TEST_CHECK(response["hash"] ==
+                     transactions[i].GetTransaction().GetTranID().hex());
+    BOOST_TEST_CHECK(
+        response["nonce"] ==
+        std::to_string(transactions[i].GetTransaction().GetNonce()));
+    BOOST_TEST_CHECK(response["value"] ==
+                     transactions[i].GetTransaction().GetAmount().str());
+  }
+
+  // Get non-existing transaction
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  paramsRequest[0u] = "abcdeffedcba";
+
+  Json::Value response;
+
+  lookupServer.GetEthTransactionByHashI(paramsRequest, response);
+  BOOST_TEST_CHECK(response == Json::nullValue);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  // Construct all relevant structures (sample transactions, microblock and
+  // txBlock)
+  std::vector<TransactionWithReceipt> transactions;
+
+  constexpr uint32_t TRANSACTIONS_COUNT = 31;
+  for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+  }
+
+  constexpr auto BLOCK_NUM = 1;
+  const auto txBlock =
+      buildCommonEthBlockCase(mediator, BLOCK_NUM, transactions, pairOfKey);
+
+  // Existing block by Hash
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Existing block by Hash (with extra '0x' prefix)
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "0x" + txBlock.GetBlockHash().hex();
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Non existing block by Hash
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "abcdeffedcba01234567890";
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == 0);
+  }
+
+  // Existing block by number
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = std::to_string(txBlock.GetHeader().GetBlockNum());
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+  }
+
+  // Non Existing block by number
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = "1234";
+
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_TEST_CHECK(response.asUInt64() == 0);
+  }
+  // Block by TAGs
+  {
+    std::vector<TransactionWithReceipt> new_transactions;
+
+    constexpr uint32_t NEW_TRANSACTIONS_COUNT = 2;
+    for (uint32_t i = 0; i < NEW_TRANSACTIONS_COUNT; ++i) {
+      new_transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    }
+
+    constexpr auto SECOND_VALID_BLOCK_NUM = 2;
+    const auto secondValidTxBlock = buildCommonEthBlockCase(
+        mediator, SECOND_VALID_BLOCK_NUM, new_transactions, pairOfKey);
+
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+    // Latest
+    paramsRequest[0u] = "latest";
+    Json::Value response;
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response.asUInt64(), NEW_TRANSACTIONS_COUNT);
+
+    // Pending
+    paramsRequest[0u] = "pending";
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(response.asUInt64(), 0);
+
+    // Earliest
+    paramsRequest[0u] = "earliest";
+
+    lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
+    BOOST_CHECK_EQUAL(
+        response.asUInt64(),
+        mediator.m_txBlockChain.GetBlock(0).GetHeader().GetNumTxs());
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

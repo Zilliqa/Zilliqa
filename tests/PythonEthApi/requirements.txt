@@ -1,0 +1,10 @@
+cython
+cytoolz
+eth-brownie
+py-solc==3.2.0
+py-solc-x==1.1.1
+pyzil
+web3==5.30.0
+protobuf==3.19.4
+eth-account==0.5.8
+jsonrpcclient==3.3.6

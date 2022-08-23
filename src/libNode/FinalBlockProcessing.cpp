@@ -72,8 +72,8 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   // Store Tx Block to disk
   bytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
-  if (!BlockStorage::GetBlockStorage().PutTxBlock(
-          txBlock.GetHeader().GetBlockNum(), serializedTxBlock)) {
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
+                                                  serializedTxBlock)) {
     LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
     return false;
   }

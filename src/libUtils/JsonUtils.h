@@ -65,6 +65,7 @@ class JSONUtils {
                                           static_cast<unsigned char>(ch));
                                     }),
                      errors.end());
+        LOG_GENERAL(WARNING, "Corrupted string: " << str);
         LOG_GENERAL(WARNING, "Corrupted JSON: " << errors);
         result = false;
       }

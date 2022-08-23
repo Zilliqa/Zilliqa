@@ -34,8 +34,9 @@ struct CallResponse;
 
 class EvmClient : public Singleton<EvmClient> {
  public:
-  EvmClient() = default;
-  virtual ~EvmClient() = default;
+  EvmClient(){};
+
+  virtual ~EvmClient();
 
   void Init();
 
@@ -47,7 +48,7 @@ class EvmClient : public Singleton<EvmClient> {
                           uint32_t counter = MAXRETRYCONN);
 
  protected:
-  virtual bool OpenServer(bool force = false);
+  virtual bool OpenServer(uint32_t version);
 
  private:
   std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
@@ -55,7 +56,6 @@ class EvmClient : public Singleton<EvmClient> {
       m_connectors;
 
   std::mutex m_mutexMain;
-  bool m_initialised{false};
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_

@@ -99,7 +99,7 @@ class AccountStore
   AccountStore();
   ~AccountStore();
 
-  bool Serialize(bytes& src, unsigned int offset);
+  bool Serialize(bytes& src, unsigned int offset) const override;
 
   bool Deserialize(const bytes& src, unsigned int offset) override;
 

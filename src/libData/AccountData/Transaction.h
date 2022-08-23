@@ -119,6 +119,9 @@ class Transaction : public SerializableDataBlock {
   /// Returns the current version.
   const uint32_t& GetVersion() const;
 
+  /// Returns whether the current version is correct
+  bool VersionCorrect() const;
+
   /// Returns the transaction nonce.
   const uint64_t& GetNonce() const;
 
@@ -169,17 +172,17 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-    if (!tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
-        tx.GetCode().empty()) {
+    auto const nullAddr = IsNullAddress(tx.GetToAddr());
+
+    if ((!tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
       return CONTRACT_CALL;
     }
 
-    if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
+    if (!tx.GetCode().empty() && nullAddr) {
       return CONTRACT_CREATION;
     }
 
-    if (tx.GetData().empty() && !IsNullAddress(tx.GetToAddr()) &&
-        tx.GetCode().empty()) {
+    if ((tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
       return NON_CONTRACT;
     }
 

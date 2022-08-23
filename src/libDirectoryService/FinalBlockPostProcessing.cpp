@@ -90,8 +90,8 @@ bool DirectoryService::StoreFinalBlockToDisk() {
 
   bytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
-  if (!BlockStorage::GetBlockStorage().PutTxBlock(
-          m_finalBlock->GetHeader().GetBlockNum(), serializedTxBlock)) {
+  if (!BlockStorage::GetBlockStorage().PutTxBlock(m_finalBlock->GetHeader(),
+                                                  serializedTxBlock)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in persistence");
     return false;
   }

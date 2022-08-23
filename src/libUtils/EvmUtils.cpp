@@ -71,10 +71,6 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
-  if (LOG_SC) {
-    LOG_GENERAL(WARNING, "Sending to EVM-DS" << arr_ret);
-  }
-
   return arr_ret;
 }
 
@@ -93,5 +89,8 @@ bool EvmUtils::isEvm(const bytes& code) {
   if (code.size() < 4) {
     return false;
   }
-  return (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
+
+  auto const hasEvm = (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
+
+  return hasEvm;
 }

@@ -45,7 +45,7 @@ class AccountStoreBase : public SerializableDataBlock {
   virtual void Init();
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(bytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
   virtual bool Deserialize(const bytes& src, unsigned int offset);

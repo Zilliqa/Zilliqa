@@ -259,6 +259,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Get value from atomic accountstore
   Account* GetAccountAtomic(const dev::h160& addr);
 
+  // Adds an Account to the atomic AccountStore.
+  bool AddAccountAtomic(const Address& address, const Account& account);
+
   bool ViewAccounts(EvmCallParameters& params, bool& ret, std::string& result);
 };
 

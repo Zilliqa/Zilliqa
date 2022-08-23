@@ -147,6 +147,14 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
 
 const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 
+// Check if the version is 1 or 2 - the only valid ones for now
+// this will look like 65538 or 65537
+bool Transaction::VersionCorrect() const {
+  auto version = DataConversion::UnpackB(this->GetVersion());
+
+  return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
+}
+
 const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
 
 const Address& Transaction::GetToAddr() const { return m_coreInfo.toAddr; }
@@ -202,7 +210,9 @@ bool Transaction::IsSignedECDSA() const {
   sigString = sigString.substr(2);
   pubKeyStr = pubKeyStr.substr(2);
 
-  return VerifyEcdsaSecp256k1("", sigString, pubKeyStr);
+  auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
+
+  return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }
 
 // Function to return whether the TX is signed

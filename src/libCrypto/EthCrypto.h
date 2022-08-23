@@ -18,13 +18,15 @@
 #ifndef ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 #define ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
 
+#include <Schnorr.h>
 #include <openssl/ecdsa.h>  // for ECDSA_do_sign, ECDSA_do_verify
-
 #include <string>
+#include "common/BaseType.h"
+#include "libData/AccountData/Transaction.h"
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
-bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
+bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex);
 
@@ -33,5 +35,12 @@ bool VerifyEcdsaSecp256k1(const std::string& sRandomNumber,
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
 std::string ToUncompressedPubKey(const std::string& pubKey);
+
+bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
+
+bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
+
+bytes ToEVM(bytes const& in);
+bytes FromEVM(bytes const& in);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

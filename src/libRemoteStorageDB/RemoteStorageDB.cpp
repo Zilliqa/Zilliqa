@@ -256,7 +256,7 @@ bool RemoteStorageDB::InsertJson(const Json::Value& _json,
     auto txnCollection = conn->database(m_dbName)[collectionName];
     bsoncxx::document::value doc_val =
         bsoncxx::from_json(_json.toStyledString());
-    const auto& res = txnCollection.insert_one(move(doc_val));
+    txnCollection.insert_one(move(doc_val));
     return true;
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed to Insert " << _json.toStyledString() << endl

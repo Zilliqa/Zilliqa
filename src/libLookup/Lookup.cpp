@@ -3180,7 +3180,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
     txBlock.Serialize(serializedTxBlock, 0);
     uint64_t blockNum = txBlock.GetHeader().GetBlockNum();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBlock(blockNum,
+    if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
                                                     serializedTxBlock)) {
       LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
       return false;

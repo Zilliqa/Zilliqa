@@ -26,6 +26,8 @@
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
 class JSONConversion {
+  using TxBodySharedPtr = std::shared_ptr<TransactionWithReceipt>;
+
  public:
   // converts a uint32_t array to JSON array containing shard ids
   static const Json::Value convertMicroBlockInfoArraytoJson(
@@ -36,6 +38,12 @@ class JSONConversion {
   // converts a TxBlock to JSON object
   static const Json::Value convertTxBlocktoJson(const TxBlock& txblock,
                                                 bool verbose = false);
+  // converts a TxBlock to JSON object (Eth style)
+  static const Json::Value convertTxBlocktoEthJson(
+      const TxBlock& txblock, const DSBlock& dsBlock,
+      const std::vector<TxBodySharedPtr>& transactions,
+      const std::vector<TxnHash>& transactionHashes,
+      bool includeFullTransactions = false);
   // converts raw TxBlock to JSON object (for staking)
   static const Json::Value convertRawTxBlocktoJson(const TxBlock& txblock);
   // converts a DSBlocck to JSON object
@@ -48,7 +56,8 @@ class JSONConversion {
   // check if a Json is a valid Tx
   static bool checkJsonTx(const Json::Value& _json);
 
-  static Address checkJsonGetEthCall(const Json::Value& _json);
+  static Address checkJsonGetEthCall(const Json::Value& _json,
+                                     const std::string& toKey);
   // check is string address is a valid address
   static bool checkStringAddress(const std::string& address);
   // Convert a json array of strings to a vector of strings
@@ -59,6 +68,9 @@ class JSONConversion {
                                            bool isSoftConfirmed = false);
   // Convert Tx (without reciept) to JSON object
   static const Json::Value convertTxtoJson(const Transaction& txn);
+  // Convert Tx to ETH-like JSON Object
+  static const Json::Value convertTxtoEthJson(
+      const TransactionWithReceipt& txn);
   // Convert a node to json
   static const Json::Value convertNode(const PairOfNode& node);
   // conver a node with reputation to json

@@ -119,6 +119,47 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   return ret;
 }
 
+const Json::Value JSONConversion::convertTxBlocktoEthJson(
+    const TxBlock& txblock, const DSBlock& dsBlock,
+    const std::vector<TxBodySharedPtr>& transactions,
+    const std::vector<TxnHash>& transactionHashes,
+    bool includeFullTransactions) {
+  (void)transactions;
+  const TxBlockHeader& txheader = txblock.GetHeader();
+
+  Json::Value retJson;
+
+  retJson["number"] = std::to_string(txheader.GetBlockNum());
+  retJson["hash"] = txblock.GetBlockHash().hex();
+  retJson["parentHash"] = txheader.GetPrevHash().hex();
+  // sha3Uncles is calculated as keccak("")
+  retJson["sha3Uncles"] =
+      "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
+  retJson["stateRoot"] = txheader.GetStateRootHash().hex();
+  retJson["miner"] =
+      Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
+  retJson["difficulty"] = dsBlock.GetHeader().GetDifficulty();
+
+  bytes serializedTxBlock;
+  txblock.Serialize(serializedTxBlock, 0);
+
+  retJson["size"] = std::to_string(serializedTxBlock.size());
+  retJson["gasLimit"] = std::to_string(txheader.GetGasLimit());
+  retJson["gasUsed"] = std::to_string(txheader.GetGasUsed());
+  retJson["gasLimit"] = std::to_string(txblock.GetTimestamp());
+  retJson["version"] = txheader.GetVersion();
+
+  // Todo: prepare transaction to eth-like json conversion
+  if (!includeFullTransactions) {
+    auto transactionHashesJson = Json::Value(Json::arrayValue);
+    for (const auto& hash : transactionHashes) {
+      transactionHashesJson.append(hash.hex());
+    }
+    retJson["transactions"] = transactionHashesJson;
+  }
+  return retJson;
+}
+
 const Json::Value JSONConversion::convertRawTxBlocktoJson(
     const TxBlock& txblock) {
   Json::Value ret;
@@ -429,21 +470,22 @@ bool JSONConversion::checkJsonTx(const Json::Value& _json) {
 }
 
 // if successfull returns lower-case to zil address
-Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json) {
-  if (!_json.isMember("toAddr")) {
+Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json,
+                                            const std::string& toKey) {
+  if (!_json.isMember(toKey)) {
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "must contain toAddr");
+                                    "must contain " + toKey);
   }
 
-  auto lower_case_addr = _json["toAddr"].asString();
+  auto lower_case_addr = _json[toKey].asString();
 
   DataConversion::NormalizeHexString(lower_case_addr);
 
   bytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
-    LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
+    LOG_GENERAL(WARNING, "json containing invalid hex str for " << toKey);
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
-                                    "Invalid Hex Str for toAddr");
+                                    "Invalid Hex Str for " + toKey);
   }
 
   return Address(toAddr_ser);
@@ -581,6 +623,34 @@ const Json::Value JSONConversion::convertTxtoJson(
   }
 
   return _json;
+}
+
+const Json::Value JSONConversion::convertTxtoEthJson(
+    const TransactionWithReceipt& txn) {
+  Json::Value retJson;
+  retJson["from"] = txn.GetTransaction().GetSenderAddr().hex();
+  retJson["gas"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
+  retJson["gasPrice"] = txn.GetTransaction().GetGasPrice().str();
+  retJson["hash"] = txn.GetTransaction().GetTranID().hex();
+
+  // Concatenated Code and CallData form input entry in response json
+  std::string inputField;
+
+  if (!txn.GetTransaction().GetCode().empty()) {
+    inputField =
+        DataConversion::CharArrayToString(txn.GetTransaction().GetCode());
+  }
+
+  if (!txn.GetTransaction().GetData().empty()) {
+    inputField +=
+        DataConversion::CharArrayToString(txn.GetTransaction().GetData());
+  }
+
+  retJson["input"] = inputField;
+  retJson["nonce"] = std::to_string(txn.GetTransaction().GetNonce());
+  retJson["to"] = txn.GetTransaction().GetToAddr().hex();
+  retJson["value"] = txn.GetTransaction().GetAmount().str();
+  return retJson;
 }
 
 const Json::Value JSONConversion::convertNode(const PairOfNode& node) {
