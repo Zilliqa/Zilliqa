@@ -16,6 +16,7 @@
  */
 
 #include "Eth.h"
+#include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
@@ -73,7 +74,8 @@ EthFields parseRawTxFields(std::string const &message) {
   int i = 0;
   // todo: checks on size of rlp stream etc.
 
-  ret.version = 65538;
+  ret.version = DataConversion::Pack(CHAIN_ID, 2);
+  //ret.version = DataConversion::Pack(2, CHAIN_ID);
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
