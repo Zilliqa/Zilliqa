@@ -396,17 +396,16 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
-    (void)request;
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
-    auto resp = this->GetBalance(address, true)["balance"];
+    const auto resp = this->GetBalance(address, true)["balance"].asString();
 
-    auto balanceStr = resp.asString();
-
-    resp = balanceStr;
-
-    response = resp;
+    if (resp == "0x0") {
+      response = resp;
+    } else {
+      response = "0x" + resp;
+    }
   }
 
   /**
