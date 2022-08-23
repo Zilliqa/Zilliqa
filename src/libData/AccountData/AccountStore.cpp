@@ -501,7 +501,24 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
 
-  if (ENABLE_EVM && EvmUtils::isEvm(transaction.GetCode())) {
+  bool isEvm{false};
+
+  if (Transaction:: GetTransactionType(transaction) ==
+      Transaction:: CONTRACT_CREATION) {
+    isEvm = EvmUtils:: isEvm(transaction.GetCode());
+  } else if (Transaction:: GetTransactionType(transaction) ==
+             Transaction:: CONTRACT_CALL) {
+    Account* contractAccount = this->GetAccount(transaction.GetToAddr());
+    isEvm = EvmUtils:: isEvm(contractAccount->GetCode());
+  } else {
+    isEvm = false;
+  }
+  if (ENABLE_EVM == false && isEvm) {
+    LOG_GENERAL(WARNING,
+                "EVM is disabled so not processing this EVM transaction ");
+    return false;
+  }
+  if (isEvm) {
     return m_accountStoreTemp->UpdateAccountsEvm(
         blockNum, numShards, isDS, transaction, receipt, error_code);
   } else {
