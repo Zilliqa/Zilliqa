@@ -131,7 +131,9 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["number"] = std::to_string(txheader.GetBlockNum());
   retJson["hash"] = txblock.GetBlockHash().hex();
   retJson["parentHash"] = txheader.GetPrevHash().hex();
-  retJson["sha3Uncles"] = Json::arrayValue;
+  // sha3Uncles is calculated as keccak("")
+  retJson["sha3Uncles"] =
+      "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
   retJson["stateRoot"] = txheader.GetStateRootHash().hex();
   retJson["miner"] =
       Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();

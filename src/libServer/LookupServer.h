@@ -307,7 +307,7 @@ class LookupServer : public Server,
 
   inline virtual void GetEthCallEthI(const Json::Value& request,
                                      Json::Value& response) {
-    response = this->GetEthCallEth(request[0u]);
+    response = this->GetEthCallEth(request[0u], request[1u].asString());
   }
 
   // TODO: remove once we fully move to Eth compatible APIs.
@@ -317,16 +317,9 @@ class LookupServer : public Server,
   }
 
   // Eth style functions here
-  inline virtual void GetEthBlockNumberI(const Json::Value& request,
+  inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    (void)request;
-    static uint64_t block_number = 2675001;
-    block_number++;
-
-    std::stringstream stream;
-    stream << "0x" << std::hex << block_number;
-
-    response = stream.str();
+    response = this->GetEthBlockNumber();
   }
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
@@ -366,11 +359,11 @@ class LookupServer : public Server,
     response = DataConversion::IntToHexString(resp);
   }
 
-  inline virtual void GetTransactionReceiptI(const Json::Value& request,
-                                             Json::Value& response) {
+  inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
+                                                Json::Value& response) {
     (void)request;
 
-    response = this->GetTransactionReceipt(request[0u].asString());
+    response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
@@ -383,7 +376,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, stoi(ETH_CHAINID));
+    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
     if (pubKey.empty()) {
       return;
@@ -681,7 +674,8 @@ class LookupServer : public Server,
   Json::Value GetBlockchainInfo();
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
-  std::string GetEthCallEth(const Json::Value& _json);
+  std::string GetEthCallEth(const Json::Value& _json,
+                            const std::string& block_or_tag);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
@@ -709,9 +703,10 @@ class LookupServer : public Server,
   std::string GetNumTxnsTxEpoch();
 
   // Eth calls
-  Json::Value GetTransactionReceipt(const std::string& txnhash);
+  Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
                                   bool includeFullTransactions);
+  Json::Value GetEthBlockNumber();
   Json::Value GetEthBlockByHash(const std::string& blockHash,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
