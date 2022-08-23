@@ -164,7 +164,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
                 }
               }
               //
-              // store the apply instructiion within the response.
+              // store the apply instruction within the response.
               //
               try {
                 fo.m_apply.push_back(apply);
@@ -229,7 +229,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
 }
 
 //
-// Debugging routines, alllows developer to dump each object directly onto
+// Debugging routines, allows developer to dump each object directly onto
 // the output stream.
 //
 

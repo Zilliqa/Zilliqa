@@ -168,21 +168,17 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
     return false;
   }
 
-  // LOG_GENERAL(INFO, "gas price to refund: " << gasRefund);
   return true;
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IsAccountExist(const Address& address) {
-  // LOG_MARKER();
   return (nullptr != GetAccount(address));
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account, bool toReplace) {
-  // LOG_MARKER();
-
   if (toReplace || !IsAccountExist(address)) {
     (*m_addressToAccount)[address] = account;
 
@@ -218,15 +214,12 @@ Account* AccountStoreBase<MAP>::GetAccount(const Address& address) {
 
 template <class MAP>
 size_t AccountStoreBase<MAP>::GetNumOfAccounts() const {
-  // LOG_MARKER();
   return m_addressToAccount->size();
 }
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
                                             const uint128_t& delta) {
-  // LOG_MARKER();
-
   if (delta == 0) {
     return true;
   }
@@ -247,8 +240,6 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
 template <class MAP>
 bool AccountStoreBase<MAP>::DecreaseBalance(const Address& address,
                                             const uint128_t& delta) {
-  // LOG_MARKER();
-
   if (delta == 0) {
     return true;
   }
@@ -272,8 +263,7 @@ template <class MAP>
 bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
                                             const Address& to,
                                             const uint128_t& delta) {
-  // LOG_MARKER();
-  // FIXME: Is there any elegent way to implement this atomic change on balance?
+  // FIXME: Is there any elegant way to implement this atomic change on balance?
   if (DecreaseBalance(from, delta)) {
     if (IncreaseBalance(to, delta)) {
       return true;
@@ -289,8 +279,6 @@ bool AccountStoreBase<MAP>::TransferBalance(const Address& from,
 
 template <class MAP>
 uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
-  // LOG_MARKER();
-
   const Account* account = GetAccount(address);
 
   if (account != nullptr) {
@@ -302,11 +290,7 @@ uint128_t AccountStoreBase<MAP>::GetBalance(const Address& address) {
 
 template <class MAP>
 bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
-  // LOG_MARKER();
-
   Account* account = GetAccount(address);
-
-  // LOG_GENERAL(INFO, "address: " << address << " account: " << *account);
 
   if (nullptr == account) {
     LOG_GENERAL(WARNING, "Increase nonce failed");
@@ -315,8 +299,6 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
   }
 
   if (account->IncreaseNonce()) {
-    // LOG_GENERAL(INFO, "Increase nonce done");
-    // UpdateStateTrie(address, *account);
     return true;
   } else {
     LOG_GENERAL(WARNING, "Increase nonce failed");
@@ -326,8 +308,6 @@ bool AccountStoreBase<MAP>::IncreaseNonce(const Address& address) {
 
 template <class MAP>
 uint64_t AccountStoreBase<MAP>::GetNonce(const Address& address) {
-  // LOG_MARKER();
-
   Account* account = GetAccount(address);
 
   if (account != nullptr) {

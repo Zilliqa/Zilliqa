@@ -63,7 +63,7 @@ class EvmAccountEvmClientMock : public EvmClientMock {
         "\"balance\":\"" +
         m_Balance +
         "\","
-        "\"code\":null,"
+        "\"code\":\"42\","
         "\"nonce\":\"" +
         m_Nonce +
         "\","
@@ -111,9 +111,9 @@ class EvmAccountEvmClientMock : public EvmClientMock {
 
     BOOST_CHECK(_reader.parse(evmResponseString, responseJson));
     LOG_GENERAL(DEBUG, "CallRunner json response:" << responseJson);
-    evmproj::GetReturn(responseJson, response);
+    const auto reply = evmproj::GetReturn(responseJson, response);
 
-    return true;
+    return reply.GetSuccess();
   };
 
  private:
@@ -129,8 +129,8 @@ BOOST_AUTO_TEST_CASE(test_evm_account_balance_nonce_check) {
 
   LOG_MARKER();
 
-  const auto expectedBalance{12345U};
-  const auto expectedNonce{4389567U};
+  const auto expectedBalance{12'345U};
+  const auto expectedNonce{4'389'567U};
   const std::string address = "a744160c3De133495aB9F9D77EA54b325b045670";
   EvmClient::GetInstance(
       [&expectedBalance, &expectedNonce, &address]() {
@@ -144,34 +144,35 @@ BOOST_AUTO_TEST_CASE(test_evm_account_balance_nonce_check) {
 
   AccountStore::GetInstance([&accountStoreMock]() { return accountStoreMock; },
                             true);
-  AccountStore::GetInstance().Init();
+  auto& accountStore = AccountStore::GetInstance();
+  accountStore.Init();
 
   Address accountAddress{address};
   Account account;
-  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  if (!accountStore.IsAccountExist(accountAddress)) {
+    accountStore.AddAccount(accountAddress, account);
   }
 
-  const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
-  BOOST_CHECK_EQUAL(AccountStore::GetInstance().GetBalance(accountAddress),
-                    initialBalance);
-  BOOST_CHECK_EQUAL(AccountStore::GetInstance().GetNonce(accountAddress), 0);
+  const uint128_t initialBalance{1'000'000U};
+  accountStore.IncreaseBalance(accountAddress, initialBalance);
+  BOOST_CHECK_EQUAL(accountStore.GetBalance(accountAddress), initialBalance);
+  BOOST_CHECK_EQUAL(accountStore.GetNonce(accountAddress), 0);
 
   EvmCallParameters evmParameters;
   auto returnValue{false};
+
   TransactionReceipt transactionReceipt;
   evmproj::CallResponse evmCallResponseValues;
   accountStoreMock->InvokeEvmInterpreter(&account, RUNNER_CALL, evmParameters,
                                          2, returnValue, transactionReceipt,
                                          evmCallResponseValues);
 
-  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  const auto balance = accountStore.GetBalance(accountAddress);
   LOG_GENERAL(DEBUG, "Balance:" << balance);
   // the balance should be changed to what is set in the response message
   BOOST_CHECK_EQUAL(balance, expectedBalance);
 
-  const auto nonce = AccountStore::GetInstance().GetNonce(accountAddress);
+  const auto nonce = accountStore.GetNonce(accountAddress);
   LOG_GENERAL(DEBUG, "Nonce:" << nonce);
   // the balance should be changed to what is set in the response message
   BOOST_CHECK_EQUAL(nonce, expectedNonce);
@@ -203,18 +204,18 @@ BOOST_AUTO_TEST_CASE(test_evm_account_balance_nonce_overflow) {
 
   AccountStore::GetInstance([&accountStoreMock]() { return accountStoreMock; },
                             true);
-  AccountStore::GetInstance().Init();
+  auto& accountStore = AccountStore::GetInstance();
+  accountStore.Init();
 
   Address accountAddress{address};
   Account account;
-  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
-    AccountStore::GetInstance().AddAccount(accountAddress, account);
+  if (!accountStore.IsAccountExist(accountAddress)) {
+    accountStore.AddAccount(accountAddress, account);
   }
 
   const uint128_t initialBalance{1'000'000};
-  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
-  BOOST_CHECK_EQUAL(AccountStore::GetInstance().GetBalance(accountAddress),
-                    initialBalance);
+  accountStore.IncreaseBalance(accountAddress, initialBalance);
+  BOOST_CHECK_EQUAL(accountStore.GetBalance(accountAddress), initialBalance);
 
   EvmCallParameters evmParameters;
   auto returnValue{false};
@@ -224,12 +225,12 @@ BOOST_AUTO_TEST_CASE(test_evm_account_balance_nonce_overflow) {
                                          2, returnValue, transactionReceipt,
                                          evmCallResponseValues);
 
-  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  const auto balance = accountStore.GetBalance(accountAddress);
   LOG_GENERAL(DEBUG, "Balance:" << balance);
   // the balance should be not be changed from the initial balance
   BOOST_CHECK_EQUAL(balance, initialBalance);
 
-  const auto nonce = AccountStore::GetInstance().GetNonce(accountAddress);
+  const auto nonce = accountStore.GetNonce(accountAddress);
   LOG_GENERAL(DEBUG, "Nonce:" << nonce);
   // the balance should be changed from the original nonce
   BOOST_CHECK_EQUAL(nonce, 0);
