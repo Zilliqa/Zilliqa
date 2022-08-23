@@ -248,8 +248,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(
-    EvmCallParameters& params, bool& ret, std::string& result) {
+bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
+                                       std::string& result) {
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
   evmproj::CallResponse response;
@@ -263,10 +263,12 @@ bool AccountStoreSC<MAP>::ViewAccounts(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, TransactionReceipt& receipt,
-    TxnStatus& error_code) {
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
+                                            const unsigned int& numShards,
+                                            const bool& isDS,
+                                            const Transaction& transaction,
+                                            TransactionReceipt& receipt,
+                                            TxnStatus& error_code) {
   LOG_MARKER();
 
   if (LOG_SC) {
