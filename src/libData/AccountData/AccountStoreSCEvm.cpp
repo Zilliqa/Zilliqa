@@ -247,8 +247,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   return gas;
 }
 
-template <>
-bool AccountStoreSC<std::unordered_map<Address, Account>>::ViewAccounts(
+template <class MAP>
+bool AccountStoreSC<MAP>::ViewAccounts(
     EvmCallParameters& params, bool& ret, std::string& result) {
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
@@ -262,8 +262,8 @@ bool AccountStoreSC<std::unordered_map<Address, Account>>::ViewAccounts(
   return ret;
 }
 
-template <>
-bool AccountStoreSC<std::map<Address, Account>>::UpdateAccountsEvm(
+template <class MAP>
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
     const Transaction& transaction, TransactionReceipt& receipt,
     TxnStatus& error_code) {
@@ -654,3 +654,6 @@ bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
                                            const Account& account) {
   return m_accountStoreAtomic->AddAccount(address, account);
 }
+
+template class AccountStoreSC<std::map<Address, Account>>;
+template class AccountStoreSC<std::unordered_map<Address, Account>>;
