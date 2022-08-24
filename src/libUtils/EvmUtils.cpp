@@ -80,9 +80,8 @@ bool EvmUtils::isEvm(const bytes& code) {
   }
 
   if (code.empty()) {
-    LOG_GENERAL(WARNING, "EVM is set and Code is empty, logic error");
     // returning false which means it will behave as if it was a scilla only
-    // TODO : handle this third state
+    // Scilla handles scilla smartContracts and non contracts
     return false;
   }
 
