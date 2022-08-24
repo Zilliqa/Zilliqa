@@ -1326,6 +1326,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string blockHash = "";
     std::string blockNumber = "";
 
+    std::cout << "Getting TX receipt for: " << txnhash << std::endl;
+    std::cout << "Height is: " << height << std::endl;
+
     // Scan downwards through the chain until the TX can be found
     do {
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
@@ -1368,6 +1371,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
                                      blockHash, blockNumber);
+
+    //LOG_GENERAL(WARNING, "Returning the answer: " <<  res);
 
     return res;
   } catch (const JsonRpcException& je) {

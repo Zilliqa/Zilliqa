@@ -16,6 +16,7 @@
  */
 
 #include "Eth.h"
+#include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
@@ -32,7 +33,7 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
 
   ret["transactionHash"] = txnhash;
   ret["blockHash"] = blockHash;
-  ret["blockNumber"] = blockNumber;
+  ret["blockNumber"] = "0x" + blockNumber;
   ret["contractAddress"] = "0x0000000000000000000000000000000000000000";
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["from"] = from;
@@ -50,8 +51,8 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
   ret["status"] = success ? "0x1" : "0x0";
-  ret["to"] = to;                   // todo: fill
-  ret["transactionIndex"] = "0x0";  // todo: fill
+  ret["to"] = to;
+  ret["transactionIndex"] = "0x0";
 
   return ret;
 }
@@ -74,7 +75,9 @@ EthFields parseRawTxFields(std::string const &message) {
   int i = 0;
   // todo: checks on size of rlp stream etc.
 
-  ret.version = 65538;
+  ret.version = DataConversion::Pack(CHAIN_ID, 2);
+
+  std::cout << "version is: "  << ret.version << std::endl;
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
