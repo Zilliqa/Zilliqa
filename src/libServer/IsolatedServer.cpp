@@ -381,8 +381,11 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           std::string("CHAIN_ID incorrect: ") + std::to_string(DataConversion::UnpackA(tx.GetVersion())) + " when expected " + std::to_string(CHAIN_ID));
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        std::string("CHAIN_ID incorrect: ") +
+            std::to_string(DataConversion::UnpackA(tx.GetVersion())) +
+            " when expected " + std::to_string(CHAIN_ID));
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
