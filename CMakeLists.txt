@@ -56,7 +56,7 @@ find_package(websocketpp CONFIG REQUIRED)
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
-find_package(PythonLibs 3.6 EXACT REQUIRED)
+find_package(PythonLibs REQUIRED)
 
 string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
 list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
