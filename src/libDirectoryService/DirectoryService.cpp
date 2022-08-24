@@ -1190,7 +1190,8 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                                      int64_t expectedNodes,
                                                      uint32_t powChangeoAdj) {
   if (powChangeoAdj == 0) {
-    // Special mode for developers: just to make thee difficulty flat and not growing
+    // Special mode for developers: just to make thee difficulty flat and not
+    // growing
     return minDifficulty;
   }
 
