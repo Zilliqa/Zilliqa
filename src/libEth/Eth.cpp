@@ -77,8 +77,6 @@ EthFields parseRawTxFields(std::string const &message) {
 
   ret.version = DataConversion::Pack(CHAIN_ID, 2);
 
-  std::cout << "version is: "  << ret.version << std::endl;
-
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
     auto byteIt = (*it).operator bytes();
