@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_
 
 #include <event2/util.h>
-#include <boost/lockfree/queue.hpp>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -31,6 +30,7 @@
 #include "common/BaseType.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
+#include "libUtils/Queue.h"
 #include "libUtils/ThreadPool.h"
 
 struct evconnlistener;
@@ -114,8 +114,11 @@ class P2PComm {
 
   ThreadPool m_SendPool{MAXSENDMESSAGE, "SendPool"};
 
-  boost::lockfree::queue<SendJob*> m_sendQueue;
-  void ProcessSendJob(SendJob* job);
+  // TODO shared instead of unique due to lambda move capture limitations
+  using SendJobPtr = std::shared_ptr<SendJob>;
+
+  utility::Queue<SendJobPtr> m_sendQueue;
+  void ProcessSendJob(SendJobPtr& job);
 
   static void ProcessBroadCastMsg(bytes& message, const Peer& from);
   static void ProcessGossipMsg(bytes& message, Peer& from);
@@ -149,8 +152,11 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Dispatcher = std::function<void(
-      std::pair<bytes, std::pair<Peer, const unsigned char>>*)>;
+  // TODO shared instead of unique due to lambda move capture limitations
+  using Msg =
+      std::shared_ptr<std::pair<bytes, std::pair<Peer, const unsigned char>>>;
+
+  using Dispatcher = std::function<void(Msg)>;
 
   using BroadcastListFunc = std::function<VectorOfPeer(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;

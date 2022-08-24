@@ -36,7 +36,7 @@ static ethash_mining_result_t FAIL_RESULT = {"", "", 0, false};
 
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {
-  static SafeHttpServer httpserver(GETWORK_SERVER_PORT);
+  static SafeHttpServer httpserver(GETWORK_SERVER_PORT, 4);
   static GetWorkServer powserver(httpserver);
   return powserver;
 }
