@@ -28,7 +28,7 @@ inline bool HasZilHrp(const string& input) {
 AddressConversionCode ToAddressStructure(const string& input_addr,
                                          Address& retAddr) {
   string addr;
-  if (input_addr.substr(0, 2) == string("0x")) {
+  if (input_addr.size() >= 2 && input_addr[0] == '0' && input_addr[1] == 'x') {
     addr = input_addr.substr(2);
   } else {
     addr = input_addr;

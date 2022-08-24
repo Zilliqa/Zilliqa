@@ -393,6 +393,32 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthBlockByHashI);
 
   this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockTransactionCountByHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockTransactionCountByHashI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockTransactionCountByNumberI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByBlockHashAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByBlockHashAndIndexI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
+
+  this->bindAndAddMethod(
       jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthGasPriceI);
@@ -934,30 +960,24 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 
   Address toAddr{fields.toAddr};
-  Transaction tx =
-      IsNullAddress(toAddr)
-          ? Transaction{fields.version,
-                        fields.nonce,
-                        Address(fields.toAddr),
-                        PubKey(pubKey, 0),
-                        fields.amount,
-                        fields.gasPrice,
-                        fields.gasLimit,
-                        ToEVM(fields.code),
-                        {},
-                        Signature(fields.signature, 0)}
-          : Transaction{fields.version,
-                        fields.nonce,
-                        Address(fields.toAddr),
-                        PubKey(pubKey, 0),
-                        fields.amount,
-                        fields.gasPrice,
-                        fields.gasLimit,
-                        {},
-                        DataConversion::StringToCharArray(
-                            DataConversion::Uint8VecToHexStrRet(
-                                fields.code)),  // TODO remove hex'ing.
-                        Signature(fields.signature, 0)};
+  bytes data;
+  bytes code;
+  if (IsNullAddress(toAddr)) {
+    code = ToEVM(fields.code);
+  } else {
+    data = DataConversion::StringToCharArray(
+        DataConversion::Uint8VecToHexStrRet(fields.code));
+  }
+  Transaction tx{fields.version,
+                 fields.nonce,
+                 Address(fields.toAddr),
+                 PubKey(pubKey, 0),
+                 fields.amount,
+                 fields.gasPrice,
+                 fields.gasLimit,
+                 code,  // either empty or stripped EVM-less code
+                 data,  // either empty or un-hexed byte-stream
+                 Signature(fields.signature, 0)};
   try {
     Json::Value ret;
 
@@ -1202,15 +1222,95 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
   }
 }
 
-Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
-  auto hash = txnhash;
+Json::Value LookupServer::GetEthTransactionByBlockHashAndIndex(
+    const std::string& inputHash, const std::string& indexStr) const {
+  try {
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    const uint64_t index = std::strtoull(indexStr.c_str(), nullptr, 0);
+    return GetEthTransactionFromBlockByIndex(txBlock, index);
 
-  if (hash[0] == '0' && hash[1] == 'x') {
-    hash.erase(0, 2);
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthTransactionByBlockNumberAndIndex(
+    const std::string& blockNumberStr, const std::string& indexStr) const {
+  try {
+    TxBlock txBlock;
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::nullValue;
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    }
+    const uint64_t index = std::strtoull(indexStr.c_str(), nullptr, 0);
+    return GetEthTransactionFromBlockByIndex(txBlock, index);
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
+    const TxBlock& txBlock, uint64_t index) const {
+  const TxBlock EMPTY_BLOCK;
+  constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
+  if (txBlock == EMPTY_BLOCK || index == WRONG_INDEX) {
+    return Json::nullValue;
+  }
+  uint64_t processedIndexes = 0;
+  MicroBlockSharedPtr microBlockPtr;
+  boost::optional<uint64_t> indexInBlock;
+
+  const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
+  for (auto const& mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto& currTranHashes = microBlockPtr->GetTranHashes();
+
+    if (processedIndexes + currTranHashes.size() > index) {
+      // We found a block containing transaction
+      indexInBlock = index - processedIndexes;
+      break;
+    } else {
+      processedIndexes += currTranHashes.size();
+    }
+  }
+  // Possibly out of range index or block with no transactions
+  if (!indexInBlock) {
+    return Json::nullValue;
   }
 
+  TxBodySharedPtr transactioBodyPtr;
+  const auto txHashes = microBlockPtr->GetTranHashes();
+  if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
+                                                 transactioBodyPtr)) {
+    return Json::nullValue;
+  }
+
+  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+}
+
+Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    auto const result = GetTransaction(hash);
+    auto const result = GetTransaction(txnhash);
 
     // Scan downwards looking for the block hash with our TX in it
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
@@ -1224,22 +1324,20 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     // Scan downwards through the chain until the TX can be found
     do {
-      std::stringstream ss;
-      ss << height;  // int decimal_value
-      std::string useMe(ss.str());
-      height--;
-
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
       const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
 
-      auto const block = GetEthBlockByNumber(useMe, false);
+      auto const block = GetEthBlockByNumber(std::to_string(height), false);
+      height--;
 
       // Attempt to find if the TX is within this block
       auto const TxnHashes = block["transactions"];
 
       for (auto const& item : TxnHashes) {
-        if (DataConversion::HexStringsSame(item.asString(), txnhash)) {
-          // if (txnhash.compare(item.asString()) == 0) {
+        TxnHash hash_1{item.asString()};
+        TxnHash hash_2{txnhash};
+
+        if (hash_1 == hash_2) {
           blockHash = block["hash"].asString();
           break;
         }
@@ -1263,10 +1361,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       blockHash = std::string("0x") + blockHash;
     }
 
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash);
-
-    return res;
+    return populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                 blockHash);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
@@ -1287,9 +1383,7 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(transactionHash);
-    if (transactionHash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
-    }
+
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (isPresent) {
       Json::Value _json;
@@ -1574,7 +1668,7 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 
     // Convert the result from decimal string to hex string
     std::stringstream ss;
-    ss << std::hex << balance;  // int decimal_value
+    ss << "0x" << std::hex << balance;  // int decimal_value
     std::string res(ss.str());
 
     ret["balance"] = res;

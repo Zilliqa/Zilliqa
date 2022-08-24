@@ -232,10 +232,12 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   bytes asBytes;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
-  dev::RLP rlpStream1(asBytes);
+  dev::RLP rlpStream1(asBytes,
+                      dev::RLP::FailIfTooBig | dev::RLP::FailIfTooSmall);
   dev::RLPStream rlpStreamRecreated(9);
 
   if (rlpStream1.isNull()) {
+    LOG_GENERAL(WARNING, "Failed to parse raw TX RLP: " << message);
     return {};
   }
 

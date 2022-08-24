@@ -361,6 +361,20 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthBlockTransactionCountByNumberI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByBlockHashAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByBlockHashAndIndexI);
+
+  AbstractServer<IsolatedServer>::bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
 }
 
 bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
@@ -478,6 +492,8 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
 }
 
 Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
+  Json::Value ret;
+
   try {
     if (!JSONConversion::checkJsonTx(_json)) {
       throw JsonRpcException(RPC_PARSE_ERROR, "Invalid Transaction JSON");
@@ -488,8 +504,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     }
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
-
-    Json::Value ret;
 
     uint64_t senderNonce;
     uint128_t senderBalance;
@@ -620,8 +634,6 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(INFO, "Processing On the isolated server completed");
-    return ret;
-
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
@@ -629,6 +641,14 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+
+  // This will make sure the block height advances, the
+  // TX can be found in a block etc.
+  if (m_timeDelta == 0) {
+    PostTxBlock();
+  }
+
+  return ret;
 }
 
 Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
@@ -641,33 +661,24 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
 
     Address toAddr{fields.toAddr};
-    LOG_GENERAL(INFO,
-                "fields.signature "
-                    << DataConversion::Uint8VecToHexStrRet(fields.signature));
-    Transaction tx =
-        IsNullAddress(toAddr)
-            ? Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          ToEVM(fields.code),
-                          {},
-                          Signature(fields.signature, 0)}
-            : Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          {},
-                          DataConversion::StringToCharArray(
-                              DataConversion::Uint8VecToHexStrRet(
-                                  fields.code)),  // TODO remove hex'ing.
-                          Signature(fields.signature, 0)};
+    bytes data;
+    bytes code;
+    if (IsNullAddress(toAddr)) {
+      code = ToEVM(fields.code);
+    } else {
+      data = DataConversion::StringToCharArray(
+                                               DataConversion::Uint8VecToHexStrRet(fields.code));
+    }
+    Transaction tx{fields.version,
+      fields.nonce,
+      Address(fields.toAddr),
+      PubKey(pubKey, 0),
+      fields.amount,
+      fields.gasPrice,
+      fields.gasLimit,
+      code,  // either empty or stripped EVM-less code
+      data,  // either empty or un-hexed byte-stream
+      Signature(fields.signature, 0)};
 
     uint64_t senderNonce;
     uint128_t senderBalance;
