@@ -1351,10 +1351,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     auto receipt = zilResult["receipt"];
 
-    std::string hashId = "0x" + ethResult["hash"].asString();
+    std::string hashId = ethResult["hash"].asString();
     bool success = receipt["success"].asBool();
-    std::string sender = "0x" + ethResult["from"].asString();
-    std::string toAddr = "0x" + ethResult["to"].asString();
+    std::string sender = ethResult["from"].asString();
+    std::string toAddr = ethResult["to"].asString();
     std::string cumGas = zilResult["cumulative_gas"].asString();
 
     if (blockHash == "") {

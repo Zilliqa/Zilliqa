@@ -969,7 +969,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
     lookupServer.GetEthTransactionByHashI(paramsRequest, response);
 
     BOOST_TEST_CHECK(response["hash"] ==
-                     transactions[i].GetTransaction().GetTranID().hex());
+                     "0x" + transactions[i].GetTransaction().GetTranID().hex());
     BOOST_TEST_CHECK(
         response["nonce"] ==
         std::to_string(transactions[i].GetTransaction().GetNonce()));
@@ -1177,7 +1177,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       lookupServer.GetEthTransactionByBlockHashAndIndexI(paramsRequest,
                                                          response);
       BOOST_TEST_CHECK(response["hash"].asString() ==
-                       transactions[i].GetTransaction().GetTranID().hex());
+                       "0x" +
+                           transactions[i].GetTransaction().GetTranID().hex());
     }
   }
 
@@ -1202,8 +1203,9 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
 
         lookupServer.GetEthTransactionByBlockNumberAndIndexI(paramsRequest,
                                                              response);
-        BOOST_TEST_CHECK(response["hash"].asString() ==
-                         transactions[i].GetTransaction().GetTranID().hex());
+        BOOST_TEST_CHECK(
+            response["hash"].asString() ==
+            "0x" + transactions[i].GetTransaction().GetTranID().hex());
       }
     }
   }
