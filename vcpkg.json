@@ -20,8 +20,7 @@
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [
     { "name": "openssl", "version-string": "1.1.1n" },
-    { "name": "protobuf", "version": "3.9.1" },
-    { "name": "jsoncpp", "version": "1.7.7" }
+    { "name": "protobuf", "version": "3.9.1" }
   ]
 }
 
