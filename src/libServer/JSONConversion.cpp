@@ -19,6 +19,7 @@
 #include <vector>
 
 #include <Schnorr.h>
+#include <boost/format.hpp>
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
@@ -128,7 +129,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
 
   Json::Value retJson;
 
-  retJson["number"] = std::to_string(txheader.GetBlockNum());
+  retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
   retJson["hash"] = txblock.GetBlockHash().hex();
   retJson["parentHash"] = txheader.GetPrevHash().hex();
   // sha3Uncles is calculated as keccak("")

@@ -33,7 +33,7 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
 
   ret["transactionHash"] = txnhash;
   ret["blockHash"] = blockHash;
-  ret["blockNumber"] = "0x" + blockNumber;
+  ret["blockNumber"] = blockNumber;
   ret["contractAddress"] = "0x0000000000000000000000000000000000000000";
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["from"] = from;
