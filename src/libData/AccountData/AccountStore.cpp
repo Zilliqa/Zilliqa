@@ -506,7 +506,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
     isEvm = EvmUtils::isEvm(transaction.GetCode());
   } else if (Transaction::GetTransactionType(transaction) ==
              Transaction::CONTRACT_CALL) {
-    Account* contractAccount = this->GetAccount(transaction.GetToAddr());
+    Account* contractAccount = this->GetAccountTemp(transaction.GetToAddr());
     if (contractAccount != nullptr) {
       isEvm = EvmUtils::isEvm(contractAccount->GetCode());
     }
