@@ -19,7 +19,6 @@
 #include <regex>
 
 #include "AccountStore.h"
-#include "EvmClient.h"
 #include "ScillaClient.h"
 
 #include "libCrypto/Sha2.h"
