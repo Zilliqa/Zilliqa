@@ -1322,6 +1322,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     std::string blockHash = "";
 
+    std::cout << "Getting TX receipt for: " << txnhash << std::endl;
+    std::cout << "Height is: " << height << std::endl;
+
     // Scan downwards through the chain until the TX can be found
     do {
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
@@ -1344,12 +1347,14 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       }
     } while (height != 0 && blockHash == "");
 
+    std::cout << "block hash is: " << blockHash << std::endl;
+
     auto receipt = result["receipt"];
 
-    std::string hashId = result["ID"].asString();
+    std::string hashId = std::string("0x") + result["ID"].asString();
     bool success = receipt["success"].asBool();
     std::string sender = receipt["senderPubkey"].asString();
-    std::string toAddr = result["toAddr"].asString();
+    std::string toAddr = std::string("0x") + result["toAddr"].asString();
     std::string cumGas = result["cumulative_gas"].asString();
 
     if (blockHash == "") {
@@ -1362,7 +1367,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     }
 
     return populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                 blockHash);
+                                     blockHash);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
