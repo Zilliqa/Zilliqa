@@ -396,17 +396,16 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
-    (void)request;
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
-    auto resp = this->GetBalance(address, true)["balance"];
+    const auto resp = this->GetBalance(address, true)["balance"].asString();
 
-    auto balanceStr = resp.asString();
-
-    resp = balanceStr;
-
-    response = resp;
+    if (resp == "0x0") {
+      response = resp;
+    } else {
+      response = "0x" + resp;
+    }
   }
 
   /**
@@ -615,7 +614,7 @@ class LookupServer : public Server,
    * eth_getBlockTransactionCountByHash Returns transactions count for given
    * block.
    * @param request : params: block hash
-   * @param response : numbner of transactions.
+   * @param response : number of transactions.
    */
 
   inline virtual void GetEthBlockTransactionCountByHashI(
@@ -628,13 +627,41 @@ class LookupServer : public Server,
    * eth_getBlockTransactionCountByNumber Returns transactions count for given
    * block.
    * @param request : params: block hash
-   * @param response : numbner of transactions.
+   * @param response : number of transactions.
    */
 
   inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
     response =
         this->GetEthBlockTransactionCountByNumber(request[0u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getTransactionByBlockHashAndIndex Returns transaction for given block
+   * and index
+   * @param request : params: block hash and index
+   * @param response : transaction object or null if not found.
+   */
+
+  inline virtual void GetEthTransactionByBlockHashAndIndexI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetEthTransactionByBlockHashAndIndex(
+        request[0u].asString(), request[1u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getTransactionByBlockHashAndIndex Returns transaction for given block
+   * and index
+   * @param request : params: block number (or tag) and index
+   * @param response : transaction object or null if not found.
+   */
+
+  inline virtual void GetEthTransactionByBlockNumberAndIndexI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetEthTransactionByBlockNumberAndIndex(
+        request[0u].asString(), request[1u].asString());
   }
 
   std::string GetNetworkId();
@@ -719,6 +746,13 @@ class LookupServer : public Server,
   Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
   Json::Value GetEthBlockTransactionCountByNumber(
       const std::string& blockNumber);
+
+  Json::Value GetEthTransactionByBlockHashAndIndex(
+      const std::string& blockHash, const std::string& index) const;
+  Json::Value GetEthTransactionByBlockNumberAndIndex(
+      const std::string& blockNumber, const std::string& index) const;
+  Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,
+                                                const uint64_t index) const;
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();
