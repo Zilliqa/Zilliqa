@@ -68,7 +68,7 @@ class IsolatedServer : public LookupServer,
     auto const fields = parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey);
 
-    response = resp["TranID"];
+    response = std::string{"0x"} + resp["TranID"].asString();
   }
 
   inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
