@@ -446,10 +446,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       // Check if the sender has enough balance to pay gasDeposit
       if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmount()) {
-        LOG_GENERAL(WARNING,
-                    "The account doesn't have enough gas to create a contract. Bal: "
-                        << fromAccount->GetBalance() << " required: "
-                        << gasDeposit + transaction.GetAmount());
+        LOG_GENERAL(
+            WARNING,
+            "The account doesn't have enough gas to create a contract. Bal: "
+                << fromAccount->GetBalance()
+                << " required: " << gasDeposit + transaction.GetAmount());
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }

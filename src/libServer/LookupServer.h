@@ -399,7 +399,8 @@ class LookupServer : public Server,
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
-    const std::string resp = this->GetBalance(address, true)["balance"].asString();
+    const std::string resp =
+        this->GetBalance(address, true)["balance"].asString();
 
     if (resp.size() >= 2 && resp[0] == '0' && resp[1] == 'x') {
       response = resp;

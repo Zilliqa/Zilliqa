@@ -1367,7 +1367,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     }
 
     return populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash);
+                                 blockHash);
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {

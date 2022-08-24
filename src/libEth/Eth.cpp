@@ -17,9 +17,9 @@
 
 #include "Eth.h"
 #include <iterator>
+#include "common/Constants.h"
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
-#include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"

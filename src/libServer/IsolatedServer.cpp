@@ -381,8 +381,11 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           std::string("CHAIN_ID incorrect: ") + std::to_string(DataConversion::UnpackA(tx.GetVersion())) + " when expected " + std::to_string(CHAIN_ID));
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        std::string("CHAIN_ID incorrect: ") +
+            std::to_string(DataConversion::UnpackA(tx.GetVersion())) +
+            " when expected " + std::to_string(CHAIN_ID));
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
@@ -667,18 +670,18 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       code = ToEVM(fields.code);
     } else {
       data = DataConversion::StringToCharArray(
-                                               DataConversion::Uint8VecToHexStrRet(fields.code));
+          DataConversion::Uint8VecToHexStrRet(fields.code));
     }
     Transaction tx{fields.version,
-      fields.nonce,
-      Address(fields.toAddr),
-      PubKey(pubKey, 0),
-      fields.amount,
-      fields.gasPrice,
-      fields.gasLimit,
-      code,  // either empty or stripped EVM-less code
-      data,  // either empty or un-hexed byte-stream
-      Signature(fields.signature, 0)};
+                   fields.nonce,
+                   Address(fields.toAddr),
+                   PubKey(pubKey, 0),
+                   fields.amount,
+                   fields.gasPrice,
+                   fields.gasLimit,
+                   code,  // either empty or stripped EVM-less code
+                   data,  // either empty or un-hexed byte-stream
+                   Signature(fields.signature, 0)};
 
     uint64_t senderNonce;
     uint128_t senderBalance;
