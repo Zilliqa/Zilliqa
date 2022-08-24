@@ -152,7 +152,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   if (!includeFullTransactions) {
     auto transactionHashesJson = Json::Value(Json::arrayValue);
     for (const auto& hash : transactionHashes) {
-      transactionHashesJson.append(hash.hex());
+      transactionHashesJson.append("0x" + hash.hex());
     }
     retJson["transactions"] = transactionHashesJson;
   }

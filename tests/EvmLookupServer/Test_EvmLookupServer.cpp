@@ -684,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     std::vector<std::string> expectedHashes;
     for (uint32_t i = 0; i < transactions.size(); ++i) {
       expectedHashes.emplace_back(
-          transactions[i].GetTransaction().GetTranID().hex());
+          "0x" + transactions[i].GetTransaction().GetTranID().hex());
     }
     std::sort(expectedHashes.begin(), expectedHashes.end());
 
@@ -781,7 +781,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   std::vector<std::string> expectedHashes;
   for (uint32_t i = 0; i < transactions.size(); ++i) {
     expectedHashes.emplace_back(
-        transactions[i].GetTransaction().GetTranID().hex());
+        "0x" + transactions[i].GetTransaction().GetTranID().hex());
   }
   std::sort(expectedHashes.begin(), expectedHashes.end());
 
