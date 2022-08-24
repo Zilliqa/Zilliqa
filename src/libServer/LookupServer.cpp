@@ -1312,7 +1312,8 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    auto const result = GetTransaction(txnhash);
+    auto const ethResult = GetEthTransactionByHash(txnhash);
+    auto const zilResult = GetTransaction(txnhash);
 
     // Scan downwards looking for the block hash with our TX in it
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
@@ -1323,6 +1324,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
                       : txBlock.GetHeader().GetBlockNum();
 
     std::string blockHash = "";
+    std::string blockNumber = "";
 
     std::cout << "Getting TX receipt for: " << txnhash << std::endl;
     std::cout << "Height is: " << height << std::endl;
@@ -1344,20 +1346,19 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
         if (hash_1 == hash_2) {
           blockHash = block["hash"].asString();
+          blockNumber = block["number"].asString();
           break;
         }
       }
     } while (height != 0 && blockHash == "");
 
-    std::cout << "block hash is: " << blockHash << std::endl;
+    auto receipt = zilResult["receipt"];
 
-    auto receipt = result["receipt"];
-
-    std::string hashId = std::string("0x") + result["ID"].asString();
+    std::string hashId = ethResult["hash"].asString();
     bool success = receipt["success"].asBool();
-    std::string sender = receipt["senderPubkey"].asString();
-    std::string toAddr = std::string("0x") + result["toAddr"].asString();
-    std::string cumGas = result["cumulative_gas"].asString();
+    std::string sender = ethResult["from"].asString();
+    std::string toAddr = ethResult["to"].asString();
+    std::string cumGas = zilResult["cumulative_gas"].asString();
 
     if (blockHash == "") {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
@@ -1369,7 +1370,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     }
 
     auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash);
+                                     blockHash, blockNumber);
 
     //LOG_GENERAL(WARNING, "Returning the answer: " <<  res);
 

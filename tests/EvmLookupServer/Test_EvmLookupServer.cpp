@@ -23,6 +23,7 @@
 #include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
+#include "libUtils/EvmJsonResponse.h"
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
@@ -683,7 +684,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     std::vector<std::string> expectedHashes;
     for (uint32_t i = 0; i < transactions.size(); ++i) {
       expectedHashes.emplace_back(
-          transactions[i].GetTransaction().GetTranID().hex());
+          "0x" + transactions[i].GetTransaction().GetTranID().hex());
     }
     std::sort(expectedHashes.begin(), expectedHashes.end());
 
@@ -780,7 +781,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   std::vector<std::string> expectedHashes;
   for (uint32_t i = 0; i < transactions.size(); ++i) {
     expectedHashes.emplace_back(
-        transactions[i].GetTransaction().GetTranID().hex());
+        "0x" + transactions[i].GetTransaction().GetTranID().hex());
   }
   std::sort(expectedHashes.begin(), expectedHashes.end());
 
@@ -968,7 +969,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
     lookupServer.GetEthTransactionByHashI(paramsRequest, response);
 
     BOOST_TEST_CHECK(response["hash"] ==
-                     transactions[i].GetTransaction().GetTranID().hex());
+                     "0x" + transactions[i].GetTransaction().GetTranID().hex());
     BOOST_TEST_CHECK(
         response["nonce"] ==
         std::to_string(transactions[i].GetTransaction().GetNonce()));
@@ -1176,7 +1177,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       lookupServer.GetEthTransactionByBlockHashAndIndexI(paramsRequest,
                                                          response);
       BOOST_TEST_CHECK(response["hash"].asString() ==
-                       transactions[i].GetTransaction().GetTranID().hex());
+                       "0x" +
+                           transactions[i].GetTransaction().GetTranID().hex());
     }
   }
 
@@ -1201,8 +1203,9 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
 
         lookupServer.GetEthTransactionByBlockNumberAndIndexI(paramsRequest,
                                                              response);
-        BOOST_TEST_CHECK(response["hash"].asString() ==
-                         transactions[i].GetTransaction().GetTranID().hex());
+        BOOST_TEST_CHECK(
+            response["hash"].asString() ==
+            "0x" + transactions[i].GetTransaction().GetTranID().hex());
       }
     }
   }
