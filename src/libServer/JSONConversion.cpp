@@ -152,7 +152,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   if (!includeFullTransactions) {
     auto transactionHashesJson = Json::Value(Json::arrayValue);
     for (const auto& hash : transactionHashes) {
-      transactionHashesJson.append(hash.hex());
+      transactionHashesJson.append("0x" + hash.hex());
     }
     retJson["transactions"] = transactionHashesJson;
   }
@@ -627,27 +627,37 @@ const Json::Value JSONConversion::convertTxtoJson(
 const Json::Value JSONConversion::convertTxtoEthJson(
     const TransactionWithReceipt& txn) {
   Json::Value retJson;
-  retJson["from"] = txn.GetTransaction().GetSenderAddr().hex();
+  retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
+  // ethers also expectes gasLimit and ChainId
+  retJson["gasLimit"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
+  retJson["chainId"] = CHAIN_ID;
   retJson["gasPrice"] = txn.GetTransaction().GetGasPrice().str();
-  retJson["hash"] = txn.GetTransaction().GetTranID().hex();
+  retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
   std::string inputField;
 
   if (!txn.GetTransaction().GetCode().empty()) {
-    inputField =
-        DataConversion::CharArrayToString(txn.GetTransaction().GetCode());
+    inputField = "0x" + DataConversion::CharArrayToString(
+                            txn.GetTransaction().GetCode());
   }
 
   if (!txn.GetTransaction().GetData().empty()) {
-    inputField +=
+    const auto callData =
         DataConversion::CharArrayToString(txn.GetTransaction().GetData());
+    // Append extra '0x' prefix iff GetCode() gave empty string
+    if (inputField.empty()) {
+      inputField += "0x" + callData;
+    } else {
+      inputField += callData;
+    }
   }
-
   retJson["input"] = inputField;
+  // ethers also expects 'data' field
+  retJson["data"] = inputField;
   retJson["nonce"] = std::to_string(txn.GetTransaction().GetNonce());
-  retJson["to"] = txn.GetTransaction().GetToAddr().hex();
+  retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
   retJson["value"] = txn.GetTransaction().GetAmount().str();
   return retJson;
 }

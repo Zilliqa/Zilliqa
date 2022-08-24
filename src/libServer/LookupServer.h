@@ -391,7 +391,7 @@ class LookupServer : public Server,
     auto resp = CreateTransactionEth(fields, pubKey, shards, currentGasPrice,
                                      m_createTransactionTarget);
 
-    response = resp["TranID"];
+    response = std::string{"0x"} + resp["TranID"].asString();
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
