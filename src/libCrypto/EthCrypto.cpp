@@ -265,7 +265,8 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
     // Fields R and S
     if (i == 7 || i == 8) {
       rlpStreamRecreated << bytes{};
-      rs.insert(rs.end(), itemBytes.begin(), itemBytes.end());
+      bytes b = dev::toBigEndian(dev::u256(item));
+      rs.insert(rs.end(), b.begin(), b.end());
     }
     i++;
   }
