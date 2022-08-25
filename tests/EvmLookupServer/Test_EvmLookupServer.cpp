@@ -634,7 +634,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   const auto lookupServer = getLookupServer();
   lookupServer->GetEthBalanceI(paramsRequest, response);
   // expected return value should be 1.000.000 times greater
-  BOOST_CHECK_EQUAL(response.asString(), "e8d4a51000");
+  BOOST_CHECK_EQUAL(response.asString(), "0xe8d4a51000");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {

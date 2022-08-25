@@ -1163,7 +1163,7 @@ Json::Value LookupServer::GetEthBalance(const std::string& address) {
       std::strtoll(balanceStr.c_str(), nullptr, 16) * 1'000'000U;
 
   std::stringstream strm;
-  strm << std::hex << ethBalance;
+  strm << "0x" << std::hex << ethBalance;
   return strm.str();
 }
 
