@@ -35,14 +35,27 @@ cargo build --verbose --release --package evm-ds 2>&1 > /dev/null
 cd -
 
 # Just to check evm-ds has been built
-ls /home/travis/build/Zilliqa/Zilliqa/evm-ds/target/release/evm-ds
+if [[ -d /home/travis ]]; then
+    ls /home/travis/build/Zilliqa/Zilliqa/evm-ds/target/release/evm-ds
 
-# Modify constants.xml for use by isolated server
-cp constants.xml constants_backup.xml
-sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
-sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
-sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
-sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
+    # Modify constants.xml for use by isolated server
+    cp constants.xml constants_backup.xml
+    sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
+    sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
+    sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+    sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/home\/travis\/build\/Zilliqa\/Zilliqa\/evm-ds\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
+fi
+
+if [[ -d /home/jenkins ]]; then
+    ls /home/jenkins/agent/workspace/zilliqaci/evm-ds/target/release/evm-ds
+
+    # Modify constants.xml for use by isolated server
+    cp constants.xml constants_backup.xml
+    sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
+    sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
+    sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/jenkins\/agent\/workspace\/zilliqaci\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+    sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/home\/jenkins\/agent\/workspace\/zilliqaci\/evm-ds\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
+fi
 
 echo "Starting isolated server"
 ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
