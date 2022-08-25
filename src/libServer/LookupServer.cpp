@@ -17,6 +17,7 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/format.hpp>
 #include <ethash/keccak.hpp>
 #include "JSONConversion.h"
 #include "common/Constants.h"
@@ -1757,7 +1758,7 @@ std::string LookupServer::GetProtocolVersion() {
 
 std::string LookupServer::GetEthChainId() {
   LOG_MARKER();
-  return ETH_CHAINID;
+  return (boost::format("0x%x") % ETH_CHAINID).str();
 }
 
 Json::Value LookupServer::GetEthSyncing() {

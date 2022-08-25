@@ -210,7 +210,7 @@ bool Transaction::IsSignedECDSA() const {
   sigString = sigString.substr(2);
   pubKeyStr = pubKeyStr.substr(2);
 
-  auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
+  auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID);
 
   return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }
