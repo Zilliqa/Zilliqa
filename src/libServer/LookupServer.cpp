@@ -1608,7 +1608,6 @@ string LookupServer::GetEthCallEth(const Json::Value& _json,
 string LookupServer::GetEthCallImpl(const Json::Value& _json,
                                     const ApiKeys& apiKeys) {
   LOG_MARKER();
-  std::cout << "getting eth call..."  << std::endl;
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
@@ -1623,11 +1622,9 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     }
     code = contractAccount->GetCode();
   }
-  std::cout << "getting eth call1..."  << std::endl;
 
   string result;
   try {
-    std::cout << "getting eth call2..."  << std::endl;
     Address fromAddr;
     if (_json.isMember(apiKeys.from)) {
       fromAddr = Address(_json[apiKeys.from].asString());
@@ -1649,27 +1646,20 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
       data = data.substr(2);
     }
-
-    std::cout << "getting eth call3..."  << std::endl;
     EvmCallParameters params{
         addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
         data,       gasRemained,    amount};
 
-    std::cout << "getting eth call4..."  << std::endl;
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
-    std::cout << "getting eth call4.5..."  << std::endl;
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
-    std::cout << "getting eth call6.5..."  << std::endl;
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
   }
 
-  std::cout << "getting eth call5..." << ret  << std::endl;
   if (!ret) {
     throw JsonRpcException(RPC_MISC_ERROR, "GetEthCall failed");
   }
 
-  std::cout << "getting result..."  << std::endl;
   result = "0x" + result;
   return result;
 }

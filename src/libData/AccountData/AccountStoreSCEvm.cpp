@@ -253,17 +253,12 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
   evmproj::CallResponse response;
-  std::cout << "calling evm runner..." << std::endl;
   EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
-    std::cout << "called evm runner..." << std::endl;
   result = response.m_return;
-    std::cout << "heyo" << std::endl;
   if (LOG_SC) {
-    std::cout << "done..." << std::endl;
     LOG_GENERAL(INFO, "Called Evm, response:" << response);
   }
 
-  std::cout << "returning..." << std::endl;
   return ret;
 }
 
