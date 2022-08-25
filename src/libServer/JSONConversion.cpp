@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/format.hpp>
+
 #include <Schnorr.h>
 #include <boost/format.hpp>
 #include "AddressChecksum.h"
