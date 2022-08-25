@@ -57,7 +57,9 @@ fi
 
 cmake -H./scripts/external_boost -B${dir}/boost
 cmake --build ${dir}/boost --target Boost
-mv ${dir}/boost/include ${dir}/boost/lib "${HOME}"/.local
+mv ${dir}/boost/include ${dir}/boost/lib ${HOME}/.local
+export CPPFLAGS=-I${HOME}/.local/include
+export LDFLAGS=-L${HOME}/.local/lib
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
 cmake --build ${dir} -- -j${n_parallel}
