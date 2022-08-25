@@ -147,9 +147,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
             states.clear();
             toDeletes.clear();
 
-            Contract::ContractStorage::GetContractStorage()
-                .FetchStateDataForContract(states, Address(it->Address()), "",
-                                           {}, true);
+            Contract::ContractStorage::GetInstance().FetchStateDataForContract(
+                states, Address(it->Address()), "", {}, true);
             for (const auto& x : states) {
               toDeletes.emplace_back(x.first);
             }
@@ -188,12 +187,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         // Actually Update the state for the contract
         try {
           for (const auto& sit : it->Storage()) {
-            if (not Contract::ContractStorage::GetContractStorage()
-                        .UpdateStateValue(
-                            Address(it->Address()),
-                            DataConversion::StringToCharArray(sit.Key()), 0,
-                            DataConversion::StringToCharArray(sit.Value()),
-                            0)) {
+            if (not Contract::ContractStorage::GetInstance().UpdateStateValue(
+                    Address(it->Address()),
+                    DataConversion::StringToCharArray(sit.Key()), 0,
+                    DataConversion::StringToCharArray(sit.Value()), 0)) {
               LOG_GENERAL(WARNING,
                           "Exception thrown trying to update state in Contract "
                           "storage "
@@ -378,7 +375,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
-          Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
+          Contract::ContractStorage::GetInstance().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
@@ -547,7 +544,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
-      Contract::ContractStorage::GetContractStorage().BufferCurrentState();
+      Contract::ContractStorage::GetInstance().BufferCurrentState();
 
       std::string runnerPrint;
       bool evm_call_succeeded{true};
@@ -580,7 +577,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       if (!evm_call_succeeded) {
-        Contract::ContractStorage::GetContractStorage().RevertPrevState();
+        Contract::ContractStorage::GetInstance().RevertPrevState();
         DiscardAtomics();
         gasRemained = std::min(transaction.GetGasLimit(), gasRemained);
       } else {

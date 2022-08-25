@@ -59,20 +59,20 @@ BOOST_AUTO_TEST_CASE(contract_proof_test) {
   Address addr = Account::GetAddressFromPublicKey(kpair.second);
   auto dummy_addr = addr;
 
-  string key1 = ContractStorage::GetContractStorage().GenerateStorageKey(
-      dummy_addr, "aaa", {});
+  string key1 =
+      ContractStorage::GetInstance().GenerateStorageKey(dummy_addr, "aaa", {});
   dev::h256 hashed_key1 = convertToHash(key1);
-  string key2 = ContractStorage::GetContractStorage().GenerateStorageKey(
-      dummy_addr, "aaa", {"1"});
+  string key2 = ContractStorage::GetInstance().GenerateStorageKey(dummy_addr,
+                                                                  "aaa", {"1"});
   dev::h256 hashed_key2 = convertToHash(key2);
-  string key3 = ContractStorage::GetContractStorage().GenerateStorageKey(
+  string key3 = ContractStorage::GetInstance().GenerateStorageKey(
       dummy_addr, "aaa", {"1", "1"});
   dev::h256 hashed_key3 = convertToHash(key3);
-  string key4 = ContractStorage::GetContractStorage().GenerateStorageKey(
-      dummy_addr, "aaa", {"2"});
+  string key4 = ContractStorage::GetInstance().GenerateStorageKey(dummy_addr,
+                                                                  "aaa", {"2"});
   dev::h256 hashed_key4 = convertToHash(key4);
-  string key5 = ContractStorage::GetContractStorage().GenerateStorageKey(
-      dummy_addr, "bbb", {});
+  string key5 =
+      ContractStorage::GetInstance().GenerateStorageKey(dummy_addr, "bbb", {});
   dev::h256 hashed_key5 = convertToHash(key5);
   t_states.emplace(hashed_key1.hex(), DataConversion::StringToCharArray("111"));
   t_states.emplace(hashed_key2.hex(),
@@ -84,7 +84,7 @@ BOOST_AUTO_TEST_CASE(contract_proof_test) {
   t_states.emplace(hashed_key5.hex(), DataConversion::StringToCharArray("222"));
 
   for (unsigned int i = 0; i < 1000; i++) {
-    string key = ContractStorage::GetContractStorage().GenerateStorageKey(
+    string key = ContractStorage::GetInstance().GenerateStorageKey(
         dummy_addr, to_string(i), {to_string(i)});
     dev::h256 hashed_key = convertToHash(key);
     t_states.emplace(hashed_key.hex(),
@@ -92,14 +92,14 @@ BOOST_AUTO_TEST_CASE(contract_proof_test) {
   }
 
   h256 root1;
-  ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
+  ContractStorage::GetInstance().UpdateStateDatasAndToDeletes(
       addr, dev::h256(), t_states, {}, root1, false, false);
 
   uint64_t dsBlockNum = 100;
-  BOOST_CHECK(ContractStorage::GetContractStorage().CommitStateDB(dsBlockNum));
+  BOOST_CHECK(ContractStorage::GetInstance().CommitStateDB(dsBlockNum));
 
   set<string> proof;
-  BOOST_CHECK(ContractStorage::GetContractStorage().FetchStateProofForContract(
+  BOOST_CHECK(ContractStorage::GetInstance().FetchStateProofForContract(
       proof, root1, hashed_key2));
 }
 

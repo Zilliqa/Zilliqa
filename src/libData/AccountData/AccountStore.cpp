@@ -90,7 +90,7 @@ void AccountStore::Init() {
 
   lock_guard<mutex> g(m_mutexDB);
 
-  ContractStorage::GetContractStorage().Reset();
+  ContractStorage::GetInstance().Reset();
   m_db.ResetDB();
 }
 
@@ -119,7 +119,7 @@ void AccountStore::InitTemp() {
   m_accountStoreTemp->Init();
   m_stateDeltaSerialized.clear();
 
-  ContractStorage::GetContractStorage().InitTempState();
+  ContractStorage::GetInstance().InitTempState();
 }
 
 void AccountStore::InitRevertibles() {
@@ -128,7 +128,7 @@ void AccountStore::InitRevertibles() {
   m_addressToAccountRevChanged.clear();
   m_addressToAccountRevCreated.clear();
 
-  ContractStorage::GetContractStorage().InitRevertibles();
+  ContractStorage::GetInstance().InitRevertibles();
 }
 
 AccountStore& AccountStore::GetInstance() {
@@ -265,26 +265,24 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
 
   for (const auto& i : *m_addressToAccount) {
     if (i.second.isContract()) {
-      if (ContractStorage::GetContractStorage()
-              .GetContractCode(i.first)
-              .empty()) {
+      if (ContractStorage::GetInstance().GetContractCode(i.first).empty()) {
         code_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                               i.second.GetCode())});
       }
 
-      if (ContractStorage::GetContractStorage().GetInitData(i.first).empty()) {
+      if (ContractStorage::GetInstance().GetInitData(i.first).empty()) {
         initdata_batch.insert({i.first.hex(), DataConversion::CharArrayToString(
                                                   i.second.GetInitData())});
       }
     }
   }
 
-  if (!ContractStorage::GetContractStorage().PutContractCodeBatch(code_batch)) {
+  if (!ContractStorage::GetInstance().PutContractCodeBatch(code_batch)) {
     LOG_GENERAL(WARNING, "PutContractCodeBatch failed");
     return false;
   }
 
-  if (!ContractStorage::GetContractStorage().PutInitDataBatch(initdata_batch)) {
+  if (!ContractStorage::GetInstance().PutInitDataBatch(initdata_batch)) {
     LOG_GENERAL(WARNING, "PutInitDataBatch failed");
     return false;
   }
@@ -292,7 +290,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   bool ret = true;
 
   if (ret) {
-    if (!ContractStorage::GetContractStorage().CommitStateDB(dsBlockNum)) {
+    if (!ContractStorage::GetInstance().CommitStateDB(dsBlockNum)) {
       LOG_GENERAL(WARNING,
                   "CommitTempStateDB failed. need to revert the changes on "
                   "ContractCode");
@@ -302,8 +300,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
 
   if (!ret) {
     for (const auto& it : code_batch) {
-      if (!ContractStorage::GetContractStorage().DeleteContractCode(
-              h160(it.first))) {
+      if (!ContractStorage::GetInstance().DeleteContractCode(h160(it.first))) {
         LOG_GENERAL(WARNING, "Failed to delete contract code for " << it.first);
       }
     }
@@ -332,17 +329,17 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
 
 void AccountStore::PurgeUnnecessary() {
   m_state.db()->DetachedExecutePurge();
-  ContractStorage::GetContractStorage().PurgeUnnecessary();
+  ContractStorage::GetInstance().PurgeUnnecessary();
 }
 
 void AccountStore::SetPurgeStopSignal() {
   m_state.db()->SetStopSignal();
-  ContractStorage::GetContractStorage().SetPurgeStopSignal();
+  ContractStorage::GetInstance().SetPurgeStopSignal();
 }
 
 bool AccountStore::IsPurgeRunning() {
   return (m_state.db()->IsPurgeRunning() ||
-          ContractStorage::GetContractStorage().IsPurgeRunning());
+          ContractStorage::GetInstance().IsPurgeRunning());
 }
 
 bool AccountStore::UpdateStateTrieFromTempStateDB() {
@@ -599,7 +596,7 @@ bool AccountStore::RevertCommitTemp() {
     RemoveFromTrie(entry.first);
   }
 
-  ContractStorage::GetContractStorage().RevertContractStates();
+  ContractStorage::GetInstance().RevertContractStates();
 
   return true;
 }
@@ -833,7 +830,7 @@ bool AccountStore::MigrateContractStates(
 
     // adding scilla_version metadata
     t_metadata.emplace(
-        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
+        Contract::ContractStorage::GetInstance().GenerateStorageKey(
             address, SCILLA_VERSION_INDICATOR, {}),
         DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
@@ -848,11 +845,11 @@ bool AccountStore::MigrateContractStates(
     }
 
     Json::Value stateBeforeMigration, stateAfterMigration;
-    Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
+    Contract::ContractStorage::GetInstance().FetchStateJsonForContract(
         stateBeforeMigration, address, "", {}, true);
 
     std::map<std::string, bytes> types;
-    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
+    Contract::ContractStorage::GetInstance().FetchStateDataForContract(
         types, address, TYPE_INDICATOR, {}, true);
     for (auto const& type : types) {
       vector<string> fragments;
@@ -870,21 +867,20 @@ bool AccountStore::MigrateContractStates(
 
     // fetch all states from temp storage
     std::map<std::string, bytes> states;
-    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
+    Contract::ContractStorage::GetInstance().FetchStateDataForContract(
         states, address, "", {}, true);
 
     // put all states (overwrite) back into persistent storage
     dev::h256 rootHash;
-    Contract::ContractStorage::GetContractStorage()
-        .UpdateStateDatasAndToDeletes(address, account.GetStorageRoot(), states,
-                                      {}, rootHash, false, false);
+    Contract::ContractStorage::GetInstance().UpdateStateDatasAndToDeletes(
+        address, account.GetStorageRoot(), states, {}, rootHash, false, false);
 
     // update storage root hash for this account
     account.SetStorageRoot(rootHash);
 
     this->AddAccount(address, account, true);
 
-    Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
+    Contract::ContractStorage::GetInstance().FetchStateJsonForContract(
         stateAfterMigration, address, "", {}, true);
 
     if ((stateBeforeMigration == Json::Value::null) &&

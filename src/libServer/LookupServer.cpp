@@ -3228,9 +3228,8 @@ Json::Value LookupServer::GetStateProof(const string& address,
 
   // get proof
   std::set<std::string> t_stateProof;
-  if (!Contract::ContractStorage::GetContractStorage()
-           .FetchStateProofForContract(t_stateProof, account.GetStorageRoot(),
-                                       hashedKey)) {
+  if (!Contract::ContractStorage::GetInstance().FetchStateProofForContract(
+          t_stateProof, account.GetStorageRoot(), hashedKey)) {
     throw JsonRpcException(RPC_DATABASE_ERROR, "Proof not found");
   }
 

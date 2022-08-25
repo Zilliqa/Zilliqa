@@ -44,6 +44,7 @@ static std::string type_placeholder;
 enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
 
 Index GetIndex(const dev::h160& address, const std::string& key);
+
 class ContractStorage : public Singleton<ContractStorage> {
   LevelDB m_stateDataDB;
   LevelDB m_codeDB;
@@ -91,19 +92,12 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   void FetchProofForKey(std::set<std::string>& proof, const dev::h256& key);
 
+ public:
   ContractStorage();
 
   ~ContractStorage() = default;
 
- public:
-  /// Returns the singleton ContractStorage instance.
-  static ContractStorage& GetContractStorage() {
-    static ContractStorage cs;
-    return cs;
-  }
-
   /////////////////////////////////////////////////////////////////////////////
-
   bool PutContractCode(const dev::h160& address, const bytes& code);
 
   /// Adds contract codes to persistence in batch

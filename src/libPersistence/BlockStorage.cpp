@@ -1912,7 +1912,7 @@ bool BlockStorage::RefreshAll() {
              RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
              RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
              RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
-             Contract::ContractStorage::GetContractStorage().RefreshAll();
+             Contract::ContractStorage::GetInstance().RefreshAll();
 
   } else  // IS_LOOKUP_NODE
   {
@@ -1925,7 +1925,7 @@ bool BlockStorage::RefreshAll() {
              RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
              RefreshDB(PROCESSED_TEMP) & RefreshDB(MINER_INFO_DSCOMM) &
              RefreshDB(MINER_INFO_SHARDS) & RefreshDB(EXTSEED_PUBKEYS) &
-             Contract::ContractStorage::GetContractStorage().RefreshAll();
+             Contract::ContractStorage::GetInstance().RefreshAll();
   }
   BuildHashToNumberMappingForTxBlocks();
   return retVal;

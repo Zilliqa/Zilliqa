@@ -1892,7 +1892,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
       BOOST_REQUIRE_EQUAL(expOutput, outState);
     }
     LOG_GENERAL(WARNING, "remote_state_reads_" << i << " succeeded");
-    Contract::ContractStorage::GetContractStorage().Reset();
+    Contract::ContractStorage::GetInstance().Reset();
   }
 
   // ---------------- test other deployments ---------------------------- //

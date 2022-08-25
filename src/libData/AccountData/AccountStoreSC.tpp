@@ -338,7 +338,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
-          Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
+          Contract::ContractStorage::GetInstance().GenerateStorageKey(
               toAddr, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray(std::to_string(scilla_version)));
 
@@ -605,7 +605,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "m_scillaIPCServer not Initialised");
       }
 
-      Contract::ContractStorage::GetContractStorage().BufferCurrentState();
+      Contract::ContractStorage::GetInstance().BufferCurrentState();
 
       std::string runnerPrint;
       bool ret = true;
@@ -626,7 +626,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         ret = false;
       }
       if (!ret) {
-        Contract::ContractStorage::GetContractStorage().RevertPrevState();
+        Contract::ContractStorage::GetInstance().RevertPrevState();
         DiscardAtomics();
         gasRemained =
             std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
@@ -1027,17 +1027,15 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
           if (field.isMember("vname") && field.isMember("depth") &&
               field["depth"].isNumeric() && field.isMember("type")) {
             metadata.emplace(
-                Contract::ContractStorage::GetContractStorage()
-                    .GenerateStorageKey(addr, MAP_DEPTH_INDICATOR,
-                                        {field["vname"].asString()}),
+                Contract::ContractStorage::GetInstance().GenerateStorageKey(
+                    addr, MAP_DEPTH_INDICATOR, {field["vname"].asString()}),
                 DataConversion::StringToCharArray(field["depth"].asString()));
             if (!hasMap && field["depth"].asInt() > 0) {
               hasMap = true;
             }
             metadata.emplace(
-                Contract::ContractStorage::GetContractStorage()
-                    .GenerateStorageKey(addr, TYPE_INDICATOR,
-                                        {field["vname"].asString()}),
+                Contract::ContractStorage::GetInstance().GenerateStorageKey(
+                    addr, TYPE_INDICATOR, {field["vname"].asString()}),
                 DataConversion::StringToCharArray(field["type"].asString()));
           } else {
             LOG_GENERAL(WARNING,
