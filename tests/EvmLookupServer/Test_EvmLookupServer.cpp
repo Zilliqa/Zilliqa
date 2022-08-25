@@ -19,6 +19,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+#include <boost/format.hpp>
 #include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
@@ -774,7 +775,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
 
   BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
   BOOST_CHECK_EQUAL(response["number"].asString(),
-                    std::to_string(txBlock.GetHeader().GetBlockNum()));
+                    (boost::format("0x%x") % txBlock.GetHeader().GetBlockNum()).str());
 
   std::vector<std::string> expectedHashes;
   for (uint32_t i = 0; i < transactions.size(); ++i) {
