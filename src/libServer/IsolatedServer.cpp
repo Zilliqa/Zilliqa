@@ -312,7 +312,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       jsonrpc::Procedure("eth_getTransactionReceipt",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
-      &IsolatedServer::GetEthTransactionReceiptI);
+      &LookupServer::GetEthTransactionReceiptI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
@@ -381,8 +381,11 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                                  const Account* sender,
                                  const uint128_t& gasPrice) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "CHAIN_ID incorrect");
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        std::string("CHAIN_ID incorrect: ") +
+            std::to_string(DataConversion::UnpackA(tx.GetVersion())) +
+            " when expected " + std::to_string(CHAIN_ID));
   }
 
   if (tx.GetCode().size() > MAX_CODE_SIZE_IN_BYTES) {
