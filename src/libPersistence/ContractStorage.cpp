@@ -362,7 +362,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
       string key_non_prefix =
           entry.first.substr(key.size(), entry.first.size());
       boost::split(indices, key_non_prefix,
-                   bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+                   [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
     }
     if (indices.size() > 0 && indices.back().empty()) indices.pop_back();
 
@@ -625,7 +625,7 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
   for (const auto& state : states) {
     vector<string> fragments;
     boost::split(fragments, state.first,
-                 bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+                 [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
     if (fragments.at(0) != address.hex()) {
       LOG_GENERAL(WARNING, "wrong state fetched: " << state.first);
       return false;
@@ -907,7 +907,7 @@ bool ContractStorage::CleanEmptyMapPlaceholders(const string& key) {
   // key = 0xabc.vname.[index1.index2.[...].indexn.
   vector<string> indices;
   boost::split(indices, key,
-               bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+               [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
   if (indices.size() < 2) {
     LOG_GENERAL(WARNING, "indices size too small: " << indices.size());
     return false;

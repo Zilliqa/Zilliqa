@@ -857,7 +857,7 @@ bool AccountStore::MigrateContractStates(
     for (auto const& type : types) {
       vector<string> fragments;
       boost::split(fragments, type.first,
-                   bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+                   [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
       if (fragments.size() < 3) {
         LOG_GENERAL(WARNING,
                     "Error fetching (field_name, type): " << address.hex());
