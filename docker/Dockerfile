@@ -37,11 +37,11 @@ RUN apt-get update \
     # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
     # mention again as installation candidate
     rsync \
-    libboost-filesystem-dev \
-    libboost-program-options-dev \
-    libboost-system-dev \
-    libboost-test-dev \
-    libboost-python-dev \
+#    libboost-filesystem-dev \
+#    libboost-program-options-dev \
+#    libboost-system-dev \
+#    libboost-test-dev \
+#    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
@@ -83,6 +83,9 @@ ARG MONGO_INSTALL_DIR=${BUILD_DIR}/mongo
 
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
+    && cmake -H${SOURCE_DIR}/scripts/external_boost -B${BUILD_DIR}/boost \
+    && cmake --build ${BUILD_DIR}/boost --target Boost \
+    && mv ${BUILD_DIR}/boost/include ${BUILD_DIR}/boost/lib ${INSTALL_DIR} \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
@@ -124,11 +127,11 @@ RUN apt-get update \
     && apt-get update && apt-get install -y --no-install-recommends \
     # libs
     ca-certificates \
-    libboost-filesystem-dev \
-    libboost-program-options-dev \
-    libboost-system-dev \
-    libboost-test-dev \
-    libboost-python-dev \
+#    libboost-filesystem-dev \
+#    libboost-program-options-dev \
+#    libboost-system-dev \
+#    libboost-test-dev \
+#    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
