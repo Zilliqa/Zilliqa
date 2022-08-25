@@ -241,6 +241,16 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
     return {};
   }
 
+
+
+  if (message.size() >= 2) {
+    auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
+    if (!(firstByte >= 0xc0 && firstByte <= 0xfe) ) {
+        LOG_GENERAL(WARNING, "EIP-2718 TXs not yet supported! Tx: " << message << " First byte: " << firstByte);
+        return {};
+    }
+  }
+
   int i = 0;
   int v = 0;
   bytes rs;
