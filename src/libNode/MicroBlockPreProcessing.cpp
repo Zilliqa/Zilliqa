@@ -43,6 +43,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
+#include "libUtils/SysCommand.h"
 #include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"

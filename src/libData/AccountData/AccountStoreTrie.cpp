@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "AccountStoreTrie.h"
 #include "libMessage/MessengerAccountStoreTrie.h"
 
 template <class MAP>
@@ -279,3 +280,7 @@ void AccountStoreTrie<MAP>::PrintTrie() {
     LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << ab);
   }
 }
+
+// Explicit instantiations.
+template class AccountStoreTrie<std::map<Address, Account>>;
+template class AccountStoreTrie<std::unordered_map<Address, Account>>;

@@ -242,7 +242,4 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   Account* GetAccountAtomic(const dev::h160& addr);
 };
 
-#include "AccountStoreAtomic.tpp"
-#include "AccountStoreSC.tpp"
-
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
