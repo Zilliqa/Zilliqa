@@ -615,25 +615,26 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
 
   LOG_MARKER();
 
-  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
-
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
-  Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
-
-  LookupServer lookupServer(mediator, abstractServerConnector);
   Json::Value response;
 
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = "0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7";
+  const std::string address{"0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7"};
+  paramsRequest[0u] = address;
 
-  lookupServer.GetEthBalanceI(paramsRequest, response);
-
-  if (!(response.asString() == "0x0")) {
-    BOOST_FAIL("Failed to get empty balance!");
+  const Address accountAddress{address};
+  if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
+    Account account;
+    AccountStore::GetInstance().AddAccount(accountAddress, account);
   }
+
+  const uint128_t initialBalance{1'000'000U};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  const auto lookupServer = getLookupServer();
+  lookupServer->GetEthBalanceI(paramsRequest, response);
+  // expected return value should be 1.000.000 times greater
+  BOOST_CHECK_EQUAL(response.asString(), "e8d4a51000");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {

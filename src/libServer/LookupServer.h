@@ -119,7 +119,7 @@ class LookupServer : public Server,
 
   inline virtual void GetBalanceI(const Json::Value& request,
                                   Json::Value& response) {
-    response = this->GetBalance(request[0u].asString());
+    response = this->GetBalanceAndNonce(request[0u].asString());
   }
 
   inline virtual void GetMinimumGasPriceI(const Json::Value& request,
@@ -354,7 +354,7 @@ class LookupServer : public Server,
     DataConversion::NormalizeHexString(address);
     int resp = 0;
 
-    resp = this->GetBalance(address)["nonce"].asUInt() + 1;
+    resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
 
     response = DataConversion::IntToHexString(resp);
   }
@@ -396,17 +396,9 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
-    (void)request;
-    std::string address = request[0u].asString();
+    auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
-
-    auto resp = this->GetBalance(address, true)["balance"];
-
-    auto balanceStr = resp.asString();
-
-    resp = balanceStr;
-
-    response = resp;
+    response = this->GetEthBalance(address);
   }
 
   /**
@@ -653,7 +645,7 @@ class LookupServer : public Server,
                               bool verbose = false);
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
-  Json::Value GetBalance(const std::string& address);
+  Json::Value GetBalanceAndNonce(const std::string& address);
   Json::Value GetBalance(const std::string& address, bool noThrow);
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
@@ -711,6 +703,8 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
+  Json::Value GetEthBalance(const std::string& address);
+
   Json::Value CreateTransactionEth(
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,
