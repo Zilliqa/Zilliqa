@@ -629,11 +629,14 @@ const Json::Value JSONConversion::convertTxtoEthJson(
     const TransactionWithReceipt& txn) {
   Json::Value retJson;
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
-  retJson["gas"] = (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+  retJson["gas"] =
+      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
   // ethers also expectes gasLimit and ChainId
-  retJson["gasLimit"] = (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+  retJson["gasLimit"] =
+      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
-  retJson["gasPrice"] = (boost::format("0x%x") % txn.GetTransaction().GetGasPrice()).str();
+  retJson["gasPrice"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetGasPrice()).str();
   retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
@@ -657,9 +660,11 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["input"] = inputField;
   // ethers also expects 'data' field
   retJson["data"] = inputField;
-  retJson["nonce"] = (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
+  retJson["nonce"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
   retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
-  retJson["value"] = (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
+  retJson["value"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
   return retJson;
 }
 
