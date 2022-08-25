@@ -393,6 +393,32 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthBlockByHashI);
 
   this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockTransactionCountByHash",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockTransactionCountByHashI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthBlockTransactionCountByNumberI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByBlockHashAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByBlockHashAndIndexI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
+
+  this->bindAndAddMethod(
       jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthGasPriceI);
@@ -516,6 +542,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthStorageAtI);
 
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getTransactionReceipt",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &LookupServer::GetEthTransactionReceiptI);
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -601,7 +633,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (!hasTxn) {
-        LOG_GENERAL(INFO, "No Txns to send for this seed node");
+        LOG_GENERAL(DEBUG, "No Txns to send for this seed node");
         continue;
       }
 
@@ -1036,6 +1068,28 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
+Json::Value LookupServer::GetEthBlockNumber() {
+  Json::Value ret;
+
+  try {
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto const height = txBlock.GetHeader().GetBlockNum() ==
+                                std::numeric_limits<uint64_t>::max()
+                            ? 1
+                            : txBlock.GetHeader().GetBlockNum();
+
+    std::ostringstream returnVal;
+    returnVal << "0x" << std::hex << height << std::dec;
+    ret = returnVal.str();
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+
+  return ret;
+}
+
 Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
                                               bool includeFullTransactions) {
   try {
@@ -1102,6 +1156,7 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
     }
 
     MicroBlockSharedPtr microBlockPtr;
+
     if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
                                                        microBlockPtr)) {
       continue;
@@ -1114,12 +1169,12 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
       continue;
     }
     for (const auto& transactionHash : currTranHashes) {
-      TxBodySharedPtr transactioBodyPtr;
+      TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                     transactioBodyPtr)) {
+                                                     transactionBodyPtr)) {
         continue;
       }
-      transactions.push_back(std::move(transactioBodyPtr));
+      transactions.push_back(std::move(transactionBodyPtr));
     }
   }
 
@@ -1168,37 +1223,161 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
   }
 }
 
-Json::Value LookupServer::GetTransactionReceipt(const std::string& txnhash) {
-  Json::Value ret;
-
+Json::Value LookupServer::GetEthTransactionByBlockHashAndIndex(
+    const std::string& inputHash, const std::string& indexStr) const {
   try {
-    if (!REMOTESTORAGE_DB_ENABLE) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
+    const BlockHash blockHash{inputHash};
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
+    const uint64_t index = std::strtoull(indexStr.c_str(), nullptr, 0);
+    return GetEthTransactionFromBlockByIndex(txBlock, index);
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthTransactionByBlockNumberAndIndex(
+    const std::string& blockNumberStr, const std::string& indexStr) const {
+  try {
+    TxBlock txBlock;
+    if (blockNumberStr == "latest") {
+      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+    } else if (blockNumberStr == "earliest") {
+      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+    } else if (blockNumberStr == "pending") {
+      // Not supported
+      return Json::nullValue;
+    } else {
+      const uint64_t blockNum =
+          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     }
-    if (txnhash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Txn Hash size not appropriate");
+    const uint64_t index = std::strtoull(indexStr.c_str(), nullptr, 0);
+    return GetEthTransactionFromBlockByIndex(txBlock, index);
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
+Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
+    const TxBlock& txBlock, uint64_t index) const {
+  const TxBlock EMPTY_BLOCK;
+  constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
+  if (txBlock == EMPTY_BLOCK || index == WRONG_INDEX) {
+    return Json::nullValue;
+  }
+  uint64_t processedIndexes = 0;
+  MicroBlockSharedPtr microBlockPtr;
+  boost::optional<uint64_t> indexInBlock;
+
+  const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
+  for (auto const& mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
     }
 
-    const auto& result = RemoteStorageDB::GetInstance().QueryTxnHash(txnhash);
-
-    if (result.isMember("error")) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "Internal database error");
-    } else if (result == Json::Value::null) {
-      // No txnhash matches the one in DB
-      return ret;
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
     }
 
-    ret = populateReceiptHelper(txnhash);
+    const auto& currTranHashes = microBlockPtr->GetTranHashes();
 
-    return ret;
+    if (processedIndexes + currTranHashes.size() > index) {
+      // We found a block containing transaction
+      indexInBlock = index - processedIndexes;
+      break;
+    } else {
+      processedIndexes += currTranHashes.size();
+    }
+  }
+  // Possibly out of range index or block with no transactions
+  if (!indexInBlock) {
+    return Json::nullValue;
+  }
+
+  TxBodySharedPtr transactioBodyPtr;
+  const auto txHashes = microBlockPtr->GetTranHashes();
+  if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
+                                                 transactioBodyPtr)) {
+    return Json::nullValue;
+  }
+
+  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+}
+
+Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
+  try {
+    auto const ethResult = GetEthTransactionByHash(txnhash);
+    auto const zilResult = GetTransaction(txnhash);
+
+    // Scan downwards looking for the block hash with our TX in it
+    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+    auto height = txBlock.GetHeader().GetBlockNum() ==
+                          std::numeric_limits<uint64_t>::max()
+                      ? 1
+                      : txBlock.GetHeader().GetBlockNum();
+
+    std::string blockHash = "";
+    std::string blockNumber = "";
+
+    // Scan downwards through the chain until the TX can be found
+    do {
+      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
+      const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
+
+      auto const block = GetEthBlockByNumber(std::to_string(height), false);
+      height--;
+
+      // Attempt to find if the TX is within this block
+      auto const TxnHashes = block["transactions"];
+
+      for (auto const& item : TxnHashes) {
+        TxnHash hash_1{item.asString()};
+        TxnHash hash_2{txnhash};
+
+        if (hash_1 == hash_2) {
+          blockHash = block["hash"].asString();
+          blockNumber = block["number"].asString();
+          break;
+        }
+      }
+    } while (height != 0 && blockHash == "");
+
+    auto receipt = zilResult["receipt"];
+
+    std::string hashId = ethResult["hash"].asString();
+    bool success = receipt["success"].asBool();
+    std::string sender = ethResult["from"].asString();
+    std::string toAddr = ethResult["to"].asString();
+    std::string cumGas = zilResult["cumulative_gas"].asString();
+
+    if (blockHash == "") {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      return "";
+    }
+
+    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
+      blockHash = std::string("0x") + blockHash;
+    }
+
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                     blockHash, blockNumber);
+
+    return res;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
-    LOG_GENERAL(WARNING, "[Error]" << e.what());
     throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To Process: ") + e.what());
+                           string("Unable To find hash for txn: ") + e.what());
   }
+
+  return "";
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
@@ -1211,9 +1390,7 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
   try {
     TxBodySharedPtr tptr;
     TxnHash tranHash(transactionHash);
-    if (transactionHash.size() != TRAN_HASH_SIZE * 2) {
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Size not appropriate");
-    }
+
     bool isPresent = BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
     if (isPresent) {
       Json::Value _json;
@@ -1703,7 +1880,14 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
                                      std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  auto code = GetSmartContractCode(address);
+  // Strip off "0x" if exists
+  auto addressCopy = address;
+
+  if (addressCopy[0] == '0' && addressCopy[1] == 'x') {
+    addressCopy.erase(0, 2);
+  }
+
+  auto code = GetSmartContractCode(addressCopy);
   auto codeStr = code["code"].asString();
 
   // Erase 'EVM' from beginning, put '0x'

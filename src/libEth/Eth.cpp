@@ -16,24 +16,29 @@
  */
 
 #include "Eth.h"
+#include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
 
 using namespace jsonrpc;
 
-Json::Value populateReceiptHelper(std::string const& txnhash) {
+Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
+                                  const std::string &from,
+                                  const std::string &to,
+                                  const std::string &gasUsed,
+                                  const std::string &blockHash,
+                                  const std::string &blockNumber) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
-  ret["blockHash"] =
-      "0x0000000000000000000000000000000000000000000000000000000000000000";
-  ret["blockNumber"] = "0x429d3b";
-  ret["contractAddress"] = nullptr;
-  ret["cumulativeGasUsed"] = "0x64b559";
-  ret["from"] = "0x999";  // todo: fill
-  ret["gasUsed"] = "0xcaac";
-  ret["logs"].append(Json::Value());
+  ret["blockHash"] = blockHash;
+  ret["blockNumber"] = blockNumber;
+  ret["contractAddress"] = "0x0000000000000000000000000000000000000000";
+  ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
+  ret["from"] = from;
+  ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
+  ret["logs"] = Json::arrayValue;
   ret["logsBloom"] =
       "0x0000000000000000000000000000000000000000000000000000000000000000000000"
       "000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -45,15 +50,15 @@ Json::Value populateReceiptHelper(std::string const& txnhash) {
       "0000000000";
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
-  ret["status"] = nullptr;
-  ret["to"] = "0x888";                // todo: fill
-  ret["transactionIndex"] = "0x777";  // todo: fill
+  ret["status"] = success ? "0x1" : "0x0";
+  ret["to"] = to;
+  ret["transactionIndex"] = "0x0";
 
   return ret;
 }
 
 // Given a RLP message, parse out the fields and return a EthFields object
-EthFields parseRawTxFields(std::string const& message) {
+EthFields parseRawTxFields(std::string const &message) {
   EthFields ret;
 
   bytes asBytes;
@@ -70,7 +75,7 @@ EthFields parseRawTxFields(std::string const& message) {
   int i = 0;
   // todo: checks on size of rlp stream etc.
 
-  ret.version = 65538;
+  ret.version = DataConversion::Pack(CHAIN_ID, 2);
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
@@ -98,11 +103,15 @@ EthFields parseRawTxFields(std::string const& message) {
       case 6:  // V - only needed for pub sig recovery
         break;
       case 7:  // R
-        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
-        break;
+      {
+        bytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
       case 8:  // S
-        ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
-        break;
+      {
+        bytes b = dev::toBigEndian(dev::u256(*it));
+        ret.signature.insert(ret.signature.end(), b.begin(), b.end());
+      } break;
       default:
         LOG_GENERAL(WARNING, "too many fields received in rlp!");
     }

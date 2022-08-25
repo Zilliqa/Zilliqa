@@ -68,7 +68,12 @@ class IsolatedServer : public LookupServer,
     auto const fields = parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey);
 
-    response = resp["TranID"];
+    response = std::string{"0x"} + resp["TranID"].asString();
+  }
+
+  inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
+                                         Json::Value& response) {
+    response = this->GetEthBlockNumber();
   }
 
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
@@ -118,6 +123,7 @@ class IsolatedServer : public LookupServer,
                               std::string const& blockNum);
   std::string IncreaseBlocknum(const uint32_t& delta);
   std::string GetBlocknum();
+  Json::Value GetEthBlockNumber();
   Json::Value GetTransactionsForTxBlock(const std::string& txBlockNum);
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);

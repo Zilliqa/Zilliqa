@@ -114,7 +114,6 @@ LevelDB::LevelDB(const std::string & dbName, const std::string& subdirectory, bo
 }
 
 void LevelDB::Reopen() {
-    LOG_MARKER();
     m_db.reset();
     leveldb::DB* db;
     leveldb::Status status;

@@ -34,8 +34,13 @@ struct EthFields {
   bytes signature;
 };
 
-Json::Value populateReceiptHelper(std::string const& txnhash);
+Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
+                                  const std::string &from,
+                                  const std::string &to,
+                                  const std::string &gasUsed,
+                                  const std::string &blockHash,
+                                  const std::string &blockNumber);
 
-EthFields parseRawTxFields(std::string const& message);
+EthFields parseRawTxFields(std::string const &message);
 
 #endif  // ZILLIQA_SRC_LIBETH_ETH_H_

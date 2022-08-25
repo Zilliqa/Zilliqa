@@ -317,16 +317,9 @@ class LookupServer : public Server,
   }
 
   // Eth style functions here
-  inline virtual void GetEthBlockNumberI(const Json::Value& request,
+  inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    (void)request;
-    static uint64_t block_number = 2675001;
-    block_number++;
-
-    std::stringstream stream;
-    stream << "0x" << std::hex << block_number;
-
-    response = stream.str();
+    response = this->GetEthBlockNumber();
   }
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
@@ -366,11 +359,11 @@ class LookupServer : public Server,
     response = DataConversion::IntToHexString(resp);
   }
 
-  inline virtual void GetTransactionReceiptI(const Json::Value& request,
-                                             Json::Value& response) {
+  inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
+                                                Json::Value& response) {
     (void)request;
 
-    response = this->GetTransactionReceipt(request[0u].asString());
+    response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
@@ -383,7 +376,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, stoi(ETH_CHAINID));
+    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
 
     if (pubKey.empty()) {
       return;
@@ -398,22 +391,21 @@ class LookupServer : public Server,
     auto resp = CreateTransactionEth(fields, pubKey, shards, currentGasPrice,
                                      m_createTransactionTarget);
 
-    response = resp["TranID"];
+    response = std::string{"0x"} + resp["TranID"].asString();
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
-    (void)request;
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
 
-    auto resp = this->GetBalance(address, true)["balance"];
+    const auto resp = this->GetBalance(address, true)["balance"].asString();
 
-    auto balanceStr = resp.asString();
-
-    resp = balanceStr;
-
-    response = resp;
+    if (resp == "0x0") {
+      response = resp;
+    } else {
+      response = "0x" + resp;
+    }
   }
 
   /**
@@ -622,7 +614,7 @@ class LookupServer : public Server,
    * eth_getBlockTransactionCountByHash Returns transactions count for given
    * block.
    * @param request : params: block hash
-   * @param response : numbner of transactions.
+   * @param response : number of transactions.
    */
 
   inline virtual void GetEthBlockTransactionCountByHashI(
@@ -635,13 +627,41 @@ class LookupServer : public Server,
    * eth_getBlockTransactionCountByNumber Returns transactions count for given
    * block.
    * @param request : params: block hash
-   * @param response : numbner of transactions.
+   * @param response : number of transactions.
    */
 
   inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
     response =
         this->GetEthBlockTransactionCountByNumber(request[0u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getTransactionByBlockHashAndIndex Returns transaction for given block
+   * and index
+   * @param request : params: block hash and index
+   * @param response : transaction object or null if not found.
+   */
+
+  inline virtual void GetEthTransactionByBlockHashAndIndexI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetEthTransactionByBlockHashAndIndex(
+        request[0u].asString(), request[1u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getTransactionByBlockHashAndIndex Returns transaction for given block
+   * and index
+   * @param request : params: block number (or tag) and index
+   * @param response : transaction object or null if not found.
+   */
+
+  inline virtual void GetEthTransactionByBlockNumberAndIndexI(
+      const Json::Value& request, Json::Value& response) {
+    response = this->GetEthTransactionByBlockNumberAndIndex(
+        request[0u].asString(), request[1u].asString());
   }
 
   std::string GetNetworkId();
@@ -710,9 +730,10 @@ class LookupServer : public Server,
   std::string GetNumTxnsTxEpoch();
 
   // Eth calls
-  Json::Value GetTransactionReceipt(const std::string& txnhash);
+  Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
                                   bool includeFullTransactions);
+  Json::Value GetEthBlockNumber();
   Json::Value GetEthBlockByHash(const std::string& blockHash,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
@@ -725,6 +746,13 @@ class LookupServer : public Server,
   Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
   Json::Value GetEthBlockTransactionCountByNumber(
       const std::string& blockNumber);
+
+  Json::Value GetEthTransactionByBlockHashAndIndex(
+      const std::string& blockHash, const std::string& index) const;
+  Json::Value GetEthTransactionByBlockNumberAndIndex(
+      const std::string& blockNumber, const std::string& index) const;
+  Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,
+                                                const uint64_t index) const;
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

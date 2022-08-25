@@ -1282,8 +1282,6 @@ void ContractStorage::InitRevertibles() {
 }
 
 bool ContractStorage::CommitStateDB(const uint64_t& dsBlockNum) {
-  LOG_MARKER();
-
   {
     lock_guard<mutex> g(m_stateDataMutex);
     // copy everything into m_stateXXDB;
@@ -1335,8 +1333,6 @@ void ContractStorage::InitTempStateCore() {
 }
 
 void ContractStorage::InitTempState(bool callFromExternal) {
-  LOG_MARKER();
-
   if (callFromExternal) {
     lock_guard<mutex> g(m_stateDataMutex);
     InitTempStateCore();
