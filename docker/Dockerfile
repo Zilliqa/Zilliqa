@@ -55,7 +55,7 @@ RUN apt-get update \
     ocl-icd-opencl-dev \
     pkg-config \
     python3-dev \
-    python-dev \
+#    python-dev \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
