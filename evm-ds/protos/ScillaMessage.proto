@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+message ProtoScillaVal 
+{
+	message Map 
+    {
+		map<string, ProtoScillaVal> m = 1;
+	}
+
+    oneof ValType 
+    {
+        bytes bval  = 1;
+        Map mval    = 2;
+    }
+}
+
+message ProtoScillaQuery 
+{
+    string name             = 1;
+    uint32 mapdepth         = 2;
+    repeated bytes indices  = 3;
+    bool ignoreval          = 4;
+}
