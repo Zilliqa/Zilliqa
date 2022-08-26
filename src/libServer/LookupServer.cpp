@@ -1185,11 +1185,18 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
 
 Json::Value LookupServer::GetEthBalance(const std::string& address) {
   const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+
   const uint256_t ethBalance =
-      std::strtoll(balanceStr.c_str(), nullptr, 16) * 1'000'000U;
+      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
 
   std::stringstream strm;
   strm << "0x" << std::hex << ethBalance;
+
+#if 1
+  LOG_GENERAL(DEBUG, "EthBalance: " << ethBalance);
+  LOG_GENERAL(DEBUG, "EthBalanceStr:" << balanceStr);
+  LOG_GENERAL(DEBUG, "EthBalanceStrm:" << strm.str());
+#endif
   return strm.str();
 }
 
