@@ -35,6 +35,10 @@ execute_process(
 
 if(NOT "${SCHNORR_INSTALL_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing Schnorr (2), see more in log ${SCHNORR_INSTALL_LOG}")
+    execute_process(
+            COMMAND tail -n 100 ${SCHNORR_INSTALL_LOG}
+            WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    )
 endif()
 
 # build and install proto
