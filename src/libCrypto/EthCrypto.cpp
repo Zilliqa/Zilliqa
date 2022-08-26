@@ -16,6 +16,7 @@
  */
 
 #include "EthCrypto.h"
+#include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
@@ -330,7 +331,11 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  rlpStreamRecreated << dev::u160(info.toAddr);
+  bytes toAddr{};
+  if (!IsNullAddress(info.toAddr)) {
+    toAddr = info.toAddr.asBytes();
+  }
+  rlpStreamRecreated << toAddr;
   rlpStreamRecreated << info.amount;
   if (IsNullAddress(info.toAddr)) {
     rlpStreamRecreated << FromEVM(info.code);
