@@ -1,5 +1,5 @@
 /// Backend implementation that stores EVM state via the Scilla JSONRPC interface.
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 
 use evm::backend::{Backend, Basic};
@@ -21,20 +21,17 @@ use crate::protos::ScillaMessage;
 /// See https://zilliqa-jira.atlassian.net/browse/ZIL-4668
 const BASE_CHAIN_ID: u64 = 33000;
 
-pub struct ScillaBackendFactory {
+#[derive(Clone)]
+pub struct ScillaBackendConfig {
+    // Path to the Unix domain socket over which we talk to the Node.
     pub path: PathBuf,
-}
-
-impl ScillaBackendFactory {
-    pub fn new_backend(&self) -> ScillaBackend {
-        ScillaBackend::new(&self.path)
-    }
+    // Scaling factor of Eth <-> Zil. Should be either 1 or 1_000_000.
+    pub zil_scaling_factor: u64,
 }
 
 // Backend relying on Scilla variables and Scilla JSONRPC interface.
 pub struct ScillaBackend {
-    // Path to the Unix domain socket over which we talk to the Node.
-    path: PathBuf,
+    config: ScillaBackendConfig,
 }
 
 // Adding some convenience to ProtoScillaVal to convert to U256 and bytes.
@@ -59,10 +56,8 @@ impl ScillaMessage::ProtoScillaVal {
 }
 
 impl ScillaBackend {
-    pub fn new<P: AsRef<Path>>(path: P) -> Self {
-        Self {
-            path: path.as_ref().to_path_buf(),
-        }
+    pub fn new(config: ScillaBackendConfig) -> Self {
+        Self { config }
     }
 
     // Call the Scilla IPC Server API.
@@ -80,7 +75,7 @@ impl ScillaBackend {
             .build()
             .unwrap();
         let call_with_timeout = rt.block_on(async move {
-            let client: RawClient = ipc_connect::ipc_connect(&self.path)
+            let client: RawClient = ipc_connect::ipc_connect(&self.config.path)
                 .await
                 .expect("Failed to connect to the node Unix domain socket");
             tokio::time::timeout(
@@ -224,6 +219,14 @@ impl ScillaBackend {
             base64::encode(val.write_to_bytes().unwrap()),
         )
     }
+
+    pub(crate) fn scale_eth_to_zil(&self, eth: U256) -> U256 {
+        eth / self.config.zil_scaling_factor
+    }
+
+    pub(crate) fn scale_zil_to_eth(&self, zil: U256) -> U256 {
+        zil * self.config.zil_scaling_factor
+    }
 }
 
 impl<'config> Backend for ScillaBackend {
@@ -290,7 +293,7 @@ impl<'config> Backend for ScillaBackend {
             .expect("query_state_value _nonce")
             .and_then(|x| x.as_uint256())
             .unwrap_or_default();
-        Basic { balance, nonce }
+        Basic { balance: balance * self.config.zil_scaling_factor, nonce }
     }
 
     fn code(&self, address: H160) -> Vec<u8> {

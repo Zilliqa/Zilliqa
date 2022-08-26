@@ -17,7 +17,7 @@ use std::sync::{Arc, Mutex};
 
 use clap::Parser;
 use evm::{
-    backend::Apply,
+    backend::{Apply, Basic},
     executor::stack::{MemoryStackState, PrecompileFn, StackSubstateMetadata},
     tracing,
 };
@@ -31,7 +31,7 @@ use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
 use jsonrpc_derive::rpc;
 use jsonrpc_server_utils::codecs;
 use primitive_types::*;
-use scillabackend::{ScillaBackend, ScillaBackendFactory};
+use scillabackend::{ScillaBackend, ScillaBackendConfig};
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -60,6 +60,10 @@ struct Args {
     /// How much EVM gas is one Scilla gas worth.
     #[clap(long, default_value = "100")]
     gas_scaling_factor: u64,
+
+    /// Zil scaling factor.  How many Zils in one EVM visible Eth.
+    #[clap(long, default_value = "1")]
+    zil_scaling_factor: u64,
 }
 
 struct DirtyState(Apply<Vec<(String, String)>>);
@@ -120,7 +124,7 @@ pub trait Rpc: Send + 'static {
 
 struct EvmServer {
     tracing: bool,
-    backend_factory: ScillaBackendFactory,
+    backend_config: ScillaBackendConfig,
     gas_scaling_factor: u64,
 }
 
@@ -134,7 +138,7 @@ impl Rpc for EvmServer {
         apparent_value: String,
         gas_limit: u64,
     ) -> BoxFuture<Result<EvmResult>> {
-        let backend = self.backend_factory.new_backend();
+        let backend = ScillaBackend::new(self.backend_config.clone());
         let tracing = self.tracing;
         let gas_scaling_factor = self.gas_scaling_factor;
         Box::pin(async move {
@@ -182,13 +186,15 @@ async fn run_evm_impl(
             })?);
 
         let config = evm::Config::london();
+        let apparent_value = U256::from_dec_str(&apparent_value)
+            .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?;
+        let apparent_value = backend.scale_zil_to_eth(apparent_value);
         let context = evm::Context {
             address: H160::from_str(&address)
                 .map_err(|e| Error::invalid_params(format!("address: {}", e)))?,
             caller: H160::from_str(&caller)
                 .map_err(|e| Error::invalid_params(format!("caller: {}", e)))?,
-            apparent_value: U256::from_dec_str(&apparent_value)
-                .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?,
+            apparent_value,
         };
         let mut runtime = evm::Runtime::new(code, data, context, &config);
         // Scale the gas limit.
@@ -229,7 +235,10 @@ async fn run_evm_impl(
             Ok(exit_reason) => {
                 info!("Exit: {:?}", exit_reason);
                 let (state_apply, logs) = executor.into_state().deconstruct();
-                info!("Return value: {:?}", hex::encode(runtime.machine().return_value()));
+                info!(
+                    "Return value: {:?}",
+                    hex::encode(runtime.machine().return_value())
+                );
                 Ok(EvmResult {
                     exit_reason,
                     return_value: hex::encode(runtime.machine().return_value()),
@@ -245,7 +254,10 @@ async fn run_evm_impl(
                                 reset_storage,
                             } => DirtyState(Apply::Modify {
                                 address,
-                                basic,
+                                basic: Basic {
+                                    balance: backend.scale_eth_to_zil(basic.balance),
+                                    nonce: basic.nonce,
+                                },
                                 code,
                                 storage: storage
                                     .into_iter()
@@ -306,8 +318,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     let evm_sever = EvmServer {
         tracing: args.tracing,
-        backend_factory: ScillaBackendFactory {
+        backend_config: ScillaBackendConfig {
             path: PathBuf::from(args.node_socket),
+            zil_scaling_factor: args.zil_scaling_factor,
         },
         gas_scaling_factor: args.gas_scaling_factor,
     };
