@@ -1312,9 +1312,6 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    auto const ethResult = GetEthTransactionByHash(txnhash);
-    auto const zilResult = GetTransaction(txnhash);
-
     // Scan downwards looking for the block hash with our TX in it
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
 
@@ -1326,6 +1323,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string blockHash = "";
     std::string blockNumber = "";
 
+    TxnHash argHash{txnhash};
     // Scan downwards through the chain until the TX can be found
     do {
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
@@ -1339,15 +1337,31 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
       for (auto const& item : TxnHashes) {
         TxnHash hash_1{item.asString()};
-        TxnHash hash_2{txnhash};
 
-        if (hash_1 == hash_2) {
+        if (hash_1 == argHash) {
           blockHash = block["hash"].asString();
           blockNumber = block["number"].asString();
           break;
         }
       }
     } while (height != 0 && blockHash == "");
+
+    if (blockHash == "") {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      return "";
+    }
+
+    TxBodySharedPtr transactioBodyPtr;
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
+    if (!isPresent) {
+      LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
+      return "";
+    }
+
+    auto const ethResult =
+        JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
 
@@ -1357,17 +1371,17 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string toAddr = ethResult["to"].asString();
     std::string cumGas = zilResult["cumulative_gas"].asString();
 
-    if (blockHash == "") {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
-      return "";
-    }
-
     if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
       blockHash = std::string("0x") + blockHash;
     }
 
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash, blockNumber);
+    // TODO: check if EVM-DS expects constructor calldata to be passed in 'data'
+    // field.
+    const auto isContractDeployment =
+        transactioBodyPtr->GetTransaction().GetData().empty();
+    auto res =
+        populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                              blockHash, blockNumber, isContractDeployment);
 
     return res;
   } catch (const JsonRpcException& je) {
