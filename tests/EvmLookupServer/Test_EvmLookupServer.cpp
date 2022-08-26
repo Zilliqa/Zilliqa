@@ -18,11 +18,31 @@
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
+#include <boost/format.hpp>
 #include <boost/multiprecision/cpp_int.hpp>
+#include <boost/range/numeric.hpp>
 #include <boost/test/unit_test.hpp>
-#include "EvmClientMock.h"
+#include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
+
+/**
+ * @brief Default Mock implementation for the evm client
+ */
+class EvmClientMock : public EvmClient {
+ public:
+  EvmClientMock() = default;
+
+  bool OpenServer(bool /*force = false*/) { return true; };
+
+  virtual bool CallRunner(uint32_t /*version*/,                 //
+                          const Json::Value& request,           //
+                          evmproj::CallResponse& /*response*/,  //
+                          uint32_t /*counter = MAXRETRYCONN*/) {
+    LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
+    return true;
+  };
+};
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
