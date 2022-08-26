@@ -51,7 +51,7 @@ execute_process(
 
 if(NOT "${SCHNORR_INSTALL_RET}" STREQUAL "0")
     execute_process(
-            COMMAND tail -n 100 ${SCHNORR_INSTALL_LOG}
+            COMMAND tail -n 200 ${SCHNORR_INSTALL_LOG}
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
     message(FATAL_ERROR "Error when building and installing Schnorr (3), see more in log ${SCHNORR_INSTALL_LOG}")
@@ -66,7 +66,7 @@ execute_process(
 
 if(NOT "${SCHNORR_INSTALL_RET}" STREQUAL "0")
     execute_process(
-            COMMAND tail -n 100 ${SCHNORR_INSTALL_LOG}
+            COMMAND tail -n 200 ${SCHNORR_INSTALL_LOG}
             WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     )
     message(FATAL_ERROR "Error when building and installing Schnorr (4), see more in log ${SCHNORR_INSTALL_LOG}")

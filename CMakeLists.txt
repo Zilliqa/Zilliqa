@@ -87,14 +87,14 @@ find_package(g3logger CONFIG REQUIRED)
 
 include(InstallCryptoUtils)
 
+include(InstallSchnorr)
+include_directories(${SCHNORR_INCLUDE_DIR}/include)
+
 include(InstallMongo)
 find_package(mongocxx CONFIG REQUIRED)
  
 include(InstallWebsocketpp)
 find_package(websocketpp CONFIG REQUIRED)
-
-include(InstallSchnorr)
-include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
