@@ -749,3 +749,5 @@ const std::string ETH_CHAINID{
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d")};
 const uint64_t ETH_CHAINID_INT{DataConversion::HexStringToUint64Ret(
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d"))};
+const std::string EVM_ZIL_SCALING_FACTOR{
+    ReadConstantString("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.", "1000000")};
