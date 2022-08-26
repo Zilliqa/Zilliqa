@@ -745,4 +745,4 @@ const std::string EVM_SERVER_BINARY{ReadConstantString(
     "EVM_SERVER_BINARY", "node.jsonrpc.", "/usr/local/bin/evm-ds")};
 const std::string EVM_LOG_CONFIG{ReadConstantString(
     "EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
-const uint64_t ETH_CHAINID{ReadConstantNumeric("CHAIN_ID") | 0x8000};
+const uint64_t ETH_CHAINID{ReadConstantNumeric("CHAIN_ID") + 0x8000};
