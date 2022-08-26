@@ -227,6 +227,16 @@ secp256k1_context const* getCtx() {
 // is in line with EIP-155.
 // message shall not contain '0x'
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
+
+  if (message.size() >= 2) {
+      auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
+      if (!(firstByte >= 0xc0 && firstByte <= 0xfe)) {
+          LOG_GENERAL(WARNING, "EIP-2718 TXs not yet supported! Tx: "
+                  << message << " First byte: " << firstByte);
+          return {};
+      }
+  }
+
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
   bytes asBytes;
@@ -239,15 +249,6 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   if (rlpStream1.isNull()) {
     LOG_GENERAL(WARNING, "Failed to parse raw TX RLP: " << message);
     return {};
-  }
-
-  if (message.size() >= 2) {
-    auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
-    if (!(firstByte >= 0xc0 && firstByte <= 0xfe)) {
-      LOG_GENERAL(WARNING, "EIP-2718 TXs not yet supported! Tx: "
-                               << message << " First byte: " << firstByte);
-      return {};
-    }
   }
 
   int i = 0;
