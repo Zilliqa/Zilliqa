@@ -56,6 +56,8 @@ include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
 find_package(PythonLibs REQUIRED)
 
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
+
 string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
 list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
 list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
