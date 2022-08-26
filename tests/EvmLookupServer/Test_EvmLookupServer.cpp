@@ -974,9 +974,12 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
                      "0x" + transactions[i].GetTransaction().GetTranID().hex());
     BOOST_TEST_CHECK(
         response["nonce"] ==
-        std::to_string(transactions[i].GetTransaction().GetNonce()));
-    BOOST_TEST_CHECK(response["value"] ==
-                     transactions[i].GetTransaction().GetAmount().str());
+        (boost::format("0x%x") % transactions[i].GetTransaction().GetNonce())
+            .str());
+    BOOST_TEST_CHECK(
+        response["value"] ==
+        (boost::format("0x%x") % transactions[i].GetTransaction().GetAmount())
+            .str());
   }
 
   // Get non-existing transaction
