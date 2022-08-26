@@ -21,7 +21,7 @@ if (NOT "${SCHNORR_INSTALL_RET}" STREQUAL "0")
 endif ()
 
 execute_process(
-        COMMAND sed -i 's/Boost_INCLUDE_DIR\\}/Boost_INCLUDE_DIRS\\}/g' ${SCHNORR_SOURCE_DIR}/CMakeLists.txt
+        COMMAND sed -i s/Boost_INCLUDE_DIR\}/Boost_INCLUDE_DIRS\}/g ${SCHNORR_SOURCE_DIR}/CMakeLists.txt
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
