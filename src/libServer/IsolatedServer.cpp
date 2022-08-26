@@ -451,7 +451,8 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
 bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
   m_mediator.m_txBlockChain.Reset();
 
-  std::shared_ptr<Retriever> m_retriever;
+  std::shared_ptr<Retriever> m_retriever =
+      std::make_shared<Retriever>(m_mediator);
 
   bool st_result = m_retriever->RetrieveStates();
 
