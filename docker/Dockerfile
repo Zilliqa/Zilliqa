@@ -85,7 +85,8 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
     && cmake -H${SOURCE_DIR}/scripts/external_boost -B${BUILD_DIR}/boost \
     && cmake --build ${BUILD_DIR}/boost --target Boost \
-    && mv ${BUILD_DIR}/boost/include ${BUILD_DIR}/boost/lib ${INSTALL_DIR} \
+    && mv ${BUILD_DIR}/boost/include/* ${INSTALL_DIR}/include \
+    && mv ${BUILD_DIR}/boost/lib/* ${INSTALL_DIR}/lib \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
