@@ -29,8 +29,7 @@ describe("Contract Deployment", function () {
             value: INITIAL_FUND
         })
 
-        const state = await helper.getStateAsNumber(contract._address, 1)
-        expect(state).to.be.equal(INITIAL_FUND)
-
+        const result = await contract.methods.getPaidValue().call()
+        expect(Number(result)).to.be.equal(INITIAL_FUND)
     });
 });

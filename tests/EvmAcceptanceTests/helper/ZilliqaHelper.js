@@ -87,7 +87,7 @@ class ZilliqaHelper {
         const receipt = await this.sendTransaction(transaction, senderAccount)
 
         const contractAddress = await this.zilliqa.blockchain.getContractAddressFromTransactionID(receipt.transactionHash.replace("0x", ""));
-        const contract = new web3.eth.Contract(JSON.parse(Contract.interface.format(ethers.utils.FormatTypes.json)),
+        const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi,
             web3.utils.toChecksumAddress((contractAddress).result), {
                 "from": this.auxiliaryAccount.address
             })
