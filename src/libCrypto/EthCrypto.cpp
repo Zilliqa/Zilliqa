@@ -377,3 +377,11 @@ bytes FromEVM(bytes const& in) {
 
   return DataConversion::HexStrToUint8VecRet(ret);
 }
+
+bytes StripEVM(bytes const& in) {
+  if (in.size() >= 3 && in[0] == 'E' && in[1] == 'V' && in[2] == 'M') {
+    return bytes(in.begin() + 3, in.end());
+  } else {
+    return in;
+  }
+}
