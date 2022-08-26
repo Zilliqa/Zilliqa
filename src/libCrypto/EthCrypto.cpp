@@ -330,7 +330,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  rlpStreamRecreated << info.toAddr;
+  rlpStreamRecreated << dev::u160(info.toAddr);
   rlpStreamRecreated << info.amount;
   if (IsNullAddress(info.toAddr)) {
     rlpStreamRecreated << FromEVM(info.code);
