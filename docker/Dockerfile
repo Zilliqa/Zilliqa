@@ -19,23 +19,6 @@ FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-FROM ubuntu:18.04 as rust_builder
-RUN apt-get update && apt-get install -y protobuf-compiler && \
-apt-get install -y git && \
-apt-get install -y curl && \
-apt-get install -y build-essential && \
-apt-get install -y pkg-config && \
-apt-get install -y libssl-dev && \
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
-sh install_script.sh -y 
-ENV PATH="/root/.cargo/bin:${PATH}"
-RUN git clone https://github.com/Zilliqa/evm-ds /evm-ds && \
-    cd /evm-ds && \
-    git checkout 70dfb1488e39b7c1e5fab6f040916c32ee714838 && \
-    cargo build --release --package evm-ds && \
-    cargo test --verbose --release --package evm-ds
-
-
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
 FROM ubuntu:18.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
@@ -77,6 +60,10 @@ RUN apt-get update \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
+    sh install_script.sh -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 # Install cmake 3.19
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh \
     && mkdir -p "${HOME}"/.local \
@@ -103,6 +90,7 @@ RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
 RUN cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS}
 RUN cmake --build ${BUILD_DIR} -- -j$(nproc)
 RUN cmake --build ${BUILD_DIR} --target install
+RUN cd $SOURCE_DIR/evm-ds && cargo build --release --package evm-ds
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
 RUN echo "mongo files:" && ls -lh ${MONGO_INSTALL_DIR}/lib
 
@@ -200,8 +188,8 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
-COPY --from=rust_builder /evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
-COPY --from=rust_builder /evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
+COPY --from=builder $SOURCE_DIR/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
+COPY --from=builder $SOURCE_DIR/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
