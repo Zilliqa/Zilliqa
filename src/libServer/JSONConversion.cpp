@@ -18,7 +18,10 @@
 #include <string>
 #include <vector>
 
+#include <boost/format.hpp>
+
 #include <Schnorr.h>
+#include <boost/format.hpp>
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
@@ -129,31 +132,32 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
 
   Json::Value retJson;
 
-  retJson["number"] = std::to_string(txheader.GetBlockNum());
-  retJson["hash"] = txblock.GetBlockHash().hex();
-  retJson["parentHash"] = txheader.GetPrevHash().hex();
+  retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
+  retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
+  retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
   // sha3Uncles is calculated as keccak("")
   retJson["sha3Uncles"] =
       "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
-  retJson["stateRoot"] = txheader.GetStateRootHash().hex();
+  retJson["stateRoot"] = std::string{"0x"} + txheader.GetStateRootHash().hex();
   retJson["miner"] =
+      std::string{"0x"} +
       Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
-  retJson["difficulty"] = dsBlock.GetHeader().GetDifficulty();
+  retJson["difficulty"] =
+      (boost::format("0x%x") % dsBlock.GetHeader().GetDifficulty()).str();
 
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
 
-  retJson["size"] = std::to_string(serializedTxBlock.size());
-  retJson["gasLimit"] = std::to_string(txheader.GetGasLimit());
-  retJson["gasUsed"] = std::to_string(txheader.GetGasUsed());
-  retJson["gasLimit"] = std::to_string(txblock.GetTimestamp());
-  retJson["version"] = txheader.GetVersion();
+  retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
+  retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+  retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
 
   // Todo: prepare transaction to eth-like json conversion
   if (!includeFullTransactions) {
     auto transactionHashesJson = Json::Value(Json::arrayValue);
     for (const auto& hash : transactionHashes) {
-      transactionHashesJson.append(hash.hex());
+      transactionHashesJson.append("0x" + hash.hex());
     }
     retJson["transactions"] = transactionHashesJson;
   }
@@ -628,28 +632,43 @@ const Json::Value JSONConversion::convertTxtoJson(
 const Json::Value JSONConversion::convertTxtoEthJson(
     const TransactionWithReceipt& txn) {
   Json::Value retJson;
-  retJson["from"] = txn.GetTransaction().GetSenderAddr().hex();
-  retJson["gas"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
-  retJson["gasPrice"] = txn.GetTransaction().GetGasPrice().str();
-  retJson["hash"] = txn.GetTransaction().GetTranID().hex();
+  retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
+  retJson["gas"] =
+      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+  // ethers also expectes gasLimit and ChainId
+  retJson["gasLimit"] =
+      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
+  retJson["gasPrice"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetGasPrice()).str();
+  retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
   std::string inputField;
 
   if (!txn.GetTransaction().GetCode().empty()) {
-    inputField =
-        DataConversion::CharArrayToString(txn.GetTransaction().GetCode());
+    inputField = "0x" + DataConversion::CharArrayToString(
+                            txn.GetTransaction().GetCode());
   }
 
   if (!txn.GetTransaction().GetData().empty()) {
-    inputField +=
+    const auto callData =
         DataConversion::CharArrayToString(txn.GetTransaction().GetData());
+    // Append extra '0x' prefix iff GetCode() gave empty string
+    if (inputField.empty()) {
+      inputField += "0x" + callData;
+    } else {
+      inputField += callData;
+    }
   }
-
   retJson["input"] = inputField;
-  retJson["nonce"] = std::to_string(txn.GetTransaction().GetNonce());
-  retJson["to"] = txn.GetTransaction().GetToAddr().hex();
-  retJson["value"] = txn.GetTransaction().GetAmount().str();
+  // ethers also expects 'data' field
+  retJson["data"] = inputField;
+  retJson["nonce"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
+  retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  retJson["value"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
   return retJson;
 }
 

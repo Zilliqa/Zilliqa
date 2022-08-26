@@ -26,7 +26,9 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
+#include "EvmClient.h"
 #include "libServer/ScillaIPCServer.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;
@@ -492,8 +494,30 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
 
-  return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                            transaction, receipt, error_code);
+  bool isEvm{false};
+
+  if (Transaction::GetTransactionType(transaction) ==
+      Transaction::CONTRACT_CREATION) {
+    isEvm = EvmUtils::isEvm(transaction.GetCode());
+  } else if (Transaction::GetTransactionType(transaction) ==
+             Transaction::CONTRACT_CALL) {
+    Account* contractAccount = this->GetAccountTemp(transaction.GetToAddr());
+    if (contractAccount != nullptr) {
+      isEvm = EvmUtils::isEvm(contractAccount->GetCode());
+    }
+  }
+  if (ENABLE_EVM == false && isEvm) {
+    LOG_GENERAL(WARNING,
+                "EVM is disabled so not processing this EVM transaction ");
+    return false;
+  }
+  if (isEvm) {
+    return m_accountStoreTemp->UpdateAccountsEvm(
+        blockNum, numShards, isDS, transaction, receipt, error_code);
+  } else {
+    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
+                                              transaction, receipt, error_code);
+  }
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
@@ -828,7 +852,7 @@ bool AccountStore::MigrateContractStates(
     for (auto const& type : types) {
       vector<string> fragments;
       boost::split(fragments, type.first,
-                   bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+                   [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
       if (fragments.size() < 3) {
         LOG_GENERAL(WARNING,
                     "Error fetching (field_name, type): " << address.hex());

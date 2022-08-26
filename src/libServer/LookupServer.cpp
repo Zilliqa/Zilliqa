@@ -633,7 +633,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (!hasTxn) {
-        LOG_GENERAL(INFO, "No Txns to send for this seed node");
+        LOG_GENERAL(DEBUG, "No Txns to send for this seed node");
         continue;
       }
 
@@ -1312,8 +1312,6 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    auto const result = GetTransaction(txnhash);
-
     // Scan downwards looking for the block hash with our TX in it
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
 
@@ -1323,7 +1321,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
                       : txBlock.GetHeader().GetBlockNum();
 
     std::string blockHash = "";
+    std::string blockNumber = "";
 
+    TxnHash argHash{txnhash};
     // Scan downwards through the chain until the TX can be found
     do {
       const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
@@ -1337,34 +1337,50 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
       for (auto const& item : TxnHashes) {
         TxnHash hash_1{item.asString()};
-        TxnHash hash_2{txnhash};
 
-        if (hash_1 == hash_2) {
+        if (hash_1 == argHash) {
           blockHash = block["hash"].asString();
+          blockNumber = block["number"].asString();
           break;
         }
       }
     } while (height != 0 && blockHash == "");
-
-    auto receipt = result["receipt"];
-
-    std::string hashId = result["ID"].asString();
-    bool success = receipt["success"].asBool();
-    std::string sender = receipt["senderPubkey"].asString();
-    std::string toAddr = result["toAddr"].asString();
-    std::string cumGas = result["cumulative_gas"].asString();
 
     if (blockHash == "") {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
       return "";
     }
 
+    TxBodySharedPtr transactioBodyPtr;
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
+    if (!isPresent) {
+      LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
+      return "";
+    }
+
+    auto const ethResult =
+        JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
+
+    auto receipt = zilResult["receipt"];
+
+    std::string hashId = ethResult["hash"].asString();
+    bool success = receipt["success"].asBool();
+    std::string sender = ethResult["from"].asString();
+    std::string toAddr = ethResult["to"].asString();
+    std::string cumGas = zilResult["cumulative_gas"].asString();
+
     if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
       blockHash = std::string("0x") + blockHash;
     }
 
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash);
+    const auto isContractDeployment =
+        Transaction::GetTransactionType(transactioBodyPtr->GetTransaction()) ==
+        Transaction::CONTRACT_CREATION;
+    auto res =
+        populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                              blockHash, blockNumber, isContractDeployment);
 
     return res;
   } catch (const JsonRpcException& je) {

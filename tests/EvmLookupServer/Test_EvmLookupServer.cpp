@@ -19,12 +19,12 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/format.hpp>
-#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
+#include "libUtils/EvmJsonResponse.h"
 
 /**
  * @brief Default Mock implementation for the evm client
@@ -448,13 +448,14 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     Json::Value response;
     lookupServer.GetEthBlockByNumberI(paramsRequest, response);
 
-    BOOST_CHECK_EQUAL(response["hash"].asString(),
-                      firstValidTxBlock.GetBlockHash().hex());
+    BOOST_CHECK_EQUAL(
+        response["hash"].asString(),
+        (boost::format("0x%x") % firstValidTxBlock.GetBlockHash().hex()).str());
 
     std::vector<std::string> expectedHashes;
     for (uint32_t i = 0; i < transactions.size(); ++i) {
       expectedHashes.emplace_back(
-          transactions[i].GetTransaction().GetTranID().hex());
+          "0x" + transactions[i].GetTransaction().GetTranID().hex());
     }
     std::sort(expectedHashes.begin(), expectedHashes.end());
 
@@ -490,8 +491,10 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     Json::Value response;
 
     lookupServer.GetEthBlockByNumberI(paramsRequest, response);
-    BOOST_CHECK_EQUAL(response["hash"].asString(),
-                      secondValidTxBlock.GetBlockHash().hex());
+    BOOST_CHECK_EQUAL(
+        response["hash"].asString(),
+        (boost::format("0x%x") % secondValidTxBlock.GetBlockHash().hex())
+            .str());
 
     // Pending
     paramsRequest[0u] = "pending";
@@ -544,14 +547,17 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   Json::Value response;
   lookupServer.GetEthBlockByHashI(paramsRequest, response);
 
-  BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
-  BOOST_CHECK_EQUAL(response["number"].asString(),
-                    std::to_string(txBlock.GetHeader().GetBlockNum()));
+  BOOST_CHECK_EQUAL(
+      response["hash"].asString(),
+      (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str());
+  BOOST_CHECK_EQUAL(
+      response["number"].asString(),
+      (boost::format("0x%x") % txBlock.GetHeader().GetBlockNum()).str());
 
   std::vector<std::string> expectedHashes;
   for (uint32_t i = 0; i < transactions.size(); ++i) {
     expectedHashes.emplace_back(
-        transactions[i].GetTransaction().GetTranID().hex());
+        "0x" + transactions[i].GetTransaction().GetTranID().hex());
   }
   std::sort(expectedHashes.begin(), expectedHashes.end());
 
@@ -739,12 +745,15 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
     lookupServer.GetEthTransactionByHashI(paramsRequest, response);
 
     BOOST_TEST_CHECK(response["hash"] ==
-                     transactions[i].GetTransaction().GetTranID().hex());
+                     "0x" + transactions[i].GetTransaction().GetTranID().hex());
     BOOST_TEST_CHECK(
         response["nonce"] ==
-        std::to_string(transactions[i].GetTransaction().GetNonce()));
-    BOOST_TEST_CHECK(response["value"] ==
-                     transactions[i].GetTransaction().GetAmount().str());
+        (boost::format("0x%x") % transactions[i].GetTransaction().GetNonce())
+            .str());
+    BOOST_TEST_CHECK(
+        response["value"] ==
+        (boost::format("0x%x") % transactions[i].GetTransaction().GetAmount())
+            .str());
   }
 
   // Get non-existing transaction
@@ -947,7 +956,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       lookupServer.GetEthTransactionByBlockHashAndIndexI(paramsRequest,
                                                          response);
       BOOST_TEST_CHECK(response["hash"].asString() ==
-                       transactions[i].GetTransaction().GetTranID().hex());
+                       "0x" +
+                           transactions[i].GetTransaction().GetTranID().hex());
     }
   }
 
@@ -972,8 +982,9 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
 
         lookupServer.GetEthTransactionByBlockNumberAndIndexI(paramsRequest,
                                                              response);
-        BOOST_TEST_CHECK(response["hash"].asString() ==
-                         transactions[i].GetTransaction().GetTranID().hex());
+        BOOST_TEST_CHECK(
+            response["hash"].asString() ==
+            "0x" + transactions[i].GetTransaction().GetTranID().hex());
       }
     }
   }

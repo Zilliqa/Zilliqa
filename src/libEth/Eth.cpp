@@ -16,6 +16,7 @@
  */
 
 #include "Eth.h"
+#include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
@@ -26,17 +27,20 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
                                   const std::string &from,
                                   const std::string &to,
                                   const std::string &gasUsed,
-                                  const std::string &blockHash) {
+                                  const std::string &blockHash,
+                                  const std::string &blockNumber,
+                                  bool isContractDeployment) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
   ret["blockHash"] = blockHash;
-  ret["blockNumber"] = "0x429d3b";
-  ret["contractAddress"] = "";
-  ret["cumulativeGasUsed"] = gasUsed;
+  ret["blockNumber"] = blockNumber;
+  ret["contractAddress"] =
+      isContractDeployment ? to : "0x0000000000000000000000000000000000000000";
+  ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["from"] = from;
-  ret["gasUsed"] = gasUsed;
-  ret["logs"].append(Json::Value());
+  ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
+  ret["logs"] = Json::arrayValue;
   ret["logsBloom"] =
       "0x0000000000000000000000000000000000000000000000000000000000000000000000"
       "000000000000000000000000000000000000000000000000000000000000000000000000"
@@ -48,9 +52,9 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
       "0000000000";
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
-  ret["status"] = success;
-  ret["to"] = to;                   // todo: fill
-  ret["transactionIndex"] = "0x0";  // todo: fill
+  ret["status"] = success ? "0x1" : "0x0";
+  ret["to"] = to;
+  ret["transactionIndex"] = "0x0";
 
   return ret;
 }
@@ -73,7 +77,7 @@ EthFields parseRawTxFields(std::string const &message) {
   int i = 0;
   // todo: checks on size of rlp stream etc.
 
-  ret.version = 65538;
+  ret.version = DataConversion::Pack(CHAIN_ID, 2);
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
