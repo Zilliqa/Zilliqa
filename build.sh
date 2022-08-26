@@ -161,6 +161,11 @@ do
         CMAKE_EXTRA_OPTIONS="-DSJ_TEST_SJ_MISSING_MBTXNS=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with SJ test - New Seed misses the mbtxns message from multiplier"
     ;;
+    evm)
+        echo "Build EVM"
+	evm_build_result=$(cd src/depends/evm; cargo build --release)
+	exit $evm_build_result
+    ;;
     *)
         echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>]"
         exit 1
