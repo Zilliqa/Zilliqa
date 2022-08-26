@@ -22,6 +22,21 @@ describe("Contract Deployment", function () {
         expect(state).to.be.equal("saeed")
     });
 
+    it("Testing deployment of a contract with multiple parameter sent to its constructor", async function() {
+        const contract = await helper.deployContract("MultiParamConstructor", {
+            constructorArgs: ["saeed", 123]
+        })
+
+        const name = await helper.getStateAsString(contract._address, 0)
+        expect(name).to.be.equal("saeed")
+
+        const number = await helper.getStateAsNumber(contract._address, 1)
+        expect(number).to.be.equal(123)
+ 
+        const number2 = await contract.methods.number().call()
+        expect(number2).to.be.equal(123)
+    });
+
     it("Testing deployment of a contract with an initial fund", async function() {
         const INITIAL_FUND = 300;
 
