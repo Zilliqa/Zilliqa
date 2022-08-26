@@ -1375,10 +1375,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       blockHash = std::string("0x") + blockHash;
     }
 
-    // TODO: check if EVM-DS expects constructor calldata to be passed in 'data'
-    // field.
     const auto isContractDeployment =
-        transactioBodyPtr->GetTransaction().GetData().empty();
+        Transaction::GetTransactionType(transactioBodyPtr->GetTransaction()) ==
+        Transaction::CONTRACT_CREATION;
     auto res =
         populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
                               blockHash, blockNumber, isContractDeployment);
