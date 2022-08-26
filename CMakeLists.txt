@@ -19,6 +19,35 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBEVENT REQUIRED libevent)
 link_directories(${LIBEVENT_LIBRARY_DIRS})
 
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
+    link_directories(${MINIUPNPC_LIBRARY_DIRS})
+    find_package(jsoncpp REQUIRED)
+    set(JSON_PREFIX,"json")
+    set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
+else()
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    include_directories(${JSONCPP_INCLUDE_DIRS})
+    link_directories(${JSONCPP_LIBRARY_DIRS})
+    set(JSONCPP_LINK_TARGETS "jsoncpp")
+    set(JSON_PREFIX "jsoncpp")
+endif()
+
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+if(NOT TARGET jsonrpc-project)
+   include(InstallJsonrpccpp)
+endif()
+
+include(InstallG3log)
+find_package(g3logger CONFIG REQUIRED)
+
+include(InstallCryptoUtils)
+
+include(InstallSchnorr)
+include_directories(${SCHNORR_INCLUDE_DIR}/include)
+
 find_package(PythonLibs REQUIRED)
 
 string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
@@ -59,36 +88,6 @@ message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
 message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
-
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
-    link_directories(${MINIUPNPC_LIBRARY_DIRS})
-    find_package(jsoncpp REQUIRED)
-    set(JSON_PREFIX,"json")
-    set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
-else()
-    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-    include_directories(${JSONCPP_INCLUDE_DIRS})
-    link_directories(${JSONCPP_LIBRARY_DIRS})
-    set(JSONCPP_LINK_TARGETS "jsoncpp")
-    set(JSON_PREFIX "jsoncpp")
-endif()
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
-
-if(NOT TARGET jsonrpc-project)
-   include(InstallJsonrpccpp)
-endif()
-
-include(InstallG3log)
-find_package(g3logger CONFIG REQUIRED)
-
-include(InstallCryptoUtils)
-
-include(InstallSchnorr)
-include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
 include(InstallMongo)
 find_package(mongocxx CONFIG REQUIRED)
