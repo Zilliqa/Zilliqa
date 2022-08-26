@@ -87,7 +87,9 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && cmake -H${SOURCE_DIR}/scripts/external_boost -B${BUILD_DIR}/boost \
     && cmake --build ${BUILD_DIR}/boost --target Boost \
     && mv ${BUILD_DIR}/boost/include/* /usr/include \
-    && rsync -a ${BUILD_DIR}/boost/lib /usr/lib/x86_64-linux-gnu \
+    && rsync -a ${BUILD_DIR}/boost/lib/* /usr/lib/x86_64-linux-gnu \
+    && ls /usr/lib/x86_64-linux-gnu \
+    && ls /usr/lib/x86_64-linux-gnu/cmake \
 #    && mv ${BUILD_DIR}/boost/lib/cmake/boost /usr/lib/x86_64-linux-gnu/cmake \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
