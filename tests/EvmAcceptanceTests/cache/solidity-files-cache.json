@@ -1,0 +1,181 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "/home/saeed/projects/hardhat-evm-tests/contracts/Event.sol": {
+      "lastModificationDate": 1661167469025,
+      "contentHash": "541fe019c65baed1478ee2691001a4f3",
+      "sourceName": "contracts/Event.sol",
+      "solcConfig": {
+        "version": "0.8.9",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.7.0 <0.9.0"
+      ],
+      "artifacts": [
+        "Event"
+      ]
+    },
+    "/home/saeed/projects/hardhat-evm-tests/contracts/Storage.sol": {
+      "lastModificationDate": 1661167469025,
+      "contentHash": "3f72e6a619ed0cb469c4bac9c4e75f14",
+      "sourceName": "contracts/Storage.sol",
+      "solcConfig": {
+        "version": "0.8.9",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.7.0 <0.9.0"
+      ],
+      "artifacts": [
+        "Storage"
+      ]
+    },
+    "/home/saeed/projects/hardhat-evm-tests/contracts/Token.sol": {
+      "lastModificationDate": 1661167469025,
+      "contentHash": "0edaf61916fe86833f8104e3fbe3712b",
+      "sourceName": "contracts/Token.sol",
+      "solcConfig": {
+        "version": "0.8.9",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.9"
+      ],
+      "artifacts": [
+        "Token"
+      ]
+    },
+    "/home/saeed/projects/hardhat-evm-tests/contracts/WithStringConstructor.sol": {
+      "lastModificationDate": 1661487872731,
+      "contentHash": "972042002fd9907bcfa918ecd8a4ca64",
+      "sourceName": "contracts/WithStringConstructor.sol",
+      "solcConfig": {
+        "version": "0.8.9",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.7.0 <0.9.0"
+      ],
+      "artifacts": [
+        "WithStringConstructor"
+      ]
+    },
+    "/home/saeed/projects/hardhat-evm-tests/contracts/ParentChildContract.sol": {
+      "lastModificationDate": 1661487868187,
+      "contentHash": "0d50328b6d84bb6f37406325ee1ad1b0",
+      "sourceName": "contracts/ParentChildContract.sol",
+      "solcConfig": {
+        "version": "0.8.9",
+        "settings": {
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.7.0 <0.9.0"
+      ],
+      "artifacts": [
+        "ChildContract",
+        "ParentContract"
+      ]
+    }
+  }
+}
