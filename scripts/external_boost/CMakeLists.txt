@@ -29,7 +29,7 @@ ExternalProject_Add(Boost
         URL "https://boostorg.jfrog.io/artifactory/main/release/1.79.0/source/boost_1_79_0.tar.bz2"
         URL_HASH SHA256=475d589d51a7f8b3ba2ba4eda022b170e562ca3b760ee922c146b6c65856ef39
         DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
-        UPDATE_COMMAND ./bootstrap.sh --prefix=${INSTALL_PREFIX} ${Boost_FLAGS}
+        UPDATE_COMMAND ./bootstrap.sh --prefix=${INSTALL_PREFIX} ${Boost_FLAGS} --with-python=python3.6
         CONFIGURE_COMMAND ""
         BUILD_COMMAND ./b2 -j${N_PARALLEL} cxxflags=${Boost_CXX_FLAGS} stage ${Boost_BUILD_TYPE}
         BUILD_IN_SOURCE 1
