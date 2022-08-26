@@ -19,6 +19,48 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(LIBEVENT REQUIRED libevent)
 link_directories(${LIBEVENT_LIBRARY_DIRS})
 
+find_package(PythonLibs REQUIRED)
+
+string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
+list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
+list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
+list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
+
+set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
+
+
+find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
+find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
+find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
+
+
+
+if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
+
+    set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
+
+elseif(Boost_PYTHON${PY_VERSION}_FOUND)
+
+    set(PY_COMP_SUFFIX "python${PY_VERSION}")
+
+elseif(Boost_PYTHON3-PY${PY_VERSION}_FOUND)
+
+    set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
+
+else()
+
+    message(FATAL_ERROR "Could not find boost python")
+
+endif()
+
+message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
+
+
+message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
+
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
+
+
 if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
     pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
     link_directories(${MINIUPNPC_LIBRARY_DIRS})
@@ -53,47 +95,6 @@ find_package(websocketpp CONFIG REQUIRED)
 
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
-
-find_package(PythonLibs REQUIRED)
-
-string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
-list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
-list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
-list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
-
-set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
-
-
-find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
-find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
-find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
-
-
-
-if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
-
-set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
-
-elseif(Boost_PYTHON${PY_VERSION}_FOUND)
-
-set(PY_COMP_SUFFIX "python${PY_VERSION}")
-
-elseif(Boost_PYTHON3-PY${PY_VERSION}_FOUND)
-
-set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
-
-else()
-
-message(FATAL_ERROR "Could not find boost python")
-
-endif()
-
-message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
-
-
-message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
-
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 
