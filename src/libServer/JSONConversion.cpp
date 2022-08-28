@@ -142,7 +142,9 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       std::string{"0x"} +
       Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
   retJson["difficulty"] =
-      (boost::format("0x%x") % dsBlock.GetHeader().GetDifficulty()).str();
+      (boost::format("0x%x") %
+       static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
+          .str();
 
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
@@ -150,7 +152,10 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
   retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
   retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+  retJson["timestamp"] = (boost::format("0x%x") % txblock.GetTimestamp()).str();
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
+  // Required by ethers
+  retJson["extraData"] = "0x";
 
   // Todo: prepare transaction to eth-like json conversion
   if (!includeFullTransactions) {
