@@ -17,6 +17,11 @@ module.exports = {
                  "5c497e53404aca018264588643a3b6b48c6a03579da1538628acf827c4a264b3"
        ],
       chainId: 0x8001,
+    },
+    evmdev: {
+      url: "https://evmdev-api.dev.z7a.xyz/",
+      accounts: ["d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"],
+      chainId: 33101
     }
   }
 };
