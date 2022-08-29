@@ -199,6 +199,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     const bytes& challenge, unsigned int offset, Action action,
     ConsensusMessageType returnmsgtype, State nextstate) {
   LOG_MARKER();
+  LOG_GENERAL(INFO, "############ refine_set ##############");
 
   // Initial checks
   // ==============
@@ -297,6 +298,7 @@ bool ConsensusBackup::GenerateResponseMessage(
   // Assemble response message body
   // ==============================
 
+
   if (!Messenger::SetConsensusResponse(
           response, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
           subsetInfo,
@@ -304,6 +306,10 @@ bool ConsensusBackup::GenerateResponseMessage(
     LOG_GENERAL(WARNING, "Messenger::SetConsensusResponse failed");
     return false;
   }
+  LOG_GENERAL(INFO,
+              "refine_set GenerateResonse ="
+                  << " committte ip "
+                  << GetCommitteeMember(m_myID).second.GetPrintableIPAddress());
 
   return true;
 }

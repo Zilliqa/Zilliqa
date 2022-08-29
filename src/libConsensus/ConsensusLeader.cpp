@@ -153,6 +153,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
           subsetPeers++;
+          LOG_GENERAL(INFO,"refine_set = "<< m_committee.at(index).second.GetPrintableIPAddress());
           if (subsetPeers == m_numForConsensus) {
             // got all dsguards commit
             LOG_GENERAL(INFO, "[SubsetID: " << i << "] Got all "
@@ -247,7 +248,6 @@ bool ConsensusLeader::StartConsensusSubsets() {
 
   for (unsigned int index = 0; index < m_consensusSubsets.size(); index++) {
     ConsensusSubset& subset = m_consensusSubsets.at(index);
-
     // Update subset's internal state
     SetStateSubset(index, m_state);
 
@@ -264,6 +264,10 @@ bool ConsensusLeader::StartConsensusSubsets() {
   for (unsigned int i = 0; i < m_committee.size(); i++) {
     for (const auto& subset : m_consensusSubsets) {
       if (subset.commitMap.at(i)) {
+        LOG_GENERAL(
+            INFO,
+            "refine_set Send Challenge2 =" << " committte ip "
+                << m_committee.at(i).second.GetPrintableIPAddress());
         peerInfo.push_back(m_committee.at(i).second);
         break;
       }
@@ -362,6 +366,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed");
     return false;
   }
+  LOG_GENERAL(INFO, "refine_set Backup IP "<< from.GetPrintableIPAddress() << " committte ip "<< m_committee.at(backupID).second.GetPrintableIPAddress());
 
   // Check the IP belongs to the backup with that backupID (check for valid
   // backupID range is already done in Messenger)
@@ -410,10 +415,8 @@ bool ConsensusLeader::ProcessMessageCommitCore(
 
   m_commitCounter++;
 
-  if (m_commitCounter % 10 == 0) {
-    LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
+  LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
                                             << m_numForConsensus);
-  }
 
   // Redundant commits
   if (m_commitCounter > m_numForConsensus) {
