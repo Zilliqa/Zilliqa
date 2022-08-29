@@ -42,5 +42,6 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 
 bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
+bytes StripEVM(bytes const& in);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

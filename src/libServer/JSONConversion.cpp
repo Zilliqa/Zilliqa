@@ -25,6 +25,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -652,7 +653,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
 
   if (!txn.GetTransaction().GetCode().empty()) {
     inputField = "0x" + DataConversion::CharArrayToString(
-                            txn.GetTransaction().GetCode());
+                            StripEVM(txn.GetTransaction().GetCode()));
   }
 
   if (!txn.GetTransaction().GetData().empty()) {
