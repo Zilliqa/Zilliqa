@@ -18,6 +18,8 @@
 #include <string>
 #include <vector>
 
+#include <boost/format.hpp>
+
 #include <Schnorr.h>
 #include <boost/format.hpp>
 #include "AddressChecksum.h"
@@ -629,11 +631,14 @@ const Json::Value JSONConversion::convertTxtoEthJson(
     const TransactionWithReceipt& txn) {
   Json::Value retJson;
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
-  retJson["gas"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
+  retJson["gas"] =
+      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
   // ethers also expectes gasLimit and ChainId
-  retJson["gasLimit"] = std::to_string(txn.GetTransactionReceipt().GetCumGas());
-  retJson["chainId"] = CHAIN_ID;
-  retJson["gasPrice"] = txn.GetTransaction().GetGasPrice().str();
+  retJson["gasLimit"] =
+      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
+  retJson["gasPrice"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetGasPrice()).str();
   retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
@@ -657,9 +662,11 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["input"] = inputField;
   // ethers also expects 'data' field
   retJson["data"] = inputField;
-  retJson["nonce"] = std::to_string(txn.GetTransaction().GetNonce());
+  retJson["nonce"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
   retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
-  retJson["value"] = txn.GetTransaction().GetAmount().str();
+  retJson["value"] =
+      (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
   return retJson;
 }
 
