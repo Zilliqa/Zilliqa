@@ -16,7 +16,8 @@
     "libevent",
     "leveldb",
     "curl",
-    "libmicrohttpd"
+    "libmicrohttpd",
+    "nlohmann-json"
   ],
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [
