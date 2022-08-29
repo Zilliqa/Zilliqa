@@ -1192,11 +1192,6 @@ Json::Value LookupServer::GetEthBalance(const std::string& address) {
   std::stringstream strm;
   strm << "0x" << std::hex << ethBalance;
 
-#if 1
-  LOG_GENERAL(DEBUG, "EthBalance: " << ethBalance);
-  LOG_GENERAL(DEBUG, "EthBalanceStr:" << balanceStr);
-  LOG_GENERAL(DEBUG, "EthBalanceStrm:" << strm.str());
-#endif
   return strm.str();
 }
 
