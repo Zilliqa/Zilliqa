@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "evm_ds_test"
+version = "0.1.0"
+description = ""
+authors = ["Valeriy Zamaraiev <valeriy@zilliqa.com>"]
+include = ["contracts/*"]
+
+[tool.poetry.dependencies]
+python = ">=3.8,<3.11"
+pyzil = "^1.5.22"
+py-solc-x = "^1.1.1"
+web3 = "^5"
+jsonrpcclient = ">=3.2.1,<4.0.0"
+eth-keys = "^0.3"
+eth-utils = "^1.10"
+fastecdsa = "^2.2.3"
+numpy = "^1.23.2"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2"
+pytest-xdist = "^2.5.0"
+black = "21.12b0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
