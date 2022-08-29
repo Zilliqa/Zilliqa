@@ -18,9 +18,11 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/SafeMath.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
