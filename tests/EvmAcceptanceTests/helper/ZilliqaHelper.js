@@ -74,7 +74,6 @@ class ZilliqaHelper {
         const nonce = await web3.eth.getTransactionCount(this.auxiliaryAccount.address, 'latest'); // nonce starts counting from 0
     
         const transaction = {
-            'to': "0x0000000000000000000000000000000000000000",
             'from': senderAccount.address,
             'value': options.value ?? 0,
             'data': Contract.getDeployTransaction(...constructorArgs).data,

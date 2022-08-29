@@ -34,7 +34,7 @@ describe("Contract Deployment", function () {
         expect(number).to.be.equal(123)
  
         const number2 = await contract.methods.number().call()
-        expect(number2).to.be.equal(123)
+        expect(number2).to.be.equal('123')
     });
 
     it("Testing deployment of a contract with an initial fund", async function() {
