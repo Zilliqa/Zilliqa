@@ -48,6 +48,8 @@ scope=$(find . -type f \( \
             ! -path "./scilla/*" \
             ! -path "./cmake-build-debug/*" \
             ! -path "./evm-ds/*" \
+            ! -path "./evm-ds/*" \
+            ! -path "./tests/EvmAcceptanceTests/node_modules/*" \
             ! -path "./src/depends/*" \
             ! -path "./scilla/deps/*" \
             ! -path "./scilla/_build/*" \
