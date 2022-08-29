@@ -571,7 +571,7 @@ bool Account::SetImmutable(const bytes& code, const bytes& initData) {
   }
 
   SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(code);
+  sha2.Update(StripEVM(code));
   sha2.Update(initData);
   SetCodeHash(dev::h256(sha2.Finalize()));
   // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);

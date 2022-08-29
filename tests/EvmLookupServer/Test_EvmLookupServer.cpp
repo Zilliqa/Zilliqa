@@ -680,8 +680,9 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     Json::Value response;
     lookupServer.GetEthBlockByNumberI(paramsRequest, response);
 
-    BOOST_CHECK_EQUAL(response["hash"].asString(),
-                      firstValidTxBlock.GetBlockHash().hex());
+    BOOST_CHECK_EQUAL(
+        response["hash"].asString(),
+        (boost::format("0x%x") % firstValidTxBlock.GetBlockHash().hex()).str());
 
     std::vector<std::string> expectedHashes;
     for (uint32_t i = 0; i < transactions.size(); ++i) {
@@ -722,8 +723,10 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     Json::Value response;
 
     lookupServer.GetEthBlockByNumberI(paramsRequest, response);
-    BOOST_CHECK_EQUAL(response["hash"].asString(),
-                      secondValidTxBlock.GetBlockHash().hex());
+    BOOST_CHECK_EQUAL(
+        response["hash"].asString(),
+        (boost::format("0x%x") % secondValidTxBlock.GetBlockHash().hex())
+            .str());
 
     // Pending
     paramsRequest[0u] = "pending";
@@ -776,7 +779,9 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   Json::Value response;
   lookupServer.GetEthBlockByHashI(paramsRequest, response);
 
-  BOOST_CHECK_EQUAL(response["hash"].asString(), txBlock.GetBlockHash().hex());
+  BOOST_CHECK_EQUAL(
+      response["hash"].asString(),
+      (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str());
   BOOST_CHECK_EQUAL(
       response["number"].asString(),
       (boost::format("0x%x") % txBlock.GetHeader().GetBlockNum()).str());

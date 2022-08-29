@@ -593,3 +593,11 @@ Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
 
   return TxBlockValidationMsg::VALID;
 }
+
+template bool Validator::CheckBlockCosignature<
+    std::deque<std::pair<PubKey, Peer>,
+               std::allocator<std::pair<PubKey, Peer>>>,
+    TxBlock>(TxBlock const&,
+             std::deque<std::pair<PubKey, Peer>,
+                        std::allocator<std::pair<PubKey, Peer>>> const&,
+             bool);
