@@ -334,15 +334,28 @@ class LookupServer : public Server,
         this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
   }
 
-  inline virtual void GetEthGasPriceI(const Json::Value& request,
+  /**
+   * @brief Get the Eth Gas Price. Returns the gas price in Wei.
+   * @param request none
+   * @param response Hex string of the current gas price in wei
+   */
+  inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    (void)request;
     response = "0xd9e63a68c";
   }
 
-  inline virtual void GetEthEstimateGasI(const Json::Value& request,
+  /**
+   * @brief Generates and returns an estimate of how much gas is necessary to
+   * allow the transaction to complete. The transaction will not be added to the
+   * blockchain. Note that the estimate may be significantly more than the
+   * amount of gas actually used by the transaction, for a variety of reasons
+   * including EVM mechanics and node performance.
+   *
+   * @param request none
+   * @param response Hex string with the estimated gasprice
+   */
+  inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    (void)request;
     response = "0x5208";
   }
 
