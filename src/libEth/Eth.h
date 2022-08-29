@@ -40,7 +40,7 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
                                   const std::string &gasUsed,
                                   const std::string &blockHash,
                                   const std::string &blockNumber,
-                                  bool isContractDeployment);
+                                  const Json::Value &contractAddress);
 
 EthFields parseRawTxFields(std::string const &message);
 
