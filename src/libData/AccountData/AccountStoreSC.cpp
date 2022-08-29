@@ -19,6 +19,8 @@
 #include <boost/filesystem.hpp>
 #include <chrono>
 
+#include <unordered_map>
+#include <vector>
 #include "ScillaClient.h"
 
 #include "libPersistence/ContractStorage.h"
@@ -28,6 +30,9 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
+
+#include "AccountStoreSC.h"
+
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
@@ -1610,3 +1615,7 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
   }
   m_newLibrariesCreated.clear();
 }
+
+// Explicit template instantiations.
+template class AccountStoreSC<std::map<Address, Account>>;
+template class AccountStoreSC<std::unordered_map<Address, Account>>;

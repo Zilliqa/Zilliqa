@@ -21,6 +21,7 @@
 #include "Logger.h"
 #include "TimeUtils.h"
 #include "common/Constants.h"
+#include "libUtils/SafeMath.h"
 
 static bool VerifyTimestamp(const uint64_t& timestamp_in_microsec,
                             const uint64_t& timeout_in_sec) {

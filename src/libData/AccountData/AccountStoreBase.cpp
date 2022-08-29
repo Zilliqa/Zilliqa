@@ -21,6 +21,8 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
+#include "AccountStoreBase.h"
+
 template <class MAP>
 AccountStoreBase<MAP>::AccountStoreBase() {
   m_addressToAccount = std::make_shared<MAP>();
@@ -344,3 +346,7 @@ void AccountStoreBase<MAP>::PrintAccountState() {
     LOG_GENERAL(INFO, entry.first << " " << entry.second);
   }
 }
+
+// Explicit instantiations.
+template class AccountStoreBase<std::map<Address, Account>>;
+template class AccountStoreBase<std::unordered_map<Address, Account>>;
