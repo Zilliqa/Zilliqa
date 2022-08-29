@@ -66,7 +66,3 @@ mv /usr/bin/cmake{,.old} && ln -s `pwd`/.local/bin/cmake /usr/bin/
 cmake --version
 rm cmake-3.19.3-Linux-x86_64.sh
 ls /scilla/0/
-
-cd /home/jenkins/agent/workspace/zilliqaci && ./scripts/ci_build.sh && \
-# Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
-./scripts/ci_report_coverage.sh
