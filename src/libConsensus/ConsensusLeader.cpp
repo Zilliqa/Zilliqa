@@ -116,7 +116,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   // more than 1 subset
 
   const unsigned int numSubsets =
-      (peersWhoCommitted.size() <= m_numForConsensus) ? 1 : m_numOfSubsets;
+      (peersWhoCommitted.size() <= m_numForConsensus) ? 2 : m_numOfSubsets;
   LOG_GENERAL(INFO, "peersWhoCommitted = " << peersWhoCommitted.size() + 1);
   LOG_GENERAL(INFO, "m_numForConsensus = " << m_numForConsensus);
   LOG_GENERAL(INFO, "numSubsets        = " << numSubsets);
@@ -153,7 +153,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
           subsetPeers++;
-          LOG_GENERAL(INFO,"refine_set = "<< m_committee.at(index).second.GetPrintableIPAddress());
+          LOG_GENERAL(INFO,"refine_set adding guard = "<< m_committee.at(index).second.GetPrintableIPAddress());
           if (subsetPeers == m_numForConsensus) {
             // got all dsguards commit
             LOG_GENERAL(INFO, "[SubsetID: " << i << "] Got all "
@@ -162,6 +162,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
             break;
           }
         } else {
+          LOG_GENERAL(INFO,"refine_set adding non guard = "<< m_committee.at(index).second.GetPrintableIPAddress());
           nondsguardIndexes.push_back(index);
         }
       }
@@ -191,6 +192,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
         subset.commitPointMap.at(index) = m_commitPointMap.at(index);
         subset.commitPoints.emplace_back(m_commitPointMap.at(index));
         subset.commitMap.at(index) = true;
+        LOG_GENERAL(INFO,"refine_set adding non guard = "<< m_committee.at(index).second.GetPrintableIPAddress());
         if (GUARD_MODE && m_DS &&
             index < Guard::GetInstance().GetNumOfDSGuard()) {
           guardCount++;
