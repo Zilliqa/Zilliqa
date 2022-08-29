@@ -54,6 +54,7 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
+    protobuf-compiler \
     python3-dev \
     python3-pip \
     python3-setuptools \
@@ -146,7 +147,6 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
     python3-dev \
     python3-pip \
     python3-setuptools \
