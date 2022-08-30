@@ -45,7 +45,7 @@ RUN apt-get update \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
-    libjsonrpccpp-dev \
+#    libjsonrpccpp-dev \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
@@ -140,7 +140,7 @@ RUN apt-get update \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
-    libjsonrpccpp-dev \
+#    libjsonrpccpp-dev \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \

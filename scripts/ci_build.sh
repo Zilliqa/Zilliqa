@@ -24,9 +24,11 @@ os=$(uname)
 case $os in
     'Linux')
         n_parallel=$(nproc)
+        lib_install_dir=/usr/lib/x86_64-linux-gnu
         ;;
     'Darwin')
         n_parallel=$(sysctl -n hw.ncpu)
+        lib_install_dir=/usr/local/lib
         ;;
     *)
         n_parallel=2
@@ -57,8 +59,9 @@ fi
 
 cmake -H./scripts/external_boost -B${dir}/boost
 cmake --build ${dir}/boost --target Boost
-sudo mv ${dir}/boost/include/* /usr/include
-sudo mv ${dir}/boost/lib/* /usr/lib/x86_64-linux-gnu
+sudo mv ${dir}/boost/include/boost /usr/include
+sudo rsync -a ${dir}/boost/lib/cmake ${lib_install_dir}
+sudo mv ${dir}/boost/lib/libboost* ${lib_install_dir}
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
 cmake --build ${dir} -- -j${n_parallel}

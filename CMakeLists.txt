@@ -39,6 +39,7 @@ find_package(Threads REQUIRED)
 if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
+include_directories(${JSONRPC_INCLUDE_DIR})
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
