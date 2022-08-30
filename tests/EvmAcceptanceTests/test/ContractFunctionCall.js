@@ -8,6 +8,7 @@ describe("Contract Function Call with web3.js", function () {
             it("should return correct value when return type is address")
             it("should return correct value when return type is string")
             it("should return correct value when return type is enum")
+            it("should return correct values when return type is tuple")
         });
         describe("When it's a external view function", function () {
         });
@@ -32,6 +33,15 @@ describe("Contract Function Call with web3.js", function () {
         describe("When it's a private payable function", function () {
         });
         describe("When it's a internal payable function", function () {
+        });
+
+        describe("When it's a public setter function", function () {
+        });
+        describe("When it's a external setter function", function () {
+        });
+        describe("When it's a private setter function", function () {
+        });
+        describe("When it's a internal setter function", function () {
         });
     })
 
@@ -65,6 +75,15 @@ describe("Contract Function Call with web3.js", function () {
         describe("When it's a private payable function", function () {
         });
         describe("When it's a internal payable function", function () {
+        });
+
+        describe("When it's a public setter function", function () {
+        });
+        describe("When it's a external setter function", function () {
+        });
+        describe("When it's a private setter function", function () {
+        });
+        describe("When it's a internal setter function", function () {
         });
     })
 })
@@ -101,6 +120,15 @@ describe("Contract Function Call with ethers.js", function () {
         });
         describe("When it's a internal payable function", function () {
         });
+
+        describe("When it's a public setter function", function () {
+        });
+        describe("When it's a external setter function", function () {
+        });
+        describe("When it's a private setter function", function () {
+        });
+        describe("When it's a internal setter function", function () {
+        });
     })
 
     describe("When caller is a contract account", function () {
@@ -133,6 +161,15 @@ describe("Contract Function Call with ethers.js", function () {
         describe("When it's a private payable function", function () {
         });
         describe("When it's a internal payable function", function () {
+        });
+
+        describe("When it's a public setter function", function () {
+        });
+        describe("When it's a external setter function", function () {
+        });
+        describe("When it's a private setter function", function () {
+        });
+        describe("When it's a internal setter function", function () {
         });
     })
 })

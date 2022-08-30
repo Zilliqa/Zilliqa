@@ -1,10 +1,6 @@
 const { expect } = require("chai");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
 
-// GIVEN
-// WHEN
-// THEN
-// GIVEN A  zero-argument 
 describe("Contract Deployment with web3.js", function () {
     describe("When it's being deployed using an externally owned account", function() {
         it("Should be deployed successfully when initial fund is provided")
