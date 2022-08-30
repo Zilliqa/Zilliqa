@@ -675,6 +675,14 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
   retJson["value"] =
       (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
+  if (!txn.GetTransaction().GetCode().empty() &&
+      IsNullAddress(txn.GetTransaction().GetToAddr())) {
+    retJson["contractAddress"] =
+        "0x" +
+        Account::GetAddressForContract(txn.GetTransaction().GetSenderAddr(),
+                                       txn.GetTransaction().GetNonce() - 1)
+            .hex();
+  }
   return retJson;
 }
 

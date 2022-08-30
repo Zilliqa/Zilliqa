@@ -55,7 +55,7 @@ bool EvmClient::OpenServer(uint32_t version) {
   const std::string cmdStr =
       "pkill " + programName + " ; " + EVM_SERVER_BINARY +                 //
       " --socket " + EVM_SERVER_SOCKET_PATH +                              //
-      " --tracing " +                                                       //
+      " --tracing " +                                                      //
       " --zil-scaling-factor " + std::to_string(EVM_ZIL_SCALING_FACTOR) +  //
       " --log4rs '" + EVM_LOG_CONFIG +                                     //
       "'>/dev/null &";
