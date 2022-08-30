@@ -157,6 +157,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
   retJson["extraData"] = "0x";
+  retJson["transactions"] = Json::arrayValue;
 
   // Todo: prepare transaction to eth-like json conversion
   if (!includeFullTransactions) {

@@ -1186,6 +1186,18 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
+Json::Value LookupServer::GetEthBalance(const std::string& address) {
+  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+
+  const uint256_t ethBalance =
+      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+
+  std::stringstream strm;
+  strm << "0x" << std::hex << ethBalance;
+
+  return strm.str();
+}
+
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
     const std::string& inputHash) {
   try {
@@ -1507,7 +1519,7 @@ Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
@@ -1559,7 +1571,7 @@ Json::Value LookupServer::GetLatestTxBlock() {
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
-Json::Value LookupServer::GetBalance(const string& address) {
+Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1681,7 +1693,7 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 // Get balance, but return the result as hex rather than decimal string
 Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
   try {
-    auto ret = this->GetBalance(address);
+    auto ret = this->GetBalanceAndNonce(address);
 
     // Will fit into 128 since that is the native zil balance
     // size
