@@ -195,6 +195,7 @@
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
         <ETH_CHAINID>0x814d</ETH_CHAINID>
+        <EVM_ZIL_SCALING_FACTOR>1</EVM_ZIL_SCALING_FACTOR>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
