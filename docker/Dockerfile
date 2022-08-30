@@ -178,6 +178,7 @@ RUN mkdir -p \
 
 ARG INSTALL_DIR=/usr/local
 ARG MONGO_INSTALL_DIR=/build/mongo
+ARG SOURCE_DIR=/zilliqa
 
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
@@ -189,8 +190,8 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
-COPY --from=builder $SOURCE_DIR/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
-COPY --from=builder $SOURCE_DIR/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
+COPY --from=builder ${SOURCE_DIR}/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
+COPY --from=builder ${SOURCE_DIR}/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
