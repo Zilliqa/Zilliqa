@@ -396,7 +396,7 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "");
+  BOOST_CHECK_EQUAL(response.asString(), "0x0000000000000000000000000000000000000000");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_version) {
@@ -412,7 +412,7 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "");
+  BOOST_CHECK_EQUAL(response.asString(), "1");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_listening) {
@@ -462,7 +462,7 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "");
+  BOOST_CHECK_EQUAL(response.asString(), "0x41");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
@@ -607,10 +607,7 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
   lookupServer.GetNetVersionI(paramsRequest, response);
-
-  if (response.asString().size() > 0) {
-    BOOST_FAIL("Failed to get net version");
-  }
+  BOOST_CHECK_EQUAL(response, Json::Value("1"));
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
