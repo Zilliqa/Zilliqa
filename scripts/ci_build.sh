@@ -60,7 +60,7 @@ fi
 cmake -H./scripts/external_boost -B${dir}/boost
 cmake --build ${dir}/boost --target Boost
 sudo mv ${dir}/boost/include/boost /usr/include
-sudo rsync -a ${dir}/boost/lib/cmake ${lib_install_dir}
+# sudo rsync -a ${dir}/boost/lib/cmake ${lib_install_dir}
 sudo mv ${dir}/boost/lib/libboost* ${lib_install_dir}
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
