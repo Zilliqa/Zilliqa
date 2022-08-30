@@ -36,6 +36,7 @@ describe("Contract Function Call with web3.js", function () {
         });
 
         describe("When it's a public setter function", function () {
+            it("should not change the state of the contract if state variable is immutable")
         });
         describe("When it's a external setter function", function () {
         });
