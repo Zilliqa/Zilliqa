@@ -4,7 +4,7 @@ require("@nomiclabs/hardhat-web3");
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.9",
-  defaultNetwork: "ganache",
+  defaultNetwork: "isolated_server",
   networks: {
     ganache: {
       url: "http://127.0.0.1:7545",
