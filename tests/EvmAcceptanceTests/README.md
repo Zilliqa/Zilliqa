@@ -37,7 +37,7 @@ npx hardhat test --parallel
 
 # How to define a new network for hardhat
 1. Add a new network to `hardhat.config.js` inside `networks` property:
-```json
+```
 ...
 module.exports = {
   solidity: "0.8.9",
@@ -55,7 +55,7 @@ module.exports = {
 ```
 
 2. Change the default network:
-```json
+```
 module.exports = {
   solidity: "0.8.9",
   defaultNetwork: "ganache",
@@ -64,6 +64,13 @@ module.exports = {
 Alternatively, It's possible to run the tests with `--network` option:
 ```bash
 npx hardhat test --network ganache
+```
+# How to debug
+1. Use `console.log` :smile:
+2. Use vscode debugger
+3. Use `--verbose` option to enable hardhat verbose logging
+```bash
+npx hardhat --verbose test
 ```
 # Testing conventions and best practices
 * File names tries to tell us the scenario we're testing.
