@@ -28,8 +28,8 @@ expect(badFn).to.throw();
 ```
 ## Run the tests
 ```bash
-npx hardhat test
-npx hardhat test --grep "something"
+npx hardhat test        # Run all the tests
+npx hardhat test --grep "something"     # Run tests containing "something" in their descriptions
 npx hardhat test --bail     # Stop running tests after the first test failure
 npx hardhat test --parallel
 ```
