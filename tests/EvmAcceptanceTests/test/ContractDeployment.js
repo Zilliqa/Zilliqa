@@ -1,66 +1,141 @@
-const { expect } = require("chai");
+const { expect, should } = require("chai");
+const { ethers } = require("hardhat");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
 
-describe("Contract Deployment with web3.js", function () {
-    describe("When it's being deployed using an externally owned account", function() {
-        it("Should be deployed successfully when initial fund is provided")
-        it("Should be deployed successfully when constructor has no argument")
-        describe("with one argument to constructor", function() {
-            it("Should be deployed successfully and state should be changed correctly when argument type is uint256")
-            it("Should be deployed successfully and state should be changed correctly when argument type is string")
-            it("Should be deployed successfully and state should be changed correctly when argument type is address")
-            it("Should be deployed successfully and state should be changed correctly when argument type is enum")
-        })
-        describe("with two arguments to constructor", function() {
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are identical")
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are different")
-        })
-    });
-    describe("When it's being deployed using a contract account", function() {
-        it("Should be deployed successfully when initial fund is provided")
-        it("Should be deployed successfully when constructor has no argument")
-        describe("with one argument to constructor", function() {
-            it("Should be deployed successfully and state should be changed correctly when argument type is uint256")
-            it("Should be deployed successfully and state should be changed correctly when argument type is string")
-            it("Should be deployed successfully and state should be changed correctly when argument type is address")
-            it("Should be deployed successfully and state should be changed correctly when argument type is enum")
-        })
-        describe("with two arguments to constructor", function() {
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are identical")
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are different")
-        })
-    });
-})
+describe("Contract Deployment", function () {
+    describe("Contract with zero parameter constructor", function () {
+        describe("When ethers.js is used", function () {
+            let contract;
+            before(async function () {
+                const Contract = await ethers.getContractFactory("ZeroParamConstructor")
+                contract = await Contract.deploy()
+            })
 
-describe("Contract Deployment with ethers.js", function () {
-    describe("When it's being deployed using an externally owned account", function() {
-        it("Should be deployed successfully when initial fund is provided")
-        it("Should be deployed successfully when constructor has no argument")
-        describe("with one argument to constructor", function() {
-            it("Should be deployed successfully and state should be changed correctly when argument type is uint256")
-            it("Should be deployed successfully and state should be changed correctly when argument type is string")
-            it("Should be deployed successfully and state should be changed correctly when argument type is address")
-            it("Should be deployed successfully and state should be changed correctly when argument type is enum")
-        })
-        describe("with two arguments to constructor", function() {
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are identical")
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are different")
-        })
-    });
-    describe("When it's being deployed using a contract account", function() {
-        it("Should be deployed successfully when initial fund is provided")
-        it("Should be deployed successfully when constructor has no argument")
-        describe("with one argument to constructor", function() {
-            it("Should be deployed successfully and state should be changed correctly when argument type is uint256")
-            it("Should be deployed successfully and state should be changed correctly when argument type is string")
-            it("Should be deployed successfully and state should be changed correctly when argument type is address")
-            it("Should be deployed successfully and state should be changed correctly when argument type is enum")
-        })
-        describe("with two arguments to constructor", function() {
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are identical")
-            it("Should be deployed successfully and states should be changed correctly when when to argument types are different")
-        })
-    });
+            it("Should be deployed successfully", async function () {
+                expect(contract.address).exist;
+            })
+
+            it("Should return 123 when number view function is called", async function () {
+                expect(await contract.number()).to.be.eq(123)
+            })
+        });
+
+        describe("When web3.js is used", function () {
+            // TODO
+        });
+    })
+
+    describe("Contract with one parameter constructor", function () {
+        describe("When ethers.js is used", function () {
+            describe("When constructor parameter is a uint256", async function () {
+                let contract;
+                let INITIAL_NUMBER = 100;
+                before(async function () {
+                    const Contract = await ethers.getContractFactory("WithUintConstructor")
+                    contract = await Contract.deploy(INITIAL_NUMBER)
+                })
+
+                it("Should be deployed successfully", async function () {
+                    expect(contract.address).exist;
+                })
+
+                it("Should return 100 when number view function is called", async function () {
+                    expect(await contract.number()).to.be.eq(INITIAL_NUMBER)
+                })
+            })
+
+            describe("When constructor parameter is a string", async function () {
+                let contract;
+                let INITIAL_NAME = "Zilliqa";
+                before(async function () {
+                    const Contract = await ethers.getContractFactory("WithStringConstructor")
+                    contract = await Contract.deploy(INITIAL_NAME)
+                })
+
+                it("Should be deployed successfully", async function () {
+                    expect(contract.address).exist;
+                })
+
+                it("Should return Zilliqa when name view function is called", async function () {
+                    expect(await contract.name()).to.be.eq(INITIAL_NAME)
+                })
+            })
+
+            // TODO
+            describe("When constructor parameter is an address", async function () {
+                it("Should be deployed successfully")
+                it("Should return state accordingly")
+            })
+
+            // TODO
+            describe("When constructor parameter is an enum", async function () {
+                it("Should be deployed successfully")
+                it("Should return state accordingly")
+            })
+        });
+
+        describe("When web3.js is used", function () {
+            // TODO
+        });
+    })
+
+    describe("Contract with multi-parameter constructor", function () {
+        describe("When ethers.js is used", function () {
+            let contract;
+            let NAME = "Zilliqa"
+            let NUMBER = 100;
+            before(async function () {
+                const Contract = await ethers.getContractFactory("MultiParamConstructor")
+                contract = await Contract.deploy(NAME, NUMBER)
+            })
+
+            it("Should be deployed successfully", async function () {
+                expect(contract.address).exist;
+            })
+
+            it("Should return 100 when number view function is called", async function () {
+                expect(await contract.number()).to.be.eq(NUMBER)
+            })
+
+            it("Should return Zilliqa when name view function is called", async function () {
+                expect(await contract.name()).to.be.eq(NAME)
+            })
+        });
+
+        describe("When web3.js is used", function () {
+            // TODO
+        });
+    })
+
+    describe("Contract with payable constructor", function () {
+        describe("When ethers.js is used", function () {
+            let contract;
+            let INITIAL_BALANCE = 10;
+
+            before(async function () {
+                const Contract = await ethers.getContractFactory("WithPayableConstructor")
+                contract = await Contract.deploy({
+                    value: INITIAL_BALANCE
+                })
+            })
+
+            it("Should be deployed successfully", async function () {
+                expect(contract.address).exist;
+            })
+
+            it("Should return 10 when balance view function is called", async function () {
+                expect(await contract.balance()).to.be.eq(INITIAL_BALANCE)
+            })
+
+            it("Should return default signer when owner view function is called", async function () {
+                expect(await contract.owner()).to.be.eq(await ethers.provider.getSigner().getAddress())
+            })
+        });
+
+        describe("When web3.js is used", function () {
+            // TODO
+        });
+    })
 })
     // const helper = new ZilliqaHelper()
 
