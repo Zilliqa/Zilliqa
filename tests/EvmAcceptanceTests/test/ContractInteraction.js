@@ -50,7 +50,7 @@ describe("Contract Interaction", function () {
                 expect(await contract.getOne()).to.be.eq(1)
             })
     
-            // TODO: public pure functions with string, address, enum, tuple return types
+            // TODO: Consider string, address, enum, tuple return types
         })
 
         describe("When external view function is called", async function() {
@@ -62,7 +62,7 @@ describe("Contract Interaction", function () {
                 expect(await contract.getNameExternal()).to.be.eq("Zilliqa")
             })
 
-            // TODO: external pure functions with string, address, enum, tuple return types
+            // TODO: Consider string, address, enum, tuple return types
         })
 
 
@@ -71,7 +71,7 @@ describe("Contract Interaction", function () {
                 expect(await contract.getOne()).to.be.eq(1)
             })
     
-            // TODO: public pure functions with string, address, enum, tuple return types
+            // TODO: Consider string, address, enum, tuple return types
         })
 
         describe("When external pure function is called", async function() {
@@ -79,18 +79,28 @@ describe("Contract Interaction", function () {
                 expect(await contract.getTwo()).to.be.eq(2)
             })
 
-            // TODO: external pure functions with string, address, enum, tuple return types
+            // TODO: Consider string, address, enum, tuple return types
         })
 
-        describe("When calling an external function generates an event", async function() {
-            it("Should return correct value for uint256", async function() {
+        describe("When calling a public function that generates an event", async function() {
+            it("Should have the event name in returned object", async function() {
                 const tx = await contract.emitLogWithoutParam()
-                console.log(tx)
                 const result = await tx.wait()
-                console.log(result.events)
+                expect(result.events[0].event).to.be.equal("logWithoutParam")
             })
 
-            // TODO: external pure functions with string, address, enum, tuple return types
+            it("Should have the event argument in returned object when arg type is uint256", async function() {
+                const tx = await contract.emitLogWithUint256Param()
+                const result = await tx.wait()
+                expect(result.events[0].args[0]).to.be.equal(ethers.BigNumber.from(234))
+            })
+
+            // TODO
+            it("Should have the event arguments in returned object when event has multiple args")
+
+            // TODO: Consider string, address, enum, tuple arg types
+            // TODO: Calling a method on a contract that generates anonymous events with indexed parameters
+            // TODO: Calling a method on a contract that generates non-anonymous events with indexed parameters
         })
     });
 
