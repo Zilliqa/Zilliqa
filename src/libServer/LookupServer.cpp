@@ -22,6 +22,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
+#include "json/value.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -1362,7 +1363,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     if (blockHash == "") {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
-      return "";
+      return Json::nullValue;
     }
 
     TxBodySharedPtr transactioBodyPtr;
@@ -1370,7 +1371,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
-      return "";
+      return Json::nullValue;
     }
 
     auto const ethResult =
@@ -1389,12 +1390,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       blockHash = std::string("0x") + blockHash;
     }
 
-    const auto isContractDeployment =
-        Transaction::GetTransactionType(transactioBodyPtr->GetTransaction()) ==
-        Transaction::CONTRACT_CREATION;
-    auto res =
-        populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                              blockHash, blockNumber, isContractDeployment);
+    Json::Value contractAddress =
+        ethResult.get("contractAddress", Json::nullValue);
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                     blockHash, blockNumber, contractAddress);
 
     return res;
   } catch (const JsonRpcException& je) {
@@ -1404,7 +1403,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
                            string("Unable To find hash for txn: ") + e.what());
   }
 
-  return "";
+  return Json::nullValue;
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
@@ -1759,12 +1758,12 @@ Json::Value LookupServer::GetEthMining() {
 
 std::string LookupServer::GetEthCoinbase() {
   LOG_MARKER();
-  return "";
+  return "0x0000000000000000000000000000000000000000";
 }
 
 std::string LookupServer::GetNetVersion() {
   LOG_MARKER();
-  return "";
+  return "1";  // Like Ethereum, including test nets.
 }
 
 Json::Value LookupServer::GetNetListening() {
@@ -1779,7 +1778,7 @@ std::string LookupServer::GetNetPeerCount() {
 
 std::string LookupServer::GetProtocolVersion() {
   LOG_MARKER();
-  return "";
+  return "0x41";  // Similar to Infura, Alchemy
 }
 
 std::string LookupServer::GetEthChainId() {
