@@ -229,6 +229,7 @@ secp256k1_context const* getCtx() {
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   if (message.size() >= 2) {
     auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
+    // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards Compatibiltiy"
     if (!(firstByte >= 0xc0 && firstByte <= 0xfe)) {
       LOG_GENERAL(WARNING, "EIP-2718 TXs not yet supported! Tx: "
                                << message << " First byte: " << firstByte);
