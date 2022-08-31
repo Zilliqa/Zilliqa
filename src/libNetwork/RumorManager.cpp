@@ -212,7 +212,7 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
   PubKey senderPubKey;
   bytes messagePubK;
-  std::copy_n(senderPubKey.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
+  std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
 
   if (!senderPubKey.Deserialize(messagePubK, 0)) {
     LOG_GENERAL(WARNING, "Failed to deser sender public key!");
@@ -399,7 +399,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     // verify if the pubkey is from with-in our network
     PubKey senderPubKey;
     bytes messagePubK;
-    std::copy_n(senderPubKey.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
+    std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
 
     if (!senderPubKey.Deserialize(messagePubK, 0)) {
       LOG_GENERAL(WARNING, "Failed to deser sender pub key!");
