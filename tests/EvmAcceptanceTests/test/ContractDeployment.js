@@ -1,4 +1,4 @@
-const { expect, should } = require("chai");
+const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
 

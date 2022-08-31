@@ -1,5 +1,4 @@
 const { expect } = require("chai");
-const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
 
 describe("Contract destruction with web3.js", function () {
     describe("via user method call", function() {
