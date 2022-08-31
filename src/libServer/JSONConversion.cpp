@@ -25,6 +25,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -142,7 +143,9 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       std::string{"0x"} +
       Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
   retJson["difficulty"] =
-      (boost::format("0x%x") % dsBlock.GetHeader().GetDifficulty()).str();
+      (boost::format("0x%x") %
+       static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
+          .str();
 
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
@@ -150,7 +153,11 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
   retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
   retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+  retJson["timestamp"] = (boost::format("0x%x") % txblock.GetTimestamp()).str();
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
+  // Required by ethers
+  retJson["extraData"] = "0x";
+  retJson["transactions"] = Json::arrayValue;
 
   // Todo: prepare transaction to eth-like json conversion
   if (!includeFullTransactions) {
@@ -647,7 +654,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
 
   if (!txn.GetTransaction().GetCode().empty()) {
     inputField = "0x" + DataConversion::CharArrayToString(
-                            txn.GetTransaction().GetCode());
+                            StripEVM(txn.GetTransaction().GetCode()));
   }
 
   if (!txn.GetTransaction().GetData().empty()) {
@@ -668,6 +675,14 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
   retJson["value"] =
       (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
+  if (!txn.GetTransaction().GetCode().empty() &&
+      IsNullAddress(txn.GetTransaction().GetToAddr())) {
+    retJson["contractAddress"] =
+        "0x" +
+        Account::GetAddressForContract(txn.GetTransaction().GetSenderAddr(),
+                                       txn.GetTransaction().GetNonce() - 1)
+            .hex();
+  }
   return retJson;
 }
 

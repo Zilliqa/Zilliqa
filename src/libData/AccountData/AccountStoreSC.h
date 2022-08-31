@@ -269,7 +269,4 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool ViewAccounts(EvmCallParameters& params, bool& ret, std::string& result);
 };
 
-#include "AccountStoreAtomic.tpp"
-#include "AccountStoreSC.tpp"
-
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

@@ -30,12 +30,6 @@ bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
                        const Address& addr);
 
-template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
-    std::unordered_map<Address, Account>>(
-    bytes& dst, const unsigned int offset,
-    const dev::GenericTrieDB<TraceableDB>& stateTrie,
-    const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
-
 template <class MAP>
 bool MessengerAccountStoreTrie::SetAccountStoreTrie(
     bytes& dst, const unsigned int offset,
@@ -85,3 +79,16 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
 
   return SerializeToArray(result, dst, offset);
 }
+
+// Explicit specializations
+template bool
+MessengerAccountStoreTrie::SetAccountStoreTrie<std::map<Address, Account>>(
+    bytes& dst, const unsigned int offset,
+    const dev::GenericTrieDB<TraceableDB>& stateTrie,
+    const std::shared_ptr<std::map<Address, Account>>& addressToAccount);
+
+template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
+    std::unordered_map<Address, Account>>(
+    bytes& dst, const unsigned int offset,
+    const dev::GenericTrieDB<TraceableDB>& stateTrie,
+    const shared_ptr<unordered_map<Address, Account>>& addressToAccount);

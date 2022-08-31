@@ -193,6 +193,7 @@
         <EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
         <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
+        <EVM_ZIL_SCALING_FACTOR>1</EVM_ZIL_SCALING_FACTOR>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
