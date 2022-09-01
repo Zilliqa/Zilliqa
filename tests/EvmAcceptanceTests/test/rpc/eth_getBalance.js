@@ -8,7 +8,7 @@ describe("Calling " + METHOD, function () {
 
     it("should return the balance as specified in the ethereum protocol", async function() {
         const expectedResult = 0
-        await helper.callEth(METHOD, 1, [
+        await helper.callEthMethod(METHOD, 1, [
             "0xF0C05464f12cB2a011d21dE851108a090C95c755", "latest"
         ],(result, status) => {
             assert.equal(status, 200, 'has status code');

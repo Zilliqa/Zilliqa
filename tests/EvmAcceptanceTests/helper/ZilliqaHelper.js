@@ -163,7 +163,7 @@ class ZilliqaHelper {
         }
     }
 
-    async callEth(method, id, params, callback) {
+    async callEthMethod(method, id, params, callback) {
         const data = {
             id: id,
             jsonrpc: "2.0",
