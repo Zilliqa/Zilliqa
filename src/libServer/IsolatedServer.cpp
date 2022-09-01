@@ -459,6 +459,11 @@ bool IsolatedServer::ValidateEthTxn(const Transaction& tx,
                            "Code size is too large");
   }
 
+  if (tx.GetGasPrice() < MIN_ETH_GAS_PRICE_IN_WEI) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Gas price is too low");
+  }
+
   if (!Validator::VerifyTransaction(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Unable to verify transaction");
@@ -743,14 +748,15 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
 
     // Sender's balance should be higher than value sent in the transaction +
     // max gas to be used by contract action
-    const uint256_t requiredGas = uint256_t{tx.GetGasPrice()} * uint256_t{tx.GetGasLimit()};
+    const uint256_t requiredGas =
+        uint256_t{tx.GetGasPrice()} * uint256_t{tx.GetGasLimit()};
     const uint256_t requiredBalance = uint256_t{tx.GetAmount()} + requiredGas;
 
     if (senderBalance < requiredBalance) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmount().str() + 
+              " with an attempt to send: " + tx.GetAmount().str() +
               " and use totalGas: " + requiredGas.str());
     }
 

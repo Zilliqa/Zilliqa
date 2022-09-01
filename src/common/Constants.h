@@ -247,6 +247,7 @@ extern const unsigned int LAST_N_TXBLKS_TOCHECK_FOR_MISSINGMBS;
 extern const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS;
 
 // Gas constants
+extern const unsigned int MIN_ETH_GAS_PRICE_IN_WEI;
 extern const unsigned int DS_MICROBLOCK_GAS_LIMIT;
 extern const unsigned int SHARD_MICROBLOCK_GAS_LIMIT;
 extern const unsigned int CONTRACT_CREATE_GAS;
