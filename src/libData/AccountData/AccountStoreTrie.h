@@ -59,6 +59,4 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   void PrintTrie();
 };
 
-#include "AccountStoreTrie.tpp"
-
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_

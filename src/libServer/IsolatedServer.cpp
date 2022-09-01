@@ -183,11 +183,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthCoinbaseI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetVersionI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNetListeningI);
@@ -451,7 +446,8 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
 bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
   m_mediator.m_txBlockChain.Reset();
 
-  std::shared_ptr<Retriever> m_retriever;
+  std::shared_ptr<Retriever> m_retriever =
+      std::make_shared<Retriever>(m_mediator);
 
   bool st_result = m_retriever->RetrieveStates();
 

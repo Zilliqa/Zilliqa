@@ -34,6 +34,7 @@
 #include "common/Serializable.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/Messenger.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 
 using namespace std;

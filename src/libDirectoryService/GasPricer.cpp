@@ -18,6 +18,7 @@
 #include "DirectoryService.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 using namespace std;
 using namespace boost::multiprecision;

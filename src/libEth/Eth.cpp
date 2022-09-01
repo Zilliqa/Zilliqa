@@ -18,6 +18,7 @@
 #include "Eth.h"
 #include "common/Constants.h"
 #include "depends/common/RLP.h"
+#include "json/value.h"
 #include "jsonrpccpp/server.h"
 #include "libUtils/DataConversion.h"
 
@@ -28,13 +29,14 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
                                   const std::string &to,
                                   const std::string &gasUsed,
                                   const std::string &blockHash,
-                                  const std::string &blockNumber) {
+                                  const std::string &blockNumber,
+                                  const Json::Value &contractAddress) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
   ret["blockHash"] = blockHash;
   ret["blockNumber"] = blockNumber;
-  ret["contractAddress"] = "0x0000000000000000000000000000000000000000";
+  ret["contractAddress"] = contractAddress;
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["from"] = from;
   ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;

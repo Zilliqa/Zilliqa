@@ -22,6 +22,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
+#include "json/value.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -38,7 +39,9 @@
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
@@ -368,11 +371,6 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthBlockNumberI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetVersionI);
 
   this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
@@ -1183,12 +1181,28 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
+Json::Value LookupServer::GetEthBalance(const std::string& address) {
+  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+
+  const uint256_t ethBalance =
+      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+
+  std::ostringstream strm;
+  strm << "0x" << std::hex << ethBalance << std::dec;
+
+  return strm.str();
+}
+
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
     const std::string& inputHash) {
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
-    return txBlock.GetHeader().GetNumTxs();
+
+    std::ostringstream strm;
+    strm << "0x" << std::hex << txBlock.GetHeader().GetNumTxs() << std::dec;
+
+    return strm.str();
 
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
@@ -1208,13 +1222,16 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
       txBlock = m_mediator.m_txBlockChain.GetBlock(0);
     } else if (blockNumberStr == "pending") {
       // Not supported
-      return Json::Value{0};
+      return "0x0";
     } else {
       const uint64_t blockNum =
           std::strtoull(blockNumberStr.c_str(), nullptr, 0);
       txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     }
-    return txBlock.GetHeader().GetNumTxs();
+    std::ostringstream strm;
+    strm << "0x" << std::hex << txBlock.GetHeader().GetNumTxs() << std::dec;
+
+    return strm.str();
 
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
@@ -1312,9 +1329,6 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    auto const ethResult = GetEthTransactionByHash(txnhash);
-    auto const zilResult = GetTransaction(txnhash);
-
     // Scan downwards looking for the block hash with our TX in it
     const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
 
@@ -1326,11 +1340,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string blockHash = "";
     std::string blockNumber = "";
 
+    TxnHash argHash{txnhash};
     // Scan downwards through the chain until the TX can be found
     do {
-      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
-      const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
-
       auto const block = GetEthBlockByNumber(std::to_string(height), false);
       height--;
 
@@ -1339,15 +1351,31 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
       for (auto const& item : TxnHashes) {
         TxnHash hash_1{item.asString()};
-        TxnHash hash_2{txnhash};
 
-        if (hash_1 == hash_2) {
+        if (hash_1 == argHash) {
           blockHash = block["hash"].asString();
           blockNumber = block["number"].asString();
           break;
         }
       }
     } while (height != 0 && blockHash == "");
+
+    if (blockHash == "") {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      return Json::nullValue;
+    }
+
+    TxBodySharedPtr transactioBodyPtr;
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
+    if (!isPresent) {
+      LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
+      return Json::nullValue;
+    }
+
+    auto const ethResult =
+        JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
 
@@ -1357,17 +1385,14 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string toAddr = ethResult["to"].asString();
     std::string cumGas = zilResult["cumulative_gas"].asString();
 
-    if (blockHash == "") {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
-      return "";
-    }
-
     if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
       blockHash = std::string("0x") + blockHash;
     }
 
+    Json::Value contractAddress =
+        ethResult.get("contractAddress", Json::nullValue);
     auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash, blockNumber);
+                                     blockHash, blockNumber, contractAddress);
 
     return res;
   } catch (const JsonRpcException& je) {
@@ -1377,7 +1402,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
                            string("Unable To find hash for txn: ") + e.what());
   }
 
-  return "";
+  return Json::nullValue;
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
@@ -1493,7 +1518,7 @@ Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
@@ -1545,7 +1570,7 @@ Json::Value LookupServer::GetLatestTxBlock() {
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
-Json::Value LookupServer::GetBalance(const string& address) {
+Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1667,7 +1692,7 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 // Get balance, but return the result as hex rather than decimal string
 Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
   try {
-    auto ret = this->GetBalance(address);
+    auto ret = this->GetBalanceAndNonce(address);
 
     // Will fit into 128 since that is the native zil balance
     // size
@@ -1713,7 +1738,7 @@ Json::Value LookupServer::GetEthUncleCount() {
   LOG_MARKER();
   // There's no concept of longest chain hence there will be no uncles
   // Return 0 instead
-  return Json::Value{0};
+  return Json::Value{"0x0"};
 }
 
 Json::Value LookupServer::GetEthUncleBlock() {
@@ -1732,12 +1757,12 @@ Json::Value LookupServer::GetEthMining() {
 
 std::string LookupServer::GetEthCoinbase() {
   LOG_MARKER();
-  return "";
+  return "0x0000000000000000000000000000000000000000";
 }
 
 std::string LookupServer::GetNetVersion() {
   LOG_MARKER();
-  return "";
+  return "0x8000";  // Like Ethereum, including test nets.
 }
 
 Json::Value LookupServer::GetNetListening() {
@@ -1752,7 +1777,7 @@ std::string LookupServer::GetNetPeerCount() {
 
 std::string LookupServer::GetProtocolVersion() {
   LOG_MARKER();
-  return "";
+  return "0x41";  // Similar to Infura, Alchemy
 }
 
 std::string LookupServer::GetEthChainId() {
@@ -1883,7 +1908,8 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
   // Strip off "0x" if exists
   auto addressCopy = address;
 
-  if (addressCopy[0] == '0' && addressCopy[1] == 'x') {
+  if (addressCopy.size() >= 2 && addressCopy[0] == '0' &&
+      addressCopy[1] == 'x') {
     addressCopy.erase(0, 2);
   }
 

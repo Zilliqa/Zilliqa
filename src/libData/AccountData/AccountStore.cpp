@@ -19,9 +19,13 @@
 #include <regex>
 
 #include "AccountStore.h"
+#include "EvmClient.h"
+#include "ScillaClient.h"
+
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
@@ -29,6 +33,7 @@
 #include "EvmClient.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;
@@ -857,7 +862,7 @@ bool AccountStore::MigrateContractStates(
     for (auto const& type : types) {
       vector<string> fragments;
       boost::split(fragments, type.first,
-                   bind1st(std::equal_to<char>(), SCILLA_INDEX_SEPARATOR));
+                   [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
       if (fragments.size() < 3) {
         LOG_GENERAL(WARNING,
                     "Error fetching (field_name, type): " << address.hex());

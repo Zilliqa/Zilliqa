@@ -119,7 +119,7 @@ class LookupServer : public Server,
 
   inline virtual void GetBalanceI(const Json::Value& request,
                                   Json::Value& response) {
-    response = this->GetBalance(request[0u].asString());
+    response = this->GetBalanceAndNonce(request[0u].asString());
   }
 
   inline virtual void GetMinimumGasPriceI(const Json::Value& request,
@@ -334,45 +334,51 @@ class LookupServer : public Server,
         this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
   }
 
-  inline virtual void GetEthGasPriceI(const Json::Value& request,
+  /**
+   * @brief Get the Eth Gas Price. Returns the gas price in Wei.
+   * @param request none
+   * @param response Hex string of the current gas price in wei
+   */
+  inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    (void)request;
     response = "0xd9e63a68c";
   }
 
-  inline virtual void GetEthEstimateGasI(const Json::Value& request,
+  /**
+   * @brief Generates and returns an estimate of how much gas is necessary to
+   * allow the transaction to complete. The transaction will not be added to the
+   * blockchain. Note that the estimate may be significantly more than the
+   * amount of gas actually used by the transaction, for a variety of reasons
+   * including EVM mechanics and node performance.
+   *
+   * @param request none
+   * @param response Hex string with the estimated gasprice
+   */
+  inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    (void)request;
     response = "0x5208";
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
-    (void)request;
-
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
-    int resp = 0;
-
-    resp = this->GetBalance(address)["nonce"].asUInt() + 1;
+    const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
 
     response = DataConversion::IntToHexString(resp);
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
-    (void)request;
-
     response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
-    (void)request;
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
-    if (rawTx[1] == 'x') {
+    if (rawTx.size() >= 2 && rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
 
@@ -396,16 +402,9 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
-    std::string address = request[0u].asString();
+    auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
-
-    const auto resp = this->GetBalance(address, true)["balance"].asString();
-
-    if (resp == "0x0") {
-      response = resp;
-    } else {
-      response = "0x" + resp;
-    }
+    response = this->GetEthBalance(address);
   }
 
   /**
@@ -436,7 +435,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetWeb3Sha3I(const Json::Value& request,
                                    Json::Value& response) {
-    response = this->GetWeb3Sha3(request[0u]);
+    response = std::string{"0x"} + this->GetWeb3Sha3(request[0u]);
   }
 
   /**
@@ -580,7 +579,6 @@ class LookupServer : public Server,
    */
   virtual void GetEthStorageAtI(const Json::Value& request,
                                 Json::Value& response) {
-    std::cout << "GetEthStorageAtI call " << std::endl;
     response = this->GetEthStorageAt(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
@@ -591,17 +589,17 @@ class LookupServer : public Server,
 
   virtual void GetEthSignI(const Json::Value& /*request*/,
                            Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = "0x";
   }
 
   virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = "0x";
   }
 
   virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = "0x";
   }
 
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
@@ -680,7 +678,7 @@ class LookupServer : public Server,
                               bool verbose = false);
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
-  Json::Value GetBalance(const std::string& address);
+  Json::Value GetBalanceAndNonce(const std::string& address);
   Json::Value GetBalance(const std::string& address, bool noThrow);
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
@@ -738,6 +736,8 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
+  Json::Value GetEthBalance(const std::string& address);
+
   Json::Value CreateTransactionEth(
       EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,

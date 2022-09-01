@@ -25,6 +25,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -126,39 +127,58 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const std::vector<TxBodySharedPtr>& transactions,
     const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
-  (void)transactions;
   const TxBlockHeader& txheader = txblock.GetHeader();
 
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
-  retJson["hash"] = txblock.GetBlockHash().hex();
-  retJson["parentHash"] = txheader.GetPrevHash().hex();
+  retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
+  retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
   // sha3Uncles is calculated as keccak("")
   retJson["sha3Uncles"] =
       "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
-  retJson["stateRoot"] = txheader.GetStateRootHash().hex();
+  // Todo: research and possibly implement logs bloom filter
+  retJson["logsBloom"] =
+      "0x0000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "0000000000";
+  retJson["stateRoot"] = std::string{"0x"} + txheader.GetStateRootHash().hex();
   retJson["miner"] =
+      std::string{"0x"} +
       Account::GetAddressFromPublicKeyEth(txheader.GetMinerPubKey()).hex();
-  retJson["difficulty"] = dsBlock.GetHeader().GetDifficulty();
+  retJson["difficulty"] =
+      (boost::format("0x%x") %
+       static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
+          .str();
 
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
 
-  retJson["size"] = std::to_string(serializedTxBlock.size());
-  retJson["gasLimit"] = std::to_string(txheader.GetGasLimit());
-  retJson["gasUsed"] = std::to_string(txheader.GetGasUsed());
-  retJson["gasLimit"] = std::to_string(txblock.GetTimestamp());
-  retJson["version"] = txheader.GetVersion();
+  retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
+  retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
+  retJson["timestamp"] = (boost::format("0x%x") % txblock.GetTimestamp()).str();
+  retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
+  // Required by ethers
+  retJson["extraData"] = "0x";
 
-  // Todo: prepare transaction to eth-like json conversion
+  auto transactionsJson = Json::Value{Json::arrayValue};
   if (!includeFullTransactions) {
-    auto transactionHashesJson = Json::Value(Json::arrayValue);
     for (const auto& hash : transactionHashes) {
-      transactionHashesJson.append("0x" + hash.hex());
+      transactionsJson.append("0x" + hash.hex());
     }
-    retJson["transactions"] = transactionHashesJson;
+  } else {
+    for (const auto& transaction : transactions) {
+      transactionsJson.append(convertTxtoEthJson(*transaction));
+    }
   }
+  retJson["transactions"] = transactionsJson;
+  retJson["uncles"] = Json::arrayValue;
   return retJson;
 }
 
@@ -646,7 +666,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
 
   if (!txn.GetTransaction().GetCode().empty()) {
     inputField = "0x" + DataConversion::CharArrayToString(
-                            txn.GetTransaction().GetCode());
+                            StripEVM(txn.GetTransaction().GetCode()));
   }
 
   if (!txn.GetTransaction().GetData().empty()) {
@@ -667,6 +687,14 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
   retJson["value"] =
       (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
+  if (!txn.GetTransaction().GetCode().empty() &&
+      IsNullAddress(txn.GetTransaction().GetToAddr())) {
+    retJson["contractAddress"] =
+        "0x" +
+        Account::GetAddressForContract(txn.GetTransaction().GetSenderAddr(),
+                                       txn.GetTransaction().GetNonce() - 1)
+            .hex();
+  }
   return retJson;
 }
 

@@ -1,0 +1,21 @@
+{
+  "name": "hardhat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^1.0.2",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
+    "axios": "^0.27.2",
+    "hardhat": "^2.10.1",
+    "web3": "^1.7.5"
+  },
+  "dependencies": {
+    "@zilliqa-js/zilliqa": "^3.3.4"
+  }
+}

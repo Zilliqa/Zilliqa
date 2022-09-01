@@ -48,9 +48,12 @@ scope=$(find . -type f \( \
             ! -path "./scilla/*" \
             ! -path "./cmake-build-debug/*" \
             ! -path "./evm-ds/*" \
+            ! -path "./evm-ds/*" \
+            ! -path "./tests/EvmAcceptanceTests/node_modules/*" \
             ! -path "./src/depends/*" \
             ! -path "./scilla/deps/*" \
             ! -path "./scilla/_build/*" \
+            ! -path "./.local/*" \
             ! -path "./scripts/depends/*")
 
 lc_license=$(wc -l $banner_file | egrep "[0-9]+" -o | head -n1)

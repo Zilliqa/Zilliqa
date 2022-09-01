@@ -52,10 +52,13 @@ bool EvmClient::OpenServer(uint32_t version) {
 
   const std::string programName =
       boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  const std::string cmdStr = "pkill " + programName + " ; " +
-                             EVM_SERVER_BINARY + " --socket " +
-                             EVM_SERVER_SOCKET_PATH + " --tracing --log4rs '" +
-                             EVM_LOG_CONFIG + "'>/dev/null &";
+  const std::string cmdStr =
+      "pkill " + programName + " ; " + EVM_SERVER_BINARY +                 //
+      " --socket " + EVM_SERVER_SOCKET_PATH +                              //
+      " --tracing " +                                                      //
+      " --zil-scaling-factor " + std::to_string(EVM_ZIL_SCALING_FACTOR) +  //
+      " --log4rs '" + EVM_LOG_CONFIG +                                     //
+      "'>/dev/null &";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 

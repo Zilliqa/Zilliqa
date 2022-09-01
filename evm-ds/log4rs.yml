@@ -1,0 +1,25 @@
+appenders:
+  stderr:
+    kind: console
+    target: stderr
+
+  filelog:
+    kind: rolling_file
+    path: "/run/zilliqa/evm.log"
+    encoder:
+      pattern: "{d} {l} - {m}{n}"
+    policy:
+      trigger:
+        kind: size
+        limit: 30 mb
+      roller:
+        kind: fixed_window
+        pattern: "/run/zilliqa/evm_{}.gz"
+        count: 5
+        base: 1
+root:
+  level: info
+  appenders:
+    - stderr
+    - filelog
+
