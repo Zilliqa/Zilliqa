@@ -55,7 +55,7 @@ class IsolatedServer : public LookupServer,
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
-    if (rawTx[1] == 'x') {
+    if (rawTx.size() >= 2 && rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
 

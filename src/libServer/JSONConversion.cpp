@@ -127,7 +127,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const std::vector<TxBodySharedPtr>& transactions,
     const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
-  (void)transactions;
   const TxBlockHeader& txheader = txblock.GetHeader();
 
   Json::Value retJson;
@@ -138,6 +137,16 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   // sha3Uncles is calculated as keccak("")
   retJson["sha3Uncles"] =
       "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
+  // Todo: research and possibly implement logs bloom filter
+  retJson["logsBloom"] =
+      "0x0000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "000000000000000000000000000000000000000000000000000000000000000000000000"
+      "0000000000";
   retJson["stateRoot"] = std::string{"0x"} + txheader.GetStateRootHash().hex();
   retJson["miner"] =
       std::string{"0x"} +
@@ -157,16 +166,19 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
   retJson["extraData"] = "0x";
-  retJson["transactions"] = Json::arrayValue;
 
-  // Todo: prepare transaction to eth-like json conversion
+  auto transactionsJson = Json::Value{Json::arrayValue};
   if (!includeFullTransactions) {
-    auto transactionHashesJson = Json::Value(Json::arrayValue);
     for (const auto& hash : transactionHashes) {
-      transactionHashesJson.append("0x" + hash.hex());
+      transactionsJson.append("0x" + hash.hex());
     }
-    retJson["transactions"] = transactionHashesJson;
+  } else {
+    for (const auto& transaction : transactions) {
+      transactionsJson.append(convertTxtoEthJson(*transaction));
+    }
   }
+  retJson["transactions"] = transactionsJson;
+  retJson["uncles"] = Json::arrayValue;
   return retJson;
 }
 

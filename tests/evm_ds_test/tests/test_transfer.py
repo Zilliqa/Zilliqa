@@ -17,11 +17,6 @@
 from evm_ds_test import test_case, from_zil
 from eth_account import Account as EthAccount
 
-from pyzil.zilliqa.units import Zil
-from pyzil.account import Account
-from pyzil.crypto.zilkey import to_checksum_address as zil_to_checksum_address
-
-
 import time
 
 
@@ -52,8 +47,8 @@ contract ForwardZil {
     function withdraw() public {
         // get the amount of Zil stored in this contract minus 10 zil.
         uint amount = address(this).balance;
-        if (amount > 10000 gwei) {  // 10 ZIL
-            amount -= 10000 gwei;
+        if (amount > 1000 gwei) {  // 1 ZIL
+            amount -= 1000 gwei;
         }
 
         // send all Ether to owner
@@ -85,19 +80,19 @@ contract ForwardZil {
         # and it is accepted. In EVM, the payment is accepted as long as there's
         # no revert.
         assert self.get_balance(contract.address) == 0
-        self.call_contract(self.account, contract, from_zil(300), "deposit")
-        assert self.get_balance(contract.address) == from_zil(300)
+        self.call_contract(self.account, contract, from_zil(2), "deposit")
+        assert self.get_balance(contract.address) == from_zil(2)
 
         # Check that we can pass apparent value to a non-payable method. It should revert
         # as the passed value is not zero, so the resulting balance should not change.
         try:
             self.call_contract(
-                self.account, contract, from_zil(200), "notPayable", confirm=False
+                self.account, contract, from_zil(1), "notPayable", confirm=False
             )
         except ValueError:
             pass  # For the isolated server
         self.wait_txn_timeout()
-        assert self.get_balance(contract.address) == from_zil(300)  # Should not change.
+        assert self.get_balance(contract.address) == from_zil(2)  # Should not change.
 
         # Check that we can have the contract itself send some value to some address.
         # We expect the resulting balance to be zero, as the contract sends all of
@@ -105,13 +100,10 @@ contract ForwardZil {
         self.call_contract(self.account, contract, 0, "withdraw")
         time.sleep(1)
 
-        zil_account = Account(address=zil_to_checksum_address(contract.address))
-        assert zil_account.get_balance() == Zil(10)
+        assert self.get_balance(contract.address) == from_zil(1)
 
-        assert self.get_balance(contract.address) == from_zil(10)
-
-        # Now we should get 290 Zil back to account. Minus the gas charges.
-        # But overall we should be down 10 Zil + any gas fees
+        # Now we should get 1 Zil back to account. Minus the gas charges.
+        # But overall we should be down 1 Zil + any gas fees
         account_diff = prev_balance - self.get_balance(self.account.address)
-        assert account_diff > from_zil(10)
-        assert account_diff < from_zil(100)  # Gas fees are not in tens of Zils even.
+        assert account_diff > from_zil(1)
+        assert account_diff < from_zil(2)  # Gas fees are not in tens of Zils even.
