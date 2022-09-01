@@ -368,6 +368,8 @@ install(
 # add clang-format and clang-tidy targets lastly
 if(LLVM_EXTRA_TOOLS)
     include(LLVMExtraTools)
+else()
+    message(STATUS "LLVM extra tools NOT found (for clang format/tidy)")
 endif()
 
 include(CPack)
