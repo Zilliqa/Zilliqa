@@ -40,6 +40,7 @@ podTemplate(yaml: podDefinition) {
         stage('Build') {
             sh "git config --global --add safe.directory '*'"
             sh "./scripts/ci_build.sh"
+	    sh sleep 7000
         }
         stage('Report coverage') {
             // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
