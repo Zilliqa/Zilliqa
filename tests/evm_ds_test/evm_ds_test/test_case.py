@@ -77,7 +77,7 @@ class EvmDsTestCase:
         ]
         self.account = self.accounts[0]
 
-        nonce = self.w3.eth.get_transaction_count(funded_account.address)
+        nonce = self.get_nonce(funded_account.address)
 
         logging.debug("Funding initial test accounts")
         # Fund all the accounts.
@@ -122,7 +122,7 @@ class EvmDsTestCase:
 
     def transfer_zil(self, source, dest, amount, nonce=None):
         if nonce is None:
-            nonce = self.w3.eth.get_transaction_count(source.address)
+            nonce = self.get_nonce(source.address)
         signed_txn = self.w3.eth.account.sign_transaction(
             {
                 "to": dest.address,
@@ -177,7 +177,7 @@ class EvmDsTestCase:
     def install_contract_bytes(self, account, data_bytes, *args, **kwargs):
         confirm = kwargs.get("confirm", True)
         value = kwargs.get("value", 0)
-        nonce = self.w3.eth.get_transaction_count(account.address)
+        nonce = self.get_nonce(account.address)
         txn = self.w3.eth.account.sign_transaction(
             {
                 "value": value,
