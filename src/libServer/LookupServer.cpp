@@ -374,11 +374,6 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetEthBlockNumberI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetVersionI);
-
-  this->bindAndAddMethod(
       jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
@@ -1193,8 +1188,8 @@ Json::Value LookupServer::GetEthBalance(const std::string& address) {
   const uint256_t ethBalance =
       std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
 
-  std::stringstream strm;
-  strm << "0x" << std::hex << ethBalance;
+  std::ostringstream strm;
+  strm << "0x" << std::hex << ethBalance << std::dec;
 
   return strm.str();
 }
@@ -1204,7 +1199,11 @@ Json::Value LookupServer::GetEthBlockTransactionCountByHash(
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
-    return txBlock.GetHeader().GetNumTxs();
+
+    std::ostringstream strm;
+    strm << "0x" << std::hex << txBlock.GetHeader().GetNumTxs() << std::dec;
+
+    return strm.str();
 
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << inputHash);
@@ -1224,13 +1223,16 @@ Json::Value LookupServer::GetEthBlockTransactionCountByNumber(
       txBlock = m_mediator.m_txBlockChain.GetBlock(0);
     } else if (blockNumberStr == "pending") {
       // Not supported
-      return Json::Value{0};
+      return "0x0";
     } else {
       const uint64_t blockNum =
           std::strtoull(blockNumberStr.c_str(), nullptr, 0);
       txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     }
-    return txBlock.GetHeader().GetNumTxs();
+    std::ostringstream strm;
+    strm << "0x" << std::hex << txBlock.GetHeader().GetNumTxs() << std::dec;
+
+    return strm.str();
 
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr);
@@ -1342,9 +1344,6 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     TxnHash argHash{txnhash};
     // Scan downwards through the chain until the TX can be found
     do {
-      const auto txBlockRetrieve = m_mediator.m_txBlockChain.GetBlock(height);
-      const auto microBlockHash = txBlockRetrieve.GetMicroBlockInfos();
-
       auto const block = GetEthBlockByNumber(std::to_string(height), false);
       height--;
 
@@ -1740,7 +1739,7 @@ Json::Value LookupServer::GetEthUncleCount() {
   LOG_MARKER();
   // There's no concept of longest chain hence there will be no uncles
   // Return 0 instead
-  return Json::Value{0};
+  return Json::Value{"0x0"};
 }
 
 Json::Value LookupServer::GetEthUncleBlock() {
@@ -1764,7 +1763,7 @@ std::string LookupServer::GetEthCoinbase() {
 
 std::string LookupServer::GetNetVersion() {
   LOG_MARKER();
-  return "1";  // Like Ethereum, including test nets.
+  return "0x8000";  // Like Ethereum, including test nets.
 }
 
 Json::Value LookupServer::GetNetListening() {
@@ -1910,7 +1909,8 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
   // Strip off "0x" if exists
   auto addressCopy = address;
 
-  if (addressCopy[0] == '0' && addressCopy[1] == 'x') {
+  if (addressCopy.size() >= 2 && addressCopy[0] == '0' &&
+      addressCopy[1] == 'x') {
     addressCopy.erase(0, 2);
   }
 
