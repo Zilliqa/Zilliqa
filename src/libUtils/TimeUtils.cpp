@@ -56,7 +56,7 @@ std::string microsec_timestamp_to_readable(const uint64_t timestamp) {
 
 long int microsec_to_sec(const uint64_t timestamp) {
   std::chrono::microseconds micro(timestamp);
-  std::chrono::duration_cast<std::chrono::seconds> sec(micro);
+  auto sec = std::chrono::duration_cast<std::chrono::seconds>(micro);
   return sec.count();
 }
 
