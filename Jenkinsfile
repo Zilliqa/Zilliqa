@@ -39,7 +39,7 @@ podTemplate(yaml: podDefinition) {
         }
         stage('Build') {
             sh "git config --global --add safe.directory '*'"
-            sh sleep 7000
+            sh "sleep 7000"
             sh "./scripts/ci_build.sh"
         }
         stage('Report coverage') {
