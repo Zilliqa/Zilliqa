@@ -11,6 +11,7 @@
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-web3": "^2.0.0",
+    "axios": "^0.27.2",
     "hardhat": "^2.10.1",
     "web3": "^1.7.5"
   },

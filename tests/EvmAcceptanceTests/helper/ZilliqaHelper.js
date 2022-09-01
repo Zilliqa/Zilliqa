@@ -5,8 +5,7 @@ const { ethers, web3} = require("hardhat")
 const hre = require("hardhat")
 const { getPubKeyFromPrivateKey, getAddressFromPrivateKey, toChecksumAddress } = require('@zilliqa-js/crypto');
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
-
-let nextNonce = 0;
+const axios = require('axios')
 
 class ZilliqaHelper {
     constructor() {
@@ -163,37 +162,37 @@ class ZilliqaHelper {
             console.log(err);
         }
     }
-}
 
-async function fundedAccountsFixture() {
-    const zilliqa = new Zilliqa(getNetworkUrl());
-    const accounts = [];
-    const primary_account = new Account(this.getPrimaryAccount())
+    async callEth(method, id, params, callback) {
+        const data = {
+            id: id,
+            jsonrpc: "2.0",
+            method: method,
+            params: params
+        }
+    
+        const host = this.getNetworkUrl()
 
-    for (let i = 0; i < 10; i++) {
-        const privateKey = schnorr.generatePrivateKey();
-        accounts.push(new Account(privateKey))
+        // ASYNC
+        if(typeof callback === 'function') {
+            await axios.post(host, data).then(response => {
+                if(response.status === 200) {
+                    callback(response.data, response.status);
+                } else {
+                    throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
+                }
+            })
+        // SYNC
+        } else {
+            const response = await axios.post(host, data)
+
+            if(response.status !== 200) {
+                throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
+            }
+
+            return response.data
+        }
     }
-    nextNonce = (await zilliqa.blockchain.getBalance(primary_account.bech32Address)).result.nonce + 1;
-    const promises = []
-    accounts.forEach(account => {
-        const p = transfer(primary_account.privateKey, account.bech32Address, 10)
-        promises.push(p)
-    });
-
-    await Promise.all(promises);
-
-    accounts.forEach(account => {
-        zilliqa.blockchain.getBalance(
-            account.bech32Address
-        ).then(v => console.log(v));
-    })
-    // await transfer_zil(funded_account.privateKey, accounts[0].bech32Address, 100).then(p => {
-    //     zilliqa.blockchain.getBalance(
-    //         accounts[0].bech32Address
-    //     ).then(v=>console.log(v));
-    // })
-    return {accounts}
 }
 
 module.exports = {
