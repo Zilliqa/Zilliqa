@@ -63,13 +63,6 @@ class EvmDsTestCase:
     eth_network_id = network_id + 0x8000
 
     def init(self, num_accounts=1):
-        # Set up Zilliqa blockchain - needed just for GetContractaddressfromtransactionid.
-        # version = int("0x%04x%04x" % (self.network_id, 1), 0)
-        # self.blockchain = BlockChain(
-        #     api_url=self.endpoint, version=version, network_id=self.network_id
-        # )
-        # set_active_chain(self.blockchain)
-
         self.w3 = Web3(Web3.HTTPProvider(self.endpoint))
         funded_account = EthAccount.from_key(
             private_key="d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"
