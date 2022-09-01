@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-from pyzil.account import Account
+import logging
 from evm_ds_test import test_case, from_zil
 
 import solcx
@@ -61,7 +61,7 @@ contract ParentContract {
     }
 
     function installChild(uint256 initial_data) public returns (address payable) {
-      child = new ChildContract{value: 300000 gwei}(initial_data);
+      child = new ChildContract{value: 1000 gwei}(initial_data);
       return payable(address(child));
     }
 
@@ -83,26 +83,29 @@ contract ParentContract {
         self.init()
         # At first, compile and install the parent contract.
         compilation_result = self.compile_solidity(self.contract)
+        # nonce = self.get_nonce(self.account.address)
+        # logging.info("Beginning nonce: '{}'".format(nonce))
+        # print ("Beginning nonce: ", nonce)
         contract = self.install_contract(
-            self.account, compilation_result, value=from_zil(300)
+            self.account, compilation_result, value=from_zil(1)
         )
 
         # Record the initial balance.
         prev_balance = self.get_balance(self.account.address)
 
-        # Check that the parent contract account is 300 from_zil as initially requested.
+        # Check that the parent contract account is 1 zil as initially requested.
         set_value = self.call_view(contract, "getPaidValue")
-        assert set_value == 300_000_000_000_000
+        assert set_value == 1_000_000_000_000
 
-        assert self.get_balance(contract.address) == from_zil(300)
+        assert self.get_balance(contract.address) == from_zil(1)
 
         # Install a child contract by calling the method of a parent contract.
         # Supply the initial data argument to verify later.
         self.call_contract(self.account, contract, 0, "installChild", 12345)
         child_contract_addr = self.call_view(contract, "childAddress")
 
-        # Check that the child received 300 from_zil (like written in parent Solidity)
-        assert self.get_balance(child_contract_addr) == from_zil(300)
+        # Check that the child received 1 from_zil (like written in parent Solidity)
+        assert self.get_balance(child_contract_addr) == from_zil(1)
 
         # Need to select the right contract, so have to recompile it again here.
         result = solcx.compile_source(self.contract, output_values=["abi"])
@@ -124,4 +127,4 @@ contract ParentContract {
         # Return all funds from the child to its sender - parent contract.
         self.call_contract(self.account, child_contract, 0, "returnToSender")
         assert self.get_balance(child_contract_addr) == 0
-        assert self.get_balance(contract.address) == from_zil(300)
+        assert self.get_balance(contract.address) == from_zil(1)
