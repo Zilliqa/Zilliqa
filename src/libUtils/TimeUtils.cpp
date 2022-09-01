@@ -47,14 +47,20 @@ long int get_ms(const time_point<system_clock> time) {
       .count();
 }
 
-std::string microsec_timestamp_to_readable(const uint64_t& timestamp) {
+std::string microsec_timestamp_to_readable(const uint64_t timestamp) {
   std::chrono::microseconds dur(timestamp);
   std::chrono::time_point<std::chrono::system_clock> dt(dur);
   return g3::localtime_formatted(
       dt, {g3::internal::date_formatted + " " + g3::internal::time_formatted});
 }
 
-bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
-                           const uint64_t& hiBound) {
+long int microsec_to_sec(const uint64_t timestamp) {
+  std::chrono::microseconds micro(timestamp);
+  std::chrono::duration_cast<std::chrono::seconds> sec(micro);
+  return sec.count();
+}
+
+bool is_timestamp_in_range(const uint64_t timestamp, const uint64_t loBound,
+                           const uint64_t hiBound) {
   return timestamp >= loBound && timestamp <= hiBound;
 }

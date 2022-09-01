@@ -73,8 +73,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
   bool isVacuous =
       Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
-  auto timestamp =
-      std::chrono::duration_cast<std::chrono::seconds>(txblock.GetTimestamp());
+  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
@@ -161,8 +160,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
 
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
-  auto timestamp =
-      std::chrono::duration_cast<std::chrono::seconds>(txblock.GetTimestamp());
+  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
   retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
@@ -274,8 +272,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
     ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
   }
 
-  auto timestamp =
-    std::chrono::duration_cast<std::chrono::seconds>(dsblock.GetTimestamp());
+  auto timestamp = microsec_to_sec(dsblock.GetTimestamp());
   ret_header["Timestamp"] = to_string(timestamp);
 
   for (const auto& govProposal : dshead.GetGovProposalMap()) {
