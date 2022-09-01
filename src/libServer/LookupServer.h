@@ -361,31 +361,24 @@ class LookupServer : public Server,
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
-    (void)request;
-
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
-    int resp = 0;
-
-    resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+    const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
 
     response = DataConversion::IntToHexString(resp);
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
-    (void)request;
-
     response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
-    (void)request;
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
-    if (rawTx[1] == 'x') {
+    if (rawTx.size() >= 2 && rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
 
@@ -442,7 +435,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetWeb3Sha3I(const Json::Value& request,
                                    Json::Value& response) {
-    response = this->GetWeb3Sha3(request[0u]);
+    response = std::string{"0x"} + this->GetWeb3Sha3(request[0u]);
   }
 
   /**
@@ -586,7 +579,6 @@ class LookupServer : public Server,
    */
   virtual void GetEthStorageAtI(const Json::Value& request,
                                 Json::Value& response) {
-    std::cout << "GetEthStorageAtI call " << std::endl;
     response = this->GetEthStorageAt(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
@@ -597,17 +589,17 @@ class LookupServer : public Server,
 
   virtual void GetEthSignI(const Json::Value& /*request*/,
                            Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = "0x";
   }
 
   virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = "0x";
   }
 
   virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = "0x";
   }
 
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,

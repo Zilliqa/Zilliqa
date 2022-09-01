@@ -345,7 +345,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   BOOST_CHECK_EQUAL(
       response.asString(),
-      "b1e9ddd229f9a21ef978f6fcd178e74e37a4fa3d87f453bc34e772ec91328181");
+      "0xb1e9ddd229f9a21ef978f6fcd178e74e37a4fa3d87f453bc34e772ec91328181");
 
   // test with empty string
   paramsRequest[0u] = "";
@@ -355,7 +355,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   BOOST_CHECK_EQUAL(
       response.asString(),
-      "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
+      "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_mining) {
@@ -413,7 +413,7 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "1");
+  BOOST_CHECK_EQUAL(response.asString(), "0x8000");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_listening) {
@@ -568,7 +568,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
 
   lookupServer->GetEthUncleCountI(paramsRequest, response);
 
-  const Json::Value expectedResponse = Json::Value{0};
+  const Json::Value expectedResponse = "0x0";
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
@@ -586,7 +586,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
 
   lookupServer->GetEthUncleCountI(paramsRequest, response);
 
-  const Json::Value expectedResponse = Json::Value{0};
+  const Json::Value expectedResponse = "0x0";
   BOOST_CHECK_EQUAL(response, expectedResponse);
 }
 
@@ -608,7 +608,7 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
   lookupServer.GetNetVersionI(paramsRequest, response);
-  BOOST_CHECK_EQUAL(response, Json::Value("1"));
+  BOOST_CHECK_EQUAL(response, Json::Value("0x8000"));
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
@@ -659,6 +659,11 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
   for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
     transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+
+    bytes body;
+    transactions.back().Serialize(body, 0);
+    BlockStorage::GetBlockStorage().PutTxBody(
+        1, transactions.back().GetTransaction().GetTranID(), body);
   }
 
   constexpr auto FIRST_VALID_BLOCK_NUM = 1;
@@ -694,6 +699,40 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
          ++jsonIter) {
       receivedHashes.emplace_back(jsonIter->asString());
+    }
+    std::sort(receivedHashes.begin(), receivedHashes.end());
+    BOOST_CHECK_EQUAL_COLLECTIONS(
+        expectedHashes.cbegin(), expectedHashes.cend(), receivedHashes.cbegin(),
+        receivedHashes.cend());
+  }
+
+  // Case with retrieving block by number (with includeTransaction set to True)
+  {
+    Json::Value paramsRequest = Json::Value(Json::arrayValue);
+    paramsRequest[0u] = std::to_string(FIRST_VALID_BLOCK_NUM);
+    paramsRequest[1u] = true;
+
+    Json::Value response;
+    lookupServer.GetEthBlockByNumberI(paramsRequest, response);
+
+    BOOST_CHECK_EQUAL(
+        response["hash"].asString(),
+        (boost::format("0x%x") % firstValidTxBlock.GetBlockHash().hex()).str());
+
+    std::vector<std::string> expectedHashes;
+    for (uint32_t i = 0; i < transactions.size(); ++i) {
+      expectedHashes.emplace_back(
+          "0x" + transactions[i].GetTransaction().GetTranID().hex());
+    }
+    std::sort(expectedHashes.begin(), expectedHashes.end());
+
+    std::vector<std::string> receivedHashes;
+    const Json::Value arrayOfTransactions = response["transactions"];
+    for (auto jsonIter = arrayOfTransactions.begin();
+         jsonIter != arrayOfTransactions.end(); ++jsonIter) {
+      BOOST_TEST_CHECK(jsonIter->isObject() == true);
+      const auto tranJsonObject = *jsonIter;
+      receivedHashes.emplace_back(tranJsonObject["hash"].asString());
     }
     std::sort(receivedHashes.begin(), receivedHashes.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(
@@ -1033,7 +1072,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     Json::Value response;
 
     lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
-    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+    BOOST_TEST_CHECK(response.asString() ==
+                     (boost::format("0x%x") % TRANSACTIONS_COUNT).str());
   }
 
   // Existing block by Hash (with extra '0x' prefix)
@@ -1044,7 +1084,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     Json::Value response;
 
     lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
-    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+    BOOST_TEST_CHECK(response.asString() ==
+                     (boost::format("0x%x") % TRANSACTIONS_COUNT).str());
   }
 
   // Non existing block by Hash
@@ -1055,7 +1096,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     Json::Value response;
 
     lookupServer.GetEthBlockTransactionCountByHashI(paramsRequest, response);
-    BOOST_TEST_CHECK(response.asUInt64() == 0);
+    BOOST_TEST_CHECK(response.asString() == "0x0");
   }
 
   // Existing block by number
@@ -1066,7 +1107,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     Json::Value response;
 
     lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
-    BOOST_TEST_CHECK(response.asUInt64() == TRANSACTIONS_COUNT);
+    BOOST_TEST_CHECK(response.asString() ==
+                     (boost::format("0x%x") % TRANSACTIONS_COUNT).str());
   }
 
   // Non Existing block by number
@@ -1077,7 +1119,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     Json::Value response;
 
     lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
-    BOOST_TEST_CHECK(response.asUInt64() == 0);
+    BOOST_TEST_CHECK(response.asString() == "0x0");
   }
   // Block by TAGs
   {
@@ -1099,21 +1141,24 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
     Json::Value response;
 
     lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
-    BOOST_CHECK_EQUAL(response.asUInt64(), NEW_TRANSACTIONS_COUNT);
+    BOOST_CHECK_EQUAL(response.asString(),
+                      (boost::format("0x%x") % NEW_TRANSACTIONS_COUNT).str());
 
     // Pending
     paramsRequest[0u] = "pending";
 
     lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
-    BOOST_CHECK_EQUAL(response.asUInt64(), 0);
+    BOOST_CHECK_EQUAL(response.asString(), "0x0");
 
     // Earliest
     paramsRequest[0u] = "earliest";
 
     lookupServer.GetEthBlockTransactionCountByNumberI(paramsRequest, response);
     BOOST_CHECK_EQUAL(
-        response.asUInt64(),
-        mediator.m_txBlockChain.GetBlock(0).GetHeader().GetNumTxs());
+        response.asString(),
+        (boost::format("0x%x") %
+         mediator.m_txBlockChain.GetBlock(0).GetHeader().GetNumTxs())
+            .str());
   }
 }
 
