@@ -443,6 +443,47 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
+bool IsolatedServer::ValidateEthTxn(const Transaction& tx,
+                                    const Address& fromAddr,
+                                    const Account* sender) const {
+  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        std::string("CHAIN_ID incorrect: ") +
+            std::to_string(DataConversion::UnpackA(tx.GetVersion())) +
+            " when expected " + std::to_string(CHAIN_ID));
+  }
+
+  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Code size is too large");
+  }
+
+  if (!Validator::VerifyTransaction(tx)) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Unable to verify transaction");
+  }
+
+  if (IsNullAddress(fromAddr)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "Invalid address for issuing transactions");
+  }
+
+  if (sender == nullptr) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "The sender of the txn has no balance");
+  }
+
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
+  }
+
+  return true;
+}
+
 bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
   m_mediator.m_txBlockChain.Reset();
 
@@ -660,33 +701,27 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
 
     Address toAddr{fields.toAddr};
-    Transaction tx =
-        IsNullAddress(toAddr)
-            ? Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          ToEVM(fields.code),
-                          {},
-                          Signature(fields.signature, 0)}
-            : Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          {},
-                          DataConversion::StringToCharArray(
-                              DataConversion::Uint8VecToHexStrRet(
-                                  fields.code)),  // TODO remove hex'ing.
-                          Signature(fields.signature, 0)};
+    bytes data;
+    bytes code;
+    if (IsNullAddress(toAddr)) {
+      code = ToEVM(fields.code);
+    } else {
+      data = DataConversion::StringToCharArray(
+          DataConversion::Uint8VecToHexStrRet(fields.code));
+    }
+    Transaction tx{fields.version,
+                   fields.nonce,
+                   Address(fields.toAddr),
+                   PubKey(pubKey, 0),
+                   fields.amount,
+                   fields.gasPrice,
+                   fields.gasLimit,
+                   code,  // either empty or stripped EVM-less code
+                   data,  // either empty or un-hexed byte-stream
+                   Signature(fields.signature, 0)};
 
     uint64_t senderNonce;
-    uint128_t senderBalance;
+    uint256_t senderBalance;
 
     const Address fromAddr = tx.GetSenderAddr();
 
@@ -698,29 +733,25 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
+      if (!ValidateEthTxn(tx, fromAddr, sender)) {
         return ret;
       }
 
+      senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
       senderNonce = sender->GetNonce();
-      senderBalance = sender->GetBalance();
     }
 
-    if (senderNonce + 1 != tx.GetNonce()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Expected Nonce: " + to_string(senderNonce + 1));
-    }
+    // Sender's balance should be higher than value sent in the transaction +
+    // max gas to be used by contract action
+    const uint256_t requiredBalance =
+        uint256_t{tx.GetAmount()} +
+        (uint256_t{tx.GetGasPrice()} * uint256_t{tx.GetGasLimit()});
 
-    if (senderBalance < tx.GetAmount()) {
+    if (senderBalance < requiredBalance) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
               " with an attempt to send: " + tx.GetAmount().str());
-    }
-
-    if (m_gasPrice > tx.GetGasPrice()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Minimum gas price greater: " + m_gasPrice.str());
     }
 
     switch (Transaction::GetTransactionType(tx)) {

@@ -22,6 +22,9 @@
 #include <cstdint>
 #include "common/BaseType.h"
 
+// https://eips.ethereum.org/EIPS/eip-170
+constexpr auto MAX_EVM_CONTRACT_SIZE_BYTES = 24576;
+
 struct EthFields {
   uint32_t version{};
   uint64_t nonce{};
