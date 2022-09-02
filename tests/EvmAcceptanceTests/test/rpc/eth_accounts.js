@@ -5,7 +5,7 @@ var assert = require('chai').assert,
 var method = 'eth_accounts';
 
 // TEST
-var asyncTest = async function(done){
+var asyncTest = async function(){
     await Utils.callEthMethod(method, 1, [], function(result, status) {
         assert.equal(status, 200, 'has status code');
         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
