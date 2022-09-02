@@ -771,79 +771,6 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
-bool ValidateEthTxn(const Transaction& tx, const Address& fromAddr,
-                    const Account* sender) {
-  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "CHAIN_ID incorrect");
-  }
-
-  if (!tx.VersionCorrect()) {
-    throw JsonRpcException(
-        ServerBase::RPC_VERIFY_REJECTED,
-        "Transaction version incorrect! Expected:" +
-            to_string(TRANSACTION_VERSION) +
-            " Actual:" + to_string(DataConversion::UnpackB(tx.GetVersion())));
-  }
-
-  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Code size is too large");
-  }
-
-  if (tx.GetGasPrice() < MIN_ETH_GAS_PRICE_IN_WEI) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
-                               " lower than minimum allowable " +
-                               std::to_string(MIN_ETH_GAS_PRICE_IN_WEI));
-  }
-  if (!Validator::VerifyTransaction(tx)) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Unable to verify transaction");
-  }
-
-  if (IsNullAddress(fromAddr)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                           "Invalid address for issuing transactions");
-  }
-
-  if (sender == nullptr) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                           "The sender of the txn has no balance");
-  }
-
-  if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Nonce (" + to_string(tx.GetNonce()) +
-                               ") lower than current (" +
-                               to_string(sender->GetNonce()) + ")");
-  }
-
-  // Check if transaction amount is valid
-  uint256_t gasDeposit = 0;
-  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
-                                gasDeposit)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
-  }
-
-  uint256_t debt = 0;
-  if (!SafeMath<uint256_t>::add(gasDeposit, tx.GetAmount(), debt)) {
-    throw JsonRpcException(
-        ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
-  }
-
-  const uint256_t accountBalance =
-      uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-  if (accountBalance < debt) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Insufficient funds in source account!");
-  }
-
-  return true;
-}
-
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
@@ -1017,7 +944,8 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::CreateTransactionEth(
-    EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
+    Eth::EthFields const& fields, bytes const& pubKey,
+    const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
@@ -1067,7 +995,7 @@ Json::Value LookupServer::CreateTransactionEth(
       const Account* toAccount =
           AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
-      if (!ValidateEthTxn(tx, fromAddr, sender)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
         LOG_GENERAL(WARNING, "failed to validate TX!");
         return ret;
       }
@@ -1464,8 +1392,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash, blockNumber, contractAddress);
+    auto res =
+        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                   blockHash, blockNumber, contractAddress);
 
     return res;
   } catch (const JsonRpcException& je) {

@@ -443,52 +443,6 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
-bool IsolatedServer::ValidateEthTxn(const Transaction& tx,
-                                    const Address& fromAddr,
-                                    const Account* sender) const {
-  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
-    throw JsonRpcException(
-        ServerBase::RPC_VERIFY_REJECTED,
-        std::string("CHAIN_ID incorrect: ") +
-            std::to_string(DataConversion::UnpackA(tx.GetVersion())) +
-            " when expected " + std::to_string(CHAIN_ID));
-  }
-
-  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Code size is too large");
-  }
-
-  if (tx.GetGasPrice() < MIN_ETH_GAS_PRICE_IN_WEI) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Gas price is too low");
-  }
-
-  if (!Validator::VerifyTransaction(tx)) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "Unable to verify transaction");
-  }
-
-  if (IsNullAddress(fromAddr)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                           "Invalid address for issuing transactions");
-  }
-
-  if (sender == nullptr) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
-                           "The sender of the txn has no balance");
-  }
-
-  if (sender->GetNonce() >= tx.GetNonce()) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Nonce (" + to_string(tx.GetNonce()) +
-                               ") lower than current (" +
-                               to_string(sender->GetNonce()) + ")");
-  }
-
-  return true;
-}
-
 bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
   m_mediator.m_txBlockChain.Reset();
 
@@ -696,7 +650,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   return ret;
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
+Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey) {
   Json::Value ret;
 
@@ -728,6 +682,9 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     uint64_t senderNonce;
     uint256_t senderBalance;
 
+    const uint128_t& gasPrice =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+
     const Address fromAddr = tx.GetSenderAddr();
 
     lock_guard<mutex> g(m_blockMutex);
@@ -738,7 +695,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!ValidateEthTxn(tx, fromAddr, sender)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
         return ret;
       }
 
