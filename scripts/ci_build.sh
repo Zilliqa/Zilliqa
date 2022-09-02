@@ -56,7 +56,7 @@ fi
 # assume that it is run from project root directory
 
 cmake -H./scripts/external_boost -B${dir}/boost -DINSTALL_PREFIX=/usr/local
-cmake --build ${dir}/boost --target Boost
+sudo cmake --build ${dir}/boost --target Boost
 # sudo mv ${dir}/boost/include/boost /usr/include
 # sudo rsync -a ${dir}/boost/lib/cmake ${lib_install_dir}
 # sudo mv ${dir}/boost/lib/libboost* ${lib_install_dir}
