@@ -18,7 +18,7 @@ spec:
 """
 
 timestamps {
-  ansiColor('xterm') {
+  ansiColor('gnome-terminal') {
     podTemplate(yaml: podDefinition) {
       node(POD_LABEL) {
         stage('Checkout scm') {
