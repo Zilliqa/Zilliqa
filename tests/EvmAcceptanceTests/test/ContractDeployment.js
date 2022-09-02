@@ -179,7 +179,9 @@ describe("Contract Deployment", function () {
             let contract;
             let NAME = "Zilliqa"
             let NUMBER = 100;
+            let helper;
             before(async function () {
+                helper = new ZilliqaHelper()
                 contract = await helper.deployContract("MultiParamConstructor", {
                     constructorArgs: [NAME, NUMBER]
                 })
@@ -230,9 +232,11 @@ describe("Contract Deployment", function () {
 
         describe("When Zilliqa Helper is used", function () {
             let INITIAL_BALANCE = 10;
+            let helper;
             let contract;
 
             before(async function () {
+                helper = new ZilliqaHelper()
                 contract = await helper.deployContract("WithPayableConstructor")
             })
 
