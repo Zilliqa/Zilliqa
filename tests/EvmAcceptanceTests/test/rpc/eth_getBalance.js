@@ -7,7 +7,8 @@ describe("Calling " + METHOD, function () {
     const helper = new ZilliqaHelper()
 
     it("should return the balance as specified in the ethereum protocol", async function () {
-        const expectedResult = 0xDE0B6B3A7640000 // should be 1 eth in wei         //// todo calculate balance from 1 / 10^18 in a bignumber
+        const expectedResult = 1 * (10 ** 18) // should be 1 eth in wei
+
         await helper.callEthMethod(METHOD, 1, [
             "0xF0C05464f12cB2a011d21dE851108a090C95c755", "latest"
         ], (result, status) => {
