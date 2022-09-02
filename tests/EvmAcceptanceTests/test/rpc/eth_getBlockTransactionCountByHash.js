@@ -35,8 +35,8 @@ var asyncErrorTest = async function(){
 describe(method, function () {
     // TODO: Needs fix
     // _.each(config.testBlocks.blocks, function (block) {
-    //     it('should return ' + block.transactions.length + ' as a hexstring', function (done) {
-    //         asyncTest(host, done, ['0x' + block.blockHeader.hash], block.transactions.length);
+    //     it('should return ' + block.transactions.length + ' as a hexstring', function () {
+    //         asyncTest(['0x' + block.blockHeader.hash], block.transactions.length);
     //     });
     // });
 

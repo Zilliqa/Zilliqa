@@ -17,7 +17,6 @@ var asyncTest = async function(params, expectedResult){
         assert.isNumber(+result.result, 'can be converted to a number');
 
         assert.equal(+result.result, expectedResult, 'should have balance '+ expectedResult);
-        console.log(result)
     });
 };
 
@@ -31,9 +30,10 @@ var asyncErrorTest = async function(){
 };
 
 describe(method, async function () {
-    const key = "F0C05464f12cB2a011d21dE851108a090C95c755"
+    const key = "bF0476C48C0E5353983c372738006a122ec50E8b"
     it('should return the correct balance at defaultBlock "latest" at address 0x' + key, async function () {
-        await asyncTest(['0x' + key, 'latest'], 98475700180000000000)
+        const expectedResult = 0xDE0B6B3A7640000 // should be 1 eth in wei //// todo calculate balance from 1 / 10^18 in a bignumber
+        await asyncTest(['0x' + key, 'latest'], expectedResult)
     });
 
     it('should return the correct balance at defaultBlock 0 at address 0x' + key, async function () {
