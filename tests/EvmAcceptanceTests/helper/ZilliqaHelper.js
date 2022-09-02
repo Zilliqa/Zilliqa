@@ -5,7 +5,6 @@ const { ethers, web3} = require("hardhat")
 const hre = require("hardhat")
 const { getPubKeyFromPrivateKey, getAddressFromPrivateKey, toChecksumAddress } = require('@zilliqa-js/crypto');
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
-const axios = require('axios')
 
 class ZilliqaHelper {
     constructor() {
@@ -36,28 +35,12 @@ class ZilliqaHelper {
         return bytes.pack(this.getZilliqaChainId(), MSG_VERSION);
     }
 
-    getEthChainId() {
-        return hre.network.config.chainId;
-    }
-
-    getZilliqaChainId() {
-        return hre.network.config.chainId - 0x8000;
-    }
-
-    getNetworkUrl() {
-        return hre.network.config.url
-    }
-
     getPrimaryPrivateAddress() {
         return this.getPrivateAddress(0)
     }
 
     getAuxiliaryAccount() {
         return this.auxiliaryAccount
-    }
-
-    getPrivateAddress(index) {
-        return hre.network.config.accounts[index]
     }
 
     async deployContract(contractName, options = {}) {
@@ -160,37 +143,6 @@ class ZilliqaHelper {
         } catch (err) {
             console.log("theres an error...");
             console.log(err);
-        }
-    }
-
-    async callEthMethod(method, id, params, callback) {
-        const data = {
-            id: id,
-            jsonrpc: "2.0",
-            method: method,
-            params: params
-        }
-    
-        const host = this.getNetworkUrl()
-
-        // ASYNC
-        if(typeof callback === 'function') {
-            await axios.post(host, data).then(response => {
-                if(response.status === 200) {
-                    callback(response.data, response.status);
-                } else {
-                    throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
-                }
-            })
-        // SYNC
-        } else {
-            const response = await axios.post(host, data)
-
-            if(response.status !== 200) {
-                throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
-            }
-
-            return response.data
         }
     }
 }
