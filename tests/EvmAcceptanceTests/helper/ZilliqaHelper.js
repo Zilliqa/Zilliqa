@@ -3,7 +3,7 @@ const {schnorr} = require('@zilliqa-js/crypto');
 const { Account } = require('@zilliqa-js/account')
 const { ethers, web3} = require("hardhat")
 const hre = require("hardhat")
-const { getPubKeyFromPrivateKey, getAddressFromPrivateKey, toChecksumAddress } = require('@zilliqa-js/crypto');
+const { toChecksumAddress } = require('@zilliqa-js/crypto');
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const axios = require('axios')
 
@@ -84,9 +84,7 @@ class ZilliqaHelper {
 
         const receipt = await this.sendTransaction(transaction, senderAccount)
 
-        const contractAddress = await this.zilliqa.blockchain.getContractAddressFromTransactionID(receipt.transactionHash.replace("0x", ""));
-        const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi,
-            web3.utils.toChecksumAddress((contractAddress).result), {
+        const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi, receipt.contractAddress, {
                 "from": this.auxiliaryAccount.address
             })
 
