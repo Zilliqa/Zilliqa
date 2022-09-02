@@ -84,12 +84,12 @@ ARG MONGO_INSTALL_DIR=${BUILD_DIR}/mongo
 
 RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
-    && cmake -H${SOURCE_DIR}/scripts/external_boost -B${BUILD_DIR}/boost \
+    && cmake -H${SOURCE_DIR}/scripts/external_boost -B${BUILD_DIR}/boost -DINSTALL_PREFIX=/usr/local \
     && cmake --build ${BUILD_DIR}/boost --target Boost \
-    && mv ${BUILD_DIR}/boost/include/* /usr/include \
-    && mv ${BUILD_DIR}/boost/lib/libboost* /usr/lib/x86_64-linux-gnu \
-    && ls /usr/lib/x86_64-linux-gnu \
-    && ls /usr/lib/x86_64-linux-gnu/cmake \
+#    && mv ${BUILD_DIR}/boost/include/* /usr/include \
+#    && mv ${BUILD_DIR}/boost/lib/libboost* /usr/lib/x86_64-linux-gnu \
+    && ls /usr/local/lib \
+    && ls /usr/local/lib/cmake \
 #    && mv ${BUILD_DIR}/boost/lib/cmake/boost /usr/lib/x86_64-linux-gnu/cmake \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
@@ -191,7 +191,7 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 
-COPY --from=builder /usr/lib/x86_64-linux-gnu/libboost* ${INSTALL_DIR}/lib/
+#COPY --from=builder /usr/lib/x86_64-linux-gnu/libboost* ${INSTALL_DIR}/lib/
 
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 

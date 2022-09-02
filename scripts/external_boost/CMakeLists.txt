@@ -5,8 +5,9 @@ include(ExternalProject)
 include(ProcessorCount)
 
 option(BUILD_ALL "Build all boost libraries" OFF)
+set(INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "Install prefix")
+
 set(Boost_BUILD_TYPE "release")
-set(INSTALL_PREFIX ${CMAKE_CURRENT_BINARY_DIR})
 
 set(CMAKE_CXX_STANDARD 14)
 
