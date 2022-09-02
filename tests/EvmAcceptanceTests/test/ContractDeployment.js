@@ -230,7 +230,7 @@ describe("Contract Deployment", function () {
             })
         });
 
-        describe("When Zilliqa Helper is used #xxx", function () {
+        describe("When Zilliqa Helper is used", function () {
             let INITIAL_BALANCE = 10;
             let helper;
             let contract;
