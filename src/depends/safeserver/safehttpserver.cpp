@@ -8,6 +8,7 @@
  ************************************************************************/
 
 #include "safehttpserver.h"
+#include <microhttpd.h>
 #include <cstdlib>
 #include <sstream>
 #include <cstring>
@@ -56,7 +57,7 @@ bool SafeHttpServer::StartListening() {
 
   if (!this->running) {
 
-    unsigned int mhd_flags = 0;
+    unsigned int mhd_flags = MHD_USE_THREAD_PER_CONNECTION;
 
     // Temp fix with useEpoll until proper solution for CLOSE_WAIT
     if (CONNECTION_IO_USE_EPOLL) {
