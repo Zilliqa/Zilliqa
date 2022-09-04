@@ -94,7 +94,7 @@ bool SafeHttpServer::StartListening() {
 
       this->daemon = MHD_start_daemon(
           mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
-          MHD_OPTION_THREAD_POOL_SIZE, this->threads, MHD_OPTION_SOCK_ADDR,
+          MHD_OPTION_SOCK_ADDR,
           (struct sockaddr *)(&(this->loopback_addr)), MHD_OPTION_END);
 
     } else if (!this->path_sslcert.empty() && !this->path_sslkey.empty()) {
@@ -107,7 +107,7 @@ bool SafeHttpServer::StartListening() {
             MHD_USE_SSL | mhd_flags, this->port, NULL, NULL,
             SafeHttpServer::callback, this, MHD_OPTION_HTTPS_MEM_KEY,
             this->sslkey.c_str(), MHD_OPTION_HTTPS_MEM_CERT,
-            this->sslcert.c_str(), MHD_OPTION_THREAD_POOL_SIZE, this->threads,
+            this->sslcert.c_str(),
             MHD_OPTION_END);
       } catch (JsonRpcException &ex) {
         return false;
@@ -116,7 +116,6 @@ bool SafeHttpServer::StartListening() {
       LOG_GENERAL(INFO, "Start Listening, mhdflag: " << mhd_flags);
       this->daemon = MHD_start_daemon(
         mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
-        MHD_OPTION_THREAD_POOL_SIZE, this->threads,
         MHD_OPTION_CONNECTION_TIMEOUT, CONNECTION_ALL_TIMEOUT,
         MHD_OPTION_END);
     }
