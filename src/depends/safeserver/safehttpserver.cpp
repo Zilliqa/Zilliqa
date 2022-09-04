@@ -57,33 +57,7 @@ bool SafeHttpServer::StartListening() {
 
   if (!this->running) {
 
-    unsigned int mhd_flags = MHD_USE_THREAD_PER_CONNECTION;
-
-    // Temp fix with useEpoll until proper solution for CLOSE_WAIT
-    if (CONNECTION_IO_USE_EPOLL) {
-    
-      const bool has_epoll =
-          (MHD_is_feature_supported(MHD_FEATURE_EPOLL) == MHD_YES);
-      const bool has_poll =
-          (MHD_is_feature_supported(MHD_FEATURE_POLL) == MHD_YES);
-
-      if (has_epoll) {
-  // In MHD version 0.9.44 the flag is renamed to
-  // MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY. In later versions both
-  // are deprecated.
-  #if defined(MHD_USE_EPOLL_INTERNALLY)
-        mhd_flags |= MHD_USE_EPOLL_INTERNALLY;
-  #else
-        mhd_flags |= MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY | MHD_USE_ITC;
-        LOG_GENERAL(INFO, "MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY");
-  #endif
-      }
-      else if (has_poll) {
-        mhd_flags |= MHD_USE_POLL_INTERNALLY;
-      } 
-    } else {
-      mhd_flags |= MHD_USE_SELECT_INTERNALLY;
-    }
+    unsigned int mhd_flags = MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD;
 
     if (this->bindlocalhost) {
       LOG_GENERAL(INFO, "Start Listening at bind localhost, mhdflag: " << mhd_flags);
