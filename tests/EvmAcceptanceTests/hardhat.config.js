@@ -7,7 +7,7 @@ module.exports = {
   defaultNetwork: "ganache",
   networks: {
     ganache: {
-      url: "http://127.0.0.1:7545",
+      url: "http://localhost:7545",
       chainId: 1337,
       accounts: [
         "c95690aed4461afd835b17492ff889af72267a8bdf7d781e305576cd8f7eb182",
