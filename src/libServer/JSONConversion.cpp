@@ -176,7 +176,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     }
   } else {
     for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction, txHeader));
+      transactionsJson.append(convertTxtoEthJson(*transaction, txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
