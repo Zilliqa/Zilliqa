@@ -992,7 +992,7 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 
     // Lookup to store the info
     if (foundDSGuardNode && LOOKUP_NODE_MODE) {
-      lock_guard<mutex> g(m_mutexLookupStoreForGuardNodeUpdate);
+      lock_guard<mutex> g1(m_mutexLookupStoreForGuardNodeUpdate);
       DSGuardUpdateStruct dsGuardNodeIden(dsGuardPubkey, dsGuardNewNetworkInfo,
                                           timestamp);
       if (m_lookupStoreForGuardNodeUpdate.find(dsEpochNumber) ==
@@ -1190,8 +1190,7 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                                      int64_t expectedNodes,
                                                      uint32_t powChangeoAdj) {
   if (powChangeoAdj == 0) {
-    // Special mode for developers: just to make thee difficulty flat and not
-    // growing
+    // Special mode for developers
     return minDifficulty;
   }
 

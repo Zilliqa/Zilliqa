@@ -1,0 +1,373 @@
+/*
+ * Copyright (C) 2019 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include <cassert>
+#include <sstream>
+
+#include "FiltersUtils.h"
+
+namespace evmproj {
+namespace filters {
+
+const char *FROMBLOCK_STR = "fromBlock";
+const char *TOBLOCK_STR("toBlock");
+const char *LATEST_STR("latest");
+const char *EARLIEST_STR("earliest");
+const char *PENDING_STR("pending");
+const char *ADDRESS_STR("address");
+const char *TOPICS_STR("topics");
+const char *LOGINDEX_STR("logIndex");
+const char *BLOCKNUMBER_STR("blockNumber");
+const char *BLOCKHASH_STR("blockHash");
+const char *TRANSACTIONHASH_STR("transactionHash");
+const char *TRANSACTIONINDEX_STR("transactionIndex");
+const char *DATA_STR("data");
+
+namespace {
+constexpr char EVENT_FILTER_SUFFIX = 'a';
+constexpr char TXN_FILTER_SUFFIX = 'b';
+constexpr char BLK_FILTER_SUFFIX = 'c';
+
+char Suffix(FilterType type) {
+  assert(type != FilterType::INVALID);
+
+  switch (type) {
+    case FilterType::EVENT_FILTER:
+      return EVENT_FILTER_SUFFIX;
+    case FilterType::TXN_FILTER:
+      return TXN_FILTER_SUFFIX;
+    case FilterType::BLK_FILTER:
+      return BLK_FILTER_SUFFIX;
+    default:
+      break;
+  }
+
+  throw std::runtime_error(std::string("Invalid filter type " +
+                                       std::to_string(static_cast<int>(type))));
+}
+
+}  // namespace
+
+std::string NumberAsString(uint64_t number) {
+  std::stringstream result;
+  result << "0x" << std::hex << number;
+  return result.str();
+}
+
+FilterId NewFilterId(uint64_t counter, FilterType type) {
+  std::stringstream result;
+  result << "0x" << std::hex << counter << Suffix(type);
+  return result.str();
+}
+
+FilterType GuessFilterType(const FilterId &id) {
+  if (id.size() >= 3) {
+    switch (id.back()) {
+      case EVENT_FILTER_SUFFIX:
+        return FilterType::EVENT_FILTER;
+      case TXN_FILTER_SUFFIX:
+        return FilterType::TXN_FILTER;
+      case BLK_FILTER_SUFFIX:
+        return FilterType::BLK_FILTER;
+      default:
+        break;
+    }
+  }
+  return FilterType::INVALID;
+}
+
+uint64_t ExtractNumber(std::string str, std::string &error) {
+  if (str.size() > 2 && str[1] == 'x') {
+    if (str[0] != '0') {
+      error = "Param parse error, 0x expected";
+    }
+    str = str.substr(2);
+  }
+
+  try {
+    uint64_t number = std::stoull(str, nullptr, 16);
+    error.clear();
+    return number;
+  } catch (const std::exception &e) {
+    error = "Param parse error: ";
+    error += e.what();
+  }
+
+  return 0;
+}
+
+EpochNumber ExtractEpochFromParam(std::string str, std::string &error) {
+  if (str.empty()) {
+    error = "Block number param parse error, empty string";
+    return SEEN_NOTHING;
+  }
+
+  if (std::isxdigit(str[0])) {
+    return ExtractNumber(std::move(str), error);
+  }
+
+  if (str == LATEST_STR) {
+    return LATEST_EPOCH;
+  }
+
+  if (str == PENDING_STR) {
+    return PENDING_EPOCH;
+  }
+
+  if (str == EARLIEST_STR) {
+    return EARLIEST_EPOCH;
+  }
+
+  error = "Block number param parse error: ";
+  error += str;
+  return SEEN_NOTHING;
+}
+
+uint64_t ExtractNumberFromJsonObj(const Json::Value &obj, const char *key,
+                                  std::string &error, bool &found) {
+  found = false;
+
+  auto str = ExtractStringFromJsonObj(obj, key, error, found);
+  if (!found) {
+    return 0;
+  }
+
+  auto number = ExtractNumber(std::move(str), error);
+  if (error.empty()) {
+    found = true;
+  }
+
+  return number;
+}
+
+std::string ExtractStringFromJsonObj(const Json::Value &obj, const char *key,
+                                     std::string &error, bool &found) {
+  found = false;
+
+  auto value = obj.get(key, Json::Value{});
+  if (value.isNull()) {
+    return {};
+  }
+
+  if (!value.isString()) {
+    error = "String value expected";
+    return {};
+  }
+
+  found = true;
+  return value.asString();
+}
+
+Json::Value ExtractArrayFromJsonObj(const Json::Value &obj, const char *key,
+                                    std::string &error) {
+  auto empty_array = Json::Value(Json::arrayValue);
+  auto v = obj.get(key, empty_array);
+  if (!v.isArray()) {
+    error = "Json array expected";
+    v = empty_array;
+  }
+  return v;
+}
+
+bool ExtractTopicFilter(const Json::Value &topic, EventFilterParams &filter,
+                        std::string &error) {
+  if (topic.isNull()) {
+    filter.topicMatches.emplace_back();
+    return true;
+  }
+
+  if (topic.isString()) {
+    if (topic.empty()) {
+      error = "Invalid topic filter: empty string";
+      return false;
+    }
+    filter.topicMatches.emplace_back();
+    filter.topicMatches.back().emplace_back(topic.asString());
+    return true;
+  }
+
+  if (!topic.isArray()) {
+    error = "Invalid topic filter: array expected";
+    return false;
+  }
+
+  filter.topicMatches.emplace_back();
+
+  if (topic.empty()) {
+    return true;
+  }
+
+  auto &variants = filter.topicMatches.back();
+  for (const auto &value : topic) {
+    if (!value.isString() || value.empty()) {
+      error = "Invalid topic filter: parse error";
+      return false;
+    }
+    variants.emplace_back(value.asString());
+  }
+
+  return true;
+}
+
+bool ExtractTopicFilters(const Json::Value &topics, EventFilterParams &filter,
+                         std::string &error) {
+  if (!topics.isArray()) {
+    error = "Invalid event filter params (not an array)";
+    return false;
+  }
+
+  if (topics.empty()) {
+    return true;
+  }
+
+  if (topics.size() > 4) {
+    error = "Size of filter topics exceed 4";
+    return false;
+  }
+
+  for (const auto &topic : topics) {
+    if (!ExtractTopicFilter(topic, filter, error)) {
+      return false;
+    }
+  }
+
+  while (!filter.topicMatches.empty()) {
+    if (filter.topicMatches.back().empty()) {
+      filter.topicMatches.pop_back();
+    } else {
+      break;
+    }
+  }
+
+  return true;
+}
+
+bool InitializeEventFilter(const Json::Value &params, EventFilterParams &filter,
+                           std::string &error) {
+  if (!params.isObject()) {
+    error = "Invalid event filter params (not an object)";
+    return false;
+  }
+
+  bool found = false;
+  error.clear();
+
+  auto str = ExtractStringFromJsonObj(params, FROMBLOCK_STR, error, found);
+  if (found) {
+    filter.fromBlock = ExtractEpochFromParam(std::move(str), error);
+  }
+  if (!error.empty()) {
+    return false;
+  }
+
+  str = ExtractStringFromJsonObj(params, TOBLOCK_STR, error, found);
+  if (found) {
+    filter.toBlock = ExtractEpochFromParam(std::move(str), error);
+  }
+  if (!error.empty()) {
+    return false;
+  }
+
+  filter.address = ExtractStringFromJsonObj(params, ADDRESS_STR, error, found);
+  if (!error.empty()) {
+    return false;
+  }
+
+  auto topics = ExtractArrayFromJsonObj(params, TOPICS_STR, error);
+  if (!error.empty()) {
+    return false;
+  }
+
+  return ExtractTopicFilters(topics, filter, error);
+}
+
+bool Match(const EventFilterParams &filter, const Address &address,
+           const std::vector<Quantity> &topics) {
+  if (!filter.address.empty() && address != filter.address) {
+    return false;
+  }
+
+  if (filter.topicMatches.empty()) {
+    return true;
+  }
+
+  size_t i = 0;
+  size_t total = topics.size();
+  for (const auto &topicMatch : filter.topicMatches) {
+    if (total <= i) {
+      break;
+    }
+
+    const auto &topic = topics[i++];
+
+    if (topicMatch.empty()) {
+      continue;
+    }
+
+    bool found = false;
+    for (const auto &t : topicMatch) {
+      if (t == topic) {
+        found = true;
+        break;
+      }
+    }
+
+    if (!found) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+namespace {
+
+Json::Value CreateEventResponseTemplate() {
+  Json::Value v;
+  Json::Value zero("0x0");
+  v[LOGINDEX_STR] = zero;
+  v[BLOCKHASH_STR] = zero;
+  v[TRANSACTIONINDEX_STR] = zero;
+  return v;
+}
+
+}  // namespace
+
+Json::Value CreateEventResponseItem(EpochNumber epoch, const TxnHash &tx_hash,
+                                    const Address &address,
+                                    const std::vector<Quantity> &topics,
+                                    const Json::Value &data) {
+  static const Json::Value item = CreateEventResponseTemplate();
+
+  Json::Value v(item);
+
+  v[BLOCKNUMBER_STR] = (long long)(epoch);
+  v[TRANSACTIONHASH_STR] = tx_hash;
+  v[ADDRESS_STR] = address;
+  v[DATA_STR] = data;
+
+  auto json_topics = Json::Value(Json::arrayValue);
+  for (const auto &t : topics) {
+    json_topics.append(t);
+  }
+  v[TOPICS_STR] = json_topics;
+
+  return v;
+}
+
+}  // namespace filters
+}  // namespace evmproj

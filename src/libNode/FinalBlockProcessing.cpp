@@ -1207,6 +1207,13 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
     LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
     if (LOOKUP_NODE_MODE) {
       LookupServer::AddToRecentTransactions(txhash);
+
+      // XXX experiment
+      auto receipt = twr.GetTransactionReceipt().GetString();
+      const auto& tran = twr.GetTransaction();
+
+      LOG_GENERAL(INFO, "height=" << epochNum << " nonce=" << tran.GetNonce()
+                                  << " receipt=" << receipt << " " << entry);
     }
 
     // feed the event log holder
@@ -1610,7 +1617,9 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
   }
 
   LOG_GENERAL(INFO, "Received PENDINGTXN for epoch "
-                        << epochNum << " and shard " << shardId);
+                        << epochNum << " and shard " << shardId
+                        << " id=" << hashCodeMap.begin()->first
+                        << " s=" << hashCodeMap.begin()->second);  // XXX
 
   AddPendingTxn(hashCodeMap, pubkey, shardId, txnListHash);
 
