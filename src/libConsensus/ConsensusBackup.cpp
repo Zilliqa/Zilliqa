@@ -180,6 +180,8 @@ bool ConsensusBackup::GenerateCommitMessage(bytes& commit,
   // ===================
   m_commitSecret.reset(new CommitSecret());
   m_commitPoint.reset(new CommitPoint(*m_commitSecret));
+  LOG_GENERAL(INFO,
+              "refine_set backup response m_commitSecret = " << m_commitSecret.get());
 
   // Assemble commit message body
   // ============================
@@ -252,7 +254,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
 
     ResponseSubsetInfo rsi;
     LOG_GENERAL(INFO,
-                "refine_set backup m_commitSecret = " << m_commitSecret.get());
+                "refine_set backup response m_commitSecret = " << m_commitSecret.get()<<" subset Id = "<<subsetID);
 
     rsi.response =
         Response(*m_commitSecret, challengeSubsetInfo.at(subsetID).challenge,
