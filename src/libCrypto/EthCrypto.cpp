@@ -19,6 +19,7 @@
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
+#include <boost/algorithm/string.hpp>
 
 #include "depends/common/RLP.h"
 
@@ -385,3 +386,24 @@ bytes StripEVM(bytes const& in) {
     return in;
   }
 }
+
+std::string CreateReceipt(std::string const& rawTx) {
+    std::cout <<  "rawtx is: " << rawTx << std::endl;
+
+    auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
+
+    auto const hash = ethash::keccak256(asBytes.data(),
+                                         asBytes.size());
+
+    bytes hashBytes;
+
+    hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
+
+    std::cout <<  "hash is: " << DataConversion::Uint8VecToHexStrRet(hashBytes) << std::endl;
+
+    auto asString = DataConversion::Uint8VecToHexStrRet(hashBytes);
+    boost::algorithm::to_lower(asString);
+
+    return asString;
+}
+
