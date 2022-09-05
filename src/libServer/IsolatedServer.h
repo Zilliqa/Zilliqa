@@ -20,6 +20,7 @@
 
 #include "LookupServer.h"
 #include "common/Constants.h"
+#include "libCrypto/EthCrypto.h"
 
 class Mediator;
 
@@ -66,7 +67,7 @@ class IsolatedServer : public LookupServer,
     }
 
     auto const fields = parseRawTxFields(rawTx);
-    auto const resp = CreateTransactionEth(fields, pubKey);
+    auto const resp = CreateTransactionEth(fields, pubKey, CreateReceipt(rawTx));
 
     response = std::string{"0x"} + resp["TranID"].asString();
   }
@@ -117,7 +118,7 @@ class IsolatedServer : public LookupServer,
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
   Json::Value CreateTransactionEth(EthFields const& fields,
-                                   bytes const& pubKey);
+                                   bytes const& pubKey, std::string const& receipt);
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
                               std::string const& blockNum);

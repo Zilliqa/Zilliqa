@@ -44,4 +44,6 @@ bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
 bytes StripEVM(bytes const& in);
 
+std::string CreateReceipt(std::string const& rawTx);
+
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

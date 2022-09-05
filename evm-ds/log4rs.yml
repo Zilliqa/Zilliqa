@@ -5,7 +5,7 @@ appenders:
 
   filelog:
     kind: rolling_file
-    path: "/run/zilliqa/evm.log"
+    path: "/home/nathan/repos/Zilliqa/logging/evm.log"
     encoder:
       pattern: "{d} {l} - {m}{n}"
     policy:
@@ -14,7 +14,7 @@ appenders:
         limit: 30 mb
       roller:
         kind: fixed_window
-        pattern: "/run/zilliqa/evm_{}.gz"
+        pattern: "/home/nathan/repos/Zilliqa/logging/evm_{}.gz"
         count: 5
         base: 1
 root:

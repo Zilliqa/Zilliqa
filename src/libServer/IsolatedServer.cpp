@@ -651,7 +651,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 }
 
 Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
-                                                 bytes const& pubKey) {
+                                                 bytes const& pubKey, std::string const& receipt) {
   Json::Value ret;
 
   try {
@@ -660,30 +660,21 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
 
     Address toAddr{fields.toAddr};
+    bool const nullAddr = IsNullAddress(toAddr);
+
     Transaction tx =
-        IsNullAddress(toAddr)
-            ? Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          ToEVM(fields.code),
-                          {},
-                          Signature(fields.signature, 0)}
-            : Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          {},
-                          DataConversion::StringToCharArray(
+          Transaction{fields.version,
+                      fields.nonce,
+                      Address(fields.toAddr),
+                      PubKey(pubKey, 0),
+                      fields.amount,
+                      fields.gasPrice,
+                      fields.gasLimit,
+                      nullAddr ? ToEVM(fields.code) : bytes{},
+                      nullAddr ? bytes{} : DataConversion::StringToCharArray(
                               DataConversion::Uint8VecToHexStrRet(
-                                  fields.code)),  // TODO remove hex'ing.
-                          Signature(fields.signature, 0)};
+                                      fields.code)),
+                      Signature(fields.signature, 0)};
 
     uint64_t senderNonce;
     uint128_t senderBalance;
@@ -814,7 +805,7 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
     }
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    ret["TranID"] = txHash.hex();
+    ret["TranID"] = receipt;
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(
