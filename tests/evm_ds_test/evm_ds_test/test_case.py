@@ -127,7 +127,7 @@ class EvmDsTestCase:
             {
                 "to": dest.address,
                 "value": amount,
-                "gas": 5_000,
+                "gas": 21_000,
                 "gasPrice": 2_000_000_000,
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
