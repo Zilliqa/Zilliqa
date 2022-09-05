@@ -48,7 +48,6 @@ apt install -y build-essential \
 # Development dependency
 apt install -y ccache \
     clang-5.0 \
-    clang-format-5.0 \
     clang-tidy-5.0 \
     curl \
     gawk \
@@ -58,6 +57,13 @@ apt install -y ccache \
     python-dev \
     python3-dev \
     libsecp256k1-dev
+
+# Special steps needed for clang-format-7 on ubuntu 18
+wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
+echo 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' | tee -a /etc/apt/sources.list
+echo 'deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' | tee -a /etc/apt/sources.list
+apt update
+apt install -y clang-format-7
 
 wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
 mkdir -p `pwd`/.local
