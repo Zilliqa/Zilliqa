@@ -1181,16 +1181,23 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetEthBalance(const std::string& address) {
-  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+Json::Value LookupServer::GetEthBalance(const std::string& address,
+                                        const std::string& tag) {
+  if (tag == "latest" || tag == "earliest" || tag == "pending") {
+    const auto balanceStr =
+        this->GetBalance(address, true)["balance"].asString();
 
-  const uint256_t ethBalance =
-      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+    const uint256_t ethBalance =
+        std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
 
-  std::ostringstream strm;
-  strm << "0x" << std::hex << ethBalance << std::dec;
+    std::ostringstream strm;
+    strm << "0x" << std::hex << ethBalance << std::dec;
 
-  return strm.str();
+    return strm.str();
+  }
+  throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process, invalid tag");
+
+  return "";
 }
 
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
@@ -3119,7 +3126,7 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
@@ -3184,7 +3191,7 @@ Json::Value LookupServer::GetStateProof(const string& address,
     } catch (invalid_argument& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
     } catch (out_of_range& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);

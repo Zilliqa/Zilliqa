@@ -404,7 +404,10 @@ class LookupServer : public Server,
                                      Json::Value& response) {
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
-    response = this->GetEthBalance(address);
+
+    const std::string tag{request[1u].asString()};
+
+    response = this->GetEthBalance(address, tag);
   }
 
   /**
@@ -736,7 +739,7 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
-  Json::Value GetEthBalance(const std::string& address);
+  Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value CreateTransactionEth(
       EthFields const& fields, bytes const& pubKey,
