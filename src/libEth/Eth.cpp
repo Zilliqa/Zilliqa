@@ -20,9 +20,14 @@
 #include "depends/common/RLP.h"
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
+#include "libData/AccountData/Transaction.h"
+#include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
+
+namespace Eth {
 
 Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
                                   const std::string &from,
@@ -124,3 +129,89 @@ EthFields parseRawTxFields(std::string const &message) {
 
   return ret;
 }
+
+bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
+                    const Account *sender, const uint128_t &gasPrice) {
+  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "CHAIN_ID incorrect");
+  }
+
+  if (!tx.VersionCorrect()) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "Transaction version incorrect! Expected:" +
+            std::to_string(TRANSACTION_VERSION) + " Actual:" +
+            std::to_string(DataConversion::UnpackB(tx.GetVersion())));
+  }
+
+  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Code size is too large");
+  }
+
+  const uint256_t allowableGasPrice =
+      uint256_t{gasPrice} * EVM_ZIL_SCALING_FACTOR;
+  if (tx.GetGasPrice() < allowableGasPrice) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "GasPrice " +
+                               tx.GetGasPrice().convert_to<std::string>() +
+                               " lower than minimum allowable " +
+                               allowableGasPrice.convert_to<std::string>());
+  }
+
+  if (tx.GetGasLimit() < MIN_ETH_GAS) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "GasLimit " + std::to_string(tx.GetGasLimit()) +
+                               " lower than minimum allowable " +
+                               std::to_string(MIN_ETH_GAS));
+  }
+
+  if (!Validator::VerifyTransaction(tx)) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Unable to verify transaction");
+  }
+
+  if (IsNullAddress(fromAddr)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "Invalid address for issuing transactions");
+  }
+
+  if (sender == nullptr) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "The sender of the txn doesn't exist");
+  }
+
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + std::to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               std::to_string(sender->GetNonce()) + ")");
+  }
+
+  // Check if transaction amount is valid
+  uint256_t gasDeposit = 0;
+  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
+                                gasDeposit)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+  }
+
+  uint256_t debt = 0;
+  if (!SafeMath<uint256_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+  }
+
+  const uint256_t accountBalance =
+      uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+  if (accountBalance < debt) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Insufficient funds in source account!");
+  }
+
+  return true;
+}
+
+}  // namespace Eth

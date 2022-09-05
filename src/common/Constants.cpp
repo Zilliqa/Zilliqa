@@ -299,6 +299,7 @@ const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
     "REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS", "node.epoch_timing.")};
 
 // Gas constants
+const uint64_t MIN_ETH_GAS{ReadConstantUInt64("MIN_ETH_GAS", "node.gas.")};
 const unsigned int DS_MICROBLOCK_GAS_LIMIT{
     ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{

@@ -21,6 +21,15 @@
 #include <json/value.h>
 #include <cstdint>
 #include "common/BaseType.h"
+#include "libData/AccountData/Address.h"
+
+class Transaction;
+class Account;
+
+namespace Eth {
+
+// https://eips.ethereum.org/EIPS/eip-170
+constexpr auto MAX_EVM_CONTRACT_SIZE_BYTES = 24576;
 
 struct EthFields {
   uint32_t version{};
@@ -43,5 +52,9 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
                                   const Json::Value &contractAddress);
 
 EthFields parseRawTxFields(std::string const &message);
+
+bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
+                    const Account *sender, const uint128_t &gasPrice);
+}  // namespace Eth
 
 #endif  // ZILLIQA_SRC_LIBETH_ETH_H_
