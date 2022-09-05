@@ -103,6 +103,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         Json::Value tmp;
         Json::Reader _reader;
         if (_reader.parse(logJsonString, tmp)) {
+          const auto logAsString = tmp.asString();
+          if (logAsString.size() >= 2 && logAsString[0] != '0' &&
+              logAsString[1] != 'x') {
+            tmp = std::string{"0x"} + tmp.asString();
+          }
           _json.append(tmp);
         } else {
           LOG_GENERAL(WARNING, "Parsing json unsuccessful " << logJsonString);

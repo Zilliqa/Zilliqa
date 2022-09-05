@@ -1391,8 +1391,14 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash, blockNumber, contractAddress);
+
+    const Json::Value logs =
+        transactioBodyPtr->GetTransactionReceipt().GetJsonValue().get(
+            "event_logs", Json::arrayValue);
+
+    auto res =
+        populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                              blockHash, blockNumber, contractAddress, logs);
 
     return res;
   } catch (const JsonRpcException& je) {
