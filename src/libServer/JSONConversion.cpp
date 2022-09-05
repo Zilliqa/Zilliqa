@@ -130,7 +130,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
-
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
@@ -177,7 +176,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     }
   } else {
     for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction));
+      transactionsJson.append(convertTxtoEthJson(*transaction, txHeader));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -652,8 +651,13 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn) {
+    const TransactionWithReceipt& txn,
+    const TxBlock& txblock) {
+  const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
+
+  retJson["blockNumber"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
+  retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
       (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
