@@ -58,12 +58,9 @@ list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
 
 set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
 
-
 find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
-
-
 
 if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
 
@@ -92,7 +89,7 @@ find_package(Boost COMPONENTS filesystem system unit_test_framework program_opti
 
 include(InstallMongo)
 find_package(mongocxx CONFIG REQUIRED)
- 
+
 include(InstallWebsocketpp)
 find_package(websocketpp CONFIG REQUIRED)
 

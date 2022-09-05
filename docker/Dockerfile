@@ -37,15 +37,9 @@ RUN apt-get update \
     # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
     # mention again as installation candidate
     rsync \
-#    libboost-filesystem-dev \
-#    libboost-program-options-dev \
-#    libboost-system-dev \
-#    libboost-test-dev \
-#    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
-#    libjsonrpccpp-dev \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
@@ -55,7 +49,6 @@ RUN apt-get update \
     ocl-icd-opencl-dev \
     pkg-config \
     python3-dev \
-#    python-dev \
     python3-pip \
     python3-setuptools \
     libsecp256k1-dev \
@@ -86,11 +79,8 @@ RUN git clone ${REPO} ${SOURCE_DIR} \
     && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
     && cmake -H${SOURCE_DIR}/scripts/external_boost -B${BUILD_DIR}/boost -DINSTALL_PREFIX=/usr/local \
     && cmake --build ${BUILD_DIR}/boost --target Boost \
-#    && mv ${BUILD_DIR}/boost/include/* /usr/include \
-#    && mv ${BUILD_DIR}/boost/lib/libboost* /usr/lib/x86_64-linux-gnu \
     && ls /usr/local/lib \
     && ls /usr/local/lib/cmake \
-#    && mv ${BUILD_DIR}/boost/lib/cmake/boost /usr/lib/x86_64-linux-gnu/cmake \
     && cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} \
     -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS} \
     && cmake --build ${BUILD_DIR} -- -j$(nproc) \
@@ -132,15 +122,9 @@ RUN apt-get update \
     && apt-get update && apt-get install -y --no-install-recommends \
     # libs
     ca-certificates \
-#    libboost-filesystem-dev \
-#    libboost-program-options-dev \
-#    libboost-system-dev \
-#    libboost-test-dev \
-#    libboost-python-dev \
     libcurl4-openssl-dev \
     libevent-dev \
     libjsoncpp-dev \
-#    libjsonrpccpp-dev \
     libleveldb-dev \
     libmicrohttpd-dev \
     libminiupnpc-dev \
@@ -190,8 +174,6 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
-
-#COPY --from=builder /usr/lib/x86_64-linux-gnu/libboost* ${INSTALL_DIR}/lib/
 
 COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 

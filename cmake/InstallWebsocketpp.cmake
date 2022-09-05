@@ -22,8 +22,8 @@ if(NOT "${WEBSOCKETPP_INSTALL_RET}" STREQUAL "0")
 endif()
 
 execute_process(
-		COMMAND sed -i s/Boost_INCLUDE_DIR\}/Boost_INCLUDE_DIRS\}/g ${WEBSOCKETPP_SOURCE_DIR}/cmake/CMakeHelpers.cmake
-		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+	COMMAND sed -i s/Boost_INCLUDE_DIR\}/Boost_INCLUDE_DIRS\}/g ${WEBSOCKETPP_SOURCE_DIR}/cmake/CMakeHelpers.cmake
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
 # generate build directory
