@@ -153,7 +153,10 @@ void ConsensusLeader::GenerateConsensusSubsets() {
           subset.commitPoints.emplace_back(m_commitPointMap.at(index));
           subset.commitMap.at(index) = true;
           subsetPeers++;
-          LOG_GENERAL(INFO,"refine_set adding guard = "<< m_committee.at(index).second.GetPrintableIPAddress());
+          LOG_GENERAL(
+              INFO,
+              "refine_set adding guard = "
+                  << m_committee.at(index).second.GetPrintableIPAddress());
           if (subsetPeers == m_numForConsensus) {
             // got all dsguards commit
             LOG_GENERAL(INFO, "[SubsetID: " << i << "] Got all "
@@ -162,7 +165,10 @@ void ConsensusLeader::GenerateConsensusSubsets() {
             break;
           }
         } else {
-          LOG_GENERAL(INFO,"refine_set adding non guard = "<< m_committee.at(index).second.GetPrintableIPAddress());
+          LOG_GENERAL(
+              INFO,
+              "refine_set adding non guard = "
+                  << m_committee.at(index).second.GetPrintableIPAddress());
           nondsguardIndexes.push_back(index);
         }
       }
@@ -192,7 +198,9 @@ void ConsensusLeader::GenerateConsensusSubsets() {
         subset.commitPointMap.at(index) = m_commitPointMap.at(index);
         subset.commitPoints.emplace_back(m_commitPointMap.at(index));
         subset.commitMap.at(index) = true;
-        LOG_GENERAL(INFO,"refine_set adding non guard = "<< m_committee.at(index).second.GetPrintableIPAddress());
+        LOG_GENERAL(
+            INFO, "refine_set adding node  = "
+                      << m_committee.at(index).second.GetPrintableIPAddress());
         if (GUARD_MODE && m_DS &&
             index < Guard::GetInstance().GetNumOfDSGuard()) {
           guardCount++;
@@ -205,7 +213,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       }
     }
 
-    if (DEBUG_LEVEL >= 5) {
+    if (DEBUG_LEVEL >= 4) {
       LOG_GENERAL(INFO, "SubsetID: " << i);
       for (unsigned int k = 0; k < subset.commitMap.size(); k++) {
         LOG_GENERAL(INFO,
@@ -254,6 +262,8 @@ bool ConsensusLeader::StartConsensusSubsets() {
     SetStateSubset(index, m_state);
 
     // Add the leader to the responses
+    LOG_GENERAL(INFO,
+                "refine_set leader m_commitSecret = " << m_commitSecret.get());
     Response r(*m_commitSecret, subset.challenge, m_myPrivKey);
     subset.responseData.emplace_back(r);
     subset.responseDataMap.at(m_myID) = r;
@@ -266,10 +276,10 @@ bool ConsensusLeader::StartConsensusSubsets() {
   for (unsigned int i = 0; i < m_committee.size(); i++) {
     for (const auto& subset : m_consensusSubsets) {
       if (subset.commitMap.at(i)) {
-        LOG_GENERAL(
-            INFO,
-            "refine_set Send Challenge2 =" << " committte ip "
-                << m_committee.at(i).second.GetPrintableIPAddress());
+        LOG_GENERAL(INFO,
+                    "refine_set Send Challenge2 ="
+                        << " committte ip "
+                        << m_committee.at(i).second.GetPrintableIPAddress());
         peerInfo.push_back(m_committee.at(i).second);
         break;
       }
@@ -368,7 +378,10 @@ bool ConsensusLeader::ProcessMessageCommitCore(
     LOG_GENERAL(WARNING, "Messenger::GetConsensusCommit failed");
     return false;
   }
-  LOG_GENERAL(INFO, "refine_set Backup IP "<< from.GetPrintableIPAddress() << " committte ip "<< m_committee.at(backupID).second.GetPrintableIPAddress());
+  LOG_GENERAL(INFO,
+              "refine_set Backup IP "
+                  << from.GetPrintableIPAddress() << " committte ip "
+                  << m_committee.at(backupID).second.GetPrintableIPAddress());
 
   // Check the IP belongs to the backup with that backupID (check for valid
   // backupID range is already done in Messenger)
@@ -418,7 +431,7 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   m_commitCounter++;
 
   LOG_GENERAL(INFO, "Received commits = " << m_commitCounter << " / "
-                                            << m_numForConsensus);
+                                          << m_numForConsensus);
 
   // Redundant commits
   if (m_commitCounter > m_numForConsensus) {

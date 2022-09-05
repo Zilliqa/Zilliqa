@@ -251,6 +251,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     }
 
     ResponseSubsetInfo rsi;
+    LOG_GENERAL(INFO,
+                "refine_set backup m_commitSecret = " << m_commitSecret.get());
 
     rsi.response =
         Response(*m_commitSecret, challengeSubsetInfo.at(subsetID).challenge,
@@ -298,7 +300,6 @@ bool ConsensusBackup::GenerateResponseMessage(
   // Assemble response message body
   // ==============================
 
-
   if (!Messenger::SetConsensusResponse(
           response, offset, m_consensusID, m_blockNumber, m_blockHash, m_myID,
           subsetInfo,
@@ -307,7 +308,7 @@ bool ConsensusBackup::GenerateResponseMessage(
     return false;
   }
   LOG_GENERAL(INFO,
-              "refine_set GenerateResonse ="
+              "refine_set GenerateResponse ="
                   << " committte ip "
                   << GetCommitteeMember(m_myID).second.GetPrintableIPAddress());
 
