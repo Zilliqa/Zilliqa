@@ -8,7 +8,6 @@
  ************************************************************************/
 
 #include "safehttpserver.h"
-#include <microhttpd.h>
 #include <cstdlib>
 #include <sstream>
 #include <cstring>
@@ -57,7 +56,33 @@ bool SafeHttpServer::StartListening() {
 
   if (!this->running) {
 
-    unsigned int mhd_flags = MHD_USE_THREAD_PER_CONNECTION | MHD_USE_INTERNAL_POLLING_THREAD;
+    unsigned int mhd_flags = 0;
+
+    // Temp fix with useEpoll until proper solution for CLOSE_WAIT
+    if (CONNECTION_IO_USE_EPOLL) {
+    
+      const bool has_epoll =
+          (MHD_is_feature_supported(MHD_FEATURE_EPOLL) == MHD_YES);
+      const bool has_poll =
+          (MHD_is_feature_supported(MHD_FEATURE_POLL) == MHD_YES);
+
+      if (has_epoll) {
+  // In MHD version 0.9.44 the flag is renamed to
+  // MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY. In later versions both
+  // are deprecated.
+  #if defined(MHD_USE_EPOLL_INTERNALLY)
+        mhd_flags |= MHD_USE_EPOLL_INTERNALLY;
+  #else
+        mhd_flags |= MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY | MHD_USE_ITC;
+        LOG_GENERAL(INFO, "MHD_USE_EPOLL_INTERNALLY_LINUX_ONLY");
+  #endif
+      }
+      else if (has_poll) {
+        mhd_flags |= MHD_USE_POLL_INTERNALLY;
+      } 
+    } else {
+      mhd_flags |= MHD_USE_SELECT_INTERNALLY;
+    }
 
     if (this->bindlocalhost) {
       LOG_GENERAL(INFO, "Start Listening at bind localhost, mhdflag: " << mhd_flags);
@@ -68,7 +93,7 @@ bool SafeHttpServer::StartListening() {
 
       this->daemon = MHD_start_daemon(
           mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
-          MHD_OPTION_SOCK_ADDR,
+          MHD_OPTION_THREAD_POOL_SIZE, this->threads, MHD_OPTION_SOCK_ADDR,
           (struct sockaddr *)(&(this->loopback_addr)), MHD_OPTION_END);
 
     } else if (!this->path_sslcert.empty() && !this->path_sslkey.empty()) {
@@ -81,7 +106,7 @@ bool SafeHttpServer::StartListening() {
             MHD_USE_SSL | mhd_flags, this->port, NULL, NULL,
             SafeHttpServer::callback, this, MHD_OPTION_HTTPS_MEM_KEY,
             this->sslkey.c_str(), MHD_OPTION_HTTPS_MEM_CERT,
-            this->sslcert.c_str(),
+            this->sslcert.c_str(), MHD_OPTION_THREAD_POOL_SIZE, this->threads,
             MHD_OPTION_END);
       } catch (JsonRpcException &ex) {
         return false;
@@ -90,6 +115,7 @@ bool SafeHttpServer::StartListening() {
       LOG_GENERAL(INFO, "Start Listening, mhdflag: " << mhd_flags);
       this->daemon = MHD_start_daemon(
         mhd_flags, this->port, NULL, NULL, SafeHttpServer::callback, this,
+        MHD_OPTION_THREAD_POOL_SIZE, this->threads,
         MHD_OPTION_CONNECTION_TIMEOUT, CONNECTION_ALL_TIMEOUT,
         MHD_OPTION_END);
     }
