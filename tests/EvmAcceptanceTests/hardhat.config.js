@@ -31,3 +31,26 @@ module.exports = {
     }
   }
 };
+
+extendEnvironment((hre) => {
+  // Returns true whenever active network is zilliqa related, o.w it returns false (e.g. for ganache)
+  hre.isZilliqaNetworkSelected = function () {
+    return hre.network.config.zilliqaNetwork;
+  }
+
+  hre.getEthChainId = function () {
+    return hre.network.config.chainId;
+  }
+
+  hre.getZilliqaChainId = function () {
+    return hre.network.config.chainId - 0x8000;
+  }
+
+  hre.getNetworkUrl = function () {
+    return hre.network.config.url
+  }
+
+  hre.getPrivateAddressAt = function (index) {
+    return hre.network.config.accounts[index]
+  }
+});
