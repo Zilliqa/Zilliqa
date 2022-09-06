@@ -32,13 +32,17 @@ class SubscriptionAPIBackendImpl : public SubscriptionAPIBackend {};
 
 }  // namespace
 
-class CacheImpl : public CacheUpdate, public TxCache {
+class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
  public:
-  CacheImpl() : m_filterAPI(*this) {}
+  APICacheImpl() : m_filterAPI(*this) {}
 
-  FilterAPIBackend& GetFilterAPI() { return m_filterAPI; }
+  FilterAPIBackend& GetFilterAPI() override { return m_filterAPI; }
 
-  SubscriptionAPIBackend& GetSubscriptionAPI() { return m_subscriptionAPI; }
+  SubscriptionAPIBackend& GetSubscriptionAPI() override {
+    return m_subscriptionAPI;
+  }
+
+  APICacheUpdate& GetUpdate() override { return *this; }
 
  private:
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
@@ -94,24 +98,9 @@ class CacheImpl : public CacheUpdate, public TxCache {
   BlocksCache m_blocksCache;
 };
 
-namespace {
-
-CacheImpl& GetCacheInstance() {
-  static CacheImpl cache;
-  return cache;
+std::shared_ptr<APICache> APICache::Create() {
+  return std::make_shared<APICacheImpl>();
 }
-
-}  // namespace
-
-FilterAPIBackend& TxMetadata::GetFilterAPI() {
-  return GetCacheInstance().GetFilterAPI();
-}
-
-SubscriptionAPIBackend& TxMetadata::GetSubscriptionAPI() {
-  return GetCacheInstance().GetSubscriptionAPI();
-}
-
-CacheUpdate& TxMetadata::GetCacheUpdate() { return GetCacheInstance(); }
 
 }  // namespace filters
 }  // namespace evmproj

@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBETH_FILTERS_H_
 #define ZILLIQA_SRC_LIBETH_FILTERS_H_
 
+#include <memory>
+
 #include <json/json.h>
 
 namespace evmproj {
@@ -78,9 +80,9 @@ class SubscriptionAPIBackend {
   // virtual bool unsubscribe(const std::string& subscription_id) = 0;
 };
 
-class CacheUpdate {
+class APICacheUpdate {
  public:
-  virtual ~CacheUpdate() = default;
+  virtual ~APICacheUpdate() = default;
 
   virtual void AddPendingTransaction(const TxnHash &hash, uint64_t epoch) = 0;
 
@@ -92,11 +94,15 @@ class CacheUpdate {
   virtual void FinalizeEpoch(BlockHash blockHash) = 0;
 };
 
-class TxMetadata {
+class APICache {
  public:
-  static FilterAPIBackend &GetFilterAPI();
-  static SubscriptionAPIBackend &GetSubscriptionAPI();
-  static CacheUpdate &GetCacheUpdate();
+  /// Creates an instance of default TxMetadata implementation
+  static std::shared_ptr<APICache> Create();
+
+  virtual ~APICache() = default;
+  virtual FilterAPIBackend &GetFilterAPI() = 0;
+  virtual SubscriptionAPIBackend &GetSubscriptionAPI() = 0;
+  virtual APICacheUpdate &GetUpdate() = 0;
 };
 
 }  // namespace filters

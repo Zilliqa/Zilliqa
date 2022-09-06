@@ -60,7 +60,39 @@ char Suffix(FilterType type) {
                                        std::to_string(static_cast<int>(type))));
 }
 
+Json::CharReader &GetJsonReader() {
+  static thread_local Json::CharReaderBuilder builder;
+  static thread_local std::unique_ptr<Json::CharReader> reader(
+      builder.newCharReader());
+  return *reader;
+}
+
+Json::StreamWriter &GetJsonWriter() {
+  static thread_local Json::StreamWriterBuilder builder;
+  builder["indentation"] = Json::Value{};
+  static thread_local std::unique_ptr<Json::StreamWriter> writer(
+      builder.newStreamWriter());
+  return *writer;
+}
+
 }  // namespace
+
+Json::Value JsonRead(const std::string &str, std::string &error) {
+  Json::Value ret;
+  if (str.empty()) {
+    error = "input string is empty";
+  } else {
+    error.clear();
+    GetJsonReader().parse(str.data(), str.data() + str.size(), &ret, &error);
+  }
+  return ret;
+}
+
+std::string JsonWrite(const Json::Value &json) {
+  std::ostringstream os;
+  GetJsonWriter().write(json, &os);
+  return os.str();
+}
 
 std::string NumberAsString(uint64_t number) {
   std::stringstream result;
@@ -91,11 +123,19 @@ FilterType GuessFilterType(const FilterId &id) {
 }
 
 uint64_t ExtractNumber(std::string str, std::string &error) {
-  if (str.size() > 2 && str[1] == 'x') {
+  error.clear();
+
+  if (str.size() >= 2 && str[1] == 'x') {
     if (str[0] != '0') {
       error = "Param parse error, 0x expected";
+      return 0;
     }
     str = str.substr(2);
+  }
+
+  if (str.empty()) {
+    error = "Hex string is empty";
+    return 0;
   }
 
   try {
@@ -111,13 +151,23 @@ uint64_t ExtractNumber(std::string str, std::string &error) {
 }
 
 EpochNumber ExtractEpochFromParam(std::string str, std::string &error) {
+  error.clear();
+
   if (str.empty()) {
     error = "Block number param parse error, empty string";
     return SEEN_NOTHING;
   }
 
+  if (str == EARLIEST_STR) {
+    return EARLIEST_EPOCH;
+  }
+
   if (std::isxdigit(str[0])) {
-    return ExtractNumber(std::move(str), error);
+    auto number = ExtractNumber(std::move(str), error);
+    if (!error.empty()) {
+      return SEEN_NOTHING;
+    }
+    return number;
   }
 
   if (str == LATEST_STR) {
@@ -126,10 +176,6 @@ EpochNumber ExtractEpochFromParam(std::string str, std::string &error) {
 
   if (str == PENDING_STR) {
     return PENDING_EPOCH;
-  }
-
-  if (str == EARLIEST_STR) {
-    return EARLIEST_EPOCH;
   }
 
   error = "Block number param parse error: ";
@@ -355,7 +401,7 @@ Json::Value CreateEventResponseItem(EpochNumber epoch, const TxnHash &tx_hash,
 
   Json::Value v(item);
 
-  v[BLOCKNUMBER_STR] = (long long)(epoch);
+  v[BLOCKNUMBER_STR] = Json::UInt64(epoch);
   v[TRANSACTIONHASH_STR] = tx_hash;
   v[ADDRESS_STR] = address;
   v[DATA_STR] = data;

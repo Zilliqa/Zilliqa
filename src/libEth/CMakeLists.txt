@@ -7,5 +7,7 @@ add_library(Filters
         filters/FiltersUtils.cpp
         filters/PendingTxnCache.cpp
         filters/BlocksCache.cpp
-        filters/TxMetadata.cpp
+        filters/APICache.cpp
         )
+
+target_link_libraries(Filters Utils ${JSONCPP_LINK_TARGETS})

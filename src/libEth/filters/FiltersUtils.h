@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBETH_FILTERS_FILTERSUTILS_H_
-#define ZILLIQA_SRC_LIBETH_FILTERS_FILTERSUTILS_H_
+#ifndef ZILLIQA_SRC_LIBETH_FILTERS_FILTERUTILS_H_
+#define ZILLIQA_SRC_LIBETH_FILTERS_FILTERUTILS_H_
 
 #include "Common.h"
 
@@ -43,6 +43,12 @@ enum class FilterType {
   TXN_FILTER,
   BLK_FILTER,
 };
+
+// TODO propose it to libUtils
+Json::Value JsonRead(const std::string &str, std::string &error);
+
+// TODO propose it to libUtils
+std::string JsonWrite(const Json::Value &json);
 
 /// Number -> "0x..."
 std::string NumberAsString(uint64_t number);
@@ -90,4 +96,4 @@ Json::Value CreateEventResponseItem(EpochNumber epoch, const TxnHash &tx_hash,
 }  // namespace filters
 }  // namespace evmproj
 
-#endif  // ZILLIQA_SRC_LIBETH_FILTERS_FILTERSUTILS_H_
+#endif  // ZILLIQA_SRC_LIBETH_FILTERS_FILTERUTILS_H_
