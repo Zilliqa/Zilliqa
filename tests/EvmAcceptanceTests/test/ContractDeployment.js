@@ -6,11 +6,11 @@ const web3_helper = require('../helper/Web3Helper')
 describe("Contract Deployment", function () {
     describe("Contract with zero parameter constructor", function () {
         describe("When ethers.js is used", function () {
-             let contract;
-             before(async function () {
-                 const Contract = await ethers.getContractFactory("ZeroParamConstructor")
-                 contract = await Contract.deploy()
-             })
+            let contract;
+            before(async function () {
+                const Contract = await ethers.getContractFactory("ZeroParamConstructor")
+                contract = await Contract.deploy()
+            })
 
             it("Should be deployed successfully", async function () {
                 expect(contract.address).exist;
