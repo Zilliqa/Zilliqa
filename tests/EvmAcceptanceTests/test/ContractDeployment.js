@@ -1,7 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
-const general_helper = require('../helper/GeneralHelper')
+const zilliqa = require('../helper/ZilliqaHelper');
 const web3_helper = require('../helper/Web3Helper')
 
 describe("Contract Deployment", function () {
@@ -23,15 +22,13 @@ describe("Contract Deployment", function () {
         });
 
         describe("When Zilliqa Helper is used", function() {
-            let helper;
             let contract;
             before(async function () {
-                if (!general_helper.isZilliqaNetworkSelected()) {
+                if (!hre.isZilliqaNetworkSelected()) {
                     this.skip()
                 }
 
-                helper = new ZilliqaHelper()
-                contract = await helper.deployContract("ZeroParamConstructor")
+                contract = await zilliqa.deployContract("ZeroParamConstructor")
             })
 
             it("Should be deployed successfully", async function () {
@@ -109,19 +106,17 @@ describe("Contract Deployment", function () {
         });
 
         describe("When Zilliqa Helper is used", function () {
-            let helper;
             before(async function () {
-                if (!general_helper.isZilliqaNetworkSelected()) {
+                if (!hre.isZilliqaNetworkSelected()) {
                     this.skip()
                 }
-                helper = new ZilliqaHelper()
             })
 
             describe("When constructor parameter is a uint256", async function () {
                 let contract;
                 let INITIAL_NUMBER = 100;
                 before(async function () {
-                    contract = await helper.deployContract("WithUintConstructor", {
+                    contract = await zilliqa.deployContract("WithUintConstructor", {
                         constructorArgs: [INITIAL_NUMBER]
                     })
                 })
@@ -139,7 +134,7 @@ describe("Contract Deployment", function () {
                 let contract;
                 let INITIAL_NAME = "Zilliqa";
                 before(async function () {
-                    contract = await helper.deployContract("WithStringConstructor", {
+                    contract = await zilliqa.deployContract("WithStringConstructor", {
                         constructorArgs: [INITIAL_NAME]
                     })
                 })
@@ -214,13 +209,11 @@ describe("Contract Deployment", function () {
             let contract;
             let NAME = "Zilliqa"
             let NUMBER = 100;
-            let helper;
             before(async function () {
-                if (!general_helper.isZilliqaNetworkSelected()) {
+                if (!hre.isZilliqaNetworkSelected()) {
                     this.skip()
                 }
-                helper = new ZilliqaHelper()
-                contract = await helper.deployContract("MultiParamConstructor", {
+                contract = await zilliqa.deployContract("MultiParamConstructor", {
                     constructorArgs: [NAME, NUMBER]
                 })
             })
@@ -270,12 +263,10 @@ describe("Contract Deployment", function () {
 
         describe("When Zilliqa Helper is used", function () {
             let INITIAL_BALANCE = 10;
-            let helper;
             let contract;
 
             before(async function () {
-                helper = new ZilliqaHelper()
-                contract = await helper.deployContract("WithPayableConstructor", {
+                contract = await zilliqa.deployContract("WithPayableConstructor", {
                     value: INITIAL_BALANCE
                 })
             })
@@ -289,7 +280,7 @@ describe("Contract Deployment", function () {
             })
 
             it("Should return default signer when owner view function is called", async function () {
-                expect(await contract.methods.owner().call()).to.be.eq(await ethers.provider.getSigner(1).getAddress())
+                expect(await contract.methods.owner().call()).to.be.eq(await ethers.provider.getSigner(0).getAddress())
             })
         });
 
