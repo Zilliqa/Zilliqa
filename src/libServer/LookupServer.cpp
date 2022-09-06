@@ -1778,7 +1778,7 @@ std::string LookupServer::GetNetVersion() {
 
 Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
-  return Json::Value(false);
+  return Json::Value(true);
 }
 
 std::string LookupServer::GetNetPeerCount() {
