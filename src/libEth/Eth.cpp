@@ -23,6 +23,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
@@ -92,12 +93,21 @@ EthFields parseRawTxFields(std::string const &message) {
       case 0:
         ret.nonce = uint32_t(*it);
         break;
-      case 1:
-        ret.gasPrice = uint128_t(*it);
+      case 1: {
+        // Convert input gasPrice to be in the same ballpark as core gasPrice
+        const auto apiGasPrice = uint128_t{*it};
+        const auto gasConv = GasConv::CreateFromEthApi(apiGasPrice);
+        ret.gasPrice = gasConv.GasPriceInCore();
         break;
-      case 2:
-        ret.gasLimit = uint64_t(*it);
+      }
+      case 2: {
+        // Convert input gasLimit to be in the same ballpark as core gasLimit
+        const auto apiGasLimit = uint64_t{*it};
+        const auto gasConv =
+            GasConv::CreateFromEthApi(ret.gasPrice, apiGasLimit);
+        ret.gasLimit = gasConv.GasLimitInCore();
         break;
+      }
       case 3:
         ret.toAddr = byteIt;
         break;
@@ -150,21 +160,23 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                            "Code size is too large");
   }
 
-  const uint256_t allowableGasPrice =
-      uint256_t{gasPrice} * EVM_ZIL_SCALING_FACTOR;
-  if (tx.GetGasPrice() < allowableGasPrice) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " +
-                               tx.GetGasPrice().convert_to<std::string>() +
-                               " lower than minimum allowable " +
-                               allowableGasPrice.convert_to<std::string>());
+  // At this point tx gas parameters have already been normalized to be within
+  // core ballpark
+  const auto gasConv = GasConv::CreateFromCore(gasPrice, tx.GetGasLimit());
+
+  if (tx.GetGasPrice() < gasConv.GasPriceInCore()) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasPrice " + tx.GetGasPrice().convert_to<std::string>() +
+            " lower than minimum allowable " +
+            gasConv.GasPriceInCore().convert_to<std::string>());
   }
 
-  if (tx.GetGasLimit() < MIN_ETH_GAS) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasLimit " + std::to_string(tx.GetGasLimit()) +
-                               " lower than minimum allowable " +
-                               std::to_string(MIN_ETH_GAS));
+  if (gasConv.GasLimitInEthApi() < MIN_ETH_GAS) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasLimit " + std::to_string(gasConv.GasLimitInEthApi()) +
+            " lower than minimum allowable " + std::to_string(MIN_ETH_GAS));
   }
 
   if (!Validator::VerifyTransaction(tx)) {
@@ -189,10 +201,10 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                std::to_string(sender->GetNonce()) + ")");
   }
 
-  // Check if transaction amount is valid
+  // Check if transaction amount is valid (tx.value is still in wei)
   uint256_t gasDeposit = 0;
-  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
-                                gasDeposit)) {
+  if (!SafeMath<uint256_t>::mul(gasConv.GasLimitInEthApi(),
+                                gasConv.GasPriceInEthApi(), gasDeposit)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
   }

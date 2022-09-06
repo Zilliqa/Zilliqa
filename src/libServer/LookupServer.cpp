@@ -39,6 +39,7 @@
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -1192,6 +1193,23 @@ Json::Value LookupServer::GetEthBalance(const std::string& address) {
   strm << "0x" << std::hex << ethBalance << std::dec;
 
   return strm.str();
+}
+
+Json::Value LookupServer::getEthGasPrice() const {
+  try {
+    const auto& gasPrice =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+    constexpr auto ignoredValue = 0;
+    const auto gasConv = GasConv::CreateFromCore(gasPrice, ignoredValue);
+    std::ostringstream strm;
+
+    strm << "0x" << std::hex << gasConv.GasPriceInEthApi() << std::dec;
+    return strm.str();
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(

@@ -341,7 +341,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = "0xd9e63a68c";
+    response = this->getEthGasPrice();
   }
 
   /**
@@ -737,6 +737,8 @@ class LookupServer : public Server,
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
   Json::Value GetEthBalance(const std::string& address);
+
+  Json::Value getEthGasPrice() const;
 
   Json::Value CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,

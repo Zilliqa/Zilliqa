@@ -58,7 +58,7 @@ struct Args {
     log4rs: Option<String>,
 
     /// How much EVM gas is one Scilla gas worth.
-    #[clap(long, default_value = "100")]
+    #[clap(long, default_value = "1")]
     gas_scaling_factor: u64,
 
     /// Zil scaling factor.  How many Zils in one EVM visible Eth.
