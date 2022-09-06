@@ -160,7 +160,7 @@ describe("Contract Deployment", function () {
 
 
         describe("When web3.js is used", function () {
-            describe("When constructor parameter is a uint256 qaz", async function () {
+            describe("When constructor parameter is a uint256", async function () {
                 let contract;
                 let INITIAL_NUMBER = 100;
                 before(async function () {
