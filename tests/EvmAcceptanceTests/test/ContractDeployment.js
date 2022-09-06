@@ -1,15 +1,16 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
+const web3_helper = require('../helper/Web3Helper')
 
 describe("Contract Deployment", function () {
     describe("Contract with zero parameter constructor", function () {
         describe("When ethers.js is used", function () {
-            let contract;
-            before(async function () {
-                const Contract = await ethers.getContractFactory("ZeroParamConstructor")
-                contract = await Contract.deploy()
-            })
+             let contract;
+             before(async function () {
+                 const Contract = await ethers.getContractFactory("ZeroParamConstructor")
+                 contract = await Contract.deploy()
+             })
 
             it("Should be deployed successfully", async function () {
                 expect(contract.address).exist;
@@ -38,7 +39,18 @@ describe("Contract Deployment", function () {
         })
 
         describe("When web3.js is used", function () {
-            // TODO
+            let contract;
+            before(async function () {
+                contract = await web3_helper.deploy("ZeroParamConstructor")
+            })
+
+            it("Should be deployed successfully", async function () {
+                expect(contract.options.address).exist;
+            })
+
+            it("Should return 123 when number view function is called", async function () {
+                expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(123))
+            })
         });
     })
 
@@ -148,7 +160,22 @@ describe("Contract Deployment", function () {
 
 
         describe("When web3.js is used", function () {
-            // TODO
+            describe("When constructor parameter is a uint256 qaz", async function () {
+                let contract;
+                let INITIAL_NUMBER = 100;
+                before(async function () {
+                    contract = await web3_helper.deploy("WithUintConstructor", INITIAL_NUMBER)
+                })
+
+                it("Should be deployed successfully", async function () {
+                    expect(contract.options.address).exist;
+                })
+
+                it("Should return 100 when number view function is called", async function () {
+                    expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(INITIAL_NUMBER))
+                })
+            })
+            // TODO add the rest
         });
     })
 
