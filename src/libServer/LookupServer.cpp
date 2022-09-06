@@ -1773,7 +1773,7 @@ std::string LookupServer::GetEthCoinbase() {
 
 std::string LookupServer::GetNetVersion() {
   LOG_MARKER();
-  return "0x8000";  // Like Ethereum, including test nets.
+  return std::to_string(NETWORK_ID);
 }
 
 Json::Value LookupServer::GetNetListening() {
