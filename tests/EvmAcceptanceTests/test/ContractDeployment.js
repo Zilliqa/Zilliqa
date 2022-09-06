@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
+const general_helper = require('../helper/GeneralHelper')
 const web3_helper = require('../helper/Web3Helper')
 
 describe("Contract Deployment", function () {
@@ -25,6 +26,10 @@ describe("Contract Deployment", function () {
             let helper;
             let contract;
             before(async function () {
+                if (!general_helper.isZilliqaNetworkSelected()) {
+                    this.skip()
+                }
+
                 helper = new ZilliqaHelper()
                 contract = await helper.deployContract("ZeroParamConstructor")
             })
@@ -106,6 +111,9 @@ describe("Contract Deployment", function () {
         describe("When Zilliqa Helper is used", function () {
             let helper;
             before(async function () {
+                if (!general_helper.isZilliqaNetworkSelected()) {
+                    this.skip()
+                }
                 helper = new ZilliqaHelper()
             })
 
@@ -208,6 +216,9 @@ describe("Contract Deployment", function () {
             let NUMBER = 100;
             let helper;
             before(async function () {
+                if (!general_helper.isZilliqaNetworkSelected()) {
+                    this.skip()
+                }
                 helper = new ZilliqaHelper()
                 contract = await helper.deployContract("MultiParamConstructor", {
                     constructorArgs: [NAME, NUMBER]

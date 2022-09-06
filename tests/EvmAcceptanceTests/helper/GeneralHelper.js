@@ -1,4 +1,10 @@
-var helper = {
+const axios = require('axios')
+
+var general_helper = {
+    isZilliqaNetworkSelected: function() {
+        return hre.network.config.zilliqaNetwork;
+    },
+
     getEthChainId: function() {
         return hre.network.config.chainId;
     },
@@ -47,4 +53,4 @@ var helper = {
     }
 }
 
-module.exports = helper
+module.exports = general_helper

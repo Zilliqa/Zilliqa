@@ -12,12 +12,14 @@ module.exports = {
       accounts: [
         "c95690aed4461afd835b17492ff889af72267a8bdf7d781e305576cd8f7eb182",
         "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad"
-      ]
+      ],
+      zilliqaNetwork: false,
     },
     zilliqa: {
       url: "https://master-mod-api.dev.z7a.xyz/",
       accounts: ["d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"],
-      chainId: 33101
+      chainId: 33101,
+      zilliqaNetwork: true,
     },
     isolated_server: {
       url: "http://localhost:5555/",
@@ -25,6 +27,7 @@ module.exports = {
                  "5c497e53404aca018264588643a3b6b48c6a03579da1538628acf827c4a264b3"
        ],
       chainId: 0x8001,
+      zilliqaNetwork: true,
     }
   }
 };
