@@ -28,8 +28,9 @@ uint64_t get_time_as_int();
 struct tm* gmtime_safe(const time_t* timer);
 long int get_ms(const std::chrono::time_point<std::chrono::system_clock> time);
 
-std::string microsec_timestamp_to_readable(const uint64_t& timestamp);
+std::string microsec_timestamp_to_readable(const uint64_t timestamp);
+long int microsec_to_sec(const uint64_t timestamp);
+bool is_timestamp_in_range(const uint64_t timestamp, const uint64_t loBound,
+                           const uint64_t hiBound);
 
-bool is_timestamp_in_range(const uint64_t& timestamp, const uint64_t& loBound,
-                           const uint64_t& hiBound);
 #endif  // ZILLIQA_SRC_LIBUTILS_TIMEUTILS_H_

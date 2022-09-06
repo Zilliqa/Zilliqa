@@ -1,10 +1,9 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'eth_estimateGas';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
 
   it("should return the estimated gas as calculated over the transaction provided", async function () {
     const estimatedGas = 2000000000

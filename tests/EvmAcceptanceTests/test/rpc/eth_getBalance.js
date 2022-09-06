@@ -1,10 +1,9 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'eth_getBalance';
 
 describe("Calling " + METHOD, function () {
-    const helper = new ZilliqaHelper()
 
     it("should return the balance as specified in the ethereum protocol", async function () {
         const expectedBalance = 1 * (10 ** 18) // should be 1 eth in wei

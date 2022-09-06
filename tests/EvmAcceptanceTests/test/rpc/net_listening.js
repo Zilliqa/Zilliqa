@@ -1,10 +1,9 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'net_listening';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
 
   it("should return the network listening state", async function () {
 

@@ -1,10 +1,9 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'net_peerCount';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
 
   it("should return the number of peers connected to the network", async function () {
 

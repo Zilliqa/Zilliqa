@@ -1,10 +1,10 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'net_version';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
+
 
   it("should return the current network version", async function () {
 

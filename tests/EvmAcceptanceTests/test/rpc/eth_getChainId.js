@@ -1,11 +1,10 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'eth_chainId';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
-
+  
   it("should return the chain Id", async function () {
     const expectedChainId = helper.getEthChainId()
 

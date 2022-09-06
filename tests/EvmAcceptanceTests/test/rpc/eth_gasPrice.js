@@ -1,10 +1,10 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'eth_gasPrice';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
+ 
 
   it("should return the gasPrice as specified in the ethereum protocol", async function () {
     const expectedGasPrice = 2000000000 // default ganache gas price in wei

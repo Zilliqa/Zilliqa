@@ -1,10 +1,10 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'web3_sha3';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
+
 
   it("should return a sha3 of the provided hex string", async function () {
 

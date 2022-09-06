@@ -1,10 +1,10 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'web3_clientVersion';
 
 describe("Calling " + METHOD, function () {
-  const helper = new ZilliqaHelper()
+
 
   it("should return the web3 client version", async function () {
 

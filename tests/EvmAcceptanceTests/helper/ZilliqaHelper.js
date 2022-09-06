@@ -1,20 +1,11 @@
-const { Zilliqa } = require('@zilliqa-js/zilliqa')
-const { schnorr } = require('@zilliqa-js/crypto');
-const { Account } = require('@zilliqa-js/account')
 const { ethers, web3 } = require("hardhat")
 const hre = require("hardhat")
-const { getPubKeyFromPrivateKey, getAddressFromPrivateKey, toChecksumAddress } = require('@zilliqa-js/crypto');
-const { BN, Long, bytes, units } = require('@zilliqa-js/util');
 const axios = require('axios')
 
 class ZilliqaHelper {
     constructor() {
-        this.zilliqa = new Zilliqa(this.getNetworkUrl());
         this.primaryAccount = web3.eth.accounts.privateKeyToAccount(this.getPrimaryPrivateAddress())
         this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(this.getPrivateAddress(1))
-
-        // TODO: Remove zilliqa dependency
-        this.zilliqa.wallet.addByPrivateKey(this.getPrimaryPrivateAddress());
     }
 
     async getState(address, index) {
@@ -29,23 +20,6 @@ class ZilliqaHelper {
     async getStateAsString(address, index) {
         const state = await web3.eth.getStorageAt(address, index)
         return web3.utils.hexToUtf8(state.slice(0, -2))
-    }
-
-    getVersion() {
-        const MSG_VERSION = 1;
-        return bytes.pack(this.getZilliqaChainId(), MSG_VERSION);
-    }
-
-    getEthChainId() {
-        return hre.network.config.chainId;
-    }
-
-    getZilliqaChainId() {
-        return hre.network.config.chainId - 0x8000;
-    }
-
-    getNetworkUrl() {
-        return hre.network.config.url
     }
 
     getPrimaryPrivateAddress() {
@@ -75,10 +49,10 @@ class ZilliqaHelper {
         const constructorArgs = (options.constructorArgs || []);
 
         // Give our Eth address some monies
-        await this.moveFunds('100000', toChecksumAddress(senderAccount.address), this.primaryAccount)
+        await this.moveFunds(200000000000000, senderAccount.address)
 
         // Deploy a SC using web3 API ONLY
-        const nonce = await web3.eth.getTransactionCount(this.auxiliaryAccount.address, 'latest'); // nonce starts counting from 0
+        const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
 
         const transaction = {
             'from': senderAccount.address,
@@ -92,9 +66,7 @@ class ZilliqaHelper {
 
         const receipt = await this.sendTransaction(transaction, senderAccount)
 
-        const contractAddress = await this.zilliqa.blockchain.getContractAddressFromTransactionID(receipt.transactionHash.replace("0x", ""));
-        const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi,
-            web3.utils.toChecksumAddress((contractAddress).result), {
+        const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi, receipt.contractAddress, {
             "from": this.auxiliaryAccount.address
         })
 
@@ -146,29 +118,28 @@ class ZilliqaHelper {
         return web3.eth.sendSignedTransaction(signedTx.rawTransaction)
     }
 
-    async moveFunds(amount, toAddr) {
+    async moveFundsBy(amount, toAddr, senderAccount) {
         try {
-            const myGasPrice = units.toQa('2000', units.Units.Li); // Gas Price that will be used by all transactions
+            const nonce = await web3.eth.getTransactionCount(senderAccount.address); // nonce starts counting from 0
+            const tx = {
+                'to': toAddr,
+                'value': amount,
+                'gas': 300000,
+                'gasPrice': 2000000000,
+                'nonce': nonce,
+                'chainId': this.getEthChainId(),
+                'data': ""
+            }
 
-            const tx_to_send = this.zilliqa.transactions.new(
-                {
-                    version: this.getVersion(),
-                    toAddr: toAddr,
-                    amount: new BN(units.toQa(amount, units.Units.Zil)),
-                    gasPrice: myGasPrice,
-                    gasLimit: Long.fromNumber(50),
-                    chainId: this.getZilliqaChainId(),
-                },
-                false,
-            );
-
-            const tx = await this.zilliqa.blockchain.createTransactionWithoutConfirm(tx_to_send);
-
-            const confirmedTxn = await tx.confirm(tx.id);
+            return this.sendTransaction(tx, senderAccount)
         } catch (err) {
             console.log("theres an error...");
             console.log(err);
         }
+    }
+
+    async moveFunds(amount, toAddr) {
+        return this.moveFundsBy(amount, toAddr, this.primaryAccount)
     }
 
     async callEthMethod(method, id, params, callback) {

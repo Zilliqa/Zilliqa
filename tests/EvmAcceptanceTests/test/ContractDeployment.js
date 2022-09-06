@@ -1,6 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
+const web3_helper = require('../helper/Web3Helper')
 
 describe("Contract Deployment", function () {
     describe("Contract with zero parameter constructor", function () {
@@ -29,16 +30,27 @@ describe("Contract Deployment", function () {
             })
 
             it("Should be deployed successfully", async function () {
-                expect(contract.address).exist;
+                expect(contract._address).exist;
             })
 
             it("Should return 123 when number view function is called", async function () {
-                expect(await contract.methods.number()).to.be.eq(123)
+                expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(123))
             })
         })
 
         describe("When web3.js is used", function () {
-            // TODO
+            let contract;
+            before(async function () {
+                contract = await web3_helper.deploy("ZeroParamConstructor")
+            })
+
+            it("Should be deployed successfully", async function () {
+                expect(contract.options.address).exist;
+            })
+
+            it("Should return 123 when number view function is called", async function () {
+                expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(123))
+            })
         });
     })
 
@@ -102,16 +114,16 @@ describe("Contract Deployment", function () {
                 let INITIAL_NUMBER = 100;
                 before(async function () {
                     contract = await helper.deployContract("WithUintConstructor", {
-                        constructorArgs: [100]
+                        constructorArgs: [INITIAL_NUMBER]
                     })
                 })
 
                 it("Should be deployed successfully", async function () {
-                    expect(contract.address).exist;
+                    expect(contract._address).exist;
                 })
 
                 it("Should return 100 when number view function is called", async function () {
-                    expect(await contract.methods.number()).to.be.eq(INITIAL_NUMBER)
+                    expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(INITIAL_NUMBER))
                 })
             })
 
@@ -119,17 +131,17 @@ describe("Contract Deployment", function () {
                 let contract;
                 let INITIAL_NAME = "Zilliqa";
                 before(async function () {
-                    contract = await helper.deployContract("WithUintConstructor", {
+                    contract = await helper.deployContract("WithStringConstructor", {
                         constructorArgs: [INITIAL_NAME]
                     })
                 })
 
                 it("Should be deployed successfully", async function () {
-                    expect(contract.address).exist;
+                    expect(contract._address).exist;
                 })
 
                 it("Should return Zilliqa when name view function is called", async function () {
-                    expect(await contract.methods.name()).to.be.eq(INITIAL_NAME)
+                    expect(await contract.methods.name().call()).to.be.eq(INITIAL_NAME)
                 })
             })
 
@@ -148,7 +160,22 @@ describe("Contract Deployment", function () {
 
 
         describe("When web3.js is used", function () {
-            // TODO
+            describe("When constructor parameter is a uint256", async function () {
+                let contract;
+                let INITIAL_NUMBER = 100;
+                before(async function () {
+                    contract = await web3_helper.deploy("WithUintConstructor", INITIAL_NUMBER)
+                })
+
+                it("Should be deployed successfully", async function () {
+                    expect(contract.options.address).exist;
+                })
+
+                it("Should return 100 when number view function is called", async function () {
+                    expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(INITIAL_NUMBER))
+                })
+            })
+            // TODO add the rest
         });
     })
 
@@ -188,15 +215,15 @@ describe("Contract Deployment", function () {
             })
 
             it("Should be deployed successfully", async function () {
-                expect(contract.address).exist;
+                expect(contract._address).exist;
             })
 
             it("Should return 100 when number view function is called", async function () {
-                expect(await contract.methods.number()).to.be.eq(NUMBER)
+                expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(NUMBER))
             })
 
             it("Should return Zilliqa when name view function is called", async function () {
-                expect(await contract.methods.name()).to.be.eq(NAME)
+                expect(await contract.methods.name().call()).to.be.eq(NAME)
             })
         });
 
@@ -237,19 +264,21 @@ describe("Contract Deployment", function () {
 
             before(async function () {
                 helper = new ZilliqaHelper()
-                contract = await helper.deployContract("WithPayableConstructor")
+                contract = await helper.deployContract("WithPayableConstructor", {
+                    value: INITIAL_BALANCE
+                })
             })
 
             it("Should be deployed successfully", async function () {
-                expect(contract.address).exist;
+                expect(contract._address).exist;
             })
 
             it("Should return 10 when balance view function is called", async function () {
-                expect(await contract.methods.balance()).to.be.eq(INITIAL_BALANCE)
+                expect(await contract.methods.balance().call()).to.be.eq(ethers.BigNumber.from(INITIAL_BALANCE))
             })
 
             it("Should return default signer when owner view function is called", async function () {
-                expect(await contract.methods.owner()).to.be.eq(await ethers.provider.getSigner().getAddress())
+                expect(await contract.methods.owner().call()).to.be.eq(await ethers.provider.getSigner(1).getAddress())
             })
         });
 
