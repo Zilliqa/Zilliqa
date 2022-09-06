@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <chrono>
 #include <string>
 #include <vector>
-#include <chrono>
 
 #include <boost/format.hpp>
 
@@ -603,10 +603,10 @@ const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
   _json["nonce"] = to_string(txn.GetNonce());
   _json["toAddr"] = txn.GetToAddr().hex();
   _json["senderAddr"] = txn.GetSenderAddr().hex();
-  _json["amount"] = txn.GetAmount().str();
+  _json["amount"] = txn.GetAmountQa().str();
   _json["signature"] = static_cast<string>(txn.GetSignature());
 
-  _json["gasPrice"] = txn.GetGasPrice().str();
+  _json["gasPrice"] = txn.GetGasPriceQa().str();
   _json["gasLimit"] = to_string(txn.GetGasLimit());
 
   if (!txn.GetCode().empty()) {
@@ -629,10 +629,10 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
   _json["senderPubKey"] =
       static_cast<string>(twr.GetTransaction().GetSenderPubKey());
-  _json["amount"] = twr.GetTransaction().GetAmount().str();
+  _json["amount"] = twr.GetTransaction().GetAmountQa().str();
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
-  _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
+  _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
   _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
 
   if (!twr.GetTransaction().GetCode().empty()) {
@@ -659,10 +659,10 @@ const Json::Value JSONConversion::convertTxtoEthJson(
       (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =
-      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetGasLimit()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
   retJson["gasPrice"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetGasPrice()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();
   retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
@@ -690,7 +690,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
       (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
   retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
   retJson["value"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetAmountWei()).str();
   if (!txn.GetTransaction().GetCode().empty() &&
       IsNullAddress(txn.GetTransaction().GetToAddr())) {
     retJson["contractAddress"] =

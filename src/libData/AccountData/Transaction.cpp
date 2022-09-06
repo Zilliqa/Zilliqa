@@ -165,7 +165,7 @@ const PubKey& Transaction::GetSenderPubKey() const {
 
 Address Transaction::GetSenderAddr() const {
   // If a V2 Tx
-  if ((GetVersion() & 0xffff) == 0x2) {
+  if (IsEth()) {
     LOG_GENERAL(WARNING, "Getting eth style address from pub key");
     return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
   }
@@ -173,10 +173,46 @@ Address Transaction::GetSenderAddr() const {
   return Account::GetAddressFromPublicKey(GetSenderPubKey());
 }
 
-const uint128_t& Transaction::GetAmount() const { return m_coreInfo.amount; }
+bool Transaction::IsEth() const { return (GetVersion() & 0xffff) == 0x2; }
 
-const uint128_t& Transaction::GetGasPrice() const {
+const uint128_t& Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
+
+const uint128_t Transaction::GetAmountQa() const {
+  if (IsEth()) {
+    return m_coreInfo.amount / EVM_ZIL_SCALING_FACTOR;
+  } else {
+    return m_coreInfo.amount;
+  }
+}
+
+const uint128_t Transaction::GetAmountWei() const {
+  if (IsEth()) {
+    return m_coreInfo.amount;
+  } else {
+    // We know the amounts in transactions are capped, so it won't overlow.
+    return m_coreInfo.amount * EVM_ZIL_SCALING_FACTOR;
+  }
+}
+
+const uint128_t& Transaction::GetGasPriceRaw() const {
   return m_coreInfo.gasPrice;
+}
+
+const uint128_t Transaction::GetGasPriceQa() const {
+  if (IsEth()) {
+    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR;
+  } else {
+    return m_coreInfo.gasPrice;
+  }
+}
+
+const uint128_t Transaction::GetGasPriceWei() const {
+  if (IsEth()) {
+    return m_coreInfo.amount;
+  } else {
+    // We know the amounts in transactions are capped, so it won't overlow.
+    return m_coreInfo.amount * EVM_ZIL_SCALING_FACTOR;
+  }
 }
 
 const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }

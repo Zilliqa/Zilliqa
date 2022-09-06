@@ -131,7 +131,7 @@ EthFields parseRawTxFields(std::string const &message) {
 }
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
-                    const Account *sender, const uint128_t &gasPrice) {
+                    const Account *sender, const uint128_t &gasPriceWei) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -150,14 +150,12 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                            "Code size is too large");
   }
 
-  const uint256_t allowableGasPrice =
-      uint256_t{gasPrice} * EVM_ZIL_SCALING_FACTOR;
-  if (tx.GetGasPrice() < allowableGasPrice) {
+  if (tx.GetGasPriceWei() < gasPriceWei) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasPrice " +
-                               tx.GetGasPrice().convert_to<std::string>() +
+                               tx.GetGasPriceWei().convert_to<std::string>() +
                                " lower than minimum allowable " +
-                               allowableGasPrice.convert_to<std::string>());
+                               gasPriceWei.convert_to<std::string>());
   }
 
   if (tx.GetGasLimit() < MIN_ETH_GAS) {
@@ -190,18 +188,18 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   // Check if transaction amount is valid
-  uint256_t gasDeposit = 0;
-  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
-                                gasDeposit)) {
+  uint256_t gasDepositWei = 0;
+  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPriceWei(),
+                                gasDepositWei)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
   }
 
   uint256_t debt = 0;
-  if (!SafeMath<uint256_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+  if (!SafeMath<uint256_t>::add(gasDepositWei, tx.GetAmountWei(), debt)) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
   }
 
   const uint256_t accountBalance =

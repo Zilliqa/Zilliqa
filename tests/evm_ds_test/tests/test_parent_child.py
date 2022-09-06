@@ -95,7 +95,7 @@ contract ParentContract {
 
         # Check that the parent contract account is 1 zil as initially requested.
         set_value = self.call_view(contract, "getPaidValue")
-        assert set_value == 1_000_000_000_000
+        assert set_value == from_zil(1)
 
         assert self.get_balance(contract.address) == from_zil(1)
 

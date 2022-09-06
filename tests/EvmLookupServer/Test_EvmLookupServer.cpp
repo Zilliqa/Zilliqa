@@ -1021,7 +1021,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
             .str());
     BOOST_TEST_CHECK(
         response["value"] ==
-        (boost::format("0x%x") % transactions[i].GetTransaction().GetAmount())
+        (boost::format("0x%x") % transactions[i].GetTransaction().GetAmountQa())
             .str());
   }
 

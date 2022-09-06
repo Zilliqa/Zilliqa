@@ -18,6 +18,7 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
+#include "common/Constants.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
@@ -286,7 +287,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   // Get the amount of deposit for running this txn
   uint128_t gasDeposit;
-  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPriceWei(),
                                 gasDeposit)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
@@ -318,7 +319,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       // Check if the sender has enough balance to pay gasDeposit
-      if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmount()) {
+      if (fromAccount->GetBalance() * EVM_ZIL_SCALING_FACTOR <
+          gasDeposit + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING,
                     "The account doesn't have enough gas to create a contract");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
@@ -390,11 +392,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
                             << gasRemained << " alleged "
-                            << transaction.GetAmount() << " limit "
+                            << transaction.GetAmountQa() << " limit "
                             << transaction.GetGasLimit());
 
       if (!TransferBalanceAtomic(fromAddr, contractAddress,
-                                 transaction.GetAmount())) {
+                                 transaction.GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
@@ -406,7 +408,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           DataConversion::CharArrayToString(transaction.GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimit(),
-          transaction.GetAmount()};
+          transaction.GetAmountWei()};
 
       std::map<std::string, bytes> t_newmetadata;
 
@@ -428,11 +430,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       // Summary
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+              gasRemained, transaction.GetGasPriceWei(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
-      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+      if (!this->IncreaseBalance(fromAddr,
+                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
       if (evm_call_run_succeeded) {
@@ -492,7 +495,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       LOG_GENERAL(INFO, "Call contract");
 
-      if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmount()) {
+      if (fromAccount->GetBalance() < gasDeposit + transaction.GetAmountQa()) {
         LOG_GENERAL(WARNING, "The account (balance: "
                                  << fromAccount->GetBalance()
                                  << ") "
@@ -501,7 +504,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                  << gasDeposit
                                  << ") "
                                     "and transfer the amount ("
-                                 << transaction.GetAmount()
+                                 << transaction.GetAmountQa()
                                  << ") in the txn, "
                                     "rejected");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
@@ -532,9 +535,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       m_curGasLimit = transaction.GetGasLimit();
-      m_curGasPrice = transaction.GetGasPrice();
+      m_curGasPrice = transaction.GetGasPriceWei();
       m_curContractAddr = transaction.GetToAddr();
-      m_curAmount = transaction.GetAmount();
+      m_curAmount = transaction.GetAmountQa();
       m_curNumShards = numShards;
 
       std::chrono::system_clock::time_point tpStart;
@@ -555,7 +558,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       bool evm_call_succeeded{true};
 
       if (!TransferBalanceAtomic(fromAddr, m_curContractAddr,
-                                 transaction.GetAmount())) {
+                                 transaction.GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
@@ -567,7 +570,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimit(),
-          transaction.GetAmount()};
+          transaction.GetAmountWei()};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "
@@ -590,12 +593,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+              gasRemained, transaction.GetGasPriceWei(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
 
-      if (!this->IncreaseBalance(fromAddr, gasRefund)) {
+      if (!this->IncreaseBalance(fromAddr,
+                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 

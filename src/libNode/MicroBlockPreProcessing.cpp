@@ -452,7 +452,7 @@ void Node::ProcessTransactionWhenShardLeader(
           break;
         }
         uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
@@ -489,7 +489,7 @@ void Node::ProcessTransactionWhenShardLeader(
           if (it2 != it1->second.end()) {
             // found the txn with same addr and same nonce
             // then compare the gasprice and remains the higher one
-            if (t.GetGasPrice() > it2->second.GetGasPrice()) {
+            if (t.GetGasPriceQa() > it2->second.GetGasPriceQa()) {
               it2->second = t;
             }
             continue;
@@ -526,7 +526,7 @@ void Node::ProcessTransactionWhenShardLeader(
             break;
           }
           uint128_t txnFee;
-          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                         txnFee)) {
             LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
             continue;
@@ -624,17 +624,19 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
     for (const auto& th : m_expectedTranOrdering) {
       Transaction t;
       if (m_createdTxns.get(th, t)) {
-        LOG_GENERAL(INFO, "Expected txn: "
-                              << t.GetTranID() << " " << t.GetSenderAddr()
-                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+        LOG_GENERAL(INFO, "Expected txn: " << t.GetTranID() << " "
+                                           << t.GetSenderAddr() << " "
+                                           << t.GetNonce() << " "
+                                           << t.GetGasPriceQa());
       }
     }
     for (const auto& th : tranHashes) {
       Transaction t;
       if (m_createdTxns.get(th, t)) {
-        LOG_GENERAL(INFO, "Received txn: "
-                              << t.GetTranID() << " " << t.GetSenderAddr()
-                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+        LOG_GENERAL(INFO, "Received txn: " << t.GetTranID() << " "
+                                           << t.GetSenderAddr() << " "
+                                           << t.GetNonce() << " "
+                                           << t.GetGasPriceQa());
       }
     }
 
@@ -770,7 +772,7 @@ void Node::ProcessTransactionWhenShardBackup(
           break;
         }
         uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
@@ -807,7 +809,7 @@ void Node::ProcessTransactionWhenShardBackup(
           if (it2 != it1->second.end()) {
             // found the txn with same addr and same nonce
             // then compare the gasprice and remains the higher one
-            if (t.GetGasPrice() > it2->second.GetGasPrice()) {
+            if (t.GetGasPriceQa() > it2->second.GetGasPriceQa()) {
               it2->second = t;
             }
             continue;
@@ -844,7 +846,7 @@ void Node::ProcessTransactionWhenShardBackup(
             break;
           }
           uint128_t txnFee;
-          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                         txnFee)) {
             LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
             continue;
