@@ -18,7 +18,7 @@ var helper = {
     },
 
     getWeb3ClientVersion: function () {
-        return hre.network.config.web3_clientVersion;
+        return hre.network.config.web3ClientVersion;
     },
 
     getProtocolVersion: function () {
