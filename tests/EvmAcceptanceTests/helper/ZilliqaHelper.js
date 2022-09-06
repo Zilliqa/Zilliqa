@@ -1,11 +1,11 @@
 const { ethers, web3} = require("hardhat")
 const hre = require("hardhat")
-const axios = require('axios')
+const general_helper = require('../helper/GeneralHelper')
 
 class ZilliqaHelper {
     constructor() {
-        this.primaryAccount = web3.eth.accounts.privateKeyToAccount(this.getPrimaryPrivateAddress())
-        this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(this.getPrivateAddress(1))
+        this.primaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0))
+        this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1))
     }
 
     async getState(address, index) {
@@ -20,14 +20,6 @@ class ZilliqaHelper {
     async getStateAsString(address, index) {
         const state = await web3.eth.getStorageAt(address, index)
         return web3.utils.hexToUtf8(state.slice(0, -2))
-    }
-
-    getPrimaryPrivateAddress() {
-        return this.getPrivateAddress(0)
-    }
-
-    getAuxiliaryAccount() {
-        return this.auxiliaryAccount
     }
 
     async deployContract(contractName, options = {}) {
@@ -48,7 +40,7 @@ class ZilliqaHelper {
             'data': Contract.getDeployTransaction(...constructorArgs).data,
             'gas': 300000,
             'gasPrice': 2000000000,
-            'chainId': this.getEthChainId(),
+            'chainId': general_helper.getEthChainId(),
             'nonce': nonce,
         };
 
@@ -76,7 +68,7 @@ class ZilliqaHelper {
             'data': abi,
             'gas': 300000,
             'gasPrice': 2000000000,
-            'chainId': this.getEthChainId(),
+            'chainId': general_helper.getEthChainId(),
             'nonce': nonce,
         };
         
@@ -115,7 +107,7 @@ class ZilliqaHelper {
                 'gas': 300000,
                 'gasPrice': 2000000000,
                 'nonce': nonce,
-                'chainId': this.getEthChainId(),
+                'chainId': general_helper.getEthChainId(),
                 'data': ""
             }
         
@@ -130,36 +122,6 @@ class ZilliqaHelper {
         return this.moveFundsBy(amount, toAddr, this.primaryAccount)
     }
 
-    async callEthMethod(method, id, params, callback) {
-        const data = {
-            id: id,
-            jsonrpc: "2.0",
-            method: method,
-            params: params
-        }
-    
-        const host = this.getNetworkUrl()
-
-        // ASYNC
-        if(typeof callback === 'function') {
-            await axios.post(host, data).then(response => {
-                if(response.status === 200) {
-                    callback(response.data, response.status);
-                } else {
-                    throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
-                }
-            })
-        // SYNC
-        } else {
-            const response = await axios.post(host, data)
-
-            if(response.status !== 200) {
-                throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
-            }
-
-            return response.data
-        }
-    }
 }
 
 module.exports = {
