@@ -1,11 +1,9 @@
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
 assert = require('chai').assert;
 
 const METHOD = 'eth_getBalance';
 
 describe("Calling " + METHOD, function () {
-    const helper = new ZilliqaHelper()
-
     it("should return the balance as specified in the ethereum protocol", async function() {
         const expectedResult = 0
         await helper.callEthMethod(METHOD, 1, [
