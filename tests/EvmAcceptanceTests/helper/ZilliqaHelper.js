@@ -22,28 +22,12 @@ class ZilliqaHelper {
         return web3.utils.hexToUtf8(state.slice(0, -2))
     }
 
-    getEthChainId() {
-        return hre.network.config.chainId;
-    }
-
-    getZilliqaChainId() {
-        return hre.network.config.chainId - 0x8000;
-    }
-
-    getNetworkUrl() {
-        return hre.network.config.url
-    }
-
     getPrimaryPrivateAddress() {
         return this.getPrivateAddress(0)
     }
 
     getAuxiliaryAccount() {
         return this.auxiliaryAccount
-    }
-
-    getPrivateAddress(index) {
-        return hre.network.config.accounts[index]
     }
 
     async deployContract(contractName, options = {}) {
@@ -53,7 +37,7 @@ class ZilliqaHelper {
         const constructorArgs = (options.constructorArgs || []);
     
         // Give our Eth address some monies
-        await this.moveFunds(200000000000000, senderAccount.address, this.primaryAccount)
+        await this.moveFunds(200000000000000, senderAccount.address)
 
         // Deploy a SC using web3 API ONLY
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
@@ -122,7 +106,7 @@ class ZilliqaHelper {
         return web3.eth.sendSignedTransaction(signedTx.rawTransaction)
     }
 
-    async moveFunds(amount, toAddr, senderAccount) {
+    async moveFundsBy(amount, toAddr, senderAccount) {
         try {
             const nonce = await web3.eth.getTransactionCount(senderAccount.address); // nonce starts counting from 0
             const tx = {
@@ -140,6 +124,10 @@ class ZilliqaHelper {
             console.log("theres an error...");
             console.log(err);
         }
+    }
+
+    async moveFunds(amount, toAddr) {
+        return this.moveFundsBy(amount, toAddr, this.primaryAccount)
     }
 
     async callEthMethod(method, id, params, callback) {
