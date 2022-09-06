@@ -64,6 +64,10 @@ class ZilliqaHelper {
         return hre.network.config.web3_clientVersion;
     }
 
+    getProtocolVersion() {
+        return hre.network.config.protocolVersion;
+    }
+
     async deployContract(contractName, options = {}) {
         const Contract = await ethers.getContractFactory(contractName);
 

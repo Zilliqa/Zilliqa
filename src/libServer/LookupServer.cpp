@@ -509,7 +509,7 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetNetListeningI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetProtocolVersionI);
 
