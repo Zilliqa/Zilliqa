@@ -338,7 +338,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  paramsRequest[0u] = "68656c6c6f20776f726c64";
+  paramsRequest[0u] = "0x68656c6c6f20776f726c64";
   lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
@@ -622,6 +622,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   const std::string address{"0x6cCAa29b6cD36C8238E8Fa137311de6153b0b4e7"};
   paramsRequest[0u] = address;
+  paramsRequest[1u] = "latest";
 
   const Address accountAddress{address};
   if (!AccountStore::GetInstance().IsAccountExist(accountAddress)) {
@@ -635,7 +636,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   const auto lookupServer = getLookupServer();
   lookupServer->GetEthBalanceI(paramsRequest, response);
   // expected return value should be 1.000.000 times greater
-  BOOST_CHECK_EQUAL(response.asString(), "0xE8D4A51000");
+  BOOST_CHECK_EQUAL(response.asString(), "0xe8d4a51000");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {

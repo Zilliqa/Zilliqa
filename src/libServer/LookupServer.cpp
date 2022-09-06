@@ -1734,11 +1734,15 @@ std::string LookupServer::GetWeb3ClientVersion() {
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
 
-  const auto str{_json.asString()};
-  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
+  auto str{_json.asString()};
+  if (str.length() > 2 && (str[1] == 'x' || str[1] == 'X')) {
+    str = str.substr(2);
+}
 
-  return POW::BlockhashToHexString(ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
+
+return POW::BlockhashToHexString(ethash::keccak256(
+    reinterpret_cast<const uint8_t*>(str.data()), str.size()));
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
