@@ -715,7 +715,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmountQa().str() +
+              " with an attempt to send: " + tx.GetAmountWei().str() +
               " and use totalGas: " + requiredGas.str());
     }
 
