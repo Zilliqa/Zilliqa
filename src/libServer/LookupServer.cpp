@@ -1741,8 +1741,7 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
 
 LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
 
-return POW::BlockhashToHexString(ethash::keccak256(
-    reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+return dev::sha3(str).hex();
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
