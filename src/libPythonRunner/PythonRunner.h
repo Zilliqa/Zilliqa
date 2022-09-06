@@ -18,6 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBPYTHONRUNNER_PYTHONRUNNER_H_
 #define ZILLIQA_SRC_LIBPYTHONRUNNER_PYTHONRUNNER_H_
 
+#include <string>
+#include <vector>
+
 #include <boost/python.hpp>
 
 class PythonRunner {

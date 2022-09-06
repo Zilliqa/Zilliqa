@@ -54,6 +54,10 @@ then
 fi
 
 # assume that it is run from project root directory
+
+cmake -H./scripts/external_boost -B${dir}/boost -DINSTALL_PREFIX=/usr/local
+sudo cmake --build ${dir}/boost --target Boost
+
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
 cmake --build ${dir} -- -j${n_parallel}
 

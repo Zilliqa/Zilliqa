@@ -21,6 +21,11 @@ if(NOT "${WEBSOCKETPP_INSTALL_RET}" STREQUAL "0")
 	message(FATAL_ERROR "Error when building and installing websocketpp (1), see more in log ${WEBSOCKETPP_INSTALL_LOG}")
 endif()
 
+execute_process(
+	COMMAND sed -i s/Boost_INCLUDE_DIR\}/Boost_INCLUDE_DIRS\}/g ${WEBSOCKETPP_SOURCE_DIR}/cmake/CMakeHelpers.cmake
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 # generate build directory
 execute_process(
 	COMMAND ${CMAKE_COMMAND}

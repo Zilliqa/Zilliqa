@@ -39,17 +39,12 @@ find_package(Threads REQUIRED)
 if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
+include_directories(${JSONRPC_INCLUDE_DIR})
 
 include(InstallG3log)
 find_package(g3logger CONFIG REQUIRED)
 
 include(InstallCryptoUtils)
-
-include(InstallMongo)
-find_package(mongocxx CONFIG REQUIRED)
- 
-include(InstallWebsocketpp)
-find_package(websocketpp CONFIG REQUIRED)
 
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
@@ -63,28 +58,25 @@ list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
 
 set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
 
-
 find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
 
-
-
 if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
 
-set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
+    set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
 
 elseif(Boost_PYTHON${PY_VERSION}_FOUND)
 
-set(PY_COMP_SUFFIX "python${PY_VERSION}")
+    set(PY_COMP_SUFFIX "python${PY_VERSION}")
 
 elseif(Boost_PYTHON3-PY${PY_VERSION}_FOUND)
 
-set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
+    set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
 
 else()
 
-message(FATAL_ERROR "Could not find boost python")
+    message(FATAL_ERROR "Could not find boost python")
 
 endif()
 
@@ -94,6 +86,12 @@ message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
 message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
+
+include(InstallMongo)
+find_package(mongocxx CONFIG REQUIRED)
+
+include(InstallWebsocketpp)
+find_package(websocketpp CONFIG REQUIRED)
 
 find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
 

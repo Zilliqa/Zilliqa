@@ -16,4 +16,9 @@ if(NOT "${CRYPTOUTILS_INSTALL_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing cryptoutils (1), see more in log ${CRYPTOUTILS_INSTALL_LOG}")
 endif()
 
+execute_process(
+        COMMAND sed -i s/Boost_INCLUDE_DIR\}/Boost_INCLUDE_DIRS\}/g src/depends/cryptoutils/CMakeLists.txt
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
+
 file(MAKE_DIRECTORY ${CRYPTOUTILS_INSTALL_INCLUDE_DIR})
