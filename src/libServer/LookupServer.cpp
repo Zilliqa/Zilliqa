@@ -1728,7 +1728,8 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
-  return "to do implement web3 version string";
+
+  return "Zilliqa/v8.1.2";
 }
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
@@ -1737,11 +1738,11 @@ string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   auto str{_json.asString()};
   if (str.length() > 2 && (str[1] == 'x' || str[1] == 'X')) {
     str = str.substr(2);
-}
+  }
 
-LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
+  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
 
-return dev::sha3(str).hex();
+  return dev::sha3(str).hex();
 }
 
 Json::Value LookupServer::GetEthUncleCount() {

@@ -1,7 +1,7 @@
 const { Zilliqa } = require('@zilliqa-js/zilliqa')
-const {schnorr} = require('@zilliqa-js/crypto');
+const { schnorr } = require('@zilliqa-js/crypto');
 const { Account } = require('@zilliqa-js/account')
-const { ethers, web3} = require("hardhat")
+const { ethers, web3 } = require("hardhat")
 const hre = require("hardhat")
 const { getPubKeyFromPrivateKey, getAddressFromPrivateKey, toChecksumAddress } = require('@zilliqa-js/crypto');
 const { BN, Long, bytes, units } = require('@zilliqa-js/util');
@@ -60,18 +60,22 @@ class ZilliqaHelper {
         return hre.network.config.accounts[index]
     }
 
+    getWeb3ClientVersion() {
+        return hre.network.config.web3_clientVersion;
+    }
+
     async deployContract(contractName, options = {}) {
         const Contract = await ethers.getContractFactory(contractName);
 
         const senderAccount = (options.senderAccount || this.auxiliaryAccount)
         const constructorArgs = (options.constructorArgs || []);
-    
+
         // Give our Eth address some monies
         await this.moveFunds('100000', toChecksumAddress(senderAccount.address), this.primaryAccount)
 
         // Deploy a SC using web3 API ONLY
         const nonce = await web3.eth.getTransactionCount(this.auxiliaryAccount.address, 'latest'); // nonce starts counting from 0
-    
+
         const transaction = {
             'from': senderAccount.address,
             'value': options.value ?? 0,
@@ -87,8 +91,8 @@ class ZilliqaHelper {
         const contractAddress = await this.zilliqa.blockchain.getContractAddressFromTransactionID(receipt.transactionHash.replace("0x", ""));
         const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi,
             web3.utils.toChecksumAddress((contractAddress).result), {
-                "from": this.auxiliaryAccount.address
-            })
+            "from": this.auxiliaryAccount.address
+        })
 
         return contract
     }
@@ -100,7 +104,7 @@ class ZilliqaHelper {
     async callContractBy(senderAccount, contract, func_name, ...params) {
         const abi = contract.methods[func_name](...params).encodeABI()
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
-    
+
         const transaction = {
             'to': contract._address,
             'from': senderAccount.address,
@@ -111,7 +115,7 @@ class ZilliqaHelper {
             'chainId': this.getEthChainId(),
             'nonce': nonce,
         };
-        
+
         const receipt = await this.sendTransaction(transaction, this.auxiliaryAccount)
         await web3.eth.getTransaction(receipt.transactionHash)
     }
@@ -122,7 +126,7 @@ class ZilliqaHelper {
 
     async callViewBy(senderAccount, contract, func_name, ...params) {
         const abi = contract.methods[func_name](...params).encodeABI()
-    
+
         const transaction = {
             from: senderAccount.address,
             to: contract._address,
@@ -170,24 +174,24 @@ class ZilliqaHelper {
             method: method,
             params: params
         }
-    
+
         const host = this.getNetworkUrl()
 
         // ASYNC
-        if(typeof callback === 'function') {
+        if (typeof callback === 'function') {
             await axios.post(host, data).then(response => {
-                if(response.status === 200) {
+                if (response.status === 200) {
                     callback(response.data, response.status);
                 } else {
-                    throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
+                    throw new Error('Can\'t connect to ' + host + "\n Send: " + JSON.stringify(data, null, 2));
                 }
             })
-        // SYNC
+            // SYNC
         } else {
             const response = await axios.post(host, data)
 
-            if(response.status !== 200) {
-                throw new Error('Can\'t connect to '+ host + "\n Send: "+ JSON.stringify(data, null, 2));
+            if (response.status !== 200) {
+                throw new Error('Can\'t connect to ' + host + "\n Send: " + JSON.stringify(data, null, 2));
             }
 
             return response.data
