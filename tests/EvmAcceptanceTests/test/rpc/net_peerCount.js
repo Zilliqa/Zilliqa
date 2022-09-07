@@ -4,12 +4,11 @@ assert = require('chai').assert;
 const METHOD = 'net_peerCount';
 
 describe("Calling " + METHOD, function () {
-
   it("should return the number of peers connected to the network", async function () {
-
     await helper.callEthMethod(METHOD, 1, [],
       (result, status) => {
         console.log(result);
+        
         assert.equal(status, 200, 'has status code');
         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
         assert.isString(result.result, 'is string');

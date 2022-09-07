@@ -33,7 +33,7 @@ module.exports = {
         "5c497e53404aca018264588643a3b6b48c6a03579da1538628acf827c4a264b3"
       ],
       chainId: 0x8001,
-      web3ClientVersion: "Zilliqa/v8.1.2",
+      web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41
     }
   }

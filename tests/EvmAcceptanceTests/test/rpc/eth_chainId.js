@@ -4,9 +4,7 @@ assert = require('chai').assert;
 const METHOD = 'eth_chainId';
 
 describe("Calling " + METHOD, function () {
-  
   it("should return the chain Id", async function () {
-    const expectedChainId = helper.getEthChainId()
 
     await helper.callEthMethod(METHOD, 1, [],
       (result, status) => {
@@ -16,6 +14,7 @@ describe("Calling " + METHOD, function () {
         assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
         assert.isNumber(+result.result, 'can be converted to a number');
 
+        const expectedChainId = helper.getEthChainId()
         assert.equal(+result.result, expectedChainId, 'should have a chain Id ' + expectedChainId);
       })
   })

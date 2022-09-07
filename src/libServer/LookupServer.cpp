@@ -1731,7 +1731,7 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
 
-  return "Zilliqa/v8.1.2";
+  return "Zilliqa/v8.2";
 }
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {

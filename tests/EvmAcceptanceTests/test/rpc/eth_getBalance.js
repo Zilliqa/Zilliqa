@@ -4,7 +4,6 @@ assert = require('chai').assert;
 const METHOD = 'eth_getBalance';
 
 describe("Calling " + METHOD, function () {
-
     it("should return the balance as specified in the ethereum protocol", async function () {
         const expectedBalance = 1 * (10 ** 18) // should be 1 eth in wei
 
@@ -46,7 +45,6 @@ describe("Calling " + METHOD, function () {
 
                 assert.equal(+result.result, expectedBalance, 'should have balance ' + expectedBalance);
             })
-
 
         await helper.callEthMethod(METHOD, 1, [
             "0xF0C05464f12cB2a011d21dE851108a090C95c755",   // public address

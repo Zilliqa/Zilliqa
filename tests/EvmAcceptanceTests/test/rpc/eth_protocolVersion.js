@@ -4,10 +4,7 @@ assert = require('chai').assert;
 const METHOD = 'eth_protocolVersion';
 
 describe("Calling " + METHOD, function () {
-
   it("should return the protocol version", async function () {
-
-
     await helper.callEthMethod(METHOD, 1, [],
       (result, status) => {
         console.log(result);
@@ -19,9 +16,7 @@ describe("Calling " + METHOD, function () {
         assert.isNumber(+result.result, 'can be converted to a number');
 
         const expectedProtocolVersion = helper.getProtocolVersion();
-        console.log(expectedProtocolVersion);
         assert.equal(+result.result, expectedProtocolVersion, 'has result:' + result.result + ', expected eth_protocolVersion:' + expectedProtocolVersion);
-
       })
   })
 })
