@@ -56,7 +56,7 @@ find_package(websocketpp CONFIG REQUIRED)
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
-find_package(PythonLibs REQUIRED)
+find_package(PythonLibs 3.6 EXACT REQUIRED)
 
 string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
 list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
@@ -366,10 +366,12 @@ install(
 )
 
 # add clang-format and clang-tidy targets lastly
-if(LLVM_EXTRA_TOOLS)
-    include(LLVMExtraTools)
-else()
-    message(STATUS "LLVM extra tools NOT found (for clang format/tidy)")
-endif()
+include(LLVMExtraTools)
+#if(LLVM_EXTRA_TOOLS)
+#include(LLVMExtraTools)
+#message(STATUS "LLVM extra tools found (for clang format/tidy)")
+#else()
+#message(STATUS "LLVM extra tools NOT found (for clang format/tidy)")
+#endif()
 
 include(CPack)
