@@ -1,4 +1,4 @@
-const { ethers, web3} = require("hardhat")
+const { ethers, web3 } = require("hardhat")
 const hre = require("hardhat")
 const general_helper = require('../helper/GeneralHelper')
 
@@ -27,13 +27,13 @@ class ZilliqaHelper {
 
         const senderAccount = (options.senderAccount || this.auxiliaryAccount)
         const constructorArgs = (options.constructorArgs || []);
-    
+
         // Give our Eth address some monies
         await this.moveFunds(200000000000000, senderAccount.address)
 
         // Deploy a SC using web3 API ONLY
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
-    
+
         const transaction = {
             'from': senderAccount.address,
             'value': options.value ?? 0,
@@ -47,8 +47,8 @@ class ZilliqaHelper {
         const receipt = await this.sendTransaction(transaction, senderAccount)
 
         const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi, receipt.contractAddress, {
-                "from": this.auxiliaryAccount.address
-            })
+            "from": this.auxiliaryAccount.address
+        })
 
         return contract
     }
@@ -60,7 +60,7 @@ class ZilliqaHelper {
     async callContractBy(senderAccount, contract, func_name, ...params) {
         const abi = contract.methods[func_name](...params).encodeABI()
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
-    
+
         const transaction = {
             'to': contract._address,
             'from': senderAccount.address,
@@ -71,7 +71,7 @@ class ZilliqaHelper {
             'chainId': general_helper.getEthChainId(),
             'nonce': nonce,
         };
-        
+
         const receipt = await this.sendTransaction(transaction, this.auxiliaryAccount)
         await web3.eth.getTransaction(receipt.transactionHash)
     }
@@ -82,7 +82,7 @@ class ZilliqaHelper {
 
     async callViewBy(senderAccount, contract, func_name, ...params) {
         const abi = contract.methods[func_name](...params).encodeABI()
-    
+
         const transaction = {
             from: senderAccount.address,
             to: contract._address,
@@ -110,7 +110,7 @@ class ZilliqaHelper {
                 'chainId': general_helper.getEthChainId(),
                 'data': ""
             }
-        
+
             return this.sendTransaction(tx, senderAccount)
         } catch (err) {
             console.log("theres an error...");
