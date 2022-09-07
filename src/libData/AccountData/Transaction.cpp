@@ -220,10 +220,10 @@ const uint128_t Transaction::GetGasPriceQa() const {
 
 const uint128_t Transaction::GetGasPriceWei() const {
   if (IsEth()) {
-    return m_coreInfo.amount;
+    return m_coreInfo.gasPrice;
   } else {
     // We know the amounts in transactions are capped, so it won't overlow.
-    return m_coreInfo.amount * EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR;
   }
 }
 
