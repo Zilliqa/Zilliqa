@@ -662,6 +662,31 @@ class LookupServer : public Server,
         request[0u].asString(), request[1u].asString());
   }
 
+  virtual void EthNewFilterI(const Json::Value& request,
+                             Json::Value& response) {
+    response = this->EthNewFilter(request[0u]);
+  }
+
+  virtual void EthNewBlockFilterI(const Json::Value& /*request*/,
+                                  Json::Value& response) {
+    response = this->EthNewBlockFilter();
+  }
+
+  virtual void EthNewPendingTransactionFilterI(const Json::Value& /*request*/,
+                                               Json::Value& response) {
+    response = this->EthNewPendingTransactionFilter();
+  }
+
+  virtual void EthGetFilterChangesI(const Json::Value& request,
+                                    Json::Value& response) {
+    response = this->EthGetFilterChanges(request[0u].asString());
+  }
+
+  virtual void EthUninstallFilterI(const Json::Value& request,
+                                   Json::Value& response) {
+    response = this->EthUninstallFilter(request[0u].asString());
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -753,6 +778,12 @@ class LookupServer : public Server,
       const std::string& blockNumber, const std::string& index) const;
   Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,
                                                 const uint64_t index) const;
+
+  std::string EthNewFilter(const Json::Value& param);
+  std::string EthNewBlockFilter();
+  std::string EthNewPendingTransactionFilter();
+  Json::Value EthGetFilterChanges(const std::string& filter_id);
+  bool EthUninstallFilter(const std::string& filter_id);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

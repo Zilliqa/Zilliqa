@@ -28,6 +28,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libEth/Eth.h"
+#include "libEth/Filters.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
@@ -545,6 +546,34 @@ LookupServer::LookupServer(Mediator& mediator,
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthTransactionReceiptI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_newFilter", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &LookupServer::EthNewFilterI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_newBlockFilter", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, NULL),
+      &LookupServer::EthNewBlockFilterI);
+
+  this->bindAndAddMethod(jsonrpc::Procedure("eth_newPendingTransactionFilter",
+                                            jsonrpc::PARAMS_BY_POSITION,
+                                            jsonrpc::JSON_STRING, NULL),
+                         &LookupServer::EthNewPendingTransactionFilterI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_getFilterChanges", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::EthGetFilterChangesI);
+
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("eth_uninstallFilter", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &LookupServer::EthUninstallFilterI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -3279,4 +3308,45 @@ Json::Value LookupServer::GetStateProof(const string& address,
   }
 
   return ret;
+}
+
+std::string LookupServer::EthNewFilter(const Json::Value& param) {
+  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
+  auto result = api.InstallNewEventFilter(param);
+  if (!result.success) {
+    throw JsonRpcException(RPC_MISC_ERROR, result.result);
+  }
+  return result.result;
+}
+
+std::string LookupServer::EthNewBlockFilter() {
+  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
+  auto result = api.InstallNewBlockFilter();
+  if (!result.success) {
+    throw JsonRpcException(RPC_MISC_ERROR, result.result);
+  }
+  return result.result;
+}
+
+std::string LookupServer::EthNewPendingTransactionFilter() {
+  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
+  auto result = api.InstallNewPendingTxnFilter();
+  if (!result.success) {
+    throw JsonRpcException(RPC_MISC_ERROR, result.result);
+  }
+  return result.result;
+}
+
+Json::Value LookupServer::EthGetFilterChanges(const std::string& filter_id) {
+  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
+  auto result = api.GetFilterChanges(filter_id);
+  if (!result.success) {
+    throw JsonRpcException(RPC_MISC_ERROR, result.error);
+  }
+  return result.result;
+}
+
+bool LookupServer::EthUninstallFilter(const std::string& filter_id) {
+  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
+  return api.UninstallFilter(filter_id);
 }
