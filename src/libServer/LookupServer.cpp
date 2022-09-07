@@ -1182,16 +1182,23 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetEthBalance(const std::string& address) {
-  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+Json::Value LookupServer::GetEthBalance(const std::string& address,
+                                        const std::string& tag) {
+  if (tag == "latest" || tag == "earliest" || tag == "pending") {
+    const auto balanceStr =
+        this->GetBalance(address, true)["balance"].asString();
 
-  const uint256_t ethBalance =
-      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+    const uint256_t ethBalance =
+        std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
 
-  std::ostringstream strm;
-  strm << "0x" << std::hex << ethBalance << std::dec;
+    std::ostringstream strm;
+    strm << "0x" << std::hex << ethBalance << std::dec;
 
-  return strm.str();
+    return strm.str();
+  }
+  throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process, invalid tag");
+
+  return "";
 }
 
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
