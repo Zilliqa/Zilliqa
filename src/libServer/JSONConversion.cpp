@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -72,6 +73,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
   bool isVacuous =
       Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
+  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
@@ -80,7 +82,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
+  ret_head["Timestamp"] = to_string(timestamp);
 
   ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
   ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
@@ -158,11 +160,12 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
 
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
+  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   retJson["size"] = (boost::format("0x%x") % serializedTxBlock.size()).str();
   retJson["gasLimit"] = (boost::format("0x%x") % txheader.GetGasLimit()).str();
   retJson["gasUsed"] = (boost::format("0x%x") % txheader.GetGasUsed()).str();
-  retJson["timestamp"] = (boost::format("0x%x") % txblock.GetTimestamp()).str();
+  retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
   retJson["extraData"] = "0x";
@@ -269,7 +272,8 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
     ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
   }
 
-  ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
+  auto timestamp = microsec_to_sec(dsblock.GetTimestamp());
+  ret_header["Timestamp"] = to_string(timestamp);
 
   for (const auto& govProposal : dshead.GetGovProposalMap()) {
     Json::Value _tempGovProposal;

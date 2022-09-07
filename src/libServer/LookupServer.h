@@ -388,14 +388,14 @@ class LookupServer : public Server,
       return;
     }
 
-    auto fields = parseRawTxFields(rawTx);
+    auto fields = Eth::parseRawTxFields(rawTx);
 
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
-    auto currentGasPrice =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
 
-    auto resp = CreateTransactionEth(fields, pubKey, shards, currentGasPrice,
-                                     m_createTransactionTarget);
+    auto resp = CreateTransactionEth(
+        fields, pubKey, shards,
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
+        m_createTransactionTarget);
 
     response = std::string{"0x"} + resp["TranID"].asString();
   }
@@ -404,7 +404,10 @@ class LookupServer : public Server,
                                      Json::Value& response) {
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
-    response = this->GetEthBalance(address);
+
+    const std::string tag{request[1u].asString()};
+
+    response = this->GetEthBalance(address, tag);
   }
 
   /**
@@ -736,10 +739,10 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
-  Json::Value GetEthBalance(const std::string& address);
+  Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value CreateTransactionEth(
-      EthFields const& fields, bytes const& pubKey,
+      Eth::EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPrice,
       const CreateTransactionTargetFunc& targetFunc);
 

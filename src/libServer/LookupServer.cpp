@@ -509,7 +509,7 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetNetListeningI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetProtocolVersionI);
 
@@ -944,8 +944,9 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::CreateTransactionEth(
-    EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
-    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
+    Eth::EthFields const& fields, bytes const& pubKey,
+    const unsigned int num_shards, const uint128_t& gasPrice,
+    const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -994,7 +995,7 @@ Json::Value LookupServer::CreateTransactionEth(
       const Account* toAccount =
           AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
-      if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
         LOG_GENERAL(WARNING, "failed to validate TX!");
         return ret;
       }
@@ -1181,16 +1182,23 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetEthBalance(const std::string& address) {
-  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+Json::Value LookupServer::GetEthBalance(const std::string& address,
+                                        const std::string& tag) {
+  if (tag == "latest" || tag == "earliest" || tag == "pending") {
+    const auto balanceStr =
+        this->GetBalance(address, true)["balance"].asString();
 
-  const uint256_t ethBalance =
-      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+    const uint256_t ethBalance =
+        std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
 
-  std::ostringstream strm;
-  strm << "0x" << std::hex << ethBalance << std::dec;
+    std::ostringstream strm;
+    strm << "0x" << std::hex << ethBalance << std::dec;
 
-  return strm.str();
+    return strm.str();
+  }
+  throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process, invalid tag");
+
+  return "";
 }
 
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
@@ -1391,8 +1399,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash, blockNumber, contractAddress);
+    auto res =
+        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                   blockHash, blockNumber, contractAddress);
 
     return res;
   } catch (const JsonRpcException& je) {
@@ -1721,17 +1730,21 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
-  return "to do implement web3 version string";
+
+  return "Zilliqa/v8.2";
 }
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
 
-  const auto str{_json.asString()};
+  auto str{_json.asString()};
+  if (str.length() > 2 && (str[1] == 'x' || str[1] == 'X')) {
+    str = str.substr(2);
+  }
+
   LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
 
-  return POW::BlockhashToHexString(ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+  return dev::sha3(str).hex();
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
@@ -1762,12 +1775,12 @@ std::string LookupServer::GetEthCoinbase() {
 
 std::string LookupServer::GetNetVersion() {
   LOG_MARKER();
-  return "0x8000";  // Like Ethereum, including test nets.
+  return std::to_string(NETWORK_ID);
 }
 
 Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
-  return Json::Value(false);
+  return Json::Value(true);
 }
 
 std::string LookupServer::GetNetPeerCount() {
@@ -3119,7 +3132,7 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
@@ -3184,7 +3197,7 @@ Json::Value LookupServer::GetStateProof(const string& address,
     } catch (invalid_argument& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
     } catch (out_of_range& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);

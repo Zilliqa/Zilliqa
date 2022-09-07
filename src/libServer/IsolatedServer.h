@@ -67,9 +67,12 @@ class IsolatedServer : public LookupServer,
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     auto const fields = parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey, CreateReceipt(rawTx));
 =======
+=======
+>>>>>>> master
     auto const fields = Eth::parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey);
 >>>>>>> 1af44f32bf0e37aca4ff00d8e8c2276ae7f64b31
@@ -122,13 +125,8 @@ class IsolatedServer : public LookupServer,
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
-<<<<<<< HEAD
-  Json::Value CreateTransactionEth(EthFields const& fields,
-                                   bytes const& pubKey, std::string const& receipt);
-=======
   Json::Value CreateTransactionEth(Eth::EthFields const& fields,
-                                   bytes const& pubKey);
->>>>>>> 1af44f32bf0e37aca4ff00d8e8c2276ae7f64b31
+                                   bytes const& pubKey, std::string const& receipt);
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
                               std::string const& blockNum);
