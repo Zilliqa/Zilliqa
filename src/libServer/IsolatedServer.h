@@ -66,16 +66,8 @@ class IsolatedServer : public LookupServer,
       return;
     }
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-    auto const fields = parseRawTxFields(rawTx);
-    auto const resp = CreateTransactionEth(fields, pubKey, CreateReceipt(rawTx));
-=======
-=======
->>>>>>> master
     auto const fields = Eth::parseRawTxFields(rawTx);
-    auto const resp = CreateTransactionEth(fields, pubKey);
->>>>>>> 1af44f32bf0e37aca4ff00d8e8c2276ae7f64b31
+    auto const resp = CreateTransactionEth(fields, pubKey, CreateReceipt(rawTx));
 
     response = std::string{"0x"} + resp["TranID"].asString();
   }
