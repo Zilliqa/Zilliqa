@@ -87,7 +87,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 
 
   // Verify the signature
-  if (!IsSigned()) {
+  if (!IsSigned(txnData)) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
   }
@@ -175,20 +175,6 @@ const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 
-bool Transaction::IsSignedSchnorr() const {
-  bytes txnData;
-  Messenger::SetTransactionCoreInfo(txnData, 0, GetCoreInfo());
-
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-
-  std::string res;
-  boost::algorithm::hex(txnData.begin(), txnData.end(), back_inserter(res));
-
-  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
-}
-
 bool Transaction::IsSignedECDSA() const {
   std::string pubKeyStr = std::string(GetCoreInfo().senderPubKey);
   std::string sigString = std::string(GetSignature());
@@ -231,7 +217,7 @@ bool Transaction::SetHash() const {
 }
 
 // Function to return whether the TX is signed
-bool Transaction::IsSigned() const {
+bool Transaction::IsSigned(bytes const& txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
   auto const version = DataConversion::UnpackB(this->GetVersion());
@@ -241,7 +227,7 @@ bool Transaction::IsSigned() const {
     return IsSignedECDSA();
   }
 
-  return IsSignedSchnorr();
+  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
 }
 
 void Transaction::SetSignature(const Signature& signature) {
