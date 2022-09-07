@@ -388,11 +388,11 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Code size is too large");
   }
 
-  if (tx.GetGasPrice() < gasPrice) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
-                               " lower than minimum allowable " +
-                               gasPrice.convert_to<string>());
+  if (tx.GetGasPriceQa() < gasPrice) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasPrice " + tx.GetGasPriceQa().convert_to<string>() +
+            " lower than minimum allowable " + gasPrice.convert_to<string>());
   }
   if (!Validator::VerifyTransaction(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -530,12 +530,12 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                              "Expected Nonce: " + to_string(senderNonce + 1));
     }
 
-    if (senderBalance < tx.GetAmount()) {
+    if (senderBalance < tx.GetAmountQa()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Insufficient Balance: " + senderBalance.str());
     }
 
-    if (m_gasPrice > tx.GetGasPrice()) {
+    if (m_gasPrice > tx.GetGasPriceQa()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Minimum gas price greater: " + m_gasPrice.str());
     }
@@ -682,8 +682,9 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     uint64_t senderNonce;
     uint256_t senderBalance;
 
-    const uint128_t& gasPrice =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+    const uint128_t gasPriceWei =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+        EVM_ZIL_SCALING_FACTOR;
 
     const Address fromAddr = tx.GetSenderAddr();
 
@@ -695,7 +696,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei)) {
         return ret;
       }
 
@@ -706,14 +707,15 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     // Sender's balance should be higher than value sent in the transaction +
     // max gas to be used by contract action
     const uint256_t requiredGas =
-        uint256_t{tx.GetGasPrice()} * uint256_t{tx.GetGasLimit()};
-    const uint256_t requiredBalance = uint256_t{tx.GetAmount()} + requiredGas;
+        uint256_t{tx.GetGasPriceWei()} * uint256_t{tx.GetGasLimit()};
+    const uint256_t requiredBalance =
+        uint256_t{tx.GetAmountWei()} + requiredGas;
 
     if (senderBalance < requiredBalance) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmount().str() +
+              " with an attempt to send: " + tx.GetAmountWei().str() +
               " and use totalGas: " + requiredGas.str());
     }
 

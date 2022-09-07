@@ -145,7 +145,7 @@ BOOST_AUTO_TEST_CASE(txnpool) {
   // Find the existing Transaction with gasPrice < MAX (gasPrice)
   int i = 0;
   while (true) {
-    uint128_t gasprice = transaction_v[i].GetGasPrice();
+    uint128_t gasprice = transaction_v[i].GetGasPriceQa();
     if (gasprice < gasprice + 1) {
       transactionHigherGas =
           createTransaction(gasprice + 1, transaction_v[i].GetSenderPubKey(),
@@ -179,7 +179,7 @@ BOOST_AUTO_TEST_CASE(txnpool_status) {
   TxnPool tp;
 
   Transaction txn = generateUniqueTransaction();
-  const uint128_t& gasprice = txn.GetGasPrice();
+  const uint128_t& gasprice = txn.GetGasPriceQa();
 
   Transaction higherGasTxn =
       createTransaction(gasprice + 1, txn.GetSenderPubKey(), txn.GetNonce());

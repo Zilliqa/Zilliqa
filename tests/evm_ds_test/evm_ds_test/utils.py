@@ -57,5 +57,5 @@ def process_log(arg, index, id, epoch_num):
 
 
 def from_zil(zil):
-    """Returns Zil converted to QA"""
-    return zil * 1_000_000_000_000
+    """Returns Zil converted to Wei"""
+    return int(zil * 1_000_000_000_000_000_000)

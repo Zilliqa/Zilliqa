@@ -681,11 +681,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Code size is too large");
   }
 
-  if (tx.GetGasPrice() < gasPrice) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
-                               " lower than minimum allowable " +
-                               gasPrice.convert_to<string>());
+  if (tx.GetGasPriceQa() < gasPrice) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasPrice " + tx.GetGasPriceQa().convert_to<string>() +
+            " lower than minimum allowable " + gasPrice.convert_to<string>());
   }
   if (!Validator::VerifyTransaction(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -742,17 +742,17 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   // Check if transaction amount is valid
   uint128_t gasDeposit = 0;
-  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
+  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPriceQa(),
                                 gasDeposit)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+                           "tx.GetGasLimit() * tx.GetGasPriceQa() overflow!");
   }
 
   uint128_t debt = 0;
-  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmountQa(), debt)) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountQa() overflow!");
   }
 
   if (sender->GetBalance() < debt) {
