@@ -193,7 +193,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetNetPeerCountI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetProtocolVersionI);
 
@@ -650,7 +650,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   return ret;
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
+Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey, std::string const& receipt) {
   Json::Value ret;
 
@@ -660,24 +660,30 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
 
     Address toAddr{fields.toAddr};
-    bool const nullAddr = IsNullAddress(toAddr);
-
-    Transaction tx =
-          Transaction{fields.version,
-                      fields.nonce,
-                      Address(fields.toAddr),
-                      PubKey(pubKey, 0),
-                      fields.amount,
-                      fields.gasPrice,
-                      fields.gasLimit,
-                      nullAddr ? ToEVM(fields.code) : bytes{},
-                      nullAddr ? bytes{} : DataConversion::StringToCharArray(
-                              DataConversion::Uint8VecToHexStrRet(
-                                      fields.code)),
-                      Signature(fields.signature, 0)};
+    bytes data;
+    bytes code;
+    if (IsNullAddress(toAddr)) {
+      code = ToEVM(fields.code);
+    } else {
+      data = DataConversion::StringToCharArray(
+          DataConversion::Uint8VecToHexStrRet(fields.code));
+    }
+    Transaction tx{fields.version,
+                   fields.nonce,
+                   Address(fields.toAddr),
+                   PubKey(pubKey, 0),
+                   fields.amount,
+                   fields.gasPrice,
+                   fields.gasLimit,
+                   code,  // either empty or stripped EVM-less code
+                   data,  // either empty or un-hexed byte-stream
+                   Signature(fields.signature, 0)};
 
     uint64_t senderNonce;
-    uint128_t senderBalance;
+    uint256_t senderBalance;
+
+    const uint128_t& gasPrice =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
 
     const Address fromAddr = tx.GetSenderAddr();
 
@@ -689,29 +695,26 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
         return ret;
       }
 
+      senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
       senderNonce = sender->GetNonce();
-      senderBalance = sender->GetBalance();
     }
 
-    if (senderNonce + 1 != tx.GetNonce()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Expected Nonce: " + to_string(senderNonce + 1));
-    }
+    // Sender's balance should be higher than value sent in the transaction +
+    // max gas to be used by contract action
+    const uint256_t requiredGas =
+        uint256_t{tx.GetGasPrice()} * uint256_t{tx.GetGasLimit()};
+    const uint256_t requiredBalance = uint256_t{tx.GetAmount()} + requiredGas;
 
-    if (senderBalance < tx.GetAmount()) {
+    if (senderBalance < requiredBalance) {
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmount().str());
-    }
-
-    if (m_gasPrice > tx.GetGasPrice()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Minimum gas price greater: " + m_gasPrice.str());
+              " with an attempt to send: " + tx.GetAmount().str() +
+              " and use totalGas: " + requiredGas.str());
     }
 
     switch (Transaction::GetTransactionType(tx)) {
@@ -805,7 +808,8 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
       m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
     }
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    ret["TranID"] = receipt;
+    ret["TranID"] = txHash.hex();
+    ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(
