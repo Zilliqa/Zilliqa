@@ -28,6 +28,7 @@
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
+#include <cstddef>
 #include <ethash/keccak.hpp>
 #include <iostream>
 #include <memory>
@@ -171,6 +172,32 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
   return result;
 }
 
+bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
+                        bytes& signature) {
+  std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
+      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                                     SECP256K1_CONTEXT_VERIFY),
+            &secp256k1_context_destroy};
+
+  auto ctx = s_ctx.get();
+
+  secp256k1_ecdsa_signature sig;
+
+  int result =
+      secp256k1_ecdsa_sign(ctx, &sig, &digest[0], &privKey[0], NULL, NULL);
+  if (result != 1) {
+    LOG_GENERAL(WARNING, "Failed to sign ECDSA");
+    return false;
+  }
+
+  unsigned char str_signature[64];
+  secp256k1_ecdsa_signature_serialize_compact(ctx, str_signature, &sig);
+  signature.assign(&str_signature[0],
+                   &str_signature[0] + sizeof(str_signature));
+
+  return true;
+}
+
 // Given a hex string representing the pubkey (secp256k1), return the hex
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
@@ -180,8 +207,14 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   std::unique_ptr<EC_KEY, decltype(ekFree)> zPublicKey(
       EC_KEY_new_by_curve_name(NID_secp256k1), ekFree);
 
+  size_t offset = 0;
+  if (pubKey.size() >= 2 && pubKey[0] == '0' &&
+      (pubKey[1] == 'x' || pubKey[1] == 'X')) {
+    offset = 2;
+  }
+
   // The +2 removes '0x' at the beginning of the string
-  if (!SetOpensslPublicKey(pubKey.c_str() + 2, zPublicKey.get())) {
+  if (!SetOpensslPublicKey(pubKey.c_str() + offset, zPublicKey.get())) {
     LOG_GENERAL(WARNING,
                 "Failed to get the public key from the hex input when getting "
                 "uncompressed form");
@@ -213,15 +246,6 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   }
 
   return ret;
-}
-
-secp256k1_context const* getCtx() {
-  static std::unique_ptr<secp256k1_context,
-                         decltype(&secp256k1_context_destroy)>
-      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
-                                     SECP256K1_CONTEXT_VERIFY),
-            &secp256k1_context_destroy};
-  return s_ctx.get();
 }
 
 // EIP-155 : assume the chain height is high enough that the signing scheme
@@ -307,7 +331,12 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
                                        messageRecreatedBytes.size());
 
   // Load the RS into the library
-  auto* ctx = getCtx();
+  std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
+      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                                     SECP256K1_CONTEXT_VERIFY),
+            &secp256k1_context_destroy};
+  auto ctx = s_ctx.get();
+
   secp256k1_ecdsa_recoverable_signature rawSig;
   if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
           ctx, &rawSig, rs.data(), vSelect)) {

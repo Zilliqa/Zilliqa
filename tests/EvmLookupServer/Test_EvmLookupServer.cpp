@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "libData/AccountData/TransactionReceipt.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
@@ -50,10 +51,12 @@ class EvmClientMock : public EvmClient {
   };
 };
 
+static PairOfKey getTestKeyPair() { return Schnorr::GenKeyPair(); }
+
 std::unique_ptr<LookupServer> getLookupServer() {
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  const PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  const PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -65,12 +68,13 @@ std::unique_ptr<LookupServer> getLookupServer() {
 
 TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
                                               const PairOfKey& keyPair) {
+  Address toAddr{Account::GetAddressFromPublicKeyEth(keyPair.second)};
   return TransactionWithReceipt(
       // Ctor: (version, nonce, toAddr, keyPair, amount, gasPrice, gasLimit,
       // code, data)
-      Transaction{0,
+      Transaction{2,  // For EVM transaction.
                   nonce,
-                  Account::GetAddressFromPublicKey(keyPair.second),
+                  toAddr,
                   keyPair,
                   1,
                   1,
@@ -597,7 +601,7 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -632,8 +636,13 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   const uint128_t initialBalance{1'000'000U};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
+  LOG_GENERAL(INFO, "Account balance: " << AccountStore::GetInstance()
+                                               .GetAccount(accountAddress)
+                                               ->GetBalance());
+
   const auto lookupServer = getLookupServer();
   lookupServer->GetEthBalanceI(paramsRequest, response);
+  LOG_GENERAL(INFO, "Got balance: " << response);
   // expected return value should be 1.000.000 times greater
   BOOST_CHECK_EQUAL(response.asString(), "0xE8D4A51000");
 }
@@ -647,7 +656,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -658,7 +667,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
 
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
   for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
-    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey);
+    transactions.emplace_back(twr);
 
     bytes body;
     transactions.back().Serialize(body, 0);
@@ -788,7 +798,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -848,7 +858,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -872,7 +882,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -905,7 +915,7 @@ BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -932,7 +942,7 @@ BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -956,7 +966,7 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -980,7 +990,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -1019,10 +1029,10 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
         response["nonce"] ==
         (boost::format("0x%x") % transactions[i].GetTransaction().GetNonce())
             .str());
-    BOOST_TEST_CHECK(
-        response["value"] ==
-        (boost::format("0x%x") % transactions[i].GetTransaction().GetAmountQa())
-            .str());
+    BOOST_TEST_CHECK(response["value"] ==
+                     (boost::format("0x%x") %
+                      transactions[i].GetTransaction().GetAmountWei())
+                         .str());
   }
 
   // Get non-existing transaction
@@ -1044,7 +1054,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;
@@ -1171,7 +1181,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
 
-  PairOfKey pairOfKey = Schnorr::GenKeyPair();
+  PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
   Mediator mediator(pairOfKey, peer);
   AbstractServerConnectorMock abstractServerConnector;

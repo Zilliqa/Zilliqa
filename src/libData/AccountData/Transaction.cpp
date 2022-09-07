@@ -62,9 +62,21 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
   // Generate the signature
-  if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
-                     m_signature)) {
-    LOG_GENERAL(WARNING, "We failed to generate m_signature.");
+  if (IsEth()) {
+    bytes signature;
+    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID_INT);
+    bytes pk_bytes;
+    const PrivKey& privKey{senderKeyPair.first};
+    privKey.Serialize(pk_bytes, 0);
+    if (!SignEcdsaSecp256k1(digest, pk_bytes, signature)) {
+      LOG_GENERAL(WARNING, "We failed to generate EDDSA m_signature.");
+    }
+    m_signature = Signature(signature, 0);
+  } else {
+    if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
+                       m_signature)) {
+      LOG_GENERAL(WARNING, "We failed to generate m_signature.");
+    }
   }
 }
 
@@ -243,12 +255,14 @@ bool Transaction::IsSignedECDSA() const {
 
   // Hash of the TXn data (for now just eth-style prelude)
   // Remove '0x' at beginning of hex strings before calling
-  sigString = sigString.substr(2);
-  pubKeyStr = pubKeyStr.substr(2);
-
-  auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT);
-
-  return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
+  if (sigString.size() >= 2 && sigString[0] == '0' && sigString[1] == 'x') {
+    sigString = sigString.substr(2);
+  }
+  if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
+    pubKeyStr = pubKeyStr.substr(2);
+  }
+  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT),
+                              sigString, pubKeyStr);
 }
 
 // Function to return whether the TX is signed
