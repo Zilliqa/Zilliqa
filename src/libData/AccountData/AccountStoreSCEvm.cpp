@@ -361,7 +361,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
-        if (!this->DecreaseBalance(fromAddr, gasDepositWei / EVM_ZIL_SCALING_FACTOR)) {
+        if (!this->DecreaseBalance(fromAddr,
+                                   gasDepositWei / EVM_ZIL_SCALING_FACTOR)) {
           LOG_GENERAL(WARNING, "Evm Decrease Balance has failed");
           error_code = TxnStatus::FAIL_CONTRACT_INIT;
           return false;
@@ -495,8 +496,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       LOG_GENERAL(INFO, "Call contract");
 
-      if (fromAccount->GetBalance() * EVM_ZIL_SCALING_FACTOR
-          < gasDepositWei + transaction.GetAmountWei()) {
+      if (fromAccount->GetBalance() * EVM_ZIL_SCALING_FACTOR <
+          gasDepositWei + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING, "The account (balance: "
                                  << fromAccount->GetBalance()
                                  << ") "
@@ -529,7 +530,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       DiscardAtomics();
 
-      if (!this->DecreaseBalance(fromAddr, gasDepositWei / EVM_ZIL_SCALING_FACTOR)) {
+      if (!this->DecreaseBalance(fromAddr,
+                                 gasDepositWei / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "DecreaseBalance failed");
         error_code = TxnStatus::MATH_ERROR;
         return false;
