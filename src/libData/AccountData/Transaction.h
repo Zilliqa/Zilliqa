@@ -66,6 +66,7 @@ class Transaction : public SerializableDataBlock {
 
   bool IsSignedSchnorr() const;
   bool IsSignedECDSA() const;
+  bool SetHash();
 
  public:
   /// Default constructor.

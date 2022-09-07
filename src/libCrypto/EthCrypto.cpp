@@ -366,6 +366,35 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
 
+bytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId) {
+  dev::RLPStream rlpStreamRecreated(9);
+
+  rlpStreamRecreated << info.nonce;
+  rlpStreamRecreated << info.gasPrice;
+  rlpStreamRecreated << info.gasLimit;
+  bytes toAddr{};
+  if (!IsNullAddress(info.toAddr)) {
+    toAddr = info.toAddr.asBytes();
+  }
+  rlpStreamRecreated << toAddr;
+  rlpStreamRecreated << info.amount;
+  if (IsNullAddress(info.toAddr)) {
+    rlpStreamRecreated << FromEVM(info.code);
+  } else {
+    // TODO: remove hexing here.
+    rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
+            DataConversion::CharArrayToString(info.data));
+  }
+  rlpStreamRecreated << chainId;
+  rlpStreamRecreated << bytes{};
+  rlpStreamRecreated << bytes{};
+
+  auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
+                                             rlpStreamRecreated.out().size());
+
+  return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
+}
+
 bytes ToEVM(bytes const& in) {
   if (in.empty()) {
     return in;

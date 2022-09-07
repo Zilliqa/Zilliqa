@@ -51,16 +51,6 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    return;
-  }
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
-
   // Generate the signature
   if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
                      m_signature)) {
@@ -90,15 +80,11 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
+  if (!GenerateTransactionId()) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
   }
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
+
 
   // Verify the signature
   if (!IsSigned()) {
@@ -150,7 +136,7 @@ const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 // Check if the version is 1 or 2 - the only valid ones for now
 // this will look like 65538 or 65537
 bool Transaction::VersionCorrect() const {
-  auto version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = DataConversion::UnpackB(this->GetVersion());
 
   return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
@@ -165,7 +151,9 @@ const PubKey& Transaction::GetSenderPubKey() const {
 
 Address Transaction::GetSenderAddr() const {
   // If a V2 Tx
-  if ((GetVersion() & 0xffff) == 0x2) {
+  auto const version = DataConversion::UnpackB(this->GetVersion());
+
+  if (version == TRANSACTION_VERSION_ETH) {
     LOG_GENERAL(WARNING, "Getting eth style address from pub key");
     return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
   }
@@ -215,11 +203,40 @@ bool Transaction::IsSignedECDSA() const {
   return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
 }
 
+// Set what the hash of the transaction is, depending on its type
+bool Transaction::SetHash() const {
+
+  auto const version = DataConversion::UnpackB(this->GetVersion());
+
+  if (version == TRANSACTION_VERSION_ETH) {
+    auto const asRLP =
+  }
+
+  if (version == TRANSACTION_VERSION) {
+    // Generate the transaction ID
+    SHA2<HashType::HASH_VARIANT_256> sha2;
+    sha2.Update(txnData);
+    const bytes& output = sha2.Finalize();
+    if (output.size() != TRAN_HASH_SIZE) {
+      LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+      return false;
+    }
+
+    copy(output.begin(), output.end(), m_tranID.asArray().begin());
+  }
+
+  LOG_GENERAL(WARNING, "Attempted to generate TX hash but version not supported! ", version);
+
+  return false;
+}
+
 // Function to return whether the TX is signed
 bool Transaction::IsSigned() const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
-  if ((GetVersion() & 0xffff) == 0x2) {
+  auto const version = DataConversion::UnpackB(this->GetVersion());
+
+  if (version == TRANSACTION_VERSION_ETH) {
     LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }

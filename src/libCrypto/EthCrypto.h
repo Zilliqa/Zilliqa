@@ -39,6 +39,7 @@ std::string ToUncompressedPubKey(const std::string& pubKey);
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
 
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
+bytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId);
 
 bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
