@@ -68,8 +68,8 @@ RUN cmake --version \
     && rm cmake-3.19.3-Linux-x86_64.sh
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=feat/ZIL-4688
-ARG REPO=https://github.com/yaron-zilliqa/Zilliqa.git
+ARG COMMIT_OR_TAG=master
+ARG REPO=https://github.com/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
