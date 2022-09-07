@@ -4,7 +4,7 @@ assert = require('chai').assert;
 const METHOD = 'eth_sign';
 
 describe("Calling " + METHOD, function () {
-  it("should return the a signature", async function () {
+  it("should return a signature", async function () {
 
     await helper.callEthMethod(METHOD, 2, ["0xF0C05464f12cB2a011d21dE851108a090C95c755", "0xdeadbeaf"],
       (result, status) => {
