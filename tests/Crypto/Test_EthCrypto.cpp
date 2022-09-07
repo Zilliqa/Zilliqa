@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(TestEthTXParse) {
       "6b9b554c45749ea02da3eba55c891dde91e73a312fd3748936fb7af8fb34c2f0fed8a987"
       "7f227e1d";
 
-  auto const result = Eth::parseRawTxFields(rlp);
+  auto const result = parseRawTxFields(rlp);
 
   BOOST_CHECK_EQUAL(DataConversion::Uint8VecToHexStrRet(result.toAddr),
                     "673E5EF1AE0A2EF7D0714A96A734FFCD1D8A381F");

@@ -61,14 +61,10 @@ string ReadConstantString(const string& propertyName,
 }
 
 uint64_t ReadConstantUInt64(const string& propertyName,
-                            const char* path = "node.general.", uint64_t defaultVal = 0) {
+                            const char* path = "node.general.") {
   auto pt = PTree::GetInstance();
-  try{
-    const auto& _str = pt.get<string>(path + propertyName);
-    return strtoull(_str.c_str(), NULL, 0);
-  } catch (exception& e) {
-    return defaultVal;
-  }
+  const auto& _str = pt.get<string>(path + propertyName);
+  return strtoull(_str.c_str(), NULL, 0);
 }
 
 const vector<string> ReadAccountsFromConstantsFile(
@@ -754,4 +750,4 @@ const std::string ETH_CHAINID{
 const uint64_t ETH_CHAINID_INT{DataConversion::HexStringToUint64Ret(
     ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d"))};
 const uint64_t EVM_ZIL_SCALING_FACTOR{
-    ReadConstantUInt64("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.", 1)};
+    ReadConstantUInt64("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.")};

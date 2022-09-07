@@ -63,7 +63,7 @@ class EvmDsTestCase:
     eth_network_id = network_id + 0x8000
 
     def init(self, num_accounts=1):
-        self.w3 = Web3(Web3.HTTPProvider(self.endpoint, request_kwargs={'timeout': 90}))
+        self.w3 = Web3(Web3.HTTPProvider(self.endpoint))
         funded_account = EthAccount.from_key(
             private_key="d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"
         )
@@ -127,7 +127,7 @@ class EvmDsTestCase:
             {
                 "to": dest.address,
                 "value": amount,
-                "gas": 21_000,
+                "gas": 5_000,
                 "gasPrice": 2_000_000_000,
                 "nonce": nonce,
                 "chainId": self.eth_network_id,

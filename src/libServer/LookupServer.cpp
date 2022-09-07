@@ -944,9 +944,8 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::CreateTransactionEth(
-    Eth::EthFields const& fields, bytes const& pubKey,
-    const unsigned int num_shards, const uint128_t& gasPrice,
-    const CreateTransactionTargetFunc& targetFunc) {
+    EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
+    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -995,7 +994,7 @@ Json::Value LookupServer::CreateTransactionEth(
       const Account* toAccount =
           AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
-      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
+      if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
         LOG_GENERAL(WARNING, "failed to validate TX!");
         return ret;
       }
@@ -1392,9 +1391,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res =
-        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                   blockHash, blockNumber, contractAddress);
+    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                     blockHash, blockNumber, contractAddress);
 
     return res;
   } catch (const JsonRpcException& je) {
