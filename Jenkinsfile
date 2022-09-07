@@ -40,7 +40,7 @@ timestamps {
                 sh "./scripts/setup_environment.sh"
                 env.VCPKG_ROOT="/tmp"
                 sh "git clone https://github.com/microsoft/vcpkg ${env.VCPKG_ROOT}"
-                sh "cd ${env.VCPKG_ROOT} && git checkout 2022.07.25"
+                sh "cd ${env.VCPKG_ROOT} && git checkout 2022.07.25 && ./vcpkg/bootstrap-vcpkg.sh"
             }
             stage('Build') {
                 sh "git config --global --add safe.directory '*'"
