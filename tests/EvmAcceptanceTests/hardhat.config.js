@@ -4,8 +4,8 @@ require("@nomiclabs/hardhat-web3");
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.9",
-  defaultNetwork: "ganache",
-  //defaultNetwork: "isolated_server",
+  //defaultNetwork: "ganache",
+  defaultNetwork: "isolated_server",
   networks: {
     ganache: {
       url: "http://localhost:7545",
@@ -17,6 +17,7 @@ module.exports = {
         "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad"
       ],
       zilliqaNetwork: false,
+      miningState: true
     },
     zilliqa: {
       url: "https://master-mod-api.dev.z7a.xyz/",
@@ -26,7 +27,8 @@ module.exports = {
       chainId: 33101,
       zilliqaNetwork: true,
       web3ClientVersion: "Zilliqa/v1.0",
-      protocolVersion: "0x41"
+      protocolVersion: 0x41,
+      miningState: false
     },
     isolated_server: {
       url: "http://localhost:5555/",
@@ -38,6 +40,7 @@ module.exports = {
       web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,
       zilliqaNetwork: true,
+      miningState: false
     }
   }
 };

@@ -37,7 +37,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
-#include "libServer/GetWorkServer.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JsonUtils.h"
@@ -1765,7 +1764,7 @@ Json::Value LookupServer::GetEthUncleBlock() {
 Json::Value LookupServer::GetEthMining() {
   LOG_MARKER();
 
-  return Json::Value(GetWorkServer::GetInstance().IsMining());
+  return Json::Value(false);
 }
 
 std::string LookupServer::GetEthCoinbase() {

@@ -13,7 +13,7 @@ describe("Calling " + METHOD, function () {
         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
         assert.isBoolean(result.result, 'is boolean');
 
-        const expectedMiningState = true;
+        const expectedMiningState = helper.getMiningState();
         assert.equal(+result.result, expectedMiningState, 'should have a chain Id ' + expectedMiningState);
       })
   })

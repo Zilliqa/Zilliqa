@@ -141,9 +141,6 @@ class GetWorkServer : public AbstractStubServer {
 
   bool StartMining(const PoWWorkPackage &wp);
   void StopMining();
-  
-  inline bool IsMining()const { return m_isMining;}
-
   ethash_mining_result_t VerifySubmit(const std::string &nonce,
                                       const std::string &header,
                                       const std::string &mixdigest,
