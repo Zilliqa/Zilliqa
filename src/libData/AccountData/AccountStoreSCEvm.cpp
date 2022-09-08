@@ -289,7 +289,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   // Get the amount of deposit for running this txn
   uint256_t gasDeposit;
-  if (!SafeMath<uint256_t>::mul(transaction.GetGasLimitRaw(),
+  if (!SafeMath<uint256_t>::mul(transaction.GetGasLimit(),
                                 transaction.GetGasPriceWei(), gasDeposit)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
@@ -410,7 +410,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           fromAddr.hex(),
           DataConversion::CharArrayToString(transaction.GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimit(),
+          transaction.GetGasLimitRaw(),
           transaction.GetAmountWei()};
 
       std::map<std::string, bytes> t_newmetadata;
@@ -429,10 +429,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           contractAccount, RUNNER_CREATE, params, evm_version,
           evm_call_run_succeeded, receipt, response);
 
+      const auto gasRemainedCore = GasConv::GasLimitFromEthToCore(gasRemained);
       // *************************************************************************
       // Summary
       uint128_t gasRefund;
-      if (!SafeMath<uint128_t>::mul(GasConv::GasLimitFromCoreToEth(gasRemained),
+      if (!SafeMath<uint128_t>::mul(gasRemainedCore,
                                     transaction.GetGasPriceWei(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
@@ -461,7 +462,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      if (transaction.GetGasLimit() < gasRemained) {
+      if (transaction.GetGasLimit() < gasRemainedCore) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
                                  << transaction.GetGasLimit()
                                  << " gasRemained: " << gasRemained
@@ -471,7 +472,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       /// calculate total gas in receipt
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemainedCore);
 
       break;
     }
@@ -575,26 +576,28 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           fromAddr.hex(),
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimit(),
+          transaction.GetGasLimitRaw(),
           transaction.GetAmountWei()};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "
                                                   << params.m_caller);
       evmproj::CallResponse response;
-      uint64_t gasRemained = InvokeEvmInterpreter(
+      const uint64_t gasRemained = InvokeEvmInterpreter(
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);
+
+      uint64_t gasRemainedCore = GasConv::GasLimitFromEthToCore(gasRemained);
 
       if (!evm_call_succeeded) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
         DiscardAtomics();
-        gasRemained = std::min(transaction.GetGasLimit(), gasRemained);
+        gasRemainedCore = std::min(transaction.GetGasLimit(), gasRemainedCore);
       } else {
         CommitAtomics();
       }
       uint128_t gasRefund;
-      if (!SafeMath<uint128_t>::mul(GasConv::GasLimitFromCoreToEth(gasRemained),
+      if (!SafeMath<uint128_t>::mul(gasRemainedCore,
                                     transaction.GetGasPriceWei(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
@@ -614,7 +617,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemainedCore);
       if (!evm_call_succeeded) {
         receipt.SetResult(false);
         receipt.CleanEntry();

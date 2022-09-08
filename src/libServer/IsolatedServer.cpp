@@ -707,7 +707,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     // Sender's balance should be higher than value sent in the transaction +
     // max gas to be used by contract action
     const uint256_t requiredGas =
-        uint256_t{tx.GetGasPriceWei()} * uint256_t{tx.GetGasLimit()};
+        uint256_t{tx.GetGasPriceWei()} * uint256_t{tx.GetGasLimitRaw()};
     const uint256_t requiredBalance =
         uint256_t{tx.GetAmountWei()} + requiredGas;
 
