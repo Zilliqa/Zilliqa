@@ -659,10 +659,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    auto pk_temp = PubKey(pubKey, 0);
-
-    std::cout << "###PK is: " << std::string(pk_temp) << std::endl;
-
     Address toAddr{fields.toAddr};
     bytes data;
     bytes code;
@@ -813,7 +809,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
     ret["TranID"] = txHash.hex();
-    //ret["TranID"] = receipt;
     ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(

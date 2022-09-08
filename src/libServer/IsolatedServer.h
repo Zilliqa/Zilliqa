@@ -20,7 +20,6 @@
 
 #include "LookupServer.h"
 #include "common/Constants.h"
-#include "libCrypto/EthCrypto.h"
 
 class Mediator;
 
@@ -65,9 +64,6 @@ class IsolatedServer : public LookupServer,
     if (pubKey.empty()) {
       return;
     }
-
-    std::cout << "got eth raw tx (received)" << rawTx << std::endl;
-    std::cout << "got pub key" << DataConversion::Uint8VecToHexStrRet(pubKey) << std::endl;
 
     auto const fields = Eth::parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey);
