@@ -15,14 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/AccountData/TransactionReceipt.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/format.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/EvmClient.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
 #include "libUtils/EvmJsonResponse.h"
@@ -349,7 +350,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   BOOST_CHECK_EQUAL(
       response.asString(),
-      "0xb1e9ddd229f9a21ef978f6fcd178e74e37a4fa3d87f453bc34e772ec91328181");
+      "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad");
 
   // test with empty string
   paramsRequest[0u] = "";
@@ -645,7 +646,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   lookupServer->GetEthBalanceI(paramsRequest, response);
   LOG_GENERAL(INFO, "Got balance: " << response);
   // expected return value should be 1.000.000 times greater
-  BOOST_CHECK_EQUAL(response.asString(), "0xe8d4a51000");
+  BOOST_CHECK_EQUAL(boost::algorithm::to_lower_copy(response.asString()), "0xe8d4a51000");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {

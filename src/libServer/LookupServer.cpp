@@ -38,6 +38,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -1735,12 +1736,8 @@ std::string LookupServer::GetWeb3ClientVersion() {
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-
-  const auto str{_json.asString()};
-  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
-
-  return POW::BlockhashToHexString(ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
+  return POW::BlockhashToHexString(ethash::keccak256(input.data(), input.size()));
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
