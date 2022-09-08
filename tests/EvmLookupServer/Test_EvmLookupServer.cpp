@@ -646,7 +646,8 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
   lookupServer->GetEthBalanceI(paramsRequest, response);
   LOG_GENERAL(INFO, "Got balance: " << response);
   // expected return value should be 1.000.000 times greater
-  BOOST_CHECK_EQUAL(boost::algorithm::to_lower_copy(response.asString()), "0xe8d4a51000");
+  BOOST_CHECK_EQUAL(boost::algorithm::to_lower_copy(response.asString()),
+                    "0xe8d4a51000");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {

@@ -1737,7 +1737,8 @@ std::string LookupServer::GetWeb3ClientVersion() {
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
   bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
-  return POW::BlockhashToHexString(ethash::keccak256(input.data(), input.size()));
+  return POW::BlockhashToHexString(
+      ethash::keccak256(input.data(), input.size()));
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
