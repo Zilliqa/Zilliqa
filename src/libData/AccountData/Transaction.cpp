@@ -207,11 +207,12 @@ bool Transaction::SetHash(bytes const& txnData) {
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {
-      LOG_GENERAL(WARNING, "We failed to generate an eth m_tranID. Wrong size!");
+      LOG_GENERAL(WARNING, "We failed to generate an eth m_tranID. Wrong size! Expected: " << TRAN_HASH_SIZE << " got: " << output.size());
       return false;
     }
 
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
+    return true;
   }
 
   if (version == TRANSACTION_VERSION) {
@@ -225,6 +226,7 @@ bool Transaction::SetHash(bytes const& txnData) {
     }
 
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
+    return true;
   }
 
   LOG_GENERAL(WARNING, "Attempted to generate TX hash but version not supported! " << version);

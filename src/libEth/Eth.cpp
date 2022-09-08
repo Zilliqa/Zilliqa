@@ -107,7 +107,10 @@ EthFields parseRawTxFields(std::string const &message) {
       case 5:
         ret.code = byteIt;
         break;
-      case 6:  // V - only needed for pub sig recovery
+      case 6:
+        // DONT Insert a byte
+        //std::cout << "SIZ: " << byteIt.size() << std::endl;
+        //ret.signature.insert(ret.signature.end(), byteIt.begin(), byteIt.end());
         break;
       case 7:  // R
       {

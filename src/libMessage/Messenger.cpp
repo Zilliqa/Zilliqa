@@ -1240,22 +1240,28 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& hash = sha2.Finalize();
-
-  if (!std::equal(hash.begin(), hash.end(), tranID.begin(), tranID.end())) {
-    TxnHash expected;
-    copy(hash.begin(), hash.end(), expected.asArray().begin());
-    LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
-                             << expected << " Actual: " << tranID);
-    return false;
-  }
-
   transaction = Transaction(
-      tranID, txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
+       txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
       txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
       txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
+
+  if (transaction.GetTranID() != tranID) {
+      LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
+              << tranID << " Actual: " << transaction.GetTranID());
+      return false;
+  }
+
+  //SHA2<HashType::HASH_VARIANT_256> sha2;
+  //sha2.Update(txnData);
+  //const bytes& hash = sha2.Finalize();
+
+  //if (!std::equal(hash.begin(), hash.end(), tranID.begin(), tranID.end())) {
+  //  TxnHash expected;
+  //  copy(hash.begin(), hash.end(), expected.asArray().begin());
+  //  LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
+  //          << expected << " Actual: " << tranID);
+  //  return false;
+  //}
 
   if (!transaction.IsSigned(txnData)) {
     LOG_GENERAL(WARNING,

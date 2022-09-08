@@ -45,6 +45,6 @@ bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
 bytes StripEVM(bytes const& in);
 
-std::string CreateHash(std::string const& rawTx);
+bytes CreateHash(std::string const& rawTx);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
