@@ -51,6 +51,11 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
+  if (!SetHash(txnData)) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return;
+  }
+
   // Generate the signature
   if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
                      m_signature)) {
@@ -80,11 +85,10 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  if (!GenerateTransactionId()) {
+  if (!SetHash(txnData)) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
   }
-
 
   // Verify the signature
   if (!IsSigned(txnData)) {
@@ -190,12 +194,24 @@ bool Transaction::IsSignedECDSA() const {
 }
 
 // Set what the hash of the transaction is, depending on its type
-bool Transaction::SetHash() const {
+bool Transaction::SetHash(bytes const& txnData) {
 
   auto const version = DataConversion::UnpackB(this->GetVersion());
 
   if (version == TRANSACTION_VERSION_ETH) {
-    auto const asRLP =
+    //std::string sigString = std::string(m_signature);
+    //m_signature.
+    //auto const r = m_signature.m_r;
+
+    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT, std::string(m_signature));
+    auto const output = CreateHash(asRLP);
+
+    if (output.size() != TRAN_HASH_SIZE) {
+      LOG_GENERAL(WARNING, "We failed to generate an eth m_tranID. Wrong size!");
+      return false;
+    }
+
+    copy(output.begin(), output.end(), m_tranID.asArray().begin());
   }
 
   if (version == TRANSACTION_VERSION) {
@@ -211,7 +227,7 @@ bool Transaction::SetHash() const {
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
   }
 
-  LOG_GENERAL(WARNING, "Attempted to generate TX hash but version not supported! ", version);
+  LOG_GENERAL(WARNING, "Attempted to generate TX hash but version not supported! " << version);
 
   return false;
 }

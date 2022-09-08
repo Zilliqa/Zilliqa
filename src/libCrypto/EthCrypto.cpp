@@ -356,6 +356,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
         DataConversion::CharArrayToString(info.data));
   }
+
   rlpStreamRecreated << chainId;
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};
@@ -366,8 +367,20 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
 
-bytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId) {
+// From a zilliqa TX, get the RLP that was sent to the node to create it
+std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId, std::string signature) {
   dev::RLPStream rlpStreamRecreated(9);
+
+  if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
+    signature.erase(0, 2);
+  }
+
+  if(signature.size() != 128) {
+    LOG_GENERAL(WARNING,
+                "Received bad signature size: "
+                        << signature.size());
+    return "";
+  }
 
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
@@ -385,14 +398,36 @@ bytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId) {
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
             DataConversion::CharArrayToString(info.data));
   }
+
+  std::cout << "SIG WAS: " << signature << std::endl;
+
+  std::string s = signature.substr(64, std::string::npos);
+  signature.resize(64);
+
+  std::cout << "SIG is: " << signature << std::endl;
+  std::cout << "S is: " << s << std::endl;
+
+  //// Need to recover what the recid is, this can be done using the signature
+  //auto const sigBytes = DataConversion::HexStrToUint8VecRet(signature);
+  //auto* ctx = getCtx();
+  //secp256k1_ecdsa_recoverable_signature rawSig;
+  //int recid = std::numeric_limits<int>::max();
+
+  //secp256k1_ecdsa_recoverable_signature_serialize_compact(ctx, &sigBytes[0], &recid, rawSig);
+
+  //std::cout << "recid is: " << recid << std::endl;
+
   rlpStreamRecreated << chainId;
-  rlpStreamRecreated << bytes{};
-  rlpStreamRecreated << bytes{};
+  rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(signature);
+  rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(s);
 
-  auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
-                                             rlpStreamRecreated.out().size());
+  auto const *dataPtr = rlpStreamRecreated.out().data();
 
-  return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
+  auto const& asString = DataConversion::Uint8VecToHexStrRet(bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
+
+  std::cout << "recovered string is: " << asString << std::endl;
+
+  return asString;
 }
 
 bytes ToEVM(bytes const& in) {
@@ -427,8 +462,8 @@ bytes StripEVM(bytes const& in) {
   }
 }
 
-std::string CreateReceipt(std::string const& rawTx) {
-    std::cout <<  "rawtx is: " << rawTx << std::endl;
+std::string CreateHash(std::string const& rawTx) {
+    std::cout <<  "!rawtx is: " << rawTx << std::endl;
 
     auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
 

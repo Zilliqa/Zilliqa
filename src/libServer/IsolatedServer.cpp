@@ -651,7 +651,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 }
 
 Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
-                                                 bytes const& pubKey, std::string const& receipt) {
+                                                 bytes const& pubKey) {
   Json::Value ret;
 
   try {
