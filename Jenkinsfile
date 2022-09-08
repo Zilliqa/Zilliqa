@@ -15,6 +15,11 @@ spec:
     command:
     - cat
     tty: true
+  - name: dependecies
+    image: zilliqa:v8.2.0-deps
+    command:
+    - cat
+    tty: true
 """
 
 timestamps {
