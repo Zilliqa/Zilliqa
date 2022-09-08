@@ -74,8 +74,8 @@ struct TxnPool {
 
     auto searchNonce = NonceIndex.find({t.GetSenderPubKey(), t.GetNonce()});
     if (searchNonce != NonceIndex.end()) {
-      if ((t.GetGasPrice() > searchNonce->second.GetGasPrice()) ||
-          (t.GetGasPrice() == searchNonce->second.GetGasPrice() &&
+      if ((t.GetGasPriceQa() > searchNonce->second.GetGasPriceQa()) ||
+          (t.GetGasPriceQa() == searchNonce->second.GetGasPriceQa() &&
            t.GetTranID() < searchNonce->second.GetTranID())) {
         // erase from HashIdxTxns
         TxnHash hashToBeRemoved = searchNonce->second.GetTranID();
@@ -84,8 +84,8 @@ struct TxnPool {
           HashIndex.erase(searchHash);
         }
         // erase from GasIdxTxns
-        auto smallerGasPrice = searchNonce->second.GetGasPrice();
-        auto searchGas = GasIndex.find(searchNonce->second.GetGasPrice());
+        auto smallerGasPrice = searchNonce->second.GetGasPriceQa();
+        auto searchGas = GasIndex.find(searchNonce->second.GetGasPriceQa());
         if (searchGas != GasIndex.end()) {
           auto searchGasHash =
               searchGas->second.find(searchNonce->second.GetTranID());
@@ -97,7 +97,7 @@ struct TxnPool {
           }
         }
         HashIndex[t.GetTranID()] = t;
-        GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
+        GasIndex[t.GetGasPriceQa()][t.GetTranID()] = t;
         searchNonce->second = t;
 
         status = {TxnStatus::MEMPOOL_SAME_NONCE_LOWER_GAS, hashToBeRemoved};
@@ -110,7 +110,7 @@ struct TxnPool {
       }
     } else {
       HashIndex[t.GetTranID()] = t;
-      GasIndex[t.GetGasPrice()][t.GetTranID()] = t;
+      GasIndex[t.GetGasPriceQa()][t.GetTranID()] = t;
       NonceIndex[{t.GetSenderPubKey(), t.GetNonce()}] = t;
     }
     status = {TxnStatus::NOT_PRESENT, t.GetTranID()};
@@ -120,15 +120,15 @@ struct TxnPool {
   void findSameNonceButHigherGas(Transaction& t) {
     auto searchNonce = NonceIndex.find({t.GetSenderPubKey(), t.GetNonce()});
     if (searchNonce != NonceIndex.end()) {
-      if (searchNonce->second.GetGasPrice() > t.GetGasPrice()) {
+      if (searchNonce->second.GetGasPriceQa() > t.GetGasPriceQa()) {
         t = std::move(searchNonce->second);
 
         // erase tx nonce map
         NonceIndex.erase(searchNonce);
         // erase tx gas map
-        GasIndex[t.GetGasPrice()].erase(t.GetTranID());
-        if (GasIndex[t.GetGasPrice()].empty()) {
-          GasIndex.erase(t.GetGasPrice());
+        GasIndex[t.GetGasPriceQa()].erase(t.GetTranID());
+        if (GasIndex[t.GetGasPriceQa()].empty()) {
+          GasIndex.erase(t.GetGasPriceQa());
         }
         // erase tx hash map
         HashIndex.erase(t.GetTranID());

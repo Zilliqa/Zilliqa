@@ -73,7 +73,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                                            TxnStatus& error_code) {
   const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();
-  const uint128_t& amount = transaction.GetAmount();
+  const uint128_t& amount = transaction.GetAmountQa();
   error_code = TxnStatus::NOT_PRESENT;
 
   Account* fromAccount = this->GetAccount(fromAddr);
@@ -95,15 +95,15 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
   uint128_t gasDeposit = 0;
   if (!SafeMath<uint128_t>::mul(transaction.GetGasLimit(),
-                                transaction.GetGasPrice(), gasDeposit)) {
+                                transaction.GetGasPriceQa(), gasDeposit)) {
     LOG_GENERAL(
         WARNING,
-        "transaction.GetGasLimit() * transaction.GetGasPrice() overflow!");
+        "transaction.GetGasLimit() * transaction.GetGasPriceQa() overflow!");
     error_code = TxnStatus::MATH_ERROR;
     return false;
   }
 
-  if (fromAccount->GetBalance() < transaction.GetAmount() + gasDeposit) {
+  if (fromAccount->GetBalance() < amount + gasDeposit) {
     LOG_GENERAL(WARNING,
                 "The account (balance: "
                     << fromAccount->GetBalance()
@@ -112,7 +112,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                     << gasDeposit
                     << ") "
                        "with amount ("
-                    << transaction.GetAmount() << ") in the transaction");
+                    << amount << ") in the transaction");
     error_code = TxnStatus::INSUFFICIENT_BALANCE;
     return false;
   }
@@ -132,7 +132,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
 
   uint128_t gasRefund;
   if (!CalculateGasRefund(gasDeposit, NORMAL_TRAN_GAS,
-                          transaction.GetGasPrice(), gasRefund)) {
+                          transaction.GetGasPriceQa(), gasRefund)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
   }
@@ -161,7 +161,7 @@ bool AccountStoreBase<MAP>::CalculateGasRefund(const uint128_t& gasDeposit,
                                                uint128_t& gasRefund) {
   uint128_t gasFee;
   if (!SafeMath<uint128_t>::mul(gasUnit, gasPrice, gasFee)) {
-    LOG_GENERAL(WARNING, "gasUnit * transaction.GetGasPrice() overflow!");
+    LOG_GENERAL(WARNING, "gasUnit * gasPrice overflow!");
     return false;
   }
 
