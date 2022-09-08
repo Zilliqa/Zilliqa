@@ -93,8 +93,6 @@ bytes DerivePubkey(bytes rs, int vSelect, const unsigned char *signingHash) {
                                 &serializedPubkeySize, &rawPubkey,
                                 SECP256K1_EC_UNCOMPRESSED);
 
-  std::cout << "DERIVED: " << DataConversion::Uint8VecToHexStrRet(serializedPubkey) << std::endl;
-
   return serializedPubkey;
 }
 
@@ -421,37 +419,18 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
               DataConversion::CharArrayToString(info.data));
     }
 
-    std::cout << "SIG WAS: " << signature << std::endl;
-
-    std::cout << "SIG is: " << signature << std::endl;
-    std::cout << "S is: " << s << std::endl;
-
-    int parity = !i;
-
-    std::cout << "trying with parity: " << parity << std::endl;
-
-    int v = (chainId * 2) + 35 + parity;
+    // i is the parity, either 0 or 1
+    int v = (chainId * 2) + 35 + i;
 
     rlpStreamRecreated << v;
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(signature);
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(s);
 
     auto const *dataPtr = rlpStreamRecreated.out().data();
-
     auto const& asString = DataConversion::Uint8VecToHexStrRet(bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
-
-    std::cout << "recovered string is: " << asString << std::endl;
-
     auto const pubK = RecoverECDSAPubSig(asString, chainId);
 
-    //std::cout << "pubk size is " << pubK.size() << std::endl;
-    //std::cout << "pubk is " << DataConversion::Uint8VecToHexStrRet(pubK) << std::endl;
-    //std::cout << "guessed is " << std::string(PubKey(pubK, 0)) << std::endl;
-    //std::cout << "correct is " << std::string(info.senderPubKey) << std::endl;
-    //std::cout << "correct is " << info.senderPubKey. << std::endl;
-
     if (!PubKeysSame(pubK, info.senderPubKey)) {
-      std::cout << "pub keys are not the same..." << std::endl;
       continue;
     }
 
@@ -492,7 +471,6 @@ bytes StripEVM(bytes const& in) {
 }
 
 bytes CreateHash(std::string const& rawTx) {
-    std::cout <<  "!rawtx is: " << rawTx << std::endl;
 
     auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
 
@@ -502,8 +480,6 @@ bytes CreateHash(std::string const& rawTx) {
     bytes hashBytes;
 
     hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
-
-    std::cout <<  "hash is: " << DataConversion::Uint8VecToHexStrRet(hashBytes) << std::endl;
 
     auto asString = DataConversion::Uint8VecToHexStrRet(hashBytes);
     boost::algorithm::to_lower(asString);

@@ -199,10 +199,6 @@ bool Transaction::SetHash(bytes const& txnData) {
   auto const version = DataConversion::UnpackB(this->GetVersion());
 
   if (version == TRANSACTION_VERSION_ETH) {
-    //std::string sigString = std::string(m_signature);
-    //m_signature.
-    //auto const r = m_signature.m_r;
-
     auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT, std::string(m_signature));
     auto const output = CreateHash(asRLP);
 
