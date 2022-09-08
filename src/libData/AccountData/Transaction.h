@@ -121,8 +121,6 @@ class Transaction : public SerializableDataBlock {
 
   bool IsEth() const;
 
-  bool IsEth() const;
-
   /// Returns whether the current version is correct
   bool VersionCorrect() const;
 
