@@ -195,15 +195,18 @@ bool Transaction::IsSignedECDSA() const {
 
 // Set what the hash of the transaction is, depending on its type
 bool Transaction::SetHash(bytes const& txnData) {
-
   auto const version = DataConversion::UnpackB(this->GetVersion());
 
   if (version == TRANSACTION_VERSION_ETH) {
-    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT, std::string(m_signature));
+    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT,
+                                         std::string(m_signature));
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {
-      LOG_GENERAL(WARNING, "We failed to generate an eth m_tranID. Wrong size! Expected: " << TRAN_HASH_SIZE << " got: " << output.size());
+      LOG_GENERAL(
+          WARNING,
+          "We failed to generate an eth m_tranID. Wrong size! Expected: "
+              << TRAN_HASH_SIZE << " got: " << output.size());
       return false;
     }
 
@@ -225,7 +228,9 @@ bool Transaction::SetHash(bytes const& txnData) {
     return true;
   }
 
-  LOG_GENERAL(WARNING, "Attempted to generate TX hash but version not supported! " << version);
+  LOG_GENERAL(
+      WARNING,
+      "Attempted to generate TX hash but version not supported! " << version);
 
   return false;
 }

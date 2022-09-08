@@ -16,10 +16,10 @@
  */
 
 #include "EthCrypto.h"
+#include <boost/algorithm/string.hpp>
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
-#include <boost/algorithm/string.hpp>
 
 #include "depends/common/RLP.h"
 
@@ -54,19 +54,18 @@ auto ekFree = [](EC_KEY* b) { EC_KEY_free(b); };
 
 secp256k1_context const* getCtx() {
   static std::unique_ptr<secp256k1_context,
-          decltype(&secp256k1_context_destroy)>
-          s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
-                                         SECP256K1_CONTEXT_VERIFY),
-                &secp256k1_context_destroy};
+                         decltype(&secp256k1_context_destroy)>
+      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                                     SECP256K1_CONTEXT_VERIFY),
+            &secp256k1_context_destroy};
   return s_ctx.get();
 }
 
-bool PubKeysSame(bytes const &pubkA, PubKey const& pubkB) {
+bool PubKeysSame(bytes const& pubkA, PubKey const& pubkB) {
   return PubKey(pubkA, 0) == pubkB;
 }
 
-bytes DerivePubkey(bytes rs, int vSelect, const unsigned char *signingHash) {
-
+bytes DerivePubkey(bytes rs, int vSelect, const unsigned char* signingHash) {
   // Load the RS into the library
   auto* ctx = getCtx();
   secp256k1_ecdsa_recoverable_signature rawSig;
@@ -79,8 +78,7 @@ bytes DerivePubkey(bytes rs, int vSelect, const unsigned char *signingHash) {
 
   // Re-create public key given signature, and message
   secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig,
-                               signingHash)) {
+  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, signingHash)) {
     LOG_GENERAL(WARNING,
                 "Error recovering public key during public key reconstruction");
     return {};
@@ -377,26 +375,23 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 }
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
-std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId, std::string signature) {
-
+std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
+                              std::string signature) {
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
 
-  if(signature.size() != 128) {
-    LOG_GENERAL(WARNING,
-                "Received bad signature size: "
-                        << signature.size());
+  if (signature.size() != 128) {
+    LOG_GENERAL(WARNING, "Received bad signature size: " << signature.size());
     return "";
   }
 
   std::string s = signature.substr(64, std::string::npos);
   signature.resize(64);
 
-  for (int i = 0;;i++) {
-    if(i >= 2) {
-      LOG_GENERAL(WARNING,
-                  "Error recreating sent RLP stream");
+  for (int i = 0;; i++) {
+    if (i >= 2) {
+      LOG_GENERAL(WARNING, "Error recreating sent RLP stream");
       return "";
     }
 
@@ -416,7 +411,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     } else {
       // TODO: remove hexing here.
       rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
-              DataConversion::CharArrayToString(info.data));
+          DataConversion::CharArrayToString(info.data));
     }
 
     // i is the parity, either 0 or 1
@@ -426,8 +421,9 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(signature);
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(s);
 
-    auto const *dataPtr = rlpStreamRecreated.out().data();
-    auto const& asString = DataConversion::Uint8VecToHexStrRet(bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
+    auto const* dataPtr = rlpStreamRecreated.out().data();
+    auto const& asString = DataConversion::Uint8VecToHexStrRet(
+        bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
     auto const pubK = RecoverECDSAPubSig(asString, chainId);
 
     if (!PubKeysSame(pubK, info.senderPubKey)) {
@@ -471,18 +467,16 @@ bytes StripEVM(bytes const& in) {
 }
 
 bytes CreateHash(std::string const& rawTx) {
+  auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
 
-    auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
+  auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
 
-    auto const hash = ethash::keccak256(asBytes.data(),
-                                         asBytes.size());
+  bytes hashBytes;
 
-    bytes hashBytes;
+  hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
 
-    hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
+  auto asString = DataConversion::Uint8VecToHexStrRet(hashBytes);
+  boost::algorithm::to_lower(asString);
 
-    auto asString = DataConversion::Uint8VecToHexStrRet(hashBytes);
-    boost::algorithm::to_lower(asString);
-
-    return hashBytes;
+  return hashBytes;
 }

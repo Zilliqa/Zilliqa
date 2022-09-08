@@ -1241,14 +1241,15 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
   }
 
   transaction = Transaction(
-       txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
+      txnCoreInfo.version, txnCoreInfo.nonce, txnCoreInfo.toAddr,
       txnCoreInfo.senderPubKey, txnCoreInfo.amount, txnCoreInfo.gasPrice,
       txnCoreInfo.gasLimit, txnCoreInfo.code, txnCoreInfo.data, signature);
 
   if (transaction.GetTranID() != tranID) {
-      LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
-              << tranID << " Actual: " << transaction.GetTranID());
-      return false;
+    LOG_GENERAL(WARNING, "TranID verification failed. Expected: "
+                             << tranID
+                             << " Actual: " << transaction.GetTranID());
+    return false;
   }
 
   if (!transaction.IsSigned(txnData)) {
