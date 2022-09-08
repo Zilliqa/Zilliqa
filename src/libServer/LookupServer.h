@@ -392,11 +392,12 @@ class LookupServer : public Server,
 
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
 
+    // For Eth transactions, pass gas Price in Wei
     auto resp = CreateTransactionEth(
         fields, pubKey, shards,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+            EVM_ZIL_SCALING_FACTOR,
         m_createTransactionTarget);
-
     response = std::string{"0x"} + resp["TranID"].asString();
   }
 
@@ -590,21 +591,6 @@ class LookupServer : public Server,
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
-  virtual void GetEthSignI(const Json::Value& /*request*/,
-                           Json::Value& response) {
-    response = "0x";
-  }
-
-  virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
-                                      Json::Value& response) {
-    response = "0x";
-  }
-
-  virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
-                                      Json::Value& response) {
-    response = "0x";
-  }
-
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
                                         Json::Value& response) {
     response = this->GetEmptyResponse();
@@ -743,7 +729,7 @@ class LookupServer : public Server,
 
   Json::Value CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
-      const unsigned int num_shards, const uint128_t& gasPrice,
+      const unsigned int num_shards, const uint128_t& gasPriceWei,
       const CreateTransactionTargetFunc& targetFunc);
 
   Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);

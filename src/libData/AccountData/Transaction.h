@@ -119,6 +119,8 @@ class Transaction : public SerializableDataBlock {
   /// Returns the current version.
   const uint32_t& GetVersion() const;
 
+  bool IsEth() const;
+
   /// Returns whether the current version is correct
   bool VersionCorrect() const;
 
@@ -136,11 +138,23 @@ class Transaction : public SerializableDataBlock {
   /// Returns the sender's Address
   Address GetSenderAddr() const;
 
-  /// Returns the transaction amount.
-  const uint128_t& GetAmount() const;
+  /// Returns the transaction amount in Qa.
+  const uint128_t GetAmountQa() const;
 
-  /// Returns the gas price.
-  const uint128_t& GetGasPrice() const;
+  /// Returns the transaction amount in Wei.
+  const uint128_t GetAmountWei() const;
+
+  /// Returns the transaction amount in raw units regardless of Qa or Wei.
+  const uint128_t& GetAmountRaw() const;
+
+  /// Returns the gas price in Qa.
+  const uint128_t GetGasPriceQa() const;
+
+  /// Returns the gas price in Wei.
+  const uint128_t GetGasPriceWei() const;
+
+  /// Returns the gas price in raw uints regadless of Qa or Wei.
+  const uint128_t& GetGasPriceRaw() const;
 
   /// Returns the gas limit.
   const uint64_t& GetGasLimit() const;

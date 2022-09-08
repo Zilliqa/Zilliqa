@@ -26,6 +26,9 @@
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
+bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
+                        bytes& signature);
+
 bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex);

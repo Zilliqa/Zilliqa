@@ -146,14 +146,14 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
   Address toAddr = transaction.GetToAddr();
 
-  const uint128_t& amount = transaction.GetAmount();
+  const uint128_t& amount = transaction.GetAmountQa();
 
   // Initiate gasRemained
   uint64_t gasRemained = transaction.GetGasLimit();
 
   // Get the amount of deposit for running this txn
   uint128_t gasDeposit;
-  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPrice(),
+  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPriceQa(),
                                 gasDeposit)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
@@ -206,7 +206,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             WARNING,
             "The account doesn't have enough gas to create a contract. Bal: "
                 << fromAccount->GetBalance()
-                << " required: " << gasDeposit + transaction.GetAmount());
+                << " required: " << gasDeposit + amount);
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
@@ -399,7 +399,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // Summary
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+              gasRemained, transaction.GetGasPriceQa(), gasRefund)) {
         this->RemoveAccount(toAddr);
         error_code = TxnStatus::MATH_ERROR;
         return false;
@@ -590,7 +590,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       m_curGasLimit = transaction.GetGasLimit();
-      m_curGasPrice = transaction.GetGasPrice();
+      m_curGasPrice = transaction.GetGasPriceQa();
       m_curContractAddr = toAddr;
       m_curAmount = amount;
       m_curNumShards = numShards;
@@ -640,7 +640,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
       boost::multiprecision::uint128_t gasRefund;
       if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPrice(), gasRefund)) {
+              gasRemained, transaction.GetGasPriceQa(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
@@ -930,7 +930,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
         prepend +
         Account::GetAddressFromPublicKey(transaction.GetSenderPubKey()).hex();
     msgObj["_origin"] = prepend + m_originAddr.hex();
-    msgObj["_amount"] = transaction.GetAmount().convert_to<std::string>();
+    msgObj["_amount"] = transaction.GetAmountQa().convert_to<std::string>();
 
     JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
   } catch (const std::exception& e) {

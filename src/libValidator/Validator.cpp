@@ -94,12 +94,12 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   }
 
   // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
+  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Insufficient funds in source account!"
                   << " From Account  = 0x" << fromAddr << " Balance = "
                   << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmount());
+                  << " Debit Amount = " << tx.GetAmountQa());
     error_code = TxnStatus::INSUFFICIENT_BALANCE;
     return false;
   }
@@ -202,10 +202,10 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     return false;
   }
 
-  if (tx.GetGasPrice() <
+  if (tx.GetGasPriceQa() <
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "GasPrice " << tx.GetGasPrice()
+              "GasPrice " << tx.GetGasPriceQa()
                           << " lower than minimum allowable "
                           << m_mediator.m_dsBlockChain.GetLastBlock()
                                  .GetHeader()
@@ -237,12 +237,12 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   }
 
   // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmount()) {
+  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Insufficient funds in source account!"
                   << " From Account  = 0x" << fromAddr << " Balance = "
                   << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmount());
+                  << " Debit Amount = " << tx.GetAmountQa());
     error_code = TxnStatus::INSUFFICIENT_BALANCE;
     return false;
   }
