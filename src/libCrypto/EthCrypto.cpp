@@ -58,7 +58,6 @@ bool PubKeysSame(bytes const& pubkA, PubKey const& pubkB) {
 }
 
 bytes DerivePubkey(bytes rs, int vSelect, const unsigned char* signingHash) {
-
   // Load the RS into the library
   std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
       s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
