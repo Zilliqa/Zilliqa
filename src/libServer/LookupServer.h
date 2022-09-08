@@ -591,20 +591,8 @@ class LookupServer : public Server,
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
-  virtual void GetEthSignI(const Json::Value& /*request*/,
-                           Json::Value& response) {
-    response = "0x";
-  }
-
-  virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
-                                      Json::Value& response) {
-    response = "0x";
-  }
-
-  virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
-                                      Json::Value& response) {
-    response = "0x";
-  }
+ 
+ 
 
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
                                         Json::Value& response) {

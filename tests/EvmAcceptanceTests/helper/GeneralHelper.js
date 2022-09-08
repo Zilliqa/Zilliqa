@@ -29,6 +29,10 @@ var general_helper = {
         return hre.network.config.protocolVersion;
     },
 
+    getMiningState: function () {
+        return hre.network.config.miningState;
+    },
+
     callEthMethod: async function (method, id, params, callback) {
         const data = {
             id: id,
