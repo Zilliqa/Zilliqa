@@ -174,6 +174,16 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
 
 bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
                         bytes& signature) {
+  if (digest.size() != 32) {
+    LOG_GENERAL(WARNING, "Singing ECDSA: wrong digest length");
+    return false;
+  }
+
+  if (privKey.size() != 32) {
+    LOG_GENERAL(WARNING, "Singing ECDSA: wrong private key length");
+    return false;
+  }
+
   std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
       s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
                                      SECP256K1_CONTEXT_VERIFY),
