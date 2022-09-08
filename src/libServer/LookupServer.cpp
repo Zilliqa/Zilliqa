@@ -1682,7 +1682,8 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     }
 
     // for now set total gas as twice the ds gas limit
-    uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
+    uint64_t gasRemained =
+        GasConv::GasLimitFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));

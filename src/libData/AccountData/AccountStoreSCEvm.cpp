@@ -608,7 +608,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 
-      if (transaction.GetGasLimit() < gasRemained) {
+      if (transaction.GetGasLimit() < gasRemainedCore) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
                                  << transaction.GetGasLimit()
                                  << " gasRemained: " << gasRemained
