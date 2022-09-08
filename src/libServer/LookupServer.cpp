@@ -1763,8 +1763,7 @@ Json::Value LookupServer::GetEthUncleBlock() {
 
 Json::Value LookupServer::GetEthMining() {
   LOG_MARKER();
-  // @todo : the mining state a could be retrieved from the WorkServer if it can
-  // provide the exact state of mining.
+
   return Json::Value(false);
 }
 
