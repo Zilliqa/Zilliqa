@@ -5,7 +5,7 @@ const METHOD = 'eth_getBalance';
 
 describe("Calling " + METHOD, function () {
     it("should return the balance as specified in the ethereum protocol", async function () {
-        const expectedBalance = 1 * (10 ** 18) // should be 1 eth in wei
+        const expectedBalance = 1000000 * (10 ** 12) // should be 1,000,000 ZIL in wei
 
         await helper.callEthMethod(METHOD, 1, [
             "0xF0C05464f12cB2a011d21dE851108a090C95c755", // public address

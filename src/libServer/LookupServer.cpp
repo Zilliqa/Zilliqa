@@ -38,6 +38,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -509,7 +510,7 @@ LookupServer::LookupServer(Mediator& mediator,
       &LookupServer::GetNetListeningI);
 
   this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetProtocolVersionI);
 
@@ -680,11 +681,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Code size is too large");
   }
 
-  if (tx.GetGasPrice() < gasPrice) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
-                               " lower than minimum allowable " +
-                               gasPrice.convert_to<string>());
+  if (tx.GetGasPriceQa() < gasPrice) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasPrice " + tx.GetGasPriceQa().convert_to<string>() +
+            " lower than minimum allowable " + gasPrice.convert_to<string>());
   }
   if (!Validator::VerifyTransaction(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -741,17 +742,17 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   // Check if transaction amount is valid
   uint128_t gasDeposit = 0;
-  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
+  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPriceQa(),
                                 gasDeposit)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+                           "tx.GetGasLimit() * tx.GetGasPriceQa() overflow!");
   }
 
   uint128_t debt = 0;
-  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmountQa(), debt)) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountQa() overflow!");
   }
 
   if (sender->GetBalance() < debt) {
@@ -1730,21 +1731,14 @@ Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
 
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
-
-  return "Zilliqa/v8.2";
+  return "to do implement web3 version string";
 }
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-
-  auto str{_json.asString()};
-  if (str.length() > 2 && (str[1] == 'x' || str[1] == 'X')) {
-    str = str.substr(2);
-  }
-
-  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
-
-  return dev::sha3(str).hex();
+  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
+  return POW::BlockhashToHexString(
+      ethash::keccak256(input.data(), input.size()));
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
@@ -1774,12 +1768,12 @@ std::string LookupServer::GetEthCoinbase() {
 
 std::string LookupServer::GetNetVersion() {
   LOG_MARKER();
-  return std::to_string(NETWORK_ID);
+  return "0x8000";  // Like Ethereum, including test nets.
 }
 
 Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
-  return Json::Value(true);
+  return Json::Value(false);
 }
 
 std::string LookupServer::GetNetPeerCount() {
@@ -3131,7 +3125,7 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
     throw JsonRpcException(RPC_INVALID_PARAMS, "String not numeric");
   } catch (invalid_argument& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
-    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
+    throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
   } catch (out_of_range& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNum);
     throw JsonRpcException(RPC_INVALID_PARAMS, "Out of range");
@@ -3196,7 +3190,7 @@ Json::Value LookupServer::GetStateProof(const string& address,
     } catch (invalid_argument& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
     } catch (out_of_range& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);

@@ -107,8 +107,8 @@ BOOST_AUTO_TEST_CASE(test1) {
   const Address& toAddr2 = tx2.GetToAddr();
   const PubKey& senderPubKey = tx2.GetSenderPubKey();
   const Address& fromAddr2 = Account::GetAddressFromPublicKey(senderPubKey);
-  const uint128_t& amount2 = tx2.GetAmount();
-  const uint128_t& gasPrice2 = tx2.GetGasPrice();
+  const uint128_t& amount2 = tx2.GetAmountQa();
+  const uint128_t& gasPrice2 = tx2.GetGasPriceQa();
   const uint128_t& gasLimit2 = tx2.GetGasLimit();
   const bytes& code2 = tx2.GetCode();
   const bytes& data2 = tx2.GetData();
@@ -147,13 +147,13 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   LOG_GENERAL(INFO, "Transaction2 amount: " << amount2);
   BOOST_CHECK_MESSAGE(
-      amount2 == tx1.GetAmount(),
-      "expected: " << tx1.GetAmount() << " actual: " << amount2 << "\n");
+      amount2 == tx1.GetAmountQa(),
+      "expected: " << tx1.GetAmountQa() << " actual: " << amount2 << "\n");
 
   LOG_GENERAL(INFO, "Transaction2 gasPrice: " << gasPrice2);
   BOOST_CHECK_MESSAGE(
-      gasPrice2 == tx1.GetGasPrice(),
-      "expected: " << tx1.GetGasPrice() << " actual: " << gasPrice2 << "\n");
+      gasPrice2 == tx1.GetGasPriceQa(),
+      "expected: " << tx1.GetGasPriceQa() << " actual: " << gasPrice2 << "\n");
 
   LOG_GENERAL(INFO, "Transaction2 gasLimit: " << gasLimit2);
   BOOST_CHECK_MESSAGE(

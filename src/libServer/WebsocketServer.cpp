@@ -387,7 +387,7 @@ Json::Value CreateReturnAddressJson(const TransactionWithReceipt& twr) {
 
   _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
   _json["fromAddr"] = twr.GetTransaction().GetSenderAddr().hex();
-  _json["amount"] = twr.GetTransaction().GetAmount().str();
+  _json["amount"] = twr.GetTransaction().GetAmountQa().str();
   _json["success"] = twr.GetTransactionReceipt().GetJsonValue()["success"];
   _json["ID"] = twr.GetTransaction().GetTranID().hex();
 

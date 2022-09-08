@@ -14,7 +14,7 @@ describe("Calling " + METHOD, function () {
         assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
         assert.isNumber(+result.result, 'can be converted to a number');
 
-        const expectedGasPrice = 2000000000 // default ganache gas price in wei
+        const expectedGasPrice = 2000000000000000 // default Zilliqa gas price in wei
         assert.equal(+result.result, expectedGasPrice, 'should have a gas price ' + expectedGasPrice);
       })
   })
