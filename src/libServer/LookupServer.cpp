@@ -1067,6 +1067,34 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
+TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
+  // Scan downwards looking for the block hash with our TX in it
+  const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+  auto height = txBlock.GetHeader().GetBlockNum() ==
+                    std::numeric_limits<uint64_t>::max()
+                    ? 1
+                    : txBlock.GetHeader().GetBlockNum();
+
+  TxnHash argHash{txnhash};
+  // Scan downwards through the chain until the TX can be found
+  do {
+    auto const block = GetEthBlockByNumber(std::to_string(height), false);
+    height--;
+
+    // Attempt to find if the TX is within this block
+    auto const TxnHashes = block["transactions"];
+    for (auto const& item : TxnHashes) {
+      TxnHash hash_1{item.asString()};
+      if (hash_1 == argHash) {
+        return block;
+      }
+    }
+  } while (height != 0);
+
+  const TxBlock EMPTY_BLOCK;
+  return EMPTY_BLOCK;
+}
+
 Json::Value LookupServer::GetEthBlockNumber() {
   Json::Value ret;
 
@@ -1319,13 +1347,15 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
   }
 
   TxBodySharedPtr transactioBodyPtr;
-  const auto txHashes = microBlockPtr->GetTranHashes();
+  const auto txHashes = microBlockPtanHashes();
+  const auto txHash = txHashes[indexInBlock.value()];
   if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
                                                  transactioBodyPtr)) {
     return Json::nullValue;
   }
 
-  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+  const auto txBlock = GetBlockByTransactionHash(txHash);
+  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
@@ -1374,8 +1404,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       return Json::nullValue;
     }
 
+    const BlockHash hash{blockHash};
+    const auto block = m_mediator.m_txBlockChain.GetBlockByHash(hash);
     auto const ethResult =
-        JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+        JSONConversion::convertTxtoEthJson(*transactioBodyPtr, block);
     auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
@@ -1811,8 +1843,9 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (!isPresent) {
       return Json::nullValue;
     }
-    return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
-  } catch (exception& e) {
+    const auto txBlock = GetBlockByTransactionHash(transactionHash);
+    return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
+  } catch (exceptio& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
