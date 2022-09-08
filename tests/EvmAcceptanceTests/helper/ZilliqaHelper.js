@@ -29,7 +29,7 @@ class ZilliqaHelper {
         const constructorArgs = (options.constructorArgs || []);
 
         // Give our Eth address some monies
-        await this.moveFunds(200000000000000, senderAccount.address)
+        await this.moveFunds("0x3635c9adc5dea00000", senderAccount.address)
 
         // Deploy a SC using web3 API ONLY
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
@@ -39,7 +39,7 @@ class ZilliqaHelper {
             'value': options.value ?? 0,
             'data': Contract.getDeployTransaction(...constructorArgs).data,
             'gas': 300000,
-            'gasPrice': 2000000000,
+            'gasPrice': 2000000000000000,
             'chainId': general_helper.getEthChainId(),
             'nonce': nonce,
         };
@@ -67,7 +67,7 @@ class ZilliqaHelper {
             'value': 0,
             'data': abi,
             'gas': 300000,
-            'gasPrice': 2000000000,
+            'gasPrice': 2000000000000000,
             'chainId': general_helper.getEthChainId(),
             'nonce': nonce,
         };
@@ -87,7 +87,7 @@ class ZilliqaHelper {
             from: senderAccount.address,
             to: contract._address,
             data: abi,
-            gasPrice: 2000000000,
+            gasPrice: 2000000000000000,
         };
 
         return web3.eth.call(transaction)
@@ -105,7 +105,7 @@ class ZilliqaHelper {
                 'to': toAddr,
                 'value': amount,
                 'gas': 300000,
-                'gasPrice': 2000000000,
+                'gasPrice': 2000000000000000,
                 'nonce': nonce,
                 'chainId': general_helper.getEthChainId(),
                 'data': ""
