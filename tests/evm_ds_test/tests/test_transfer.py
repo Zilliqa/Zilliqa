@@ -47,8 +47,8 @@ contract ForwardZil {
     function withdraw() public {
         // get the amount of Zil stored in this contract minus 10 zil.
         uint amount = address(this).balance;
-        if (amount > 1000 gwei) {  // 1 ZIL
-            amount -= 1000 gwei;
+        if (amount > 1 ether) {  // 1 ZIL
+            amount -= 1 ether;
         }
 
         // send all Ether to owner
