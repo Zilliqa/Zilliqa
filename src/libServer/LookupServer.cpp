@@ -1183,9 +1183,15 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
+static bool isNumber(const std::string& str) {
+  char *endp;
+  strtoull(str.c_str(), &endp, 0);
+  return (str.size() > 0 && endp != nullptr && *enpd == '\0');
+}
+
 Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
-  if (tag == "latest" || tag == "earliest" || tag == "pending") {
+  if (tag == "latest" || tag == "earliest" || tag == "pending" || isNumber(tag)) {
     const auto balanceStr =
         this->GetBalance(address, true)["balance"].asString();
 
