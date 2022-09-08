@@ -115,7 +115,7 @@ pub trait Rpc: Send + 'static {
     fn run(
         &self,
         address: String,
-        caller: String,
+        origin: String,
         code: String,
         data: String,
         apparent_value: String,
@@ -133,36 +133,43 @@ impl Rpc for EvmServer {
     fn run(
         &self,
         address: String,
-        caller: String,
+        origin: String,
         code_hex: String,
         data_hex: String,
         apparent_value: String,
         gas_limit: u64,
     ) -> BoxFuture<Result<EvmResult>> {
-        let backend = ScillaBackend::new(self.backend_config.clone());
-        let tracing = self.tracing;
-        let gas_scaling_factor = self.gas_scaling_factor;
-        Box::pin(async move {
-            run_evm_impl(
-                address,
-                caller,
-                code_hex,
-                data_hex,
-                apparent_value,
-                gas_limit,
-                backend,
-                tracing,
-                gas_scaling_factor,
-            )
-            .await
-        })
+        let origin = H160::from_str(&origin);
+        match origin {
+            Ok(origin) => {
+                let backend = ScillaBackend::new(self.backend_config.clone(), origin);
+                let tracing = self.tracing;
+                let gas_scaling_factor = self.gas_scaling_factor;
+                Box::pin(async move {
+                    run_evm_impl(
+                        address,
+                        code_hex,
+                        data_hex,
+                        apparent_value,
+                        gas_limit,
+                        backend,
+                        tracing,
+                        gas_scaling_factor,
+                    )
+                    .await
+                })
+            }
+            Err(e) => Box::pin(futures::future::err(Error::invalid_params(format!(
+                "origin: {}",
+                e
+            )))),
+        }
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 async fn run_evm_impl(
     address: String,
-    caller: String,
     code_hex: String,
     data_hex: String,
     apparent_value: String,
@@ -192,8 +199,7 @@ async fn run_evm_impl(
         let context = evm::Context {
             address: H160::from_str(&address)
                 .map_err(|e| Error::invalid_params(format!("address: {}", e)))?,
-            caller: H160::from_str(&caller)
-                .map_err(|e| Error::invalid_params(format!("caller: {}", e)))?,
+            caller: backend.origin,
             apparent_value,
         };
         let mut runtime = evm::Runtime::new(code, data, context, &config);
