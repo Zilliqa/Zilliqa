@@ -16,7 +16,7 @@ spec:
     - cat
     tty: true
   - name: dependecies
-    image: zilliqa:v8.2.0-deps
+    image: "648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa:v8.2.0-deps"
     command:
     - cat
     tty: true
