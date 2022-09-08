@@ -1186,7 +1186,7 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
 static bool isNumber(const std::string& str) {
   char *endp;
   strtoull(str.c_str(), &endp, 0);
-  return (str.size() > 0 && endp != nullptr && *enpd == '\0');
+  return (str.size() > 0 && endp != nullptr && *endp == '\0');
 }
 
 Json::Value LookupServer::GetEthBalance(const std::string& address,
