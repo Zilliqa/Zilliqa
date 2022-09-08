@@ -591,9 +591,6 @@ class LookupServer : public Server,
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
- 
- 
-
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
                                         Json::Value& response) {
     response = this->GetEmptyResponse();
