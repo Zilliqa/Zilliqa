@@ -3,7 +3,7 @@ apiVersion: "v1"
 kind: "Pod"
 spec:
   nodeSelector:
-    kubernetes.io/os: "linux"
+    beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
     image: "zilliqa/scilla:v0.11.0"

@@ -38,6 +38,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
@@ -1183,16 +1184,23 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetEthBalance(const std::string& address) {
-  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+Json::Value LookupServer::GetEthBalance(const std::string& address,
+                                        const std::string& tag) {
+  if (tag == "latest" || tag == "earliest" || tag == "pending") {
+    const auto balanceStr =
+        this->GetBalance(address, true)["balance"].asString();
 
-  const uint256_t ethBalance =
-      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+    const uint256_t ethBalance =
+        std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
 
-  std::ostringstream strm;
-  strm << "0x" << std::hex << ethBalance << std::dec;
+    std::ostringstream strm;
+    strm << "0x" << std::hex << ethBalance << std::dec;
 
-  return strm.str();
+    return strm.str();
+  }
+  throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process, invalid tag");
+
+  return "";
 }
 
 Json::Value LookupServer::getEthGasPrice() const {
@@ -1747,12 +1755,9 @@ std::string LookupServer::GetWeb3ClientVersion() {
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-
-  const auto str{_json.asString()};
-  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
-
-  return POW::BlockhashToHexString(ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
+  return POW::BlockhashToHexString(
+      ethash::keccak256(input.data(), input.size()));
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
@@ -1771,8 +1776,7 @@ Json::Value LookupServer::GetEthUncleBlock() {
 
 Json::Value LookupServer::GetEthMining() {
   LOG_MARKER();
-  // @todo : the mining state a could be retrieved from the WorkServer if it can
-  // provide the exact state of mining.
+
   return Json::Value(false);
 }
 

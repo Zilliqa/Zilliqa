@@ -1,6 +1,8 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { ZilliqaHelper } = require('../helper/ZilliqaHelper');
+const general_helper = require('../helper/GeneralHelper')
+const web3_helper = require('../helper/Web3Helper')
 
 describe("Contract Deployment", function () {
     describe("Contract with zero parameter constructor", function () {
@@ -24,6 +26,10 @@ describe("Contract Deployment", function () {
             let helper;
             let contract;
             before(async function () {
+                if (!general_helper.isZilliqaNetworkSelected()) {
+                    this.skip()
+                }
+
                 helper = new ZilliqaHelper()
                 contract = await helper.deployContract("ZeroParamConstructor")
             })
@@ -38,7 +44,18 @@ describe("Contract Deployment", function () {
         })
 
         describe("When web3.js is used", function () {
-            // TODO
+            let contract;
+            before(async function () {
+                contract = await web3_helper.deploy("ZeroParamConstructor")
+            })
+
+            it("Should be deployed successfully", async function () {
+                expect(contract.options.address).exist;
+            })
+
+            it("Should return 123 when number view function is called", async function () {
+                expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(123))
+            })
         });
     })
 
@@ -94,6 +111,9 @@ describe("Contract Deployment", function () {
         describe("When Zilliqa Helper is used", function () {
             let helper;
             before(async function () {
+                if (!general_helper.isZilliqaNetworkSelected()) {
+                    this.skip()
+                }
                 helper = new ZilliqaHelper()
             })
 
@@ -148,7 +168,22 @@ describe("Contract Deployment", function () {
 
 
         describe("When web3.js is used", function () {
-            // TODO
+            describe("When constructor parameter is a uint256", async function () {
+                let contract;
+                let INITIAL_NUMBER = 100;
+                before(async function () {
+                    contract = await web3_helper.deploy("WithUintConstructor", INITIAL_NUMBER)
+                })
+
+                it("Should be deployed successfully", async function () {
+                    expect(contract.options.address).exist;
+                })
+
+                it("Should return 100 when number view function is called", async function () {
+                    expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(INITIAL_NUMBER))
+                })
+            })
+            // TODO add the rest
         });
     })
 
@@ -181,6 +216,9 @@ describe("Contract Deployment", function () {
             let NUMBER = 100;
             let helper;
             before(async function () {
+                if (!general_helper.isZilliqaNetworkSelected()) {
+                    this.skip()
+                }
                 helper = new ZilliqaHelper()
                 contract = await helper.deployContract("MultiParamConstructor", {
                     constructorArgs: [NAME, NUMBER]

@@ -193,7 +193,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetNetPeerCountI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetProtocolVersionI);
 
@@ -320,24 +320,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetEthStorageAtI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_sign", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthSignI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_signTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetEthSignTransactionI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_sendTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetEthSendTransactionI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
@@ -715,7 +697,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       throw JsonRpcException(
           RPC_INVALID_PARAMETER,
           "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmountWei().str() +
+              " with an attempt to send: " + tx.GetAmountWeiWei().str() +
               " and use totalGas: " + requiredGas.str());
     }
 

@@ -405,7 +405,10 @@ class LookupServer : public Server,
                                      Json::Value& response) {
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
-    response = this->GetEthBalance(address);
+
+    const std::string tag{request[1u].asString()};
+
+    response = this->GetEthBalance(address, tag);
   }
 
   /**
@@ -588,21 +591,6 @@ class LookupServer : public Server,
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
-  virtual void GetEthSignI(const Json::Value& /*request*/,
-                           Json::Value& response) {
-    response = "0x";
-  }
-
-  virtual void GetEthSignTransactionI(const Json::Value& /*request*/,
-                                      Json::Value& response) {
-    response = "0x";
-  }
-
-  virtual void GetEthSendTransactionI(const Json::Value& /*request*/,
-                                      Json::Value& response) {
-    response = "0x";
-  }
-
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
                                         Json::Value& response) {
     response = this->GetEmptyResponse();
@@ -737,7 +725,7 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
-  Json::Value GetEthBalance(const std::string& address);
+  Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value getEthGasPrice() const;
 

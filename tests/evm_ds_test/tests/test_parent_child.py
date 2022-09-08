@@ -61,7 +61,7 @@ contract ParentContract {
     }
 
     function installChild(uint256 initial_data) public returns (address payable) {
-      child = new ChildContract{value: 1000 gwei}(initial_data);
+      child = new ChildContract{value: 1 ether}(initial_data);
       return payable(address(child));
     }
 
