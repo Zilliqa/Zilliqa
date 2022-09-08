@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use anyhow::Context;
 use clap::Parser;
 use evm::{
     backend::{Apply, Basic},
@@ -304,7 +305,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     match args.log4rs {
         Some(log_config) if log_config != "" => {
-            log4rs::init_file(log_config, Default::default()).unwrap();
+            log4rs::init_file(&log_config, Default::default())
+                .with_context(|| format!("cannot open file {}", log_config))?;
         }
         _ => {
             let config_str = include_str!("../log4rs-local.yml");
