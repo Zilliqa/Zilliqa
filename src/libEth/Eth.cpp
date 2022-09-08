@@ -93,21 +93,12 @@ EthFields parseRawTxFields(std::string const &message) {
       case 0:
         ret.nonce = uint32_t(*it);
         break;
-      case 1: {
-        // Convert input gasPrice to be in the same ballpark as core gasPrice
-        const auto apiGasPrice = uint128_t{*it};
-        const auto gasConv = GasConv::CreateFromEthApi(apiGasPrice);
-        ret.gasPrice = gasConv.GasPriceInCore();
+      case 1:
+        ret.gasPrice = uint128_t{*it};
         break;
-      }
-      case 2: {
-        // Convert input gasLimit to be in the same ballpark as core gasLimit
-        const auto apiGasLimit = uint64_t{*it};
-        const auto gasConv =
-            GasConv::CreateFromEthApi(ret.gasPrice, apiGasLimit);
-        ret.gasLimit = gasConv.GasLimitInCore();
+      case 2:
+        ret.gasLimit = uint64_t{*it};
         break;
-      }
       case 3:
         ret.toAddr = byteIt;
         break;
@@ -168,11 +159,11 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                gasPriceWei.convert_to<std::string>());
   }
 
-  if (gasConv.GasLimitInEthApi() < MIN_ETH_GAS) {
-    throw JsonRpcException(
-        ServerBase::RPC_VERIFY_REJECTED,
-        "GasLimit " + std::to_string(gasConv.GasLimitInEthApi()) +
-            " lower than minimum allowable " + std::to_string(MIN_ETH_GAS));
+  if (tx.GetGasLimitRaw() < MIN_ETH_GAS) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "GasLimit " + std::to_string(tx.GetGasLimitRaw()) +
+                               " lower than minimum allowable " +
+                               std::to_string(MIN_ETH_GAS));
   }
 
   if (!Validator::VerifyTransaction(tx)) {
@@ -199,7 +190,7 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
 
   // Check if transaction amount is valid
   uint256_t gasDepositWei = 0;
-  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPriceWei(),
+  if (!SafeMath<uint256_t>::mul(tx.GetGasLimitRaw(), tx.GetGasPriceWei(),
                                 gasDepositWei)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "tx.GetGasLimit() * tx.GetGasPrice() overflow!");

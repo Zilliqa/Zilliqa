@@ -1197,13 +1197,13 @@ Json::Value LookupServer::GetEthBalance(const std::string& address) {
 
 Json::Value LookupServer::getEthGasPrice() const {
   try {
-    const auto& gasPrice =
+    uint256_t gasPrice =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
-    constexpr auto ignoredValue = 0;
-    const auto gasConv = GasConv::CreateFromCore(gasPrice, ignoredValue);
+    // Make gas price in wei
+    gasPrice = gasPrice * EVM_ZIL_SCALING_FACTOR;
     std::ostringstream strm;
 
-    strm << "0x" << std::hex << gasConv.GasPriceInEthApi() << std::dec;
+    strm << "0x" << std::hex << gasPrice << std::dec;
     return strm.str();
   } catch (std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what());

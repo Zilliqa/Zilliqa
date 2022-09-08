@@ -1019,10 +1019,10 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
         response["nonce"] ==
         (boost::format("0x%x") % transactions[i].GetTransaction().GetNonce())
             .str());
-    BOOST_TEST_CHECK(
-        response["value"] ==
-        (boost::format("0x%x") % transactions[i].GetTransaction().GetAmountQa())
-            .str());
+    BOOST_TEST_CHECK(response["value"] ==
+                     (boost::format("0x%x") %
+                      transactions[i].GetTransaction().GetAmountWei())
+                         .str());
   }
 
   // Get non-existing transaction
