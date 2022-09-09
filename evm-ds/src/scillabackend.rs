@@ -293,7 +293,7 @@ impl<'config> Backend for ScillaBackend {
             .expect("query_state_value _nonce")
             .and_then(|x| x.as_uint256())
             .unwrap_or_default();
-        Basic { balance: balance * self.config.zil_scaling_factor, nonce }
+        Basic { balance: self.scale_zil_to_eth(balance), nonce }
     }
 
     fn code(&self, address: H160) -> Vec<u8> {

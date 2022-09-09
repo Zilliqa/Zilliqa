@@ -32,7 +32,7 @@ from web3 import Web3
 from web3._utils.abi import get_constructor_abi, get_abi_output_types
 from web3._utils.contracts import encode_abi, get_function_info
 from web3.exceptions import TransactionNotFound
-from .utils import int_from_bytes
+from .utils import int_from_bytes, from_zil
 
 
 def pad_address(address):
@@ -83,7 +83,7 @@ class EvmDsTestCase:
         # Fund all the accounts.
         pending_transactions = []
         for account in self.accounts:
-            amount = 200_000_000_000_000
+            amount = from_zil(200)
             logging.info(
                 "Funding account {} with {} Qa".format(account.address, amount)
             )
@@ -128,7 +128,7 @@ class EvmDsTestCase:
                 "to": dest.address,
                 "value": amount,
                 "gas": 21_000,
-                "gasPrice": 2_000_000_000,
+                "gasPrice": from_zil(0.002),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
                 "data": b"",
@@ -153,7 +153,7 @@ class EvmDsTestCase:
         txn = contract_class.constructor(*args).build_transaction(
             {
                 "gas": 30_000,
-                "gasPrice": 2_000_000_000,
+                "gasPrice": from_zil(0.002),
                 "value": value,
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
@@ -183,7 +183,7 @@ class EvmDsTestCase:
                 "value": value,
                 "data": data_bytes,
                 "gas": 30_000,
-                "gasPrice": 2_000_000_000,
+                "gasPrice": from_zil(0.002),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             },
@@ -231,7 +231,7 @@ class EvmDsTestCase:
                 "from": account.address,
                 "value": value,
                 "gas": 30_000,
-                "gasPrice": 2_000_000_000,
+                "gasPrice": from_zil(0.002),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             }
@@ -263,7 +263,7 @@ class EvmDsTestCase:
             {
                 "from": self.account.address,
                 # "gas": 30_000,
-                "gasPrice": 2_000_000_000,
+                "gasPrice": from_zil(0.002),
                 "chainId": self.eth_network_id,
             }
         )

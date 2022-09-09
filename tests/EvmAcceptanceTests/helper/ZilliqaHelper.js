@@ -23,7 +23,7 @@ var zilliqa = {
         const constructorArgs = (options.constructorArgs || []);
     
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
-    
+
         const transaction = {
             'from': senderAccount.address,
             'value': options.value ?? 0,
@@ -50,7 +50,7 @@ var zilliqa = {
     callContractBy: async function(senderAccount, contract, func_name, ...params) {
         const abi = contract.methods[func_name](...params).encodeABI()
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
-    
+
         const transaction = {
             'to': contract._address,
             'from': senderAccount.address,
@@ -72,12 +72,12 @@ var zilliqa = {
 
     callViewBy: async function(senderAccount, contract, func_name, ...params) {
         const abi = contract.methods[func_name](...params).encodeABI()
-    
+
         const transaction = {
             from: senderAccount.address,
             to: contract._address,
             data: abi,
-            gasPrice: 2000000000,
+            gasPrice: 2000000000000000,
         };
 
         return web3.eth.call(transaction)
@@ -95,12 +95,12 @@ var zilliqa = {
                 'to': toAddr,
                 'value': amount,
                 'gas': 300000,
-                'gasPrice': 2000000000,
+                'gasPrice': 2000000000000000,
                 'nonce': nonce,
                 'chainId': hre.getEthChainId(),
                 'data': ""
             }
-        
+
             return this.sendTransaction(tx, senderAccount)
         } catch (err) {
             console.log("theres an error...");
