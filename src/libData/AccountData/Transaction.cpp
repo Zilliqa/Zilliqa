@@ -51,11 +51,6 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  if (!SetHash(txnData)) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    return;
-  }
-
   // Generate the signature
   if (IsEth()) {
     bytes signature;
@@ -72,6 +67,11 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                        m_signature)) {
       LOG_GENERAL(WARNING, "We failed to generate m_signature.");
     }
+  }
+
+  if (!SetHash(txnData)) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return;
   }
 }
 
