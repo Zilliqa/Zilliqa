@@ -2,7 +2,6 @@ const { web3 } = require("hardhat");
 
 var web3_helper = {
     primaryAccount: web3.eth.accounts.privateKeyToAccount(hre.getPrivateAddressAt(0)),
-    auxiliaryAccount: web3.eth.accounts.privateKeyToAccount(hre.getPrivateAddressAt(1)),
 
     deploy: async function(contractName, ...arguments) {
         const ContractRaw = hre.artifacts.readArtifactSync(contractName)
