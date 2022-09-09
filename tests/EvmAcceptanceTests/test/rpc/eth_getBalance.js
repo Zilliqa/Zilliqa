@@ -8,7 +8,7 @@ const expectedBalance = 1000000 * (10 ** 12) // should be 1 eth in wei
 
 describe("Calling " + METHOD, function () {
     describe("When tag is 'latest'", function () {
-        it("should return the latest balance as specified in the ethereum protocol", async function () {
+        it("should return the latest balance as specified in the ethereum protocol michel", async function () {
             let zHelper = new ZilliqaHelper();
 
             const senderAddress = zHelper.getPrimaryAccountAddress();
@@ -22,7 +22,7 @@ describe("Calling " + METHOD, function () {
 
             await zHelper.moveFunds(initialBalance, account.address);
             const balance = await web3.eth.getBalance(account.address);
-            //assert.equal(balance, initialBalance, 'has balance');
+            assert.equal(balance, initialBalance, 'has balance');
             //console.log(balance);
 
             //            await helper.callEthMethod(METHOD, 1, [

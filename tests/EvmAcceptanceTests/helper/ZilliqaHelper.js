@@ -112,7 +112,7 @@ class ZilliqaHelper {
                 'to': toAddr,
                 'value': amount,
                 'gas': 300000,
-                'gasPrice': 2000000000000000,
+                'gasPrice': 2000000000,
                 'nonce': nonce,
                 'chainId': general_helper.getEthChainId(),
                 'data': ""
