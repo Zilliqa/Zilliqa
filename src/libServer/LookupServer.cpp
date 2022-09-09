@@ -1355,7 +1355,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  auto txBlock = GetBlockByTransactionHash(txHash);
+  auto txBlock = GetBlockByTransactionHash(txHash.hex());
   return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
 }
 
@@ -1389,8 +1389,9 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string toAddr = ethResult["to"].asString();
     std::string cumGas = zilResult["cumulative_gas"].asString();
 
-    const std::string blockNumber = (boost::format("0x%x") % txheader.GetBlockNum()).str();
-    const std::string blockHash = std::string{"0x"} + txblock.GetBlockHash().hex();
+    const TxBlockHeader& txHeader = txBlock.GetHeader();
+    const std::string blockNumber = (boost::format("0x%x") % txHeader.GetBlockNum()).str();
+    const std::string blockHash = std::string{"0x"} + txBlock.GetBlockHash().hex();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
