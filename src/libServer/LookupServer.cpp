@@ -1355,7 +1355,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  const auto txBlock = GetBlockByTransactionHash(txHash);
+  auto txBlock = GetBlockByTransactionHash(txHash);
   return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
 }
 
@@ -1813,7 +1813,7 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (!isPresent) {
       return Json::nullValue;
     }
-    const auto txBlock = GetBlockByTransactionHash(transactionHash);
+    auto txBlock = GetBlockByTransactionHash(transactionHash);
     return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
