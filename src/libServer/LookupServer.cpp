@@ -1199,7 +1199,7 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
     uint256_t ethBalance;
     try {
       ethBalance.assign(ret["balance"].asString());
-    } catch (std::runtime_error e) {
+    } catch (const std::runtime_error& e) {
       throw JsonRpcException(RPC_MISC_ERROR, "Invalid account balance number");
     }
     uint256_t ethBalanceScaled;
