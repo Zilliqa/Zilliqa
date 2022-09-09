@@ -63,9 +63,9 @@ install:
   - rm cmake-3.19.3-Linux-x86_64.sh
   - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
   - ls /scilla/0/
-  - export TOKEN=$(aws ecr get-authorization-token --region ${AWS_REGION} --output text --query 'authorizationData[].authorizationToken')
-  - curl -i -H "Authorization: Basic $TOKEN" https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/v2/amazonlinux/tags/list
-  # - docker login -u AWS -p $(aws ecr get-login-password --region ${AWS_REGION}) ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+  # - export TOKEN=$(aws ecr get-authorization-token --region ${AWS_REGION} --output text --query 'authorizationData[].authorizationToken')
+  # - curl -i -H "Authorization: Basic $TOKEN" https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/v2/amazonlinux/tags/list
+  - docker login -u AWS -p $(aws ecr get-login-password --region ${AWS_REGION}) ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   - docker run --rm -it -v /vcpkg:/root/vcpkg ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps cp -r /vcpkg /root/
 
 script:
