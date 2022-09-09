@@ -90,10 +90,10 @@ Run the following to install the build dependencies:
 
 ```bash
 sudo apt-get update
-sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-test-dev \
-    libssl-dev libleveldb-dev libjsoncpp-dev libsnappy-dev libmicrohttpd-dev \
-    libjsonrpccpp-dev build-essential pkg-config libevent-dev libminiupnpc-dev \
-    libcurl4-openssl-dev libboost-program-options-dev libboost-python-dev python3-dev \
+sudo apt-get install git \
+    libmicrohttpd-dev bison \
+    libjsonrpccpp-dev build-essential pkg-config \
+    libcurl4-openssl-dev python3-dev \
     python3-setuptools python3-pip gawk
 ```
 Run the following to install latest version of cmake.We suggest to install cmake 3.19 or any version >=3.16:
