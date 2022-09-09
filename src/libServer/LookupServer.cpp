@@ -1814,7 +1814,7 @@ Json::Value LookupServer::GetEthTransactionByHash(
     }
     const auto txBlock = GetBlockByTransactionHash(transactionHash);
     return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
-  } catch (exceptio& e) {
+  } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
