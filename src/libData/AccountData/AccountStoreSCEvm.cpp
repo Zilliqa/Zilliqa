@@ -507,10 +507,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                  << ") "
                                     "has not enough balance to deposit the gas "
                                     "price to deposit ("
-                                 << gasDepositWei
+                                 << gasDeposit
                                  << ") "
                                     "and transfer the amount ("
-                                 << transaction.GetAmountWeiWei()
+                                 << transaction.GetAmountWei()
                                  << ") in the txn, "
                                     "rejected");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
@@ -542,9 +542,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       m_curGasLimit = transaction.GetGasLimit();
-      m_curGasPrice = transaction.GetGasPriceWeiWei();
+      m_curGasPrice = transaction.GetGasPriceWei();
       m_curContractAddr = transaction.GetToAddr();
-      m_curAmount = transaction.GetAmountQaQa();
+      m_curAmount = transaction.GetAmountQa();
       m_curNumShards = numShards;
 
       std::chrono::system_clock::time_point tpStart;
@@ -603,9 +603,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      if (!this->IncreaseBalance(fromAddr,
-                                
-                                 gasRefund / EVM_ZIL_SCALING_FACTOR / EVM_ZIL_SCALING_FACTOR)) {
+      if (!this->IncreaseBalance(
+              fromAddr,
+
+              gasRefund / EVM_ZIL_SCALING_FACTOR / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 
