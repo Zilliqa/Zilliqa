@@ -361,14 +361,10 @@ class LookupServer : public Server,
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
-    try {
-      std::string address = request[0u].asString();
-      DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
-      response = DataConversion::IntToHexString(resp);
-    } catch (const std::exception& e) {
-      response = DataConversion::IntToHexString(int(0));
-    }
+    std::string address = request[0u].asString();
+    DataConversion::NormalizeHexString(address);
+    const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+    response = DataConversion::IntToHexString(resp);
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,

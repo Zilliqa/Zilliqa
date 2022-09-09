@@ -8,36 +8,38 @@ const expectedBalance = 1000000 * (10 ** 12) // should be 1 eth in wei
 
 describe("Calling " + METHOD, function () {
     describe("When tag is 'latest'", function () {
-        it("should return the latest balance as specified in the ethereum protocol michel", async function () {
+        it("should return the latest balance as specified in the ethereum protocol", async function () {
             let zHelper = new ZilliqaHelper();
+            const initialBalance = 10_000;
 
+            // check sender account has enough balance to move
             const senderAddress = zHelper.getPrimaryAccountAddress();
             console.log("Primary address:", senderAddress);
             const senderBalance = await web3.eth.getBalance(senderAddress);
             console.log("sender balance:", senderBalance);
+            assert.isAbove(ethers.BigNumber.from(senderBalance), initialBalance, 'sender has enough balance to move');
 
-            const account = web3.eth.accounts.create();
-            const initialBalance = 10000;
-            console.log("New Account address:", account.address);
+            // create unique receiver account
+            const receiverAccount = await web3.eth.accounts.create();
+            console.log("New Account address:", receiverAccount.address);
 
-            await zHelper.moveFunds(initialBalance, account.address);
-            const balance = await web3.eth.getBalance(account.address);
-            assert.equal(balance, initialBalance, 'has balance');
-            //console.log(balance);
+            await zHelper.moveFunds(initialBalance, receiverAccount.address);
+            const balance = await web3.eth.getBalance(receiverAccount.address);
+            console.log("Has start balance:", balance);
 
-            //            await helper.callEthMethod(METHOD, 1, [
-            //                senderAddress, // public address
-            //                "latest"],
-            //                (result, status) => {
-            //                    console.log(result);
-            //                    assert.equal(status, 200, 'has status code');
-            //                    assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-            //                    assert.isString(result.result, 'is string');
-            //                    assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
-            //                    assert.isNumber(+result.result, 'can be converted to a number');
-            //                    console.log(result);
-            //                    assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
-            //                })
+            await helper.callEthMethod(METHOD, 1, [
+                receiverAccount.address, // public address
+                "latest"],
+                (result, status) => {
+                    console.log(result);
+
+                    assert.equal(status, 200, 'has status code');
+                    assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+                    assert.isString(result.result, 'is string');
+                    assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
+                    assert.isNumber(+result.result, 'can be converted to a number');
+                    assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
+                })
         })
     })
 
