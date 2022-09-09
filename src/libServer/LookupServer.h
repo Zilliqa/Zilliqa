@@ -727,8 +727,7 @@ class LookupServer : public Server,
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
 
-  void GetBlockByTransactionHash(const std::string& txnhash,
-                                 TxBlock& txBlock);
+  TxBlock GetBlockByTransactionHash(const std::string& txnhash);
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
