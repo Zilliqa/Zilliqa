@@ -63,13 +63,15 @@ install:
   - rm cmake-3.19.3-Linux-x86_64.sh
   - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
   - ls /scilla/0/
-  # - export TOKEN=$(aws ecr get-authorization-token --region ${AWS_REGION} --output text --query 'authorizationData[].authorizationToken')
-  # - curl -i -H "Authorization: Basic $TOKEN" https://${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/v2/amazonlinux/tags/list
   - docker login -u AWS -p $(aws ecr get-login-password --region ${AWS_REGION}) ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   - docker run --rm -it -v /vcpkg:/root/vcpkg ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps cp -r /vcpkg /root/
 
 script:
-  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
+  # - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
+  - export VCPKG_ROOT=/vcpkg
+  - git clone https://github.com/microsoft/vcpkg /tmp
+  - export VCPKG_FORCE_SYSTEM_BINARIES=1 && cd /tmp && git checkout 2022.07.25 && /tmp/bootstrap-vcpkg.sh
+  - ./scripts/ci_build.sh
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
