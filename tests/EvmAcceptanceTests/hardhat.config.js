@@ -66,4 +66,16 @@ extendEnvironment((hre) => {
   hre.getPrivateAddressAt = function (index) {
     return hre.network.config.accounts[index]
   }
+
+  hre.getWeb3ClientVersion = function () {
+    return hre.network.config.web3ClientVersion;
+  }
+
+  hre.getProtocolVersion = function () {
+    return hre.network.config.protocolVersion;
+  }
+
+  hre.getMiningState = function () {
+    return hre.network.config.miningState;
+  }
 });

@@ -12,7 +12,7 @@ describe("Calling " + METHOD, function () {
         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
         assert.isString(result.result, 'is string');
 
-        const expectedWeb3ClientVersion = helper.getWeb3ClientVersion();
+        const expectedWeb3ClientVersion = hre.getWeb3ClientVersion();
         assert.equal(result.result, expectedWeb3ClientVersion, 'has result:' + result.result + ', expected web3_clientVersion:' + expectedWeb3ClientVersion);
       })
   })

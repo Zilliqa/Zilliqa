@@ -1,38 +1,6 @@
 const axios = require('axios')
 
 var general_helper = {
-    isZilliqaNetworkSelected: function () {
-        return hre.network.config.zilliqaNetwork;
-    },
-
-    getEthChainId: function () {
-        return hre.network.config.chainId;
-    },
-
-    getZilliqaChainId: function () {
-        return hre.network.config.chainId - 0x8000;
-    },
-
-    getNetworkUrl: function () {
-        return hre.network.config.url;
-    },
-
-    getPrivateAddressAt: function (index) {
-        return hre.network.config.accounts[index];
-    },
-
-    getWeb3ClientVersion: function () {
-        return hre.network.config.web3ClientVersion;
-    },
-
-    getProtocolVersion: function () {
-        return hre.network.config.protocolVersion;
-    },
-
-    getMiningState: function () {
-        return hre.network.config.miningState;
-    },
-
     callEthMethod: async function (method, id, params, callback) {
         const data = {
             id: id,
@@ -41,7 +9,7 @@ var general_helper = {
             params: params
         }
 
-        const host = this.getNetworkUrl()
+        const host = hre.getNetworkUrl()
 
         // ASYNC
         if (typeof callback === 'function') {

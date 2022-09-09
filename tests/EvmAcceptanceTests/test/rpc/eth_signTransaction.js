@@ -6,7 +6,7 @@ const METHOD = 'eth_signTransaction';
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", async function () {
     before(async function () {
-      if (!helper.isZilliqaNetworkSelected()) {
+      if (!hre.isZilliqaNetworkSelected()) {
         this.skip();
       }
     })
