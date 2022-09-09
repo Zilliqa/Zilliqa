@@ -95,6 +95,9 @@ class ZilliqaHelper {
 
     async sendTransaction(tx, senderAccount) {
         const signedTx = await senderAccount.signTransaction(tx);
+
+        console.log("Send transaction from sender:" + senderAccount.address + " to:" + tx.to);
+
         return web3.eth.sendSignedTransaction(signedTx.rawTransaction)
     }
 
