@@ -5,12 +5,12 @@ var zilliqa = {
     getState: async function(address, index) {
         return web3.eth.getStorageAt(address, index)
     },
-    
+ 
     getStateAsNumber: async function(address, index) {
         const state = await web3.eth.getStorageAt(address, index)
         return web3.utils.hexToNumber(state)
     },
-    
+
     getStateAsString: async function(address, index) {
         const state = await web3.eth.getStorageAt(address, index)
         return web3.utils.hexToUtf8(state.slice(0, -2))
@@ -18,7 +18,7 @@ var zilliqa = {
 
     deployContract: async function(contractName, options = {}) {
         const Contract = await ethers.getContractFactory(contractName);
-    
+
         const senderAccount = (options.senderAccount || this.primaryAccount)
         const constructorArgs = (options.constructorArgs || []);
     
@@ -33,13 +33,13 @@ var zilliqa = {
             'chainId': hre.getEthChainId(),
             'nonce': nonce,
         };
-    
+
         const receipt = await this.sendTransaction(transaction, senderAccount)
-    
+
         const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi, receipt.contractAddress, {
                 "from": this.primaryAccount.address
             })
-    
+
         return contract
     },
 
@@ -61,7 +61,7 @@ var zilliqa = {
             'chainId': hre.getEthChainId(),
             'nonce': nonce,
         };
-        
+
         const receipt = await this.sendTransaction(transaction, this.primaryAccount)
         await web3.eth.getTransaction(receipt.transactionHash)
     },
@@ -111,7 +111,6 @@ var zilliqa = {
     moveFunds: async function(amount, toAddr) {
         return this.moveFundsBy(amount, toAddr, this.primaryAccount)
     }
-
 }
 
 module.exports = zilliqa
