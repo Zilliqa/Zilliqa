@@ -17,6 +17,7 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/format.hpp>
 #include <ethash/keccak.hpp>
 #include "JSONConversion.h"
 #include "common/Constants.h"
