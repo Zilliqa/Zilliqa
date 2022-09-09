@@ -16,8 +16,10 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
+#include <jsonrpccpp/common/exception.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
+#include <stdexcept>
 #include "JSONConversion.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -1193,10 +1195,14 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
   if (tag == "latest" || tag == "earliest" || tag == "pending" ||
       isNumber(tag)) {
-    const auto balanceStr =
-        this->GetBalance(address, true)["balance"].asString();
 
-    const uint256_t ethBalance{balanceStr};
+    auto ret = this->GetBalanceAndNonce(address);
+    uint256_t ethBalance;
+    try {
+      ethBalance.assign(ret["balance"].asString());
+    } catch (std::runtime_error e) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Invalid account balance number");
+    }
     uint256_t ethBalanceScaled;
     if (!SafeMath<uint256_t>::mul(ethBalance, EVM_ZIL_SCALING_FACTOR,
                                   ethBalanceScaled)) {
@@ -1708,36 +1714,6 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 
   result = "0x" + result;
   return result;
-}
-
-// Get balance, but return the result as hex rather than decimal string
-Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
-  try {
-    auto ret = this->GetBalanceAndNonce(address);
-
-    // Will fit into 128 since that is the native zil balance
-    // size
-    uint128_t balance{ret["balance"].asString()};
-
-    // Convert the result from decimal string to hex string
-    std::stringstream ss;
-    ss << std::hex << balance;  // int decimal_value
-    std::string res(ss.str());
-
-    ret["balance"] = res;
-
-    return ret;
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    if (noThrow) {
-      Json::Value ret;
-      ret["balance"] = "0x0";
-      ret["nonce"] = static_cast<unsigned int>(0);
-      return ret;
-    } else {
-      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
-    }
-  }
 }
 
 std::string LookupServer::GetWeb3ClientVersion() {
