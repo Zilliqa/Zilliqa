@@ -230,7 +230,7 @@ const uint128_t Transaction::GetGasPriceWei() const {
 
 uint64_t Transaction::GetGasLimit() const {
   if (IsEth()) {
-    return GasConv::GasLimitFromEthToCore(m_coreInfo.gasLimit);
+    return GasConv::GasUnitsFromEthToCore(m_coreInfo.gasLimit);
   }
   return m_coreInfo.gasLimit;
 }

@@ -148,7 +148,7 @@ class EvmDsTestCase:
         )
         txn = contract_class.constructor(*args).build_transaction(
             {
-                "gas": 195_000,
+                "gas": 295_000,
                 "gasPrice": from_gwei(7),
                 "value": value,
                 "nonce": nonce,
@@ -178,7 +178,7 @@ class EvmDsTestCase:
             {
                 "value": value,
                 "data": data_bytes,
-                "gas": 55_000,
+                "gas": 85_000,
                 "gasPrice": from_gwei(7),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
@@ -226,7 +226,7 @@ class EvmDsTestCase:
             {
                 "from": account.address,
                 "value": value,
-                "gas": 95_000,
+                "gas": 295_000,
                 "gasPrice": from_gwei(7),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,

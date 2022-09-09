@@ -1410,7 +1410,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
-    std::string cumGas = zilResult["cumulative_gas"].asString();
+    std::string cumGas = std::to_string(GasConv::GasUnitsFromCoreToEth(
+        transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
 
     if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
       blockHash = std::string("0x") + blockHash;
@@ -1691,7 +1692,7 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 
     // for now set total gas as twice the ds gas limit
     uint64_t gasRemained =
-        GasConv::GasLimitFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
+        GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));

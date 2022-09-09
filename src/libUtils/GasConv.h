@@ -22,11 +22,11 @@
 
 class GasConv {
  public:
-  static uint64_t GasLimitFromEthToCore(uint64_t gasLimit) {
+  static uint64_t GasUnitsFromEthToCore(uint64_t gasLimit) {
     return gasLimit / GetScalingFactor();
   }
 
-  static uint64_t GasLimitFromCoreToEth(uint64_t gasLimit) {
+  static uint64_t GasUnitsFromCoreToEth(uint64_t gasLimit) {
     return gasLimit * GetScalingFactor();
   }
 

@@ -429,7 +429,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           contractAccount, RUNNER_CREATE, params, evm_version,
           evm_call_run_succeeded, receipt, response);
 
-      const auto gasRemainedCore = GasConv::GasLimitFromEthToCore(gasRemained);
+      const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
       // Summary
       uint128_t gasRefund;
@@ -587,7 +587,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);
 
-      uint64_t gasRemainedCore = GasConv::GasLimitFromEthToCore(gasRemained);
+      uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
       if (!evm_call_succeeded) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
