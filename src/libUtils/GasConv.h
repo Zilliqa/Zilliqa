@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_GAS_CONV_H_
-#define ZILLIQA_SRC_LIBUTILS_GAS_CONV_H_
+#ifndef ZILLIQA_SRC_LIBUTILS_GASCONV_H_
+#define ZILLIQA_SRC_LIBUTILS_GASCONV_H_
 
 #include "common/Constants.h"
 
@@ -34,4 +34,4 @@ class GasConv {
   static uint64_t GetScalingFactor() { return MIN_ETH_GAS / NORMAL_TRAN_GAS; }
 };
 
-#endif  // ZILLIQA_SRC_LIBUTILS_GAS_CONV_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_GASCONV_H_
