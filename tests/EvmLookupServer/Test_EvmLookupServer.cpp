@@ -650,8 +650,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
                     "0xe8d4a51000");
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -793,8 +792,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number,
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -988,8 +986,7 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -1051,8 +1048,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash,
   BOOST_TEST_CHECK(response == Json::nullValue);
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
@@ -1179,8 +1175,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num,
   }
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index,
-                     *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
   INIT_STDOUT_LOGGER();
 
   LOG_MARKER();
