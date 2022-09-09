@@ -1085,7 +1085,7 @@ TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
     for (auto const& item : TxnHashes) {
       TxnHash hash_1{item.asString()};
       if (hash_1 == argHash) {
-        blockHash = block["hash"].asString();
+        const std::string blockHash = block["hash"].asString();
         const BlockHash hash{blockHash};
         return m_mediator.m_txBlockChain.GetBlockByHash(hash);
       }
