@@ -32,6 +32,18 @@
 #include "libUtils/SysCommand.h"
 
 #include "AccountStoreSC.h"
+#  include "opentelemetry/context/context.h"
+#  include "opentelemetry/metrics/provider.h"
+#  include "opentelemetry/metrics/meter.h"
+#  include "opentelemetry/metrics/meter_provider.h"
+#  include "opentelemetry/nostd/shared_ptr.h"
+#  include "opentelemetry/_metrics/provider.h"
+#  include "opentelemetry/sdk/_metrics/meter.h"
+#  include "opentelemetry/sdk/_metrics/meter_provider.h"
+#  include "opentelemetry/sdk/_metrics/ungrouped_processor.h"
+
+namespace nostd       = opentelemetry::nostd;
+namespace metrics_api = opentelemetry::metrics;
 
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
@@ -52,6 +64,17 @@ void AccountStoreSC<MAP>::Init() {
   m_curGasLimit = 0;
   m_curGasPrice = 0;
   m_txnProcessTimeout = false;
+
+#ifdef METRICS_COUNTER_NOT_SEEN
+
+  std::string counter_name1                    = "update_counter";
+  std::string counter_name2                    = "create_counter";
+  auto provider                               = metrics_api::Provider::GetMeterProvider();
+  nostd::shared_ptr<metrics_api::Meter> meter = provider->GetMeter("AccountStore", "1.2.0");
+  m_updates                                   = meter->CreateDoubleCounter(counter_name1);
+  m_creates                                   = meter->CreateDoubleCounter(counter_name2);
+
+#endif
 
   boost::filesystem::remove_all(EXTLIB_FOLDER);
   boost::filesystem::create_directories(EXTLIB_FOLDER);
@@ -129,6 +152,10 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt,
                                          TxnStatus& error_code) {
+#ifdef METRICS_COUNTER_NOT_SEEN
+  m_updates->add(1.0);
+#endif
+
   LOG_MARKER();
 
   if (LOG_SC) {

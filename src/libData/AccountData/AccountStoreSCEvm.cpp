@@ -25,11 +25,30 @@
 #include "libUtils/EvmUtils.h"
 #include "libUtils/SafeMath.h"
 
+#include "opentelemetry/sdk/version/version.h"
+#include "opentelemetry/trace/provider.h"
+#include "opentelemetry/context/context.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/nostd/shared_ptr.h"
+
+namespace metrics_api = opentelemetry::metrics;
+namespace trace = opentelemetry::trace;
+namespace nostd = opentelemetry::nostd;
+
+nostd::shared_ptr<trace::Tracer> get_tracer() {
+  auto provider = trace::Provider::GetTracerProvider();
+  return provider->GetTracer("AccountStoreSC", OPENTELEMETRY_SDK_VERSION);
+}
+
+
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
     INVOKE_TYPE invoke_type, EvmCallParameters& params, const uint32_t& version,
     bool& ret, TransactionReceipt& receipt,
     evmproj::CallResponse& evmReturnValues) {
+
+  auto scoped_span = trace::Scope(get_tracer()->StartSpan(__FUNCTION__));
+
   auto call_already_finished{false};
 
   auto worker = [this, &params, &invoke_type, &ret, &version,
@@ -85,6 +104,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
     EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+
+  auto scoped_span = trace::Scope(get_tracer()->StartSpan(__FUNCTION__));
+
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
 
   if (not evmReturnValues.GetSuccess()) {
@@ -253,6 +275,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
                                        std::string& result) {
+
+  auto scoped_span = trace::Scope(get_tracer()->StartSpan(__FUNCTION__));
+
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
   evmproj::CallResponse response;
@@ -272,6 +297,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             const Transaction& transaction,
                                             TransactionReceipt& receipt,
                                             TxnStatus& error_code) {
+
+  auto scoped_span = trace::Scope(get_tracer()->StartSpan(__FUNCTION__));
+
   LOG_MARKER();
 
   if (LOG_SC) {
@@ -663,6 +691,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 template <class MAP>
 bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
                                            const Account& account) {
+  auto scoped_span = trace::Scope(get_tracer()->StartSpan(__FUNCTION__));
   return m_accountStoreAtomic->AddAccount(address, account);
 }
 

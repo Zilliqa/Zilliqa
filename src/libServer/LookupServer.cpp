@@ -45,6 +45,14 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
+#include "opentelemetry/sdk/version/version.h"
+#include "opentelemetry/trace/provider.h"
+
+namespace trace = opentelemetry::trace;
+namespace nostd = opentelemetry::nostd;
+
+
+
 using namespace jsonrpc;
 using namespace std;
 
@@ -55,6 +63,12 @@ namespace {
 const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
+
+nostd::shared_ptr<trace::Tracer> get_tracer() {
+  auto provider = trace::Provider::GetTracerProvider();
+  return provider->GetTracer("LookupServer", OPENTELEMETRY_SDK_VERSION);
+}
+
 
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
@@ -1581,6 +1595,9 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
+
+  auto scoped_span = trace::Scope(get_tracer()->StartSpan(__FUNCTION__));
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }

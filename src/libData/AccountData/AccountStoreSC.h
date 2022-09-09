@@ -30,6 +30,18 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
 
+#include "opentelemetry/context/context.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/nostd/shared_ptr.h"
+#ifdef ENABLE_METRICS_PREVIEW
+#  include "opentelemetry/sdk/_metrics/meter.h"
+#  include "opentelemetry/common/macros.h"
+#endif
+
+namespace nostd       = opentelemetry::nostd;
+namespace metrics_api = opentelemetry::metrics;
+
+
 template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
@@ -116,6 +128,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::set<Address> m_storageRootUpdateBufferAtomic;
 
   std::vector<Address> m_newLibrariesCreated;
+
+  nostd::shared_ptr<metrics_api::Counter<double>>                      m_updates;
+  nostd::shared_ptr<metrics_api::Counter<double>>                      m_creates;
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid

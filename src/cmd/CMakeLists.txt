@@ -105,7 +105,7 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:isolatedServer> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(isolatedServer PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator)
+target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator opentelemetry_trace opentelemetry_exporter_ostream_span)
 
 add_executable(data_migrate data_migrate.cpp)
 add_custom_command(TARGET zilliqa
