@@ -1196,11 +1196,15 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
     const auto balanceStr =
         this->GetBalance(address, true)["balance"].asString();
 
-    const uint256_t ethBalance =
-        std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+    const uint256_t ethBalance{balanceStr};
+    uint256_t ethBalanceScaled;
+    if (!SafeMath<uint256_t>::mul(ethBalance, EVM_ZIL_SCALING_FACTOR,
+                                  ethBalanceScaled)) {
+      throw JsonRpcException(RPC_MISC_ERROR, "GetEthBalance overflow");
+    }
 
     std::ostringstream strm;
-    strm << "0x" << std::hex << ethBalance << std::dec;
+    strm << "0x" << std::hex << ethBalanceScaled << std::dec;
 
     return strm.str();
   }
