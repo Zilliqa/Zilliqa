@@ -1068,30 +1068,30 @@ Json::Value LookupServer::CreateTransactionEth(
 }
 
 TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
-  // Scan downwards looking for the block hash with our TX in it
+  const TxBlock EMPTY_BLOCK;
   const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-  auto height = txBlock.GetHeader().GetBlockNum() ==
-                    std::numeric_limits<uint64_t>::max()
-                    ? 1
-                    : txBlock.GetHeader().GetBlockNum();
+  auto height = txBlock.GetHeader().GetBlockNum();
+  if (height == std::numeric_limits<uint64_t>::max()) {
+    return EMPTY_BLOCK;
+  }
 
   TxnHash argHash{txnhash};
-  // Scan downwards through the chain until the TX can be found
   do {
     auto const block = GetEthBlockByNumber(std::to_string(height), false);
-    height--;
-
-    // Attempt to find if the TX is within this block
+    if (block == Json::nullValue) {
+      return EMPTY_BLOCK;
+    }
     auto const TxnHashes = block["transactions"];
     for (auto const& item : TxnHashes) {
       TxnHash hash_1{item.asString()};
       if (hash_1 == argHash) {
-        return block;
+        blockHash = block["hash"].asString();
+        const BlockHash hash{blockHash};
+        return m_mediator.m_txBlockChain.GetBlockByHash(hash);
       }
     }
-  } while (height != 0);
+  } while (--height);
 
-  const TxBlock EMPTY_BLOCK;
   return EMPTY_BLOCK;
 }
 
@@ -1347,7 +1347,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
   }
 
   TxBodySharedPtr transactioBodyPtr;
-  const auto txHashes = microBlockPtanHashes();
+  const auto txHashes = microBlockPtr->GetTranHashes();
   const auto txHash = txHashes[indexInBlock.value()];
   if (!BlockStorage::GetBlockStorage().GetTxBody(txHash,
                                                  transactioBodyPtr)) {
