@@ -9,28 +9,35 @@ const expectedBalance = 1000000 * (10 ** 12) // should be 1 eth in wei
 describe("Calling " + METHOD, function () {
     describe("When tag is 'latest'", function () {
         it("should return the latest balance as specified in the ethereum protocol", async function () {
+            let zHelper = new ZilliqaHelper();
+
+            const senderAddress = zHelper.getPrimaryAccountAddress();
+            console.log("Primary address:", senderAddress);
+            const senderBalance = await web3.eth.getBalance(senderAddress);
+            console.log("sender balance:", senderBalance);
 
             const account = web3.eth.accounts.create();
-            let zHelper = new ZilliqaHelper();
             const initialBalance = 10000;
-            console.log("Address:" + account.address);
+            console.log("New Account address:", account.address);
+
             await zHelper.moveFunds(initialBalance, account.address);
-            //const balance = await web3.eth.getBalance(account.address);
+            const balance = await web3.eth.getBalance(account.address);
             //assert.equal(balance, initialBalance, 'has balance');
             //console.log(balance);
 
-            // await helper.callEthMethod(METHOD, 1, [
-            //     account.address, // public address
-            //     "latest"],
-            //     (result, status) => {
-            //         assert.equal(status, 200, 'has status code');
-            //         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-            //         assert.isString(result.result, 'is string');
-            //         assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
-            //         assert.isNumber(+result.result, 'can be converted to a number');
-            //         console.log(result);
-            //         assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
-            //     })
+            //            await helper.callEthMethod(METHOD, 1, [
+            //                senderAddress, // public address
+            //                "latest"],
+            //                (result, status) => {
+            //                    console.log(result);
+            //                    assert.equal(status, 200, 'has status code');
+            //                    assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+            //                    assert.isString(result.result, 'is string');
+            //                    assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
+            //                    assert.isNumber(+result.result, 'can be converted to a number');
+            //                    console.log(result);
+            //                    assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
+            //                })
         })
     })
 

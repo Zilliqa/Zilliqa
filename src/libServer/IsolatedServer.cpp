@@ -669,6 +669,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         EVM_ZIL_SCALING_FACTOR;
 
     const Address fromAddr = tx.GetSenderAddr();
+    LOG_GENERAL(DEBUG, "from address: " << fromAddr);
 
     lock_guard<mutex> g(m_blockMutex);
 
