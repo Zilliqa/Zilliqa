@@ -69,9 +69,10 @@ install:
 script:
   # - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
   - export VCPKG_ROOT=/vcpkg
+  - export WORKSPACE_DIR=`pwd`
   - git clone https://github.com/microsoft/vcpkg /tmp/vcpkg
   - export VCPKG_FORCE_SYSTEM_BINARIES=1 && cd /tmp/vcpkg && git checkout 2022.07.25 && /tmp/vcpkg/bootstrap-vcpkg.sh
-  - ./scripts/ci_build.sh
+  - $WORKSPACE_DIR/scripts/ci_build.sh
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
