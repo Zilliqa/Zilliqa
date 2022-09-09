@@ -42,16 +42,17 @@ std::string ToUncompressedPubKey(const std::string& pubKey);
 // Recover the public signature of a transaction given its RLP
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
 
-// Get the hash that was signed in order to create the transaction signature. Note this is different
-// from the transaction hash
+// Get the hash that was signed in order to create the transaction signature.
+// Note this is different from the transaction hash
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 
-// Given a native transaction, get the corresponding RLP (that was sent to create it)
+// Given a native transaction, get the corresponding RLP (that was sent to
+// create it)
 std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
                               std::string signature);
 
-// As a workaround, code/data strings have an evm prefix to distinguish them, but this must be stripped before it
-// goes to the EVM
+// As a workaround, code/data strings have an evm prefix to distinguish them,
+// but this must be stripped before it goes to the EVM
 bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
 bytes StripEVM(bytes const& in);
