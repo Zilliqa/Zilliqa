@@ -5,7 +5,6 @@ const general_helper = require('../helper/GeneralHelper')
 class ZilliqaHelper {
     constructor() {
         this.primaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0))
-        this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1))
     }
 
     async getState(address, index) {
@@ -25,11 +24,8 @@ class ZilliqaHelper {
     async deployContract(contractName, options = {}) {
         const Contract = await ethers.getContractFactory(contractName);
 
-        const senderAccount = (options.senderAccount || this.auxiliaryAccount)
+        const senderAccount = (options.senderAccount || this.primaryAccount)
         const constructorArgs = (options.constructorArgs || []);
-
-        // Give our Eth address some monies
-        await this.moveFunds("0x3635c9adc5dea00000", senderAccount.address)
 
         // Deploy a SC using web3 API ONLY
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
@@ -47,14 +43,14 @@ class ZilliqaHelper {
         const receipt = await this.sendTransaction(transaction, senderAccount)
 
         const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi, receipt.contractAddress, {
-            "from": this.auxiliaryAccount.address
+            "from": senderAccount.address
         })
 
         return contract
     }
 
     async callContract(contract, func_name, ...params) {
-        return this.callContractBy(this.auxiliaryAccount, contract, func_name, ...params)
+        return this.callContractBy(this.primaryAccount, contract, func_name, ...params)
     }
 
     async callContractBy(senderAccount, contract, func_name, ...params) {
@@ -72,12 +68,12 @@ class ZilliqaHelper {
             'nonce': nonce,
         };
 
-        const receipt = await this.sendTransaction(transaction, this.auxiliaryAccount)
+        const receipt = await this.sendTransaction(transaction, senderAccount)
         await web3.eth.getTransaction(receipt.transactionHash)
     }
 
     async callView(contract, func_name, ...params) {
-        return this.callViewBy(this.auxiliaryAccount, contract, func_name, ...params)
+        return this.callViewBy(this.primaryAccount, contract, func_name, ...params)
     }
 
     async callViewBy(senderAccount, contract, func_name, ...params) {
