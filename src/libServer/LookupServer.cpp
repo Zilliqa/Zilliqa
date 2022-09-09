@@ -1349,7 +1349,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
   TxBodySharedPtr transactioBodyPtr;
   const auto txHashes = microBlockPtanHashes();
   const auto txHash = txHashes[indexInBlock.value()];
-  if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
+  if (!BlockStorage::GetBlockStorage().GetTxBody(txHash,
                                                  transactioBodyPtr)) {
     return Json::nullValue;
   }
@@ -1360,42 +1360,14 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    // Scan downwards looking for the block hash with our TX in it
-    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-
-    auto height = txBlock.GetHeader().GetBlockNum() ==
-                          std::numeric_limits<uint64_t>::max()
-                      ? 1
-                      : txBlock.GetHeader().GetBlockNum();
-
-    std::string blockHash = "";
-    std::string blockNumber = "";
-
-    TxnHash argHash{txnhash};
-    // Scan downwards through the chain until the TX can be found
-    do {
-      auto const block = GetEthBlockByNumber(std::to_string(height), false);
-      height--;
-
-      // Attempt to find if the TX is within this block
-      auto const TxnHashes = block["transactions"];
-
-      for (auto const& item : TxnHashes) {
-        TxnHash hash_1{item.asString()};
-
-        if (hash_1 == argHash) {
-          blockHash = block["hash"].asString();
-          blockNumber = block["number"].asString();
-          break;
-        }
-      }
-    } while (height != 0 && blockHash == "");
-
-    if (blockHash == "") {
+    const TxBlock EMPTY_BLOCK;
+    const auto txBlock = GetBlockByTransactionHash(txnhash);
+    if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
       return Json::nullValue;
     }
 
+    TxnHash argHash{txnhash};
     TxBodySharedPtr transactioBodyPtr;
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
@@ -1404,10 +1376,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       return Json::nullValue;
     }
 
-    const BlockHash hash{blockHash};
-    const auto block = m_mediator.m_txBlockChain.GetBlockByHash(hash);
     auto const ethResult =
-        JSONConversion::convertTxtoEthJson(*transactioBodyPtr, block);
+        JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
     auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
@@ -1418,9 +1388,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string toAddr = ethResult["to"].asString();
     std::string cumGas = zilResult["cumulative_gas"].asString();
 
-    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
-      blockHash = std::string("0x") + blockHash;
-    }
+    const std::string blockNumber = (boost::format("0x%x") % txheader.GetBlockNum()).str();
+    const std::string blockHash = std::string{"0x"} + txblock.GetBlockHash().hex();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
