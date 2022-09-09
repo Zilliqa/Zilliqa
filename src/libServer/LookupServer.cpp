@@ -1361,7 +1361,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
     const TxBlock EMPTY_BLOCK;
-    const auto txBlock = GetBlockByTransactionHash(txnhash);
+    auto txBlock = GetBlockByTransactionHash(txnhash);
     if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
       return Json::nullValue;
