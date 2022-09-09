@@ -1195,7 +1195,6 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
   if (tag == "latest" || tag == "earliest" || tag == "pending" ||
       isNumber(tag)) {
-
     auto ret = this->GetBalanceAndNonce(address);
     uint256_t ethBalance;
     try {
