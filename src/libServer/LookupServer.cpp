@@ -1072,7 +1072,7 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
-TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
+TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) const {
   const TxBlock EMPTY_BLOCK;
   const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
   auto height = txBlock.GetHeader().GetBlockNum();
