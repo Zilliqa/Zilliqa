@@ -16,8 +16,8 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/format.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include "JSONConversion.h"
 #include "common/Constants.h"
@@ -1388,8 +1388,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string cumGas = zilResult["cumulative_gas"].asString();
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
-    const std::string blockNumber = (boost::format("0x%x") % txHeader.GetBlockNum()).str();
-    const std::string blockHash = std::string{"0x"} + txBlock.GetBlockHash().hex();
+    const std::string blockNumber =
+        (boost::format("0x%x") % txHeader.GetBlockNum()).str();
+    const std::string blockHash =
+        std::string{"0x"} + txBlock.GetBlockHash().hex();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
