@@ -93,7 +93,7 @@ class EvmDsTestCase:
 
         # Wait for all initial funding transactions to complete.
         start = time.time()
-        while time.time() - start <= 240 and pending_transactions:
+        while time.time() - start <= 6 * 60 and pending_transactions:
             txn_id = pending_transactions.pop(0)
             try:
                 txn = self.w3.eth.get_transaction(txn_id)
