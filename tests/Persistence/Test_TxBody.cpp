@@ -24,7 +24,6 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/TimeUtils.h"
 
@@ -37,22 +36,6 @@
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
-
-BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  DB db("test.db");
-
-  db.WriteToDB("fruit", "vegetable");
-
-  string ret = db.ReadFromDB("fruit");
-
-  BOOST_CHECK_MESSAGE(
-      ret == "vegetable",
-      "ERROR: return value from DB not equal to inserted value");
-}
 
 TransactionWithReceipt constructDummyTxBody(int instanceNum) {
   Address toAddr;
