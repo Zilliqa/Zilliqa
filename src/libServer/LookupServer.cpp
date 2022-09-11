@@ -1397,8 +1397,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  auto txBlock = GetBlockByTransactionHash(txHash.hex());
-  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
+  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, GetBlockByTransactionHash(txHash.hex()));
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
