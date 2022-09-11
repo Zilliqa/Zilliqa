@@ -1349,13 +1349,11 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
   TxBodySharedPtr transactioBodyPtr;
   const auto txHashes = microBlockPtr->GetTranHashes();
-  const auto txHash = txHashes[indexInBlock.value()];
-  if (!BlockStorage::GetBlockStorage().GetTxBody(txHash,
+  if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
                                                  transactioBodyPtr)) {
     return Json::nullValue;
   }
 
-  auto txBlock = GetBlockByTransactionHash(txHash.hex());
   return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
 }
 
