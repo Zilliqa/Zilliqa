@@ -42,9 +42,13 @@ std::string ToUncompressedPubKey(const std::string& pubKey);
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
 
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
+std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
+                              std::string signature);
 
 bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
 bytes StripEVM(bytes const& in);
+
+bytes CreateHash(std::string const& rawTx);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

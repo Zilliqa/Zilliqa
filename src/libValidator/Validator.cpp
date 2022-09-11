@@ -36,7 +36,7 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
   bytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
-  auto result = tran.IsSigned();
+  auto result = tran.IsSigned(txnData);
 
   if (!result) {
     LOG_GENERAL(WARNING,
