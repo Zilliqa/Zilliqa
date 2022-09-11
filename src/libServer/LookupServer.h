@@ -667,7 +667,7 @@ class LookupServer : public Server,
                               bool verbose = false);
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
-  Json::Value GetBalanceAndNonce(const std::string& address);
+  Json::Value GetBalanceAndNonce(const std::string& address) const;
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
@@ -715,17 +715,18 @@ class LookupServer : public Server,
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
 
-  TxBlock GetBlockByTransactionHash(const std::string& txnhash);
+  TxBlock GetBlockByTransactionHash(const std::string& txnhash) const;
   // Eth calls
-  Json::Value GetEthTransactionReceipt(const std::string& txnhash);
+  Json::Value GetEthTransactionReceipt(const std::string& txnhash) const;
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
-                                  bool includeFullTransactions);
-  Json::Value GetEthBlockNumber();
+                                  bool includeFullTransactions) const;
+  Json::Value GetEthBlockNumber() const;
   Json::Value GetEthBlockByHash(const std::string& blockHash,
-                                bool includeFullTransactions);
+                                bool includeFullTransactions) const;
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
-                                bool includeFullTransactions);
-  Json::Value GetEthBalance(const std::string& address, const std::string& tag);
+                                bool includeFullTransactions) const;
+  Json::Value GetEthBalance(const std::string& address,
+                            const std::string& tag) const;
 
   Json::Value getEthGasPrice() const;
 

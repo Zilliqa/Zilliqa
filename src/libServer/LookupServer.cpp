@@ -17,8 +17,8 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <jsonrpccpp/common/exception.h>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/format.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include <stdexcept>
 #include "JSONConversion.h"
@@ -1072,7 +1072,8 @@ Json::Value LookupServer::CreateTransactionEth(
   }
 }
 
-TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) const {
+TxBlock LookupServer::GetBlockByTransactionHash(
+    const std::string& txnhash) const {
   const TxBlock EMPTY_BLOCK;
   const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
   auto height = txBlock.GetHeader().GetBlockNum();
@@ -1100,7 +1101,7 @@ TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) cons
   return EMPTY_BLOCK;
 }
 
-Json::Value LookupServer::GetEthBlockNumber() {
+Json::Value LookupServer::GetEthBlockNumber() const {
   Json::Value ret;
 
   try {
@@ -1122,8 +1123,8 @@ Json::Value LookupServer::GetEthBlockNumber() {
   return ret;
 }
 
-Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
-                                              bool includeFullTransactions) {
+Json::Value LookupServer::GetEthBlockByNumber(
+    const std::string& blockNumberStr, bool includeFullTransactions) const {
   try {
     TxBlock txBlock;
 
@@ -1153,8 +1154,8 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
   }
 }
 
-Json::Value LookupServer::GetEthBlockByHash(const std::string& inputHash,
-                                            bool includeFullTransactions) {
+Json::Value LookupServer::GetEthBlockByHash(
+    const std::string& inputHash, bool includeFullTransactions) const {
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
@@ -1172,8 +1173,8 @@ Json::Value LookupServer::GetEthBlockByHash(const std::string& inputHash,
   }
 }
 
-Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
-                                            bool includeFullTransactions) {
+Json::Value LookupServer::GetEthBlockCommon(
+    const TxBlock& txBlock, bool includeFullTransactions) const {
   const auto dsBlock =
       m_mediator.m_dsBlockChain.GetBlock(txBlock.GetHeader().GetDSBlockNum());
 
@@ -1222,7 +1223,7 @@ static bool isNumber(const std::string& str) {
 }
 
 Json::Value LookupServer::GetEthBalance(const std::string& address,
-                                        const std::string& tag) {
+                                        const std::string& tag) const {
   if (tag == "latest" || tag == "earliest" || tag == "pending" ||
       isNumber(tag)) {
     auto ret = this->GetBalanceAndNonce(address);
@@ -1392,15 +1393,16 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
   TxBodySharedPtr transactioBodyPtr;
   const auto txHashes = microBlockPtr->GetTranHashes();
   const auto txHash = txHashes[indexInBlock.value()];
-  if (!BlockStorage::GetBlockStorage().GetTxBody(txHash,
-                                                 transactioBodyPtr)) {
+  if (!BlockStorage::GetBlockStorage().GetTxBody(txHash, transactioBodyPtr)) {
     return Json::nullValue;
   }
 
-  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, GetBlockByTransactionHash(txHash.hex()));
+  return JSONConversion::convertTxtoEthJson(
+      *transactioBodyPtr, GetBlockByTransactionHash(txHash.hex()));
 }
 
-Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
+Json::Value LookupServer::GetEthTransactionReceipt(
+    const std::string& txnhash) const {
   try {
     const TxBlock EMPTY_BLOCK;
     auto txBlock = GetBlockByTransactionHash(txnhash);
@@ -1432,8 +1434,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
         transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
-    const std::string blockNumber = (boost::format("0x%x") % txHeader.GetBlockNum()).str();
-    const std::string blockHash = std::string{"0x"} + txBlock.GetBlockHash().hex();
+    const std::string blockNumber =
+        (boost::format("0x%x") % txHeader.GetBlockNum()).str();
+    const std::string blockHash =
+        std::string{"0x"} + txBlock.GetBlockHash().hex();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
@@ -1622,7 +1626,7 @@ Json::Value LookupServer::GetLatestTxBlock() {
   return JSONConversion::convertTxBlocktoJson(Latest);
 }
 
-Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
+Json::Value LookupServer::GetBalanceAndNonce(const string& address) const {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }

@@ -652,12 +652,12 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn,
-    const TxBlock& txblock) {
+    const TransactionWithReceipt& txn, const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
 
-  retJson["blockNumber"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
+  retJson["blockNumber"] =
+      (boost::format("0x%x") % txheader.GetBlockNum()).str();
   retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
