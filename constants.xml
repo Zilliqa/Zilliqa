@@ -187,7 +187,7 @@
         <PENDING_TXN_QUERY_MAX_RESULTS>1000</PENDING_TXN_QUERY_MAX_RESULTS>
         <CONNECTION_IO_USE_EPOLL>true</CONNECTION_IO_USE_EPOLL>
         <!-- Timeout in seconds for ANY connection to safehttpserver port, 0 means no timeout-->
-        <CONNECTION_ALL_TIMEOUT>1</CONNECTION_ALL_TIMEOUT>
+        <CONNECTION_ALL_TIMEOUT>60</CONNECTION_ALL_TIMEOUT>
         <!-- Timeout in seconds for ONLY connection that reach our callback function, 0 means no timeout-->
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
         <ENABLE_EVM>true</ENABLE_EVM>

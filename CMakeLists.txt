@@ -329,9 +329,6 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure")
 endif()
 
-# using internal jsonrpc variant
-include_directories(${CMAKE_BINARY_DIR}/src/depends/jsonrpc/include)
-
 add_subdirectory (src)
 add_subdirectory (daemon)
 
