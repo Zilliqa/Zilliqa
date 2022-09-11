@@ -23,6 +23,7 @@
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 template <class MAP>
@@ -283,12 +284,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = transaction.GetSenderAddr();
-  uint64_t gasRemained = transaction.GetGasLimit();
+
+  uint64_t gasRemained = transaction.GetGasLimitRaw();
 
   // Get the amount of deposit for running this txn
-  uint128_t gasDepositWei;
-  if (!SafeMath<uint128_t>::mul(gasRemained, transaction.GetGasPriceWei(),
-                                gasDepositWei)) {
+  uint256_t gasDeposit;
+  if (!SafeMath<uint256_t>::mul(transaction.GetGasLimit(),
+                                transaction.GetGasPriceWei(), gasDeposit)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
   }
@@ -308,19 +310,18 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      uint64_t createGasPenalty = 32000 / 100;  //  TODO: move to config.
-
       // Check if gaslimit meets the minimum requirement for contract deployment
-      if (transaction.GetGasLimit() < createGasPenalty) {
-        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
-                                          << " less than " << createGasPenalty);
+      if (transaction.GetGasLimitRaw() < MIN_ETH_GAS) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitRaw()
+                                          << " less than " << MIN_ETH_GAS);
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         return false;
       }
 
       // Check if the sender has enough balance to pay gasDeposit
-      if (fromAccount->GetBalance() * EVM_ZIL_SCALING_FACTOR <
-          gasDepositWei + transaction.GetAmountWei()) {
+      const uint256_t fromAccountBalance =
+          uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+      if (fromAccountBalance < gasDeposit + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING,
                     "The account doesn't have enough gas to create a contract");
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
@@ -361,8 +362,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
-        if (!this->DecreaseBalance(fromAddr,
-                                   gasDepositWei / EVM_ZIL_SCALING_FACTOR)) {
+        const uint128_t decreaseAmount =
+            uint128_t{gasDeposit / EVM_ZIL_SCALING_FACTOR};
+        if (!this->DecreaseBalance(fromAddr, decreaseAmount)) {
           LOG_GENERAL(WARNING, "Evm Decrease Balance has failed");
           error_code = TxnStatus::FAIL_CONTRACT_INIT;
           return false;
@@ -408,7 +410,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           fromAddr.hex(),
           DataConversion::CharArrayToString(transaction.GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimit(),
+          transaction.GetGasLimitRaw(),
           transaction.GetAmountWei()};
 
       std::map<std::string, bytes> t_newmetadata;
@@ -423,20 +425,21 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
       evmproj::CallResponse response;
-      gasRemained = InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
-                                         evm_version, evm_call_run_succeeded,
-                                         receipt, response);
+      const auto gasRemained = InvokeEvmInterpreter(
+          contractAccount, RUNNER_CREATE, params, evm_version,
+          evm_call_run_succeeded, receipt, response);
 
+      const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
       // Summary
-      boost::multiprecision::uint128_t gasRefundWei;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPriceWei(), gasRefundWei)) {
+      uint128_t gasRefund;
+      if (!SafeMath<uint128_t>::mul(gasRemainedCore,
+                                    transaction.GetGasPriceWei(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
       if (!this->IncreaseBalance(fromAddr,
-                                 gasRefundWei / EVM_ZIL_SCALING_FACTOR)) {
+                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
       if (evm_call_run_succeeded) {
@@ -459,7 +462,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      if (transaction.GetGasLimit() < gasRemained) {
+      if (transaction.GetGasLimit() < gasRemainedCore) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
                                  << transaction.GetGasLimit()
                                  << " gasRemained: " << gasRemained
@@ -469,7 +472,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       /// calculate total gas in receipt
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemainedCore);
 
       break;
     }
@@ -496,14 +499,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       LOG_GENERAL(INFO, "Call contract");
 
-      if (fromAccount->GetBalance() * EVM_ZIL_SCALING_FACTOR <
-          gasDepositWei + transaction.GetAmountWei()) {
+      const uint256_t fromAccountBalance =
+          uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+      if (fromAccountBalance < gasDeposit + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING, "The account (balance: "
-                                 << fromAccount->GetBalance()
+                                 << fromAccountBalance
                                  << ") "
                                     "has not enough balance to deposit the gas "
                                     "price to deposit ("
-                                 << gasDepositWei
+                                 << gasDeposit
                                  << ") "
                                     "and transfer the amount ("
                                  << transaction.GetAmountWei()
@@ -529,9 +533,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       uint32_t evm_version{0};
 
       DiscardAtomics();
-
-      if (!this->DecreaseBalance(fromAddr,
-                                 gasDepositWei / EVM_ZIL_SCALING_FACTOR)) {
+      const uint128_t amountToDecrease =
+          uint128_t{gasDeposit / EVM_ZIL_SCALING_FACTOR};
+      if (!this->DecreaseBalance(fromAddr, amountToDecrease)) {
         LOG_GENERAL(WARNING, "DecreaseBalance failed");
         error_code = TxnStatus::MATH_ERROR;
         return false;
@@ -572,41 +576,41 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           fromAddr.hex(),
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimit(),
+          transaction.GetGasLimitRaw(),
           transaction.GetAmountWei()};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "
                                                   << params.m_caller);
       evmproj::CallResponse response;
-      uint64_t gasUsed = InvokeEvmInterpreter(
+      const uint64_t gasRemained = InvokeEvmInterpreter(
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);
 
-      if (gasUsed > 0) {
-        gasRemained = gasUsed;
-      }
+      uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
       if (!evm_call_succeeded) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
         DiscardAtomics();
-        gasRemained = std::min(transaction.GetGasLimit(), gasRemained);
+        gasRemainedCore = std::min(transaction.GetGasLimit(), gasRemainedCore);
       } else {
         CommitAtomics();
       }
-      boost::multiprecision::uint128_t gasRefund;
-      if (!SafeMath<boost::multiprecision::uint128_t>::mul(
-              gasRemained, transaction.GetGasPriceWei(), gasRefund)) {
+      uint128_t gasRefund;
+      if (!SafeMath<uint128_t>::mul(gasRemainedCore,
+                                    transaction.GetGasPriceWei(), gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
 
-      if (!this->IncreaseBalance(fromAddr,
-                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
+      if (!this->IncreaseBalance(
+              fromAddr,
+
+              gasRefund / EVM_ZIL_SCALING_FACTOR / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 
-      if (transaction.GetGasLimit() < gasRemained) {
+      if (transaction.GetGasLimit() < gasRemainedCore) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
                                  << transaction.GetGasLimit()
                                  << " gasRemained: " << gasRemained
@@ -615,7 +619,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimit() - gasRemainedCore);
       if (!evm_call_succeeded) {
         receipt.SetResult(false);
         receipt.CleanEntry();

@@ -21,6 +21,7 @@
 #include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -227,7 +228,14 @@ const uint128_t Transaction::GetGasPriceWei() const {
   }
 }
 
-const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }
+uint64_t Transaction::GetGasLimit() const {
+  if (IsEth()) {
+    return GasConv::GasUnitsFromEthToCore(m_coreInfo.gasLimit);
+  }
+  return m_coreInfo.gasLimit;
+}
+
+uint64_t Transaction::GetGasLimitRaw() const { return m_coreInfo.gasLimit; }
 
 const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
 

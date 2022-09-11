@@ -41,6 +41,7 @@
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -1231,6 +1232,23 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
   return "";
 }
 
+Json::Value LookupServer::getEthGasPrice() const {
+  try {
+    uint256_t gasPrice =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+    // Make gas price in wei
+    gasPrice = gasPrice * EVM_ZIL_SCALING_FACTOR;
+    std::ostringstream strm;
+
+    strm << "0x" << std::hex << gasPrice << std::dec;
+    return strm.str();
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
+}
+
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
     const std::string& inputHash) {
   try {
@@ -1395,7 +1413,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
-    std::string cumGas = zilResult["cumulative_gas"].asString();
+    std::string cumGas = std::to_string(GasConv::GasUnitsFromCoreToEth(
+        transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
     const std::string blockNumber = (boost::format("0x%x") % txHeader.GetBlockNum()).str();
@@ -1680,7 +1699,8 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     }
 
     // for now set total gas as twice the ds gas limit
-    uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
+    uint64_t gasRemained =
+        GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));

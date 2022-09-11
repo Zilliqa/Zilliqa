@@ -23,6 +23,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
@@ -91,10 +92,10 @@ EthFields parseRawTxFields(std::string const &message) {
         ret.nonce = uint32_t(*it);
         break;
       case 1:
-        ret.gasPrice = uint128_t(*it);
+        ret.gasPrice = uint128_t{*it};
         break;
       case 2:
-        ret.gasLimit = uint64_t(*it);
+        ret.gasLimit = uint64_t{*it};
         break;
       case 3:
         ret.toAddr = byteIt;
@@ -156,9 +157,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                gasPriceWei.convert_to<std::string>());
   }
 
-  if (tx.GetGasLimit() < MIN_ETH_GAS) {
+  if (tx.GetGasLimitRaw() < MIN_ETH_GAS) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasLimit " + std::to_string(tx.GetGasLimit()) +
+                           "GasLimit " + std::to_string(tx.GetGasLimitRaw()) +
                                " lower than minimum allowable " +
                                std::to_string(MIN_ETH_GAS));
   }
@@ -204,7 +205,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
       uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
   if (accountBalance < debt) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Insufficient funds in source account!");
+                           "Insufficient funds in source account, wants: " +
+                               debt.convert_to<std::string>() + ", but has: " +
+                               accountBalance.convert_to<std::string>());
   }
 
   return true;

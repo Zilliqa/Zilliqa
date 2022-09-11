@@ -104,7 +104,7 @@
         <REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS>1</REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS>
     </epoch_timing>
     <gas>
-        <MIN_ETH_GAS>21000</MIN_ETH_GAS>
+        <MIN_ETH_GAS>25000</MIN_ETH_GAS>
         <DS_MICROBLOCK_GAS_LIMIT>500000</DS_MICROBLOCK_GAS_LIMIT>
         <SHARD_MICROBLOCK_GAS_LIMIT>400000</SHARD_MICROBLOCK_GAS_LIMIT>
         <CONTRACT_CREATE_GAS>50</CONTRACT_CREATE_GAS>
@@ -196,7 +196,7 @@
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
         <ETH_CHAINID>0x814d</ETH_CHAINID>
-        <EVM_ZIL_SCALING_FACTOR>1</EVM_ZIL_SCALING_FACTOR>
+        <EVM_ZIL_SCALING_FACTOR>1000000</EVM_ZIL_SCALING_FACTOR>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

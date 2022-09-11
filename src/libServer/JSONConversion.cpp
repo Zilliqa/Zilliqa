@@ -33,6 +33,7 @@
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -660,10 +661,12 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
-      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+      (boost::format("0x%x") %
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
+          .str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetGasLimit()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetGasLimitRaw()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
   retJson["gasPrice"] =
       (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();
