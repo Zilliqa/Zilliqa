@@ -457,8 +457,8 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     int v = (chainId * 2) + 35 + i;
 
     rlpStreamRecreated << v;
-    rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(signature);
-    rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(s);
+    rlpStreamRecreated << dev::u256("0x" + signature);
+    rlpStreamRecreated << dev::u256("0x" + s);
 
     auto const* dataPtr = rlpStreamRecreated.out().data();
     auto const& asString = DataConversion::Uint8VecToHexStrRet(
