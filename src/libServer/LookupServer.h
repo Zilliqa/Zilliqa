@@ -341,7 +341,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = "0xd9e63a68c";
+    response = this->getEthGasPrice();
   }
 
   /**
@@ -671,7 +671,6 @@ class LookupServer : public Server,
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalanceAndNonce(const std::string& address);
-  Json::Value GetBalance(const std::string& address, bool noThrow);
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
@@ -729,6 +728,8 @@ class LookupServer : public Server,
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
+
+  Json::Value getEthGasPrice() const;
 
   Json::Value CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
