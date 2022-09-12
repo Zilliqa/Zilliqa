@@ -16,8 +16,8 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
-#include <boost/format.hpp>
 #include <jsonrpccpp/common/exception.h>
+#include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include <stdexcept>
