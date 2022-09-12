@@ -21,7 +21,7 @@ install:
 
 script:
   # - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
-  - docker run --rm -it -v /scilla:/scilla zilliqa_build:$TRAVIS_COMMIT bash -c './scripts/ci_build.sh ; ./scripts/ci_report_coverage.sh'
+  - docker run --rm -it -v /scilla:/scilla zilliqa_build:$TRAVIS_COMMIT -c './scripts/ci_build.sh ; ./scripts/ci_report_coverage.sh'
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:

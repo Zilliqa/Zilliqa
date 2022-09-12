@@ -31,4 +31,4 @@ RUN git config --global --add safe.directory '*'
 
 RUN ls -la $WORKING_DIR
 
-ENTRYPOINT ["/bin/bash","-c"]
+ENTRYPOINT ["/bin/bash"]
