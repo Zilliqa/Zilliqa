@@ -32,6 +32,7 @@ pub struct ScillaBackendConfig {
 // Backend relying on Scilla variables and Scilla JSONRPC interface.
 pub struct ScillaBackend {
     config: ScillaBackendConfig,
+    pub origin: H160,
 }
 
 // Adding some convenience to ProtoScillaVal to convert to U256 and bytes.
@@ -56,8 +57,8 @@ impl ScillaMessage::ProtoScillaVal {
 }
 
 impl ScillaBackend {
-    pub fn new(config: ScillaBackendConfig) -> Self {
-        Self { config }
+    pub fn new(config: ScillaBackendConfig, origin: H160) -> Self {
+        Self { config, origin }
     }
 
     // Call the Scilla IPC Server API.
@@ -235,8 +236,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn origin(&self) -> H160 {
-        let result = self.query_jsonrpc("ORIGIN", None);
-        H160::from_str(result.as_str().expect("origin")).expect("origin hex")
+        self.origin
     }
 
     fn block_hash(&self, number: U256) -> H256 {
@@ -293,7 +293,7 @@ impl<'config> Backend for ScillaBackend {
             .expect("query_state_value _nonce")
             .and_then(|x| x.as_uint256())
             .unwrap_or_default();
-        Basic { balance: balance * self.config.zil_scaling_factor, nonce }
+        Basic { balance: self.scale_zil_to_eth(balance), nonce }
     }
 
     fn code(&self, address: H160) -> Vec<u8> {

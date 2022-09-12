@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
 #include "libTestUtils/TestUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest

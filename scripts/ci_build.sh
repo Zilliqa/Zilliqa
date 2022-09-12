@@ -19,6 +19,8 @@
 
 set -e
 
+ls /scilla/0/
+
 re="\\bNOCI\\b"
 if [[ "$TRAVIS_COMMIT_MESSAGE" =~ $re ]]
 then
@@ -59,7 +61,7 @@ then
 fi
 
 # assume that it is run from project root directory
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic
 cmake --build ${dir} -- -j${n_parallel}
 
 # remember to append `|| exit` after the commands added in if-then-else
@@ -70,7 +72,7 @@ then
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
     ./scripts/license_checker.sh || exit 1
     ./scripts/depends/check_guard.sh || exit 1
-    #cmake --build ${dir} --target clang-format || exit 1
+    cmake --build ${dir} --target clang-format || exit 1
     #cmake --build ${dir} --target clang-tidy || exit 1
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
     cmake --build ${dir} --target Zilliqa_coverage || exit 1

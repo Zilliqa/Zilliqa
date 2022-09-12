@@ -27,7 +27,7 @@ list(REMOVE_ITEM ALL_CXX_SOURCES ${ALL_CXX_VENDOR_SOURCES}) # CMake 3.5.1
 ####################### clang-format ##############################
 
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/.clang-format)
-    message(AUTHOR_WARNING ".clang-format is missing in the project root")
+    message(WARNING ".clang-format is missing in the project root")
 endif()
 
 find_program(
@@ -68,14 +68,14 @@ if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
             ${ALL_CXX_SOURCES}
         )
     else()
-        message(AUTHOR_WARNING "clang-format version (${CLANG_FORMAT_VERSION}) does not satisify (>=7.0.0)")
+        message(WARNING "clang-format version (${CLANG_FORMAT_VERSION}) does not satisify (>=7.0.0)")
     endif()
 endif()
 
 ##################### clang-tidy #############################
 
 if(NOT EXISTS ${CMAKE_SOURCE_DIR}/.clang-tidy)
-    message(AUTHOR_WARNING ".clang-tidy is missing in the project root")
+    message(WARNING ".clang-tidy is missing in the project root")
 endif()
 
 find_program(
@@ -139,6 +139,6 @@ if(CLANG_TIDY)
             )
         endif()
     else()
-        message(AUTHOR_WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) does not satisify (>=7.0.0)")
+        message(WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) does not satisify (>=7.0.0)")
     endif()
 endif()
