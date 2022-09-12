@@ -669,7 +669,8 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         EVM_ZIL_SCALING_FACTOR;
 
     const Address fromAddr = tx.GetSenderAddr();
-    LOG_GENERAL(DEBUG, "from address: " << fromAddr);
+    LOG_GENERAL(DEBUG,
+                "from address: " << fromAddr << ", to:" << tx.GetToAddr());
 
     lock_guard<mutex> g(m_blockMutex);
 
@@ -744,6 +745,10 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
 
+    LOG_GENERAL(
+        DEBUG, "to:" << tx.GetToAddr() << ", BALANCE:"
+                     << AccountStore::GetInstance().GetBalance(tx.GetToAddr()));
+
     TransactionReceipt txreceipt;
 
     TxnStatus error_code;
@@ -799,6 +804,10 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     LOG_GENERAL(
         INFO,
         "Processing On the isolated server completed. Minting a block...");
+
+    LOG_GENERAL(
+        DEBUG, "to:" << tx.GetToAddr() << ", BALANCE:"
+                     << AccountStore::GetInstance().GetBalance(tx.GetToAddr()));
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     throw je;
@@ -814,7 +823,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     PostTxBlock();
     PostTxBlock();
   }
-
   return ret;
 }
 
