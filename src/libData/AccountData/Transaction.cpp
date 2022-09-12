@@ -228,11 +228,18 @@ const uint128_t Transaction::GetGasPriceWei() const {
   }
 }
 
-uint64_t Transaction::GetGasLimit() const {
+uint64_t Transaction::GetGasLimitZil() const {
   if (IsEth()) {
     return GasConv::GasUnitsFromEthToCore(m_coreInfo.gasLimit);
   }
   return m_coreInfo.gasLimit;
+}
+
+uint64_t Transaction::GetGasLimitEth() const {
+  if (IsEth()) {
+    return m_coreInfo.gasLimit;
+  }
+  return GasConv::GasUnitsFromCoreToEth(m_coreInfo.gasLimit);
 }
 
 uint64_t Transaction::GetGasLimitRaw() const { return m_coreInfo.gasLimit; }

@@ -705,31 +705,31 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   const auto type = Transaction::GetTransactionType(tx);
 
   if (type == Transaction::ContractType::CONTRACT_CALL &&
-      (tx.GetGasLimit() <
+      (tx.GetGasLimitZil() <
        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                           "Gas limit (" + to_string(tx.GetGasLimitZil()) +
                                ") lower than minimum for invoking contract (" +
                                to_string(CONTRACT_INVOKE_GAS) + ")");
   }
 
   else if (type == Transaction::ContractType::CONTRACT_CREATION &&
-           (tx.GetGasLimit() <
+           (tx.GetGasLimitZil() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) +
+        "Gas limit (" + to_string(tx.GetGasLimitZil()) +
             ") lower than minimum for creating contract (" +
             to_string(max(
                 CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size()))) +
             ")");
   } else if (type == Transaction::ContractType::NON_CONTRACT &&
-             tx.GetGasLimit() < NORMAL_TRAN_GAS) {
+             tx.GetGasLimitZil() < NORMAL_TRAN_GAS) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) +
+        "Gas limit (" + to_string(tx.GetGasLimitZil()) +
             ") lower than minimum for payment transaction (" +
             to_string(NORMAL_TRAN_GAS) + ")");
   }
@@ -743,17 +743,18 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   // Check if transaction amount is valid
   uint128_t gasDeposit = 0;
-  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPriceQa(),
+  if (!SafeMath<uint128_t>::mul(tx.GetGasLimitZil(), tx.GetGasPriceQa(),
                                 gasDeposit)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPriceQa() overflow!");
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "tx.GetGasLimitZil() * tx.GetGasPriceQa() overflow!");
   }
 
   uint128_t debt = 0;
   if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmountQa(), debt)) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountQa() overflow!");
+        "tx.GetGasLimitZil() * tx.GetGasPrice() + tx.GetAmountQa() overflow!");
   }
 
   if (sender->GetBalance() < debt) {
@@ -763,9 +764,9 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   if ((type == Transaction::ContractType::CONTRACT_CREATION ||
        type == Transaction::ContractType::NON_CONTRACT) &&
-      tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+      tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Txn gas limit " + to_string(tx.GetGasLimit()) +
+                           "Txn gas limit " + to_string(tx.GetGasLimitZil()) +
                                " greater than microblock gas limit" +
                                to_string(SHARD_MICROBLOCK_GAS_LIMIT));
   }
@@ -805,7 +806,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   // Use m_sendSCCallsToDS as initial setting
   bool sendToDs = priority || m_mediator.m_lookup->m_sendSCCallsToDS;
   if ((to_shard == shard) && !sendToDs) {
-    if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+    if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "txn gas limit exceeding shard maximum limit");
     }
@@ -816,7 +817,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
         "Contract Creation/Call Txn, Shards Match of the sender "
         "and receiver";
   } else {
-    if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
+    if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "txn gas limit exceeding ds maximum limit");
     }

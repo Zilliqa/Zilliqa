@@ -159,9 +159,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                gasPriceWei.convert_to<std::string>());
   }
 
-  if (tx.GetGasLimitRaw() < MIN_ETH_GAS) {
+  if (tx.GetGasLimitEth() < MIN_ETH_GAS) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasLimit " + std::to_string(tx.GetGasLimitRaw()) +
+                           "GasLimit " + std::to_string(tx.GetGasLimitEth()) +
                                " lower than minimum allowable " +
                                std::to_string(MIN_ETH_GAS));
   }
@@ -190,10 +190,10 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
 
   // Check if transaction amount is valid
   uint256_t gasDepositWei = 0;
-  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPriceWei(),
+  if (!SafeMath<uint256_t>::mul(tx.GetGasLimitZil(), tx.GetGasPriceWei(),
                                 gasDepositWei)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+                           "tx.GetGasLimitZil() * tx.GetGasPrice() overflow!");
   }
 
   uint256_t debt = 0;

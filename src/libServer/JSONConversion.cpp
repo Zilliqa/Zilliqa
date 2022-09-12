@@ -608,7 +608,7 @@ const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
   _json["signature"] = static_cast<string>(txn.GetSignature());
 
   _json["gasPrice"] = txn.GetGasPriceQa().str();
-  _json["gasLimit"] = to_string(txn.GetGasLimit());
+  _json["gasLimit"] = to_string(txn.GetGasLimitZil());
 
   if (!txn.GetCode().empty()) {
     _json["code"] = DataConversion::CharArrayToString(txn.GetCode());
@@ -634,7 +634,7 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
   _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
-  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
+  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimitZil());
 
   if (!twr.GetTransaction().GetCode().empty()) {
     _json["code"] =
