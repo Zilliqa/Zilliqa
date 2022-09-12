@@ -1197,10 +1197,12 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
   if (tag == "latest" || tag == "earliest" || tag == "pending" ||
       isNumber(tag)) {
-    auto ret = this->GetBalanceAndNonce(address);
-    uint256_t ethBalance;
+    uint256_t ethBalance{0};
     try {
+      auto ret = this->GetBalanceAndNonce(address);
       ethBalance.assign(ret["balance"].asString());
+    } catch (const JsonRpcException&) {
+      // default ethBalance.
     } catch (const std::runtime_error& e) {
       throw JsonRpcException(RPC_MISC_ERROR, "Invalid account balance number");
     }
