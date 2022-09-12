@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+ARG REGISTRY=
 
 ARG BASE=zilliqa/scilla:v0.11.0
 FROM ${BASE} AS scilla
@@ -20,7 +21,7 @@ FROM ${BASE} AS scilla
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM zilliqa:v8.2.0-deps AS builder
+FROM ${REGISTRY}zilliqa:v8.2.0-deps AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -69,7 +70,7 @@ RUN cmake --version \
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
-ARG REPO=https://github.com/Zilliqa.git
+ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
