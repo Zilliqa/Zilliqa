@@ -4,11 +4,10 @@ const { ethers, web3 } = require("hardhat")
 assert = require('chai').assert;
 
 const METHOD = 'eth_getBalance';
-const expectedBalance = 1000000 * (10 ** 12) // should be 1 eth in wei
 const initialBalance = 10_000;
 let receiverAccount;
 
-describe("Calling " + METHOD, function () {
+describe("Calling " + METHOD, async function () {
     this.beforeEach("Initialize unique receiver Account with balance from sender account", async function () {
         let zHelper = new ZilliqaHelper();
         // check sender account has enough balance to move
@@ -23,11 +22,9 @@ describe("Calling " + METHOD, function () {
         console.log("New Account address:", receiverAccount.address);
 
         await zHelper.moveFunds(initialBalance, receiverAccount.address);
-        //const balance = await web3.eth.getBalance(receiverAccount.address);
-        //console.log("Has start balance:", balance);
     });
 
-    describe("When tag is 'latest'", function () {
+    describe("When tag is 'latest'", async function () {
         it("should return the latest balance as specified in the ethereum protocol", async function () {
             console.log("Requesting balance for account:", receiverAccount.address);
             await helper.callEthMethod(METHOD, 1, [
@@ -46,36 +43,56 @@ describe("Calling " + METHOD, function () {
         })
     })
 
-    describe("When tag is 'earliest'", function () {
-        it("should return the earliest balance as specified in the ethereum protocol", async function () {
-            await helper.callEthMethod(METHOD, 1, [
-                receiverAccount.address, // public address
-                "earliest"],
-                (result, status) => {
-                    assert.equal(status, 200, 'has status code');
-                    assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-                    assert.isString(result.result, 'is string');
-                    assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
-                    assert.isNumber(+result.result, 'can be converted to a number');
+    describe("When tag is 'earliest'", async function () {
+        describe("When on Zilliqa network", async function () {
+            before(async function () {
+                if (!helper.isZilliqaNetworkSelected()) {
+                    this.skip();
+                }
+            });
 
-                    assert.equal(+result.result, expectedBalance, 'should have balance ' + expectedBalance);
-                })
+            it("should return the earliest balance as specified in the ethereum protocol", async function () {
+
+                await helper.callEthMethod(METHOD, 1, [
+                    receiverAccount.address, // public address
+                    "earliest"],
+                    (result, status) => {
+                        console.log(result);
+                        assert.equal(status, 200, 'has status code');
+                        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+                        assert.isString(result.result, 'is string');
+                        assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
+                        assert.isNumber(+result.result, 'can be converted to a number');
+
+                        assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
+                    })
+            })
         })
     })
 
     describe("When tag is 'pending'", function () {
-        it("should return the pending balance as specified in the ethereum protocol", async function () {
-            await helper.callEthMethod(METHOD, 1, [
-                receiverAccount.address, // public address
-                "pending"],
-                (result, status) => {
-                    assert.equal(status, 200, 'has status code');
-                    assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-                    assert.isString(result.result, 'is string');
-                    assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
-                    assert.isNumber(+result.result, 'can be converted to a number');
-                    assert.equal(+result.result, expectedBalance, 'should have balance ' + expectedBalance);
-                })
+        describe("When on Zilliqa network", async function () {
+            before(async function () {
+                if (!helper.isZilliqaNetworkSelected()) {
+                    this.skip();
+                }
+            });
+
+            it("should return the pending balance as specified in the ethereum protocol", async function () {
+                await helper.callEthMethod(METHOD, 1, [
+                    receiverAccount.address, // public address
+                    "pending"],
+                    (result, status) => {
+                        console.log(result);
+                        assert.equal(status, 200, 'has status code');
+                        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+                        assert.isString(result.result, 'is string');
+                        assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
+                        assert.isNumber(+result.result, 'can be converted to a number');
+
+                        assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
+                    })
+            })
         })
     })
 
