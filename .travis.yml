@@ -11,6 +11,9 @@ matrix:
     #  osx_image: xcode10.1
 
 install:
+  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  - unzip awscliv2.zip
+  - sudo ./aws/install
   - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
   - ls /scilla/0/
   - docker login -u AWS -p $(aws ecr get-login-password --region ${AWS_REGION}) ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
