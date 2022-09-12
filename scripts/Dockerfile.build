@@ -20,6 +20,7 @@ FROM ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps
 
 ENV VCPKG_ROOT=/vcpkg
 
+RUN mkdir /scilla
 COPY /scilla /scilla
 RUN ls -la /scilla/0
 
