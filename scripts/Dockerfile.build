@@ -1,0 +1,31 @@
+# Copyright (C) 2019 Zilliqa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+ARG AWS_REGION=
+ARG AWS_ACCOUNT_ID=
+FROM ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps
+
+ENV VCPKG_ROOT=/vcpkg
+
+COPY ./scilla /scilla
+COPY ./ /tmp/workspace
+RUN ls -la /scilla/0
+RUN ls -la /tmp/workspace
+
+RUN ./scripts/setup_environment.sh
+RUN git config --global --add safe.directory '*'
+
+ENTRYPOINT ["/bin/bash", "./scripts/ci_build.sh && ./scripts/ci_report_coverage.sh"]
