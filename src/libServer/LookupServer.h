@@ -341,7 +341,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->getEthGasPrice();
+    response = "0xd9e63a68c";
   }
 
   /**
@@ -361,11 +361,14 @@ class LookupServer : public Server,
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
-    std::string address = request[0u].asString();
-    DataConversion::NormalizeHexString(address);
-    const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
-
-    response = DataConversion::IntToHexString(resp);
+    try {
+      std::string address = request[0u].asString();
+      DataConversion::NormalizeHexString(address);
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+      response = DataConversion::IntToHexString(resp);
+    } catch (...) {
+      response = "0x0";
+    }
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
@@ -668,6 +671,7 @@ class LookupServer : public Server,
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalanceAndNonce(const std::string& address);
+  Json::Value GetBalance(const std::string& address, bool noThrow);
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
@@ -725,8 +729,6 @@ class LookupServer : public Server,
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 bool includeFullTransactions);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
-
-  Json::Value getEthGasPrice() const;
 
   Json::Value CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
