@@ -43,7 +43,6 @@ timestamps {
                 // sh "export VCPKG_FORCE_SYSTEM_BINARIES=1 && cd ${env.VCPKG_ROOT} && git checkout 2022.07.25 && ${env.VCPKG_ROOT}/bootstrap-vcpkg.sh"
             }
             stage('Build') {
-                sh "ls /scilla/0/"
                 sh "git config --global --add safe.directory '*'"
                 sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && ./scripts/ci_build.sh"
             }
