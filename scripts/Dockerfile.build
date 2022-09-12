@@ -29,6 +29,6 @@ RUN ls -la $WORKING_DIR
 RUN $WORKING_DIR/scripts/setup_environment.sh
 RUN git config --global --add safe.directory '*'
 
-RUN ls -la $WORKING_DIR/scripts
+RUN ls -la $WORKING_DIR
 
-ENTRYPOINT ["/bin/bash", "/tmp/workspace/scripts/ci_build.sh && /tmp/workspace/scripts/ci_report_coverage.sh"]
+ENTRYPOINT ["/bin/bash"]
