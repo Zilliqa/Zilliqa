@@ -154,8 +154,14 @@ class Transaction : public SerializableDataBlock {
   /// Returns the gas price in raw uints regadless of Qa or Wei.
   const uint128_t& GetGasPriceRaw() const;
 
-  /// Returns the gas limit.
-  const uint64_t& GetGasLimit() const;
+  /// Returns the normalized to ZIL gas limit
+  uint64_t GetGasLimitZil() const;
+
+  /// Returns gas limit received from API.
+  uint64_t GetGasLimitRaw() const;
+
+  /// Returns gas limit used by ETH.
+  uint64_t GetGasLimitEth() const;
 
   /// Returns the code.
   const bytes& GetCode() const;
