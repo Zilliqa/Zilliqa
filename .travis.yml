@@ -22,7 +22,7 @@ install:
 
 script:
   # - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
-  - docker run zilliqa_build:$TRAVIS_COMMIT
+  - docker run --rm --it -v /scilla:/scilla zilliqa_build:$TRAVIS_COMMIT
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
