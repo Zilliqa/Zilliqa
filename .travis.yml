@@ -18,7 +18,6 @@ install:
   - ls /scilla/0/
   - docker login -u AWS -p $(aws ecr get-login-password --region ${AWS_REGION}) ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
   - docker build --build-arg AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} --build-arg AWS_REGION=${AWS_REGION} -t "zilliqa_build:$TRAVIS_COMMIT" -f ./scripts/Dockerfile.build .
-  #- docker run --rm -it -v /vcpkg:/root/vcpkg ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps cp -r /vcpkg /root/
 
 script:
   # - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
