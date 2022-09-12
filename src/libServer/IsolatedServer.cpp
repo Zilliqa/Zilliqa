@@ -393,21 +393,21 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   const auto type = Transaction::GetTransactionType(tx);
 
   if (type == Transaction::ContractType::CONTRACT_CALL &&
-      (tx.GetGasLimit() <
+      (tx.GetGasLimitZil() <
        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                           "Gas limit (" + to_string(tx.GetGasLimitZil()) +
                                ") lower than minimum for invoking contract (" +
                                to_string(CONTRACT_INVOKE_GAS) + ")");
   }
 
   else if (type == Transaction::ContractType::CONTRACT_CREATION &&
-           (tx.GetGasLimit() <
+           (tx.GetGasLimitZil() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) +
+        "Gas limit (" + to_string(tx.GetGasLimitZil()) +
             ") lower than minimum for creating contract (" +
             to_string(max(
                 CONTRACT_CREATE_GAS,
@@ -684,21 +684,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
       senderNonce = sender->GetNonce();
-    }
-
-    // Sender's balance should be higher than value sent in the transaction +
-    // max gas to be used by contract action
-    const uint256_t requiredGas =
-        uint256_t{tx.GetGasPriceWei()} * uint256_t{tx.GetGasLimit()};
-    const uint256_t requiredBalance =
-        uint256_t{tx.GetAmountWei()} + requiredGas;
-
-    if (senderBalance < requiredBalance) {
-      throw JsonRpcException(
-          RPC_INVALID_PARAMETER,
-          "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmountWei().str() +
-              " and use totalGas: " + requiredGas.str());
     }
 
     switch (Transaction::GetTransactionType(tx)) {
