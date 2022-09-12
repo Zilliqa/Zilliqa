@@ -19,6 +19,8 @@
 
 set -e
 
+ls /scilla/0/
+
 re="\\bNOCI\\b"
 if [[ "$TRAVIS_COMMIT_MESSAGE" =~ $re ]]
 then
