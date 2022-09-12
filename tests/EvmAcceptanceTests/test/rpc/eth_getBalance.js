@@ -8,13 +8,13 @@ const initialBalance = 10_000;
 let receiverAccount;
 
 describe("Calling " + METHOD, async function () {
-    this.beforeEach("Initialize unique receiver Account with balance from sender account", async function () {
+    this.beforeEach("Initialize unique receiver account with balance from sender account", async function () {
         let zHelper = new ZilliqaHelper();
         // check sender account has enough balance to move
         const senderAddress = zHelper.getPrimaryAccountAddress();
         console.log("Primary address:", senderAddress);
         const senderBalance = await web3.eth.getBalance(senderAddress);
-        console.log("sender balance:", senderBalance);
+        console.log("Sender balance:", senderBalance);
         assert.isAbove(ethers.BigNumber.from(senderBalance), initialBalance, 'sender has enough balance to move');
 
         // create unique receiver account
@@ -52,7 +52,6 @@ describe("Calling " + METHOD, async function () {
             });
 
             it("should return the earliest balance as specified in the ethereum protocol", async function () {
-
                 await helper.callEthMethod(METHOD, 1, [
                     receiverAccount.address, // public address
                     "earliest"],

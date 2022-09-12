@@ -1185,7 +1185,10 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
 
 Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
+  LOG_MARKER();
+
   if (tag == "latest" || tag == "earliest" || tag == "pending") {
+    LOG_GENERAL(DEBUG, "Get Eth balance for address:" << address);
     const auto balanceStr =
         this->GetBalance(address, true)["balance"].asString();
 
@@ -1581,6 +1584,7 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
+  LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1701,6 +1705,8 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 
 // Get balance, but return the result as hex rather than decimal string
 Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
+  LOG_MARKER();
+
   try {
     auto ret = this->GetBalanceAndNonce(address);
 

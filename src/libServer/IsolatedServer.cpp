@@ -641,7 +641,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    Address toAddr{fields.toAddr};
+    const Address toAddr{fields.toAddr};
     bytes data;
     bytes code;
     if (IsNullAddress(toAddr)) {
@@ -652,7 +652,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
     Transaction tx{fields.version,
                    fields.nonce,
-                   Address(fields.toAddr),
+                   toAddr,
                    PubKey(pubKey, 0),
                    fields.amount,
                    fields.gasPrice,
@@ -669,8 +669,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         EVM_ZIL_SCALING_FACTOR;
 
     const Address fromAddr = tx.GetSenderAddr();
-    LOG_GENERAL(DEBUG,
-                "from address: " << fromAddr << ", to:" << tx.GetToAddr());
+    LOG_GENERAL(DEBUG, "from address: " << fromAddr << ", to:" << toAddr);
 
     lock_guard<mutex> g(m_blockMutex);
 
@@ -706,13 +705,14 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         break;
-      case Transaction::ContractType::CONTRACT_CREATION:
+      case Transaction::ContractType::CONTRACT_CREATION: {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
         ret["ContractAddress"] =
             Account::GetAddressForContract(fromAddr, senderNonce).hex();
-        break;
+      } break;
+
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
@@ -728,26 +728,25 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "To addr is null");
-          }
-
-          else if (!account->isContract()) {
+          } else if (!account->isContract()) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "Non - contract address called");
           }
         }
       } break;
 
-      case Transaction::ContractType::ERROR:
+      case Transaction::ContractType::ERROR: {
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                "The code is empty and To addr is null");
-        break;
-      default:
-        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
-    }
+      } break;
 
-    LOG_GENERAL(
-        DEBUG, "to:" << tx.GetToAddr() << ", BALANCE:"
-                     << AccountStore::GetInstance().GetBalance(tx.GetToAddr()));
+      default: {
+        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
+      }
+    }  // end of switch
+
+    LOG_GENERAL(DEBUG, "to:" << toAddr << ", BALANCE:"
+                             << AccountStore::GetInstance().GetBalance(toAddr));
 
     TransactionReceipt txreceipt;
 
@@ -791,23 +790,26 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                    twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
+
     const auto& txHash = tx.GetTranID();
     LookupServer::AddToRecentTransactions(txHash);
     {
       lock_guard<mutex> g(m_txnBlockNumMapMutex);
       m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
     }
+
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
     ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
+
     WebsocketServer::GetInstance().ParseTxn(twr);
+
     LOG_GENERAL(
         INFO,
         "Processing On the isolated server completed. Minting a block...");
 
-    LOG_GENERAL(
-        DEBUG, "to:" << tx.GetToAddr() << ", BALANCE:"
-                     << AccountStore::GetInstance().GetBalance(tx.GetToAddr()));
+    LOG_GENERAL(DEBUG, "to:" << toAddr << ", BALANCE:"
+                             << AccountStore::GetInstance().GetBalance(toAddr));
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     throw je;

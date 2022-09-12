@@ -402,6 +402,8 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
+    LOG_MARKER();
+
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
