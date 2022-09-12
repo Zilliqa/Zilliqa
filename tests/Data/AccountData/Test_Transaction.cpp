@@ -109,7 +109,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   const Address& fromAddr2 = Account::GetAddressFromPublicKey(senderPubKey);
   const uint128_t& amount2 = tx2.GetAmountQa();
   const uint128_t& gasPrice2 = tx2.GetGasPriceQa();
-  const uint128_t& gasLimit2 = tx2.GetGasLimit();
+  const uint128_t& gasLimit2 = tx2.GetGasLimitZil();
   const bytes& code2 = tx2.GetCode();
   const bytes& data2 = tx2.GetData();
   Signature sign = TestUtils::GenerateRandomSignature();
@@ -157,8 +157,8 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   LOG_GENERAL(INFO, "Transaction2 gasLimit: " << gasLimit2);
   BOOST_CHECK_MESSAGE(
-      gasLimit2 == tx1.GetGasLimit(),
-      "expected: " << tx1.GetGasLimit() << " actual: " << gasLimit2 << "\n");
+      gasLimit2 == tx1.GetGasLimitZil(),
+      "expected: " << tx1.GetGasLimitZil() << " actual: " << gasLimit2 << "\n");
 
   LOG_PAYLOAD(INFO, "Transaction2 code", code2, Logger::MAX_BYTES_TO_DISPLAY);
   BOOST_CHECK_MESSAGE(code2 == tx1.GetCode(), "Code not converted properly");

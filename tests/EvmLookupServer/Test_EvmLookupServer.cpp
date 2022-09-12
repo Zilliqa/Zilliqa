@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
     const uint m_Amount{};
   };
 
-  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT + 500U};
+  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
   EvmClient::GetInstance(  //
       [amount]() {         //

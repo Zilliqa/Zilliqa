@@ -21,7 +21,6 @@
 
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
 #include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest

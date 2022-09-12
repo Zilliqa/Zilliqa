@@ -15,24 +15,20 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import logging
-import pkg_resources
-
 import os
 import time
-from eth_abi import decode_abi
-from eth_utils import decode_hex, to_checksum_address as eth_to_checksum_address
-from eth_account import Account as EthAccount
-from hexbytes import HexBytes
-from fastecdsa import keys, curve
+
 import numpy as np
-
+import pkg_resources
 import solcx
-
+from eth_account import Account as EthAccount
+from eth_utils import to_checksum_address as eth_to_checksum_address
+from fastecdsa import curve, keys
+from hexbytes import HexBytes
 from web3 import Web3
-from web3._utils.abi import get_constructor_abi, get_abi_output_types
-from web3._utils.contracts import encode_abi, get_function_info
 from web3.exceptions import TransactionNotFound
-from .utils import int_from_bytes, from_zil
+
+from evm_ds_test.utils import from_gwei, from_zil
 
 
 def pad_address(address):
@@ -127,8 +123,8 @@ class EvmDsTestCase:
             {
                 "to": dest.address,
                 "value": amount,
-                "gas": 21_000,
-                "gasPrice": from_zil(0.002),
+                "gas": 25_000,
+                "gasPrice": from_gwei(7),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
                 "data": b"",
@@ -152,8 +148,8 @@ class EvmDsTestCase:
         )
         txn = contract_class.constructor(*args).build_transaction(
             {
-                "gas": 30_000,
-                "gasPrice": from_zil(0.002),
+                "gas": 295_000,
+                "gasPrice": from_gwei(7),
                 "value": value,
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
@@ -182,8 +178,8 @@ class EvmDsTestCase:
             {
                 "value": value,
                 "data": data_bytes,
-                "gas": 30_000,
-                "gasPrice": from_zil(0.002),
+                "gas": 85_000,
+                "gasPrice": from_gwei(7),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             },
@@ -230,8 +226,8 @@ class EvmDsTestCase:
             {
                 "from": account.address,
                 "value": value,
-                "gas": 30_000,
-                "gasPrice": from_zil(0.002),
+                "gas": 295_000,
+                "gasPrice": from_gwei(7),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             }
@@ -263,7 +259,7 @@ class EvmDsTestCase:
             {
                 "from": self.account.address,
                 # "gas": 30_000,
-                "gasPrice": from_zil(0.002),
+                "gasPrice": from_gwei(7),
                 "chainId": self.eth_network_id,
             }
         )

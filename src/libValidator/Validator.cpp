@@ -145,7 +145,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   unsigned int shardId = m_mediator.m_node->GetShardId();
   unsigned int numShards = m_mediator.m_node->getNumShards();
 
-  if (tx.GetGasLimit() >
+  if (tx.GetGasLimitZil() >
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE
            ? SHARD_MICROBLOCK_GAS_LIMIT
            : DS_MICROBLOCK_GAS_LIMIT)) {

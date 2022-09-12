@@ -149,7 +149,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   const uint128_t& amount = transaction.GetAmountQa();
 
   // Initiate gasRemained
-  uint64_t gasRemained = transaction.GetGasLimit();
+  uint64_t gasRemained = transaction.GetGasLimitZil();
 
   // Get the amount of deposit for running this txn
   uint128_t gasDeposit;
@@ -193,8 +193,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                               transaction.GetData().size()));
 
       // Check if gaslimit meets the minimum requirement for contract deployment
-      if (transaction.GetGasLimit() < createGasPenalty) {
-        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+      if (transaction.GetGasLimitZil() < createGasPenalty) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitZil()
                                           << " less than " << createGasPenalty);
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         return false;
@@ -382,7 +382,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
             }
             if (!ret) {
               gasRemained = std::min(
-                  transaction.GetGasLimit() - createGasPenalty, gasRemained);
+                  transaction.GetGasLimitZil() - createGasPenalty, gasRemained);
             }
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING,
@@ -391,8 +391,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
           }
         }
       } else {
-        gasRemained =
-            std::min(transaction.GetGasLimit() - createGasPenalty, gasRemained);
+        gasRemained = std::min(transaction.GetGasLimitZil() - createGasPenalty,
+                               gasRemained);
       }
 
       // *************************************************************************
@@ -417,7 +417,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         if (!ret_checker) {
           receipt.AddError(CHECKER_FAILED);
         }
-        receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+        receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemained);
         receipt.update();
 
         if (!this->IncreaseNonce(fromAddr)) {
@@ -437,9 +437,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return true;  // Return true because the states already changed
       }
 
-      if (transaction.GetGasLimit() < gasRemained) {
+      if (transaction.GetGasLimitZil() < gasRemained) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                 << transaction.GetGasLimit()
+                                 << transaction.GetGasLimitZil()
                                  << " gasRemained: " << gasRemained
                                  << ". Must be something wrong!");
         error_code = TxnStatus::MATH_ERROR;
@@ -475,7 +475,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       /// calculate total gas in receipt
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemained);
 
       if (is_library) {
         m_newLibrariesCreated.emplace_back(toAddr);
@@ -501,8 +501,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       uint64_t callGasPenalty = std::max(
           CONTRACT_INVOKE_GAS, (unsigned int)(transaction.GetData().size()));
 
-      if (transaction.GetGasLimit() < callGasPenalty) {
-        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimit()
+      if (transaction.GetGasLimitZil() < callGasPenalty) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitZil()
                                           << " less than " << callGasPenalty);
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
 
@@ -589,7 +589,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         return false;
       }
 
-      m_curGasLimit = transaction.GetGasLimit();
+      m_curGasLimit = transaction.GetGasLimitZil();
       m_curGasPrice = transaction.GetGasPriceQa();
       m_curContractAddr = toAddr;
       m_curAmount = amount;
@@ -633,8 +633,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       if (!ret) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
         DiscardAtomics();
-        gasRemained =
-            std::min(transaction.GetGasLimit() - callGasPenalty, gasRemained);
+        gasRemained = std::min(transaction.GetGasLimitZil() - callGasPenalty,
+                               gasRemained);
       } else {
         CommitAtomics();
       }
@@ -649,16 +649,16 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 
-      if (transaction.GetGasLimit() < gasRemained) {
+      if (transaction.GetGasLimitZil() < gasRemained) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
-                                 << transaction.GetGasLimit()
+                                 << transaction.GetGasLimitZil()
                                  << " gasRemained: " << gasRemained
                                  << ". Must be something wrong!");
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
 
-      receipt.SetCumGas(transaction.GetGasLimit() - gasRemained);
+      receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemained);
       if (!ret) {
         receipt.SetResult(false);
         receipt.CleanEntry();

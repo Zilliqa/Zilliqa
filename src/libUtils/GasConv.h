@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,21 +15,23 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBPYTHONRUNNER_PYTHONRUNNER_H_
-#define ZILLIQA_SRC_LIBPYTHONRUNNER_PYTHONRUNNER_H_
+#ifndef ZILLIQA_SRC_LIBUTILS_GASCONV_H_
+#define ZILLIQA_SRC_LIBUTILS_GASCONV_H_
 
-#include <boost/python.hpp>
+#include "common/Constants.h"
 
-#include <vector>
-
-class PythonRunner {
+class GasConv {
  public:
-  static bool RunPyFunc(const std::string& file, const std::string& func,
-                        const std::vector<std::string>& params,
-                        const std::string& outputFileName);
+  static uint64_t GasUnitsFromEthToCore(uint64_t gasLimit) {
+    return gasLimit / GetScalingFactor();
+  }
 
-  static boost::python::list VectorToPyList(
-      const std::vector<std::string>& str);
+  static uint64_t GasUnitsFromCoreToEth(uint64_t gasLimit) {
+    return gasLimit * GetScalingFactor();
+  }
+
+ private:
+  static uint64_t GetScalingFactor() { return MIN_ETH_GAS / NORMAL_TRAN_GAS; }
 };
 
-#endif  // ZILLIQA_SRC_LIBPYTHONRUNNER_PYTHONRUNNER_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_GASCONV_H_
