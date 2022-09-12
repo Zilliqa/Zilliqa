@@ -32,7 +32,6 @@ timestamps {
             container('ubuntu') {
                 sh "cp -r ./moving_folder/scilla /scilla"
                 sh "rm -rf ./moving_folder"
-                sh "ls -la /scilla/0"
             }
         }
         container('ubuntu') {
