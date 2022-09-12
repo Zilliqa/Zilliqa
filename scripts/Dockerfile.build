@@ -20,7 +20,7 @@ FROM ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps
 
 ENV VCPKG_ROOT=/vcpkg
 
-COPY ./scilla /scilla
+COPY /scilla /scilla
 COPY ./ /tmp/workspace
 RUN ls -la /scilla/0
 RUN ls -la /tmp/workspace
