@@ -160,6 +160,7 @@ class EvmDsTestCase:
             "Balance of sending account is {}".format(self.get_balance(account.address))
         )
         logging.info("Installing contract from account {}".format(account.address))
+        logging.info("Sending transaction: {}".format(signed_txn.rawTransaction.hex()))
         install_txn = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
         if confirm:
             receipt = self.wait_for_transaction_receipt(install_txn)
@@ -185,6 +186,7 @@ class EvmDsTestCase:
             },
             account.key,
         )
+        logging.info("Sending transaction: {}".format(txn.rawTransaction.hex()))
         install_txn = self.w3.eth.send_raw_transaction(
             Web3.toHex(txn.rawTransaction)
         ).hex()
@@ -233,6 +235,7 @@ class EvmDsTestCase:
             }
         )
         signed_txn = self.w3.eth.account.sign_transaction(txn, account.key)
+        logging.info("Sending transaction: {}".format(signed_txn.rawTransaction.hex()))
         call_txn = self.w3.eth.send_raw_transaction(signed_txn.rawTransaction).hex()
         logging.info("call txn {}".format(call_txn))
         if confirm:

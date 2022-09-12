@@ -253,11 +253,11 @@ BOOST_AUTO_TEST_CASE(test_eth_call) {
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT + 500U};
   const auto amount{4200U};
-  EvmClient::GetInstance(  //
-      [amount]() {         //
+  EvmClient::GetInstance(     //
+      [gasLimit, amount]() {  //
         return std::make_shared<GetEthCallEvmClientMock>(
-            2 * DS_MICROBLOCK_GAS_LIMIT, amount);  // gas limit will not exceed
-                                                   // this max value
+            gasLimit, amount);  // gas limit will not exceed
+                                // this max value
       });
 
   INIT_STDOUT_LOGGER();
