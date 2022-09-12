@@ -20,9 +20,13 @@
 using namespace std;
 
 bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
+  int offset = 0;
+  if (hex_input.size() >= 2 && hex_input[0] == '0' && hex_input[1] == 'x') {
+    offset = 2;
+  }
   try {
     out.clear();
-    boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
+    boost::algorithm::unhex(hex_input.begin() + offset, hex_input.end(),
                             back_inserter(out));
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: "
@@ -34,9 +38,13 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
 
 bytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
   bytes out;
+  int offset = 0;
+  if (hex_input.size() >= 2 && hex_input[0] == '0' && hex_input[1] == 'x') {
+    offset = 2;
+  }
   try {
     out.clear();
-    boost::algorithm::unhex(hex_input.begin(), hex_input.end(),
+    boost::algorithm::unhex(hex_input.begin() + offset, hex_input.end(),
                             back_inserter(out));
   } catch (exception& e) {
     LOG_GENERAL(WARNING, "Failed HexStrToUint8Vec conversion with exception: "

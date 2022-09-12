@@ -16,6 +16,11 @@
 
 set -e
 
+if [ -z ${VCPKG_ROOT} ]; then
+  echo -e "\033[1;33mVCPKG_ROOT is not set\033[0m"
+  exit 1
+fi
+
 # set n_parallel to fully utilize the resources
 os=$(uname)
 case $os in
@@ -163,7 +168,7 @@ do
     ;;
     evm)
         echo "Build EVM"
-	evm_build_result=$(cd src/depends/evm; cargo build --release)
+	evm_build_result=$(cd evm-ds; cargo build --release)
 	exit $evm_build_result
     ;;
     *)
@@ -173,7 +178,7 @@ do
     esac
 done
 
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=..
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic
 cmake --build ${dir} -- -j${n_parallel}
 ./scripts/license_checker.sh
 ./scripts/depends/check_guard.sh

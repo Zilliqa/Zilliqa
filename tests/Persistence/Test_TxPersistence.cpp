@@ -22,7 +22,6 @@
 
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
 #include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest
@@ -32,22 +31,6 @@
 using namespace std;
 
 BOOST_AUTO_TEST_SUITE(persistencetest)
-
-BOOST_AUTO_TEST_CASE(testReadWriteSimpleStringToDB) {
-  INIT_STDOUT_LOGGER();
-
-  LOG_MARKER();
-
-  DB db("test.db");
-
-  db.WriteToDB("fruit", "vegetable");
-
-  string ret = db.ReadFromDB("fruit");
-
-  BOOST_CHECK_MESSAGE(
-      ret == "vegetable",
-      "ERROR: return value from DB not equal to inserted value");
-}
 
 TxBlock constructDummyTxBlock(int instanceNum) {
   // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };

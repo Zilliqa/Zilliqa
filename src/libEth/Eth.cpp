@@ -23,6 +23,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
@@ -93,10 +94,10 @@ EthFields parseRawTxFields(std::string const &message) {
         ret.nonce = uint32_t(*it);
         break;
       case 1:
-        ret.gasPrice = uint128_t(*it);
+        ret.gasPrice = uint128_t{*it};
         break;
       case 2:
-        ret.gasLimit = uint64_t(*it);
+        ret.gasLimit = uint64_t{*it};
         break;
       case 3:
         ret.toAddr = byteIt;
@@ -131,7 +132,7 @@ EthFields parseRawTxFields(std::string const &message) {
 }
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
-                    const Account *sender, const uint128_t &gasPrice) {
+                    const Account *sender, const uint128_t &gasPriceWei) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -150,19 +151,17 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                            "Code size is too large");
   }
 
-  const uint256_t allowableGasPrice =
-      uint256_t{gasPrice} * EVM_ZIL_SCALING_FACTOR;
-  if (tx.GetGasPrice() < allowableGasPrice) {
+  if (tx.GetGasPriceWei() < gasPriceWei) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasPrice " +
-                               tx.GetGasPrice().convert_to<std::string>() +
+                               tx.GetGasPriceWei().convert_to<std::string>() +
                                " lower than minimum allowable " +
-                               allowableGasPrice.convert_to<std::string>());
+                               gasPriceWei.convert_to<std::string>());
   }
 
-  if (tx.GetGasLimit() < MIN_ETH_GAS) {
+  if (tx.GetGasLimitEth() < MIN_ETH_GAS) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasLimit " + std::to_string(tx.GetGasLimit()) +
+                           "GasLimit " + std::to_string(tx.GetGasLimitEth()) +
                                " lower than minimum allowable " +
                                std::to_string(MIN_ETH_GAS));
   }
@@ -190,25 +189,27 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   // Check if transaction amount is valid
-  uint256_t gasDeposit = 0;
-  if (!SafeMath<uint256_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
-                                gasDeposit)) {
+  uint256_t gasDepositWei = 0;
+  if (!SafeMath<uint256_t>::mul(tx.GetGasLimitZil(), tx.GetGasPriceWei(),
+                                gasDepositWei)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+                           "tx.GetGasLimitZil() * tx.GetGasPrice() overflow!");
   }
 
   uint256_t debt = 0;
-  if (!SafeMath<uint256_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+  if (!SafeMath<uint256_t>::add(gasDepositWei, tx.GetAmountWei(), debt)) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
   }
 
   const uint256_t accountBalance =
       uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
   if (accountBalance < debt) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Insufficient funds in source account!");
+                           "Insufficient funds in source account, wants: " +
+                               debt.convert_to<std::string>() + ", but has: " +
+                               accountBalance.convert_to<std::string>());
   }
 
   return true;

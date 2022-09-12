@@ -21,7 +21,6 @@
 
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/DB.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/TimeUtils.h"
 
@@ -44,7 +43,7 @@ BOOST_AUTO_TEST_CASE(testTransaction) {
 
   BlockStorage::GetBlockStorage().GetTxBody(hash, tx);
 
-  LOG_GENERAL(INFO, "Transaction amount: " << tx->GetAmount());
+  LOG_GENERAL(INFO, "Transaction amount: " << tx->GetAmountQa());
   LOG_GENERAL(INFO, "Transaction from address: " << tx->GetFromAddr());
   LOG_GENERAL(INFO, "Transaction to address: " << tx->GetToAddr());
   LOG_GENERAL(INFO, "Transaction nonce: " << tx->GetNonce());
