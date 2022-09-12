@@ -16,11 +16,11 @@
 
 ARG AWS_REGION=
 ARG AWS_ACCOUNT_ID=
-ARG WORKING_DIR=/tmp/workspace
 
 FROM ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps
 
 ENV VCPKG_ROOT=/vcpkg
+ARG WORKING_DIR=/tmp/workspace
 
 COPY ./ $WORKING_DIR
 WORKDIR $WORKING_DIR
