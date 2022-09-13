@@ -38,9 +38,6 @@ timestamps {
         container('ubuntu') {
             stage('Configure environment') {
                 sh "./scripts/setup_environment.sh"
-                env.VCPKG_ROOT="/tmp"
-                sh "git clone https://github.com/microsoft/vcpkg ${env.VCPKG_ROOT}"
-                sh "cd ${env.VCPKG_ROOT} && git checkout 2022.07.25"
             }
             stage('Build') {
                 sh "git config --global --add safe.directory '*'"
