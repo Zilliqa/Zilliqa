@@ -32,7 +32,7 @@ dev: check-commit
 
 # build the dependencies docker image for public usage
 deps:
-	docker build -f Dockerfile.deps -t zilliqa:v$(major).$(minor).$(fix)-deps .
+	docker build -f Dockerfile.deps -t zilliqa/zilliqa:v$(major).$(minor).$(fix)-deps .
 
 # build release version docker image for public usage
 release:

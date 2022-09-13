@@ -21,7 +21,7 @@ FROM ${BASE} AS scilla
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM ${REGISTRY}zilliqa:v8.2.0-deps AS builder
+FROM zilliqa/zilliqa:v9.0.0-deps AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -115,7 +115,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libTrie.so
 
 # start from a new ubuntu as the runner image
-FROM ${REGISTRY}zilliqa:v8.2.0-deps
+FROM zilliqa/zilliqa:v9.0.0-deps
 
 # install all necessary libraries
 RUN apt-get update \
