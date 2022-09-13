@@ -20,7 +20,7 @@
 
 #include <deque>
 #include <shared_mutex>
-#include <unordered_set>
+#include <unordered_map>
 
 #include "Common.h"
 
@@ -29,26 +29,53 @@ namespace filters {
 
 class PendingTxnCache {
  public:
+  /// Ctor. Depth of cache in epochs
+  explicit PendingTxnCache(size_t depth);
+
+  /// Appends a new pending txn
   void Append(const TxnHash &hash, EpochNumber epoch);
 
-  void CleanupBefore(EpochNumber epoch);
+  /// Set this txn as not pending, it will no longer be included into results
+  /// \param hash Txn hash
+  void TransactionCommitted(const TxnHash &hash);
 
+  /// Returns filter changes since the last poll
   EpochNumber GetPendingTxnsFilterChanges(EpochNumber after_counter,
                                           PollResult &result);
 
  private:
   struct Item {
+    /// Internal counter
     EpochNumber counter;
+
+    /// Epoch of the TX
     EpochNumber epoch;
+
+    /// Txn hash
     TxnHash hash;
   };
 
+  EpochNumber GetLastEpoch();
+
+  bool IsPending(const TxnHash &hash);
+
+  void Cleanup();
+
+  /// Cache depth in TX block epochs
+  const EpochNumber m_depth;
+
+  /// Internal counter which helps to avoid duplicates between the same filter
+  /// polling calls
   EpochNumber m_counter = 0;
 
+  /// Items ordered by counter
   std::deque<Item> m_items;
 
-  std::unordered_set<TxnHash> m_index;
+  /// TxnHash -> IsPending. Prevents from including committed txns into filter
+  /// results
+  std::unordered_map<TxnHash, bool> m_index;
 
+  /// R-W lock. Allows for parallel polling
   std::shared_timed_mutex m_mutex;
 };
 

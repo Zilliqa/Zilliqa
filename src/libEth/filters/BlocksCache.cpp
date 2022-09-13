@@ -16,11 +16,11 @@
  */
 
 #include <algorithm>
-#include <cassert>
 
 #include "BlocksCache.h"
 
 #include "FiltersUtils.h"
+#include "libUtils/Logger.h"
 
 namespace evmproj {
 namespace filters {
@@ -28,43 +28,72 @@ namespace filters {
 using UniqueLock = std::unique_lock<std::shared_timed_mutex>;
 using SharedLock = std::shared_lock<std::shared_timed_mutex>;
 
-void BlocksCache::StartEpoch(EpochNumber epoch) {
-  UniqueLock lock(m_mutex);
+BlocksCache::BlocksCache(size_t depth) : m_depth(depth) {}
 
-  assert(epoch > m_currentEpoch);
-
-  if (epoch <= m_currentEpoch) {
-    // TODO fatal exit
-    return;
+EpochNumber BlocksCache::GetLastEpoch() {
+  if (m_finalizedEpochs.empty()) {
+    return SEEN_NOTHING;
   }
-
-  m_currentEpoch = epoch;
+  return m_finalizedEpochs.back().epoch;
 }
 
-void BlocksCache::AddCommittedTransaction(uint32_t shard, const TxnHash &hash,
-                                          const Json::Value &receipt) {
-  // TODO get it from parameters or constants or original design document
-  static const uint32_t MAX_SHARDS = 1024;
-
-  if (shard > MAX_SHARDS) {
-    // TODO fatal exit
-    return;
-  }
+bool BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
+                             uint32_t num_shards, uint32_t num_txns) {
+  EpochNumber n = static_cast<EpochNumber>(epoch);
 
   UniqueLock lock(m_mutex);
 
-  if (m_currentEpoch < 0) {
-    // TODO fatal exit
-    return;
+  if (n <= GetLastEpoch()) {
+    LOG_GENERAL(WARNING, "Ignoring unexpected epoch number " << n);
+    return false;
   }
 
-  if (m_shardsInProcess.size() < shard + 1) {
-    m_shardsInProcess.resize(shard + 1);
+  if (m_epochsInProcess.count(epoch) != 0) {
+    LOG_GENERAL(WARNING, "Ignoring existing epoch number " << n);
+    return false;
   }
 
-  auto &txn_list = m_shardsInProcess[shard];
+  if (num_txns == 0) {
+    if (m_finalizedEpochs.size() >= m_depth) {
+      m_finalizedEpochs.pop_front();
+    }
+    m_finalizedEpochs.emplace_back();
+    auto &ctx = m_finalizedEpochs.back();
+    ctx.epoch = n;
+    ctx.blockHash = std::move(block_hash);
+  } else {
+    auto &ctx = m_epochsInProcess[n];
+    ctx.blockHash = std::move(block_hash);
+    ctx.totalTxns = num_txns;
+    ctx.shardsInProcess.resize(num_shards + 1);
+  }
+
+  return (num_txns == 0);
+}
+
+bool BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
+                                          const TxnHash &hash,
+                                          const Json::Value &receipt) {
+  EpochNumber n = static_cast<EpochNumber>(epoch);
+
+  UniqueLock lock(m_mutex);
+
+  auto it = m_epochsInProcess.find(n);
+  if (it == m_epochsInProcess.end()) {
+    LOG_GENERAL(WARNING, "Unexpected epoch number " << n);
+    return false;
+  }
+
+  auto &ctx = it->second;
+  if (shard >= ctx.shardsInProcess.size()) {
+    LOG_GENERAL(WARNING, "Unexpected shard number " << shard);
+    return false;
+  }
+
+  auto &txn_list = ctx.shardsInProcess[shard];
 
   txn_list.emplace_back();
+  ++ctx.currentTxns;
   auto &item = txn_list.back();
 
   item.hash = hash;
@@ -74,84 +103,94 @@ void BlocksCache::AddCommittedTransaction(uint32_t shard, const TxnHash &hash,
 
   auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
   if (!error.empty()) {
-    // log...
-    // TODO handle errors
+    LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
 
   for (const auto &event : logs) {
-    ++m_numLogsInEpoch;
+    ++ctx.totalLogs;
+
     item.events.emplace_back();
     auto &log = item.events.back();
 
     log.address = ExtractStringFromJsonObj(event, ADDRESS_STR, error, found);
-    // TODO handle errors
+    if (log.address.empty()) {
+      LOG_GENERAL(WARNING, "Error extracting address of event log: " << error);
+    }
 
     auto json_topics = ExtractArrayFromJsonObj(event, TOPICS_STR, error);
-    // TODO handle errors
+    if (!error.empty()) {
+      LOG_GENERAL(WARNING, "Error extracting event log topics: " << error);
+    }
 
     log.topics.reserve(json_topics.size());
     for (const auto &t : json_topics) {
       if (!t.isString()) {
-        // TODO handle errors
-        return;
+        LOG_GENERAL(WARNING, "Event log topic is of wrong type");
+        log.topics.clear();
+        break;
       }
       log.topics.emplace_back(t.asString());
     }
 
     auto data = ExtractArrayFromJsonObj(event, DATA_STR, error);
-    // TODO handle errors
+    if (!error.empty()) {
+      LOG_GENERAL(WARNING, "Error extracting event log data: " << error);
+    }
 
-    log.response = CreateEventResponseItem(m_currentEpoch, hash, log.address,
-                                           log.topics, data);
+    log.response =
+        CreateEventResponseItem(n, hash, log.address, log.topics, data);
   }
+
+  if (ctx.currentTxns >= ctx.totalTxns) {
+    return TryFinalizeEpochs();
+  }
+
+  return false;
 }
 
-void BlocksCache::FinalizeEpoch(BlockHash blockHash,
-                                EpochNumber cleanup_before) {
-  UniqueLock lock(m_mutex);
+bool BlocksCache::TryFinalizeEpochs() {
+  bool finalized = false;
+  while (!m_epochsInProcess.empty()) {
+    auto it = m_epochsInProcess.begin();
+    auto &ctx = it->second;
+    if (ctx.currentTxns < ctx.totalTxns) {
+      break;
+    }
+    FinalizeOneEpoch(it->first, ctx);
+    finalized = true;
+    m_epochsInProcess.erase(it);
+  }
+  return finalized;
+}
 
-  CleanupOldEpochs(cleanup_before);
-
+void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
+  if (m_finalizedEpochs.size() >= m_depth) {
+    m_finalizedEpochs.pop_front();
+  }
   m_finalizedEpochs.emplace_back();
   auto &item = m_finalizedEpochs.back();
-  item.epoch = m_currentEpoch;
-  item.blockHash = blockHash;
 
-  if (m_numLogsInEpoch != 0) {
-    item.meta.reserve(m_numLogsInEpoch);
+  item.epoch = n;
+  item.blockHash = std::move(data.blockHash);
+
+  if (data.totalLogs != 0) {
+    item.meta.reserve(data.totalLogs);
     size_t txn_index = 0;
     size_t event_idx = 0;
 
-    for (auto &shard : m_shardsInProcess) {
+    for (auto &shard : data.shardsInProcess) {
       for (auto &txn : shard) {
         for (auto &e : txn.events) {
           item.meta.emplace_back(std::move(e));
           auto &event = item.meta.back();
           event.response[LOGINDEX_STR] = NumberAsString(event_idx);
-          event.response[BLOCKHASH_STR] = blockHash;
+          event.response[BLOCKHASH_STR] = item.blockHash;
           event.response[TRANSACTIONINDEX_STR] = NumberAsString(txn_index);
           ++event_idx;
         }
         ++txn_index;
       }
     }
-  }
-
-  m_numLogsInEpoch = 0;
-  m_shardsInProcess.clear();
-}
-
-void BlocksCache::CleanupOldEpochs(EpochNumber cleanup_before) {
-  auto begin = m_finalizedEpochs.begin();
-  auto it = begin;
-  for (; it != m_finalizedEpochs.end(); ++it) {
-    if (it->epoch >= cleanup_before) {
-      break;
-    }
-    // TODO log here
-  }
-  if (it != begin) {
-    m_finalizedEpochs.erase(begin, it);
   }
 }
 
@@ -175,27 +214,37 @@ EpochNumber BlocksCache::GetEventFilterChanges(EpochNumber after_epoch,
 
   SharedLock lock(m_mutex);
 
-  // TODO fromBlock and toBlock proper handling - set them properly in
-  // FilterAPIBackend
+  auto last_epoch = GetLastEpoch();
 
-  if (after_epoch >= m_currentEpoch - 1) {
+  if (last_epoch <= after_epoch || filter.fromBlock == PENDING_EPOCH) {
     return after_epoch;
   }
 
-  auto last_seen = 0;
+  EpochNumber begin_epoch = after_epoch;
+  if (filter.fromBlock > after_epoch + 1) {
+    begin_epoch = filter.fromBlock - 1;
+  } else if (filter.fromBlock == LATEST_EPOCH) {
+    begin_epoch = last_epoch - 1;
+  }
 
-  for (auto it = FindNext(after_epoch); it != m_finalizedEpochs.end(); ++it) {
-    // TODO break if toBlock < height
+  EpochNumber end_epoch = std::numeric_limits<EpochNumber>::max();
+  if (filter.toBlock >= 0) {
+    end_epoch = filter.toBlock;
+  }
+
+  for (auto it = FindNext(begin_epoch); it != m_finalizedEpochs.end(); ++it) {
+    if (it->epoch > end_epoch) {
+      break;
+    }
 
     for (const auto &log : it->meta) {
       if (Match(filter, log.address, log.topics)) {
         result.result.append(log.response);
       }
     }
-    last_seen = it->epoch;
   }
 
-  return last_seen;
+  return last_epoch;
 }
 
 EpochNumber BlocksCache::GetBlockFilterChanges(EpochNumber after_epoch,
@@ -205,18 +254,17 @@ EpochNumber BlocksCache::GetBlockFilterChanges(EpochNumber after_epoch,
 
   SharedLock lock(m_mutex);
 
-  if (after_epoch >= m_currentEpoch - 1) {
+  auto last_epoch = GetLastEpoch();
+
+  if (last_epoch <= after_epoch) {
     return after_epoch;
   }
 
-  auto last_seen = 0;
-
   for (auto it = FindNext(after_epoch); it != m_finalizedEpochs.end(); ++it) {
     result.result.append(it->blockHash);
-    last_seen = it->epoch;
   }
 
-  return last_seen;
+  return last_epoch;
 }
 
 }  // namespace filters

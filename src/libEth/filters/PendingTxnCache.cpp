@@ -16,9 +16,12 @@
  */
 
 #include <algorithm>
+#include <cassert>
 #include <mutex>
 
 #include "PendingTxnCache.h"
+
+#include "libUtils/Logger.h"
 
 namespace evmproj {
 namespace filters {
@@ -26,18 +29,26 @@ namespace filters {
 using UniqueLock = std::unique_lock<std::shared_timed_mutex>;
 using SharedLock = std::shared_lock<std::shared_timed_mutex>;
 
+PendingTxnCache::PendingTxnCache(size_t depth)
+    : m_depth(static_cast<EpochNumber>(depth)) {
+  assert(m_depth > 0);
+}
+
 void PendingTxnCache::Append(const TxnHash &hash, EpochNumber epoch) {
   UniqueLock lock(m_mutex);
 
-  auto p = m_index.insert(hash);
+  auto p = m_index.insert(std::make_pair(hash, true));
   if (!p.second) {
-    // TODO LOG warning duplicate
+    LOG_GENERAL(INFO, "Ignoring pending txn duplicate");
     return;
   }
 
-  if (!m_items.empty() && epoch < m_items.back().epoch) {
-    // TODO LOG warning
-    epoch = m_items.back().epoch;
+  auto last_epoch = GetLastEpoch();
+  if (epoch < last_epoch) {
+    LOG_GENERAL(WARNING, "Pending TXN epoch corrected to " << last_epoch);
+    epoch = last_epoch;
+  } else if (epoch > last_epoch) {
+    Cleanup();
   }
 
   m_items.emplace_back();
@@ -47,21 +58,15 @@ void PendingTxnCache::Append(const TxnHash &hash, EpochNumber epoch) {
   item.hash = hash;
 }
 
-void PendingTxnCache::CleanupBefore(EpochNumber epoch) {
+void PendingTxnCache::TransactionCommitted(const TxnHash &hash) {
   UniqueLock lock(m_mutex);
 
-  auto it = m_items.begin();
-  auto end = m_items.end();
-  for (; it != end; ++it) {
-    if (it->epoch > epoch) {
-      break;
-    }
-    m_index.erase(it->hash);
+  auto it = m_index.find(hash);
+  if (it == m_index.end()) {
+    // ignore unknown txn
+    return;
   }
-
-  if (it != m_items.begin()) {
-    m_items.erase(m_items.begin(), it);
-  }
+  it->second = false;
 }
 
 EpochNumber PendingTxnCache::GetPendingTxnsFilterChanges(
@@ -83,10 +88,47 @@ EpochNumber PendingTxnCache::GetPendingTxnsFilterChanges(
       [](const Item &a, const Item &b) { return a.counter < b.counter; });
 
   for (; it != m_items.end(); ++it) {
-    result.result.append(it->hash);
+    if (IsPending(it->hash)) {
+      result.result.append(it->hash);
+    }
   }
 
   return m_counter;
+}
+
+EpochNumber PendingTxnCache::GetLastEpoch() {
+  if (m_items.empty()) {
+    return SEEN_NOTHING;
+  }
+  return m_items.back().epoch;
+}
+
+bool PendingTxnCache::IsPending(const TxnHash &hash) {
+  auto it = m_index.find(hash);
+  if (it == m_index.end()) {
+    LOG_GENERAL(WARNING, "Inconsisency in PendingTxnCache");
+    return false;
+  }
+  return it->second;
+}
+
+void PendingTxnCache::Cleanup() {
+  auto last = GetLastEpoch();
+  if (last < 0) {
+    return;
+  }
+  auto earliest = last - m_depth;
+  if (earliest < 0) {
+    return;
+  }
+  auto it = m_items.begin();
+  for (; it != m_items.end(); ++it) {
+    if (it->epoch >= earliest) {
+      break;
+    }
+    m_index.erase(it->hash);
+  }
+  m_items.erase(m_items.begin(), it);
 }
 
 }  // namespace filters

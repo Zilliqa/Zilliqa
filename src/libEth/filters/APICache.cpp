@@ -18,6 +18,7 @@
 #include "BlocksCache.h"
 #include "FiltersImpl.h"
 #include "PendingTxnCache.h"
+#include "libUtils/Logger.h"
 
 namespace evmproj {
 namespace filters {
@@ -25,7 +26,7 @@ namespace filters {
 namespace {
 
 // TODO this is to be a parameter from constants.xml
-const EpochNumber TXMETADATADEPTH = 100;
+const size_t TXMETADATADEPTH = 100;
 
 // TODO stub
 class SubscriptionAPIBackendImpl : public SubscriptionAPIBackend {};
@@ -34,7 +35,10 @@ class SubscriptionAPIBackendImpl : public SubscriptionAPIBackend {};
 
 class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
  public:
-  APICacheImpl() : m_filterAPI(*this) {}
+  APICacheImpl()
+      : m_filterAPI(*this),
+        m_pendingTxnCache(TXMETADATADEPTH),
+        m_blocksCache(TXMETADATADEPTH) {}
 
   FilterAPIBackend& GetFilterAPI() override { return m_filterAPI; }
 
@@ -47,29 +51,24 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
  private:
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
     m_pendingTxnCache.Append(hash, epoch);
-    // TODO subscriptions
+    // TODO realtime subscriptions to pending txns
   }
 
-  void StartEpoch(uint64_t epoch) override {
-    auto native_epoch = static_cast<EpochNumber>(epoch);
-    m_currentEpoch = native_epoch;
-    if (m_earliestEpoch < 0) {
-      m_earliestEpoch = m_currentEpoch;
+  void StartEpoch(uint64_t epoch, BlockHash block_hash, uint32_t num_shards,
+                  uint32_t num_txns) override {
+    if (m_blocksCache.StartEpoch(epoch, std::move(block_hash), num_shards,
+                                 num_txns)) {
+      EpochFinalized(epoch);
     }
   }
 
-  void AddCommittedTransaction(uint32_t shard, const TxnHash& hash,
+  void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
+                               const TxnHash& hash,
                                const Json::Value& receipt) override {
-    m_blocksCache.AddCommittedTransaction(shard, hash, receipt);
-  }
-
-  void FinalizeEpoch(BlockHash blockHash) override {
-    if (m_currentEpoch - m_earliestEpoch > TXMETADATADEPTH) {
-      m_earliestEpoch = m_currentEpoch - TXMETADATADEPTH;
-      m_pendingTxnCache.CleanupBefore(m_earliestEpoch);
+    if (m_blocksCache.AddCommittedTransaction(epoch, shard, hash, receipt)) {
+      EpochFinalized(epoch);
     }
-    m_filterAPI.SetEpochRange(m_earliestEpoch, m_currentEpoch);
-    m_blocksCache.FinalizeEpoch(blockHash, m_earliestEpoch);
+    m_pendingTxnCache.TransactionCommitted(hash);
   }
 
   EpochNumber GetEventFilterChanges(EpochNumber after_epoch,
@@ -88,9 +87,13 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
     return m_pendingTxnCache.GetPendingTxnsFilterChanges(after_counter, result);
   }
 
-  // XXX seems no need to sync these values
-  EpochNumber m_earliestEpoch = SEEN_NOTHING;
-  EpochNumber m_currentEpoch = SEEN_NOTHING;
+  void EpochFinalized(uint64_t epoch) {
+    LOG_GENERAL(INFO, "Finalized epoch " << epoch);
+    // TODO realtime subscriptions to new head filters
+
+    auto earliest = epoch <= TXMETADATADEPTH ? 0 : epoch - TXMETADATADEPTH;
+    m_filterAPI.SetEpochRange(earliest, epoch);
+  }
 
   FilterAPIBackendImpl m_filterAPI;
   SubscriptionAPIBackendImpl m_subscriptionAPI;

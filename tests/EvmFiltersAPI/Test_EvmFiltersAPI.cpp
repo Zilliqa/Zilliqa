@@ -334,8 +334,7 @@ BOOST_AUTO_TEST_CASE(install_filters_result) {
   install_res = api.InstallNewEventFilter(filter_params);
   BOOST_REQUIRE(install_res.success == false);
 
-  update.StartEpoch(1);
-  update.FinalizeEpoch(NumberAsString(1) + "_hash");
+  update.StartEpoch(1, NumberAsString(1) + "_hash", 3, 0);
 
   // 2. If the cache is initialized, filters can be installed
 

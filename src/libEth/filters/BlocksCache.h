@@ -28,12 +28,19 @@ namespace filters {
 
 class BlocksCache {
  public:
-  void StartEpoch(EpochNumber epoch);
+  explicit BlocksCache(size_t depth);
 
-  void AddCommittedTransaction(uint32_t shard, const TxnHash &hash,
-                               const Json::Value &receipt);
+  ///
+  /// \param epoch
+  /// \param block_hash
+  /// \param num_shards
+  /// \param num_txns
+  /// \return true if the meta for this epoch is finalized
+  bool StartEpoch(uint64_t epoch, BlockHash block_hash, uint32_t num_shards,
+                  uint32_t num_txns);
 
-  void FinalizeEpoch(BlockHash blockHash, EpochNumber cleanup_before);
+  bool AddCommittedTransaction(uint64_t epoch, uint32_t shard,
+                               const TxnHash &hash, const Json::Value &receipt);
 
   EpochNumber GetEventFilterChanges(EpochNumber after_epoch,
                                     const EventFilterParams &filter,
@@ -60,15 +67,36 @@ class BlocksCache {
     std::vector<EventLog> events;
   };
 
+  struct EpochInProcess {
+    /// TX block hash
+    BlockHash blockHash;
+
+    /// Total # of transactions in this TX epoch
+    uint32_t totalTxns = 0;
+
+    uint32_t currentTxns = 0;
+
+    size_t totalLogs = 0;
+
+    /// Transactions metadata per shards
+    std::vector<std::vector<TransactionAndEvents>> shardsInProcess;
+  };
+
   using FinalizedEpochs = std::deque<EpochMetadata>;
 
-  void CleanupOldEpochs(EpochNumber cleanup_before);
+  // void CleanupOldEpochs(EpochNumber cleanup_before);
 
   FinalizedEpochs::iterator FindNext(EpochNumber after_epoch);
 
-  EpochNumber m_currentEpoch = SEEN_NOTHING;
-  size_t m_numLogsInEpoch = 0;
-  std::vector<std::vector<TransactionAndEvents>> m_shardsInProcess;
+  /// Tries to finalize unfinished meta, returns true if current epoch advanced
+  bool TryFinalizeEpochs();
+
+  void FinalizeOneEpoch(EpochNumber n, EpochInProcess &data);
+
+  EpochNumber GetLastEpoch();
+
+  const size_t m_depth;
+  std::map<EpochNumber, EpochInProcess> m_epochsInProcess;
   FinalizedEpochs m_finalizedEpochs;
   std::shared_timed_mutex m_mutex;
 };
