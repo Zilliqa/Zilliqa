@@ -2,22 +2,15 @@
   "name": "zilliqa",
   "version-string": "8.2.0",
   "dependencies": [
-    "jsoncpp",
     "openssl",
     "protobuf",
-    "python3",
-    "snappy",
-    "boost",
-    "mongo-c-driver",
-    "mongo-cxx-driver",
-    "websocketpp",
-    "gtest"
+    "python3"
   ],
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [
     { "name": "openssl", "version-string": "1.1.1n" },
     { "name": "protobuf", "version": "3.9.1" },
-    { "name": "jsoncpp", "version": "1.7.7" }
+    { "name": "python3", "version-string": "3.6.4-5" }
   ]
 }
 
