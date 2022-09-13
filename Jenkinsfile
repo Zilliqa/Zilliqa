@@ -11,6 +11,11 @@ spec:
     - cat
     tty: true
   - name: "ubuntu"
+    image: "ubuntu:bionic"
+    command:
+    - cat
+    tty: true
+  - name: dependecies
     image: "648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa:v8.2.0-deps"
     command:
     - cat
@@ -36,15 +41,15 @@ timestamps {
             }
         }
         container('ubuntu') {
-            env.VCPKG_ROOT="/vcpkg"
             stage('Configure environment') {
                 sh "./scripts/setup_environment.sh"
-                // sh "git clone https://github.com/microsoft/vcpkg ${env.VCPKG_ROOT}"
-                // sh "export VCPKG_FORCE_SYSTEM_BINARIES=1 && cd ${env.VCPKG_ROOT} && git checkout 2022.07.25 && ${env.VCPKG_ROOT}/bootstrap-vcpkg.sh"
+                env.VCPKG_ROOT="/tmp"
+                sh "git clone https://github.com/microsoft/vcpkg ${env.VCPKG_ROOT}"
+                sh "export VCPKG_FORCE_SYSTEM_BINARIES=1 && cd ${env.VCPKG_ROOT} && git checkout 2022.07.25 && ${env.VCPKG_ROOT}/bootstrap-vcpkg.sh"
             }
             stage('Build') {
                 sh "git config --global --add safe.directory '*'"
-                sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && ./scripts/ci_build.sh"
+                sh "export VCPKG_ROOT=/tmp && ./scripts/ci_build.sh"
             }
             stage('Report coverage') {
                 // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
