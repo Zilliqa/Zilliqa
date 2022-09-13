@@ -124,6 +124,7 @@ RUN apt-get update \
     ca-certificates \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
+    libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
