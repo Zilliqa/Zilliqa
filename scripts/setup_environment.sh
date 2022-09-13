@@ -59,8 +59,7 @@ apt install -y ccache \
     libsecp256k1-dev \
     zip \
     unzip \
-    tar \
-    bison
+    tar
 
 # Special steps needed for clang-format-7 on ubuntu 18
 wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
