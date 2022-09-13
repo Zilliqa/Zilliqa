@@ -15,8 +15,23 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
-find_package(Libevent REQUIRED)
-find_package(jsoncpp REQUIRED)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(LIBEVENT REQUIRED libevent)
+link_directories(${LIBEVENT_LIBRARY_DIRS})
+
+if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
+    pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
+    link_directories(${MINIUPNPC_LIBRARY_DIRS})
+    find_package(jsoncpp REQUIRED)
+    set(JSON_PREFIX,"json")
+    set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
+else()
+    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
+    include_directories(${JSONCPP_INCLUDE_DIRS})
+    link_directories(${JSONCPP_LIBRARY_DIRS})
+    set(JSONCPP_LINK_TARGETS "jsoncpp")
+    set(JSON_PREFIX "jsoncpp")
+endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
