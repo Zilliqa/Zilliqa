@@ -1,6 +1,6 @@
 {
   "name": "zilliqa",
-  "version-string": "9.0.0",
+  "version-string": "8.2.0",
   "dependencies": [
     "jsoncpp",
     "openssl",
@@ -11,11 +11,7 @@
     "mongo-c-driver",
     "mongo-cxx-driver",
     "websocketpp",
-    "gtest",
-    "miniupnpc",
-    "libevent",
-    "leveldb",
-    "curl"
+    "gtest"
   ],
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [
