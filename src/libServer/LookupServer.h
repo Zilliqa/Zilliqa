@@ -393,7 +393,7 @@ class LookupServer : public Server,
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
 
     // For Eth transactions, pass gas Price in Wei
-    response= CreateTransactionEth(
+    response = CreateTransactionEth(
         fields, pubKey, shards,
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
             EVM_ZIL_SCALING_FACTOR,

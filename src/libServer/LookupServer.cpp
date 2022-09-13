@@ -987,7 +987,6 @@ std::string LookupServer::CreateTransactionEth(
   std::string ret = tx.GetTranID().hex();
 
   try {
-
     const Address fromAddr = tx.GetSenderAddr();
 
     bool toAccountExist;

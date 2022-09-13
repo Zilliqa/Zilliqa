@@ -25,6 +25,9 @@
 using namespace jsonrpc;
 using namespace std;
 
+const char* ZEROES_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000";
+
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,
@@ -634,7 +637,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
 std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey) {
-  std::string ret;
+  // Always return the TX hash or the null hash
+  std::string ret = ZEROES_HASH;
 
   try {
     if (m_pause) {
@@ -661,7 +665,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                    data,  // either empty or un-hexed byte-stream
                    Signature(fields.signature, 0)};
 
-    ret = tx.GetTranID().hex();
+    ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 
     // uint64_t senderNonce; // ???
     uint256_t senderBalance;
@@ -685,7 +689,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       }
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-      /*senderNonce = sender->GetNonce();*/ // ???
+      /*senderNonce = sender->GetNonce();*/  // ???
     }
 
     switch (Transaction::GetTransactionType(tx)) {
@@ -783,10 +787,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         "Processing On the isolated server completed. Minting a block...");
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
-    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
   // Double create a block to make sure TXs are 'flushed'
