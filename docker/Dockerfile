@@ -115,7 +115,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libTrie.so
 
 # start from a new ubuntu as the runner image
-FROM zilliqa:v8.2.0-deps
+FROM ${REGISTRY}zilliqa:v8.2.0-deps
 
 # install all necessary libraries
 RUN apt-get update \
