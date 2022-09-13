@@ -56,10 +56,7 @@ apt install -y ccache \
     libxml2-utils \
     python-dev \
     python3-dev \
-    libsecp256k1-dev \
-    zip \
-    unzip \
-    tar
+    libsecp256k1-dev
 
 # Special steps needed for clang-format-7 on ubuntu 18
 wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
