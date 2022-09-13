@@ -60,8 +60,7 @@ install:
   - rm cmake-3.19.3-Linux-x86_64.sh
   - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
   - ls /scilla/0/
-  - aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-  - docker run --rm -it -v /vcpkg:/root/vcpkg ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/zilliqa:v8.2.0-deps cp -r /vcpkg /root/
+  - docker run --rm -it -v /vcpkg:/root/vcpkg 648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa:v8.2.0-deps cp -r /vcpkg /root/
 
 script:
   - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
