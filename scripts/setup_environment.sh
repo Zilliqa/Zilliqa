@@ -75,3 +75,4 @@ bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix=`pwd`/.local/
 mv /usr/bin/cmake{,.old} && ln -s `pwd`/.local/bin/cmake /usr/bin/
 cmake --version
 rm cmake-3.19.3-Linux-x86_64.sh
+ls /scilla/0/
