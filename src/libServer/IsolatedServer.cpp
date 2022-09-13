@@ -632,9 +632,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   return ret;
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
+std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey) {
-  Json::Value ret;
+  std::string ret;
 
   try {
     if (m_pause) {
@@ -661,7 +661,9 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                    data,  // either empty or un-hexed byte-stream
                    Signature(fields.signature, 0)};
 
-    uint64_t senderNonce;
+    ret = tx.GetTranID().hex();
+
+    // uint64_t senderNonce; // ???
     uint256_t senderBalance;
 
     const uint128_t gasPriceWei =
@@ -683,7 +685,7 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       }
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-      senderNonce = sender->GetNonce();
+      /*senderNonce = sender->GetNonce();*/ // ???
     }
 
     switch (Transaction::GetTransactionType(tx)) {
@@ -693,8 +695,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, senderNonce).hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
@@ -777,8 +777,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
     }
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    ret["TranID"] = txHash.hex();
-    ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(
         INFO,
