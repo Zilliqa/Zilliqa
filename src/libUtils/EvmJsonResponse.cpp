@@ -17,7 +17,7 @@
 
 #include "libUtils/EvmJsonResponse.h"
 #include "common/Constants.h"
-#include "websocketpp/base64/base64.hpp"
+#include "depends/websocketpp/websocketpp/base64/base64.hpp"
 #include "nlohmann/json.hpp"  // NOLINT(readability-redundant-declaration)
 
 using websocketpp::base64_decode;
