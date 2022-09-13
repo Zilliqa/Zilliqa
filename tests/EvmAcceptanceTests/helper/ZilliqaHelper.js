@@ -8,6 +8,14 @@ class ZilliqaHelper {
         this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1))
     }
 
+    getPrimaryAccount() {
+        return this.primaryAccount;
+    }
+
+    getSecondaryAccount() {
+        return this.auxiliaryAccount;
+    }
+
     async getState(address, index) {
         return web3.eth.getStorageAt(address, index)
     }

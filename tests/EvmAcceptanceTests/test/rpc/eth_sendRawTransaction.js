@@ -1,26 +1,42 @@
-const helper = require('../../helper/GeneralHelper');
+const gHelper = require('../../helper/GeneralHelper');
+const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
 assert = require('chai').assert;
 
 const METHOD = 'eth_sendRawTransaction';
 
+let amount = 1_000;
+
 describe("Calling " + METHOD, function () {
+  let zHelper = new ZilliqaHelper();
+
   describe("When on Zilliqa network", async function () {
-    // before(async function () {
-    //   if (!helper.isZilliqaNetworkSelected()) {
-    //     this.skip();
-    //   }
-    // })
-
     it("should return a send raw transaction", async function () {
-      await helper.callEthMethod(METHOD, 1, ["0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675"],
-        (result, status) => {
-          console.log(result);
+      const fromAccount = zHelper.getPrimaryAccount();
+      const toAccount = zHelper.getSecondaryAccount();
+      const nonce = await web3.eth.getTransactionCount(fromAccount.address); // nonce starts counting from 0
+      const tx = {
+        'to': toAccount.address,
+        'value': amount,
+        'gas': 25000,
+        'gasPrice': 2000000000,
+        'nonce': nonce,
+        'chainId': gHelper.getEthChainId(),
+        'data': ""
+      };
 
+      const signedTx = await fromAccount.signTransaction(tx);
+
+      await gHelper.callEthMethod(METHOD, 1, [signedTx.rawTransaction],
+        (result, status) => {
+          console.log("Result:", result);
+
+          // The result contains a transaction hash that is every time different and should match the hash returned in the result
           assert.equal(status, 200, 'has status code');
-          //assert.isNumber(result.error.code, -32601);
-          assert.isString(result.error.message, 'is string');
-          //assert.equal(result.error.message, 'METHOD_NOT_FOUND: The method being requested is not available on this server');
-        })
-    })
+          assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+          assert.isString(result.result, 'is string');
+          assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
+          assert.equal(result.result, signedTx.transactionHash, 'has result:' + result.result + ', expected transaction hash:' + signedTx.transactionHash);
+        });
+    });
   });
 })
