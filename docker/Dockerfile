@@ -43,6 +43,7 @@ RUN apt-get update \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
     libmicrohttpd-dev \
+    libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
