@@ -19,8 +19,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/format.hpp>
-
 #include <Schnorr.h>
 #include <boost/format.hpp>
 #include "AddressChecksum.h"
@@ -33,6 +31,7 @@
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -130,7 +129,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
-
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
@@ -177,7 +175,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     }
   } else {
     for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction));
+      transactionsJson.append(convertTxtoEthJson(*transaction, txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -607,7 +605,7 @@ const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
   _json["signature"] = static_cast<string>(txn.GetSignature());
 
   _json["gasPrice"] = txn.GetGasPriceQa().str();
-  _json["gasLimit"] = to_string(txn.GetGasLimit());
+  _json["gasLimit"] = to_string(txn.GetGasLimitZil());
 
   if (!txn.GetCode().empty()) {
     _json["code"] = DataConversion::CharArrayToString(txn.GetCode());
@@ -633,7 +631,7 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
   _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
-  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
+  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimitZil());
 
   if (!twr.GetTransaction().GetCode().empty()) {
     _json["code"] =
@@ -652,14 +650,21 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn) {
+    const TransactionWithReceipt& txn, const TxBlock& txblock) {
+  const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
+
+  retJson["blockNumber"] =
+      (boost::format("0x%x") % txheader.GetBlockNum()).str();
+  retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
-      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+      (boost::format("0x%x") %
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
+          .str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetGasLimit()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetGasLimitRaw()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
   retJson["gasPrice"] =
       (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();

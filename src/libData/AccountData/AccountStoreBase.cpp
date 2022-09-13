@@ -83,10 +83,10 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
     return false;
   }
 
-  if (transaction.GetGasLimit() < NORMAL_TRAN_GAS) {
+  if (transaction.GetGasLimitZil() < NORMAL_TRAN_GAS) {
     LOG_GENERAL(WARNING,
                 "The gas limit "
-                    << transaction.GetGasLimit()
+                    << transaction.GetGasLimitZil()
                     << " should be larger than the normal transaction gas ("
                     << NORMAL_TRAN_GAS << ")");
     error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
@@ -94,7 +94,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
   }
 
   uint128_t gasDeposit = 0;
-  if (!SafeMath<uint128_t>::mul(transaction.GetGasLimit(),
+  if (!SafeMath<uint128_t>::mul(transaction.GetGasLimitZil(),
                                 transaction.GetGasPriceQa(), gasDeposit)) {
     LOG_GENERAL(
         WARNING,
