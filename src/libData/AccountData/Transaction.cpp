@@ -21,6 +21,7 @@
 #include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -51,20 +52,27 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
+  // Generate the signature
+  if (IsEth()) {
+    bytes signature;
+    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID_INT);
+    bytes pk_bytes;
+    const PrivKey& privKey{senderKeyPair.first};
+    privKey.Serialize(pk_bytes, 0);
+    if (!SignEcdsaSecp256k1(digest, pk_bytes, signature)) {
+      LOG_GENERAL(WARNING, "We failed to generate EDDSA m_signature.");
+    }
+    m_signature = Signature(signature, 0);
+  } else {
+    if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
+                       m_signature)) {
+      LOG_GENERAL(WARNING, "We failed to generate m_signature.");
+    }
+  }
+
+  if (!SetHash(txnData)) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
-  }
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
-
-  // Generate the signature
-  if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
-                     m_signature)) {
-    LOG_GENERAL(WARNING, "We failed to generate m_signature.");
   }
 }
 
@@ -90,18 +98,13 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
+  if (!SetHash(txnData)) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
   }
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
   // Verify the signature
-  if (!IsSigned()) {
+  if (!IsSigned(txnData)) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
   }
@@ -150,7 +153,7 @@ const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 // Check if the version is 1 or 2 - the only valid ones for now
 // this will look like 65538 or 65537
 bool Transaction::VersionCorrect() const {
-  auto version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = DataConversion::UnpackB(this->GetVersion());
 
   return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
@@ -165,7 +168,7 @@ const PubKey& Transaction::GetSenderPubKey() const {
 
 Address Transaction::GetSenderAddr() const {
   // If a V2 Tx
-  if ((GetVersion() & 0xffff) == 0x2) {
+  if (IsEth()) {
     LOG_GENERAL(WARNING, "Getting eth style address from pub key");
     return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
   }
@@ -173,13 +176,67 @@ Address Transaction::GetSenderAddr() const {
   return Account::GetAddressFromPublicKey(GetSenderPubKey());
 }
 
-const uint128_t& Transaction::GetAmount() const { return m_coreInfo.amount; }
+bool Transaction::IsEth() const {
+  auto const version = DataConversion::UnpackB(this->GetVersion());
 
-const uint128_t& Transaction::GetGasPrice() const {
+  return version == TRANSACTION_VERSION_ETH;
+}
+
+const uint128_t& Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
+
+const uint128_t Transaction::GetAmountQa() const {
+  if (IsEth()) {
+    return m_coreInfo.amount / EVM_ZIL_SCALING_FACTOR;
+  } else {
+    return m_coreInfo.amount;
+  }
+}
+
+const uint128_t Transaction::GetAmountWei() const {
+  if (IsEth()) {
+    return m_coreInfo.amount;
+  } else {
+    // We know the amounts in transactions are capped, so it won't overlow.
+    return m_coreInfo.amount * EVM_ZIL_SCALING_FACTOR;
+  }
+}
+
+const uint128_t& Transaction::GetGasPriceRaw() const {
   return m_coreInfo.gasPrice;
 }
 
-const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }
+const uint128_t Transaction::GetGasPriceQa() const {
+  if (IsEth()) {
+    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR;
+  } else {
+    return m_coreInfo.gasPrice;
+  }
+}
+
+const uint128_t Transaction::GetGasPriceWei() const {
+  if (IsEth()) {
+    return m_coreInfo.gasPrice;
+  } else {
+    // We know the amounts in transactions are capped, so it won't overlow.
+    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR;
+  }
+}
+
+uint64_t Transaction::GetGasLimitZil() const {
+  if (IsEth()) {
+    return GasConv::GasUnitsFromEthToCore(m_coreInfo.gasLimit);
+  }
+  return m_coreInfo.gasLimit;
+}
+
+uint64_t Transaction::GetGasLimitEth() const {
+  if (IsEth()) {
+    return m_coreInfo.gasLimit;
+  }
+  return GasConv::GasUnitsFromCoreToEth(m_coreInfo.gasLimit);
+}
+
+uint64_t Transaction::GetGasLimitRaw() const { return m_coreInfo.gasLimit; }
 
 const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
 
@@ -187,44 +244,64 @@ const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 
-bool Transaction::IsSignedSchnorr() const {
-  bytes txnData;
-  Messenger::SetTransactionCoreInfo(txnData, 0, GetCoreInfo());
-
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-
-  std::string res;
-  boost::algorithm::hex(txnData.begin(), txnData.end(), back_inserter(res));
-
-  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
-}
-
 bool Transaction::IsSignedECDSA() const {
   std::string pubKeyStr = std::string(GetCoreInfo().senderPubKey);
   std::string sigString = std::string(GetSignature());
 
   // Hash of the TXn data (for now just eth-style prelude)
   // Remove '0x' at beginning of hex strings before calling
-  sigString = sigString.substr(2);
-  pubKeyStr = pubKeyStr.substr(2);
+  if (sigString.size() >= 2 && sigString[0] == '0' && sigString[1] == 'x') {
+    sigString = sigString.substr(2);
+  }
+  if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
+    pubKeyStr = pubKeyStr.substr(2);
+  }
+  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT),
+                              sigString, pubKeyStr);
+}
 
-  auto const hash = GetOriginalHash(GetCoreInfo(), ETH_CHAINID);
+// Set what the hash of the transaction is, depending on its type
+bool Transaction::SetHash(bytes const& txnData) {
+  if (IsEth()) {
+    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT,
+                                         std::string(m_signature));
+    auto const output = CreateHash(asRLP);
 
-  return VerifyEcdsaSecp256k1(hash, sigString, pubKeyStr);
+    if (output.size() != TRAN_HASH_SIZE) {
+      LOG_GENERAL(
+          WARNING,
+          "We failed to generate an eth m_tranID. Wrong size! Expected: "
+              << TRAN_HASH_SIZE << " got: " << output.size());
+      return false;
+    }
+
+    copy(output.begin(), output.end(), m_tranID.asArray().begin());
+    return true;
+  }
+
+  // Generate the transaction ID
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(txnData);
+  const bytes& output = sha2.Finalize();
+  if (output.size() != TRAN_HASH_SIZE) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return false;
+  }
+
+  copy(output.begin(), output.end(), m_tranID.asArray().begin());
+  return true;
 }
 
 // Function to return whether the TX is signed
-bool Transaction::IsSigned() const {
+bool Transaction::IsSigned(bytes const& txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
-  if ((GetVersion() & 0xffff) == 0x2) {
+  if (IsEth()) {
     LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }
 
-  return IsSignedSchnorr();
+  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
 }
 
 void Transaction::SetSignature(const Signature& signature) {

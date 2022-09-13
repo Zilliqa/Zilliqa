@@ -16,9 +16,11 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
+#include <jsonrpccpp/common/exception.h>
 #include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
+#include <stdexcept>
 #include "JSONConversion.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -39,7 +41,9 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -681,11 +685,11 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Code size is too large");
   }
 
-  if (tx.GetGasPrice() < gasPrice) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
-                               " lower than minimum allowable " +
-                               gasPrice.convert_to<string>());
+  if (tx.GetGasPriceQa() < gasPrice) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasPrice " + tx.GetGasPriceQa().convert_to<string>() +
+            " lower than minimum allowable " + gasPrice.convert_to<string>());
   }
   if (!Validator::VerifyTransaction(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -704,31 +708,31 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   const auto type = Transaction::GetTransactionType(tx);
 
   if (type == Transaction::ContractType::CONTRACT_CALL &&
-      (tx.GetGasLimit() <
+      (tx.GetGasLimitZil() <
        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                           "Gas limit (" + to_string(tx.GetGasLimitZil()) +
                                ") lower than minimum for invoking contract (" +
                                to_string(CONTRACT_INVOKE_GAS) + ")");
   }
 
   else if (type == Transaction::ContractType::CONTRACT_CREATION &&
-           (tx.GetGasLimit() <
+           (tx.GetGasLimitZil() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) +
+        "Gas limit (" + to_string(tx.GetGasLimitZil()) +
             ") lower than minimum for creating contract (" +
             to_string(max(
                 CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size()))) +
             ")");
   } else if (type == Transaction::ContractType::NON_CONTRACT &&
-             tx.GetGasLimit() < NORMAL_TRAN_GAS) {
+             tx.GetGasLimitZil() < NORMAL_TRAN_GAS) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) +
+        "Gas limit (" + to_string(tx.GetGasLimitZil()) +
             ") lower than minimum for payment transaction (" +
             to_string(NORMAL_TRAN_GAS) + ")");
   }
@@ -742,17 +746,18 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   // Check if transaction amount is valid
   uint128_t gasDeposit = 0;
-  if (!SafeMath<uint128_t>::mul(tx.GetGasLimit(), tx.GetGasPrice(),
+  if (!SafeMath<uint128_t>::mul(tx.GetGasLimitZil(), tx.GetGasPriceQa(),
                                 gasDeposit)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "tx.GetGasLimit() * tx.GetGasPrice() overflow!");
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "tx.GetGasLimitZil() * tx.GetGasPriceQa() overflow!");
   }
 
   uint128_t debt = 0;
-  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmount(), debt)) {
+  if (!SafeMath<uint128_t>::add(gasDeposit, tx.GetAmountQa(), debt)) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmount() overflow!");
+        "tx.GetGasLimitZil() * tx.GetGasPrice() + tx.GetAmountQa() overflow!");
   }
 
   if (sender->GetBalance() < debt) {
@@ -762,9 +767,9 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 
   if ((type == Transaction::ContractType::CONTRACT_CREATION ||
        type == Transaction::ContractType::NON_CONTRACT) &&
-      tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+      tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Txn gas limit " + to_string(tx.GetGasLimit()) +
+                           "Txn gas limit " + to_string(tx.GetGasLimitZil()) +
                                " greater than microblock gas limit" +
                                to_string(SHARD_MICROBLOCK_GAS_LIMIT));
   }
@@ -804,7 +809,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   // Use m_sendSCCallsToDS as initial setting
   bool sendToDs = priority || m_mediator.m_lookup->m_sendSCCallsToDS;
   if ((to_shard == shard) && !sendToDs) {
-    if (tx.GetGasLimit() > SHARD_MICROBLOCK_GAS_LIMIT) {
+    if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "txn gas limit exceeding shard maximum limit");
     }
@@ -815,7 +820,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
         "Contract Creation/Call Txn, Shards Match of the sender "
         "and receiver";
   } else {
-    if (tx.GetGasLimit() > DS_MICROBLOCK_GAS_LIMIT) {
+    if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "txn gas limit exceeding ds maximum limit");
     }
@@ -945,8 +950,9 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::CreateTransactionEth(
-    EthFields const& fields, bytes const& pubKey, const unsigned int num_shards,
-    const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
+    Eth::EthFields const& fields, bytes const& pubKey,
+    const unsigned int num_shards, const uint128_t& gasPrice,
+    const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -995,7 +1001,7 @@ Json::Value LookupServer::CreateTransactionEth(
       const Account* toAccount =
           AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
-      if (!ValidateTxn(tx, fromAddr, sender, gasPrice)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
         LOG_GENERAL(WARNING, "failed to validate TX!");
         return ret;
       }
@@ -1065,6 +1071,34 @@ Json::Value LookupServer::CreateTransactionEth(
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: N/A");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+}
+
+TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
+  const TxBlock EMPTY_BLOCK;
+  const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+  auto height = txBlock.GetHeader().GetBlockNum();
+  if (height == std::numeric_limits<uint64_t>::max()) {
+    return EMPTY_BLOCK;
+  }
+
+  TxnHash argHash{txnhash};
+  do {
+    auto const block = GetEthBlockByNumber(std::to_string(height), false);
+    if (block == Json::nullValue) {
+      return EMPTY_BLOCK;
+    }
+    auto const TxnHashes = block["transactions"];
+    for (auto const& item : TxnHashes) {
+      TxnHash hash_1{item.asString()};
+      if (hash_1 == argHash) {
+        const std::string blockHash = block["hash"].asString();
+        const BlockHash hash{blockHash};
+        return m_mediator.m_txBlockChain.GetBlockByHash(hash);
+      }
+    }
+  } while (--height);
+
+  return EMPTY_BLOCK;
 }
 
 Json::Value LookupServer::GetEthBlockNumber() {
@@ -1182,16 +1216,56 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-Json::Value LookupServer::GetEthBalance(const std::string& address) {
-  const auto balanceStr = this->GetBalance(address, true)["balance"].asString();
+static bool isNumber(const std::string& str) {
+  char* endp;
+  strtoull(str.c_str(), &endp, 0);
+  return (str.size() > 0 && endp != nullptr && *endp == '\0');
+}
 
-  const uint256_t ethBalance =
-      std::strtoll(balanceStr.c_str(), nullptr, 16) * EVM_ZIL_SCALING_FACTOR;
+Json::Value LookupServer::GetEthBalance(const std::string& address,
+                                        const std::string& tag) {
+  if (tag == "latest" || tag == "earliest" || tag == "pending" ||
+      isNumber(tag)) {
+    uint256_t ethBalance{0};
+    try {
+      auto ret = this->GetBalanceAndNonce(address);
+      ethBalance.assign(ret["balance"].asString());
+    } catch (const JsonRpcException&) {
+      // default ethBalance.
+    } catch (const std::runtime_error& e) {
+      throw JsonRpcException(RPC_MISC_ERROR, "Invalid account balance number");
+    }
+    uint256_t ethBalanceScaled;
+    if (!SafeMath<uint256_t>::mul(ethBalance, EVM_ZIL_SCALING_FACTOR,
+                                  ethBalanceScaled)) {
+      throw JsonRpcException(RPC_MISC_ERROR, "GetEthBalance overflow");
+    }
 
-  std::ostringstream strm;
-  strm << "0x" << std::hex << ethBalance << std::dec;
+    std::ostringstream strm;
+    strm << "0x" << std::hex << ethBalanceScaled << std::dec;
 
-  return strm.str();
+    return strm.str();
+  }
+  throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process, invalid tag");
+
+  return "";
+}
+
+Json::Value LookupServer::getEthGasPrice() const {
+  try {
+    uint256_t gasPrice =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+    // Make gas price in wei
+    gasPrice = gasPrice * EVM_ZIL_SCALING_FACTOR;
+    std::ostringstream strm;
+
+    strm << "0x" << std::hex << gasPrice << std::dec;
+    return strm.str();
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what());
+
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+  }
 }
 
 Json::Value LookupServer::GetEthBlockTransactionCountByHash(
@@ -1325,47 +1399,19 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    // Scan downwards looking for the block hash with our TX in it
-    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-
-    auto height = txBlock.GetHeader().GetBlockNum() ==
-                          std::numeric_limits<uint64_t>::max()
-                      ? 1
-                      : txBlock.GetHeader().GetBlockNum();
-
-    std::string blockHash = "";
-    std::string blockNumber = "";
-
-    TxnHash argHash{txnhash};
-    // Scan downwards through the chain until the TX can be found
-    do {
-      auto const block = GetEthBlockByNumber(std::to_string(height), false);
-      height--;
-
-      // Attempt to find if the TX is within this block
-      auto const TxnHashes = block["transactions"];
-
-      for (auto const& item : TxnHashes) {
-        TxnHash hash_1{item.asString()};
-
-        if (hash_1 == argHash) {
-          blockHash = block["hash"].asString();
-          blockNumber = block["number"].asString();
-          break;
-        }
-      }
-    } while (height != 0 && blockHash == "");
-
-    if (blockHash == "") {
+    const TxBlock EMPTY_BLOCK;
+    auto txBlock = GetBlockByTransactionHash(txnhash);
+    if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
       return Json::nullValue;
     }
 
+    TxnHash argHash{txnhash};
     TxBodySharedPtr transactioBodyPtr;
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
@@ -1375,7 +1421,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     }
 
     auto const ethResult =
-        JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+        JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
     auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
@@ -1384,16 +1430,20 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
-    std::string cumGas = zilResult["cumulative_gas"].asString();
+    std::string cumGas = std::to_string(GasConv::GasUnitsFromCoreToEth(
+        transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
 
-    if (blockHash.size() > 2 && blockHash[0] != '0' && blockHash[1] != 'x') {
-      blockHash = std::string("0x") + blockHash;
-    }
+    const TxBlockHeader& txHeader = txBlock.GetHeader();
+    const std::string blockNumber =
+        (boost::format("0x%x") % txHeader.GetBlockNum()).str();
+    const std::string blockHash =
+        std::string{"0x"} + txBlock.GetBlockHash().hex();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res = populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                     blockHash, blockNumber, contractAddress);
+    auto res =
+        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
+                                   blockHash, blockNumber, contractAddress);
 
     return res;
   } catch (const JsonRpcException& je) {
@@ -1663,7 +1713,8 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     }
 
     // for now set total gas as twice the ds gas limit
-    uint64_t gasRemained = 2 * DS_MICROBLOCK_GAS_LIMIT;
+    uint64_t gasRemained =
+        GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
       gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
@@ -1690,36 +1741,6 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
   return result;
 }
 
-// Get balance, but return the result as hex rather than decimal string
-Json::Value LookupServer::GetBalance(const string& address, bool noThrow) {
-  try {
-    auto ret = this->GetBalanceAndNonce(address);
-
-    // Will fit into 128 since that is the native zil balance
-    // size
-    uint128_t balance{ret["balance"].asString()};
-
-    // Convert the result from decimal string to hex string
-    std::stringstream ss;
-    ss << std::hex << balance;  // int decimal_value
-    std::string res(ss.str());
-
-    ret["balance"] = res;
-
-    return ret;
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    if (noThrow) {
-      Json::Value ret;
-      ret["balance"] = "0x0";
-      ret["nonce"] = static_cast<unsigned int>(0);
-      return ret;
-    } else {
-      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
-    }
-  }
-}
-
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
   return "to do implement web3 version string";
@@ -1727,12 +1748,9 @@ std::string LookupServer::GetWeb3ClientVersion() {
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-
-  const auto str{_json.asString()};
-  LOG_GENERAL(DEBUG, "GetWeb3Sha3 on:" << str);
-
-  return POW::BlockhashToHexString(ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(str.data()), str.size()));
+  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
+  return POW::BlockhashToHexString(
+      ethash::keccak256(input.data(), input.size()));
 }
 
 Json::Value LookupServer::GetEthUncleCount() {
@@ -1751,8 +1769,7 @@ Json::Value LookupServer::GetEthUncleBlock() {
 
 Json::Value LookupServer::GetEthMining() {
   LOG_MARKER();
-  // @todo : the mining state a could be retrieved from the WorkServer if it can
-  // provide the exact state of mining.
+
   return Json::Value(false);
 }
 
@@ -1810,7 +1827,8 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (!isPresent) {
       return Json::nullValue;
     }
-    return JSONConversion::convertTxtoEthJson(*transactioBodyPtr);
+    auto txBlock = GetBlockByTransactionHash(transactionHash);
+    return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");

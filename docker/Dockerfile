@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+ARG REGISTRY=
 
 ARG BASE=zilliqa/scilla:v0.11.0
 FROM ${BASE} AS scilla
@@ -20,15 +21,17 @@ FROM ${BASE} AS scilla
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM ubuntu:18.04 AS builder
+FROM ${REGISTRY}zilliqa:v8.2.0-deps AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
+    bison \
     build-essential \
     ca-certificates \
     cmake \
+    gawk \
     wget \
     # curl is not a build dependency
     curl \
@@ -37,20 +40,9 @@ RUN apt-get update \
     # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
     # mention again as installation candidate
     rsync \
-    libboost-filesystem-dev \
-    libboost-program-options-dev \
-    libboost-system-dev \
-    libboost-test-dev \
-    libboost-python-dev \
     libcurl4-openssl-dev \
-    libevent-dev \
-    libjsoncpp-dev \
     libjsonrpccpp-dev \
-    libleveldb-dev \
     libmicrohttpd-dev \
-    libminiupnpc-dev \
-    libsnappy-dev \
-    libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
@@ -77,23 +69,23 @@ RUN cmake --version \
     && rm cmake-3.19.3-Linux-x86_64.sh
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=v8.2.0-alpha.0
+ARG COMMIT_OR_TAG=master
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
 ARG BUILD_TYPE=RelWithDebInfo
 ARG EXTRA_CMAKE_ARGS=
-ARG MONGO_INSTALL_DIR=${BUILD_DIR}/mongo
+ARG VCPKG_ROOT=/vcpkg
 
 RUN git clone ${REPO} ${SOURCE_DIR}
 RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
-RUN cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} ${EXTRA_CMAKE_ARGS}
+RUN cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic ${EXTRA_CMAKE_ARGS} 
 RUN cmake --build ${BUILD_DIR} -- -j$(nproc)
 RUN cmake --build ${BUILD_DIR} --target install
 RUN cd $SOURCE_DIR/evm-ds && cargo build --release --package evm-ds
+RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
-RUN echo "mongo files:" && ls -lh ${MONGO_INSTALL_DIR}/lib
 
 # strip all exes
 RUN strip /usr/local/bin/grepperf \
@@ -122,7 +114,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libTrie.so
 
 # start from a new ubuntu as the runner image
-FROM ubuntu:18.04
+FROM zilliqa:v8.2.0-deps
 
 # install all necessary libraries
 RUN apt-get update \
@@ -130,20 +122,8 @@ RUN apt-get update \
     && apt-get update && apt-get install -y --no-install-recommends \
     # libs
     ca-certificates \
-    libboost-filesystem-dev \
-    libboost-program-options-dev \
-    libboost-system-dev \
-    libboost-test-dev \
-    libboost-python-dev \
     libcurl4-openssl-dev \
-    libevent-dev \
-    libjsoncpp-dev \
     libjsonrpccpp-dev \
-    libleveldb-dev \
-    libmicrohttpd-dev \
-    libminiupnpc-dev \
-    libsnappy-dev \
-    libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
@@ -177,8 +157,8 @@ RUN mkdir -p \
     /zilliqa/scripts
 
 ARG INSTALL_DIR=/usr/local
-ARG MONGO_INSTALL_DIR=/build/mongo
 ARG SOURCE_DIR=/zilliqa
+ARG VCPKG_ROOT=/vcpkg
 
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
@@ -189,12 +169,13 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
-COPY --from=builder ${MONGO_INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
 COPY --from=builder ${SOURCE_DIR}/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
 COPY --from=builder ${SOURCE_DIR}/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
-ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib:${MONGO_INSTALL_DIR}/lib
+RUN rm -rf ${VCPKG_ROOT}
+
+ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
 ENTRYPOINT ["/bin/bash"]

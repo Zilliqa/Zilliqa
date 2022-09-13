@@ -65,7 +65,7 @@ class IsolatedServer : public LookupServer,
       return;
     }
 
-    auto const fields = parseRawTxFields(rawTx);
+    auto const fields = Eth::parseRawTxFields(rawTx);
     auto const resp = CreateTransactionEth(fields, pubKey);
 
     response = std::string{"0x"} + resp["TranID"].asString();
@@ -116,7 +116,7 @@ class IsolatedServer : public LookupServer,
   std::string GetMinimumGasPrice();
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
-  Json::Value CreateTransactionEth(EthFields const& fields,
+  Json::Value CreateTransactionEth(Eth::EthFields const& fields,
                                    bytes const& pubKey);
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
