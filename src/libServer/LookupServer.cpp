@@ -1430,7 +1430,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
-    std::string cumGas = std::to_string(GasConv::GasUnitsFromCoreToEth(
+    std::string cumGas = "0x" + std::to_string(GasConv::GasUnitsFromCoreToEth(
         transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
