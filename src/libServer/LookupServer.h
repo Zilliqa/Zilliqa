@@ -504,7 +504,7 @@ class LookupServer : public Server,
    */
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
-    response = this->GetNetVersion();
+    response = this->GetEthChainId();
   }
 
   /**
@@ -701,7 +701,6 @@ class LookupServer : public Server,
   Json::Value GetEthUncleBlock();
   Json::Value GetEthMining();
   std::string GetEthCoinbase();
-  std::string GetNetVersion();
   Json::Value GetNetListening();
   std::string GetNetPeerCount();
   std::string GetProtocolVersion();
