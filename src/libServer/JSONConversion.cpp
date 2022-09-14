@@ -695,7 +695,8 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["nonce"] =
       (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
   if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
-    retJson["to"] = Json::nullValue;  // special for contract creation transactions.
+    retJson["to"] =
+        Json::nullValue;  // special for contract creation transactions.
   } else {
     retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
   }
