@@ -1251,7 +1251,8 @@ Json::Value LookupServer::getEthGasPrice() const {
     uint256_t gasPrice =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
     // Make gas price in wei
-    gasPrice = gasPrice * EVM_ZIL_SCALING_FACTOR;
+    gasPrice =
+        (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
     std::ostringstream strm;
 
     strm << "0x" << std::hex << gasPrice << std::dec;

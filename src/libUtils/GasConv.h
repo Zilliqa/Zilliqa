@@ -30,7 +30,6 @@ class GasConv {
     return gasLimit * GetScalingFactor();
   }
 
- private:
   static uint64_t GetScalingFactor() { return MIN_ETH_GAS / NORMAL_TRAN_GAS; }
 };
 
