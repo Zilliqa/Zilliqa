@@ -1256,7 +1256,8 @@ Json::Value LookupServer::getEthGasPrice() const {
     uint256_t gasPrice =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
     // Make gas price in wei
-    gasPrice = gasPrice * EVM_ZIL_SCALING_FACTOR;
+    gasPrice =
+        (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
     std::ostringstream strm;
 
     strm << "0x" << std::hex << gasPrice << std::dec;
@@ -1430,8 +1431,11 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
-    std::string cumGas = std::to_string(GasConv::GasUnitsFromCoreToEth(
-        transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
+    std::string cumGas =
+        (boost::format("0x%x") %
+         GasConv::GasUnitsFromCoreToEth(
+             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
+            .str();
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
     const std::string blockNumber =
@@ -1776,11 +1780,6 @@ Json::Value LookupServer::GetEthMining() {
 std::string LookupServer::GetEthCoinbase() {
   LOG_MARKER();
   return "0x0000000000000000000000000000000000000000";
-}
-
-std::string LookupServer::GetNetVersion() {
-  LOG_MARKER();
-  return "0x8000";  // Like Ethereum, including test nets.
 }
 
 Json::Value LookupServer::GetNetListening() {

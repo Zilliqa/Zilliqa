@@ -124,7 +124,7 @@ class EvmDsTestCase:
                 "to": dest.address,
                 "value": amount,
                 "gas": 25_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
                 "data": b"",
@@ -149,7 +149,7 @@ class EvmDsTestCase:
         txn = contract_class.constructor(*args).build_transaction(
             {
                 "gas": 295_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "value": value,
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
@@ -179,7 +179,7 @@ class EvmDsTestCase:
                 "value": value,
                 "data": data_bytes,
                 "gas": 85_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             },
@@ -227,7 +227,7 @@ class EvmDsTestCase:
                 "from": account.address,
                 "value": value,
                 "gas": 295_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             }
@@ -259,7 +259,7 @@ class EvmDsTestCase:
             {
                 "from": self.account.address,
                 # "gas": 30_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "chainId": self.eth_network_id,
             }
         )

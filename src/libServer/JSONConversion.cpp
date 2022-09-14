@@ -24,6 +24,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "json/value.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
@@ -692,7 +693,11 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["data"] = inputField;
   retJson["nonce"] =
       (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
-  retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
+    retJson["to"] = Json::nullValue;  // special for contract creation transactions.
+  } else {
+    retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  }
   retJson["value"] =
       (boost::format("0x%x") % txn.GetTransaction().GetAmountWei()).str();
   if (!txn.GetTransaction().GetCode().empty() &&
@@ -703,6 +708,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
                                        txn.GetTransaction().GetNonce() - 1)
             .hex();
   }
+  retJson["type"] = "0x0";
   return retJson;
 }
 
