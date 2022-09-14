@@ -10,17 +10,60 @@ matrix:
     # - os: osx
     #  osx_image: xcode10.1
 
+addons:
+  apt:
+    update: true
+    packages:
+      # APT packages are organized into two groups, build dependency and
+      # development dependency, where the former is necessary for users who
+      # want to build Zilliqa whereas the latter is only for CI.
+      # Note that the names are sorted in each group.
+      #
+      # Build dependency
+      - build-essential
+      - cmake
+      - libboost-filesystem-dev
+      - libboost-program-options-dev
+      - libboost-system-dev
+      - libboost-test-dev
+      - libboost-python-dev
+      - libcurl4-openssl-dev
+      - libevent-dev
+      - libjsoncpp-dev
+      - libjsonrpccpp-dev
+      - libleveldb-dev
+      - libmicrohttpd-dev
+      - libminiupnpc-dev
+      - libsnappy-dev
+      - libssl-dev
+      - cargo
+      - pkg-config
+      # Development dependency
+      - ccache
+      - clang-5.0
+      - clang-format-5.0
+      - clang-tidy-5.0
+      - curl
+      - gawk
+      - git
+      - lcov
+      - libxml2-utils
+      - python-dev
+      - python3-dev
+      - libsecp256k1-dev
+
 install:
-  - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-  - unzip awscliv2.zip
-  - sudo ./aws/install
+  - wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
+  - mkdir -p "${HOME}"/.local
+  - bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+  - cmake --version
+  - rm cmake-3.19.3-Linux-x86_64.sh
   - docker run --rm -it -v /scilla:/root/scilla zilliqa/scilla:v0.11.0 cp -r /scilla /root/
   - ls /scilla/0/
-  - docker login -u AWS -p $(aws ecr get-login-password --region ${AWS_REGION}) ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-  - docker build --build-arg AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} --build-arg AWS_REGION=${AWS_REGION} -t "zilliqa_build:$TRAVIS_COMMIT" -f ./scripts/Dockerfile.build .
 
 script:
-  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then docker run --rm -it -v /scilla:/scilla zilliqa_build:$TRAVIS_COMMIT -c './scripts/ci_build.sh ; ./scripts/ci_report_coverage.sh'; fi
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh; fi
 
-env:
-  - VCPKG_ROOT=/vcpkg
+# Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
+after_success:
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_report_coverage.sh; fi
