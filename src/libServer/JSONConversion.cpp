@@ -72,7 +72,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
   bool isVacuous =
       Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
-  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
@@ -81,7 +80,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(timestamp);
+  ret_head["Timestamp"] = txblock.GetTimestamp();
 
   ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
   ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
