@@ -1222,10 +1222,14 @@ static bool isNumber(const std::string& str) {
   return (str.size() > 0 && endp != nullptr && *endp == '\0');
 }
 
+static bool isSupportedTag(const std::string &tag) {
+  return tag == "latest" || tag == "earliest" || tag == "pending" ||
+    isNumber(tag);
+}
+
 Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
-  if (tag == "latest" || tag == "earliest" || tag == "pending" ||
-      isNumber(tag)) {
+  if (isSupportedTag(tag)) {
     uint256_t ethBalance{0};
     try {
       auto ret = this->GetBalanceAndNonce(address);
@@ -1678,9 +1682,9 @@ string LookupServer::GetEthCallZil(const Json::Value& _json) {
 
 string LookupServer::GetEthCallEth(const Json::Value& _json,
                                    const string& block_or_tag) {
-  if (block_or_tag != "latest") {
+  if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(RPC_INVALID_PARAMS,
-                           "Only latest block is supported in eth_call");
+                           "Unsupported block or tag in eth_call");
   }
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
