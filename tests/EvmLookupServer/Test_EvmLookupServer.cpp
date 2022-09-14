@@ -485,7 +485,7 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "0x814d");
+  BOOST_CHECK_EQUAL(response.asString(), "0x8001");
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_syncing) {
@@ -1291,6 +1291,39 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       }
     }
   }
+}
+
+BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = getTestKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  const uint256_t GAS_PRICE_CORE = 420;
+  const DSBlockHeader dsHeader{
+      1,  1,  {}, 1,  1, GAS_PRICE_CORE.convert_to<uint32_t>(),
+      {}, {}, {}, {}, {}};
+  const DSBlock dsBlock{dsHeader, {}};
+  mediator.m_dsBlockChain.AddBlock(dsBlock);
+
+  Json::Value response;
+  // call the method on the lookup server with params
+
+  lookupServer.GetEthGasPriceI({}, response);
+
+  const auto EXPECTED_RESPONSE = (boost::format("0x%X") % (1000000)).str();
+
+  BOOST_TEST_CHECK(response.asString() == EXPECTED_RESPONSE);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

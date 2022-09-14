@@ -19,8 +19,6 @@
 #include <string>
 #include <vector>
 
-#include <boost/format.hpp>
-
 #include <Schnorr.h>
 #include <boost/format.hpp>
 #include "AddressChecksum.h"
@@ -131,7 +129,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
-
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
@@ -178,7 +175,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     }
   } else {
     for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction));
+      transactionsJson.append(convertTxtoEthJson(*transaction, txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -653,8 +650,13 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn) {
+    const TransactionWithReceipt& txn, const TxBlock& txblock) {
+  const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
+
+  retJson["blockNumber"] =
+      (boost::format("0x%x") % txheader.GetBlockNum()).str();
+  retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
       (boost::format("0x%x") %
@@ -663,7 +665,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =
       (boost::format("0x%x") % txn.GetTransaction().GetGasLimitRaw()).str();
-  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
+  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
   retJson["gasPrice"] =
       (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();
   retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();

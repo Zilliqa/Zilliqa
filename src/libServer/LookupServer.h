@@ -22,6 +22,7 @@
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 class Mediator;
@@ -361,11 +362,14 @@ class LookupServer : public Server,
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
-    std::string address = request[0u].asString();
-    DataConversion::NormalizeHexString(address);
-    const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
-
-    response = DataConversion::IntToHexString(resp);
+    try {
+      std::string address = request[0u].asString();
+      DataConversion::NormalizeHexString(address);
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+      response = DataConversion::IntToHexString(resp);
+    } catch (...) {
+      response = "0x0";
+    }
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
@@ -382,7 +386,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
+    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
@@ -393,11 +397,12 @@ class LookupServer : public Server,
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
 
     // For Eth transactions, pass gas Price in Wei
-    auto resp = CreateTransactionEth(
-        fields, pubKey, shards,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-            EVM_ZIL_SCALING_FACTOR,
-        m_createTransactionTarget);
+    const auto gasPrice =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+         EVM_ZIL_SCALING_FACTOR) /
+        GasConv::GetScalingFactor();
+    auto resp = CreateTransactionEth(fields, pubKey, shards, gasPrice,
+                                     m_createTransactionTarget);
     response = std::string{"0x"} + resp["TranID"].asString();
   }
 
@@ -668,7 +673,6 @@ class LookupServer : public Server,
   Json::Value GetLatestDsBlock();
   Json::Value GetLatestTxBlock();
   Json::Value GetBalanceAndNonce(const std::string& address);
-  Json::Value GetBalance(const std::string& address, bool noThrow);
   std::string GetMinimumGasPrice();
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
@@ -716,6 +720,7 @@ class LookupServer : public Server,
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
 
+  TxBlock GetBlockByTransactionHash(const std::string& txnhash);
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,

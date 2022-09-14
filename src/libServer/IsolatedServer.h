@@ -59,7 +59,7 @@ class IsolatedServer : public LookupServer,
       rawTx.erase(0, 2);
     }
 
-    auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
+    auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
