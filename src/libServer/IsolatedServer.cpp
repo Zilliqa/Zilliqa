@@ -667,7 +667,6 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 
-    // uint64_t senderNonce; // ???
     uint256_t senderBalance;
 
     const uint128_t gasPriceWei =
@@ -689,7 +688,6 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       }
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-      /*senderNonce = sender->GetNonce();*/  // ???
     }
 
     switch (Transaction::GetTransactionType(tx)) {
