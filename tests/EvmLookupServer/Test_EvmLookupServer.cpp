@@ -1309,7 +1309,7 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 
   LookupServer lookupServer(mediator, abstractServerConnector);
 
-  const uint256_t GAS_PRICE_CORE = 2000000000;
+  const uint256_t GAS_PRICE_CORE = 420;
   const DSBlockHeader dsHeader{
       1,  1,  {}, 1,  1, GAS_PRICE_CORE.convert_to<uint32_t>(),
       {}, {}, {}, {}, {}};
@@ -1321,10 +1321,8 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 
   lookupServer.GetEthGasPriceI({}, response);
 
-  const auto EXPECTED_RESPONSE =
-      (boost::format("0x%x") % ((GAS_PRICE_CORE * EVM_ZIL_SCALING_FACTOR) /
-                                GasConv::GetScalingFactor()))
-          .str();
+  const auto EXPECTED_RESPONSE = (boost::format("0x%X") % (1000000)).str();
+
   BOOST_TEST_CHECK(response.asString() == EXPECTED_RESPONSE);
 }
 

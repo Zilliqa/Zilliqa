@@ -56,12 +56,12 @@ class EvmDsTestCase:
 
     endpoint = os.environ.get("ZILLIQA_API", "http://localhost:5555")
     network_id = int(os.environ.get("ZILLIQA_CHAIN_ID", "1"), 0)
-    eth_network_id = network_id + 0x8000
+    eth_network_id = 33101 # network_id + 0x8000
 
     def init(self, num_accounts=1):
         self.w3 = Web3(Web3.HTTPProvider(self.endpoint, request_kwargs={'timeout': 90}))
         funded_account = EthAccount.from_key(
-            private_key="d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"
+            private_key="254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004"
         )
         self.accounts = [
             EthAccount.from_key(
@@ -124,7 +124,7 @@ class EvmDsTestCase:
                 "to": dest.address,
                 "value": amount,
                 "gas": 25_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
                 "data": b"",
@@ -149,7 +149,7 @@ class EvmDsTestCase:
         txn = contract_class.constructor(*args).build_transaction(
             {
                 "gas": 295_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "value": value,
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
@@ -179,7 +179,7 @@ class EvmDsTestCase:
                 "value": value,
                 "data": data_bytes,
                 "gas": 85_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             },
@@ -227,7 +227,7 @@ class EvmDsTestCase:
                 "from": account.address,
                 "value": value,
                 "gas": 295_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "nonce": nonce,
                 "chainId": self.eth_network_id,
             }
@@ -259,7 +259,7 @@ class EvmDsTestCase:
             {
                 "from": self.account.address,
                 # "gas": 30_000,
-                "gasPrice": from_gwei(10_000 * 420),
+                "gasPrice": from_gwei(10_000),
                 "chainId": self.eth_network_id,
             }
         )
