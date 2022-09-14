@@ -22,9 +22,12 @@
 #include "jsonrpccpp/server.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
+#include "libUtils/BlockTransactionsHelper.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+
+#include <ethash/keccak.hpp>
 
 using namespace jsonrpc;
 
@@ -34,7 +37,8 @@ Json::Value populateReceiptHelper(
     std::string const &txnhash, bool success, const std::string &from,
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
-    const Json::Value &contractAddress, const Json::Value &logs) {
+    const Json::Value &contractAddress, const Json::Value &logs,
+    const Json::Value &transactionIndex, const std::string &logsBloom) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -45,20 +49,12 @@ Json::Value populateReceiptHelper(
   ret["from"] = from;
   ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["logs"] = logs;
-  ret["logsBloom"] =
-      "0x0000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "0000000000";
+  ret["logsBloom"] = logsBloom;
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
   ret["status"] = success ? "0x1" : "0x0";
   ret["to"] = to;
-  ret["transactionIndex"] = "0x0";
+  ret["transactionIndex"] = transactionIndex;
 
   return ret;
 }
@@ -211,6 +207,45 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   return true;
+}
+
+// EVM returns logs in a form of: [{ data: 0xabcdef, address: 0xabcdef, topics:
+// [AT_MOST_3_TOPICS_HEX_ENCODED]}]
+void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
+                         const std::string &txHash,
+                         const std::string &blockHash,
+                         const std::string &blockNum,
+                         const Json::Value &transactionIndex) {
+  for (auto &logEntry : logsArrayFromEvm) {
+    logEntry["removed"] = false;
+    logEntry["transactionIndex"] = transactionIndex;
+    logEntry["transactionHash"] = txHash;
+    logEntry["blockHash"] = blockHash;
+    logEntry["blockNumber"] = blockNum;
+  }
+}
+
+LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
+  const std::string address = logObject.get("address").asString();
+  const auto topicsArray = logObject.get("topics");
+
+  LogBloom bloom;
+  bloom.shiftBloom<3>(eth::keccak(address.c_str(), address.size()));
+
+  for (const auto &jsonTopic : topicsArray) {
+    const auto topic = jsonTopic.asString();
+    bloom.shiftBloom<3>(eth::keccak(topic.c_str(), topic.size()));
+  }
+  return bloom;
+}
+
+LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
+  LogBloom bloom;
+  for (const auto &logEntry : logsArray) {
+    const auto singleBloom = BuildBloomForLogObject(logEntry);
+    bloom |= singleBloom;
+  }
+  return bloom;
 }
 
 }  // namespace Eth

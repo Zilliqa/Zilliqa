@@ -38,6 +38,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
+#include "libUtils/BlockTransactionsHelper.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GasConv.h"
@@ -1418,6 +1419,13 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       blockHash = std::string("0x") + blockHash;
     }
 
+    const auto transactionIndexOpt =
+        BlockTransactionsHelper::GetTransactionIndexInBlock(
+            m_mediator.m_txBlockChain, txnhash, blockHash);
+
+    const Json::Value transactionIndex =
+        transactionIndexOpt.value_or(Json::nullValue);
+
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
 
@@ -1425,9 +1433,12 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
         transactioBodyPtr->GetTransactionReceipt().GetJsonValue().get(
             "event_logs", Json::arrayValue);
 
-    auto res = Eth::populateReceiptHelper(hashId, success, sender, toAddr,
-                                          cumGas, blockHash, blockNumber,
-                                          contractAddress, logs);
+    const auto logsBloom = Eth::BuildBloomForLogs(logs);
+    const auto logsBloomHex = std::string{"0x"} + logsBloom.hex();
+
+    auto res = Eth::populateReceiptHelper(
+        hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
+        contractAddress, logs, transactionIndex, logsBloomHex);
 
     return res;
   } catch (const JsonRpcException& je) {

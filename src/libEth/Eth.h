@@ -28,6 +28,8 @@ class Account;
 
 namespace Eth {
 
+using LogBloom = dev::h2048;
+
 // https://eips.ethereum.org/EIPS/eip-170
 constexpr auto MAX_EVM_CONTRACT_SIZE_BYTES = 24576;
 
@@ -47,12 +49,22 @@ Json::Value populateReceiptHelper(
     std::string const &txnhash, bool success, const std::string &from,
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
-    const Json::Value &contractAddress, const Json::Value &logs);
+    const Json::Value &contractAddress, const Json::Value &logs,
+    const Json::Value &transactionIndex, const std::string &logsBloom);
 
 EthFields parseRawTxFields(std::string const &message);
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                     const Account *sender, const uint128_t &gasPrice);
+void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
+                         const std::string &txHash,
+                         const std::string &blockHash,
+                         const std::string &blockNum,
+                         const Json::Value &transactionIndex);
+
+LogBloom BuildBloomForLogObject(const Json::Value &logObject);
+LogBloom BuildBloomForLogs(const Json::Value &logsArray);
+
 }  // namespace Eth
 
 #endif  // ZILLIQA_SRC_LIBETH_ETH_H_
