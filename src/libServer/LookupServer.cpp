@@ -1800,7 +1800,7 @@ std::string LookupServer::GetProtocolVersion() {
 
 std::string LookupServer::GetEthChainId() {
   LOG_MARKER();
-  return ETH_CHAINID;
+  return (boost::format("0x%x") % ETH_CHAINID).str();
 }
 
 Json::Value LookupServer::GetEthSyncing() {
