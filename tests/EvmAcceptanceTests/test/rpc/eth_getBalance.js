@@ -36,7 +36,6 @@ describe("Calling " + METHOD, async function () {
 
             function onMoveFundsError(error) {
                 console.log("Then with Error:", error);
-                assert(false);
             };
 
             await zHelper.moveFunds(initialBalance, receiverAccount.address).then(onMoveFundsFinished, onMoveFundsError);

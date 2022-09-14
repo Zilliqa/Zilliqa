@@ -364,7 +364,6 @@ class LookupServer : public Server,
     std::string address = request[0u].asString();
     DataConversion::NormalizeHexString(address);
     const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
-
     response = DataConversion::IntToHexString(resp);
   }
 
@@ -403,6 +402,8 @@ class LookupServer : public Server,
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
+    LOG_MARKER();
+
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
