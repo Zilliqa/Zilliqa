@@ -516,3 +516,22 @@ bytes CreateHash(std::string const& rawTx) {
 
   return hashBytes;
 }
+
+bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
+  dev::RLPStream rlpStream(2);
+  rlpStream << senderAddr;
+  rlpStream << nonce;
+
+  auto const* dataPtr = rlpStream.out().data();
+  auto const asBytes = bytes(dataPtr, dataPtr + rlpStream.out().size());
+
+  auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
+
+  bytes hashBytes;
+
+  // Only the last 40 bytes needed
+  // 8B6621534A2DA69F2F7FF7A3CD234A471B72BA2F1CCF0A70FCABA648A5EECD8D
+  hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
+
+  return hashBytes;
+}
