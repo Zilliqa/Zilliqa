@@ -22,6 +22,7 @@
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 class Mediator;
@@ -393,11 +394,12 @@ class LookupServer : public Server,
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
 
     // For Eth transactions, pass gas Price in Wei
-    auto resp = CreateTransactionEth(
-        fields, pubKey, shards,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-            EVM_ZIL_SCALING_FACTOR,
-        m_createTransactionTarget);
+    const auto gasPrice =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+         EVM_ZIL_SCALING_FACTOR) /
+        GasConv::GetScalingFactor();
+    auto resp = CreateTransactionEth(fields, pubKey, shards, gasPrice,
+                                     m_createTransactionTarget);
     response = std::string{"0x"} + resp["TranID"].asString();
   }
 
