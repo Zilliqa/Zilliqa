@@ -418,7 +418,7 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "0x8000");
+  BOOST_CHECK_EQUAL(response.asString(), "0x8001");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_listening) {
@@ -613,7 +613,7 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
   lookupServer.GetNetVersionI(paramsRequest, response);
-  BOOST_CHECK_EQUAL(response, Json::Value("0x8000"));
+  BOOST_CHECK_EQUAL(response, Json::Value("0x8001"));
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
