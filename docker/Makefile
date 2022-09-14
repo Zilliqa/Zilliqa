@@ -7,7 +7,6 @@ all: release release-cuda
 len=$(shell echo $(COMMIT_OR_TAG) | wc -c)
 commit_or_tag=$(shell echo $(COMMIT_OR_TAG) | cut -c 1-7)
 cmake_extra_args=$(shell echo $(EXTRA_CMAKE_ARGS))
-registry=$(shell echo $(REGISTRY))
 
 major=$(shell tail -n +2 ../VERSION | head -n1)
 minor=$(shell tail -n +4 ../VERSION | head -n1)
@@ -27,12 +26,8 @@ check-commit:
 
 # build zilliqa docker image for Kubernetes usage
 dev: check-commit
-	docker build -t zilliqa:$(commit_or_tag) --build-arg REGISTRY=$(registry) \
+	docker build -t zilliqa:$(commit_or_tag) \
 		--build-arg COMMIT_OR_TAG=$(commit_or_tag) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile .
-
-# build the dependencies docker image for public usage
-deps:
-	docker build -f Dockerfile.deps -t zilliqa:v$(major).$(minor).$(fix)-deps .
 
 # build release version docker image for public usage
 release:
