@@ -1682,9 +1682,9 @@ string LookupServer::GetEthCallZil(const Json::Value& _json) {
 
 string LookupServer::GetEthCallEth(const Json::Value& _json,
                                    const string& block_or_tag) {
-  if (block_or_tag != "latest") {
+  if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(RPC_INVALID_PARAMS,
-                           "Only latest block is supported in eth_call");
+                           "Unsupported block or tag in eth_call");
   }
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
