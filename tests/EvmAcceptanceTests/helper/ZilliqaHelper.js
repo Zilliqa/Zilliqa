@@ -8,8 +8,12 @@ class ZilliqaHelper {
         this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1))
     }
 
-    getPrimaryAccountAddress() {
-        return this.primaryAccount.address;
+    getPrimaryAccount() {
+        return this.primaryAccount;
+    }
+
+    getSecondaryAccount() {
+        return this.primaryAccount;
     }
 
     async getState(address, index) {
@@ -99,7 +103,7 @@ class ZilliqaHelper {
 
     async sendTransaction(tx, senderAccount) {
         const signedTx = await senderAccount.signTransaction(tx);
-        return web3.eth.sendSignedTransaction(signedTx.rawTransaction)
+        return web3.eth.sendSignedTransaction(signedTx.rawTransaction);
     }
 
     async moveFundsBy(amount, toAddr, senderAccount) {
@@ -108,8 +112,8 @@ class ZilliqaHelper {
             const tx = {
                 'to': toAddr,
                 'value': amount,
-                'gas': 300000,
-                'gasPrice': 2000000000000000,
+                'gas': 25000,           //'gas': 300000,
+                'gasPrice': 2000000000, //'gasPrice': 2000000000000000,
                 'nonce': nonce,
                 'chainId': general_helper.getEthChainId(),
                 'data': ""
@@ -117,8 +121,7 @@ class ZilliqaHelper {
 
             return this.sendTransaction(tx, senderAccount)
         } catch (err) {
-            console.log("theres an error...");
-            console.log(err);
+            console.log("theres an error...", err);
         }
     }
 
@@ -126,6 +129,13 @@ class ZilliqaHelper {
         return this.moveFundsBy(amount, toAddr, this.primaryAccount)
     }
 
+    async sleep(milliseconds) {
+        const date = Date.now();
+        let currentDate = null;
+        do {
+            currentDate = Date.now();
+        } while (currentDate - date < milliseconds);
+    }
 }
 
 module.exports = {
