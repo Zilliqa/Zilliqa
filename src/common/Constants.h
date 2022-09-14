@@ -311,8 +311,7 @@ extern const bool ENABLE_EVM;
 extern const std::string EVM_SERVER_SOCKET_PATH;
 extern const std::string EVM_SERVER_BINARY;
 extern const std::string EVM_LOG_CONFIG;
-extern const std::string ETH_CHAINID;
-extern const uint64_t ETH_CHAINID_INT;
+extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes

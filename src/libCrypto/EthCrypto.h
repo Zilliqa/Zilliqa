@@ -60,4 +60,7 @@ bytes StripEVM(bytes const& in);
 // Create an ethereum style transaction hash
 bytes CreateHash(std::string const& rawTx);
 
+// Create the eth-style contract address given the sender address and nonce
+bytes CreateContractAddr(bytes const& senderAddr, int nonce);
+
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
