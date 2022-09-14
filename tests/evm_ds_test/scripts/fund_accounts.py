@@ -22,9 +22,9 @@ from pyzil.crypto.zilkey import to_checksum_address, ZilKey
 def fund(private_key, destination, amount):
     acc = Account(private_key=private_key)
     blockchain = BlockChain(
-        api_url="https://evmdev-l2api.dev.z7a.xyz",
-        version=int("0x%04x%04x" % (333, 1), 0),
-        network_id=333,
+        api_url="http://localhost:5555",  # s://evmdev-l2api.dev.z7a.xyz",
+        version=int("0x%04x%04x" % (1, 1), 0),
+        network_id=1,
     )
     set_active_chain(blockchain)
     print("Current balance: ", acc.get_balance())
