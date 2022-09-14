@@ -1222,9 +1222,9 @@ static bool isNumber(const std::string& str) {
   return (str.size() > 0 && endp != nullptr && *endp == '\0');
 }
 
-static bool isSupportedTag(const std::string &tag) {
+static bool isSupportedTag(const std::string& tag) {
   return tag == "latest" || tag == "earliest" || tag == "pending" ||
-    isNumber(tag);
+         isNumber(tag);
 }
 
 Json::Value LookupServer::GetEthBalance(const std::string& address,
