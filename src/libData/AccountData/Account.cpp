@@ -465,6 +465,7 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   return address;
 }
 
+// todo .this
 Address Account::GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce) {
   Address address;

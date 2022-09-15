@@ -365,7 +365,7 @@ class LookupServer : public Server,
     try {
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
       response = DataConversion::IntToHexString(resp);
     } catch (...) {
       response = "0x0";

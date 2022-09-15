@@ -693,7 +693,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   // ethers also expects 'data' field
   retJson["data"] = inputField;
   retJson["nonce"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
+      (boost::format("0x%x") % (txn.GetTransaction().GetNonce() - 1)).str();
   if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
     retJson["to"] =
         Json::nullValue;  // special for contract creation transactions.
