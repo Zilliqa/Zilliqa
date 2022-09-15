@@ -79,7 +79,8 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
          MessageTypeInstructionStrings[msgType][instruction];
 }
 
-void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
+void Zilliqa::ProcessMessage(
+    pair<bytes, pair<Peer, const unsigned char>>* message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
@@ -92,6 +93,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
     if (msg_type < msg_handlers_count) {
       if (msg_handlers[msg_type] == NULL) {
         LOG_GENERAL(WARNING, "Message type NULL");
+        delete message;
         return;
       }
 
@@ -126,6 +128,8 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
                                                    << (unsigned int)msg_type);
     }
   }
+
+  delete message;
 }
 
 Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
@@ -146,13 +150,15 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
-    Msg message;
-    while (m_msgQueue.pop(message)) {
-      // For now, we use a thread pool to handle this message
-      // Eventually processing will be single-threaded
-      m_queuePool.AddJob([this, m = std::move(message)]() mutable -> void {
-        ProcessMessage(m);
-      });
+    pair<bytes, std::pair<Peer, const unsigned char>>* message = NULL;
+    while (true) {
+      while (m_msgQueue.pop(message)) {
+        // For now, we use a thread pool to handle this message
+        // Eventually processing will be single-threaded
+        m_queuePool.AddJob(
+            [this, message]() mutable -> void { ProcessMessage(message); });
+      }
+      std::this_thread::sleep_for(std::chrono::microseconds(1));
     }
   };
   DetachedFunction(1, funcCheckMsgQueue);
@@ -405,8 +411,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (LOOKUP_NODE_MODE) {
-      m_lookupServerConnector =
-          make_unique<SafeHttpServer>(LOOKUP_RPC_PORT, MAXSENDMESSAGE / 4);
+      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
       m_lookupServer =
           make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
 
@@ -457,8 +462,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (ENABLE_STAKING_RPC) {
-      m_stakingServerConnector =
-          make_unique<SafeHttpServer>(STAKING_RPC_PORT, MAXSENDMESSAGE / 4);
+      m_stakingServerConnector = make_unique<SafeHttpServer>(STAKING_RPC_PORT);
       m_stakingServer =
           make_shared<StakingServer>(m_mediator, *m_stakingServerConnector);
 
@@ -482,13 +486,20 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   DetachedFunction(1, func);
 }
 
-Zilliqa::~Zilliqa() { m_msgQueue.stop(); }
+Zilliqa::~Zilliqa() {
+  pair<bytes, Peer>* message = NULL;
+  while (m_msgQueue.pop(message)) {
+    delete message;
+  }
+}
 
-void Zilliqa::Dispatch(Zilliqa::Msg message) {
+void Zilliqa::Dispatch(
+    pair<bytes, std::pair<Peer, const unsigned char>>* message) {
   // LOG_MARKER();
 
   // Queue message
-  if (!m_msgQueue.bounded_push(std::move(message))) {
+  if (!m_msgQueue.bounded_push(message)) {
     LOG_GENERAL(WARNING, "Input MsgQueue is full");
+    delete message;
   }
 }

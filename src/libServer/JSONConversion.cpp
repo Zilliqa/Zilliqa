@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>
 #include <chrono>
 #include <string>
 #include <vector>
