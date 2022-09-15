@@ -892,7 +892,6 @@ bool BlockStorage::PutMetadata(MetaType type, const bytes& data) {
 }
 
 bool BlockStorage::PutStateRoot(const bytes& data) {
-  LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
   int ret = m_stateRootDB->Insert(std::to_string((int)STATEROOT), data);
   return (ret == 0);

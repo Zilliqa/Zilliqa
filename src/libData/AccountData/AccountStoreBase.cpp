@@ -73,7 +73,7 @@ bool AccountStoreBase<MAP>::UpdateAccounts(const Transaction& transaction,
                                            TxnStatus& error_code) {
   const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();
-  const uint128_t& amount = transaction.GetAmountQa();
+  const uint128_t amount = transaction.GetAmountQa();
   error_code = TxnStatus::NOT_PRESENT;
 
   Account* fromAccount = this->GetAccount(fromAddr);
@@ -238,7 +238,6 @@ bool AccountStoreBase<MAP>::IncreaseBalance(const Address& address,
   if (account != nullptr && account->IncreaseBalance(delta)) {
     return true;
   }
-
   else if (account == nullptr) {
     return AddAccount(address, {delta, 0});
   }

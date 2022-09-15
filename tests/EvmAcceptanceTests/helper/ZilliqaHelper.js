@@ -115,8 +115,8 @@ class ZilliqaHelper {
             const tx = {
                 'to': toAddr,
                 'value': amount,
-                'gas': 25000,           //'gas': 300000,
-                'gasPrice': 2000000000, //'gasPrice': 2000000000000000,
+                'gas': 100_000,           //'gas': 300000,
+                'gasPrice': 1_000_000_000, //'gasPrice': 2000000000000000,
                 'nonce': nonce,
                 'chainId': general_helper.getEthChainId(),
                 'data': ""

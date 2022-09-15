@@ -370,6 +370,7 @@ class LookupServer : public Server,
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
     response = this->GetEthTransactionReceipt(request[0u].asString());
+    LOG_GENERAL(DEBUG, "Response:" << response);
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
@@ -398,18 +399,18 @@ class LookupServer : public Server,
             EVM_ZIL_SCALING_FACTOR,
         m_createTransactionTarget);
     response = std::string{"0x"} + resp["TranID"].asString();
+    LOG_GENERAL(DEBUG, "Response:" << response);
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
-    LOG_MARKER();
-
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
     const std::string tag{request[1u].asString()};
 
     response = this->GetEthBalance(address, tag);
+    LOG_GENERAL(DEBUG, "Response:" << response);
   }
 
   /**

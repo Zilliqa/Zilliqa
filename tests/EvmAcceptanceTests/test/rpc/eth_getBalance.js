@@ -4,7 +4,7 @@ const { ethers, web3 } = require("hardhat")
 assert = require('chai').assert;
 
 const METHOD = 'eth_getBalance';
-const initialBalance = 10_000;
+const initialBalance = 10 * (10 ** 6);
 let receiverAccount;
 
 describe("Calling " + METHOD, async function () {
@@ -15,21 +15,23 @@ describe("Calling " + METHOD, async function () {
 
     describe("When tag is 'latest'", async function () {
         it("should return the latest balance as specified in the ethereum protocol", async function () {
-
-
             // check sender account has enough balance to move
             const senderAddress = zHelper.getPrimaryAccount().address;
             console.log("Primary address:", senderAddress);
+
+            receiverAddress = zHelper.getSecondaryAccount().address;
+            console.log("New Account address:", receiverAddress);
 
             const senderBalance = await web3.eth.getBalance(senderAddress);
             console.log("Sender balance:", senderBalance);
             assert.isAbove(ethers.BigNumber.from(senderBalance), initialBalance, 'sender has enough balance to move');
 
-            // create unique receiver account
-            receiverAccount = await web3.eth.accounts.create();
-            console.log("New Account address:", receiverAccount.address);
+            const receiverBalance = await web3.eth.getBalance(receiverAddress);
+            console.log("Receiver balance:", receiverBalance);
 
+            var transactionHash;
             function onMoveFundsFinished(receipt) {
+                transactionHash = receipt.transactionHash;
                 console.log("Then finished, tx hash:", receipt.transactionHash);
                 web3.eth.getTransaction(receipt.transactionHash).then(console.log);
             };
@@ -38,22 +40,44 @@ describe("Calling " + METHOD, async function () {
                 console.log("Then with Error:", error);
             };
 
-            await zHelper.moveFunds(initialBalance, receiverAccount.address).then(onMoveFundsFinished, onMoveFundsError);
-
-            //    console.log("Requesting balance for account:", receiverAccount.address);
-            //    await helper.callEthMethod(METHOD, 1, [
-            //        receiverAccount.address, // public address
-            //        "latest"],
-            //        (result, status) => {
-            //            console.log(result);
+            await zHelper.moveFunds(initialBalance, receiverAddress).then(onMoveFundsFinished, onMoveFundsError);
+            //var done = false;
+            //while (!done) {
+            //    console.log(transactionHash);
+            //    await web3.eth.getTransaction(transactionHash).then(function (receipt) {
+            //        console.log("GetTransaction:", receipt.hash);
+            //        if (receipt.hash != "") {
+            //            done = true
+            //        }
+            //    });
             //
-            //            assert.equal(status, 200, 'has status code');
-            //            assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-            //            assert.isString(result.result, 'is string');
-            //            assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
-            //            assert.isNumber(+result.result, 'can be converted to a number');
-            //            assert.equal(+result.result, initialBalance, 'Has result:' + result + ' should have balance ' + initialBalance);
-            //        })
+            //    setTimeout(() => { console.log("Timeout...") }, 1000);
+            //}
+
+            const newReceiverBalance = await web3.eth.getBalance(receiverAddress);
+            console.log("Delta Receiver balance:", receiverBalance - newReceiverBalance);
+
+            console.log("Requesting balance for account:", receiverAddress);
+            await helper.callEthMethod(METHOD, 1, [
+                receiverAddress,
+                "latest"],
+                (result, status) => {
+                    console.log("Result:", result);
+
+                    assert.equal(status, 200, 'has status code');
+                    assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+                    assert.isString(result.result, 'is string');
+                    assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
+                    assert.isNumber(+result.result, 'can be converted to a number');
+
+                    var expectedBalance = ethers.BigNumber.from(receiverBalance + initialBalance);
+                    console.log("Initial balance:", initialBalance);
+                    console.log("Sender balance:", senderBalance);
+                    console.log("Receiver balance:", receiverBalance);
+                    console.log("New Receiver balance:", newReceiverBalance);
+
+                    assert.equal(result.result, expectedBalance.toHexString(), 'Has result:' + result + ' should have balance ' + expectedBalance.toHexString());
+                })
         })
     })
 
