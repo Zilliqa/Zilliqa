@@ -1445,7 +1445,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     const std::string blockNumber =
         (boost::format("0x%x") % txHeader.GetBlockNum()).str();
     const std::string blockHash =
-        std::string{"0x"} + txBlock.GetBlockHash().hex();
+        (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
