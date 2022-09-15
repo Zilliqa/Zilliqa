@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBETH_FILTERS_FILTERUTILS_H_
-#define ZILLIQA_SRC_LIBETH_FILTERS_FILTERUTILS_H_
+#ifndef ZILLIQA_SRC_LIBETH_FILTERS_FILTERSUTILS_H_
+#define ZILLIQA_SRC_LIBETH_FILTERS_FILTERSUTILS_H_
 
 #include "Common.h"
 
@@ -102,4 +102,4 @@ Json::Value CreateEventResponseItem(EpochNumber epoch, const TxnHash &tx_hash,
 }  // namespace filters
 }  // namespace evmproj
 
-#endif  // ZILLIQA_SRC_LIBETH_FILTERS_FILTERUTILS_H_
+#endif  // ZILLIQA_SRC_LIBETH_FILTERS_FILTERSUTILS_H_
