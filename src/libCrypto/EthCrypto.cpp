@@ -436,7 +436,8 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
     dev::RLPStream rlpStreamRecreated(9);
 
-    // Note: the nonce is decremented because of the difference between Zil and Eth TXs
+    // Note: the nonce is decremented because of the difference between Zil and
+    // Eth TXs
     rlpStreamRecreated << info.nonce - 1;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
