@@ -1082,8 +1082,7 @@ TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
   }
 
   TxnHash argHash{txnhash};
-  const auto BLOCK_LOOKUP_LIMIT = 5;
-  for (auto depth = 0; depth < BLOCK_LOOKUP_LIMIT; ++depth) {
+  for (auto depth = 0; depth < (int)EVM_BLOCK_LOOKUP_LIMIT; ++depth) {
     auto const block = GetEthBlockByNumber(std::to_string(height--), false);
     if (block == Json::nullValue) {
       return EMPTY_BLOCK;
