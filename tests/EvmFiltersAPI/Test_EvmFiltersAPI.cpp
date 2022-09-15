@@ -17,7 +17,25 @@ BOOST_AUTO_TEST_CASE(conversions) {
 
   BOOST_REQUIRE(NumberAsString(0xffffffffffffffffull) == "0xffffffffffffffff"s);
 
+  BOOST_REQUIRE(NormalizeHexString("234abcde") == "0x234abcde"s);
+  BOOST_REQUIRE(NormalizeHexString("0x234abcde") == "0x234abcde"s);
+  BOOST_REQUIRE(NormalizeHexString("0x") == "0x"s);
+  BOOST_REQUIRE(NormalizeHexString("0") == "0x0"s);
+  BOOST_REQUIRE(NormalizeHexString("") == "0x"s);
+
   std::string error;
+
+  Json::Value event_data = JsonRead(
+      "[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
+      "0,0,0,0,0,0,0,0,0,0,0,32,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,"
+      "0,0,0,0,0,0,0,0,12,72,101,108,108,111,32,87,111,114,108,100,33,0,0,0,0,"
+      "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]"s,
+      error);
+  BOOST_REQUIRE(error.empty());
+
+  BOOST_REQUIRE(
+      NormalizeEventData(event_data) ==
+      "0x0000000000000000000000000000000200000000000000000000000000000000c48656c6c6f20576f726c642100000000000000000000"s);
 
   BOOST_REQUIRE(ExtractNumber("0xffffffffffffffff"s, error) ==
                 0xffffffffffffffffull);

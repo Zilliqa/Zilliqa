@@ -20,6 +20,8 @@
 
 #include "FiltersUtils.h"
 
+#include "libUtils/Logger.h"
+
 namespace evmproj {
 namespace filters {
 
@@ -97,6 +99,28 @@ std::string JsonWrite(const Json::Value &json) {
 std::string NumberAsString(uint64_t number) {
   std::stringstream result;
   result << "0x" << std::hex << number;
+  return result.str();
+}
+
+std::string NormalizeHexString(const std::string &str) {
+  if (str.size() < 2 || str[1] != 'x') {
+    return std::string("0x") + str;
+  }
+  return str;
+}
+
+std::string NormalizeEventData(const Json::Value &data) {
+  std::stringstream result;
+  result << "0x";
+  if (data.isArray()) {
+    for (const auto &v : data) {
+      if (!v.isUInt()) {
+        LOG_GENERAL(WARNING, "Expected array of uints in " << JsonWrite(data));
+        break;
+      }
+      result << std::hex << v.asUInt();
+    }
+  }
   return result.str();
 }
 
@@ -401,10 +425,10 @@ Json::Value CreateEventResponseItem(EpochNumber epoch, const TxnHash &tx_hash,
 
   Json::Value v(item);
 
-  v[BLOCKNUMBER_STR] = Json::UInt64(epoch);
+  v[BLOCKNUMBER_STR] = NumberAsString(epoch);
   v[TRANSACTIONHASH_STR] = tx_hash;
   v[ADDRESS_STR] = address;
-  v[DATA_STR] = data;
+  v[DATA_STR] = NormalizeEventData(data);
 
   auto json_topics = Json::Value(Json::arrayValue);
   for (const auto &t : topics) {

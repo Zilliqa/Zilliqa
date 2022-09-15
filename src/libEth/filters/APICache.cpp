@@ -17,6 +17,7 @@
 
 #include "BlocksCache.h"
 #include "FiltersImpl.h"
+#include "FiltersUtils.h"
 #include "PendingTxnCache.h"
 #include "libUtils/Logger.h"
 
@@ -50,14 +51,14 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
 
  private:
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
-    m_pendingTxnCache.Append(hash, epoch);
+    m_pendingTxnCache.Append(NormalizeHexString(hash), epoch);
     // TODO realtime subscriptions to pending txns
   }
 
-  void StartEpoch(uint64_t epoch, BlockHash block_hash, uint32_t num_shards,
-                  uint32_t num_txns) override {
-    if (m_blocksCache.StartEpoch(epoch, std::move(block_hash), num_shards,
-                                 num_txns)) {
+  void StartEpoch(uint64_t epoch, const BlockHash& block_hash,
+                  uint32_t num_shards, uint32_t num_txns) override {
+    if (m_blocksCache.StartEpoch(epoch, NormalizeHexString(block_hash),
+                                 num_shards, num_txns)) {
       EpochFinalized(epoch);
     }
   }
@@ -65,10 +66,12 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
   void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
                                const TxnHash& hash,
                                const Json::Value& receipt) override {
-    if (m_blocksCache.AddCommittedTransaction(epoch, shard, hash, receipt)) {
+    auto hash_normalized = NormalizeHexString(hash);
+    if (m_blocksCache.AddCommittedTransaction(epoch, shard, hash_normalized,
+                                              receipt)) {
       EpochFinalized(epoch);
     }
-    m_pendingTxnCache.TransactionCommitted(hash);
+    m_pendingTxnCache.TransactionCommitted(std::move(hash_normalized));
   }
 
   EpochNumber GetEventFilterChanges(EpochNumber after_epoch,

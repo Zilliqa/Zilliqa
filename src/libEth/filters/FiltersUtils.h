@@ -53,6 +53,12 @@ std::string JsonWrite(const Json::Value &json);
 /// Number -> "0x..."
 std::string NumberAsString(uint64_t number);
 
+/// Hex string -> "0x..."
+std::string NormalizeHexString(const std::string &str);
+
+/// Array of numbers -> "0x..."
+std::string NormalizeEventData(const Json::Value &data);
+
 /// Creates a new filter id by type and incremental counter
 FilterId NewFilterId(uint64_t counter, FilterType type);
 

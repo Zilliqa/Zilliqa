@@ -86,7 +86,7 @@ class APICacheUpdate {
 
   virtual void AddPendingTransaction(const TxnHash &hash, uint64_t epoch) = 0;
 
-  virtual void StartEpoch(uint64_t epoch, BlockHash block_hash,
+  virtual void StartEpoch(uint64_t epoch, const BlockHash &block_hash,
                           uint32_t num_shards, uint32_t num_txns) = 0;
 
   virtual void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
