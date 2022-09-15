@@ -1,0 +1,98 @@
+const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const helper = require('../../helper/GeneralHelper');
+const { ethers, web3 } = require("hardhat")
+assert = require('chai').assert;
+
+const METHOD = 'eth_getTransactionReceipt';
+
+describe("Calling " + METHOD, function () {
+  before(async function () {
+    if (!helper.isZilliqaNetworkSelected()) {
+      this.skip();
+    }
+  })
+
+  it("should return the raw transaction response", async function () {
+    var zHelper = new ZilliqaHelper();
+    var transactionHash;
+
+    function onMoveFundsFinished(receipt) {
+      transactionHash = receipt.transactionHash;
+    };
+
+    function onMoveFundsError(error) {
+      console.log("Then with Error:", error);
+      assert.fail("Failure: Unexpected return ", error);
+    };
+
+    let amount = 10_000;
+    // send amount from primary to secondary account
+    await zHelper.moveFundsBy(amount, zHelper.getSecondaryAccount().address, zHelper.getPrimaryAccount()).then(onMoveFundsFinished, onMoveFundsError);
+
+    await helper.callEthMethod(METHOD, 1, [transactionHash],
+      (result, status) => {
+        console.log(result);
+
+        assert.equal(status, 200, 'has status code');
+        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
+
+        // status
+        assert.match(result.result.status, /^0x/, 'Should be HEX starting with 0x');
+        assert.isString(result.result.status, "Is a not a string");
+        assert.equal(result.result.status, "0x1", "Expected to be equal to 0x1");
+
+        // root
+        assert.isString(result.result.root, "Is a not a string");
+        assert.match(result.result.root, /^0x/, 'Should be HEX starting with 0x');
+
+        // cumulativeGasUsed 
+        assert.isString(result.result.cumulativeGasUsed, "Is a not a string");
+        assert.match(result.result.cumulativeGasUsed, /^0x/, 'Should be HEX starting with 0x');
+
+        // logsBloom
+        assert.isString(result.result.logsBloom, "Is a not a string");
+        assert.match(result.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
+
+        // logs
+        assert.isBoolean(Array.isArray(result.result.logs), 'Should be an array');
+
+        // contractAddress
+        assert.isBoolean(result.result.contractAddress == null, 'Should be HEX starting with 0x');
+
+        // gasUsed
+        assert.isString(result.result.gasUsed, "Is a not a string");
+        assert.match(result.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
+
+        // cumulativeGasUsed
+        assert.isString(result.result.cumulativeGasUsed, "Is a not a string");
+        assert.match(result.result.cumulativeGasUsed, /^0x/, 'Should be HEX starting with 0x');
+
+        // to
+        assert.isString(result.result.to, "Is a not a string");
+        assert.match(result.result.to, /^0x/, 'Should be HEX starting with 0x');
+        assert.equal(result.result.to.toUpperCase(), zHelper.getSecondaryAccount().address.toUpperCase(), "Is a not equal to ");
+
+        // from 
+        assert.isString(result.result.from, "Is a not a string");
+        assert.match(result.result.from, /^0x/, 'Should be HEX starting with 0x');
+        assert.equal(result.result.from.toUpperCase(), zHelper.getSecondaryAccount().address.toUpperCase(), "Is a not equal to ");
+
+        // blockHash
+        assert.isString(result.result.blockHash, "Is a not a string");
+        assert.match(result.result.blockHash, /^0x/, 'Should be HEX starting with 0x');
+
+        // blockNumber
+        assert.isString(result.result.blockNumber, "Is a not a string");
+        assert.match(result.result.blockNumber, /^0x/, 'Should be HEX starting with 0x');
+
+        // transactionIndex
+        assert.isString(result.result.transactionIndex, "Is a not a string");
+        assert.match(result.result.transactionIndex, /^0x/, 'Should be HEX starting with 0x');
+
+        // transactionHash
+        assert.isString(result.result.transactionHash, "Is a not a string");
+        assert.match(result.result.transactionHash, /^0x/, 'Should be HEX starting with 0x');
+        assert.equal(result.result.transactionHash.toUpperCase(), transactionHash.toUpperCase(), "Is a not equal to ");
+      })
+  })
+})
