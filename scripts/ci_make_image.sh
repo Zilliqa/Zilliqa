@@ -47,7 +47,7 @@ region_id=us-west-2
 source_image=zilliqa:${commit_or_tag}
 target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit_or_tag}${TEST_NAME}
 
-eval $(aws ecr get-login --no-include-email --region ${region_id})
+eval $(aws ecr get-login-password --region ${region_id})
 set +e
 make -C docker dev EXTRA_CMAKE_ARGS="${test_extra_cmake_args}" COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
 set -e
