@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 #define ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 
-#include <memory>
 #include <vector>
 
 #include "libDirectoryService/DirectoryService.h"
@@ -29,17 +28,10 @@
 #include "libServer/LookupServer.h"
 #include "libServer/StakingServer.h"
 #include "libServer/StatusServer.h"
-#include "libUtils/Queue.h"
 #include "libUtils/ThreadPool.h"
 
 /// Main Zilliqa class.
 class Zilliqa {
- public:
-  // TODO shared instead of unique due to lambda move capture limitations
-  using Msg =
-      std::shared_ptr<std::pair<bytes, std::pair<Peer, const unsigned char>>>;
-
- private:
   Mediator m_mediator;
   DirectoryService m_ds;
   Lookup m_lookup;
@@ -47,8 +39,9 @@ class Zilliqa {
   Node m_n;
   // ConsensusUser m_cu; // Note: This is just a test class to demo Consensus
   // usage
-
-  utility::Queue<Msg> m_msgQueue;
+  boost::lockfree::queue<
+      std::pair<bytes, std::pair<Peer, const unsigned char>>*>
+      m_msgQueue;
 
   std::shared_ptr<LookupServer> m_lookupServer;
   std::shared_ptr<StakingServer> m_stakingServer;
@@ -59,7 +52,8 @@ class Zilliqa {
 
   ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
-  void ProcessMessage(Msg& message);
+  void ProcessMessage(
+      std::pair<bytes, std::pair<Peer, const unsigned char>>* message);
 
  public:
   /// Constructor.
@@ -74,7 +68,8 @@ class Zilliqa {
   void LogSelfNodeInfo(const PairOfKey& key, const Peer& peer);
 
   /// Forwards an incoming message for processing by the appropriate subclass.
-  void Dispatch(Msg message);
+  void Dispatch(
+      std::pair<bytes, std::pair<Peer, const unsigned char>>* message);
 
   static std::string FormatMessageName(unsigned char msgType,
                                        unsigned char instruction);

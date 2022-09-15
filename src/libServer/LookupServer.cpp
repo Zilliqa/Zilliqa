@@ -636,7 +636,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (!hasTxn) {
-        LOG_GENERAL(DEBUG, "No Txns to send for this seed node");
+        LOG_GENERAL(INFO, "No Txns to send for this seed node");
         continue;
       }
 
@@ -1222,10 +1222,14 @@ static bool isNumber(const std::string& str) {
   return (str.size() > 0 && endp != nullptr && *endp == '\0');
 }
 
+static bool isSupportedTag(const std::string& tag) {
+  return tag == "latest" || tag == "earliest" || tag == "pending" ||
+         isNumber(tag);
+}
+
 Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
-  if (tag == "latest" || tag == "earliest" || tag == "pending" ||
-      isNumber(tag)) {
+  if (isSupportedTag(tag)) {
     uint256_t ethBalance{0};
     try {
       auto ret = this->GetBalanceAndNonce(address);
@@ -1256,7 +1260,8 @@ Json::Value LookupServer::getEthGasPrice() const {
     uint256_t gasPrice =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
     // Make gas price in wei
-    gasPrice = gasPrice * EVM_ZIL_SCALING_FACTOR;
+    gasPrice =
+        (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
     std::ostringstream strm;
 
     strm << "0x" << std::hex << gasPrice << std::dec;
@@ -1431,8 +1436,10 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
     std::string cumGas =
-        "0x" + std::to_string(GasConv::GasUnitsFromCoreToEth(
-                   transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
+        (boost::format("0x%x") %
+         GasConv::GasUnitsFromCoreToEth(
+             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
+            .str();
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
     const std::string blockNumber =
@@ -1675,9 +1682,9 @@ string LookupServer::GetEthCallZil(const Json::Value& _json) {
 
 string LookupServer::GetEthCallEth(const Json::Value& _json,
                                    const string& block_or_tag) {
-  if (block_or_tag != "latest") {
+  if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(RPC_INVALID_PARAMS,
-                           "Only latest block is supported in eth_call");
+                           "Unsupported block or tag in eth_call");
   }
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
@@ -1779,11 +1786,6 @@ std::string LookupServer::GetEthCoinbase() {
   return "0x0000000000000000000000000000000000000000";
 }
 
-std::string LookupServer::GetNetVersion() {
-  LOG_MARKER();
-  return "0x8000";  // Like Ethereum, including test nets.
-}
-
 Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
   return Json::Value(false);
@@ -1801,7 +1803,7 @@ std::string LookupServer::GetProtocolVersion() {
 
 std::string LookupServer::GetEthChainId() {
   LOG_MARKER();
-  return ETH_CHAINID;
+  return (boost::format("0x%x") % ETH_CHAINID).str();
 }
 
 Json::Value LookupServer::GetEthSyncing() {

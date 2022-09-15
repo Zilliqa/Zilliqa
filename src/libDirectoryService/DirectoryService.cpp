@@ -1189,12 +1189,6 @@ uint8_t DirectoryService::CalculateNewDifficultyCore(uint8_t currentDifficulty,
                                                      int64_t powSubmissions,
                                                      int64_t expectedNodes,
                                                      uint32_t powChangeoAdj) {
-  if (powChangeoAdj == 0) {
-    // Special mode for developers: just to make thee difficulty flat and not
-    // growing
-    return minDifficulty;
-  }
-
   int8_t MAX_ADJUST_STEP = 2;
   if (currentDifficulty >= POW_BOUNDARY_N_DIVIDED_START) {
     minDifficulty = POW_BOUNDARY_N_DIVIDED_START - 2;

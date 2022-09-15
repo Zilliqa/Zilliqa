@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -24,6 +25,7 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "json/value.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
@@ -72,7 +74,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
   bool isVacuous =
       Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
-  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
@@ -81,7 +82,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(timestamp);
+  ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
 
   ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
   ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
@@ -665,7 +666,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =
       (boost::format("0x%x") % txn.GetTransaction().GetGasLimitRaw()).str();
-  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
+  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
   retJson["gasPrice"] =
       (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();
   retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
@@ -693,7 +694,12 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["data"] = inputField;
   retJson["nonce"] =
       (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
-  retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
+    retJson["to"] =
+        Json::nullValue;  // special for contract creation transactions.
+  } else {
+    retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  }
   retJson["value"] =
       (boost::format("0x%x") % txn.GetTransaction().GetAmountWei()).str();
   if (!txn.GetTransaction().GetCode().empty() &&
@@ -704,6 +710,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
                                        txn.GetTransaction().GetNonce() - 1)
             .hex();
   }
+  retJson["type"] = "0x0";
   return retJson;
 }
 
