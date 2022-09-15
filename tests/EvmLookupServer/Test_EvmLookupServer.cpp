@@ -73,8 +73,8 @@ TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
   return TransactionWithReceipt(
       // Ctor: (version, nonce, toAddr, keyPair, amount, gasPrice, gasLimit,
       // code, data)
-      Transaction{2,  // For EVM transaction.
-                  nonce,
+      Transaction{2,          // For EVM transaction.
+                  nonce + 1,  // Zil style TXs are always one nonce ahead
                   toAddr,
                   keyPair,
                   1,
