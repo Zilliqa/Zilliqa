@@ -801,7 +801,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   Address affectedAddress =
       (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
           ? Account::GetAddressForContract(tx.GetSenderAddr(),
-                                           tx.GetNonce() - 1)
+                                           tx.GetNonce() - 1, tx.GetVersionIdentifier())
           : tx.GetToAddr();
 
   unsigned int to_shard =
@@ -909,7 +909,7 @@ Json::Value LookupServer::CreateTransaction(
                                    toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
+            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1, tx.GetVersionIdentifier()).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
@@ -1034,7 +1034,7 @@ Json::Value LookupServer::CreateTransactionEth(
                                    toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
+            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1, tx.GetVersionIdentifier()).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
@@ -2102,7 +2102,7 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
     Json::Value _json;
 
     for (uint64_t i = 0; i < nonce; i++) {
-      Address contractAddr = Account::GetAddressForContract(addr, i);
+      Address contractAddr = Account::GetAddressForContract(addr, i, TRANSACTION_VERSION);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr, true);
 
@@ -2148,7 +2148,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "ID is not a contract txn");
     }
 
-    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
+    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1, tx.GetVersionIdentifier())
         .hex();
   } catch (const JsonRpcException& je) {
     throw je;

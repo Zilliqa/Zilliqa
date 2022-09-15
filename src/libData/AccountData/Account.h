@@ -199,7 +199,7 @@ class Account : public AccountBase {
 
   /// Computes an account address from a sender and its nonce
   static Address GetAddressForContract(const Address& sender,
-                                       const uint64_t& nonce);
+                                       const uint64_t& nonce, unsigned int version);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNT_H_

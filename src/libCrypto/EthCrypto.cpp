@@ -530,7 +530,6 @@ bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   bytes hashBytes;
 
   // Only the last 40 bytes needed
-  // 8B6621534A2DA69F2F7FF7A3CD234A471B72BA2F1CCF0A70FCABA648A5EECD8D
   hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
 
   return hashBytes;

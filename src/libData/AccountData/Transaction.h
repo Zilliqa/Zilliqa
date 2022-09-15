@@ -117,7 +117,10 @@ class Transaction : public SerializableDataBlock {
   const TransactionCoreInfo& GetCoreInfo() const;
 
   /// Returns the current version.
-  const uint32_t& GetVersion() const;
+  uint32_t GetVersion() const;
+
+  /// Returns the current version identifier (zil or eth).
+  uint32_t GetVersionIdentifier() const;
 
   bool IsEth() const;
 

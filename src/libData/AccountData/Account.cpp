@@ -466,24 +466,33 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
 }
 
 Address Account::GetAddressForContract(const Address& sender,
-                                       const uint64_t& nonce) {
+                                       const uint64_t& nonce, unsigned int version) {
   Address address;
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  bytes conBytes;
-  copy(sender.asArray().begin(), sender.asArray().end(),
-       back_inserter(conBytes));
-  SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
-  sha2.Update(conBytes);
+  // Zil-style TXs
+  if (version == TRANSACTION_VERSION) {
+    SHA2<HashType::HASH_VARIANT_256> sha2;
+    bytes conBytes;
+    copy(sender.asArray().begin(), sender.asArray().end(),
+         back_inserter(conBytes));
+    SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
+    sha2.Update(conBytes);
 
-  const bytes& output = sha2.Finalize();
+    const bytes& output = sha2.Finalize();
 
-  if (output.size() != 32) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+    if (output.size() != 32) {
+      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                                << ": " << __FUNCTION__ << ")");
+    }
+
+    copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
+  } else if (version == TRANSACTION_VERSION_ETH) {
+    auto output = CreateContractAddr(sender.asBytes(), nonce);
+
+    copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
+  } else {
+    LOG_GENERAL(WARNING, "Unsupported TX type when generating contract address! " << version);
   }
-
-  copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
 
   return address;
 }
