@@ -437,10 +437,10 @@ void Node::ProcessTransactionWhenShardLeader(
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
 
-      if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
+      if (m_gasUsedTotal + t.GetGasLimitZil() > microblock_gas_limit) {
         LOG_GENERAL(WARNING, "Gas limit exceeded = " << t.GetTranID());
         LOG_GENERAL(WARNING, "m_gasUsedTotal     = " << m_gasUsedTotal);
-        LOG_GENERAL(WARNING, "t.GetGasLimit      = " << t.GetGasLimit());
+        LOG_GENERAL(WARNING, "t.GetGasLimitZil      = " << t.GetGasLimitZil());
         gasLimitExceededTxnBuffer.emplace_back(t);
         continue;
       }
@@ -452,7 +452,7 @@ void Node::ProcessTransactionWhenShardLeader(
           break;
         }
         uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
@@ -489,7 +489,7 @@ void Node::ProcessTransactionWhenShardLeader(
           if (it2 != it1->second.end()) {
             // found the txn with same addr and same nonce
             // then compare the gasprice and remains the higher one
-            if (t.GetGasPrice() > it2->second.GetGasPrice()) {
+            if (t.GetGasPriceQa() > it2->second.GetGasPriceQa()) {
               it2->second = t;
             }
             continue;
@@ -510,10 +510,11 @@ void Node::ProcessTransactionWhenShardLeader(
       }
       // if nonce correct, process it
       else {
-        if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
+        if (m_gasUsedTotal + t.GetGasLimitZil() > microblock_gas_limit) {
           LOG_GENERAL(WARNING, "Gas limit exceeded = " << t.GetTranID());
           LOG_GENERAL(WARNING, "m_gasUsedTotal     = " << m_gasUsedTotal);
-          LOG_GENERAL(WARNING, "t.GetGasLimit      = " << t.GetGasLimit());
+          LOG_GENERAL(WARNING,
+                      "t.GetGasLimitZil      = " << t.GetGasLimitZil());
           gasLimitExceededTxnBuffer.emplace_back(t);
           continue;
         }
@@ -526,7 +527,7 @@ void Node::ProcessTransactionWhenShardLeader(
             break;
           }
           uint128_t txnFee;
-          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                         txnFee)) {
             LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
             continue;
@@ -624,17 +625,19 @@ bool Node::VerifyTxnsOrdering(const vector<TxnHash>& tranHashes,
     for (const auto& th : m_expectedTranOrdering) {
       Transaction t;
       if (m_createdTxns.get(th, t)) {
-        LOG_GENERAL(INFO, "Expected txn: "
-                              << t.GetTranID() << " " << t.GetSenderAddr()
-                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+        LOG_GENERAL(INFO, "Expected txn: " << t.GetTranID() << " "
+                                           << t.GetSenderAddr() << " "
+                                           << t.GetNonce() << " "
+                                           << t.GetGasPriceQa());
       }
     }
     for (const auto& th : tranHashes) {
       Transaction t;
       if (m_createdTxns.get(th, t)) {
-        LOG_GENERAL(INFO, "Received txn: "
-                              << t.GetTranID() << " " << t.GetSenderAddr()
-                              << " " << t.GetNonce() << " " << t.GetGasPrice());
+        LOG_GENERAL(INFO, "Received txn: " << t.GetTranID() << " "
+                                           << t.GetSenderAddr() << " "
+                                           << t.GetNonce() << " "
+                                           << t.GetGasPriceQa());
       }
     }
 
@@ -755,10 +758,10 @@ void Node::ProcessTransactionWhenShardBackup(
       // (*optional step)
       t_createdTxns.findSameNonceButHigherGas(t);
 
-      if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
+      if (m_gasUsedTotal + t.GetGasLimitZil() > microblock_gas_limit) {
         LOG_GENERAL(WARNING, "Gas limit exceeded = " << t.GetTranID());
         LOG_GENERAL(WARNING, "m_gasUsedTotal     = " << m_gasUsedTotal);
-        LOG_GENERAL(WARNING, "t.GetGasLimit      = " << t.GetGasLimit());
+        LOG_GENERAL(WARNING, "t.GetGasLimitZil      = " << t.GetGasLimitZil());
         gasLimitExceededTxnBuffer.emplace_back(t);
         continue;
       }
@@ -770,7 +773,7 @@ void Node::ProcessTransactionWhenShardBackup(
           break;
         }
         uint128_t txnFee;
-        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+        if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                       txnFee)) {
           LOG_GENERAL(WARNING, "txnFee multiplication unsafe!");
           continue;
@@ -807,7 +810,7 @@ void Node::ProcessTransactionWhenShardBackup(
           if (it2 != it1->second.end()) {
             // found the txn with same addr and same nonce
             // then compare the gasprice and remains the higher one
-            if (t.GetGasPrice() > it2->second.GetGasPrice()) {
+            if (t.GetGasPriceQa() > it2->second.GetGasPriceQa()) {
               it2->second = t;
             }
             continue;
@@ -828,10 +831,11 @@ void Node::ProcessTransactionWhenShardBackup(
       }
       // if nonce correct, process it
       else {
-        if (m_gasUsedTotal + t.GetGasLimit() > microblock_gas_limit) {
+        if (m_gasUsedTotal + t.GetGasLimitZil() > microblock_gas_limit) {
           LOG_GENERAL(WARNING, "Gas limit exceeded = " << t.GetTranID());
           LOG_GENERAL(WARNING, "m_gasUsedTotal     = " << m_gasUsedTotal);
-          LOG_GENERAL(WARNING, "t.GetGasLimit      = " << t.GetGasLimit());
+          LOG_GENERAL(WARNING,
+                      "t.GetGasLimitZil      = " << t.GetGasLimitZil());
           gasLimitExceededTxnBuffer.emplace_back(t);
           continue;
         }
@@ -844,7 +848,7 @@ void Node::ProcessTransactionWhenShardBackup(
             break;
           }
           uint128_t txnFee;
-          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPrice(),
+          if (!SafeMath<uint128_t>::mul(tr.GetCumGas(), t.GetGasPriceQa(),
                                         txnFee)) {
             LOG_GENERAL(WARNING, "txnFee multiplication overflow!");
             continue;

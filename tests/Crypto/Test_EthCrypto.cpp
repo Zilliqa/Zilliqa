@@ -46,7 +46,7 @@ BOOST_AUTO_TEST_CASE(TestEthTXParse) {
       "6b9b554c45749ea02da3eba55c891dde91e73a312fd3748936fb7af8fb34c2f0fed8a987"
       "7f227e1d";
 
-  auto const result = parseRawTxFields(rlp);
+  auto const result = Eth::parseRawTxFields(rlp);
 
   BOOST_CHECK_EQUAL(DataConversion::Uint8VecToHexStrRet(result.toAddr),
                     "673E5EF1AE0A2EF7D0714A96A734FFCD1D8A381F");
@@ -87,6 +87,37 @@ BOOST_AUTO_TEST_CASE(TestRecoverECDSASig) {
 
   // If this fails, check the pubkey starts with '04' (is uncompressed)
   BOOST_CHECK_EQUAL(restultStr.compare(pubKey), 0);
+}
+
+/**
+ * \brief Test contract address generation works correctly
+ *
+ * \details Test contract address generation works - should be a keccak of the
+ * RLP : https://ethereum.stackexchange.com/questions/760
+ */
+BOOST_AUTO_TEST_CASE(TestEthContractAddrGenerate) {
+  // Parse a RLP Tx to extract the fields
+  std::string const rlp =
+      "f86e01850d9e63a68c82520894673e5ef1ae0a2ef7d0714a96a734ffcd1d8a381f872386"
+      "f26fc1000080830102bda0ef23fef2ffa3538b2c8204278ad0427491b5359c346c50a923"
+      "6b9b554c45749ea02da3eba55c891dde91e73a312fd3748936fb7af8fb34c2f0fed8a987"
+      "7f227e1d";
+
+  // We will just compare against known contract address hash outputs
+  auto const sender = DataConversion::HexStrToUint8VecRet(
+      "0x6ac7ea33f8831ea9dcc53393aaa88b25a785dbf0");
+
+  std::string addresses[] = {"CD234A471B72BA2F1CCF0A70FCABA648A5EECD8D",
+                             "343C43A37D37DFF08AE8C4A11544C718ABB4FCF8",
+                             "F778B86FA74E846C4F0A1FBD1335FE81C00A0C91",
+                             "FFFD933A0BC612844EAF0C6FE3E5B8E9B6C1D19C"};
+
+  for (int i = 0; i < 4; i++) {
+    auto const result = CreateContractAddr(sender, i);
+
+    BOOST_CHECK_EQUAL(DataConversion::Uint8VecToHexStrRet(result),
+                      addresses[i]);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()

@@ -47,8 +47,8 @@ contract ForwardZil {
     function withdraw() public {
         // get the amount of Zil stored in this contract minus 10 zil.
         uint amount = address(this).balance;
-        if (amount > 1000 gwei) {  // 1 ZIL
-            amount -= 1000 gwei;
+        if (amount > 1 ether) {  // 1 ZIL
+            amount -= 1 ether;
         }
 
         // send all Ether to owner
@@ -106,4 +106,4 @@ contract ForwardZil {
         # But overall we should be down 1 Zil + any gas fees
         account_diff = prev_balance - self.get_balance(self.account.address)
         assert account_diff > from_zil(1)
-        assert account_diff < from_zil(2)  # Gas fees are not in tens of Zils even.
+        assert account_diff < from_zil(10)  # Gas fees could still be high sometimes!

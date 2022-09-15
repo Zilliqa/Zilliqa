@@ -19,13 +19,12 @@
 #include <string>
 #include <vector>
 
-#include <boost/format.hpp>
-
 #include <Schnorr.h>
 #include <boost/format.hpp>
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
+#include "json/value.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
@@ -33,6 +32,7 @@
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -73,7 +73,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
   bool isVacuous =
       Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
-  auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());
@@ -82,7 +81,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-  ret_head["Timestamp"] = to_string(timestamp);
+  ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
 
   ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
   ret_head["StateRootHash"] = txheader.GetStateRootHash().hex();
@@ -130,7 +129,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
-
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
@@ -177,7 +175,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     }
   } else {
     for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction));
+      transactionsJson.append(convertTxtoEthJson(*transaction, txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -603,11 +601,11 @@ const Json::Value JSONConversion::convertTxtoJson(const Transaction& txn) {
   _json["nonce"] = to_string(txn.GetNonce());
   _json["toAddr"] = txn.GetToAddr().hex();
   _json["senderAddr"] = txn.GetSenderAddr().hex();
-  _json["amount"] = txn.GetAmount().str();
+  _json["amount"] = txn.GetAmountQa().str();
   _json["signature"] = static_cast<string>(txn.GetSignature());
 
-  _json["gasPrice"] = txn.GetGasPrice().str();
-  _json["gasLimit"] = to_string(txn.GetGasLimit());
+  _json["gasPrice"] = txn.GetGasPriceQa().str();
+  _json["gasLimit"] = to_string(txn.GetGasLimitZil());
 
   if (!txn.GetCode().empty()) {
     _json["code"] = DataConversion::CharArrayToString(txn.GetCode());
@@ -629,11 +627,11 @@ const Json::Value JSONConversion::convertTxtoJson(
   _json["toAddr"] = twr.GetTransaction().GetToAddr().hex();
   _json["senderPubKey"] =
       static_cast<string>(twr.GetTransaction().GetSenderPubKey());
-  _json["amount"] = twr.GetTransaction().GetAmount().str();
+  _json["amount"] = twr.GetTransaction().GetAmountQa().str();
   _json["signature"] = static_cast<string>(twr.GetTransaction().GetSignature());
   _json["receipt"] = twr.GetTransactionReceipt().GetJsonValue();
-  _json["gasPrice"] = twr.GetTransaction().GetGasPrice().str();
-  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimit());
+  _json["gasPrice"] = twr.GetTransaction().GetGasPriceQa().str();
+  _json["gasLimit"] = to_string(twr.GetTransaction().GetGasLimitZil());
 
   if (!twr.GetTransaction().GetCode().empty()) {
     _json["code"] =
@@ -652,17 +650,24 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn) {
+    const TransactionWithReceipt& txn, const TxBlock& txblock) {
+  const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
+
+  retJson["blockNumber"] =
+      (boost::format("0x%x") % txheader.GetBlockNum()).str();
+  retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
-      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
+      (boost::format("0x%x") %
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
+          .str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =
-      (boost::format("0x%x") % txn.GetTransactionReceipt().GetCumGas()).str();
-  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID_INT).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetGasLimitRaw()).str();
+  retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
   retJson["gasPrice"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetGasPrice()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();
   retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
@@ -688,9 +693,14 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["data"] = inputField;
   retJson["nonce"] =
       (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
-  retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
+    retJson["to"] =
+        Json::nullValue;  // special for contract creation transactions.
+  } else {
+    retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+  }
   retJson["value"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetAmount()).str();
+      (boost::format("0x%x") % txn.GetTransaction().GetAmountWei()).str();
   if (!txn.GetTransaction().GetCode().empty() &&
       IsNullAddress(txn.GetTransaction().GetToAddr())) {
     retJson["contractAddress"] =
@@ -699,6 +709,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
                                        txn.GetTransaction().GetNonce() - 1)
             .hex();
   }
+  retJson["type"] = "0x0";
   return retJson;
 }
 

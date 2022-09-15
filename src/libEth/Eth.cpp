@@ -20,9 +20,15 @@
 #include "depends/common/RLP.h"
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
+#include "libData/AccountData/Transaction.h"
+#include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
+#include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
+
+namespace Eth {
 
 Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
                                   const std::string &from,
@@ -88,10 +94,10 @@ EthFields parseRawTxFields(std::string const &message) {
         ret.nonce = uint32_t(*it);
         break;
       case 1:
-        ret.gasPrice = uint128_t(*it);
+        ret.gasPrice = uint128_t{*it};
         break;
       case 2:
-        ret.gasLimit = uint64_t(*it);
+        ret.gasLimit = uint64_t{*it};
         break;
       case 3:
         ret.toAddr = byteIt;
@@ -124,3 +130,89 @@ EthFields parseRawTxFields(std::string const &message) {
 
   return ret;
 }
+
+bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
+                    const Account *sender, const uint128_t &gasPriceWei) {
+  if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "CHAIN_ID incorrect");
+  }
+
+  if (!tx.VersionCorrect()) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "Transaction version incorrect! Expected:" +
+            std::to_string(TRANSACTION_VERSION) + " Actual:" +
+            std::to_string(DataConversion::UnpackB(tx.GetVersion())));
+  }
+
+  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Code size is too large");
+  }
+
+  if (tx.GetGasPriceWei() < gasPriceWei) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "GasPrice " +
+                               tx.GetGasPriceWei().convert_to<std::string>() +
+                               " lower than minimum allowable " +
+                               gasPriceWei.convert_to<std::string>());
+  }
+
+  if (tx.GetGasLimitEth() < MIN_ETH_GAS) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "GasLimit " + std::to_string(tx.GetGasLimitEth()) +
+                               " lower than minimum allowable " +
+                               std::to_string(MIN_ETH_GAS));
+  }
+
+  if (!Validator::VerifyTransaction(tx)) {
+    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
+                           "Unable to verify transaction");
+  }
+
+  if (IsNullAddress(fromAddr)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "Invalid address for issuing transactions");
+  }
+
+  if (sender == nullptr) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "The sender of the txn doesn't exist");
+  }
+
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + std::to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               std::to_string(sender->GetNonce()) + ")");
+  }
+
+  // Check if transaction amount is valid
+  uint256_t gasDepositWei = 0;
+  if (!SafeMath<uint256_t>::mul(tx.GetGasLimitZil(), tx.GetGasPriceWei(),
+                                gasDepositWei)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "tx.GetGasLimitZil() * tx.GetGasPrice() overflow!");
+  }
+
+  uint256_t debt = 0;
+  if (!SafeMath<uint256_t>::add(gasDepositWei, tx.GetAmountWei(), debt)) {
+    throw JsonRpcException(
+        ServerBase::RPC_INVALID_PARAMETER,
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
+  }
+
+  const uint256_t accountBalance =
+      uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+  if (accountBalance < debt) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Insufficient funds in source account, wants: " +
+                               debt.convert_to<std::string>() + ", but has: " +
+                               accountBalance.convert_to<std::string>());
+  }
+
+  return true;
+}
+
+}  // namespace Eth

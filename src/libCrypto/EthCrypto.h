@@ -26,6 +26,9 @@
 
 constexpr unsigned int UNCOMPRESSED_SIGNATURE_SIZE = 65;
 
+bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
+                        bytes& signature);
+
 bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex);
@@ -36,12 +39,28 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
 // per the 'Standards for Efficient Cryptography' specification
 std::string ToUncompressedPubKey(const std::string& pubKey);
 
+// Recover the public signature of a transaction given its RLP
 bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
 
+// Get the hash that was signed in order to create the transaction signature.
+// Note this is different from the transaction hash
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 
+// Given a native transaction, get the corresponding RLP (that was sent to
+// create it)
+std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
+                              std::string signature);
+
+// As a workaround, code/data strings have an evm prefix to distinguish them,
+// but this must be stripped before it goes to the EVM
 bytes ToEVM(bytes const& in);
 bytes FromEVM(bytes const& in);
 bytes StripEVM(bytes const& in);
+
+// Create an ethereum style transaction hash
+bytes CreateHash(std::string const& rawTx);
+
+// Create the eth-style contract address given the sender address and nonce
+bytes CreateContractAddr(bytes const& senderAddr, int nonce);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

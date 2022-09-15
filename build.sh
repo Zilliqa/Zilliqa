@@ -163,7 +163,7 @@ do
     ;;
     evm)
         echo "Build EVM"
-	evm_build_result=$(cd src/depends/evm; cargo build --release)
+	evm_build_result=$(cd evm-ds; cargo build --release)
 	exit $evm_build_result
     ;;
     *)
