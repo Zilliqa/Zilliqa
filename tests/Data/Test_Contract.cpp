@@ -92,15 +92,15 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   AccountStore::GetInstance().AddAccountTemp(ownerAddr,
                                              {200000000000000000, nonce});
 
-  contrAddr0 = Account::GetAddressForContract(ownerAddr, nonce);
+  contrAddr0 = Account::GetAddressForContract(ownerAddr, nonce, 1);
   LOG_GENERAL(INFO, "contrAddr0: " << contrAddr0);
-  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce + 1, 1);
   LOG_GENERAL(INFO, "contrAddr1: " << contrAddr1);
-  contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce + 2);
+  contrAddr2 = Account::GetAddressForContract(ownerAddr, nonce + 2, 1);
   LOG_GENERAL(INFO, "contrAddr2: " << contrAddr2);
-  contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce + 3);
+  contrAddr3 = Account::GetAddressForContract(ownerAddr, nonce + 3, 1);
   LOG_GENERAL(INFO, "contrAddr3: " << contrAddr3);
-  contrAddr4 = Account::GetAddressForContract(ownerAddr, nonce + 4);
+  contrAddr4 = Account::GetAddressForContract(ownerAddr, nonce + 4, 1);
   LOG_GENERAL(INFO, "contrAddr4: " << contrAddr4);
 
   ScillaTestUtil::ScillaTest test;
@@ -191,7 +191,7 @@ BOOST_AUTO_TEST_CASE(salarybot) {
 
   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
 
-  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
   LOG_GENERAL(INFO, "Salarybot Address: " << contrAddr);
 
   std::vector<ScillaTestUtil::ScillaTest> tests;
@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   /* ------------------------------------------------------------------- */
   // Deploying the library 1
-  libAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
+  libAddr1 = Account::GetAddressForContract(ownerAddr, nonce, 1);
   LOG_GENERAL(INFO, "Library 1 address: " << libAddr1);
 
   ScillaTestUtil::ScillaTest t1;
@@ -329,7 +329,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   /* ------------------------------------------------------------------- */
   // Deploying the library 2
-  libAddr2 = Account::GetAddressForContract(ownerAddr, nonce);
+  libAddr2 = Account::GetAddressForContract(ownerAddr, nonce, 1);
   LOG_GENERAL(INFO, "Library 2 address: " << libAddr2);
 
   ScillaTestUtil::ScillaTest t2;
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   /* ------------------------------------------------------------------- */
   // deploying contract
-  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce);
+  contrAddr1 = Account::GetAddressForContract(ownerAddr, nonce, 1);
   LOG_GENERAL(INFO, "Contract address: " << contrAddr1);
 
   ScillaTestUtil::ScillaTest t3;
@@ -482,7 +482,7 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   AccountStore::GetInstance().AddAccountTemp(donor2Addr,
                                              {2000000000000000, nonce});
 
-  contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
   LOG_GENERAL(INFO, "CrowdFunding Address: " << contrAddr);
 
   // Deploying the contract can use data from the 1st Scilla test.
@@ -719,8 +719,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   AccountStore::GetInstance().AddAccountTemp(ownerAddr,
                                              {2000000000000000, nonce});
 
-  pingAddr = Account::GetAddressForContract(ownerAddr, nonce);
-  pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  pingAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  pongAddr = Account::GetAddressForContract(ownerAddr, nonce + 1, 1);
 
   LOG_GENERAL(INFO,
               "Ping Address: " << pingAddr << " ; PongAddress: " << pongAddr);
@@ -880,9 +880,9 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   AccountStore::GetInstance().AddAccountTemp(ownerAddr,
                                              {2000000000000000, nonce});
 
-  aAddr = Account::GetAddressForContract(ownerAddr, nonce);
-  bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
-  cAddr = Account::GetAddressForContract(ownerAddr, nonce + 2);
+  aAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  bAddr = Account::GetAddressForContract(ownerAddr, nonce + 1, 1);
+  cAddr = Account::GetAddressForContract(ownerAddr, nonce + 2, 1);
 
   LOG_GENERAL(INFO, "aAddr: " << aAddr << " ; bAddr: " << bAddr
                               << " ; cAddr: " << cAddr);
@@ -1054,8 +1054,8 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
   ownerAddr = Account::GetAddressFromPublicKey(owner.second);
   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {ownerBal, nonce});
 
-  implAddr = Account::GetAddressForContract(ownerAddr, nonce);
-  proxyAddr = Account::GetAddressForContract(ownerAddr, nonce + 1);
+  implAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  proxyAddr = Account::GetAddressForContract(ownerAddr, nonce + 1, 1);
 
   LOG_GENERAL(INFO, "ownerAddr: " << ownerAddr << "; implAddr: " << implAddr
                                   << "; proxyAddr: " << proxyAddr);
@@ -1190,7 +1190,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
   AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, nonce});
 
   for (unsigned int i = 0; i < numDeployments; i++) {
-    Address contractAddr = Account::GetAddressForContract(ownerAddr, nonce);
+    Address contractAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
 
     // Deploy the contract using data from the 2nd Scilla test.
     ScillaTestUtil::ScillaTest t2;
@@ -1317,7 +1317,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     ownerAddr = Account::GetAddressFromPublicKey(owner.second);
     AccountStore::GetInstance().AddAccountTemp(ownerAddr, {bal, nonce});
 
-    contrAddr = Account::GetAddressForContract(ownerAddr, nonce);
+    contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
     LOG_GENERAL(INFO, "FungibleToken Address: " << contrAddr.hex());
 
     // Deploy the contract using data from the 2nd Scilla test.
@@ -1473,7 +1473,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
   AccountStore::GetInstance().AddAccountTemp(senderAddr, {bal, senderNonce});
 
   for (auto hodlers : numHodlers) {
-    contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+    contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce, 1);
     LOG_GENERAL(INFO, "NonFungibleToken Address: " << contrAddr.hex());
 
     // Deploy the contract using data from the 10th Scilla test.
@@ -1683,7 +1683,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
        Address("0xabfeccdc9012345678901234567890f777564326")});
 
   uint64_t ownerNonce = 0;
-  auto contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+  auto contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce, 1);
   LOG_GENERAL(INFO, "Contract will be deployed at address " << contrAddr);
 
   AccountStore::GetInstance().AddAccountTemp(ownerAddr,
@@ -1910,7 +1910,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
     ScillaTestUtil::RemoveThisAddressFromInit(rsr_dep2.init);
     bnum = ScillaTestUtil::GetBlockNumberFromJson(rsr_dep2.blockchain);
 
-    auto contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce);
+    auto contrAddr = Account::GetAddressForContract(ownerAddr, ownerNonce, 1);
     LOG_GENERAL(INFO, "Contract will be deployed at address " << contrAddr);
 
     state_entries.clear();
