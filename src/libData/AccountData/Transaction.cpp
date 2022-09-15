@@ -55,7 +55,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   // Generate the signature
   if (IsEth()) {
     bytes signature;
-    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID_INT);
+    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
     bytes pk_bytes;
     const PrivKey& privKey{senderKeyPair.first};
     privKey.Serialize(pk_bytes, 0);
@@ -256,15 +256,15 @@ bool Transaction::IsSignedECDSA() const {
   if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
     pubKeyStr = pubKeyStr.substr(2);
   }
-  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT),
+  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID),
                               sigString, pubKeyStr);
 }
 
 // Set what the hash of the transaction is, depending on its type
 bool Transaction::SetHash(bytes const& txnData) {
   if (IsEth()) {
-    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT,
-                                         std::string(m_signature));
+    auto const asRLP =
+        GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID, std::string(m_signature));
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {

@@ -22,6 +22,7 @@
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 class Mediator;
@@ -382,7 +383,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID_INT);
+    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
@@ -393,11 +394,12 @@ class LookupServer : public Server,
     auto shards = m_mediator.m_lookup->GetShardPeers().size();
 
     // For Eth transactions, pass gas Price in Wei
-    auto resp = CreateTransactionEth(
-        fields, pubKey, shards,
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-            EVM_ZIL_SCALING_FACTOR,
-        m_createTransactionTarget);
+    const auto gasPrice =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+         EVM_ZIL_SCALING_FACTOR) /
+        GasConv::GetScalingFactor();
+    auto resp = CreateTransactionEth(fields, pubKey, shards, gasPrice,
+                                     m_createTransactionTarget);
     response = std::string{"0x"} + resp["TranID"].asString();
     LOG_GENERAL(DEBUG, "Response:" << response);
   }
@@ -501,7 +503,7 @@ class LookupServer : public Server,
    */
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
-    response = this->GetNetVersion();
+    response = this->GetEthChainId();
   }
 
   /**
@@ -698,7 +700,6 @@ class LookupServer : public Server,
   Json::Value GetEthUncleBlock();
   Json::Value GetEthMining();
   std::string GetEthCoinbase();
-  std::string GetNetVersion();
   Json::Value GetNetListening();
   std::string GetNetPeerCount();
   std::string GetProtocolVersion();

@@ -20,6 +20,7 @@
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace jsonrpc;
@@ -665,8 +666,9 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     uint256_t senderBalance;
 
     const uint128_t gasPriceWei =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-        EVM_ZIL_SCALING_FACTOR;
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+         EVM_ZIL_SCALING_FACTOR) /
+        GasConv::GetScalingFactor();
 
     const Address fromAddr = tx.GetSenderAddr();
     LOG_GENERAL(DEBUG, "from address: " << fromAddr << ", to:" << toAddr);
