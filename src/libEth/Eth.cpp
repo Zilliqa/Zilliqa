@@ -226,15 +226,31 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
 }
 
 LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
-  const std::string address = logObject.get("address").asString();
-  const auto topicsArray = logObject.get("topics");
+  const std::string address =
+      logObject.get("address", Json::nullValue).asString();
+
+  if (address.empty()) {
+    return {};
+  }
+  const auto topicsArray = logObject.get("topics", Json::arrayValue);
 
   LogBloom bloom;
-  bloom.shiftBloom<3>(eth::keccak(address.c_str(), address.size()));
+  const auto hashedAddress = ethash::keccak256(
+      reinterpret_cast<const uint8_t *>(address.data()), address.size());
+  const auto bloomInputAddress =
+      dev::h256{reinterpret_cast<unsigned char const *>(&hashedAddress.bytes),
+                dev::h256::ConstructFromPointer};
+
+  bloom.shiftBloom<3>(bloomInputAddress);
 
   for (const auto &jsonTopic : topicsArray) {
     const auto topic = jsonTopic.asString();
-    bloom.shiftBloom<3>(eth::keccak(topic.c_str(), topic.size()));
+    const auto hashedTopic = ethash::keccak256(
+        reinterpret_cast<const uint8_t *>(topic.data()), topic.size());
+    const auto bloomInputTopic =
+        dev::h256{reinterpret_cast<unsigned char const *>(&hashedTopic.bytes),
+                  dev::h256::ConstructFromPointer};
+    bloom.shiftBloom<3>(bloomInputTopic);
   }
   return bloom;
 }
@@ -242,8 +258,8 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
 LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
   LogBloom bloom;
   for (const auto &logEntry : logsArray) {
-    const auto singleBloom = BuildBloomForLogObject(logEntry);
-    bloom |= singleBloom;
+    const auto single = BuildBloomForLogObject(logEntry);
+    bloom |= single;
   }
   return bloom;
 }
