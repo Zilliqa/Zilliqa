@@ -466,7 +466,8 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
 }
 
 Address Account::GetAddressForContract(const Address& sender,
-                                       const uint64_t& nonce, unsigned int version) {
+                                       const uint64_t& nonce,
+                                       unsigned int version) {
   Address address;
 
   // Zil-style TXs
@@ -491,7 +492,9 @@ Address Account::GetAddressForContract(const Address& sender,
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
   } else {
-    LOG_GENERAL(WARNING, "Unsupported TX type when generating contract address! " << version);
+    LOG_GENERAL(
+        WARNING,
+        "Unsupported TX type when generating contract address! " << version);
   }
 
   return address;

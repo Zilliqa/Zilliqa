@@ -150,7 +150,9 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
 
 uint32_t Transaction::GetVersion() const { return m_coreInfo.version; }
 
-uint32_t Transaction::GetVersionIdentifier() const { return DataConversion::UnpackB(this->GetVersion()); }
+uint32_t Transaction::GetVersionIdentifier() const {
+  return DataConversion::UnpackB(this->GetVersion());
+}
 
 // Check if the version is 1 or 2 - the only valid ones for now
 // this will look like 65538 or 65537

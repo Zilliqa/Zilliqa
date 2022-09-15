@@ -705,10 +705,10 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   if (!txn.GetTransaction().GetCode().empty() &&
       IsNullAddress(txn.GetTransaction().GetToAddr())) {
     retJson["contractAddress"] =
-        "0x" +
-        Account::GetAddressForContract(txn.GetTransaction().GetSenderAddr(),
-                                       txn.GetTransaction().GetNonce() - 1, TRANSACTION_VERSION_ETH)
-            .hex();
+        "0x" + Account::GetAddressForContract(
+                   txn.GetTransaction().GetSenderAddr(),
+                   txn.GetTransaction().GetNonce() - 1, TRANSACTION_VERSION_ETH)
+                   .hex();
   }
   retJson["type"] = "0x0";
   return retJson;
