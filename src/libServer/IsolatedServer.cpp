@@ -20,6 +20,7 @@
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace jsonrpc;
@@ -193,7 +194,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetNetPeerCountI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetProtocolVersionI);
 
@@ -322,24 +323,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
       &LookupServer::GetEthStorageAtI);
 
   AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_sign", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthSignI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_signTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetEthSignTransactionI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_sendTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetEthSendTransactionI);
-
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
       jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, NULL),
@@ -388,11 +371,11 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
                            "Code size is too large");
   }
 
-  if (tx.GetGasPrice() < gasPrice) {
-    throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
-                           "GasPrice " + tx.GetGasPrice().convert_to<string>() +
-                               " lower than minimum allowable " +
-                               gasPrice.convert_to<string>());
+  if (tx.GetGasPriceQa() < gasPrice) {
+    throw JsonRpcException(
+        ServerBase::RPC_VERIFY_REJECTED,
+        "GasPrice " + tx.GetGasPriceQa().convert_to<string>() +
+            " lower than minimum allowable " + gasPrice.convert_to<string>());
   }
   if (!Validator::VerifyTransaction(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
@@ -411,21 +394,21 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
   const auto type = Transaction::GetTransactionType(tx);
 
   if (type == Transaction::ContractType::CONTRACT_CALL &&
-      (tx.GetGasLimit() <
+      (tx.GetGasLimitZil() <
        max(CONTRACT_INVOKE_GAS, (unsigned int)(tx.GetData().size())))) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "Gas limit (" + to_string(tx.GetGasLimit()) +
+                           "Gas limit (" + to_string(tx.GetGasLimitZil()) +
                                ") lower than minimum for invoking contract (" +
                                to_string(CONTRACT_INVOKE_GAS) + ")");
   }
 
   else if (type == Transaction::ContractType::CONTRACT_CREATION &&
-           (tx.GetGasLimit() <
+           (tx.GetGasLimitZil() <
             max(CONTRACT_CREATE_GAS,
                 (unsigned int)(tx.GetCode().size() + tx.GetData().size())))) {
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
-        "Gas limit (" + to_string(tx.GetGasLimit()) +
+        "Gas limit (" + to_string(tx.GetGasLimitZil()) +
             ") lower than minimum for creating contract (" +
             to_string(max(
                 CONTRACT_CREATE_GAS,
@@ -530,12 +513,12 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                              "Expected Nonce: " + to_string(senderNonce + 1));
     }
 
-    if (senderBalance < tx.GetAmount()) {
+    if (senderBalance < tx.GetAmountQa()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Insufficient Balance: " + senderBalance.str());
     }
 
-    if (m_gasPrice > tx.GetGasPrice()) {
+    if (m_gasPrice > tx.GetGasPriceQa()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Minimum gas price greater: " + m_gasPrice.str());
     }
@@ -650,7 +633,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   return ret;
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
+Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey) {
   Json::Value ret;
 
@@ -660,33 +643,32 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
     }
 
     Address toAddr{fields.toAddr};
-    Transaction tx =
-        IsNullAddress(toAddr)
-            ? Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          ToEVM(fields.code),
-                          {},
-                          Signature(fields.signature, 0)}
-            : Transaction{fields.version,
-                          fields.nonce,
-                          Address(fields.toAddr),
-                          PubKey(pubKey, 0),
-                          fields.amount,
-                          fields.gasPrice,
-                          fields.gasLimit,
-                          {},
-                          DataConversion::StringToCharArray(
-                              DataConversion::Uint8VecToHexStrRet(
-                                  fields.code)),  // TODO remove hex'ing.
-                          Signature(fields.signature, 0)};
+    bytes data;
+    bytes code;
+    if (IsNullAddress(toAddr)) {
+      code = ToEVM(fields.code);
+    } else {
+      data = DataConversion::StringToCharArray(
+          DataConversion::Uint8VecToHexStrRet(fields.code));
+    }
+    Transaction tx{fields.version,
+                   fields.nonce,
+                   Address(fields.toAddr),
+                   PubKey(pubKey, 0),
+                   fields.amount,
+                   fields.gasPrice,
+                   fields.gasLimit,
+                   code,  // either empty or stripped EVM-less code
+                   data,  // either empty or un-hexed byte-stream
+                   Signature(fields.signature, 0)};
 
     uint64_t senderNonce;
-    uint128_t senderBalance;
+    uint256_t senderBalance;
+
+    const uint128_t gasPriceWei =
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+         EVM_ZIL_SCALING_FACTOR) /
+        GasConv::GetScalingFactor();
 
     const Address fromAddr = tx.GetSenderAddr();
 
@@ -698,29 +680,12 @@ Json::Value IsolatedServer::CreateTransactionEth(EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei)) {
         return ret;
       }
 
+      senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
       senderNonce = sender->GetNonce();
-      senderBalance = sender->GetBalance();
-    }
-
-    if (senderNonce + 1 != tx.GetNonce()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Expected Nonce: " + to_string(senderNonce + 1));
-    }
-
-    if (senderBalance < tx.GetAmount()) {
-      throw JsonRpcException(
-          RPC_INVALID_PARAMETER,
-          "Insufficient Balance: " + senderBalance.str() +
-              " with an attempt to send: " + tx.GetAmount().str());
-    }
-
-    if (m_gasPrice > tx.GetGasPrice()) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Minimum gas price greater: " + m_gasPrice.str());
     }
 
     switch (Transaction::GetTransactionType(tx)) {

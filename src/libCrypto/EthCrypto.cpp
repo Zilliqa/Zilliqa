@@ -16,6 +16,7 @@
  */
 
 #include "EthCrypto.h"
+#include <boost/algorithm/string.hpp>
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -28,6 +29,7 @@
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
+#include <cstddef>
 #include <ethash/keccak.hpp>
 #include <iostream>
 #include <memory>
@@ -50,6 +52,44 @@ auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
 auto epFree = [](EC_POINT* b) { EC_POINT_free(b); };
 auto esFree = [](ECDSA_SIG* b) { ECDSA_SIG_free(b); };
 auto ekFree = [](EC_KEY* b) { EC_KEY_free(b); };
+
+bool PubKeysSame(bytes const& pubkA, PubKey const& pubkB) {
+  return PubKey(pubkA, 0) == pubkB;
+}
+
+bytes DerivePubkey(bytes rs, int vSelect, const unsigned char* signingHash) {
+  // Load the RS into the library
+  std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
+      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                                     SECP256K1_CONTEXT_VERIFY),
+            &secp256k1_context_destroy};
+  auto ctx = s_ctx.get();
+
+  secp256k1_ecdsa_recoverable_signature rawSig;
+  if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
+          ctx, &rawSig, rs.data(), vSelect)) {
+    LOG_GENERAL(WARNING,
+                "Error getting RS signature during public key reconstruction");
+    return {};
+  }
+
+  // Re-create public key given signature, and message
+  secp256k1_pubkey rawPubkey;
+  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig, signingHash)) {
+    LOG_GENERAL(WARNING,
+                "Error recovering public key during public key reconstruction");
+    return {};
+  }
+
+  // Parse the public key out of the library format
+  bytes serializedPubkey(65);
+  size_t serializedPubkeySize = serializedPubkey.size();
+  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(),
+                                &serializedPubkeySize, &rawPubkey,
+                                SECP256K1_EC_UNCOMPRESSED);
+
+  return serializedPubkey;
+}
 
 // https://stackoverflow.com/questions/57385412/
 void SetOpensslSignature(const std::string& sSignatureInHex, ECDSA_SIG* pSign) {
@@ -171,6 +211,42 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
   return result;
 }
 
+bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
+                        bytes& signature) {
+  if (digest.size() != 32) {
+    LOG_GENERAL(WARNING, "Singing ECDSA: wrong digest length");
+    return false;
+  }
+
+  if (privKey.size() != 32) {
+    LOG_GENERAL(WARNING, "Singing ECDSA: wrong private key length");
+    return false;
+  }
+
+  std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
+      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                                     SECP256K1_CONTEXT_VERIFY),
+            &secp256k1_context_destroy};
+
+  auto ctx = s_ctx.get();
+
+  secp256k1_ecdsa_signature sig;
+
+  int result =
+      secp256k1_ecdsa_sign(ctx, &sig, &digest[0], &privKey[0], NULL, NULL);
+  if (result != 1) {
+    LOG_GENERAL(WARNING, "Failed to sign ECDSA");
+    return false;
+  }
+
+  unsigned char str_signature[64];
+  secp256k1_ecdsa_signature_serialize_compact(ctx, str_signature, &sig);
+  signature.assign(&str_signature[0],
+                   &str_signature[0] + sizeof(str_signature));
+
+  return true;
+}
+
 // Given a hex string representing the pubkey (secp256k1), return the hex
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
@@ -180,8 +256,14 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   std::unique_ptr<EC_KEY, decltype(ekFree)> zPublicKey(
       EC_KEY_new_by_curve_name(NID_secp256k1), ekFree);
 
+  size_t offset = 0;
+  if (pubKey.size() >= 2 && pubKey[0] == '0' &&
+      (pubKey[1] == 'x' || pubKey[1] == 'X')) {
+    offset = 2;
+  }
+
   // The +2 removes '0x' at the beginning of the string
-  if (!SetOpensslPublicKey(pubKey.c_str() + 2, zPublicKey.get())) {
+  if (!SetOpensslPublicKey(pubKey.c_str() + offset, zPublicKey.get())) {
     LOG_GENERAL(WARNING,
                 "Failed to get the public key from the hex input when getting "
                 "uncompressed form");
@@ -213,15 +295,6 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
   }
 
   return ret;
-}
-
-secp256k1_context const* getCtx() {
-  static std::unique_ptr<secp256k1_context,
-                         decltype(&secp256k1_context_destroy)>
-      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
-                                     SECP256K1_CONTEXT_VERIFY),
-            &secp256k1_context_destroy};
-  return s_ctx.get();
 }
 
 // EIP-155 : assume the chain height is high enough that the signing scheme
@@ -306,33 +379,7 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
   auto signingHash = ethash::keccak256(messageRecreatedBytes.data(),
                                        messageRecreatedBytes.size());
 
-  // Load the RS into the library
-  auto* ctx = getCtx();
-  secp256k1_ecdsa_recoverable_signature rawSig;
-  if (!secp256k1_ecdsa_recoverable_signature_parse_compact(
-          ctx, &rawSig, rs.data(), vSelect)) {
-    LOG_GENERAL(WARNING,
-                "Error getting RS signature during public key reconstruction");
-    return {};
-  }
-
-  // Re-create public key given signature, and message
-  secp256k1_pubkey rawPubkey;
-  if (!secp256k1_ecdsa_recover(ctx, &rawPubkey, &rawSig,
-                               &signingHash.bytes[0])) {
-    LOG_GENERAL(WARNING,
-                "Error recovering public key during public key reconstruction");
-    return {};
-  }
-
-  // Parse the public key out of the library format
-  bytes serializedPubkey(65);
-  size_t serializedPubkeySize = serializedPubkey.size();
-  secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(),
-                                &serializedPubkeySize, &rawPubkey,
-                                SECP256K1_EC_UNCOMPRESSED);
-
-  return serializedPubkey;
+  return DerivePubkey(rs, vSelect, &signingHash.bytes[0]);
 }
 
 // nonce, gasprice, startgas, to, value, data, chainid, 0, 0
@@ -355,6 +402,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
     rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
         DataConversion::CharArrayToString(info.data));
   }
+
   rlpStreamRecreated << chainId;
   rlpStreamRecreated << bytes{};
   rlpStreamRecreated << bytes{};
@@ -363,6 +411,66 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
                                              rlpStreamRecreated.out().size());
 
   return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
+}
+
+// From a zilliqa TX, get the RLP that was sent to the node to create it
+std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
+                              std::string signature) {
+  if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
+    signature.erase(0, 2);
+  }
+
+  if (signature.size() != 128) {
+    LOG_GENERAL(WARNING, "Received bad signature size: " << signature.size());
+    return "";
+  }
+
+  std::string s = signature.substr(64, std::string::npos);
+  signature.resize(64);
+
+  for (int i = 0;; i++) {
+    if (i >= 2) {
+      LOG_GENERAL(WARNING, "Error recreating sent RLP stream");
+      return "";
+    }
+
+    dev::RLPStream rlpStreamRecreated(9);
+
+    rlpStreamRecreated << info.nonce;
+    rlpStreamRecreated << info.gasPrice;
+    rlpStreamRecreated << info.gasLimit;
+    bytes toAddr{};
+    if (!IsNullAddress(info.toAddr)) {
+      toAddr = info.toAddr.asBytes();
+    }
+    rlpStreamRecreated << toAddr;
+    rlpStreamRecreated << info.amount;
+    if (IsNullAddress(info.toAddr)) {
+      rlpStreamRecreated << FromEVM(info.code);
+    } else {
+      // TODO: remove hexing here.
+      rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
+          DataConversion::CharArrayToString(info.data));
+    }
+
+    // i is the parity, either 0 or 1
+    int v = (chainId * 2) + 35 + i;
+
+    rlpStreamRecreated << v;
+    rlpStreamRecreated << dev::u256("0x" + signature);
+    rlpStreamRecreated << dev::u256("0x" + s);
+
+    auto const* dataPtr = rlpStreamRecreated.out().data();
+    auto const& asString = DataConversion::Uint8VecToHexStrRet(
+        bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
+    auto const pubK = RecoverECDSAPubSig(asString, chainId);
+
+    if (!PubKeysSame(pubK, info.senderPubKey)) {
+      continue;
+    }
+
+    return asString;
+  }
 }
 
 bytes ToEVM(bytes const& in) {
@@ -395,4 +503,35 @@ bytes StripEVM(bytes const& in) {
   } else {
     return in;
   }
+}
+
+bytes CreateHash(std::string const& rawTx) {
+  auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
+
+  auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
+
+  bytes hashBytes;
+
+  hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
+
+  return hashBytes;
+}
+
+bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
+  dev::RLPStream rlpStream(2);
+  rlpStream << senderAddr;
+  rlpStream << nonce;
+
+  auto const* dataPtr = rlpStream.out().data();
+  auto const asBytes = bytes(dataPtr, dataPtr + rlpStream.out().size());
+
+  auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
+
+  bytes hashBytes;
+
+  // Only the last 40 bytes needed
+  // 8B6621534A2DA69F2F7FF7A3CD234A471B72BA2F1CCF0A70FCABA648A5EECD8D
+  hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
+
+  return hashBytes;
 }

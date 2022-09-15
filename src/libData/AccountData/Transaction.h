@@ -64,8 +64,8 @@ class Transaction : public SerializableDataBlock {
   TransactionCoreInfo m_coreInfo;
   Signature m_signature;
 
-  bool IsSignedSchnorr() const;
   bool IsSignedECDSA() const;
+  bool SetHash(const bytes& txnData);
 
  public:
   /// Default constructor.
@@ -119,8 +119,12 @@ class Transaction : public SerializableDataBlock {
   /// Returns the current version.
   const uint32_t& GetVersion() const;
 
+  bool IsEth() const;
+
   /// Returns whether the current version is correct
   bool VersionCorrect() const;
+
+  bool IsSigned(bytes const& txnData) const;
 
   /// Returns the transaction nonce.
   const uint64_t& GetNonce() const;
@@ -134,14 +138,32 @@ class Transaction : public SerializableDataBlock {
   /// Returns the sender's Address
   Address GetSenderAddr() const;
 
-  /// Returns the transaction amount.
-  const uint128_t& GetAmount() const;
+  /// Returns the transaction amount in Qa.
+  const uint128_t GetAmountQa() const;
 
-  /// Returns the gas price.
-  const uint128_t& GetGasPrice() const;
+  /// Returns the transaction amount in Wei.
+  const uint128_t GetAmountWei() const;
 
-  /// Returns the gas limit.
-  const uint64_t& GetGasLimit() const;
+  /// Returns the transaction amount in raw units regardless of Qa or Wei.
+  const uint128_t& GetAmountRaw() const;
+
+  /// Returns the gas price in Qa.
+  const uint128_t GetGasPriceQa() const;
+
+  /// Returns the gas price in Wei.
+  const uint128_t GetGasPriceWei() const;
+
+  /// Returns the gas price in raw uints regadless of Qa or Wei.
+  const uint128_t& GetGasPriceRaw() const;
+
+  /// Returns the normalized to ZIL gas limit
+  uint64_t GetGasLimitZil() const;
+
+  /// Returns gas limit received from API.
+  uint64_t GetGasLimitRaw() const;
+
+  /// Returns gas limit used by ETH.
+  uint64_t GetGasLimitEth() const;
 
   /// Returns the code.
   const bytes& GetCode() const;
@@ -151,9 +173,6 @@ class Transaction : public SerializableDataBlock {
 
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
-
-  /// Return whether the transaction has been correctly signed
-  bool IsSigned() const;
 
   unsigned int GetShardIndex(unsigned int numShards) const;
 

@@ -96,7 +96,7 @@ sudo apt-get install git libboost-system-dev libboost-filesystem-dev libboost-te
     libcurl4-openssl-dev libboost-program-options-dev libboost-python-dev python3-dev \
     python3-setuptools python3-pip gawk
 ```
-Run the following to install latest version of cmake.We suggest to install cmake 3.19 or any version >=3.16:
+Run the following to install latest version of cmake. Please make sure you have cmake 3.19 or above:
 
 ```
 wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
