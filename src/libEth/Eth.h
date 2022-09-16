@@ -27,8 +27,6 @@ class Transaction;
 class TransactionReceipt;
 class Account;
 
-using LogBloom = dev::h2048;
-
 namespace Eth {
 
 using LogBloom = dev::h2048;

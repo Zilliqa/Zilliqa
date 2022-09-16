@@ -1427,13 +1427,6 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     const std::string blockHash =
         (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str();
 
-    const auto transactionIndexOpt =
-        BlockTransactionsHelper::GetTransactionIndexInBlock(
-            m_mediator.m_txBlockChain, txnhash, blockHash);
-
-    const Json::Value transactionIndex =
-        transactionIndexOpt.value_or(Json::nullValue);
-
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
 
