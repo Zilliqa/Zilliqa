@@ -20,16 +20,12 @@ if(NOT "${SCHNORR_INSTALL_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing Schnorr (1), see more in log ${SCHNORR_INSTALL_LOG}")
 endif()
 
-file(COPY ${CMAKE_SOURCE_DIR}/vcpkg.json DESTINATION ${SCHNORR_SOURCE_DIR})
-
 # generate build directory
 execute_process(
     COMMAND ${CMAKE_COMMAND}
         -H${SCHNORR_SOURCE_DIR}
         -B${SCHNORR_BINARY_DIR}
         -DCMAKE_INSTALL_PREFIX=${SCHNORR_INSTALL_DIR}
-        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
-        -DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}
         -DCMAKE_BUILD_TYPE:STRING=Release
         -Wno-dev
     RESULT_VARIABLE SCHNORR_INSTALL_RET

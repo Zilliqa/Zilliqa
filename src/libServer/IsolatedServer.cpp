@@ -20,10 +20,14 @@
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace jsonrpc;
 using namespace std;
+
+const char* ZEROES_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000";
 
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
@@ -632,9 +636,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   return ret;
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
+std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey) {
-  Json::Value ret;
+  // Always return the TX hash or the null hash
+  std::string ret = ZEROES_HASH;
 
   try {
     if (m_pause) {
@@ -661,12 +666,14 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                    data,  // either empty or un-hexed byte-stream
                    Signature(fields.signature, 0)};
 
-    uint64_t senderNonce;
+    ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+
     uint256_t senderBalance;
 
     const uint128_t gasPriceWei =
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-        EVM_ZIL_SCALING_FACTOR;
+        (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
+         EVM_ZIL_SCALING_FACTOR) /
+        GasConv::GetScalingFactor();
 
     const Address fromAddr = tx.GetSenderAddr();
 
@@ -683,7 +690,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       }
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-      senderNonce = sender->GetNonce();
     }
 
     switch (Transaction::GetTransactionType(tx)) {
@@ -693,8 +699,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, senderNonce).hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
@@ -777,18 +781,14 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
     }
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    ret["TranID"] = txHash.hex();
-    ret["Info"] = "Txn processed";
     WebsocketServer::GetInstance().ParseTxn(twr);
     LOG_GENERAL(
         INFO,
         "Processing On the isolated server completed. Minting a block...");
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
-    throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
 
   // Double create a block to make sure TXs are 'flushed'

@@ -1,10 +1,28 @@
 [submodule "src/depends/g3log"]
 	path = src/depends/g3log
 	url = https://github.com/Zilliqa/g3log.git
+[submodule "src/depends/openssl"]
+	path = src/depends/openssl
+	url = https://github.com/openssl/openssl.git
+[submodule "src/depends/protobuf"]
+	path = src/depends/protobuf
+	url = https://github.com/google/protobuf.git
+	branch = 3.9.x
+[submodule "src/depends/websocketpp"]
+	path = src/depends/websocketpp
+	url = https://github.com/zaphoyd/websocketpp
 [submodule "src/depends/Schnorr"]
 	path = src/depends/Schnorr
 	url = https://github.com/Zilliqa/schnorr.git
 	branch = sig_fix_plus_bn
+[submodule "src/depends/mongo-c-driver"]
+	path = src/depends/mongo-c-driver
+	url = https://github.com/mongodb/mongo-c-driver.git
+	branch = r1.17
+[submodule "src/depends/mongo-cxx-driver"]
+	path = src/depends/mongo-cxx-driver
+	url = https://github.com/n-hutton/mongo-cxx-driver.git
+	branch = releases/stable
 [submodule "src/depends/cryptoutils"]
 	path = src/depends/cryptoutils
 	url = https://github.com/Zilliqa/cryptoutils.git

@@ -162,6 +162,16 @@ uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
   return (hex_arr.at(lsb - 1) << 8) | hex_arr.at(lsb);
 }
 
+std::string DataConversion::AddOXPrefix(std::string&& s) {
+  if (s.size() <= 2 || s[1] == 'x' || s[1] == 'X') {
+    return s;
+  }
+
+  std::string ret{"0x"};
+  ret += s;
+  return ret;
+}
+
 bool DataConversion::NormalizeHexString(std::string& s) {
   if (s.size() < 2) {
     return false;

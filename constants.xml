@@ -187,7 +187,7 @@
         <PENDING_TXN_QUERY_MAX_RESULTS>1000</PENDING_TXN_QUERY_MAX_RESULTS>
         <CONNECTION_IO_USE_EPOLL>true</CONNECTION_IO_USE_EPOLL>
         <!-- Timeout in seconds for ANY connection to safehttpserver port, 0 means no timeout-->
-        <CONNECTION_ALL_TIMEOUT>1</CONNECTION_ALL_TIMEOUT>
+        <CONNECTION_ALL_TIMEOUT>60</CONNECTION_ALL_TIMEOUT>
         <!-- Timeout in seconds for ONLY connection that reach our callback function, 0 means no timeout-->
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
         <ENABLE_EVM>true</ENABLE_EVM>
@@ -195,8 +195,8 @@
         <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
-        <ETH_CHAINID>0x814d</ETH_CHAINID>
         <EVM_ZIL_SCALING_FACTOR>1000000</EVM_ZIL_SCALING_FACTOR>
+        <EVM_BLOCK_LOOKUP_LIMIT>50</EVM_BLOCK_LOOKUP_LIMIT>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
