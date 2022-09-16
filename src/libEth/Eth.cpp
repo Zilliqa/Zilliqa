@@ -26,17 +26,19 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
+#include <boost/range.hpp>
+#include <ethash/keccak.hpp>
+
 using namespace jsonrpc;
 
 namespace Eth {
 
-Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
-                                  const std::string &from,
-                                  const std::string &to,
-                                  const std::string &gasUsed,
-                                  const std::string &blockHash,
-                                  const std::string &blockNumber,
-                                  const Json::Value &contractAddress) {
+Json::Value populateReceiptHelper(
+    std::string const &txnhash, bool success, const std::string &from,
+    const std::string &to, const std::string &gasUsed,
+    const std::string &blockHash, const std::string &blockNumber,
+    const Json::Value &contractAddress, const Json::Value &logs,
+    const Json::Value &logsBloom, const Json::Value &transactionIndex) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -46,21 +48,13 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["from"] = from;
   ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
-  ret["logs"] = Json::arrayValue;
-  ret["logsBloom"] =
-      "0x0000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "0000000000";
+  ret["logs"] = logs;
+  ret["logsBloom"] = logsBloom;
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
   ret["status"] = success ? "0x1" : "0x0";
   ret["to"] = to;
-  ret["transactionIndex"] = "0x0";
+  ret["transactionIndex"] = transactionIndex;
 
   return ret;
 }
@@ -213,6 +207,80 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   return true;
+}
+
+void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
+                         const std::string &txHash,
+                         const std::string &blockHash,
+                         const std::string &blockNum,
+                         const Json::Value &transactionIndex) {
+  for (auto &logEntry : logsArrayFromEvm) {
+    logEntry["removed"] = false;
+    logEntry["transactionIndex"] = transactionIndex;
+    logEntry["transactionHash"] = txHash;
+    logEntry["blockHash"] = blockHash;
+    logEntry["blockNumber"] = blockNum;
+  }
+}
+
+LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt) {
+  const auto logs = GetLogsFromReceipt(receipt);
+  return BuildBloomForLogs(logs);
+}
+
+Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt) {
+  return std::string{"0x"} + GetBloomFromReceipt(receipt).hex();
+}
+
+Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt) {
+  const Json::Value logs =
+      receipt.GetJsonValue().get("event_logs", Json::arrayValue);
+  return logs;
+}
+
+LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
+  const std::string addressStr =
+      logObject.get("address", Json::nullValue).asString();
+
+  if (addressStr.empty()) {
+    return {};
+  }
+
+  Address address{addressStr};
+  const auto topicsArray = logObject.get("topics", Json::arrayValue);
+
+  std::vector<dev::h256> topics;
+
+  for (const auto &topic : topicsArray) {
+    topics.push_back(dev::h256{topic.asString()});
+  }
+
+  const auto addressHash =
+      ethash::keccak256(address.ref().data(), address.ref().size());
+  dev::h256 addressBloom{dev::bytesConstRef{boost::begin(addressHash.bytes),
+                                            boost::size(addressHash.bytes)}};
+
+  LogBloom bloom;
+  bloom.shiftBloom<3>(addressBloom);
+
+  for (const auto &topic : topics) {
+    const auto topicHash =
+        ethash::keccak256(topic.ref().data(), topic.ref().size());
+    dev::h256 topicBloom{dev::bytesConstRef{boost::begin(topicHash.bytes),
+                                            boost::size(topicHash.bytes)}};
+    bloom.shiftBloom<3>(topicBloom);
+  }
+
+  return bloom;
+}
+
+LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
+  LogBloom bloom;
+  for (const auto &logEntry : logsArray) {
+    const auto single = BuildBloomForLogObject(logEntry);
+    bloom |= single;
+  }
+  return bloom;
 }
 
 }  // namespace Eth

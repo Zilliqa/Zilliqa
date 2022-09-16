@@ -41,6 +41,7 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
+#include "libUtils/BlockTransactionsHelper.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GasConv.h"
@@ -1428,9 +1429,18 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res =
-        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                   blockHash, blockNumber, contractAddress);
+
+    const auto logs =
+        Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+    const auto bloomLogs =
+        Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
+    const auto transactionIndexOpt =
+        BlockTransactionsHelper::GetTransactionIndexInBlock(
+            m_mediator.m_txBlockChain, txnhash, blockHash);
+    const auto transactionIndex = transactionIndexOpt.get_value_or(0);
+    auto res = Eth::populateReceiptHelper(
+        hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
+        contractAddress, logs, bloomLogs, transactionIndex);
 
     return res;
   } catch (const JsonRpcException& je) {
