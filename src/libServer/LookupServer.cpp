@@ -1071,13 +1071,21 @@ std::string LookupServer::CreateTransactionEth(
 TxBlock LookupServer::GetBlockFromTransaction(
     const TransactionWithReceipt& transaction) const {
   const TxBlock EMPTY_BLOCK;
-  const Json::Value blockNum =
-      transaction.GetTransactionReceipt().GetJsonValue().get("epoch_num", 0);
-  if (blockNum.asUInt64() == 0) {
+  const Json::Value blockNumStr =
+      transaction.GetTransactionReceipt().GetJsonValue().get("epoch_num", "");
+  try {
+    if (!blockNumStr.isString() || blockNumStr.asString().empty()) {
+      return EMPTY_BLOCK;
+    }
+    const uint64_t blockNum =
+        std::strtoull(blockNumStr.asCString(), nullptr, 0);
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    return txBlock;
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what()
+                                << " while getting block number from receipt!");
     return EMPTY_BLOCK;
   }
-  const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum.asUInt64());
-  return txBlock;
 }
 
 Json::Value LookupServer::GetEthBlockNumber() {
