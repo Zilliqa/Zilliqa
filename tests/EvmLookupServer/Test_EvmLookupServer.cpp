@@ -67,6 +67,7 @@ std::unique_ptr<LookupServer> getLookupServer() {
   return lookupServer;
 }
 
+// Convenience fn only used to test Eth TXs
 TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
                                               const PairOfKey& keyPair) {
   Address toAddr{Account::GetAddressFromPublicKeyEth(keyPair.second)};
@@ -1028,10 +1029,12 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
 
     BOOST_TEST_CHECK(response["hash"] ==
                      "0x" + transactions[i].GetTransaction().GetTranID().hex());
-    BOOST_TEST_CHECK(
-        response["nonce"] ==
-        (boost::format("0x%x") % transactions[i].GetTransaction().GetNonce())
-            .str());
+    // The internal nonce representation is always one ahead for Eth TXs than
+    // was originally sent due to accounting differences with Zil
+    BOOST_TEST_CHECK(response["nonce"] ==
+                     (boost::format("0x%x") %
+                      (transactions[i].GetTransaction().GetNonce() - 1))
+                         .str());
     BOOST_TEST_CHECK(response["value"] ==
                      (boost::format("0x%x") %
                       transactions[i].GetTransaction().GetAmountWei())

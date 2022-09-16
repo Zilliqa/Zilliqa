@@ -692,6 +692,8 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["input"] = inputField;
   // ethers also expects 'data' field
   retJson["data"] = inputField;
+  // NOTE: Nonce is decremented since the internal representation is +1 due to
+  // Zil accounting
   retJson["nonce"] =
       (boost::format("0x%x") % (txn.GetTransaction().GetNonce() - 1)).str();
   if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
