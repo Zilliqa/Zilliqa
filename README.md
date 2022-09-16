@@ -14,7 +14,7 @@
 
 Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure.
 
-* If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/docs/miners/mining-getting-started/.
+* If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/docs/miners/mining-getting-started/
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://dev.zilliqa.com/docs/apis/api-introduction.
 * If you’re interested more about the core protocol, see the [developer portal](https://dev.zilliqa.com/docs/contributors/contribute-buildzil).
 * If you’re interested in hacking on the Zilliqa code base, see the [Coding Guidelines](https://github.com/Zilliqa/Zilliqa/wiki/Coding-Guidelines).
