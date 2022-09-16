@@ -637,7 +637,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (!hasTxn) {
-        LOG_GENERAL(DEBUG, "No Txns to send for this seed node");
+        LOG_GENERAL(INFO, "No Txns to send for this seed node");
         continue;
       }
 
@@ -950,7 +950,7 @@ Json::Value LookupServer::CreateTransaction(
   }
 }
 
-Json::Value LookupServer::CreateTransactionEth(
+std::string LookupServer::CreateTransactionEth(
     Eth::EthFields const& fields, bytes const& pubKey,
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
@@ -985,9 +985,9 @@ Json::Value LookupServer::CreateTransactionEth(
                  data,  // either empty or un-hexed byte-stream
                  Signature(fields.signature, 0)};
 
-  try {
-    Json::Value ret;
+  std::string ret = tx.GetTranID().hex();
 
+  try {
     const Address fromAddr = tx.GetSenderAddr();
 
     bool toAccountExist;
@@ -1023,26 +1023,21 @@ Json::Value LookupServer::CreateTransactionEth(
           if (toAccountIsContract) {
             throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                                    "Contract account won't accept normal txn");
-            return false;
+            return ret;
           }
         }
 
-        ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::ERROR:
@@ -1064,42 +1059,26 @@ Json::Value LookupServer::CreateTransactionEth(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
-    ret["TranID"] = tx.GetTranID().hex();
-    return ret;
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: N/A");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+  return ret;
 }
 
-TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
+TxBlock LookupServer::GetBlockFromTransaction(
+    const TransactionWithReceipt& transaction) const {
   const TxBlock EMPTY_BLOCK;
-  const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-  auto height = txBlock.GetHeader().GetBlockNum();
-  if (height == std::numeric_limits<uint64_t>::max()) {
+  const Json::Value blockNum =
+      transaction.GetTransactionReceipt().GetJsonValue().get("epoch_num", 0);
+  if (blockNum.asUInt64() == 0) {
     return EMPTY_BLOCK;
   }
-
-  TxnHash argHash{txnhash};
-  do {
-    auto const block = GetEthBlockByNumber(std::to_string(height), false);
-    if (block == Json::nullValue) {
-      return EMPTY_BLOCK;
-    }
-    auto const TxnHashes = block["transactions"];
-    for (auto const& item : TxnHashes) {
-      TxnHash hash_1{item.asString()};
-      if (hash_1 == argHash) {
-        const std::string blockHash = block["hash"].asString();
-        const BlockHash hash{blockHash};
-        return m_mediator.m_txBlockChain.GetBlockByHash(hash);
-      }
-    }
-  } while (--height);
-
-  return EMPTY_BLOCK;
+  const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum.asUInt64());
+  return txBlock;
 }
 
 Json::Value LookupServer::GetEthBlockNumber() {
@@ -1223,10 +1202,14 @@ static bool isNumber(const std::string& str) {
   return (str.size() > 0 && endp != nullptr && *endp == '\0');
 }
 
+static bool isSupportedTag(const std::string& tag) {
+  return tag == "latest" || tag == "earliest" || tag == "pending" ||
+         isNumber(tag);
+}
+
 Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
-  if (tag == "latest" || tag == "earliest" || tag == "pending" ||
-      isNumber(tag)) {
+  if (isSupportedTag(tag)) {
     uint256_t ethBalance{0};
     try {
       auto ret = this->GetBalanceAndNonce(address);
@@ -1406,19 +1389,19 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    const TxBlock EMPTY_BLOCK;
-    auto txBlock = GetBlockByTransactionHash(txnhash);
-    if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
-      return Json::nullValue;
-    }
-
     TxnHash argHash{txnhash};
     TxBodySharedPtr transactioBodyPtr;
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
+      return Json::nullValue;
+    }
+
+    const TxBlock EMPTY_BLOCK;
+    auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    if (txBlock == EMPTY_BLOCK) {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
       return Json::nullValue;
     }
 
@@ -1432,8 +1415,11 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
-    std::string cumGas = std::to_string(GasConv::GasUnitsFromCoreToEth(
-        transactioBodyPtr->GetTransactionReceipt().GetCumGas()));
+    std::string cumGas =
+        (boost::format("0x%x") %
+         GasConv::GasUnitsFromCoreToEth(
+             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
+            .str();
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
     const std::string blockNumber =
@@ -1451,16 +1437,17 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
 
-    const Json::Value logs =
-        transactioBodyPtr->GetTransactionReceipt().GetJsonValue().get(
-            "event_logs", Json::arrayValue);
-
-    const auto logsBloom = Eth::BuildBloomForLogs(logs);
-    const auto logsBloomHex = std::string{"0x"} + logsBloom.hex();
-
+    const auto logs =
+        Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+    const auto bloomLogs =
+        Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
+    const auto transactionIndexOpt =
+        BlockTransactionsHelper::GetTransactionIndexInBlock(
+            m_mediator.m_txBlockChain, txnhash, blockHash);
+    const auto transactionIndex = transactionIndexOpt.get_value_or(0);
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
-        contractAddress, logs, transactionIndex, logsBloomHex);
+        contractAddress, logs, bloomLogs, transactionIndex);
 
     return res;
   } catch (const JsonRpcException& je) {
@@ -1691,9 +1678,9 @@ string LookupServer::GetEthCallZil(const Json::Value& _json) {
 
 string LookupServer::GetEthCallEth(const Json::Value& _json,
                                    const string& block_or_tag) {
-  if (block_or_tag != "latest") {
+  if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(RPC_INVALID_PARAMS,
-                           "Only latest block is supported in eth_call");
+                           "Unsupported block or tag in eth_call");
   }
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
@@ -1795,11 +1782,6 @@ std::string LookupServer::GetEthCoinbase() {
   return "0x0000000000000000000000000000000000000000";
 }
 
-std::string LookupServer::GetNetVersion() {
-  LOG_MARKER();
-  return "0x8000";  // Like Ethereum, including test nets.
-}
-
 Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
   return Json::Value(false);
@@ -1844,7 +1826,7 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (!isPresent) {
       return Json::nullValue;
     }
-    auto txBlock = GetBlockByTransactionHash(transactionHash);
+    const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
     return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);

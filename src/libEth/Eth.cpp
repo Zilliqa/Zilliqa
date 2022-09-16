@@ -27,6 +27,7 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
+#include <boost/range.hpp>
 #include <ethash/keccak.hpp>
 
 using namespace jsonrpc;
@@ -38,7 +39,7 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &transactionIndex, const std::string &logsBloom) {
+    const Json::Value &logsBloom, const Json::Value &transactionIndex) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -209,8 +210,6 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   return true;
 }
 
-// EVM returns logs in a form of: [{ data: 0xabcdef, address: 0xabcdef, topics:
-// [AT_MOST_3_TOPICS_HEX_ENCODED]}]
 void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,
@@ -225,33 +224,54 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
   }
 }
 
+LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt) {
+  const auto logs = GetLogsFromReceipt(receipt);
+  return BuildBloomForLogs(logs);
+}
+
+Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt) {
+  return std::string{"0x"} + GetBloomFromReceipt(receipt).hex();
+}
+
+Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt) {
+  const Json::Value logs =
+      receipt.GetJsonValue().get("event_logs", Json::arrayValue);
+  return logs;
+}
+
 LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
-  const std::string address =
+  const std::string addressStr =
       logObject.get("address", Json::nullValue).asString();
 
-  if (address.empty()) {
+  if (addressStr.empty()) {
     return {};
   }
+
+  Address address{addressStr};
   const auto topicsArray = logObject.get("topics", Json::arrayValue);
 
-  LogBloom bloom;
-  const auto hashedAddress = ethash::keccak256(
-      reinterpret_cast<const uint8_t *>(address.data()), address.size());
-  const auto bloomInputAddress =
-      dev::h256{reinterpret_cast<unsigned char const *>(&hashedAddress.bytes),
-                dev::h256::ConstructFromPointer};
+  std::vector<dev::h256> topics;
 
-  bloom.shiftBloom<3>(bloomInputAddress);
-
-  for (const auto &jsonTopic : topicsArray) {
-    const auto topic = jsonTopic.asString();
-    const auto hashedTopic = ethash::keccak256(
-        reinterpret_cast<const uint8_t *>(topic.data()), topic.size());
-    const auto bloomInputTopic =
-        dev::h256{reinterpret_cast<unsigned char const *>(&hashedTopic.bytes),
-                  dev::h256::ConstructFromPointer};
-    bloom.shiftBloom<3>(bloomInputTopic);
+  for (const auto &topic : topicsArray) {
+    topics.push_back(dev::h256{topic.asString()});
   }
+
+  const auto addressHash =
+      ethash::keccak256(address.ref().data(), address.ref().size());
+  dev::h256 addressBloom{dev::bytesConstRef{boost::begin(addressHash.bytes),
+                                            boost::size(addressHash.bytes)}};
+
+  LogBloom bloom;
+  bloom.shiftBloom<3>(addressBloom);
+
+  for (const auto &topic : topics) {
+    const auto topicHash =
+        ethash::keccak256(topic.ref().data(), topic.ref().size());
+    dev::h256 topicBloom{dev::bytesConstRef{boost::begin(topicHash.bytes),
+                                            boost::size(topicHash.bytes)}};
+    bloom.shiftBloom<3>(topicBloom);
+  }
+
   return bloom;
 }
 

@@ -76,7 +76,7 @@ class ThreadPool {
   /// Adds a new job to the pool. If there are no jobs in the queue, a thread is
   /// woken up to take the job. If all threads are busy, the job is added to the
   /// end of the queue.
-  void AddJob(Job job) {
+  void AddJob(const Job& job) {
     std::lock(_queueMutex, _jobsLeftMutex);
     std::lock_guard<std::mutex> lg1(_queueMutex, std::adopt_lock);
     std::lock_guard<std::mutex> lg2(_jobsLeftMutex, std::adopt_lock);
@@ -84,7 +84,7 @@ class ThreadPool {
 #if CONTIGUOUS_JOBS_MEMORY
     _queue.push_back(job);
 #else
-    _queue.push(std::move(job));
+    _queue.push(job);
 #endif
     ++_jobsLeft;
     _jobAvailableVar.notify_one();

@@ -24,7 +24,10 @@
 #include "libData/AccountData/Address.h"
 
 class Transaction;
+class TransactionReceipt;
 class Account;
+
+using LogBloom = dev::h2048;
 
 namespace Eth {
 
@@ -50,7 +53,7 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &transactionIndex, const std::string &logsBloom);
+    const Json::Value &logsBloom, const Json::Value &transactionIndex);
 
 EthFields parseRawTxFields(std::string const &message);
 
@@ -61,6 +64,11 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &blockHash,
                          const std::string &blockNum,
                          const Json::Value &transactionIndex);
+
+LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt);
+Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt);
+
+Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt);
 
 LogBloom BuildBloomForLogObject(const Json::Value &logObject);
 LogBloom BuildBloomForLogs(const Json::Value &logsArray);
