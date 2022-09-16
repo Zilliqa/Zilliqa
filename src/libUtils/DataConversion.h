@@ -153,6 +153,9 @@ class DataConversion {
   /// Normalize alphanumeric hex string to lower and remove prefix "0x"
   static bool NormalizeHexString(std::string& s);
 
+  /// Add '0x' to string if it does not exist already
+  static std::string AddOXPrefix(std::string&& s);
+
   static size_t clz(uint8_t x) {
     static constexpr std::uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1,
                                                     0, 0, 0, 0, 0, 0, 0, 0};

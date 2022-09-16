@@ -949,7 +949,7 @@ Json::Value LookupServer::CreateTransaction(
   }
 }
 
-Json::Value LookupServer::CreateTransactionEth(
+std::string LookupServer::CreateTransactionEth(
     Eth::EthFields const& fields, bytes const& pubKey,
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
@@ -984,9 +984,9 @@ Json::Value LookupServer::CreateTransactionEth(
                  data,  // either empty or un-hexed byte-stream
                  Signature(fields.signature, 0)};
 
-  try {
-    Json::Value ret;
+  std::string ret = tx.GetTranID().hex();
 
+  try {
     const Address fromAddr = tx.GetSenderAddr();
 
     bool toAccountExist;
@@ -1022,26 +1022,21 @@ Json::Value LookupServer::CreateTransactionEth(
           if (toAccountIsContract) {
             throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                                    "Contract account won't accept normal txn");
-            return false;
+            return ret;
           }
         }
 
-        ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::ERROR:
@@ -1063,14 +1058,14 @@ Json::Value LookupServer::CreateTransactionEth(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
-    ret["TranID"] = tx.GetTranID().hex();
-    return ret;
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: N/A");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+  return ret;
 }
 
 TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
