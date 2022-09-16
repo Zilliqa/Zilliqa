@@ -38,19 +38,19 @@ describe("Calling " + METHOD, function () {
 
         // status
         assert.match(result.result.status, /^0x/, 'Should be HEX starting with 0x');
-        assert.isString(result.result.status, "Is a not a string");
+        assert.isString(result.result.status, "Is not a string");
         assert.equal(result.result.status, "0x1", "Expected to be equal to 0x1");
 
         // root
-        assert.isString(result.result.root, "Is a not a string");
+        assert.isString(result.result.root, "Is not a string");
         assert.match(result.result.root, /^0x/, 'Should be HEX starting with 0x');
 
         // cumulativeGasUsed 
-        assert.isString(result.result.cumulativeGasUsed, "Is a not a string");
+        assert.isString(result.result.cumulativeGasUsed, "Is not a string");
         assert.match(result.result.cumulativeGasUsed, /^0x/, 'Should be HEX starting with 0x');
 
         // logsBloom
-        assert.isString(result.result.logsBloom, "Is a not a string");
+        assert.isString(result.result.logsBloom, "Is not a string");
         assert.match(result.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
 
         // logs
@@ -60,39 +60,39 @@ describe("Calling " + METHOD, function () {
         assert.isBoolean(result.result.contractAddress == null, 'Should be HEX starting with 0x');
 
         // gasUsed
-        assert.isString(result.result.gasUsed, "Is a not a string");
+        assert.isString(result.result.gasUsed, "Is not a string");
         assert.match(result.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
 
         // cumulativeGasUsed
-        assert.isString(result.result.cumulativeGasUsed, "Is a not a string");
+        assert.isString(result.result.cumulativeGasUsed, "Is not a string");
         assert.match(result.result.cumulativeGasUsed, /^0x/, 'Should be HEX starting with 0x');
 
         // to
-        assert.isString(result.result.to, "Is a not a string");
+        assert.isString(result.result.to, "Is not a string");
         assert.match(result.result.to, /^0x/, 'Should be HEX starting with 0x');
-        assert.equal(result.result.to.toUpperCase(), zHelper.getSecondaryAccount().address.toUpperCase(), "Is a not equal to ");
+        assert.equal(result.result.to.toUpperCase(), zHelper.getSecondaryAccount().address.toUpperCase(), "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase());
 
         // from 
-        assert.isString(result.result.from, "Is a not a string");
+        assert.isString(result.result.from, "Is not a string");
         assert.match(result.result.from, /^0x/, 'Should be HEX starting with 0x');
-        assert.equal(result.result.from.toUpperCase(), zHelper.getSecondaryAccount().address.toUpperCase(), "Is a not equal to ");
+        assert.equal(result.result.from.toUpperCase(), zHelper.getSecondaryAccount().address.toUpperCase(), "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase());
 
         // blockHash
-        assert.isString(result.result.blockHash, "Is a not a string");
+        assert.isString(result.result.blockHash, "Is not a string");
         assert.match(result.result.blockHash, /^0x/, 'Should be HEX starting with 0x');
 
         // blockNumber
-        assert.isString(result.result.blockNumber, "Is a not a string");
+        assert.isString(result.result.blockNumber, "Is not a string");
         assert.match(result.result.blockNumber, /^0x/, 'Should be HEX starting with 0x');
 
         // transactionIndex
-        assert.isString(result.result.transactionIndex, "Is a not a string");
+        assert.isString(result.result.transactionIndex, "Is not a string");
         assert.match(result.result.transactionIndex, /^0x/, 'Should be HEX starting with 0x');
 
         // transactionHash
-        assert.isString(result.result.transactionHash, "Is a not a string");
+        assert.isString(result.result.transactionHash, "Is not a string");
         assert.match(result.result.transactionHash, /^0x/, 'Should be HEX starting with 0x');
-        assert.equal(result.result.transactionHash.toUpperCase(), transactionHash.toUpperCase(), "Is a not equal to ");
+        assert.equal(result.result.transactionHash.toUpperCase(), transactionHash.toUpperCase(), "Is not equal to " + transactionHash.toUpperCase());
       })
   })
 })
