@@ -401,9 +401,9 @@ class LookupServer : public Server,
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
          EVM_ZIL_SCALING_FACTOR) /
         GasConv::GetScalingFactor();
-    auto resp = CreateTransactionEth(fields, pubKey, shards, gasPrice,
-                                     m_createTransactionTarget);
-    response = std::string{"0x"} + resp["TranID"].asString();
+
+    response = CreateTransactionEth(fields, pubKey, shards, gasPrice,
+                                    m_createTransactionTarget);
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
@@ -719,7 +719,8 @@ class LookupServer : public Server,
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
 
-  TxBlock GetBlockByTransactionHash(const std::string& txnhash);
+  TxBlock GetBlockFromTransaction(
+      const TransactionWithReceipt& transaction) const;
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
@@ -733,7 +734,7 @@ class LookupServer : public Server,
 
   Json::Value getEthGasPrice() const;
 
-  Json::Value CreateTransactionEth(
+  std::string CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPriceWei,
       const CreateTransactionTargetFunc& targetFunc);
