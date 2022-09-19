@@ -19,6 +19,7 @@
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/algorithm/string/case_conv.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 #include <boost/format.hpp>
 #include <boost/range.hpp>
 #include <boost/range/numeric.hpp>

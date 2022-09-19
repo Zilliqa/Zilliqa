@@ -23,6 +23,8 @@
 
 #include <boost/python.hpp>
 
+#include <vector>
+
 class PythonRunner {
  public:
   static bool RunPyFunc(const std::string& file, const std::string& func,

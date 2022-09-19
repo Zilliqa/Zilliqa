@@ -16,7 +16,7 @@
  */
 
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
-#include "depends/websocketpp/websocketpp/base64/base64.hpp"
+#include "websocketpp/base64/base64.hpp"
 
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
