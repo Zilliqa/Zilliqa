@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <algorithm>
+
 #include "FileSystem.h"
 
 void recursive_copy_dir(const bfs::path& src, const bfs::path& dst) {
