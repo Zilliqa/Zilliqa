@@ -1252,7 +1252,7 @@ Json::Value LookupServer::getEthGasPrice() const {
 
     // The following ensures we get 'at least' that high price as it was before
     // dividing by GasScalingFactor
-    gasPrice += 1;
+    gasPrice += 1000000;
     std::ostringstream strm;
 
     strm << "0x" << std::hex << gasPrice << std::dec;
