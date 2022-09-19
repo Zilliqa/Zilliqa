@@ -357,7 +357,10 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    response = "0x5208";
+    // TODO: implement eth_estimateGas for real.
+    // At the moment, the default value of 300,000 gas will allow to proceed
+    // with the internal/external testnet testing before it is implemented.
+    response = "0x493e0";
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
