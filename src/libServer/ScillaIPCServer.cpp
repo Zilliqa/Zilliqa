@@ -195,9 +195,6 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   } else if (query_name == "CHAINID") {
     value = std::to_string(CHAIN_ID);
     return true;
-  } else if (query_name == "ORIGIN") {
-    value = m_BCInfo->getOriginAddr().hex();
-    return true;
   }
 
   // For queries that include the block number.
@@ -235,7 +232,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     }
   }
 
-  if (query_name == "BLOCHKASH") {
+  if (query_name == "BLOCKHASH") {
     value = txBlockSharedPtr->GetBlockHash().hex();
   } else if (query_name == "BLOCKNUMBER") {
     value = std::to_string(blockNum);

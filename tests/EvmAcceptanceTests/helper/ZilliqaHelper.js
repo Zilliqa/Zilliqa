@@ -94,8 +94,8 @@ var zilliqa = {
             const tx = {
                 'to': toAddr,
                 'value': amount,
-                'gas': 300000,
-                'gasPrice': 2000000000000000,
+                'gas': 21_000,
+                'gasPrice': 1_000_000_000,
                 'nonce': nonce,
                 'chainId': hre.getEthChainId(),
                 'data': ""

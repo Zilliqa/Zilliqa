@@ -59,3 +59,7 @@ def process_log(arg, index, id, epoch_num):
 def from_zil(zil):
     """Returns Zil converted to Wei"""
     return int(zil * 1_000_000_000_000_000_000)
+
+def from_gwei(val):
+    """Returns val converted to wei """
+    return int(val * 1_000_000_000)

@@ -141,8 +141,7 @@ const unsigned int MSG_VERSION{
     ReadConstantNumeric("MSG_VERSION", "node.version.")};
 const unsigned int TRANSACTION_VERSION{
     ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
-const unsigned int TRANSACTION_VERSION_ETH{
-    ReadConstantNumeric("TRANSACTION_VERSION", "node.version.") + 1};
+const unsigned int TRANSACTION_VERSION_ETH = 2;
 const unsigned int DSBLOCK_VERSION{
     ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
 const unsigned int TXBLOCK_VERSION{
@@ -299,7 +298,8 @@ const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
     "REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS", "node.epoch_timing.")};
 
 // Gas constants
-const uint64_t MIN_ETH_GAS{ReadConstantUInt64("MIN_ETH_GAS", "node.gas.")};
+const uint64_t MIN_ETH_GAS{
+    ReadConstantUInt64("MIN_ETH_GAS", "node.gas.", 21000)};
 const unsigned int DS_MICROBLOCK_GAS_LIMIT{
     ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
@@ -751,9 +751,8 @@ const std::string EVM_SERVER_BINARY{ReadConstantString(
     "EVM_SERVER_BINARY", "node.jsonrpc.", "/usr/local/bin/evm-ds")};
 const std::string EVM_LOG_CONFIG{ReadConstantString(
     "EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
-const std::string ETH_CHAINID{
-    ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d")};
-const uint64_t ETH_CHAINID_INT{DataConversion::HexStringToUint64Ret(
-    ReadConstantString("ETH_CHAINID", "node.jsonrpc.", "0x814d"))};
+const uint64_t ETH_CHAINID{ReadConstantNumeric("CHAIN_ID") + 0x8000};
 const uint64_t EVM_ZIL_SCALING_FACTOR{
     ReadConstantUInt64("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.", 1)};
+const uint64_t EVM_BLOCK_LOOKUP_LIMIT{
+    ReadConstantUInt64("EVM_BLOCK_LOOKUP_LIMIT", "node.jsonrpc.", 50)};

@@ -180,8 +180,7 @@ int main(int argc, const char* argv[]) {
         return ERROR_IN_COMMAND_LINE;
       }
     }
-    auto isolatedServerConnector =
-        make_unique<jsonrpc::SafeHttpServer>(port, 2);
+    auto isolatedServerConnector = make_unique<jsonrpc::SafeHttpServer>(port);
     auto isolatedServer = make_shared<IsolatedServer>(
         mediator, *isolatedServerConnector, blocknum, timeDelta);
 

@@ -21,6 +21,7 @@
 #include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -51,20 +52,10 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    return;
-  }
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
-
   // Generate the signature
   if (IsEth()) {
     bytes signature;
-    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID_INT);
+    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
     bytes pk_bytes;
     const PrivKey& privKey{senderKeyPair.first};
     privKey.Serialize(pk_bytes, 0);
@@ -77,6 +68,11 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                        m_signature)) {
       LOG_GENERAL(WARNING, "We failed to generate m_signature.");
     }
+  }
+
+  if (!SetHash(txnData)) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return;
   }
 }
 
@@ -102,18 +98,13 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   bytes txnData;
   SerializeCoreFields(txnData, 0);
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
+  if (!SetHash(txnData)) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return;
   }
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
 
   // Verify the signature
-  if (!IsSigned()) {
+  if (!IsSigned(txnData)) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
   }
@@ -162,7 +153,7 @@ const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
 // Check if the version is 1 or 2 - the only valid ones for now
 // this will look like 65538 or 65537
 bool Transaction::VersionCorrect() const {
-  auto version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = DataConversion::UnpackB(this->GetVersion());
 
   return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
@@ -185,7 +176,11 @@ Address Transaction::GetSenderAddr() const {
   return Account::GetAddressFromPublicKey(GetSenderPubKey());
 }
 
-bool Transaction::IsEth() const { return (GetVersion() & 0xffff) == 0x2; }
+bool Transaction::IsEth() const {
+  auto const version = DataConversion::UnpackB(this->GetVersion());
+
+  return version == TRANSACTION_VERSION_ETH;
+}
 
 const uint128_t& Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
 
@@ -227,27 +222,27 @@ const uint128_t Transaction::GetGasPriceWei() const {
   }
 }
 
-const uint64_t& Transaction::GetGasLimit() const { return m_coreInfo.gasLimit; }
+uint64_t Transaction::GetGasLimitZil() const {
+  if (IsEth()) {
+    return GasConv::GasUnitsFromEthToCore(m_coreInfo.gasLimit);
+  }
+  return m_coreInfo.gasLimit;
+}
+
+uint64_t Transaction::GetGasLimitEth() const {
+  if (IsEth()) {
+    return m_coreInfo.gasLimit;
+  }
+  return GasConv::GasUnitsFromCoreToEth(m_coreInfo.gasLimit);
+}
+
+uint64_t Transaction::GetGasLimitRaw() const { return m_coreInfo.gasLimit; }
 
 const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
 
 const bytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
-
-bool Transaction::IsSignedSchnorr() const {
-  bytes txnData;
-  Messenger::SetTransactionCoreInfo(txnData, 0, GetCoreInfo());
-
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-
-  std::string res;
-  boost::algorithm::hex(txnData.begin(), txnData.end(), back_inserter(res));
-
-  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
-}
 
 bool Transaction::IsSignedECDSA() const {
   std::string pubKeyStr = std::string(GetCoreInfo().senderPubKey);
@@ -261,20 +256,52 @@ bool Transaction::IsSignedECDSA() const {
   if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
     pubKeyStr = pubKeyStr.substr(2);
   }
-  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT),
+  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID),
                               sigString, pubKeyStr);
 }
 
+// Set what the hash of the transaction is, depending on its type
+bool Transaction::SetHash(bytes const& txnData) {
+  if (IsEth()) {
+    auto const asRLP =
+        GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID, std::string(m_signature));
+    auto const output = CreateHash(asRLP);
+
+    if (output.size() != TRAN_HASH_SIZE) {
+      LOG_GENERAL(
+          WARNING,
+          "We failed to generate an eth m_tranID. Wrong size! Expected: "
+              << TRAN_HASH_SIZE << " got: " << output.size());
+      return false;
+    }
+
+    copy(output.begin(), output.end(), m_tranID.asArray().begin());
+    return true;
+  }
+
+  // Generate the transaction ID
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(txnData);
+  const bytes& output = sha2.Finalize();
+  if (output.size() != TRAN_HASH_SIZE) {
+    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    return false;
+  }
+
+  copy(output.begin(), output.end(), m_tranID.asArray().begin());
+  return true;
+}
+
 // Function to return whether the TX is signed
-bool Transaction::IsSigned() const {
+bool Transaction::IsSigned(bytes const& txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
-  if ((GetVersion() & 0xffff) == 0x2) {
+  if (IsEth()) {
     LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }
 
-  return IsSignedSchnorr();
+  return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
 }
 
 void Transaction::SetSignature(const Signature& signature) {

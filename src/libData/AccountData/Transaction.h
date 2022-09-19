@@ -64,8 +64,8 @@ class Transaction : public SerializableDataBlock {
   TransactionCoreInfo m_coreInfo;
   Signature m_signature;
 
-  bool IsSignedSchnorr() const;
   bool IsSignedECDSA() const;
+  bool SetHash(const bytes& txnData);
 
  public:
   /// Default constructor.
@@ -124,6 +124,8 @@ class Transaction : public SerializableDataBlock {
   /// Returns whether the current version is correct
   bool VersionCorrect() const;
 
+  bool IsSigned(bytes const& txnData) const;
+
   /// Returns the transaction nonce.
   const uint64_t& GetNonce() const;
 
@@ -154,8 +156,14 @@ class Transaction : public SerializableDataBlock {
   /// Returns the gas price in raw uints regadless of Qa or Wei.
   const uint128_t& GetGasPriceRaw() const;
 
-  /// Returns the gas limit.
-  const uint64_t& GetGasLimit() const;
+  /// Returns the normalized to ZIL gas limit
+  uint64_t GetGasLimitZil() const;
+
+  /// Returns gas limit received from API.
+  uint64_t GetGasLimitRaw() const;
+
+  /// Returns gas limit used by ETH.
+  uint64_t GetGasLimitEth() const;
 
   /// Returns the code.
   const bytes& GetCode() const;
@@ -165,9 +173,6 @@ class Transaction : public SerializableDataBlock {
 
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;
-
-  /// Return whether the transaction has been correctly signed
-  bool IsSigned() const;
 
   unsigned int GetShardIndex(unsigned int numShards) const;
 
