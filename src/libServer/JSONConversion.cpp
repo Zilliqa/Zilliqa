@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/format.hpp>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -660,7 +661,8 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
   retJson["gas"] =
       (boost::format("0x%x") %
-       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas() *
+                                      EVM_ZIL_SCALING_FACTOR))
           .str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] =

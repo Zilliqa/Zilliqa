@@ -49,8 +49,8 @@ public:
    * @param sslcert - defines the path to a SSL certificate, if this path is !=
    * "", then SSL/HTTPS is used with the given certificate.
    */
-  SafeHttpServer(int port, int threads, const std::string &sslcert = "",
-             const std::string &sslkey = "");
+  SafeHttpServer(int port, const std::string &sslcert = "",
+             const std::string &sslkey = "", int threads = 50);
 
   ~SafeHttpServer();
 

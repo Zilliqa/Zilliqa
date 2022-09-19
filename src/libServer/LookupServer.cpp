@@ -665,7 +665,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (!hasTxn) {
-        LOG_GENERAL(DEBUG, "No Txns to send for this seed node");
+        LOG_GENERAL(INFO, "No Txns to send for this seed node");
         continue;
       }
 
@@ -978,7 +978,7 @@ Json::Value LookupServer::CreateTransaction(
   }
 }
 
-Json::Value LookupServer::CreateTransactionEth(
+std::string LookupServer::CreateTransactionEth(
     Eth::EthFields const& fields, bytes const& pubKey,
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
@@ -1013,9 +1013,9 @@ Json::Value LookupServer::CreateTransactionEth(
                  data,  // either empty or un-hexed byte-stream
                  Signature(fields.signature, 0)};
 
-  try {
-    Json::Value ret;
+  std::string ret = tx.GetTranID().hex();
 
+  try {
     const Address fromAddr = tx.GetSenderAddr();
 
     bool toAccountExist;
@@ -1051,26 +1051,21 @@ Json::Value LookupServer::CreateTransactionEth(
           if (toAccountIsContract) {
             throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                                    "Contract account won't accept normal txn");
-            return false;
+            return ret;
           }
         }
 
-        ret["Info"] = "Non-contract txn, sent to shard";
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
-        ret["Info"] = check.first;
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::ERROR:
@@ -1092,42 +1087,34 @@ Json::Value LookupServer::CreateTransactionEth(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
-    ret["TranID"] = tx.GetTranID().hex();
-    return ret;
   } catch (const JsonRpcException& je) {
+    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");
     throw je;
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: N/A");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
+  return ret;
 }
 
-TxBlock LookupServer::GetBlockByTransactionHash(const std::string& txnhash) {
+TxBlock LookupServer::GetBlockFromTransaction(
+    const TransactionWithReceipt& transaction) const {
   const TxBlock EMPTY_BLOCK;
-  const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-  auto height = txBlock.GetHeader().GetBlockNum();
-  if (height == std::numeric_limits<uint64_t>::max()) {
-    return EMPTY_BLOCK;
-  }
-
-  TxnHash argHash{txnhash};
-  do {
-    auto const block = GetEthBlockByNumber(std::to_string(height), false);
-    if (block == Json::nullValue) {
+  const Json::Value blockNumStr =
+      transaction.GetTransactionReceipt().GetJsonValue().get("epoch_num", "");
+  try {
+    if (!blockNumStr.isString() || blockNumStr.asString().empty()) {
       return EMPTY_BLOCK;
     }
-    auto const TxnHashes = block["transactions"];
-    for (auto const& item : TxnHashes) {
-      TxnHash hash_1{item.asString()};
-      if (hash_1 == argHash) {
-        const std::string blockHash = block["hash"].asString();
-        const BlockHash hash{blockHash};
-        return m_mediator.m_txBlockChain.GetBlockByHash(hash);
-      }
-    }
-  } while (--height);
-
-  return EMPTY_BLOCK;
+    const uint64_t blockNum =
+        std::strtoull(blockNumStr.asCString(), nullptr, 0);
+    const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+    return txBlock;
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what()
+                                << " while getting block number from receipt!");
+    return EMPTY_BLOCK;
+  }
 }
 
 Json::Value LookupServer::GetEthBlockNumber() {
@@ -1438,19 +1425,19 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
   try {
-    const TxBlock EMPTY_BLOCK;
-    auto txBlock = GetBlockByTransactionHash(txnhash);
-    if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
-      return Json::nullValue;
-    }
-
     TxnHash argHash{txnhash};
     TxBodySharedPtr transactioBodyPtr;
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
+      return Json::nullValue;
+    }
+
+    const TxBlock EMPTY_BLOCK;
+    auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    if (txBlock == EMPTY_BLOCK) {
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
       return Json::nullValue;
     }
 
@@ -1474,7 +1461,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     const std::string blockNumber =
         (boost::format("0x%x") % txHeader.GetBlockNum()).str();
     const std::string blockHash =
-        std::string{"0x"} + txBlock.GetBlockHash().hex();
+        (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str();
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
@@ -1859,7 +1846,7 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (!isPresent) {
       return Json::nullValue;
     }
-    auto txBlock = GetBlockByTransactionHash(transactionHash);
+    const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
     return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
