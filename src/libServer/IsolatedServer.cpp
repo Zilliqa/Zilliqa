@@ -871,7 +871,7 @@ Json::Value IsolatedServer::GetEthBlockNumber() {
     std::ostringstream returnVal;
     returnVal << "0x" << std::hex << blockHeight << std::dec;
     ret = returnVal.str();
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
