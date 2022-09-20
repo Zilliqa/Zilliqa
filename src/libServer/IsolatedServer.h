@@ -58,8 +58,9 @@ class IsolatedServer : public LookupServer,
     if (rawTx.size() >= 2 && rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
+    std::cout << "RAWIE: " << rawTx << std::endl;
 
-    auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
+    auto const pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;

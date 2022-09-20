@@ -300,7 +300,7 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
 // EIP-155 : assume the chain height is high enough that the signing scheme
 // is in line with EIP-155.
 // message shall not contain '0x'
-bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
+bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
   if (message.size() >= 2) {
     auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
     // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards
@@ -389,8 +389,10 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  bytes toAddr{};
+  //bytes toAddr{dev::toBigEndian(dev::u256(0))};
+  bytes toAddr(20, 0);
   if (!IsNullAddress(info.toAddr)) {
+    std::cout << "here wasadsf " << std::endl;
     toAddr = info.toAddr.asBytes();
   }
   rlpStreamRecreated << toAddr;
@@ -425,6 +427,11 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     return "";
   }
 
+  //if (info.version != 99) {
+  //  LOG_GENERAL(WARNING, "Received bad version when recovering RLP: " << info.version);
+  //  return "";
+  //}
+
   std::string s = signature.substr(64, std::string::npos);
   signature.resize(64);
 
@@ -439,8 +446,10 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << info.nonce;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
-    bytes toAddr{};
+    //bytes toAddr{dev::toBigEndian(dev::u256(0))};
+    bytes toAddr(20, 0);
     if (!IsNullAddress(info.toAddr)) {
+      std::cout << "here adraEFDKJ,WKJKJKJKK " << std::endl;
       toAddr = info.toAddr.asBytes();
     }
     rlpStreamRecreated << toAddr;
@@ -463,7 +472,10 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     auto const* dataPtr = rlpStreamRecreated.out().data();
     auto const& asString = DataConversion::Uint8VecToHexStrRet(
         bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
-    auto const pubK = RecoverECDSAPubSig(asString, chainId);
+
+    std::cout << "RLP: " << asString << std::endl;
+
+    auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
     if (!PubKeysSame(pubK, info.senderPubKey)) {
       continue;
@@ -530,7 +542,6 @@ bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   bytes hashBytes;
 
   // Only the last 40 bytes needed
-  // 8B6621534A2DA69F2F7FF7A3CD234A471B72BA2F1CCF0A70FCABA648A5EECD8D
   hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
 
   return hashBytes;

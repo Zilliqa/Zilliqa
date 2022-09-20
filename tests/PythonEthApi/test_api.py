@@ -1159,7 +1159,7 @@ def test_eth_chainId(url: str) -> bool:
 
         res = get_result(response)
 
-        if "0x814d" not in res.lower():
+        if hex(CHAIN_ID) not in res.lower():
             raise Exception(f"Bad chain ID: {res}")
 
     except Exception as e:
@@ -1204,10 +1204,11 @@ def main():
     ret = True
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
-    #ret &= test_eth_chainId(args.api)
-    #ret &= test_eth_blockNumber(args.api)
-    #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    #ret &= test_eth_getCode(args.api, account, w3)
+    ret &= test_eth_chainId(args.api)
+    ret &= test_eth_blockNumber(args.api)
+    ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    ret &= test_eth_getCode(args.api, account, w3)
+    ret &= test_eth_sendRawTransaction(args.api, account, w3)
     #ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getProof(args.api)
     #ret &= test_eth_getBalance(args.api)
@@ -1224,8 +1225,8 @@ def main():
     #ret &= test_eth_getBlockTransactionCountByNumber(args.api)
     #ret &= test_eth_getUncleCountByBlockHash(args.api)
     #ret &= test_eth_getUncleCountByBlockNumber(args.api)
-    ##ret &= test_eth_getBlockByHash(args.api)
-    ##ret &= test_eth_getBlockByNumber(args.api)
+    #ret &= test_eth_getBlockByHash(args.api)
+    #ret &= test_eth_getBlockByNumber(args.api)
     #ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
     #ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
     #ret &= test_eth_getCompilers(args.api)
@@ -1253,8 +1254,6 @@ def main():
     #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
-    ret &= test_eth_sendRawTransaction(args.api, account, w3)
-
     #ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:

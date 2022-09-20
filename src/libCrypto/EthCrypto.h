@@ -40,7 +40,7 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
 std::string ToUncompressedPubKey(const std::string& pubKey);
 
 // Recover the public signature of a transaction given its RLP
-bytes RecoverECDSAPubSig(std::string const& message, int chain_id);
+bytes RecoverECDSAPubKey(std::string const& message, int chain_id);
 
 // Get the hash that was signed in order to create the transaction signature.
 // Note this is different from the transaction hash
