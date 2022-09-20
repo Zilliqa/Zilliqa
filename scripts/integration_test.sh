@@ -48,13 +48,12 @@ if [[ "$RUNNING_LOCALLY" == 1 ]]; then
 else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
-    sudo snap install protobuf --classic 2>&1 > /dev/null
-    sudo apt-get install python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
+    #snap install protobuf --classic 2>&1 > /dev/null
+    echo "Installing python3"
+    apt-get install -y python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
     python3 -m pip install cython 2>&1 > /dev/null
+    echo "Installing requirements"
     python3 -m pip install -r ./tests/PythonEthApi/requirements.txt 2>&1 > /dev/null
-
-    # Need to build evm...
-    git clone https://github.com/Zilliqa/evm-ds.git
 
     cd evm-ds
     cargo --version
