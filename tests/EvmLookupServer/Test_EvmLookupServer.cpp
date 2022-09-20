@@ -1356,8 +1356,8 @@ BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
   for (uint32_t i = 0; i < boost::size(BLOCK_GAS_PRICES); ++i) {
     const uint256_t GAS_PRICE_CORE = BLOCK_GAS_PRICES[i];
     const DSBlockHeader dsHeader{
-        1,  1,  {}, 1,  1, GAS_PRICE_CORE.convert_to<uint64_t>(),
-        {}, {}, {}, {}, {}};
+        1,  1,  {}, i + 1, 1, GAS_PRICE_CORE.convert_to<uint64_t>(),
+        {}, {}, {}, {},    {}};
     const DSBlock dsBlock{dsHeader, {}};
     mediator.m_dsBlockChain.AddBlock(dsBlock);
 
@@ -1368,7 +1368,7 @@ BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
 
     const auto responseStr = response.asString();
     uint128_t apiGasPrice = uint128_t{responseStr};
-    Transaction tx{1,  1, {}, pairOfKey, 1, apiGasPrice, /* gasLimit = */ 100,
+    Transaction tx{2,  1, {}, pairOfKey, 1, apiGasPrice, /* gasLimit = */ 100,
                    {}, {}};
 
     BOOST_TEST_CHECK(tx.GetGasPriceQa() >= GAS_PRICE_CORE);
