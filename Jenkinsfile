@@ -48,6 +48,12 @@ timestamps {
                 sh "git config --global --add safe.directory '*'"
                 sh "./scripts/ci_build.sh"
             }
+            stage('Integration test') {
+                sh "scripts/integration_test.sh --setup-env"
+            }
+            stage('SLEWEP') {
+                sh "sleep 8000"
+            }
             stage('Report coverage') {
                 // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
                 sh "./scripts/ci_report_coverage.sh"

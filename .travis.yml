@@ -62,7 +62,7 @@ install:
   - ls /scilla/0/
 
 script:
-  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh && ./scripts/integration_test.sh; fi
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then ./scripts/ci_build.sh && ./scripts/integration_test.sh; sleep 8000; fi
 
 # Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
 after_success:
