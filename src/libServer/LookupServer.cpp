@@ -1278,6 +1278,10 @@ Json::Value LookupServer::getEthGasPrice() const {
     // Make gas price in wei
     gasPrice =
         (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
+
+    // The following ensures we get 'at least' that high price as it was before
+    // dividing by GasScalingFactor
+    gasPrice += 1000000;
     std::ostringstream strm;
 
     strm << "0x" << std::hex << gasPrice << std::dec;
@@ -1741,7 +1745,8 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
         GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
-      gasRemained = min(gasRemained, (uint64_t)stoull(gasLimit_str));
+      gasRemained =
+          min(gasRemained, (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0));
     }
     string data = _json[apiKeys.data].asString();
     if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {

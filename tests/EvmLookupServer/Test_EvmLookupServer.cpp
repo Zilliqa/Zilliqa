@@ -20,6 +20,7 @@
 
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/format.hpp>
+#include <boost/range.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/test/unit_test.hpp>
 #include "libData/AccountData/EvmClient.h"
@@ -1321,9 +1322,57 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 
   lookupServer.GetEthGasPriceI({}, response);
 
-  const auto EXPECTED_RESPONSE = (boost::format("0x%X") % (1000000)).str();
+  const auto EXPECTED_NUM = ((GAS_PRICE_CORE * EVM_ZIL_SCALING_FACTOR) /
+                             GasConv::GetScalingFactor()) +
+                            1000000;
 
-  BOOST_TEST_CHECK(response.asString() == EXPECTED_RESPONSE);
+  auto EXPECTED_RESPONSE = (boost::format("0x%x") % (EXPECTED_NUM)).str();
+  auto responseStr = response.asString();
+  boost::to_lower(responseStr);
+  boost::to_lower(EXPECTED_RESPONSE);
+  BOOST_TEST_CHECK(responseStr == EXPECTED_RESPONSE);
+}
+
+BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
+  INIT_STDOUT_LOGGER();
+
+  LOG_MARKER();
+
+  BlockStorage::GetBlockStorage().ResetAll();
+
+  EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); });
+
+  PairOfKey pairOfKey = getTestKeyPair();
+  Peer peer;
+  Mediator mediator(pairOfKey, peer);
+  AbstractServerConnectorMock abstractServerConnector;
+
+  LookupServer lookupServer(mediator, abstractServerConnector);
+
+  const uint256_t BLOCK_GAS_PRICES[] = {2000000000, 2121121121, 2123456789,
+                                        3987654321, 9999999999, 11111111111,
+                                        9876543210};
+
+  for (uint32_t i = 0; i < boost::size(BLOCK_GAS_PRICES); ++i) {
+    const uint256_t GAS_PRICE_CORE = BLOCK_GAS_PRICES[i];
+    const DSBlockHeader dsHeader{
+        1,  1,  {}, i + 1, 1, GAS_PRICE_CORE.convert_to<uint64_t>(),
+        {}, {}, {}, {},    {}};
+    const DSBlock dsBlock{dsHeader, {}};
+    mediator.m_dsBlockChain.AddBlock(dsBlock);
+
+    Json::Value response;
+    // call the method on the lookup server with params
+
+    lookupServer.GetEthGasPriceI({}, response);
+
+    const auto responseStr = response.asString();
+    uint128_t apiGasPrice = uint128_t{responseStr};
+    Transaction tx{2,  1, {}, pairOfKey, 1, apiGasPrice, /* gasLimit = */ 100,
+                   {}, {}};
+
+    BOOST_TEST_CHECK(tx.GetGasPriceQa() >= GAS_PRICE_CORE);
+  }
 }
 
 BOOST_AUTO_TEST_SUITE_END()
