@@ -48,7 +48,8 @@ if [[ "$RUNNING_LOCALLY" == 1 ]]; then
 else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
-    #snap install protobuf --classic 2>&1 > /dev/null
+    echo "Installing protobuf..."
+    apt install -y protobuf-compiler 2>&1 > /dev/null
     echo "Installing python3"
     apt-get install -y python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
     python3 -m pip install cython 2>&1 > /dev/null
@@ -76,7 +77,7 @@ else
     fi
 
     if [[ -d /home/jenkins ]]; then
-        ls /home/jenkins/agent/workspace/zilliqaci/evm-ds/target/release/evm-ds
+        ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
 
         # Modify constants.xml for use by isolated server
         cp constants.xml constants_backup.xml
@@ -109,4 +110,3 @@ else
     echo "Success with integration test"
     exit 0
 fi
-

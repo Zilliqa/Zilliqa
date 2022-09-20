@@ -48,9 +48,6 @@ timestamps {
                 sh "git config --global --add safe.directory '*'"
                 sh "./scripts/ci_build.sh"
             }
-            stage('SLEWEP') {
-                sh "sleep 8000"
-            }
             stage('Integration test') {
                 sh "scripts/integration_test.sh --setup-env"
             }
