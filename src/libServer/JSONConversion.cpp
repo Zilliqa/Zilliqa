@@ -270,8 +270,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
     ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
   }
 
-  auto timestamp = microsec_to_sec(dsblock.GetTimestamp());
-  ret_header["Timestamp"] = to_string(timestamp);
+  ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
 
   for (const auto& govProposal : dshead.GetGovProposalMap()) {
     Json::Value _tempGovProposal;
