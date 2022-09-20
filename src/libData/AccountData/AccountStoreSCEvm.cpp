@@ -257,7 +257,8 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   TransactionReceipt rcpt;
   uint32_t evm_version{0};
   evmproj::CallResponse response;
-  EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
+  ret = EvmClient::GetInstance().CallRunner(
+      evm_version, EvmUtils::GetEvmCallJson(params), response);
   result = response.m_return;
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Called Evm, response:" << response);
