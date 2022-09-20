@@ -202,9 +202,8 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
           }
         }
       } else if (node.key() == "return_value") {
-        nlohmann::json j = node.value();
-        if (j.is_string()) {
-          fo.m_return = j;
+        if (node.value().is_string()) {
+          fo.m_return = to_string(node.value());
         } else {
           LOG_GENERAL(WARNING, "Error reading return value  : wrong type");
           throw std::runtime_error(
