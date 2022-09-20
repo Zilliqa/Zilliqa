@@ -175,7 +175,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
     }
   } else {
     for (size_t id = 0; id < transactions.size(); ++id) {
-      transactionsJson.append(convertTxtoEthJson(id, transactions[id], txblock));
+      transactionsJson.append(convertTxtoEthJson(id, *transactions[id], txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
