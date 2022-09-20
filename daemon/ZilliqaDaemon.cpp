@@ -171,7 +171,7 @@ string ZilliqaDaemon::Execute(const string& cmd) {
 bool ZilliqaDaemon::DownloadPersistenceFromS3() {
   string output;
   ZilliqaDaemon::LOG(m_log, "downloading persistence from S3.");
-  output = Execute("python " + m_curPath + download_incr_DB_script);
+  output = Execute("python3 " + m_curPath + download_incr_DB_script);
   return (output.find("Done!") != std::string::npos);
 }
 

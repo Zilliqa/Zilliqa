@@ -47,10 +47,6 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -84,25 +80,23 @@ RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
 RUN cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic ${EXTRA_CMAKE_ARGS} 
 RUN cmake --build ${BUILD_DIR} -- -j$(nproc)
 RUN cmake --build ${BUILD_DIR} --target install
-RUN cd $SOURCE_DIR/evm-ds && cargo build --release --package evm-ds
+RUN cd $SOURCE_DIR/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
 RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
   && cp ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/libffi.so ${INSTALL_DIR}/lib 
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
-# install all necessary libraries for python
-COPY requirements3.txt ./
-ARG VCPKG_PYTHON3=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/python3/python3.10
 
-# Use venv to create a virtual stand-alone python environment (compiled by vcpkg) that
-# doesn't depend on the system-bundled one.
-ARG PYTHON3_ENV_PATH=${INSTALL_DIR}/python3.10
+# Prepare a (vcpkg) python environment separate from the system-wide one
+RUN apt-get remove -y python3 && apt-get autoremove -y
+
+ARG VCPKG_PYTHON_PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/python3
+ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
+ARG PYTHON3_ENV_PATH=${INSTALL_DIR}
 RUN ${VCPKG_PYTHON3} -m ensurepip \
   && ${VCPKG_PYTHON3} -m pip install --upgrade pip \
-  && ${VCPKG_PYTHON3} -m venv ${PYTHON3_ENV_PATH} \
-  && rm ${PYTHON3_ENV_PATH}/bin/python3.10 \
-  && cp ${VCPKG_PYTHON3} ${PYTHON3_ENV_PATH}/bin \
-  && cp -R ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/ \
-  && sed -i -e 's,home = .*,home = '${PYTHON3_ENV_PATH}'/bin/python3.10,' ${PYTHON3_ENV_PATH}/pyvenv.cfg \
-  && ln -s ${INSTALL_DIR}/lib/libffi.so ${PYTHON3_ENV_PATH}/lib/libffi.so
+  && mkdir -p ${PYTHON3_ENV_PATH}/bin \
+  && mkdir -p ${PYTHON3_ENV_PATH}/lib \
+  && cp ${VCPKG_PYTHON_PATH}/* ${PYTHON3_ENV_PATH}/bin/ \
+  && cp -R ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
 
 # strip all exes
 RUN strip /usr/local/bin/grepperf \
@@ -145,9 +139,6 @@ RUN apt-get update \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
     libsecp256k1-dev \
     # tools
     curl \
@@ -163,11 +154,7 @@ RUN apt-get update \
     vim \
     && rm -rf /var/lib/apt/lists/*
 
-# install all necessary libraries for python
-COPY requirements3.txt ./
-RUN pip3 install wheel \
-    && pip3 install --no-cache-dir -r requirements3.txt \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3 10 # set python3 as default instead python2
+RUN apt-get remove -y python3 && apt-get autoremove -y
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
@@ -187,20 +174,22 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
-COPY --from=builder ${INSTALL_DIR}/python3.10 ${INSTALL_DIR}/python3.10
+COPY --from=builder ${INSTALL_DIR}/lib/python3.10 ${INSTALL_DIR}/lib/python3.10
 COPY --from=builder ${SOURCE_DIR}/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
 COPY --from=builder ${SOURCE_DIR}/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
-ARG PYTHON3_ENV_PATH=${INSTALL_DIR}/python3.10
-SHELL ["/bin/bash", "-c"]
-RUN source ${PYTHON3_ENV_PATH}/bin/activate \
-  && python3 -m pip install setuptools wheel \
-  && python3 -m pip install --no-cache-dir -r requirements3.txt
-
+ARG PYTHON3_ENV_PATH=${INSTALL_DIR}
+COPY requirements3.txt ./
+RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
+  && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
 RUN rm -rf ${VCPKG_ROOT}
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
+RUN python3 -m pip install --upgrade pip setuptools wheel \
+  && python3 -m pip install --no-cache-dir -r requirements3.txt
+
 ENTRYPOINT ["/bin/bash"]
+
