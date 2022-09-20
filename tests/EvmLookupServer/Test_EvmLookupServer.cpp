@@ -1322,9 +1322,15 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 
   lookupServer.GetEthGasPriceI({}, response);
 
-  const auto EXPECTED_RESPONSE = (boost::format("0x%X") % (1000000)).str();
+  const auto EXPECTED_NUM = ((GAS_PRICE_CORE * EVM_ZIL_SCALING_FACTOR) /
+                             GasConv::GetScalingFactor()) +
+                            1000000;
 
-  BOOST_TEST_CHECK(response.asString() == EXPECTED_RESPONSE);
+  auto EXPECTED_RESPONSE = (boost::format("0x%x") % (EXPECTED_NUM)).str();
+  auto responseStr = response.asString();
+  boost::to_lower(responseStr);
+  boost::to_lower(EXPECTED_RESPONSE);
+  BOOST_TEST_CHECK(responseStr == EXPECTED_RESPONSE);
 }
 
 BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
