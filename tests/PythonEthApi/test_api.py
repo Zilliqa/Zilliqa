@@ -42,7 +42,7 @@ BLOCK_TIME_S = 2
 
 GAS_LIMIT = 250000
 GAS_PRICE = 60
-CHAIN_ID = 33101
+CHAIN_ID = 32769 # 33101
 
 contract = """
 // SPDX-License-Identifier: GPL-3.0
