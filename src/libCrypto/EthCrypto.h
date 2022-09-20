@@ -49,7 +49,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 // Given a native transaction, get the corresponding RLP (that was sent to
 // create it)
 std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                              std::string signature);
+                              std::string signature, uint64_t &recid);
 
 // As a workaround, code/data strings have an evm prefix to distinguish them,
 // but this must be stripped before it goes to the EVM
@@ -62,5 +62,10 @@ bytes CreateHash(std::string const& rawTx);
 
 // Create the eth-style contract address given the sender address and nonce
 bytes CreateContractAddr(bytes const& senderAddr, int nonce);
+
+std::string GetR(std::string signature);
+std::string GetS(std::string signature);
+std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
+                 std::string signature);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_
