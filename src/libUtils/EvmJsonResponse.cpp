@@ -186,7 +186,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
               fo.m_exitReason = er.value();
             } else if (er.key() == "Fatal") {
               fo.SetSuccess(false);
-              fo.m_exitReason = to_string(er.value());
+              fo.m_exitReason = er.value();
             }
           } catch (std::exception& e) {
             LOG_GENERAL(WARNING,
