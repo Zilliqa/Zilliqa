@@ -62,6 +62,8 @@ else
 
     cargo build --verbose --release --package evm-ds 2>&1 > /dev/null
 
+    echo "built evm ds"
+
     cd -
 
     # Just to check evm-ds has been built

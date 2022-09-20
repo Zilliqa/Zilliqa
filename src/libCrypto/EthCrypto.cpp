@@ -389,10 +389,9 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  //bytes toAddr{dev::toBigEndian(dev::u256(0))};
+  // bytes toAddr{dev::toBigEndian(dev::u256(0))};
   bytes toAddr(20, 0);
   if (!IsNullAddress(info.toAddr)) {
-    std::cout << "here wasadsf " << std::endl;
     toAddr = info.toAddr.asBytes();
   }
   rlpStreamRecreated << toAddr;
@@ -427,9 +426,9 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     return "";
   }
 
-  //if (info.version != 99) {
-  //  LOG_GENERAL(WARNING, "Received bad version when recovering RLP: " << info.version);
-  //  return "";
+  // if (info.version != 99) {
+  //  LOG_GENERAL(WARNING, "Received bad version when recovering RLP: " <<
+  //  info.version); return "";
   //}
 
   std::string s = signature.substr(64, std::string::npos);
@@ -446,10 +445,9 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << info.nonce;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
-    //bytes toAddr{dev::toBigEndian(dev::u256(0))};
+    // bytes toAddr{dev::toBigEndian(dev::u256(0))};
     bytes toAddr(20, 0);
     if (!IsNullAddress(info.toAddr)) {
-      std::cout << "here adraEFDKJ,WKJKJKJKK " << std::endl;
       toAddr = info.toAddr.asBytes();
     }
     rlpStreamRecreated << toAddr;
@@ -472,8 +470,6 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     auto const* dataPtr = rlpStreamRecreated.out().data();
     auto const& asString = DataConversion::Uint8VecToHexStrRet(
         bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
-
-    std::cout << "RLP: " << asString << std::endl;
 
     auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
