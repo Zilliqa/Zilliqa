@@ -416,7 +416,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
 std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                              std::string signature, uint64_t &recid) {
+                              std::string signature, uint64_t& recid) {
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
@@ -539,7 +539,6 @@ bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
 }
 
 std::string GetR(std::string signature) {
-
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
@@ -572,10 +571,9 @@ std::string GetS(std::string signature) {
 
 std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
                  std::string signature) {
-    uint64_t recid;
+  uint64_t recid;
 
   GetTransmittedRLP(info, chainId, signature, recid);
 
   return (boost::format("0x%x") % recid).str();
 }
-

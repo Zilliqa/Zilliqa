@@ -49,7 +49,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 // Given a native transaction, get the corresponding RLP (that was sent to
 // create it)
 std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                              std::string signature, uint64_t &recid);
+                              std::string signature, uint64_t& recid);
 
 // As a workaround, code/data strings have an evm prefix to distinguish them,
 // but this must be stripped before it goes to the EVM

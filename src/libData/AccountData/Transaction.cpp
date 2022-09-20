@@ -266,8 +266,8 @@ bool Transaction::IsSignedECDSA() const {
 bool Transaction::SetHash(bytes const& txnData) {
   if (IsEth()) {
     uint64_t recid{0};
-    auto const asRLP =
-        GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID, std::string(m_signature), recid);
+    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID,
+                                         std::string(m_signature), recid);
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {

@@ -665,24 +665,21 @@ const Json::Value JSONConversion::convertTxtoEthJson(
                                       EVM_ZIL_SCALING_FACTOR))
           .str();
   // ethers also expectes gasLimit and ChainId
-  retJson["gasLimit"] =
-      (boost::format("0x%x") % tx.GetGasLimitRaw()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitRaw()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
-  retJson["gasPrice"] =
-      (boost::format("0x%x") % tx.GetGasPriceWei()).str();
+  retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
   retJson["hash"] = "0x" + tx.GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
   std::string inputField;
 
   if (!tx.GetCode().empty()) {
-    inputField = "0x" + DataConversion::CharArrayToString(
-                            StripEVM(tx.GetCode()));
+    inputField =
+        "0x" + DataConversion::CharArrayToString(StripEVM(tx.GetCode()));
   }
 
   if (!tx.GetData().empty()) {
-    const auto callData =
-        DataConversion::CharArrayToString(tx.GetData());
+    const auto callData = DataConversion::CharArrayToString(tx.GetData());
     // Append extra '0x' prefix iff GetCode() gave empty string
     if (inputField.empty()) {
       inputField += "0x" + callData;
@@ -693,22 +690,18 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["input"] = inputField;
   // ethers also expects 'data' field
   retJson["data"] = inputField;
-  retJson["nonce"] =
-      (boost::format("0x%x") % tx.GetNonce()).str();
+  retJson["nonce"] = (boost::format("0x%x") % tx.GetNonce()).str();
   if (IsNullAddress(tx.GetToAddr())) {
     retJson["to"] =
         Json::nullValue;  // special for contract creation transactions.
   } else {
     retJson["to"] = "0x" + tx.GetToAddr().hex();
   }
-  retJson["value"] =
-      (boost::format("0x%x") % tx.GetAmountWei()).str();
-  if (!tx.GetCode().empty() &&
-      IsNullAddress(tx.GetToAddr())) {
+  retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
+  if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
     retJson["contractAddress"] =
         "0x" +
-        Account::GetAddressForContract(tx.GetSenderAddr(),
-                                       tx.GetNonce() - 1)
+        Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
             .hex();
   }
   retJson["type"] = "0x0";
