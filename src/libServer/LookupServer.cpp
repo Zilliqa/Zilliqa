@@ -829,8 +829,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
 
   Address affectedAddress =
       (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
-          ? Account::GetAddressForContract(tx.GetSenderAddr(),
-                                           tx.GetNonce(),
+          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
                                            tx.GetVersionIdentifier())
           : tx.GetToAddr();
 
