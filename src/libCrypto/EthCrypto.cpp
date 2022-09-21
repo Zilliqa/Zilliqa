@@ -389,8 +389,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  // bytes toAddr{dev::toBigEndian(dev::u256(0))};
-  bytes toAddr(20, 0);
+  bytes toAddr(20, 0); // Default is empty address
   if (!IsNullAddress(info.toAddr)) {
     toAddr = info.toAddr.asBytes();
   }
@@ -426,11 +425,6 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     return "";
   }
 
-  // if (info.version != 99) {
-  //  LOG_GENERAL(WARNING, "Received bad version when recovering RLP: " <<
-  //  info.version); return "";
-  //}
-
   std::string s = signature.substr(64, std::string::npos);
   signature.resize(64);
 
@@ -445,8 +439,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << info.nonce;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
-    // bytes toAddr{dev::toBigEndian(dev::u256(0))};
-    bytes toAddr(20, 0);
+    bytes toAddr(20, 0); // Default is empty address
     if (!IsNullAddress(info.toAddr)) {
       toAddr = info.toAddr.asBytes();
     }
