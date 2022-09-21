@@ -1485,9 +1485,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       return Json::nullValue;
     }
 
-    auto const ethResult =
-        JSONConversion::convertTxtoEthJson(transactionIndex, 
-            *transactioBodyPtr, txBlock);
+    auto const ethResult = JSONConversion::convertTxtoEthJson(
+        transactionIndex, *transactioBodyPtr, txBlock);
     auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
@@ -1900,7 +1899,8 @@ Json::Value LookupServer::GetEthTransactionByHash(
     }
   
     constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-    auto transactionIndex = GetTransactionIndexFromBlock(txBlock, transactionHash);
+    auto transactionIndex =
+        GetTransactionIndexFromBlock(txBlock, transactionHash);
     if (transactionIndex == WRONG_INDEX) {
       return Json::nullValue;
     }
