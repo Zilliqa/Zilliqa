@@ -69,7 +69,7 @@ class JSONConversion {
   // Convert Tx (without reciept) to JSON object
   static const Json::Value convertTxtoJson(const Transaction& txn);
   // Convert Tx to ETH-like JSON Object
-  static const Json::Value convertTxtoEthJson(uint64_t txid,
+  static const Json::Value convertTxtoEthJson(uint64_t txindex,
                                               const TransactionWithReceipt& txn,
                                               const TxBlock& txblock);
   // Convert a node to json

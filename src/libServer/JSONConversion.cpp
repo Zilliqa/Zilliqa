@@ -649,7 +649,7 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    uint64_t txid, const TransactionWithReceipt& txn, const TxBlock& txblock) {
+    uint64_t txindex, const TransactionWithReceipt& txn, const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
   auto const tx = txn.GetTransaction();
@@ -710,7 +710,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["r"] = GetR(sig);
   retJson["s"] = GetS(sig);
 
-  retJson["transactionIndex"] = (boost::format("0x%x") % txid).str();
+  retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
   return retJson;
 }
 
