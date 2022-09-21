@@ -130,6 +130,8 @@ class Transaction : public SerializableDataBlock {
   bool IsSigned(bytes const& txnData) const;
 
   /// Returns the transaction nonce.
+  /// There is an edge case for Eth nonces,
+  /// See PR #2995
   const uint64_t& GetNonce() const;
 
   /// Returns the transaction destination account address.
