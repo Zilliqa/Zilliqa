@@ -4,8 +4,7 @@ add_dependencies(Server jsonrpc-project)
 
 target_include_directories(Server PUBLIC 
                                   ${PROJECT_SOURCE_DIR}/src 
-                                  ${JSONRPC_INCLUDE_DIR} 
-                                  ${WEBSOCKETPP_INCLUDE_DIR})
+                                  ${JSONRPC_INCLUDE_DIR})
 
 target_link_libraries (Server PUBLIC 
                               AccountData 
@@ -13,7 +12,6 @@ target_link_libraries (Server PUBLIC
                               RemoteStorageDB 
                               Eth 
                               ${JSONCPP_LINK_TARGETS}
-                              ${WEBSOCKETPP_LIB} 
                               Utils 
                               Constants 
                               POW)

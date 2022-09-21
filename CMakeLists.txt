@@ -238,8 +238,6 @@ include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
 
 include_directories(${G3LOG_INCLUDE_DIR})
 
-include_directories(${WEBSOCKETPP_INCLUDE_DIR})
-
 # export compile commands
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -266,6 +264,10 @@ add_compile_options(-Wall)
 add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+  add_compile_options(-Wno-unused-parameter)
+endif()
 
 if (THREAD_SANITIZER AND ADDRESS_SANITIZER)
     message(FATAL_ERROR "Cannot use ThreadSanitizer (THREAD_SANITIZER=ON) and AddressSanitizer (ADDRESS_SANITIZER=ON) at the same time")
@@ -300,7 +302,6 @@ if (LIBFUZZER_SANITIZER)
     message(STATUS "Libfuzzer with address and undefined behavior sanitizer enabled")
 endif()
 
-set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
 if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     if (NOT TESTS)
         message(FATAL_ERROR "TESTS is not ON")
