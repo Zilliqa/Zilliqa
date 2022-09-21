@@ -120,28 +120,31 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_1,
                                      TXN_MISORDER_TOLERANCE_IN_PERCENT));
 
+  std::random_device randomDevice;
+  std::mt19937 randomEngine(randomDevice());
+
   // Shuffle # tolerance_num txns from the head
-  std::random_shuffle(rcvd_txnHashes_2.begin(),
+  std::shuffle(rcvd_txnHashes_2.begin(),
                       rcvd_txnHashes_2.begin() +
                           static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT *
-                                            n / ONE_HUNDRED_PERCENT));
+                                            n / ONE_HUNDRED_PERCENT), randomEngine);
 
   BOOST_CHECK_EQUAL(
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_2,
                                      TXN_MISORDER_TOLERANCE_IN_PERCENT));
 
   // Shuffle # tolerance_num txns from the tail
-  std::random_shuffle(rcvd_txnHashes_3.end() -
+  std::shuffle(rcvd_txnHashes_3.end() -
                           static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT *
                                             n / ONE_HUNDRED_PERCENT),
-                      rcvd_txnHashes_3.end());
+                      rcvd_txnHashes_3.end(),  randomEngine);
 
   BOOST_CHECK_EQUAL(
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_3,
                                      TXN_MISORDER_TOLERANCE_IN_PERCENT));
 
   // Shuffle the txns totally
-  std::random_shuffle(rcvd_txnHashes_4.begin(), rcvd_txnHashes_4.end());
+  std::shuffle(rcvd_txnHashes_4.begin(), rcvd_txnHashes_4.end(), randomEngine);
 
   bool verifyAfterFullyShuffle = VerifyTxnOrderWTolerance(
       local_txnHashes, rcvd_txnHashes_4, TXN_MISORDER_TOLERANCE_IN_PERCENT);
