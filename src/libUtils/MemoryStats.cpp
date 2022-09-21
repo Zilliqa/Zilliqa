@@ -18,7 +18,9 @@
 #include <errno.h>
 #include <cstring>
 #include "libUtils/Logger.h"
+#ifndef __APPLE__
 #include "sys/sysinfo.h"
+#endif
 #include "sys/types.h"
 
 using namespace std;
@@ -71,6 +73,7 @@ int GetProcessVirtualMemoryStats() {  // Note: this value is in KB!
 }
 
 void DisplayVirtualMemoryStats() {
+#ifndef __APPLE__
   struct sysinfo memInfo = {};
   sysinfo(&memInfo);
   long long totalVirtualMem = memInfo.totalram;
@@ -90,9 +93,13 @@ void DisplayVirtualMemoryStats() {
   LOG_GENERAL(INFO, "VM used by process  = " << processVirtualMemUsed / 1024
                                              << " MB"
                                              << " pid=" << Logger::GetPid());
+#endif
 }
 
 int64_t DisplayPhysicalMemoryStats(const string& str, int64_t startMem) {
+#ifdef __APPLE__
+  return 0;
+#else
   struct sysinfo memInfo = {};
   sysinfo(&memInfo);
   int processPhysMemUsed = GetProcessPhysicalMemoryStats();
@@ -105,4 +112,5 @@ int64_t DisplayPhysicalMemoryStats(const string& str, int64_t startMem) {
     LOG_GENERAL(INFO, "PM diff = " << diff << " " << str);
   }
   return processPhysMemUsedMB;
+#endif
 }
