@@ -81,7 +81,7 @@ else
         ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
 
         # For convenience move the required files to tmp directory
-        cp /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds /tmp
+        cp /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-d /tmp || exit 1
         cp /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/log4rs.yml /tmp
 
         # Modify constants.xml for use by isolated server
