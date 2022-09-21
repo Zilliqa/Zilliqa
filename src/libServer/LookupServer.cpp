@@ -1456,7 +1456,9 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  return JSONConversion::convertTxtoEthJson(indexInBlock, *transactioBodyPtr, txBlock);
+  return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
+                                            *transactioBodyPtr,
+                                            txBlock);
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
