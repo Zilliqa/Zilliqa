@@ -1139,7 +1139,7 @@ uint64_t LookupServer::GetTransactionIndexFromBlock(
       continue;
     }
     const auto& tranHashes = microBlockPtr->GetTranHashes();
-    for (uint64_t i = 0; i < tranHashes.size(); ++i, ++transactionIndex) {
+    for (size_t i = 0; i < tranHashes.size(); ++i, ++transactionIndex) {
       if (argHash == tranHashes[i]) {
         return transactionIndex;
       }
@@ -1897,7 +1897,7 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (txBlock == EMPTY_BLOCK) {
       return Json::nullValue;
     }
-  
+
     constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
     auto transactionIndex =
         GetTransactionIndexFromBlock(txBlock, transactionHash);
