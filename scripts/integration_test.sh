@@ -103,7 +103,8 @@ else
 
     retVal=$?
     if [ $retVal -ne 0 ]; then
-        echo "Error with integration test"
+        echo "!!!!!! Error with integration test !!!!!!"
+        cat out.txt
         exit 1
     fi
 
