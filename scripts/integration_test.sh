@@ -60,7 +60,7 @@ else
     cargo --version
     echo "building evm ds"
 
-    cargo build --verbose --release --package evm-ds 2>&1 > /dev/null
+    cargo build --verbose --release --package evm-ds -q
 
     echo "built evm ds"
 
