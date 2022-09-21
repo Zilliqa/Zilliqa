@@ -1117,6 +1117,38 @@ TxBlock LookupServer::GetBlockFromTransaction(
   }
 }
 
+uint64_t LookupServer::GetTransactionIndexFromBlock(
+    const TxBlock& txBlock, const std::string& txnhash) const {
+  TxnHash argHash{txnhash};
+  const TxBlock EMPTY_BLOCK;
+  constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
+  if (txBlock == EMPTY_BLOCK) {
+    return WRONG_INDEX;
+  }
+
+  uint64_t txid = 0;
+  MicroBlockSharedPtr microBlockPtr;
+
+  const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
+  for (auto const& mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+    const auto& tranHashes = microBlockPtr->GetTranHashes();
+    for (uint64_t i = 0; i < tranHashes.size(); ++i, ++txid) {
+        if (argHash == tranHashes[i]) {
+            return txid;
+        }
+    }
+  }
+
+  return WRONG_INDEX;
+}
+
 Json::Value LookupServer::GetEthBlockNumber() {
   Json::Value ret;
 
@@ -1424,7 +1456,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
+  return JSONConversion::convertTxtoEthJson(indexInBlock, *transactioBodyPtr, txBlock);
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
@@ -1445,8 +1477,15 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
       return Json::nullValue;
     }
 
+    constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
+    auto txid = GetTransactionIndexFromBlock(txBlock, txnhash);
+    if (txid == WRONG_INDEX) {
+      LOG_GENERAL(WARNING, "Tx index requested but not found");
+      return Json::nullValue;
+    }
+
     auto const ethResult =
-        JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
+        JSONConversion::convertTxtoEthJson(txid, *transactioBodyPtr, txBlock);
     auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
@@ -1851,8 +1890,20 @@ Json::Value LookupServer::GetEthTransactionByHash(
     if (!isPresent) {
       return Json::nullValue;
     }
+
+    const TxBlock EMPTY_BLOCK;
     const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
-    return JSONConversion::convertTxtoEthJson(*transactioBodyPtr, txBlock);
+    if (txBlock == EMPTY_BLOCK) {
+        return Json::nullValue;
+    }
+  
+    constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
+    auto txid = GetTransactionIndexFromBlock(txBlock, transactionHash);
+    if (txid == WRONG_INDEX) {
+        return Json::nullValue;
+    }
+
+    return JSONConversion::convertTxtoEthJson(txid, *transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");

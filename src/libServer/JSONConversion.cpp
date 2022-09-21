@@ -174,8 +174,8 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       transactionsJson.append("0x" + hash.hex());
     }
   } else {
-    for (size_t id = 0; id < transactions.size(); ++id) {
-      transactionsJson.append(convertTxtoEthJson(id, *transactions[id], txblock));
+    for (size_t i = 0; i < transactions.size(); ++i) {
+      transactionsJson.append(convertTxtoEthJson(i, *transactions[i], txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -649,7 +649,7 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    size_t txid, const TransactionWithReceipt& txn, const TxBlock& txblock) {
+    uint64_t txid, const TransactionWithReceipt& txn, const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
   auto const tx = txn.GetTransaction();
