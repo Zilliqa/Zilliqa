@@ -17,7 +17,16 @@
 
 #include "EthCrypto.h"
 #include <boost/algorithm/string.hpp>
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
 #include <boost/format.hpp>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -44,9 +53,16 @@
 
 // Prefix signed txs in Ethereum with Keccak256("\x19Ethereum Signed
 // Message:\n32" + Keccak256(message))
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-const-variable"
+#endif
 constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
                                32,  83,  105, 103, 110, 101, 100, 32,  77,
                                101, 115, 115, 97,  103, 101, 58,  10,  48};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 auto bnFree = [](BIGNUM* b) { BN_free(b); };
 auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
