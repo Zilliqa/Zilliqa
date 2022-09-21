@@ -81,12 +81,16 @@ else
     if [[ -d /home/jenkins ]]; then
         ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
 
+        # For convenience move the required files to tmp directory
+        cp /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds /tmp
+        cp /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/log4rs.yml /tmp
+
         # Modify constants.xml for use by isolated server
         cp constants.xml constants_backup.xml
         sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
         sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
-        sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/home\/jenkins\/agent\/workspace\/zilliqaci\/evm-ds\/target\/release\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
-        sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/home\/jenkins\/agent\/workspace\/zilliqaci\/evm-ds\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
+        sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+        sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/tmp\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
     fi
 
     echo "Starting isolated server"

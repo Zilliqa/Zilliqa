@@ -1169,7 +1169,7 @@ def main():
     ret &= test_eth_chainId(args.api)
     ret &= test_eth_blockNumber(args.api)
     #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    #ret &= test_eth_getCode(args.api, account, w3)
+    ret &= test_eth_getCode(args.api, account, w3)
     #ret &= test_eth_sendRawTransaction(args.api, account, w3)
     #ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getProof(args.api)
