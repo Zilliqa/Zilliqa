@@ -27,7 +27,6 @@ then
 else
     case $1 in
         "--setup-env"|"--SETUP-ENV")  # Ok
-            echo "ADSFADSF" >&2
             RUNNING_LOCALLY=0
             ;;
         *)
@@ -60,7 +59,7 @@ else
     cargo --version
     echo "building evm ds"
 
-    cargo build --verbose --release --package evm-ds -q
+    cargo build --release --package evm-ds -q
 
     echo "built evm ds"
 
