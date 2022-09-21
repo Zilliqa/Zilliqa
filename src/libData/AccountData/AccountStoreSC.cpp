@@ -238,7 +238,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
       }
 
-      // generate address for new contract account
+      // generate address for new contract account (note Eth accounting difference here)
       toAddr =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce(),
                                          transaction.GetVersionIdentifier());

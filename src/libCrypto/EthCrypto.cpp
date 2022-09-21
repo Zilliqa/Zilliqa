@@ -524,7 +524,7 @@ bytes CreateHash(std::string const& rawTx) {
 bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   dev::RLPStream rlpStream(2);
   rlpStream << senderAddr;
-  rlpStream << nonce - 1;
+  rlpStream << nonce;
 
   auto const* dataPtr = rlpStream.out().data();
   auto const asBytes = bytes(dataPtr, dataPtr + rlpStream.out().size());

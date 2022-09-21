@@ -488,7 +488,8 @@ Address Account::GetAddressForContract(const Address& sender,
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
   } else if (version == TRANSACTION_VERSION_ETH) {
-    auto output = CreateContractAddr(sender.asBytes(), nonce);
+    // Note the nonce accounting for Zil TXs is always 1 ahead so we decrement here
+    auto output = CreateContractAddr(sender.asBytes(), nonce - 1);
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
   } else {

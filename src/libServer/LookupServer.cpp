@@ -830,7 +830,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   Address affectedAddress =
       (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
           ? Account::GetAddressForContract(tx.GetSenderAddr(),
-                                           tx.GetNonce() - 1,
+                                           tx.GetNonce(),
                                            tx.GetVersionIdentifier())
           : tx.GetToAddr();
 
@@ -939,7 +939,7 @@ Json::Value LookupServer::CreateTransaction(
                                    toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1,
+            Account::GetAddressForContract(fromAddr, tx.GetNonce(),
                                            tx.GetVersionIdentifier())
                 .hex();
         mapIndex = check.second;
@@ -2173,7 +2173,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "ID is not a contract txn");
     }
 
-    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1,
+    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
                                           tx.GetVersionIdentifier())
         .hex();
   } catch (const JsonRpcException& je) {
