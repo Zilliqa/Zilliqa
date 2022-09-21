@@ -1104,12 +1104,15 @@ TxBlock LookupServer::GetBlockFromTransaction(
   const TxBlock EMPTY_BLOCK;
   const Json::Value blockNumStr =
       transaction.GetTransactionReceipt().GetJsonValue().get("epoch_num", "");
+
   try {
     if (!blockNumStr.isString() || blockNumStr.asString().empty()) {
+      LOG_GENERAL(WARNING, "Block number is string or is empty!");
       return EMPTY_BLOCK;
     }
     const uint64_t blockNum =
         std::strtoull(blockNumStr.asCString(), nullptr, 0);
+    std::cout << "EDD " << blockNum << std::endl;
     const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     return txBlock;
   } catch (std::exception& e) {
@@ -1443,7 +1446,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     const TxBlock EMPTY_BLOCK;
     auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks. " << txnhash);
       return Json::nullValue;
     }
 
