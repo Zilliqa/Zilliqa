@@ -490,7 +490,6 @@ Address Account::GetAddressForContract(const Address& sender,
   } else if (version == TRANSACTION_VERSION_ETH) {
     // Note the nonce accounting for Zil TXs is always 1 ahead so we decrement
     // here
-    std::cout << "CREATE WITH NONCE: " << nonce << std::endl;
     auto output = CreateContractAddr(sender.asBytes(), nonce);
 
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());

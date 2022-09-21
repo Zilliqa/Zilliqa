@@ -35,8 +35,6 @@ else
     esac
 fi
 
-echo $RUNNING_LOCALLY
-
 if [[ "$RUNNING_LOCALLY" == 1 ]]; then
     echo "You are running the script locally. The requirements for this is only that the isolated server "
     echo "is running on port 5555"
