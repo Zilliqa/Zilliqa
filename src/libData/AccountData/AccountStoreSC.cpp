@@ -65,7 +65,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt,
+                &available_gas, &balance,
                 &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:

@@ -21,6 +21,7 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DCMAKE_BUILD_TYPE=Release
                # Build static lib but suitable to be included in a shared lib.
                -DCMAKE_POSITION_INDEPENDENT_CODE=On
+               -DWITH_COVERAGE=Off
                -DBUILD_STATIC_LIBS=On
                -DBUILD_SHARED_LIBS=Off
                -DUNIX_DOMAIN_SOCKET_SERVER=On
@@ -66,10 +67,7 @@ file(MAKE_DIRECTORY ${JSONRPC_INCLUDE_DIR})  # Must exist.
 
 add_library(jsonrpc::common STATIC IMPORTED)
 set_property(TARGET jsonrpc::common PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-common${CMAKE_STATIC_LIBRARY_SUFFIX})
-set_property(TARGET jsonrpc::common PROPERTY INTERFACE_LINK_LIBRARIES ${JSONCPP_LINK_TARGETS} gcov)
 set_property(TARGET jsonrpc::common PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${JSONRPC_INCLUDE_DIR} ${JSONCPP_INCLUDE_DIR})
-link_libraries(--coverage)
-link_libraries(-lgcov)
 add_dependencies(jsonrpc::common jsonrpc-project)
 
 add_library(jsonrpc::client STATIC IMPORTED)
