@@ -17,7 +17,16 @@
 
 #include "EthCrypto.h"
 #include <boost/algorithm/string.hpp>
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
 #include <boost/format.hpp>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -44,9 +53,16 @@
 
 // Prefix signed txs in Ethereum with Keccak256("\x19Ethereum Signed
 // Message:\n32" + Keccak256(message))
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-const-variable"
+#endif
 constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
                                32,  83,  105, 103, 110, 101, 100, 32,  77,
                                101, 115, 115, 97,  103, 101, 58,  10,  48};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 auto bnFree = [](BIGNUM* b) { BN_free(b); };
 auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
@@ -387,7 +403,7 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   dev::RLPStream rlpStreamRecreated(9);
 
-  rlpStreamRecreated << info.nonce;
+  rlpStreamRecreated << info.nonce - 1;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
   bytes toAddr{};
@@ -437,7 +453,9 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
     dev::RLPStream rlpStreamRecreated(9);
 
-    rlpStreamRecreated << info.nonce;
+    // Note: the nonce is decremented because of the difference between Zil and
+    // Eth TXs
+    rlpStreamRecreated << info.nonce - 1;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
     bytes toAddr{};
@@ -522,7 +540,7 @@ bytes CreateHash(std::string const& rawTx) {
 bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   dev::RLPStream rlpStream(2);
   rlpStream << senderAddr;
-  rlpStream << nonce;
+  rlpStream << nonce - 1;
 
   auto const* dataPtr = rlpStream.out().data();
   auto const asBytes = bytes(dataPtr, dataPtr + rlpStream.out().size());
