@@ -389,7 +389,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   rlpStreamRecreated << info.nonce;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  bytes toAddr(20, 0);  // Default is empty address
+  bytes toAddr;
   if (!IsNullAddress(info.toAddr)) {
     toAddr = info.toAddr.asBytes();
   }
@@ -439,7 +439,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << info.nonce;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
-    bytes toAddr(20, 0);  // Default is empty address
+    bytes toAddr;
     if (!IsNullAddress(info.toAddr)) {
       toAddr = info.toAddr.asBytes();
     }
