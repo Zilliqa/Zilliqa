@@ -17,6 +17,7 @@
 
 #include "EthCrypto.h"
 #include <boost/algorithm/string.hpp>
+#include <boost/format.hpp>
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -415,7 +416,7 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
 std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                              std::string signature) {
+                              std::string signature, uint64_t& recid) {
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
@@ -471,6 +472,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
       continue;
     }
 
+    recid = v;
     return asString;
   }
 }
@@ -536,4 +538,44 @@ bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
 
   return hashBytes;
+}
+
+std::string GetR(std::string signature) {
+  if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
+    signature.erase(0, 2);
+  }
+
+  if (signature.size() != 128) {
+    LOG_GENERAL(WARNING, "Received bad signature size: " << signature.size());
+    return "";
+  }
+
+  // R is first half
+  signature.resize(64);
+  return "0x" + signature;
+}
+
+std::string GetS(std::string signature) {
+  if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
+    signature.erase(0, 2);
+  }
+
+  if (signature.size() != 128) {
+    LOG_GENERAL(WARNING, "Received bad signature size: " << signature.size());
+    return "";
+  }
+
+  // S is second half
+  std::string s = signature.substr(64, std::string::npos);
+
+  return "0x" + s;
+}
+
+std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
+                 std::string signature) {
+  uint64_t recid;
+
+  GetTransmittedRLP(info, chainId, signature, recid);
+
+  return (boost::format("0x%x") % recid).str();
 }

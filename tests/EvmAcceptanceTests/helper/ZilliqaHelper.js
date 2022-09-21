@@ -8,6 +8,14 @@ class ZilliqaHelper {
         this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1))
     }
 
+    getPrimaryAccount() {
+        return this.primaryAccount;
+    }
+
+    getSecondaryAccount() {
+        return this.primaryAccount;
+    }
+
     async getState(address, index) {
         return web3.eth.getStorageAt(address, index)
     }
@@ -104,8 +112,8 @@ class ZilliqaHelper {
             const tx = {
                 'to': toAddr,
                 'value': amount,
-                'gas': 300000,
-                'gasPrice': 2000000000000000,
+                'gas': 21_000,
+                'gasPrice': 1_000_000_000,
                 'nonce': nonce,
                 'chainId': general_helper.getEthChainId(),
                 'data': ""
