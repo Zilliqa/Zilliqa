@@ -125,9 +125,10 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
 
   // Shuffle # tolerance_num txns from the head
   std::shuffle(rcvd_txnHashes_2.begin(),
-                      rcvd_txnHashes_2.begin() +
-                          static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT *
-                                            n / ONE_HUNDRED_PERCENT), randomEngine);
+               rcvd_txnHashes_2.begin() +
+                   static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT * n /
+                                     ONE_HUNDRED_PERCENT),
+               randomEngine);
 
   BOOST_CHECK_EQUAL(
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_2,
@@ -135,9 +136,9 @@ BOOST_AUTO_TEST_CASE(GenTxn1000) {
 
   // Shuffle # tolerance_num txns from the tail
   std::shuffle(rcvd_txnHashes_3.end() -
-                          static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT *
-                                            n / ONE_HUNDRED_PERCENT),
-                      rcvd_txnHashes_3.end(),  randomEngine);
+                   static_cast<long>(TXN_MISORDER_TOLERANCE_IN_PERCENT * n /
+                                     ONE_HUNDRED_PERCENT),
+               rcvd_txnHashes_3.end(), randomEngine);
 
   BOOST_CHECK_EQUAL(
       true, VerifyTxnOrderWTolerance(local_txnHashes, rcvd_txnHashes_3,

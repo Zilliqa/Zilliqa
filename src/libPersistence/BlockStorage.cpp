@@ -1881,51 +1881,49 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 bool BlockStorage::ResetAll() {
   std::vector<DBTYPE> dbs;
   if (!LOOKUP_NODE_MODE) {
-    dbs = {
-        META,
-        DS_BLOCK,
-        TX_BLOCK,
-        TX_BLOCK_HASH_TO_NUM,
-        MICROBLOCK,
-        DS_COMMITTEE,
-        VC_BLOCK,
-        BLOCKLINK,
-        SHARD_STRUCTURE,
-        STATE_DELTA,
-        TEMP_STATE,
-        DIAGNOSTIC_NODES,
-        DIAGNOSTIC_COINBASE,
-        STATE_ROOT,
-        PROCESSED_TEMP
-    };
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP};
   } else  // IS_LOOKUP_NODE
   {
-    dbs = {
-      META,
-      DS_BLOCK,
-      TX_BLOCK,
-      TX_BLOCK_HASH_TO_NUM,
-      TX_BODY,
-      MICROBLOCK,
-      DS_COMMITTEE,
-      VC_BLOCK,
-      BLOCKLINK,
-      SHARD_STRUCTURE,
-      STATE_DELTA,
-      TEMP_STATE,
-      DIAGNOSTIC_NODES,
-      DIAGNOSTIC_COINBASE,
-      STATE_ROOT,
-      PROCESSED_TEMP,
-      MINER_INFO_DSCOMM,
-      MINER_INFO_SHARDS,
-      EXTSEED_PUBKEYS
-    };
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           TX_BODY,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP,
+           MINER_INFO_DSCOMM,
+           MINER_INFO_SHARDS,
+           EXTSEED_PUBKEYS};
   }
 
   auto result = true;
-  for (auto db : dbs)
+  for (auto db : dbs) {
     result = ResetDB(db) && result;
+  }
+
   return result;
 }
 
@@ -1934,53 +1932,51 @@ bool BlockStorage::ResetAll() {
 bool BlockStorage::RefreshAll() {
   std::vector<DBTYPE> dbs;
   if (!LOOKUP_NODE_MODE) {
-    dbs = {
-      META,
-      DS_BLOCK,
-      TX_BLOCK,
-      TX_BLOCK_HASH_TO_NUM,
-      MICROBLOCK,
-      DS_COMMITTEE,
-      VC_BLOCK,
-      BLOCKLINK,
-      SHARD_STRUCTURE,
-      STATE_DELTA,
-      TEMP_STATE,
-      DIAGNOSTIC_NODES,
-      DIAGNOSTIC_COINBASE,
-      STATE_ROOT,
-      PROCESSED_TEMP
-    };
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP};
   } else  // IS_LOOKUP_NODE
   {
-    dbs = {
-      META,
-      DS_BLOCK,
-      TX_BLOCK,
-      TX_BLOCK_HASH_TO_NUM,
-      TX_BODY,
-      MICROBLOCK,
-      DS_COMMITTEE,
-      VC_BLOCK,
-      BLOCKLINK,
-      SHARD_STRUCTURE,
-      STATE_DELTA,
-      TEMP_STATE,
-      DIAGNOSTIC_NODES,
-      DIAGNOSTIC_COINBASE,
-      STATE_ROOT,
-      PROCESSED_TEMP,
-      MINER_INFO_DSCOMM,
-      MINER_INFO_SHARDS,
-      EXTSEED_PUBKEYS
-    };
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           TX_BODY,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP,
+           MINER_INFO_DSCOMM,
+           MINER_INFO_SHARDS,
+           EXTSEED_PUBKEYS};
   }
 
   auto result = true;
-  for (auto db : dbs)
+  for (auto db : dbs) {
     result = RefreshDB(db) && result;
+  }
 
-  result = Contract::ContractStorage::GetContractStorage().RefreshAll() && result;
+  result =
+      Contract::ContractStorage::GetContractStorage().RefreshAll() && result;
 
   BuildHashToNumberMappingForTxBlocks();
   return result;

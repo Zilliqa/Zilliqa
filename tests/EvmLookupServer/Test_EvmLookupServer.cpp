@@ -46,9 +46,9 @@ class EvmClientMock : public EvmClient {
   virtual bool OpenServer(uint32_t /*version*/) override { return true; }
 
   virtual bool CallRunner(uint32_t /*version*/,                 //
-                  const Json::Value& request,           //
-                  evmproj::CallResponse& /*response*/,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) override {
+                          const Json::Value& request,           //
+                          evmproj::CallResponse& /*response*/,  //
+                          uint32_t /*counter = MAXRETRYCONN*/) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
     return true;
   };

@@ -39,7 +39,8 @@ bool getTransactionsFromFile(std::fstream& f, unsigned int startNum,
   uint32_t txnOffsetInfoSize = SerializableDataBlock::GetNumber<uint32_t>(
       buffOffsetInfo, 0, sizeof(uint32_t));
 
-  // FIXME: the following condition always evaluates to false and produces an error
+  // FIXME: the following condition always evaluates to false and produces an
+  // error
   //        on clang. This validation should be revised and fixed.
 #if 0
   if (txnOffsetInfoSize <= 0 && txnOffsetInfoSize >= 1000000) {
