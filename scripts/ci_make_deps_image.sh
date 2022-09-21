@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright (C) 2019 Zilliqa
+# Copyright (C) 2022 Zilliqa
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@
 #
 # Usage:
 #
-#    ./scripts/ci_make_image.sh
+#    ./scripts/ci_make_deps_image.sh
 #
 # Environment Varibles:
 #
@@ -27,29 +27,29 @@
 #    - the commit to build
 #    - TODO: change the variable name to be platform independent (e.g., CI_COMMIT)
 #
-#    TEST_NAME
-#    - optional
-#    - additional string appended to the iamge tag after commit
 #
-#    TEST_EXTRA_CMAKE_ARGS
-#    - optional
-#    - extra CMake args to be passed to Dockerfile
-
+# IMPORTANT: note that the built image will *not* depend on the commit and will *always*
+#            be tagged based on the version in ../VERSION
 set -e
 
 docker --version
 aws --version
 
+major=$(tail -n +2 VERSION | head -n1)
+minor=$(tail -n +4 VERSION | head -n1)
+fix=$(tail -n +6 VERSION | head -n1)
+
 commit_or_tag=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
-test_extra_cmake_args=${TEST_EXTRA_CMAKE_ARGS}
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
-source_image=zilliqa:${commit_or_tag}
-target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/zilliqa:${commit_or_tag}${TEST_NAME}
+
+# See above comment about the image tag.
+source_image=zilliqa:v${major}.${minor}.${fix}-deps
+target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/${source_image}
 
 eval $(aws ecr get-login --no-include-email --region ${region_id})
 set +e
-make -C docker dev REGISTRY="${account_id}.dkr.ecr.${region_id}.amazonaws.com/" EXTRA_CMAKE_ARGS="${test_extra_cmake_args}" COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
+make -C docker deps COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
 set -e
 docker tag ${source_image} ${target_image}
 docker push ${target_image}
