@@ -387,7 +387,7 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   dev::RLPStream rlpStreamRecreated(9);
 
-  rlpStreamRecreated << info.nonce;
+  rlpStreamRecreated << info.nonce - 1;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
   bytes toAddr{};
@@ -437,7 +437,9 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
     dev::RLPStream rlpStreamRecreated(9);
 
-    rlpStreamRecreated << info.nonce;
+    // Note: the nonce is decremented because of the difference between Zil and
+    // Eth TXs
+    rlpStreamRecreated << info.nonce - 1;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
     bytes toAddr{};
@@ -522,7 +524,7 @@ bytes CreateHash(std::string const& rawTx) {
 bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   dev::RLPStream rlpStream(2);
   rlpStream << senderAddr;
-  rlpStream << nonce;
+  rlpStream << nonce - 1;
 
   auto const* dataPtr = rlpStream.out().data();
   auto const asBytes = bytes(dataPtr, dataPtr + rlpStream.out().size());

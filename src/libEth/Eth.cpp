@@ -128,6 +128,9 @@ EthFields parseRawTxFields(std::string const &message) {
     it++;
   }
 
+  // Because of the way Zil handles nonces, we increment the nonce here
+  ret.nonce++;
+
   return ret;
 }
 

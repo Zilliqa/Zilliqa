@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(TestEthContractAddrGenerate) {
                              "FFFD933A0BC612844EAF0C6FE3E5B8E9B6C1D19C"};
 
   for (int i = 0; i < 4; i++) {
-    auto const result = CreateContractAddr(sender, i);
+    auto const result = CreateContractAddr(sender, i + 1);
 
     BOOST_CHECK_EQUAL(DataConversion::Uint8VecToHexStrRet(result),
                       addresses[i]);
