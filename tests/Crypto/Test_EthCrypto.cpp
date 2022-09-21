@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(TestRecoverECDSASig) {
       "041419977507436A81DD0AC7BEB6C7C0DECCBF1A1A1A5E595F647892628A0F65BC9D19CB"
       "F0712F881B529D39E7F75D543DC3E646880A0957F6E6DF5C1B5D0EB278";
 
-  auto const result = RecoverECDSAPubSig(rlp, 33101);
+  auto const result = RecoverECDSAPubKey(rlp, 33101);
   auto const restultStr = DataConversion::Uint8VecToHexStrRet(result);
 
   // If this fails, check the pubkey starts with '04' (is uncompressed)
