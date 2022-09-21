@@ -58,8 +58,7 @@ class IsolatedServer : public LookupServer,
     if (rawTx.size() >= 2 && rawTx[1] == 'x') {
       rawTx.erase(0, 2);
     }
-
-    auto const pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
+    auto const pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;

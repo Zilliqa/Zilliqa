@@ -359,7 +359,10 @@ void SendJobPeers<T>::DoSend() {
   for (unsigned int i = 0; i < indexes.size(); i++) {
     indexes.at(i) = i;
   }
-  random_shuffle(indexes.begin(), indexes.end());
+
+  std::random_device randomDevice;
+  std::mt19937 randomEngine(randomDevice());
+  shuffle(indexes.begin(), indexes.end(), randomEngine);
 
   string hashStr;
   if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {

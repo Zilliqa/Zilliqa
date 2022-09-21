@@ -2154,14 +2154,17 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
 }
 
 string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
+  std::string transactionID{tranID};
+  DataConversion::NormalizeHexString(transactionID);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
 
   try {
     TxBodySharedPtr tptr;
-    TxnHash tranHash(tranID);
-    if (tranID.size() != TRAN_HASH_SIZE * 2) {
+    TxnHash tranHash(transactionID);
+    if (transactionID.size() != TRAN_HASH_SIZE * 2) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Address size not appropriate");
     }
