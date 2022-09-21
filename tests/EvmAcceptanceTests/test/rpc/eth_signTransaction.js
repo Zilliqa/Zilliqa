@@ -17,7 +17,8 @@ describe("Calling " + METHOD, function () {
           console.log(result);
 
           assert.equal(status, 200, 'has status code');
-          assert.isNumber(result.error.code, -32601);
+          assert.isNumber(result.error.code, "is not a number");
+          assert.equal(+result.error.code, -32601);
           assert.isString(result.error.message, 'is string');
           assert.equal(result.error.message, 'METHOD_NOT_FOUND: The method being requested is not available on this server');
         })
