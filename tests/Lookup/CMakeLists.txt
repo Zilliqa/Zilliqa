@@ -26,14 +26,14 @@ add_test(NAME Test_txn_send COMMAND Test_txn_send)
 
 if (${CMAKE_GENERATOR} STREQUAL "Xcode")
   add_custom_command(TARGET Test_txn_send POST_BUILD
-    COMMAND sed -i '' 's,<LOOKUP_NODE_MODE>,<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>,' ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/constants.xml)
+    COMMAND sed -i '' 's,<LOOKUP_NODE_MODE>.*,<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>,' ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_BUILD_TYPE}/constants.xml)
 else()
   if (APPLE)
     add_custom_command(TARGET Test_txn_send POST_BUILD
-      COMMAND sed -i '' 's,<LOOKUP_NODE_MODE>,<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>,' constants.xml)
+      COMMAND sed -i '' 's,<LOOKUP_NODE_MODE>.*,<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>,' constants.xml)
   else()
     add_custom_command(TARGET Test_txn_send POST_BUILD
-      COMMAND sed -i 's,<LOOKUP_NODE_MODE>,<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>,' constants.xml)
+      COMMAND sed -i 's,<LOOKUP_NODE_MODE>.*,<LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>,' constants.xml)
   endif()
 endif()
 

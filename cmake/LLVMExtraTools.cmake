@@ -1,6 +1,8 @@
 # Additional targets to perform clang-format/clang-tidy
 # It requires clang-format/clang-tidy 7.0.0+
 
+include_guard(GLOBAL)
+
 # Get all project files
 file(GLOB_RECURSE ALL_CXX_SOURCES
     ${CMAKE_SOURCE_DIR}/src/*.cpp

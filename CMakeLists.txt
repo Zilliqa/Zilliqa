@@ -11,34 +11,35 @@ project(Zilliqa)
 # detect operating system
 message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 
+# Workaround: there's a bug related to protobuf 3.9.1 on vcpkg when compiled with
+#             x64-osx-dynamic (see https://github.com/microsoft/vcpkg/issues/8421).
+#             This is a simple workaround against this issue.
+if (APPLE)
+  file(CREATE_LINK
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/tools/lib
+    SYMBOLIC)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
 find_package(Libevent REQUIRED)
 find_package(jsoncpp REQUIRED)
+find_package(mongocxx REQUIRED)
+find_package(bsoncxx REQUIRED)
+find_package(websocketpp REQUIRED)
+find_package(leveldb REQUIRED)
+#TODO: upgrade to OpenSSL 1.1.1a
+find_package(OpenSSL REQUIRED)
+
+include(FindProtobuf)
+set(protobuf_MODULE_COMPATIBLE TRUE)
+find_package(Protobuf REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-
-if(NOT TARGET jsonrpc-project)
-   include(InstallJsonrpccpp)
-endif()
-
-include(InstallG3log)
-find_package(g3logger CONFIG REQUIRED)
-
-include(InstallCryptoUtils)
-
-include(ProjectSecp256k1)
-
-find_package(mongocxx REQUIRED)
-find_package(bsoncxx REQUIRED)
- 
-find_package(websocketpp REQUIRED)
-
-include(InstallSchnorr)
-include_directories(${SCHNORR_INCLUDE_DIR}/include)
 
 find_package(PythonLibs REQUIRED)
 
@@ -49,59 +50,38 @@ list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
 
 set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
 
-
 find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
 
-
-
 if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
-
-set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
-
+  set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
 elseif(Boost_PYTHON${PY_VERSION}_FOUND)
-
-set(PY_COMP_SUFFIX "python${PY_VERSION}")
-
+  set(PY_COMP_SUFFIX "python${PY_VERSION}")
 elseif(Boost_PYTHON3-PY${PY_VERSION}_FOUND)
-
-set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
-
+  set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
 else()
-
-message(FATAL_ERROR "Could not find boost python")
-
+  message(FATAL_ERROR "Could not find boost python")
 endif()
 
 message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
-
-
 message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
 
-find_program(HOMEBREW NAMES brew PATH /usr/local/bin)
-
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin" AND HOMEBREW)
-    execute_process(
-        #TODO: upgrade to OpenSSL 1.1.1a
-        COMMAND ${HOMEBREW} --prefix openssl
-        OUTPUT_VARIABLE OPENSSL_ROOT_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    #TODO: upgrade to OpenSSL 1.1.1a
-    # include(InstallOpenSSL)
-    # set(OPENSSL_USE_STATIC_LIBS TRUE)
-    # set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/openssl)
+if(NOT TARGET jsonrpc-project)
+   include(InstallJsonrpccpp)
 endif()
 
-#TODO: upgrade to OpenSSL 1.1.1a
-find_package(OpenSSL REQUIRED)
-include_directories(${OPENSSL_INCLUDE_DIR})
+include(InstallG3log)
+find_package(g3logger CONFIG REQUIRED)
 
-find_package(leveldb REQUIRED)
+include(InstallCryptoUtils)
+include(ProjectSecp256k1)
+include(InstallSchnorr)
+
+include_directories(${SCHNORR_INCLUDE_DIR}/include)
+include_directories(${OPENSSL_INCLUDE_DIR})
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
@@ -229,13 +209,8 @@ if(SJ_TEST_SJ_MISSING_MBTXNS)
     add_definitions(-DSJ_TEST_SJ_MISSING_MBTXNS)
 endif()
 
-include(FindProtobuf)
-set(protobuf_MODULE_COMPATIBLE TRUE)
-find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
-
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
-
 include_directories(${G3LOG_INCLUDE_DIR})
 
 # export compile commands
@@ -302,6 +277,19 @@ if (LIBFUZZER_SANITIZER)
     message(STATUS "Libfuzzer with address and undefined behavior sanitizer enabled")
 endif()
 
+# FIXME: This following
+#
+#        add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
+#
+#        needs to be fixed. The same chunk of CMake code (as below: 
+#        if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX) ....
+#        exists here, in cryptoutils & Schnorr.
+#
+#        Once fixed, the following if-case for allowing duplciate targets
+#        (which isn't supported in Xcode) can be removed.
+if (NOT ${CMAKE_GENERATOR} STREQUAL "Xcode")
+  set_property(GLOBAL PROPERTY ALLOW_DUPLICATE_CUSTOM_TARGETS 1)
+endif()
 if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     if (NOT TESTS)
         message(FATAL_ERROR "TESTS is not ON")
