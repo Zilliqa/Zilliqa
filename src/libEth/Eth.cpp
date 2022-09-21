@@ -61,7 +61,6 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
   ret["status"] = success ? "0x1" : "0x0";
   if (to.empty()) {
     ret["to"] = Json::Value();
-    std::cout << "here we are " << std::endl;
   } else {
     ret["to"] = to;
   }

@@ -2082,7 +2082,7 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address does not exist");
+                             "Address does not exist " + address);
     }
 
     if (!account->isContract()) {
@@ -2179,7 +2179,9 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "ID is not a contract txn");
     }
 
-    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
+    auto const nonce = tx.IsEth() ? tx.GetNonce() - 1 : tx.GetNonce();
+
+    return Account::GetAddressForContract(tx.GetSenderAddr(), nonce,
                                           tx.GetVersionIdentifier())
         .hex();
   } catch (const JsonRpcException& je) {
