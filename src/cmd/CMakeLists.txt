@@ -126,4 +126,9 @@ add_custom_command(TARGET zilliqa
        POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:buildTxBlockHashesToNums> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(buildTxBlockHashesToNums PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(buildTxBlockHashesToNums PUBLIC AccountData Persistence)
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+  target_link_libraries(buildTxBlockHashesToNums PUBLIC AccountData Persistence)
+else()
+  target_link_libraries(buildTxBlockHashesToNums PUBLIC "-Wl,--start-group" AccountData Persistence)
+endif()
