@@ -749,8 +749,8 @@ class LookupServer : public Server,
 
   TxBlock GetBlockFromTransaction(
       const TransactionWithReceipt& transaction) const;
-  uint64_t GetTransactionIndexFromBlock(
-      const TxBlock& txBlock, const std::string& txnhash) const;
+  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
+                                        const std::string& txnhash) const;
 
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);

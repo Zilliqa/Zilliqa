@@ -1140,9 +1140,9 @@ uint64_t LookupServer::GetTransactionIndexFromBlock(
     }
     const auto& tranHashes = microBlockPtr->GetTranHashes();
     for (uint64_t i = 0; i < tranHashes.size(); ++i, ++transactionIndex) {
-        if (argHash == tranHashes[i]) {
-            return transactionIndex;
-        }
+      if (argHash == tranHashes[i]) {
+        return transactionIndex;
+      }
     }
   }
 
@@ -1457,8 +1457,7 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
   }
 
   return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
-                                            *transactioBodyPtr,
-                                            txBlock);
+                                            *transactioBodyPtr, txBlock);
 }
 
 Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
@@ -1488,8 +1487,7 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     auto const ethResult =
         JSONConversion::convertTxtoEthJson(transactionIndex, 
-                                           *transactioBodyPtr,
-                                           txBlock);
+            *transactioBodyPtr, txBlock);
     auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
 
     auto receipt = zilResult["receipt"];
@@ -1898,18 +1896,17 @@ Json::Value LookupServer::GetEthTransactionByHash(
     const TxBlock EMPTY_BLOCK;
     const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
-        return Json::nullValue;
+      return Json::nullValue;
     }
   
     constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
     auto transactionIndex = GetTransactionIndexFromBlock(txBlock, transactionHash);
     if (transactionIndex == WRONG_INDEX) {
-        return Json::nullValue;
+      return Json::nullValue;
     }
 
     return JSONConversion::convertTxtoEthJson(transactionIndex,
-                                              *transactioBodyPtr,
-                                              txBlock);
+                                              *transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");

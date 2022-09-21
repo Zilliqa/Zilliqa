@@ -649,7 +649,8 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    uint64_t txindex, const TransactionWithReceipt& txn, const TxBlock& txblock) {
+    uint64_t txindex, const TransactionWithReceipt& txn,
+    const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
   auto const tx = txn.GetTransaction();
