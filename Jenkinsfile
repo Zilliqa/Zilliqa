@@ -49,7 +49,7 @@ timestamps {
                 sh "./scripts/ci_build.sh"
             }
             stage('Integration test') {
-                sh "scripts/integration_test.sh --setup-env"
+                sh "scripts/integration_test.sh --setup-env;sleep 8000"
             }
             stage('Report coverage') {
                 // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
