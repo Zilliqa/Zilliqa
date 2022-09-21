@@ -1,0 +1,10 @@
+{
+  "versions": [
+    {
+      "path": "$/ports/python3",
+      "version": "3.10.5",
+      "port-version": 6
+    }
+  ]
+}
+

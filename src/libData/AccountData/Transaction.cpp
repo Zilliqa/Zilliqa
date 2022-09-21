@@ -211,7 +211,8 @@ const uint128_t& Transaction::GetGasPriceRaw() const {
 
 const uint128_t Transaction::GetGasPriceQa() const {
   if (IsEth()) {
-    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR *
+           GasConv::GetScalingFactor();
   } else {
     return m_coreInfo.gasPrice;
   }
@@ -222,7 +223,8 @@ const uint128_t Transaction::GetGasPriceWei() const {
     return m_coreInfo.gasPrice;
   } else {
     // We know the amounts in transactions are capped, so it won't overlow.
-    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR /
+           GasConv::GetScalingFactor();
   }
 }
 
@@ -267,8 +269,9 @@ bool Transaction::IsSignedECDSA() const {
 // Set what the hash of the transaction is, depending on its type
 bool Transaction::SetHash(bytes const& txnData) {
   if (IsEth()) {
-    auto const asRLP =
-        GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID, std::string(m_signature));
+    uint64_t recid{0};
+    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID,
+                                         std::string(m_signature), recid);
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {
