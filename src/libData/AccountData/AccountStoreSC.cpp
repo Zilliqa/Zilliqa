@@ -100,14 +100,14 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
         break;
     }
     call_already_finished = true;
-    cv_callContract.notify_all();
+    m_CallContractConditionVariable.notify_all();
   };
   DetachedFunction(1, func2);
 
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
     if (!call_already_finished) {
-      cv_callContract.wait(lk);
+      m_CallContractConditionVariable.wait(lk);
     } else {
       LOG_GENERAL(INFO, "Call functions already finished!");
     }
@@ -1592,7 +1592,7 @@ template <class MAP>
 void AccountStoreSC<MAP>::NotifyTimeout() {
   LOG_MARKER();
   m_txnProcessTimeout = true;
-  cv_callContract.notify_all();
+  m_CallContractConditionVariable.notify_all();
 }
 
 template <class MAP>
