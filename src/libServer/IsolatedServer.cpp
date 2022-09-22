@@ -533,8 +533,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, senderNonce).hex();
+        ret["ContractAddress"] = Account::GetAddressForContract(
+                                     fromAddr, senderNonce, TRANSACTION_VERSION)
+                                     .hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {

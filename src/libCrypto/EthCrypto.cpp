@@ -17,7 +17,16 @@
 
 #include "EthCrypto.h"
 #include <boost/algorithm/string.hpp>
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
 #include <boost/format.hpp>
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
 #include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -44,9 +53,16 @@
 
 // Prefix signed txs in Ethereum with Keccak256("\x19Ethereum Signed
 // Message:\n32" + Keccak256(message))
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-const-variable"
+#endif
 constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
                                32,  83,  105, 103, 110, 101, 100, 32,  77,
                                101, 115, 115, 97,  103, 101, 58,  10,  48};
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 auto bnFree = [](BIGNUM* b) { BN_free(b); };
 auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
@@ -301,7 +317,7 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
 // EIP-155 : assume the chain height is high enough that the signing scheme
 // is in line with EIP-155.
 // message shall not contain '0x'
-bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
+bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
   if (message.size() >= 2) {
     auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
     // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards
@@ -387,10 +403,10 @@ bytes RecoverECDSAPubSig(std::string const& message, int chain_id) {
 bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   dev::RLPStream rlpStreamRecreated(9);
 
-  rlpStreamRecreated << info.nonce;
+  rlpStreamRecreated << info.nonce - 1;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  bytes toAddr{};
+  bytes toAddr;
   if (!IsNullAddress(info.toAddr)) {
     toAddr = info.toAddr.asBytes();
   }
@@ -437,10 +453,12 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
     dev::RLPStream rlpStreamRecreated(9);
 
-    rlpStreamRecreated << info.nonce;
+    // Note: the nonce is decremented because of the difference between Zil and
+    // Eth TXs
+    rlpStreamRecreated << info.nonce - 1;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
-    bytes toAddr{};
+    bytes toAddr;
     if (!IsNullAddress(info.toAddr)) {
       toAddr = info.toAddr.asBytes();
     }
@@ -464,7 +482,8 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     auto const* dataPtr = rlpStreamRecreated.out().data();
     auto const& asString = DataConversion::Uint8VecToHexStrRet(
         bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
-    auto const pubK = RecoverECDSAPubSig(asString, chainId);
+
+    auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
     if (!PubKeysSame(pubK, info.senderPubKey)) {
       continue;
@@ -532,7 +551,6 @@ bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   bytes hashBytes;
 
   // Only the last 40 bytes needed
-  // 8B6621534A2DA69F2F7FF7A3CD234A471B72BA2F1CCF0A70FCABA648A5EECD8D
   hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
 
   return hashBytes;

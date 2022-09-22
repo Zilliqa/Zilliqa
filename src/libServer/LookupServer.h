@@ -368,7 +368,7 @@ class LookupServer : public Server,
     try {
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
       response = DataConversion::IntToHexString(resp);
     } catch (...) {
       response = "0x0";
@@ -389,7 +389,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
+    auto pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
@@ -749,6 +749,9 @@ class LookupServer : public Server,
 
   TxBlock GetBlockFromTransaction(
       const TransactionWithReceipt& transaction) const;
+  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
+                                        const std::string& txnhash) const;
+
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,

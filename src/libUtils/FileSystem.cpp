@@ -19,6 +19,8 @@
 
 #include "FileSystem.h"
 
+#include <algorithm>
+
 void recursive_copy_dir(const bfs::path& src, const bfs::path& dst) {
   if (!bfs::exists(src)) {
     throw std::runtime_error("Source path: " + src.generic_string() +

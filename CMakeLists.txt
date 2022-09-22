@@ -15,23 +15,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 #
 # check dependencies
 #
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBEVENT REQUIRED libevent)
-link_directories(${LIBEVENT_LIBRARY_DIRS})
-
-if (${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-    pkg_check_modules(MINIUPNPC miniupnpc REQUIRED)
-    link_directories(${MINIUPNPC_LIBRARY_DIRS})
-    find_package(jsoncpp REQUIRED)
-    set(JSON_PREFIX,"json")
-    set(JSONCPP_LINK_TARGETS "jsoncpp_lib")
-else()
-    pkg_check_modules(JSONCPP REQUIRED jsoncpp)
-    include_directories(${JSONCPP_INCLUDE_DIRS})
-    link_directories(${JSONCPP_LIBRARY_DIRS})
-    set(JSONCPP_LINK_TARGETS "jsoncpp")
-    set(JSON_PREFIX "jsoncpp")
-endif()
+find_package(Libevent REQUIRED)
+find_package(jsoncpp REQUIRED)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -47,11 +32,10 @@ include(InstallCryptoUtils)
 
 include(ProjectSecp256k1)
 
-include(InstallMongo)
-find_package(mongocxx CONFIG REQUIRED)
+find_package(mongocxx REQUIRED)
+find_package(bsoncxx REQUIRED)
  
-include(InstallWebsocketpp)
-find_package(websocketpp CONFIG REQUIRED)
+find_package(websocketpp REQUIRED)
 
 include(InstallSchnorr)
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
@@ -117,7 +101,7 @@ endif()
 find_package(OpenSSL REQUIRED)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
-find_package(LevelDB REQUIRED)
+find_package(leveldb REQUIRED)
 
 if(OPENCL_MINE AND CUDA_MINE)
     message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
@@ -247,8 +231,8 @@ endif()
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
-find_package(Protobuf CONFIG REQUIRED)
-include_directories(${PROTOBUF_INSTALL_DIR}/include)
+find_package(Protobuf REQUIRED)
+include_directories(${PROTOBUF_INCLUDE_DIR})
 
 include_directories(${CMAKE_SOURCE_DIR}/src/depends/cryptoutils/include/)
 

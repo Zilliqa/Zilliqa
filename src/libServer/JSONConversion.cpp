@@ -174,8 +174,8 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       transactionsJson.append("0x" + hash.hex());
     }
   } else {
-    for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction, txblock));
+    for (size_t i = 0; i < transactions.size(); ++i) {
+      transactionsJson.append(convertTxtoEthJson(i, *transactions[i], txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -270,8 +270,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
     ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
   }
 
-  auto timestamp = microsec_to_sec(dsblock.GetTimestamp());
-  ret_header["Timestamp"] = to_string(timestamp);
+  ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
 
   for (const auto& govProposal : dshead.GetGovProposalMap()) {
     Json::Value _tempGovProposal;
@@ -650,7 +649,8 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn, const TxBlock& txblock) {
+    uint64_t txindex, const TransactionWithReceipt& txn,
+    const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
   auto const tx = txn.GetTransaction();
@@ -690,7 +690,11 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["input"] = inputField;
   // ethers also expects 'data' field
   retJson["data"] = inputField;
-  retJson["nonce"] = (boost::format("0x%x") % tx.GetNonce()).str();
+
+  // NOTE: Nonce is decremented since the internal representation is +1 due to
+  // Zil accounting
+  retJson["nonce"] =
+      (boost::format("0x%x") % (txn.GetTransaction().GetNonce() - 1)).str();
   if (IsNullAddress(tx.GetToAddr())) {
     retJson["to"] =
         Json::nullValue;  // special for contract creation transactions.
@@ -700,15 +704,19 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
   if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
     retJson["contractAddress"] =
-        "0x" +
-        Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
-            .hex();
+        "0x" + Account::GetAddressForContract(
+                   txn.GetTransaction().GetSenderAddr(),
+                   txn.GetTransaction().GetNonce(), TRANSACTION_VERSION_ETH)
+                   .hex();
   }
   retJson["type"] = "0x0";
+
   std::string sig{tx.GetSignature()};
   retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
   retJson["r"] = GetR(sig);
   retJson["s"] = GetS(sig);
+
+  retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
   return retJson;
 }
 

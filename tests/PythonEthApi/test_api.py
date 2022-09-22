@@ -42,7 +42,7 @@ BLOCK_TIME_S = 2
 
 GAS_LIMIT = 250000
 GAS_PRICE = 60
-CHAIN_ID = 33101
+CHAIN_ID = 32769 # 33101
 
 contract = """
 // SPDX-License-Identifier: GPL-3.0
@@ -97,44 +97,6 @@ def compile_solidity(contract_string):
     result = result.popitem()[1]
     return w3.eth.contract(abi=result["abi"], bytecode=result["bin"])
 
-def install_contract_bytes(account, data_bytes):
-    txn_details = account.transfer(
-        to_addr="0x0000000000000000000000000000000000000000",
-        zils=0,
-        code=data_bytes.replace("0x", "EVM"),
-        gas_limit=99_000,
-        gas_price=2000000000,
-        priority=True,
-        data="",  # TODO: Change for constructor params.
-        confirm=True,
-    )
-    if "ID" in txn_details:
-        address = Web3.toChecksumAddress(
-            active_chain.api.GetContractAddressFromTransactionID(txn_details["ID"])
-        )
-        print("Contract created, address: {}".format(address))
-        return w3.eth.contract(address=address)
-    else:
-        raise "No ID in the contract"
-
-def call_contract(account, contract, value, method, *arguments):
-    """
-    Call the contract's method with arguments as transaction.
-    """
-    # Use contract ABI to encode arguments.
-    calldata = contract.encodeABI(fn_name=method, args=arguments).replace("0x", "")
-    print("Calldata:", calldata)
-    contract_addr = to_checksum_address(contract.address)
-    print("Contract addr:", contract_addr)
-    txn_details = account.transfer(
-        to_addr=contract_addr,
-        zils=value,
-        gas_limit=99_000,
-        gas_price=2000000000,
-        data=calldata,
-        confirm=True,
-    )
-    return txn_details
 
 def test_eth_feeHistory(url: str) -> bool:
     """
@@ -165,7 +127,7 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
         code = compilation_result.constructor().data_in_transaction
 
         transaction = {
-            'to': "0x0000000000000000000000000000000000000000",
+            'to': "",
             'from':account.address,
             'value':int(0),
             'data':code,
@@ -215,7 +177,7 @@ def test_eth_getCode(url: str, account: eth_account.signers.local.LocalAccount, 
         code = compilation_result.constructor().data_in_transaction
 
         transaction = {
-            'to': "0x0000000000000000000000000000000000000000",
+            'to': "",
             'from':account.address,
             'value':int(0),
             'data':code,
@@ -1159,7 +1121,7 @@ def test_eth_chainId(url: str) -> bool:
 
         res = get_result(response)
 
-        if "0x814d" not in res.lower():
+        if hex(CHAIN_ID) not in res.lower():
             raise Exception(f"Bad chain ID: {res}")
 
     except Exception as e:
@@ -1204,11 +1166,12 @@ def main():
     ret = True
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
-    #ret &= test_eth_chainId(args.api)
-    #ret &= test_eth_blockNumber(args.api)
+    ret &= test_eth_chainId(args.api)
+    ret &= test_eth_blockNumber(args.api)
     #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    #ret &= test_eth_getCode(args.api, account, w3)
-    ret &= test_eth_getStorageAt(args.api, account, w3)
+    ret &= test_eth_getCode(args.api, account, w3)
+    #ret &= test_eth_sendRawTransaction(args.api, account, w3)
+    #ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getProof(args.api)
     #ret &= test_eth_getBalance(args.api)
     #ret &= test_web3_clientVersion(args.api)
@@ -1224,8 +1187,8 @@ def main():
     #ret &= test_eth_getBlockTransactionCountByNumber(args.api)
     #ret &= test_eth_getUncleCountByBlockHash(args.api)
     #ret &= test_eth_getUncleCountByBlockNumber(args.api)
-    ##ret &= test_eth_getBlockByHash(args.api)
-    ##ret &= test_eth_getBlockByNumber(args.api)
+    #ret &= test_eth_getBlockByHash(args.api)
+    #ret &= test_eth_getBlockByNumber(args.api)
     #ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
     #ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
     #ret &= test_eth_getCompilers(args.api)
@@ -1250,11 +1213,9 @@ def main():
     #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api)
     #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
     #ret &= test_eth_getTransactionReceipt(args.api)
-    ret &= test_eth_sign(args.api)
+    #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
-    ret &= test_eth_sendRawTransaction(args.api, account, w3)
-
     #ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:

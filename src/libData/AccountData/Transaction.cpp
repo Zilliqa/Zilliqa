@@ -148,12 +148,16 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
   return m_coreInfo;
 }
 
-const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
+uint32_t Transaction::GetVersion() const { return m_coreInfo.version; }
+
+uint32_t Transaction::GetVersionIdentifier() const {
+  return DataConversion::UnpackB(this->GetVersion());
+}
 
 // Check if the version is 1 or 2 - the only valid ones for now
 // this will look like 65538 or 65537
 bool Transaction::VersionCorrect() const {
-  auto const version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = GetVersionIdentifier();
 
   return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
@@ -177,7 +181,7 @@ Address Transaction::GetSenderAddr() const {
 }
 
 bool Transaction::IsEth() const {
-  auto const version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = GetVersionIdentifier();
 
   return version == TRANSACTION_VERSION_ETH;
 }
