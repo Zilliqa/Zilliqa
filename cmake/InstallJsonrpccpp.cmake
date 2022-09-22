@@ -18,7 +18,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 set(JSONRPC_CXX_FLAGS "-Wno-deprecated") 
 
 set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-               -DCMAKE_BUILD_TYPE=Release
+               -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                # Build static lib but suitable to be included in a shared lib.
                -DCMAKE_POSITION_INDEPENDENT_CODE=On
                -DWITH_COVERAGE=Off
@@ -42,8 +42,8 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
 
 ExternalProject_Add(jsonrpc-project
     PREFIX src/depends/jsonrpc
-    URL https://github.com/Zilliqa/libjson-rpc-cpp/archive/v1.3.0-time-patch.tar.gz
-    URL_HASH SHA256=cfa2051f24deeba73b92b8f2f7c198eeafb148f7d71e914bfa1a5a33e895f1c8
+    URL https://github.com/Zilliqa/libjson-rpc-cpp/archive/refs/tags/v1.3.0-time-patch-fix.tar.gz
+    URL_HASH SHA256=3315c508e6b8154e3c3f489f7f8826a9c4d697045ee101d80e443d759ac6e218
     # On Windows it tries to install this dir. Create it to prevent failure.
     PATCH_COMMAND cp ${CMAKE_SOURCE_DIR}/vcpkg.json <SOURCE_DIR> && cmake -E make_directory <SOURCE_DIR>/win32-deps/include
     CMAKE_ARGS ${CMAKE_ARGS}

@@ -58,7 +58,7 @@ const Json::Value JSONConversion::convertBooleanVectorToJson(
   Json::Value _json = Json::arrayValue;
 
   for (const auto& i : B) {
-    _json.append(i);
+    _json.append(Json::Value(i));
   }
   return _json;
 }
