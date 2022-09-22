@@ -186,7 +186,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
               fo.m_exitReason = er.value();
             } else if (er.key() == "Fatal") {
               fo.SetSuccess(false);
-              fo.m_exitReason = to_string(er.value());
+              fo.m_exitReason = er.value();
             }
           } catch (std::exception& e) {
             LOG_GENERAL(WARNING,
@@ -205,7 +205,9 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
         }
       } else if (node.key() == "return_value") {
         if (node.value().is_string()) {
-          fo.m_return = node.value().get<std::string>();
+          std::string node_value{node.value().get<std::string>()};
+          LOG_GENERAL(INFO, "Return value is " << node_value);
+          fo.m_return.assign(node_value);
         } else {
           LOG_GENERAL(WARNING, "Error reading return value  : wrong type");
           throw std::runtime_error(
