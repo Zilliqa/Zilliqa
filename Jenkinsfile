@@ -47,7 +47,7 @@ timestamps {
                 sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && ./scripts/ci_build.sh"
             }
             stage('Integration test') {
-                sh "scripts/integration_test.sh --setup-env;sleep 8000"
+                sh "scripts/integration_test.sh --setup-env"
             }
             stage('Report coverage') {
                 // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
