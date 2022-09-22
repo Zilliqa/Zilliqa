@@ -829,8 +829,8 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
 
   Address affectedAddress =
       (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
-          ? Account::GetAddressForContract(tx.GetSenderAddr(),
-                                           tx.GetNonce() - 1)
+          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
+                                           tx.GetVersionIdentifier())
           : tx.GetToAddr();
 
   unsigned int to_shard =
@@ -938,7 +938,9 @@ Json::Value LookupServer::CreateTransaction(
                                    toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1).hex();
+            Account::GetAddressForContract(fromAddr, tx.GetNonce(),
+                                           tx.GetVersionIdentifier())
+                .hex();
         mapIndex = check.second;
       } break;
       case Transaction::ContractType::CONTRACT_CALL: {
@@ -1102,12 +1104,15 @@ TxBlock LookupServer::GetBlockFromTransaction(
   const TxBlock EMPTY_BLOCK;
   const Json::Value blockNumStr =
       transaction.GetTransactionReceipt().GetJsonValue().get("epoch_num", "");
+
   try {
     if (!blockNumStr.isString() || blockNumStr.asString().empty()) {
+      LOG_GENERAL(WARNING, "Block number is string or is empty!");
       return EMPTY_BLOCK;
     }
     const uint64_t blockNum =
         std::strtoull(blockNumStr.asCString(), nullptr, 0);
+    std::cout << "EDD " << blockNum << std::endl;
     const auto txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     return txBlock;
   } catch (std::exception& e) {
@@ -1441,7 +1446,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     const TxBlock EMPTY_BLOCK;
     auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks.");
+      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks. "
+                               << txnhash);
       return Json::nullValue;
     }
 
@@ -2076,7 +2082,7 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address does not exist");
+                             "Address does not exist " + address);
     }
 
     if (!account->isContract()) {
@@ -2123,7 +2129,8 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
     Json::Value _json;
 
     for (uint64_t i = 0; i < nonce; i++) {
-      Address contractAddr = Account::GetAddressForContract(addr, i);
+      Address contractAddr =
+          Account::GetAddressForContract(addr, i, TRANSACTION_VERSION);
       const Account* contractAccount =
           AccountStore::GetInstance().GetAccount(contractAddr, true);
 
@@ -2172,7 +2179,10 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "ID is not a contract txn");
     }
 
-    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
+    auto const nonce = tx.IsEth() ? tx.GetNonce() - 1 : tx.GetNonce();
+
+    return Account::GetAddressForContract(tx.GetSenderAddr(), nonce,
+                                          tx.GetVersionIdentifier())
         .hex();
   } catch (const JsonRpcException& je) {
     throw je;

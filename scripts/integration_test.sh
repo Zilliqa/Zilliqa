@@ -35,8 +35,6 @@ else
     esac
 fi
 
-echo $RUNNING_LOCALLY
-
 if [[ "$RUNNING_LOCALLY" == 1 ]]; then
     echo "You are running the script locally. The requirements for this is only that the isolated server "
     echo "is running on port 5555"
@@ -103,7 +101,8 @@ else
 
     retVal=$?
     if [ $retVal -ne 0 ]; then
-        echo "Error with integration test"
+        echo "!!!!!! Error with integration test !!!!!!"
+        cat out.txt
         exit 1
     fi
 

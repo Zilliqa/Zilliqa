@@ -704,9 +704,10 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
   if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
     retJson["contractAddress"] =
-        "0x" +
-        Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1)
-            .hex();
+        "0x" + Account::GetAddressForContract(
+                   txn.GetTransaction().GetSenderAddr(),
+                   txn.GetTransaction().GetNonce(), TRANSACTION_VERSION_ETH)
+                   .hex();
   }
   retJson["type"] = "0x0";
   std::string sig{tx.GetSignature()};
