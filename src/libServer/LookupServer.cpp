@@ -1104,6 +1104,7 @@ TxBlock LookupServer::GetBlockFromTransaction(
   const TxBlock EMPTY_BLOCK;
   const auto txReceipt = transaction.GetTransactionReceipt();
 
+  std::cout << "we are here.. Tx receipt block number is..." << std::endl;
   std::cout << txReceipt.GetString() << std::endl;
 
   const Json::Value blockNumStr =
@@ -1904,6 +1905,7 @@ Json::Value LookupServer::GetEthTransactionByHash(
     const TxBlock EMPTY_BLOCK;
     const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
+      LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
       return Json::nullValue;
     }
 

@@ -71,8 +71,13 @@ std::unique_ptr<LookupServer> getLookupServer() {
 
 // Convenience fn only used to test Eth TXs
 TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
-                                              const PairOfKey& keyPair) {
+                                              const PairOfKey& keyPair, uint64_t epochNum = 1337) {
   Address toAddr{Account::GetAddressFromPublicKeyEth(keyPair.second)};
+
+  auto txReceipt = TransactionReceipt{};
+  txReceipt.SetEpochNum(epochNum);
+  txReceipt.update();
+
   return TransactionWithReceipt(
       // Ctor: (version, nonce, toAddr, keyPair, amount, gasPrice, gasLimit,
       // code, data)
@@ -85,7 +90,8 @@ TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
                   2,
                   {},
                   {}},
-      TransactionReceipt{});
+                  txReceipt
+      );
 }
 
 MicroBlock constructMicroBlockWithTransactions(
@@ -673,7 +679,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
 
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
   for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
-    TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey);
+    TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey, 1);
     transactions.emplace_back(twr);
 
     bytes body;
@@ -1007,18 +1013,20 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   // txBlock)
   std::vector<TransactionWithReceipt> transactions;
 
+  constexpr uint64_t EPOCH_NUM = 1;
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
+
   for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
-    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey, EPOCH_NUM));
   }
 
-  constexpr uint64_t EPOCH_NUM = 1;
   for (const auto& transaction : transactions) {
     bytes body;
     transaction.Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
   }
+  buildCommonEthBlockCase(mediator, EPOCH_NUM, transactions, pairOfKey);
 
   for (uint32_t i = 0; i < transactions.size(); ++i) {
     // call the method on the lookup server with params
