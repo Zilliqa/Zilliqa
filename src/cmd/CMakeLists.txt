@@ -55,8 +55,7 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gensigninitialds> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gensigninitialds PUBLIC Utils Persistence Schnorr
-    g3logger -s)
+target_link_libraries(gensigninitialds PUBLIC Utils Persistence Schnorr g3log -s)
 
 
 add_executable(grepperf grepperf.cpp)

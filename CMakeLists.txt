@@ -31,6 +31,7 @@ find_package(mongocxx REQUIRED)
 find_package(bsoncxx REQUIRED)
 find_package(websocketpp REQUIRED)
 find_package(leveldb REQUIRED)
+find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 
@@ -72,9 +73,6 @@ find_package(Boost COMPONENTS filesystem system unit_test_framework program_opti
 if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
-
-include(InstallG3log)
-find_package(g3logger CONFIG REQUIRED)
 
 include(InstallCryptoUtils)
 include(ProjectSecp256k1)
