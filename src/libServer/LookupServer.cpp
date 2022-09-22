@@ -1104,11 +1104,7 @@ TxBlock LookupServer::GetBlockFromTransaction(
   const TxBlock EMPTY_BLOCK;
   const auto txReceipt = transaction.GetTransactionReceipt();
 
-  std::cout << "we are here.. Tx receipt block number is..." << std::endl;
-  std::cout << txReceipt.GetString() << std::endl;
-
-  const Json::Value blockNumStr =
-      txReceipt.GetJsonValue().get("epoch_num", "");
+  const Json::Value blockNumStr = txReceipt.GetJsonValue().get("epoch_num", "");
 
   try {
     if (!blockNumStr.isString() || blockNumStr.asString().empty()) {

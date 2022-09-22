@@ -125,9 +125,6 @@ bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
 
 bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
                              const bytes& body) {
-  std::cout << "putting TX key.. " << key << std::endl;
-  std::cout << "putting TX body.. " << DataConversion::Uint8VecToHexStrRet(body) << std::endl;
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
     return false;
@@ -534,9 +531,6 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   const bytes& keyBytes = key.asBytes();
 
-  std::cout << "getting TX key.. " << key << std::endl;
-  //std::cout << "getting TX body.. " << body << std::endl;
-
   lock_guard<mutex> g(m_mutexTxBody);
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
@@ -554,13 +548,10 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   string bodyString = GetTxBodyDB(epochNum)->Lookup(keyBytes);
 
   if (bodyString.empty()) {
-    LOG_GENERAL(WARNING, "Failed to get TX body from db with epoch num: " << epochNum);
     return false;
   }
   body = TxBodySharedPtr(new TransactionWithReceipt(
       bytes(bodyString.begin(), bodyString.end()), 0));
-
-  std::cout << "getting TX body.. " << bodyString << std::endl;
 
   return true;
 }
