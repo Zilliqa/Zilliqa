@@ -13,6 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+ARG REGISTRY=
 
 ARG BASE=zilliqa/scilla:v0.11.0
 FROM ${BASE} AS scilla
@@ -20,7 +21,7 @@ FROM ${BASE} AS scilla
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM zilliqa:v8.2.0-deps AS builder
+FROM ${REGISTRY}zilliqa:v8.2.0-deps AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -42,13 +43,10 @@ RUN apt-get update \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
     libmicrohttpd-dev \
+    libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    protobuf-compiler \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
     libsecp256k1-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -69,7 +67,7 @@ RUN cmake --version \
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
-ARG REPO=https://github.com/Zilliqa.git
+ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
@@ -82,9 +80,23 @@ RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
 RUN cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic ${EXTRA_CMAKE_ARGS} 
 RUN cmake --build ${BUILD_DIR} -- -j$(nproc)
 RUN cmake --build ${BUILD_DIR} --target install
-RUN cd $SOURCE_DIR/evm-ds && cargo build --release --package evm-ds
-RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib
+RUN cd $SOURCE_DIR/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
+RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
+  && cp ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/libffi.so ${INSTALL_DIR}/lib 
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
+
+# Prepare a (vcpkg) python environment separate from the system-wide one
+RUN apt-get remove -y python3 && apt-get autoremove -y
+
+ARG VCPKG_PYTHON_PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/python3
+ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
+ARG PYTHON3_ENV_PATH=${INSTALL_DIR}
+RUN ${VCPKG_PYTHON3} -m ensurepip \
+  && ${VCPKG_PYTHON3} -m pip install --upgrade pip \
+  && mkdir -p ${PYTHON3_ENV_PATH}/bin \
+  && mkdir -p ${PYTHON3_ENV_PATH}/lib \
+  && cp ${VCPKG_PYTHON_PATH}/* ${PYTHON3_ENV_PATH}/bin/ \
+  && cp -R ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
 
 # strip all exes
 RUN strip /usr/local/bin/grepperf \
@@ -113,7 +125,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libTrie.so
 
 # start from a new ubuntu as the runner image
-FROM zilliqa:v8.2.0-deps
+FROM ${REGISTRY}zilliqa:v8.2.0-deps
 
 # install all necessary libraries
 RUN apt-get update \
@@ -123,12 +135,10 @@ RUN apt-get update \
     ca-certificates \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
+    libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
     pkg-config \
-    python3-dev \
-    python3-pip \
-    python3-setuptools \
     libsecp256k1-dev \
     # tools
     curl \
@@ -144,11 +154,7 @@ RUN apt-get update \
     vim \
     && rm -rf /var/lib/apt/lists/*
 
-# install all necessary libraries for python
-COPY requirements3.txt ./
-RUN pip3 install wheel \
-    && pip3 install --no-cache-dir -r requirements3.txt \
-    && update-alternatives --install /usr/bin/python python /usr/bin/python3 10 # set python3 as default instead python2
+RUN apt-get remove -y python3 && apt-get autoremove -y
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
@@ -168,13 +174,22 @@ COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
+COPY --from=builder ${INSTALL_DIR}/lib/python3.10 ${INSTALL_DIR}/lib/python3.10
 COPY --from=builder ${SOURCE_DIR}/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
 COPY --from=builder ${SOURCE_DIR}/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
+ARG PYTHON3_ENV_PATH=${INSTALL_DIR}
+COPY requirements3.txt ./
+RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
+  && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
 RUN rm -rf ${VCPKG_ROOT}
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 
+RUN python3 -m pip install --upgrade pip setuptools wheel \
+  && python3 -m pip install --no-cache-dir -r requirements3.txt
+
 ENTRYPOINT ["/bin/bash"]
+

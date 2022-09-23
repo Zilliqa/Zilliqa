@@ -96,7 +96,7 @@ sudo apt-get install git \
     libcurl4-openssl-dev python3-dev \
     python3-setuptools python3-pip gawk
 ```
-Run the following to install latest version of cmake.We suggest to install cmake 3.19 or any version >=3.16:
+Run the following to install latest version of cmake. CMake version >= 3.19 must be used:
 
 ```
 wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
@@ -185,4 +185,3 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
 | **Security bug bounty** | <a href="https://hackerone.com/zilliqa" target="_blank">HackerOne bug bounty</a> |
-

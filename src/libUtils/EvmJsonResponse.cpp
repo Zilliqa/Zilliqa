@@ -26,7 +26,7 @@ namespace evmproj {
 
 /* GetReturn
  * This method converts a Json message into a C++ response tree
- * the onjective of this layer is to seperate the concern of JSON from the
+ * the objective of this layer is to separate the concern of JSON from the
  * application code
  *
  * returns a populated CallResponse object
@@ -39,10 +39,12 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
   nlohmann::json newJson;
 
   try {
-    newJson = nlohmann::json::parse(oldJson.toStyledString());
-  } catch (std::exception& e) {
+    Json::FastWriter writer;
+
+    newJson = nlohmann::json::parse(writer.write(oldJson));
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING,
-                "Exception JSONRPC parser to nlohman parser " << e.what())
+                "Exception JSONRPC parser to nlohmann parser " << e.what())
     throw e;
   }
 
@@ -58,7 +60,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             nlohmann::json arr = map.value();
             std::shared_ptr<ApplyInstructions> apply =
                 std::make_shared<ApplyInstructions>();
-            // Read the apply type oneof modify or delete
+            // Read the apply type one of modify or delete
             try {
               apply->m_operation_type = map.key();
             } catch (std::exception& e) {
@@ -113,14 +115,14 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             try {
               apply->m_nonce = arr["nonce"];
               apply->m_hasNonce = true;
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
               LOG_GENERAL(WARNING, "Exception reading Nonce : " << e.what());
               throw e;
             }
             // whether the storage values for this account should be reset
             try {
               apply->m_resetStorage = arr["reset_storage"];
-            } catch (std::exception& e) {
+            } catch (const std::exception& e) {
               LOG_GENERAL(WARNING,
                           "Exception reading reset_storage : " << e.what());
               throw e;
@@ -148,7 +150,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
                 try {
                   kvs.m_value = base64_decode(kv.value()[1]);
                   kvs.m_hasValue = true;
-                } catch (std::exception& e) {
+                } catch (const std::exception& e) {
                   LOG_GENERAL(WARNING,
                               "Exception reading storage value : " << e.what());
                   throw e;
@@ -156,7 +158,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
                 // store the keys and values within the storage
                 try {
                   apply->m_storage.push_back(kvs);
-                } catch (std::exception& e) {
+                } catch (const std::exception& e) {
                   LOG_GENERAL(WARNING,
                               "Exception adding key/value pair to storage : "
                                   << e.what());
@@ -164,11 +166,11 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
                 }
               }
               //
-              // store the apply instructiion within the response.
+              // store the apply instruction within the response.
               //
               try {
                 fo.m_apply.push_back(apply);
-              } catch (std::exception& e) {
+              } catch (const std::exception& e) {
                 LOG_GENERAL(WARNING, "Exception adding apply to response : "
                                          << e.what());
                 throw e;
@@ -202,9 +204,8 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
           }
         }
       } else if (node.key() == "return_value") {
-        nlohmann::json j = node.value();
-        if (j.is_string()) {
-          fo.m_return = j;
+        if (node.value().is_string()) {
+          fo.m_return = node.value().get<std::string>();
         } else {
           LOG_GENERAL(WARNING, "Error reading return value  : wrong type");
           throw std::runtime_error(
@@ -229,7 +230,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
 }
 
 //
-// Debugging routines, alllows developer to dump each object directly onto
+// Debugging routines, allows developer to dump each object directly onto
 // the output stream.
 //
 

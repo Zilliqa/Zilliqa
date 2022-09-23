@@ -35,6 +35,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -62,6 +63,10 @@ using namespace boost::multiprecision;
 
 bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_MARKER();
+
+  m_mediator.m_filtersAPICache->GetUpdate().StartEpoch(
+      txBlock.GetHeader().GetBlockNum(), txBlock.GetBlockHash().hex(),
+      txBlock.GetMicroBlockInfos().size(), txBlock.GetHeader().GetNumTxs());
 
   AddBlock(txBlock);
 
@@ -1200,35 +1205,49 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
               << "BGN")
   }
 
-  const uint64_t& epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
+  if (!entry.m_transactions.empty()) {
+    uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
+    uint32_t shardId = entry.m_microBlock.GetHeader().GetShardId();
 
-  for (const auto& twr : entry.m_transactions) {
-    const auto& txhash = twr.GetTransaction().GetTranID();
-    LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
-    if (LOOKUP_NODE_MODE) {
-      LookupServer::AddToRecentTransactions(txhash);
-    }
+    auto& cache_upd = m_mediator.m_filtersAPICache->GetUpdate();
 
-    // feed the event log holder
-    if (ENABLE_WEBSOCKET) {
-      WebsocketServer::GetInstance().ParseTxn(twr);
-    }
+    for (const auto& twr : entry.m_transactions) {
+      const auto& tran = twr.GetTransaction();
+      const auto& txhash = tran.GetTranID();
 
-    if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
-      RemoteStorageDB::GetInstance().UpdateTxn(
-          txhash.hex(), TxnStatus::CONFIRMED, m_mediator.m_currentEpochNum,
-          twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
-    }
+      LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
+      if (LOOKUP_NODE_MODE) {
+        LookupServer::AddToRecentTransactions(txhash);
 
-    // Store TxBody to disk
-    bytes serializedTxBody;
-    twr.Serialize(serializedTxBody, 0);
-    if (!BlockStorage::GetBlockStorage().PutTxBody(
-            epochNum, twr.GetTransaction().GetTranID(), serializedTxBody)) {
-      LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
-      return;
+        const auto& receipt = twr.GetTransactionReceipt();
+        cache_upd.AddCommittedTransaction(epochNum, shardId, txhash.hex(),
+                                          receipt.GetJsonValue());
+
+        LOG_GENERAL(INFO, entry << " receipt=" << receipt.GetString());
+      }
+
+      // feed the event log holder
+      if (ENABLE_WEBSOCKET) {
+        WebsocketServer::GetInstance().ParseTxn(twr);
+      }
+
+      if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
+        RemoteStorageDB::GetInstance().UpdateTxn(
+            txhash.hex(), TxnStatus::CONFIRMED, m_mediator.m_currentEpochNum,
+            twr.GetTransactionReceipt().GetJsonValue()["success"].asBool());
+      }
+
+      // Store TxBody to disk
+      bytes serializedTxBody;
+      twr.Serialize(serializedTxBody, 0);
+      if (!BlockStorage::GetBlockStorage().PutTxBody(
+              epochNum, twr.GetTransaction().GetTranID(), serializedTxBody)) {
+        LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
+        return;
+      }
     }
   }
+
   if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
     RemoteStorageDB::GetInstance().ExecuteWriteDetached();
   }
@@ -1527,6 +1546,8 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
   const auto& currentEpochNum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
+  auto& cacheUpdate = m_mediator.m_filtersAPICache->GetUpdate();
+
   for (const auto& entry : pendingTxns) {
     LOG_GENERAL(INFO, " " << entry.first << " " << entry.second);
 
@@ -1536,6 +1557,8 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
                                      << " is already confirmed");
       continue;
     }
+
+    cacheUpdate.AddPendingTransaction(entry.first.hex(), currentEpochNum);
 
     if (IsTxnDropped(entry.second)) {
       LOG_GENERAL(INFO, "[DTXN]" << entry.first << " " << currentEpochNum);
@@ -1610,7 +1633,9 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
   }
 
   LOG_GENERAL(INFO, "Received PENDINGTXN for epoch "
-                        << epochNum << " and shard " << shardId);
+                        << epochNum << " and shard " << shardId
+                        << " id=" << hashCodeMap.begin()->first
+                        << " s=" << hashCodeMap.begin()->second);  // XXX
 
   AddPendingTxn(hashCodeMap, pubkey, shardId, txnListHash);
 

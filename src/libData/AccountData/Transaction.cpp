@@ -55,7 +55,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   // Generate the signature
   if (IsEth()) {
     bytes signature;
-    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID_INT);
+    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
     bytes pk_bytes;
     const PrivKey& privKey{senderKeyPair.first};
     privKey.Serialize(pk_bytes, 0);
@@ -148,12 +148,16 @@ const TransactionCoreInfo& Transaction::GetCoreInfo() const {
   return m_coreInfo;
 }
 
-const uint32_t& Transaction::GetVersion() const { return m_coreInfo.version; }
+uint32_t Transaction::GetVersion() const { return m_coreInfo.version; }
+
+uint32_t Transaction::GetVersionIdentifier() const {
+  return DataConversion::UnpackB(this->GetVersion());
+}
 
 // Check if the version is 1 or 2 - the only valid ones for now
 // this will look like 65538 or 65537
 bool Transaction::VersionCorrect() const {
-  auto const version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = GetVersionIdentifier();
 
   return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
@@ -177,7 +181,7 @@ Address Transaction::GetSenderAddr() const {
 }
 
 bool Transaction::IsEth() const {
-  auto const version = DataConversion::UnpackB(this->GetVersion());
+  auto const version = GetVersionIdentifier();
 
   return version == TRANSACTION_VERSION_ETH;
 }
@@ -207,7 +211,8 @@ const uint128_t& Transaction::GetGasPriceRaw() const {
 
 const uint128_t Transaction::GetGasPriceQa() const {
   if (IsEth()) {
-    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR *
+           GasConv::GetScalingFactor();
   } else {
     return m_coreInfo.gasPrice;
   }
@@ -218,7 +223,8 @@ const uint128_t Transaction::GetGasPriceWei() const {
     return m_coreInfo.gasPrice;
   } else {
     // We know the amounts in transactions are capped, so it won't overlow.
-    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR /
+           GasConv::GetScalingFactor();
   }
 }
 
@@ -256,15 +262,16 @@ bool Transaction::IsSignedECDSA() const {
   if (pubKeyStr.size() >= 2 && pubKeyStr[0] == '0' && pubKeyStr[1] == 'x') {
     pubKeyStr = pubKeyStr.substr(2);
   }
-  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID_INT),
+  return VerifyEcdsaSecp256k1(GetOriginalHash(GetCoreInfo(), ETH_CHAINID),
                               sigString, pubKeyStr);
 }
 
 // Set what the hash of the transaction is, depending on its type
 bool Transaction::SetHash(bytes const& txnData) {
   if (IsEth()) {
-    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID_INT,
-                                         std::string(m_signature));
+    uint64_t recid{0};
+    auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID,
+                                         std::string(m_signature), recid);
     auto const output = CreateHash(asRLP);
 
     if (output.size() != TRAN_HASH_SIZE) {
@@ -297,7 +304,6 @@ bool Transaction::IsSigned(bytes const& txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
   if (IsEth()) {
-    LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }
 

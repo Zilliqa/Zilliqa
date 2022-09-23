@@ -14,10 +14,15 @@
     "gtest",
     "miniupnpc",
     "libevent",
-    "leveldb",
+    {
+      "name": "leveldb",
+      "default-features": false,
+      "features": [ "crc32c", "snappy" ]
+    },
     "curl",
     "libmicrohttpd",
-    "nlohmann-json"
+    "nlohmann-json",
+    "libffi"
   ],
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [

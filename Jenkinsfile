@@ -46,6 +46,9 @@ timestamps {
                 sh "git config --global --add safe.directory '*'"
                 sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && ./scripts/ci_build.sh"
             }
+            stage('Integration test') {
+                sh "scripts/integration_test.sh --setup-env"
+            }
             stage('Report coverage') {
                 // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
                 sh "./scripts/ci_report_coverage.sh"

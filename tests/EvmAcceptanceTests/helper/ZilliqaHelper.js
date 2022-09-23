@@ -8,8 +8,12 @@ class ZilliqaHelper {
         this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1))
     }
 
-    getPrimaryAccountAddress() {
-        return this.primaryAccount.address;
+    getPrimaryAccount() {
+        return this.primaryAccount;
+    }
+
+    getSecondaryAccount() {
+        return this.primaryAccount;
     }
 
     async getState(address, index) {
@@ -31,9 +35,8 @@ class ZilliqaHelper {
 
         const senderAccount = (options.senderAccount || this.auxiliaryAccount)
         const constructorArgs = (options.constructorArgs || []);
-
-        // Give our Eth address some monies
-        await this.moveFunds("0x3635c9adc5dea00000", senderAccount.address)
+        const gasLimit = (options.gasLimit || 250000);
+        const gasPrice = (options.gasPrice || await web3.eth.getGasPrice());
 
         // Deploy a SC using web3 API ONLY
         const nonce = await web3.eth.getTransactionCount(senderAccount.address, 'latest'); // nonce starts counting from 0
@@ -42,8 +45,8 @@ class ZilliqaHelper {
             'from': senderAccount.address,
             'value': options.value ?? 0,
             'data': Contract.getDeployTransaction(...constructorArgs).data,
-            'gas': 300000,
-            'gasPrice': 2000000000000000,
+            'gas': gasLimit,
+            'gasPrice': gasPrice,
             'chainId': general_helper.getEthChainId(),
             'nonce': nonce,
         };
@@ -108,8 +111,8 @@ class ZilliqaHelper {
             const tx = {
                 'to': toAddr,
                 'value': amount,
-                'gas': 300000,
-                'gasPrice': 2000000000000000,
+                'gas': 21_000,
+                'gasPrice': await web3.eth.getGasPrice(),
                 'nonce': nonce,
                 'chainId': general_helper.getEthChainId(),
                 'data': ""
