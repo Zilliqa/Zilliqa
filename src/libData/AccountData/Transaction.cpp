@@ -304,7 +304,6 @@ bool Transaction::IsSigned(bytes const& txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
   if (IsEth()) {
-    LOG_GENERAL(WARNING, "Verifying is signed ECDSA TX");
     return IsSignedECDSA();
   }
 
