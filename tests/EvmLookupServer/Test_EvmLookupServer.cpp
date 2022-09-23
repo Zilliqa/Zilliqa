@@ -282,7 +282,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_call_timeout) {
+BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
