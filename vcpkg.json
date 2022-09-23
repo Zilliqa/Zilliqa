@@ -31,7 +31,7 @@
   "overrides": [
     {
       "name": "nlohmann-json",
-      "version-string": "3.11.2"
+      "version-string": "3.10.5#3"
     },
     {
       "name": "jsoncpp",
