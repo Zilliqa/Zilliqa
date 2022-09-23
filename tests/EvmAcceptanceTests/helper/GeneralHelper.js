@@ -38,7 +38,7 @@ var general_helper = {
             id: id,
             jsonrpc: "2.0",
             method: method,
-            params: params
+            params: params,
         }
 
         const host = this.getNetworkUrl()
