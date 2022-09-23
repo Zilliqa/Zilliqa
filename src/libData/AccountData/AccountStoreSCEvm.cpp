@@ -239,10 +239,10 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   uint32_t evm_version{0};
   evmproj::CallResponse response{};
 
-  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  TransactionReceipt rcpt;
-  EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
+  ret = EvmClient::GetInstance().CallRunner(
+      evm_version, EvmUtils::GetEvmCallJson(params), response);
   result = response.ReturnedBytes();
+
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Called Evm, response:" << response);
   }
