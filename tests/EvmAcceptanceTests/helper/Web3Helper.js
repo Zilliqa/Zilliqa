@@ -12,7 +12,7 @@ var web3_helper = {
             .send({
                 from: this.primaryAccount.address,
                 ...(general_helper.isZilliqaNetworkSelected()) && { gas: 30_000 },
-                ...(general_helper.isZilliqaNetworkSelected()) && { gasPrice: 2_000_000_000_000_000 },
+                ...(general_helper.isZilliqaNetworkSelected()) && { gasPrice: 2_000_000_000_000 },
             })
             .on('error', function (error) { console.log(error) })
     }
