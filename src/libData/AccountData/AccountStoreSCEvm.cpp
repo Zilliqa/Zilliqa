@@ -38,8 +38,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(
     evmproj::CallResponse& evmReturnValues) {
   //
   // create a worker to be executed in the async method
-  const auto worker = [this, &params, &ret, &version,
-                       &evmReturnValues]() -> void {
+  const auto worker = [&params, &ret, &version, &evmReturnValues]() -> void {
     ret = EvmClient::GetInstance().CallRunner(
         version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
   };
@@ -240,17 +239,10 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   uint32_t evm_version{0};
   evmproj::CallResponse response{};
 
-#if 0
-  ret = EvmClient::GetInstance().CallRunner(
-      evm_version, EvmUtils::GetEvmCallJson(params), response);
-  result = response.ReturnedBytes();
-
-#else
+  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   TransactionReceipt rcpt;
   EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
   result = response.ReturnedBytes();
-
-#endif
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Called Evm, response:" << response);
   }
