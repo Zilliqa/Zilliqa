@@ -108,7 +108,8 @@ bool EvmClient::CheckClient(uint32_t version, bool enforce) {
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                           evmproj::CallResponse& result, uint32_t counter) {
+                           evmproj::CallResponse& result,
+                           const uint32_t counter) {
   //
   // Fail the call if counter is zero
   //
@@ -127,12 +128,13 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
   try {
     std::lock_guard<std::mutex> g(m_mutexMain);
     LOG_GENERAL(DEBUG, "Call evm with request:" << _json);
+    // call evm
     const auto oldJson = m_clients.at(version)->CallMethod("run", _json);
 
     // Populate the C++ struct with the return values
     try {
       const auto reply = evmproj::GetReturn(oldJson, result);
-      if (reply.GetSuccess() && LOG_SC) {
+      if (reply.Success() && LOG_SC) {
         LOG_GENERAL(INFO, "Parsed Json response correctly");
       }
       return true;
