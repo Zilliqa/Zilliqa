@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "false");
+  BOOST_CHECK_EQUAL(response.asString(), "true");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_peer_count) {
