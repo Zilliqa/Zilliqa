@@ -898,7 +898,6 @@ bool BlockStorage::PutStateRoot(const bytes& data) {
 }
 
 bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
-  LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
   int ret =
       m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED, to_string(epochNum));
