@@ -18,8 +18,6 @@
     "semi": ["error", "always"],
     "function-call-argument-newline": ["error", "never"],
     "mocha/no-pending-tests": "off",
-    "ignoreComments": true,
-    "ignoreTrailingComments": true,
-    "ignoreRegExpLiterals": true
-  }
+    "comma-dangle": ["error", "never"]
+    }
 }

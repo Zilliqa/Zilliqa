@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "configure-husky": "cd ../../ && npx husky install && npx husky add .husky/pre-commit \"npx --no-install lint-staged\""
+    "prepare": "cd ../../ && npx husky install ./tests/EvmAcceptanceTests"
   },
   "author": "",
   "license": "ISC",
@@ -14,7 +14,9 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "axios": "^0.27.2",
     "eslint": "^8.23.1",
+    "eslint-config-prettier": "^8.5.0",
     "eslint-plugin-mocha": "10.1.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "hardhat": "^2.10.1",
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3",
