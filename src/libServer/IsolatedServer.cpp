@@ -669,7 +669,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 
-    uint256_t senderBalance;
+    uint256_t senderBalance{};
 
     const uint128_t gasPriceWei =
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
