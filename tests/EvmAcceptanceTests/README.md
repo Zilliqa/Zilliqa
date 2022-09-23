@@ -106,7 +106,7 @@ describe("Contract with payable constructor", function () {
     before(async function () {
       const Contract = await ethers.getContractFactory("WithPayableConstructor");
       contract = await Contract.deploy({
-        value: INITIAL_BALANCE,
+        value: INITIAL_BALANCE
       });
     });
 

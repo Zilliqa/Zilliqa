@@ -19,5 +19,5 @@
     "function-call-argument-newline": ["error", "never"],
     "mocha/no-pending-tests": "off",
     "comma-dangle": ["error", "never"]
-    }
+  }
 }

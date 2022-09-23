@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "cd ../../ && npx husky install ./tests/EvmAcceptanceTests"
+    "prepare": "cd ../../ && npx husky install .husky/ && cd - && npx husky add ../../.husky/pre-commit \"cd ./tests/EvmAcceptanceTests && npx lint-staged\"",
+    "lint": "eslint --fix && prettier --write ."
   },
   "author": "",
   "license": "ISC",
@@ -27,9 +28,9 @@
     "@zilliqa-js/zilliqa": "^3.3.4"
   },
   "lint-staged": {
-    "**/*.{js,jsx}": [
-      "eslint . --fix",
-      "prettier --write ."
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
     ]
   }
 }
