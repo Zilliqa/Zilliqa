@@ -26,6 +26,9 @@
 using namespace jsonrpc;
 using namespace std;
 
+const char* ZEROES_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000";
+
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,
@@ -530,8 +533,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, senderNonce).hex();
+        ret["ContractAddress"] = Account::GetAddressForContract(
+                                     fromAddr, senderNonce, TRANSACTION_VERSION)
+                                     .hex();
         break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
@@ -618,7 +622,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     LOG_GENERAL(INFO, "Processing On the isolated server completed");
   } catch (const JsonRpcException& je) {
     throw je;
-  } catch (exception& e) {
+  } catch (const exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
@@ -633,9 +637,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
   return ret;
 }
 
-Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
+std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  bytes const& pubKey) {
-  Json::Value ret;
+  // Always return the TX hash or the null hash
+  std::string ret = ZEROES_HASH;
 
   try {
     if (m_pause) {
@@ -662,7 +667,8 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                    data,  // either empty or un-hexed byte-stream
                    Signature(fields.signature, 0)};
 
-    uint64_t senderNonce;
+    ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+
     uint256_t senderBalance;
 
     const uint128_t gasPriceWei =
@@ -685,7 +691,6 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       }
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-      senderNonce = sender->GetNonce();
     }
 
     switch (Transaction::GetTransactionType(tx)) {
@@ -695,320 +700,317 @@ Json::Value IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, senderNonce).hex();
-      } break;
-
-      case Transaction::ContractType::CONTRACT_CALL: {
-        if (!ENABLE_SC) {
-          throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-        }
-
-        {
-          shared_lock<shared_timed_mutex> lock(
-              AccountStore::GetInstance().GetPrimaryMutex());
-
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
-
-          if (account == nullptr) {
-            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                   "To addr is null");
-          } else if (!account->isContract()) {
-            throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                                   "Non - contract address called");
+        break;
+        case Transaction::ContractType::CONTRACT_CALL: {
+          if (!ENABLE_SC) {
+            throw JsonRpcException(RPC_MISC_ERROR,
+                                   "Smart contract is disabled");
           }
+
+          {
+            shared_lock<shared_timed_mutex> lock(
+                AccountStore::GetInstance().GetPrimaryMutex());
+
+            const Account* account =
+                AccountStore::GetInstance().GetAccount(tx.GetToAddr());
+
+            if (account == nullptr) {
+              throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                     "To addr is null");
+            } else if (!account->isContract()) {
+              throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                     "Non - contract address called");
+            }
+          }
+        } break;
+
+        case Transaction::ContractType::ERROR: {
+          throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                                 "The code is empty and To addr is null");
+        } break;
+
+        default: {
+          throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
         }
-      } break;
+      }  // end of switch
 
-      case Transaction::ContractType::ERROR: {
-        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                               "The code is empty and To addr is null");
-      } break;
+        TransactionReceipt txreceipt;
 
-      default: {
-        throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
-      }
-    }  // end of switch
+        TxnStatus error_code;
+        bool throwError = false;
+        txreceipt.SetEpochNum(m_blocknum);
 
-    TransactionReceipt txreceipt;
+        if (!AccountStore::GetInstance().UpdateAccountsTemp(
+                m_blocknum,
+                3,  // Arbitrary values
+                true, tx, txreceipt, error_code)) {
+          LOG_GENERAL(WARNING, "failed to update accounts!!!");
+          throwError = true;
+        }
+        LOG_GENERAL(INFO, "Processing On the isolated server...");
 
-    TxnStatus error_code;
-    bool throwError = false;
-    txreceipt.SetEpochNum(m_blocknum);
+        AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
+        AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3,  // Arbitrary values
-                                                        true, tx, txreceipt,
-                                                        error_code)) {
-      LOG_GENERAL(WARNING, "failed to update accounts!!!");
-      throwError = true;
+        AccountStore::GetInstance().SerializeDelta();
+        AccountStore::GetInstance().CommitTemp();
+
+        if (!m_timeDelta) {
+          AccountStore::GetInstance().InitTemp();
+        }
+
+        if (throwError) {
+          throw JsonRpcException(RPC_INVALID_PARAMETER,
+                                 "Error Code: " + to_string(error_code));
+        }
+
+        TransactionWithReceipt twr(tx, txreceipt);
+
+        bytes twr_ser;
+
+        twr.Serialize(twr_ser, 0);
+
+        m_currEpochGas += txreceipt.GetCumGas();
+
+        if (!BlockStorage::GetBlockStorage().PutTxBody(
+                m_blocknum, tx.GetTranID(), twr_ser)) {
+          LOG_GENERAL(WARNING, "Unable to put tx body");
+        }
+
+        const auto& txHash = tx.GetTranID();
+        LookupServer::AddToRecentTransactions(txHash);
+        {
+          lock_guard<mutex> g(m_txnBlockNumMapMutex);
+          m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
+        }
+
+        LOG_GENERAL(INFO,
+                    "Added Txn " << txHash << " to blocknum: " << m_blocknum);
+        WebsocketServer::GetInstance().ParseTxn(twr);
+
+        LOG_GENERAL(
+            INFO,
+            "Processing On the isolated server completed. Minting a block...");
     }
-    LOG_GENERAL(INFO, "Processing On the isolated server...");
-
-    AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
-    AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
-
-    AccountStore::GetInstance().SerializeDelta();
-    AccountStore::GetInstance().CommitTemp();
-
-    if (!m_timeDelta) {
-      AccountStore::GetInstance().InitTemp();
+    catch (const JsonRpcException& je) {
+      LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
     }
-
-    if (throwError) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "Error Code: " + to_string(error_code));
-    }
-
-    TransactionWithReceipt twr(tx, txreceipt);
-
-    bytes twr_ser;
-
-    twr.Serialize(twr_ser, 0);
-
-    m_currEpochGas += txreceipt.GetCumGas();
-
-    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
-                                                   twr_ser)) {
-      LOG_GENERAL(WARNING, "Unable to put tx body");
-    }
-
-    const auto& txHash = tx.GetTranID();
-    LookupServer::AddToRecentTransactions(txHash);
-    {
-      lock_guard<mutex> g(m_txnBlockNumMapMutex);
-      m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
-    }
-
-    LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    ret["TranID"] = txHash.hex();
-    ret["Info"] = "Txn processed";
-
-    WebsocketServer::GetInstance().ParseTxn(twr);
-
-    LOG_GENERAL(
-        INFO,
-        "Processing On the isolated server completed. Minting a block...");
-
-  } catch (const JsonRpcException& je) {
-    LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
-    throw je;
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
-  }
-
-  // Double create a block to make sure TXs are 'flushed'
-  // This will make sure the block height advances, the
-  // TX can be found in a block etc.
-  if (m_timeDelta == 0) {
-    PostTxBlock();
-    PostTxBlock();
-  }
-  return ret;
-}
-
-Json::Value IsolatedServer::GetTransactionsForTxBlock(
-    const string& txBlockNum) {
-  uint64_t txNum;
-  try {
-    txNum = strtoull(txBlockNum.c_str(), NULL, 0);
-  } catch (exception& e) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
-  }
-
-  auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
-
-  if (txBlock.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
-      txBlock.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
-    throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlock does not exist");
-  }
-
-  auto microBlockInfos = txBlock.GetMicroBlockInfos();
-  Json::Value _json = Json::arrayValue;
-  bool hasTransactions = false;
-
-  for (auto const& mbInfo : microBlockInfos) {
-    MicroBlockSharedPtr mbptr;
-    _json[mbInfo.m_shardId] = Json::arrayValue;
-
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
-                                                       mbptr)) {
-      throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
+    catch (const exception& e) {
+      LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
     }
 
-    const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
-    if (tranHashes.size() > 0) {
-      hasTransactions = true;
-      for (const auto& tranHash : tranHashes) {
-        _json[mbInfo.m_shardId].append(tranHash.hex());
-      }
-    }
-  }
-
-  if (!hasTransactions) {
-    throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
-  }
-  return _json;
-}
-
-string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
-  if (m_timeDelta > 0) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER, "Manual trigger disallowed");
-  }
-
-  m_blocknum += delta;
-
-  return to_string(m_blocknum);
-}
-
-string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }
-
-Json::Value IsolatedServer::GetEthBlockNumber() {
-  Json::Value ret;
-
-  try {
-    const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-
-    auto blockHeight = txBlock.GetHeader().GetBlockNum();
-    blockHeight =
-        blockHeight == std::numeric_limits<uint64_t>::max() ? 1 : blockHeight;
-
-    std::ostringstream returnVal;
-    returnVal << "0x" << std::hex << blockHeight << std::dec;
-    ret = returnVal.str();
-  } catch (std::exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
-  }
-
-  return ret;
-}
-
-string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
-  uint128_t newGasPrice;
-  if (m_timeDelta > 0) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER, "Manual trigger disallowed");
-  }
-  try {
-    newGasPrice = uint128_t(gasPrice);
-  } catch (exception& e) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
-                           "Gas price should be numeric");
-  }
-  if (newGasPrice < 1) {
-    throw JsonRpcException(RPC_INVALID_PARAMETER,
-                           "Gas price cannot be less than 1");
-  }
-
-  m_gasPrice = move(newGasPrice);
-
-  return m_gasPrice.str();
-}
-
-string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
-
-bool IsolatedServer::StartBlocknumIncrement() {
-  LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
-  auto incrThread = [this]() mutable -> void {
-    while (true) {
-      this_thread::sleep_for(chrono::milliseconds(m_timeDelta));
-      if (m_pause) {
-        continue;
-      }
+    // Double create a block to make sure TXs are 'flushed'
+    // This will make sure the block height advances, the
+    // TX can be found in a block etc.
+    if (m_timeDelta == 0) {
+      PostTxBlock();
       PostTxBlock();
     }
-  };
-
-  DetachedFunction(1, incrThread);
-  return true;
-}
-
-bool IsolatedServer::TogglePause(const string& uuid) {
-  if (uuid != m_uuid) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UUID");
-  }
-  m_pause = !m_pause;
-  return m_pause;
-}
-
-bool IsolatedServer::CheckPause(const string& uuid) {
-  if (uuid != m_uuid) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UUID");
-  }
-  return m_pause;
-}
-
-TxBlock IsolatedServer::GenerateTxBlock() {
-  uint numtxns;
-  vector<TxnHash> txnhashes;
-  {
-    lock_guard<mutex> g(m_txnBlockNumMapMutex);
-    numtxns = m_txnBlockNumMap[m_blocknum].size();
-    txnhashes = m_txnBlockNumMap[m_blocknum];
-    m_txnBlockNumMap[m_blocknum].clear();
+    return ret;
   }
 
-  TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
-                              TxBlockHashSet(), numtxns, m_key.first,
-                              TXBLOCK_VERSION);
-
-  // In order that the m_txRootHash is not empty if there are actually TXs
-  // in the microblock, set the root hash to a TXn hash if there is one
-  MicroBlockHashSet hashSet{};
-  if (txnhashes.size() > 0) {
-    hashSet.m_txRootHash = txnhashes[0];
-  }
-
-  MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, hashSet, numtxns,
-                       m_key.first, 0);
-  MicroBlock mb(mbh, txnhashes, CoSignatures());
-  MicroBlockInfo mbInfo{mb.GetBlockHash(), mb.GetHeader().GetTxRootHash(),
-                        mb.GetHeader().GetShardId()};
-  LOG_GENERAL(INFO, "MicroBlock hash = " << mbInfo.m_microBlockHash);
-  bytes body;
-
-  mb.Serialize(body, 0);
-
-  if (!BlockStorage::GetBlockStorage().PutMicroBlock(
-          mb.GetBlockHash(), mb.GetHeader().GetEpochNum(),
-          mb.GetHeader().GetShardId(), body)) {
-    LOG_GENERAL(WARNING, "Failed to put microblock in body");
-  }
-  TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());
-
-  return txblock;
-}
-
-void IsolatedServer::PostTxBlock() {
-  lock_guard<mutex> g(m_blockMutex);
-  const TxBlock& txBlock = GenerateTxBlock();
-  if (ENABLE_WEBSOCKET) {
-    // send tx block and attach txhashes
-    Json::Value j_txnhashes;
+  Json::Value IsolatedServer::GetTransactionsForTxBlock(
+      const string& txBlockNum) {
+    uint64_t txNum;
     try {
-      j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
-    } catch (exception& e) {
-      j_txnhashes = Json::arrayValue;
+      txNum = strtoull(txBlockNum.c_str(), NULL, 0);
+    } catch (const exception& e) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
     }
-    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
-        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
 
-    // send event logs
-    WebsocketServer::GetInstance().SendOutMessages();
+    auto const& txBlock = m_mediator.m_txBlockChain.GetBlock(txNum);
+
+    if (txBlock.GetHeader().GetBlockNum() == INIT_BLOCK_NUMBER &&
+        txBlock.GetHeader().GetDSBlockNum() == INIT_BLOCK_NUMBER) {
+      throw JsonRpcException(RPC_INVALID_PARAMS, "TxBlock does not exist");
+    }
+
+    auto microBlockInfos = txBlock.GetMicroBlockInfos();
+    Json::Value _json = Json::arrayValue;
+    bool hasTransactions = false;
+
+    for (auto const& mbInfo : microBlockInfos) {
+      MicroBlockSharedPtr mbptr;
+      _json[mbInfo.m_shardId] = Json::arrayValue;
+
+      if (!BlockStorage::GetBlockStorage().GetMicroBlock(
+              mbInfo.m_microBlockHash, mbptr)) {
+        throw JsonRpcException(RPC_DATABASE_ERROR, "Failed to get Microblock");
+      }
+
+      const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
+      if (tranHashes.size() > 0) {
+        hasTransactions = true;
+        for (const auto& tranHash : tranHashes) {
+          _json[mbInfo.m_shardId].append(tranHash.hex());
+        }
+      }
+    }
+
+    if (!hasTransactions) {
+      throw JsonRpcException(RPC_MISC_ERROR, "TxBlock has no transactions");
+    }
+    return _json;
   }
-  m_mediator.m_txBlockChain.AddBlock(txBlock);
 
-  bytes serializedTxBlock;
-  txBlock.Serialize(serializedTxBlock, 0);
-  if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
-                                                  serializedTxBlock)) {
-    LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
+  string IsolatedServer::IncreaseBlocknum(const uint32_t& delta) {
+    if (m_timeDelta > 0) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Manual trigger disallowed");
+    }
+
+    m_blocknum += delta;
+
+    return to_string(m_blocknum);
   }
-  AccountStore::GetInstance().MoveUpdatesToDisk();
-  AccountStore::GetInstance().InitTemp();
 
-  m_blocknum++;
-  m_currEpochGas = 0;
-}
+  string IsolatedServer::GetBlocknum() { return to_string(m_blocknum); }
+
+  Json::Value IsolatedServer::GetEthBlockNumber() {
+    Json::Value ret;
+
+    try {
+      const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+
+      auto blockHeight = txBlock.GetHeader().GetBlockNum();
+      blockHeight =
+          blockHeight == std::numeric_limits<uint64_t>::max() ? 1 : blockHeight;
+
+      std::ostringstream returnVal;
+      returnVal << "0x" << std::hex << blockHeight << std::dec;
+      ret = returnVal.str();
+    } catch (const std::exception& e) {
+      LOG_GENERAL(INFO, "[Error]" << e.what() << " When getting block number!");
+      throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
+    }
+
+    return ret;
+  }
+
+  string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
+    uint128_t newGasPrice;
+    if (m_timeDelta > 0) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Manual trigger disallowed");
+    }
+    try {
+      newGasPrice = uint128_t(gasPrice);
+    } catch (const exception& e) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Gas price should be numeric");
+    }
+    if (newGasPrice < 1) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Gas price cannot be less than 1");
+    }
+
+    m_gasPrice = move(newGasPrice);
+
+    return m_gasPrice.str();
+  }
+
+  string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
+
+  bool IsolatedServer::StartBlocknumIncrement() {
+    LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
+    auto incrThread = [this]() mutable -> void {
+      while (true) {
+        this_thread::sleep_for(chrono::milliseconds(m_timeDelta));
+        if (m_pause) {
+          continue;
+        }
+        PostTxBlock();
+      }
+    };
+
+    DetachedFunction(1, incrThread);
+    return true;
+  }
+
+  bool IsolatedServer::TogglePause(const string& uuid) {
+    if (uuid != m_uuid) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UUID");
+    }
+    m_pause = !m_pause;
+    return m_pause;
+  }
+
+  bool IsolatedServer::CheckPause(const string& uuid) {
+    if (uuid != m_uuid) {
+      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "Invalid UUID");
+    }
+    return m_pause;
+  }
+
+  TxBlock IsolatedServer::GenerateTxBlock() {
+    uint numtxns;
+    vector<TxnHash> txnhashes;
+    {
+      lock_guard<mutex> g(m_txnBlockNumMapMutex);
+      numtxns = m_txnBlockNumMap[m_blocknum].size();
+      txnhashes = m_txnBlockNumMap[m_blocknum];
+      m_txnBlockNumMap[m_blocknum].clear();
+    }
+
+    TxBlockHeader txblockheader(0, m_currEpochGas, 0, m_blocknum,
+                                TxBlockHashSet(), numtxns, m_key.first,
+                                TXBLOCK_VERSION);
+
+    // In order that the m_txRootHash is not empty if there are actually TXs
+    // in the microblock, set the root hash to a TXn hash if there is one
+    MicroBlockHashSet hashSet{};
+    if (txnhashes.size() > 0) {
+      hashSet.m_txRootHash = txnhashes[0];
+    }
+
+    MicroBlockHeader mbh(0, 0, m_currEpochGas, 0, m_blocknum, hashSet, numtxns,
+                         m_key.first, 0);
+    MicroBlock mb(mbh, txnhashes, CoSignatures());
+    MicroBlockInfo mbInfo{mb.GetBlockHash(), mb.GetHeader().GetTxRootHash(),
+                          mb.GetHeader().GetShardId()};
+    LOG_GENERAL(INFO, "MicroBlock hash = " << mbInfo.m_microBlockHash);
+    bytes body;
+
+    mb.Serialize(body, 0);
+
+    if (!BlockStorage::GetBlockStorage().PutMicroBlock(
+            mb.GetBlockHash(), mb.GetHeader().GetEpochNum(),
+            mb.GetHeader().GetShardId(), body)) {
+      LOG_GENERAL(WARNING, "Failed to put microblock in body");
+    }
+    TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());
+
+    return txblock;
+  }
+
+  void IsolatedServer::PostTxBlock() {
+    lock_guard<mutex> g(m_blockMutex);
+    const TxBlock& txBlock = GenerateTxBlock();
+    if (ENABLE_WEBSOCKET) {
+      // send tx block and attach txhashes
+      Json::Value j_txnhashes;
+      try {
+        j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
+      } catch (const exception& e) {
+        j_txnhashes = Json::arrayValue;
+      }
+      WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+          JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+
+      // send event logs
+      WebsocketServer::GetInstance().SendOutMessages();
+    }
+    m_mediator.m_txBlockChain.AddBlock(txBlock);
+
+    bytes serializedTxBlock;
+    txBlock.Serialize(serializedTxBlock, 0);
+    if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
+                                                    serializedTxBlock)) {
+      LOG_GENERAL(WARNING, "BlockStorage::PutTxBlock failed " << txBlock);
+    }
+    AccountStore::GetInstance().MoveUpdatesToDisk();
+    AccountStore::GetInstance().InitTemp();
+
+    m_blocknum++;
+    m_currEpochGas = 0;
+  }

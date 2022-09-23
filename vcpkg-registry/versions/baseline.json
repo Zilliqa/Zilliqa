@@ -1,0 +1,5 @@
+{
+  "default": {
+    "python3": { "baseline": "3.10.5", "port-version": 6 }
+  }
+}

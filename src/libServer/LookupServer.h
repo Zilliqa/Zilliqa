@@ -357,21 +357,27 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    response = "0x5208";
+    // TODO: implement eth_estimateGas for real.
+    // At the moment, the default value of 300,000 gas will allow to proceed
+    // with the internal/external testnet testing before it is implemented.
+    response = "0x493e0";
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
-    std::string address = request[0u].asString();
-    DataConversion::NormalizeHexString(address);
-    const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
-    response = DataConversion::IntToHexString(resp);
+    try {
+      std::string address = request[0u].asString();
+      DataConversion::NormalizeHexString(address);
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
+      response = DataConversion::IntToHexString(resp);
+    } catch (...) {
+      response = "0x0";
+    }
   }
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
     response = this->GetEthTransactionReceipt(request[0u].asString());
-    LOG_GENERAL(DEBUG, "Response:" << response);
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
@@ -383,7 +389,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
+    auto pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
@@ -398,10 +404,9 @@ class LookupServer : public Server,
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
          EVM_ZIL_SCALING_FACTOR) /
         GasConv::GetScalingFactor();
-    auto resp = CreateTransactionEth(fields, pubKey, shards, gasPrice,
-                                     m_createTransactionTarget);
-    response = std::string{"0x"} + resp["TranID"].asString();
-    LOG_GENERAL(DEBUG, "Response:" << response);
+
+    response = CreateTransactionEth(fields, pubKey, shards, gasPrice,
+                                    m_createTransactionTarget);
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
@@ -655,6 +660,31 @@ class LookupServer : public Server,
         request[0u].asString(), request[1u].asString());
   }
 
+  virtual void EthNewFilterI(const Json::Value& request,
+                             Json::Value& response) {
+    response = this->EthNewFilter(request[0u]);
+  }
+
+  virtual void EthNewBlockFilterI(const Json::Value& /*request*/,
+                                  Json::Value& response) {
+    response = this->EthNewBlockFilter();
+  }
+
+  virtual void EthNewPendingTransactionFilterI(const Json::Value& /*request*/,
+                                               Json::Value& response) {
+    response = this->EthNewPendingTransactionFilter();
+  }
+
+  virtual void EthGetFilterChangesI(const Json::Value& request,
+                                    Json::Value& response) {
+    response = this->EthGetFilterChanges(request[0u].asString());
+  }
+
+  virtual void EthUninstallFilterI(const Json::Value& request,
+                                   Json::Value& response) {
+    response = this->EthUninstallFilter(request[0u].asString());
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -718,7 +748,11 @@ class LookupServer : public Server,
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
 
-  TxBlock GetBlockByTransactionHash(const std::string& txnhash);
+  TxBlock GetBlockFromTransaction(
+      const TransactionWithReceipt& transaction) const;
+  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
+                                        const std::string& txnhash) const;
+
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
@@ -732,7 +766,7 @@ class LookupServer : public Server,
 
   Json::Value getEthGasPrice() const;
 
-  Json::Value CreateTransactionEth(
+  std::string CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPriceWei,
       const CreateTransactionTargetFunc& targetFunc);
@@ -747,6 +781,12 @@ class LookupServer : public Server,
       const std::string& blockNumber, const std::string& index) const;
   Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,
                                                 const uint64_t index) const;
+
+  std::string EthNewFilter(const Json::Value& param);
+  std::string EthNewBlockFilter();
+  std::string EthNewPendingTransactionFilter();
+  Json::Value EthGetFilterChanges(const std::string& filter_id);
+  bool EthUninstallFilter(const std::string& filter_id);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

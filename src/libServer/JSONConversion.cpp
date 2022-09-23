@@ -21,7 +21,6 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include <boost/format.hpp>
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 #include "Server.h"
@@ -59,7 +58,7 @@ const Json::Value JSONConversion::convertBooleanVectorToJson(
   Json::Value _json = Json::arrayValue;
 
   for (const auto& i : B) {
-    _json.append(i);
+    _json.append(Json::Value(i));
   }
   return _json;
 }
@@ -175,8 +174,8 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       transactionsJson.append("0x" + hash.hex());
     }
   } else {
-    for (const auto& transaction : transactions) {
-      transactionsJson.append(convertTxtoEthJson(*transaction, txblock));
+    for (size_t i = 0; i < transactions.size(); ++i) {
+      transactionsJson.append(convertTxtoEthJson(i, *transactions[i], txblock));
     }
   }
   retJson["transactions"] = transactionsJson;
@@ -271,8 +270,7 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
     ret_header["CommitteeHash"] = dshead.GetCommitteeHash().hex();
   }
 
-  auto timestamp = microsec_to_sec(dsblock.GetTimestamp());
-  ret_header["Timestamp"] = to_string(timestamp);
+  ret_header["Timestamp"] = to_string(dsblock.GetTimestamp());
 
   for (const auto& govProposal : dshead.GetGovProposalMap()) {
     Json::Value _tempGovProposal;
@@ -651,37 +649,37 @@ const Json::Value JSONConversion::convertTxtoJson(
 }
 
 const Json::Value JSONConversion::convertTxtoEthJson(
-    const TransactionWithReceipt& txn, const TxBlock& txblock) {
+    uint64_t txindex, const TransactionWithReceipt& txn,
+    const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
+  auto const tx = txn.GetTransaction();
 
   retJson["blockNumber"] =
       (boost::format("0x%x") % txheader.GetBlockNum()).str();
   retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
-  retJson["from"] = "0x" + txn.GetTransaction().GetSenderAddr().hex();
+  retJson["from"] = "0x" + tx.GetSenderAddr().hex();
   retJson["gas"] =
       (boost::format("0x%x") %
-       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas() *
+                                      EVM_ZIL_SCALING_FACTOR))
           .str();
   // ethers also expectes gasLimit and ChainId
-  retJson["gasLimit"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetGasLimitRaw()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitRaw()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
-  retJson["gasPrice"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetGasPriceWei()).str();
-  retJson["hash"] = "0x" + txn.GetTransaction().GetTranID().hex();
+  retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
+  retJson["hash"] = "0x" + tx.GetTranID().hex();
 
   // Concatenated Code and CallData form input entry in response json
   std::string inputField;
 
-  if (!txn.GetTransaction().GetCode().empty()) {
-    inputField = "0x" + DataConversion::CharArrayToString(
-                            StripEVM(txn.GetTransaction().GetCode()));
+  if (!tx.GetCode().empty()) {
+    inputField =
+        "0x" + DataConversion::CharArrayToString(StripEVM(tx.GetCode()));
   }
 
-  if (!txn.GetTransaction().GetData().empty()) {
-    const auto callData =
-        DataConversion::CharArrayToString(txn.GetTransaction().GetData());
+  if (!tx.GetData().empty()) {
+    const auto callData = DataConversion::CharArrayToString(tx.GetData());
     // Append extra '0x' prefix iff GetCode() gave empty string
     if (inputField.empty()) {
       inputField += "0x" + callData;
@@ -692,25 +690,33 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["input"] = inputField;
   // ethers also expects 'data' field
   retJson["data"] = inputField;
+
+  // NOTE: Nonce is decremented since the internal representation is +1 due to
+  // Zil accounting
   retJson["nonce"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetNonce()).str();
-  if (IsNullAddress(txn.GetTransaction().GetToAddr())) {
+      (boost::format("0x%x") % (txn.GetTransaction().GetNonce() - 1)).str();
+  if (IsNullAddress(tx.GetToAddr())) {
     retJson["to"] =
         Json::nullValue;  // special for contract creation transactions.
   } else {
-    retJson["to"] = "0x" + txn.GetTransaction().GetToAddr().hex();
+    retJson["to"] = "0x" + tx.GetToAddr().hex();
   }
-  retJson["value"] =
-      (boost::format("0x%x") % txn.GetTransaction().GetAmountWei()).str();
-  if (!txn.GetTransaction().GetCode().empty() &&
-      IsNullAddress(txn.GetTransaction().GetToAddr())) {
+  retJson["value"] = (boost::format("0x%x") % tx.GetAmountWei()).str();
+  if (!tx.GetCode().empty() && IsNullAddress(tx.GetToAddr())) {
     retJson["contractAddress"] =
-        "0x" +
-        Account::GetAddressForContract(txn.GetTransaction().GetSenderAddr(),
-                                       txn.GetTransaction().GetNonce() - 1)
-            .hex();
+        "0x" + Account::GetAddressForContract(
+                   txn.GetTransaction().GetSenderAddr(),
+                   txn.GetTransaction().GetNonce(), TRANSACTION_VERSION_ETH)
+                   .hex();
   }
   retJson["type"] = "0x0";
+
+  std::string sig{tx.GetSignature()};
+  retJson["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  retJson["r"] = GetR(sig);
+  retJson["s"] = GetS(sig);
+
+  retJson["transactionIndex"] = (boost::format("0x%x") % txindex).str();
   return retJson;
 }
 

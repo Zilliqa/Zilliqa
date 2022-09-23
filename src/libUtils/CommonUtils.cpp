@@ -15,7 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifdef __linux__
 #include <malloc.h>
+#endif
 #include <chrono>
 #include <mutex>
 
@@ -25,6 +27,7 @@
 using namespace std;
 
 void CommonUtils ::ReleaseSTLMemoryCache() {
+#ifdef __linux__
   LOG_MARKER();
 
   static mutex relMemoryCacheMutex;
@@ -34,4 +37,5 @@ void CommonUtils ::ReleaseSTLMemoryCache() {
   } else {
     LOG_GENERAL(WARNING, "MemoryCache cleanup already in progress!");
   }
+#endif
 }
