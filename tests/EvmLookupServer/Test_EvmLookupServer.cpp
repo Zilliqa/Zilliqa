@@ -341,7 +341,7 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "to do implement web3 version string");
+  BOOST_CHECK_EQUAL(response.asString(), "Zilliqa/v8.2");
 }
 
 BOOST_AUTO_TEST_CASE(test_web3_sha3) {
@@ -444,7 +444,7 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "false");
+  BOOST_CHECK_EQUAL(response.asString(), "true");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_peer_count) {
