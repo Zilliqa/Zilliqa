@@ -5,4 +5,5 @@ target_include_directories(Utils
   INTERFACE ${CURL_INCLUDE_DIRS}
   PUBLIC ${PROJECT_SOURCE_DIR}/src Boost)
 target_link_libraries(Utils INTERFACE Threads::Threads CURL::libcurl ${PYTHON_LIBRARIES})
-target_link_libraries(Utils PUBLIC g3logger CryptoUtils Constants MessageSWInfo websocketpp::websocketpp jsonrpc::common jsoncpp_lib)
+target_link_libraries(Utils PUBLIC g3logger Constants MessageSWInfo websocketpp::websocketpp jsonrpc::common jsoncpp_lib)
+target_link_libraries(Utils PRIVATE CryptoUtils)
