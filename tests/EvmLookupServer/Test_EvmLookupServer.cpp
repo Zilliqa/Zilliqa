@@ -72,10 +72,17 @@ std::unique_ptr<LookupServer> getLookupServer(
   return lookupServer;
 }
 
-// Convenience fn only used to test Eth TXs
+// Convenience fn only used to test Eth TXs.
 TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
-                                              const PairOfKey& keyPair) {
+                                              const PairOfKey& keyPair,
+                                              uint64_t epochNum = 1337) {
   Address toAddr{Account::GetAddressFromPublicKeyEth(keyPair.second)};
+
+  // Stored TX receipt needs at least the epoch number
+  auto txReceipt = TransactionReceipt{};
+  txReceipt.SetEpochNum(epochNum);
+  txReceipt.update();
+
   return TransactionWithReceipt(
       // Ctor: (version, nonce, toAddr, keyPair, amount, gasPrice, gasLimit,
       // code, data)
@@ -88,7 +95,7 @@ TransactionWithReceipt constructTxWithReceipt(uint64_t nonce,
                   2,
                   {},
                   {}},
-      TransactionReceipt{});
+      txReceipt);
 }
 
 MicroBlock constructMicroBlockWithTransactions(
@@ -464,7 +471,7 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "to do implement web3 version string");
+  BOOST_CHECK_EQUAL(response.asString(), "Zilliqa/v8.2");
 }
 
 BOOST_AUTO_TEST_CASE(test_web3_sha3) {
@@ -567,7 +574,7 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 
   LOG_GENERAL(DEBUG, response.asString());
 
-  BOOST_CHECK_EQUAL(response.asString(), "false");
+  BOOST_CHECK_EQUAL(response.asString(), "true");
 }
 
 BOOST_AUTO_TEST_CASE(test_net_peer_count) {
@@ -1146,18 +1153,23 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   // txBlock)
   std::vector<TransactionWithReceipt> transactions;
 
+  constexpr uint64_t EPOCH_NUM = 1;
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
+
   for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
-    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey, EPOCH_NUM));
   }
 
-  constexpr uint64_t EPOCH_NUM = 1;
   for (const auto& transaction : transactions) {
     bytes body;
     transaction.Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
   }
+
+  // Need to create a block with our TXs in since that is referenced in the
+  // transaction receipt (tx index)
+  buildCommonEthBlockCase(mediator, EPOCH_NUM, transactions, pairOfKey);
 
   for (uint32_t i = 0; i < transactions.size(); ++i) {
     // call the method on the lookup server with params
