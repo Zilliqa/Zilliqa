@@ -1308,7 +1308,7 @@ Json::Value LookupServer::GetEthBalance(const std::string& address,
   return "";
 }
 
-Json::Value LookupServer::getEthGasPrice() const {
+Json::Value LookupServer::GetEthGasPrice() const {
   try {
     uint256_t gasPrice =
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
@@ -1323,7 +1323,7 @@ Json::Value LookupServer::getEthGasPrice() const {
 
     strm << "0x" << std::hex << gasPrice << std::dec;
     return strm.str();
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what());
 
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
@@ -1818,7 +1818,7 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
 
 std::string LookupServer::GetWeb3ClientVersion() {
   LOG_MARKER();
-  return "to do implement web3 version string";
+  return "Zilliqa/v8.2";
 }
 
 string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
@@ -1855,7 +1855,7 @@ std::string LookupServer::GetEthCoinbase() {
 
 Json::Value LookupServer::GetNetListening() {
   LOG_MARKER();
-  return Json::Value(false);
+  return Json::Value(true);
 }
 
 std::string LookupServer::GetNetPeerCount() {

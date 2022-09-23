@@ -342,7 +342,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->getEthGasPrice();
+    response = this->GetEthGasPrice();
   }
 
   /**
@@ -501,9 +501,9 @@ class LookupServer : public Server,
 
   /**
    * @brief Handles json rpc 2.0 request on method: net_version. Returns the
-   * chain_id of zilliqa.
+   * current network id.
    * @param request : params none
-   * @param response : string with the zilliqa chain_id
+   * @param response : String - The zilliqa network id.
    */
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
@@ -763,7 +763,7 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
-  Json::Value getEthGasPrice() const;
+  Json::Value GetEthGasPrice() const;
 
   std::string CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
