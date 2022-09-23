@@ -1,0 +1,25 @@
+{
+  "env": {
+    "browser": false,
+    "commonjs": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": ["plugin:mocha/recommended", "prettier"],
+  "plugins": ["mocha", "prettier"],
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "rules": {
+    "prettier/prettier": ["error"],
+    "indent": ["error", 2],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "double"],
+    "semi": ["error", "always"],
+    "function-call-argument-newline": ["error", "never"],
+    "mocha/no-pending-tests": "off",
+    "ignoreComments": true,
+    "ignoreTrailingComments": true,
+    "ignoreRegExpLiterals": true
+  }
+}
