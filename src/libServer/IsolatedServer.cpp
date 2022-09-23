@@ -980,7 +980,7 @@ void IsolatedServer::PostTxBlock() {
   const TxBlock& txBlock = GenerateTxBlock();
   if (ENABLE_WEBSOCKET) {
     // send tx block and attach txhashes
-    Json::Value j_txnhashes{};
+    Json::Value j_txnhashes;
     try {
       j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
     } catch (exception& e) {
