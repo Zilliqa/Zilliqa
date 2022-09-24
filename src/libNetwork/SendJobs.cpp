@@ -148,8 +148,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
  private:
   void Connect() {
+    ErrorCode ec;
+
     if (m_endpoint.port() == 0) {
-      ErrorCode ec;
       auto address =
           boost::asio::ip::make_address(m_peer.GetPrintableIPAddress(), ec);
       if (ec) {
@@ -161,6 +162,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       }
       m_endpoint = Endpoint(std::move(address), m_peer.GetListenPortHost());
     }
+
+    m_timer.cancel(ec);
 
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
@@ -221,6 +224,34 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_queue.pop_front();
 
+    Reconnect();
+  }
+
+  bool ExpiredOrDone(const ErrorCode& ec = ErrorCode{}) {
+    if (m_queue.empty()) {
+      Done();
+      return true;
+    }
+
+    if (m_queue.front().expires_at < Clock()) {
+      Done(ec ? ec : TIMED_OUT);
+      return true;
+    }
+
+    return false;
+  }
+
+  void ReconnectOrGiveUp(const ErrorCode& ec) {
+    if (ExpiredOrDone(ec)) {
+      return;
+    }
+
+    assert(ec);
+
+    WaitTimer(m_timer, RECONNECT_DELAY, this, &PeerSendQueue::Reconnect);
+  }
+
+  void Reconnect() {
     if (ExpiredOrDone()) {
       return;
     }
@@ -232,25 +263,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     Connect();
   }
 
-  bool ExpiredOrDone() {
-    if (m_queue.empty()) {
-      Done();
-      return true;
-    }
-
-    if (m_queue.front().expires_at < Clock()) {
-      Done(TIMED_OUT);
-      return true;
-    }
-
-    return false;
-  }
-
-  void ReconnectOrGiveUp(const ErrorCode& /*ec*/) {
-    // TODO clock or expire time
-  }
-
-  void Done(ErrorCode ec = ErrorCode{}) {
+  void Done(const ErrorCode& ec = ErrorCode{}) {
     if (!m_closed) {
       m_doneCallback(m_peer, ec);
     }
