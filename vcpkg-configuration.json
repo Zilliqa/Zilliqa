@@ -1,0 +1,9 @@
+{
+  "registries": [
+    {
+      "kind": "filesystem",
+      "path": "vcpkg-registry",
+      "packages": [ "python3" ]
+    }
+  ]
+}

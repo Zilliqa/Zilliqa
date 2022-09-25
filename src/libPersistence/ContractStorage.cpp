@@ -27,7 +27,9 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 
+#ifndef __APPLE__
 #include <bits/stdc++.h>
+#endif
 #include <boost/algorithm/string.hpp>
 
 using namespace std;

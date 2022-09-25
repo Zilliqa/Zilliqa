@@ -18,7 +18,7 @@ include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 set(JSONRPC_CXX_FLAGS "-Wno-deprecated") 
 
 set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
-               -DCMAKE_BUILD_TYPE=Release
+               -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                # Build static lib but suitable to be included in a shared lib.
                -DCMAKE_POSITION_INDEPENDENT_CODE=On
                -DWITH_COVERAGE=Off
@@ -34,23 +34,18 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DTCP_SOCKET_SERVER=On
                -DCOMPILE_STUBGEN=Off
                -DCOMPILE_EXAMPLES=Off
-               # Point to jsoncpp library.
-               -DJSONCPP_INCLUDE_DIR=${JSONCPP_INCLUDE_DIRS}
-               # Select jsoncpp include prefix: <json/...> or <jsoncpp/json/...>
-               -DJSONCPP_INCLUDE_PREFIX=${JSON_PREFIX}
-               -DJSONCPP_LIBRARY=${JSONCPP_LIBRARY_DIRS}
-               -DCURL_INCLUDE_DIR=${CURL_INCLUDE_DIR}
-               -DCURL_LIBRARY=${CURL_LIBRARY}
+               -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+               -DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}
                -DMHD_INCLUDE_DIR=${MHD_INCLUDE_DIR}
                -DMHD_LIBRARY=${MHD_LIBRARY}
                -DCMAKE_CXX_FLAGS=${JSONRPC_CXX_FLAGS})
 
 ExternalProject_Add(jsonrpc-project
     PREFIX src/depends/jsonrpc
-    URL https://github.com/Zilliqa/libjson-rpc-cpp/archive/v1.3.0-time-patch.tar.gz
-    URL_HASH SHA256=cfa2051f24deeba73b92b8f2f7c198eeafb148f7d71e914bfa1a5a33e895f1c8
+    URL https://github.com/Zilliqa/libjson-rpc-cpp/archive/refs/tags/v1.3.0-time-patch-fix.tar.gz
+    URL_HASH SHA256=3315c508e6b8154e3c3f489f7f8826a9c4d697045ee101d80e443d759ac6e218
     # On Windows it tries to install this dir. Create it to prevent failure.
-    PATCH_COMMAND cmake -E make_directory <SOURCE_DIR>/win32-deps/include
+    PATCH_COMMAND cp ${CMAKE_SOURCE_DIR}/vcpkg.json <SOURCE_DIR> && cmake -E make_directory <SOURCE_DIR>/win32-deps/include
     CMAKE_ARGS ${CMAKE_ARGS}
     # overwrite build and install commands to force Release build on MSVC.
     BUILD_COMMAND cmake --build <BINARY_DIR> --config Release
@@ -77,8 +72,8 @@ add_dependencies(jsonrpc::common jsonrpc-project)
 
 add_library(jsonrpc::client STATIC IMPORTED)
 set_property(TARGET jsonrpc::client PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/lib/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-client${CMAKE_STATIC_LIBRARY_SUFFIX})
-set_property(TARGET jsonrpc::client PROPERTY INTERFACE_LINK_LIBRARIES jsonrpc::common ${CURL_LIBRARY})
-set_property(TARGET jsonrpc::client PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CURL_INCLUDE_DIR})
+set_property(TARGET jsonrpc::client PROPERTY INTERFACE_LINK_LIBRARIES jsonrpc::common CURL::libcurl)
+set_property(TARGET jsonrpc::client PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${CURL_INCLUDE_DIRS})
 add_dependencies(jsonrpc::client jsonrpc-project)
 
 add_library(jsonrpc::server STATIC IMPORTED)
