@@ -580,6 +580,12 @@ LookupServer::LookupServer(Mediator& mediator,
                          NULL),
       &LookupServer::EthUninstallFilterI);
 
+  this->bindAndAddMethod(
+          jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
+                             jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                             "param02", jsonrpc::JSON_STRING, NULL),
+          &LookupServer::GetEthFeeHistoryI);
+
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
@@ -2028,6 +2034,13 @@ Json::Value LookupServer::GetEthCode(std::string const& address,
   }
 
   return codeStr;
+}
+
+
+Json::Value LookupServer::GetEthFeeHistory(std::string const& /*range*/,
+                           std::string const& /*startBlock*/, std::string const& /*rewardPercentiles*/) {
+
+  return "";
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,

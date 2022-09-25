@@ -166,7 +166,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
-  retJson["extraData"] = "0x";
+  retJson["extraData"] = "0x0";
 
   auto transactionsJson = Json::Value{Json::arrayValue};
   if (!includeFullTransactions) {

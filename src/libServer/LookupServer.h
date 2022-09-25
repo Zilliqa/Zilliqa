@@ -471,6 +471,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthUncleBlockI(const Json::Value& /*request*/,
                                         Json::Value& response) {
+    std::cout << "UjRGH" << std::endl;
     response = this->GetEthUncleBlock();
   }
 
@@ -599,9 +600,9 @@ class LookupServer : public Server,
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
-  inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
+  inline virtual void GetEthFeeHistoryI(const Json::Value& request,
                                         Json::Value& response) {
-    response = this->GetEmptyResponse();
+    response = this->GetEthFeeHistory(request[0u].asString(), request[1u].asString(), request[1u].asString());
   }
 
   /**
@@ -741,6 +742,8 @@ class LookupServer : public Server,
                               std::string const& blockNum);
   Json::Value GetEthCode(std::string const& address,
                          std::string const& blockNum);
+    Json::Value GetEthFeeHistory(std::string const& range,
+                           std::string const& startBlock, std::string const& rewardPercentiles);
 
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
