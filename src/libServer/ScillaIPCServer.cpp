@@ -174,7 +174,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo->getCurBlockNum());
     return true;
-  } else if (query_name == "TIMESTAMP") {
+  } else if (query_name == "TIMESTAMP" || query_name == "BLOCKHASH") {
     uint64_t blockNum = 0;
     try {
       blockNum = stoull(query_args);
@@ -190,61 +190,17 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       return false;
     }
 
-    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    if (query_name == "TIMESTAMP") {
+      value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    } else {
+      value = txBlockSharedPtr->GetBlockHash().hex();
+    }      
     return true;
   } else if (query_name == "CHAINID") {
     value = std::to_string(CHAIN_ID);
     return true;
   }
 
-  // For queries that include the block number.
-  uint64_t blockNum = 0;
-  if (query_name == "BLOCKHASH" || query_name == "TIMESTAMP") {
-    try {
-      blockNum = stoull(query_args);
-    } catch (...) {
-      LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
-      return false;
-    }
-  } else {
-    blockNum = m_BCInfo->getCurBlockNum();
-  }
-
-  TxBlockSharedPtr txBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKTIMESTAMP" ||
-      query_name == "BLOCKDIFFICULTY" || query_name == "BLOCKGASLIMIT") {
-    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
-                                                    txBlockSharedPtr)) {
-      LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
-      return false;
-    }
-  }
-
-  // TODO: this will always return the value 0 so far, as we need the real DS
-  // block.
-  blockNum = m_BCInfo->getCurDSBlockNum();
-  DSBlockSharedPtr dsBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY") {
-    if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
-                                                    dsBlockSharedPtr)) {
-      LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
-      return false;
-    }
-  }
-
-  if (query_name == "BLOCKHASH") {
-    value = txBlockSharedPtr->GetBlockHash().hex();
-  } else if (query_name == "BLOCKNUMBER") {
-    value = std::to_string(blockNum);
-  } else if (query_name == "TIMESTAMP" || query_name == "BLOCKTIMESTAMP") {
-    value = std::to_string(txBlockSharedPtr->GetTimestamp());
-  } else if (query_name == "BLOCKDIFFICULTY") {
-    value = std::to_string(dsBlockSharedPtr->GetHeader().GetDifficulty());
-  } else if (query_name == "BLOCKGASLIMIT") {
-    value = std::to_string(txBlockSharedPtr->GetHeader().GetGasLimit());
-  } else {
-    LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
-    return false;
-  }
+  LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
   return true;
 }

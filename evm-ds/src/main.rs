@@ -100,6 +100,16 @@ impl Serialize for DirtyState {
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub struct EvmEvalExtras {
+    chain_id: u32,
+    block_timestamp: u64,
+    block_gas_limit: u64,
+    block_difficulty: u64,
+    block_number: u64,
+    gas_price: u64,
+}
+
 #[derive(serde::Serialize)]
 pub struct EvmResult {
     exit_reason: evm::ExitReason,
@@ -120,6 +130,7 @@ pub trait Rpc: Send + 'static {
         data: String,
         apparent_value: String,
         gas_limit: u64,
+        extras: EvmEvalExtras,
     ) -> BoxFuture<Result<EvmResult>>;
 }
 
@@ -138,11 +149,12 @@ impl Rpc for EvmServer {
         data_hex: String,
         apparent_value: String,
         gas_limit: u64,
+        extras: EvmEvalExtras,
     ) -> BoxFuture<Result<EvmResult>> {
         let origin = H160::from_str(&origin);
         match origin {
             Ok(origin) => {
-                let backend = ScillaBackend::new(self.backend_config.clone(), origin);
+                let backend = ScillaBackend::new(self.backend_config.clone(), origin, extras);
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
                 Box::pin(async move {
