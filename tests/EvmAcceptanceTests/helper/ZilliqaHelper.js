@@ -13,7 +13,7 @@ class ZilliqaHelper {
     }
 
     getSecondaryAccount() {
-        return this.primaryAccount;
+        return this.auxiliaryAccount;
     }
 
     async getState(address, index) {
