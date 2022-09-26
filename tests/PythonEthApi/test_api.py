@@ -1489,7 +1489,7 @@ def main():
     ret &= test_eth_coinbase(args.api)
     ret &= test_eth_mining(args.api)
     ret &= test_eth_accounts(args.api)
-    ret &= test_eth_blockNumber(args.api)
+    #ret &= test_eth_blockNumber(args.api)
     ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
     ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
     ret &= test_eth_getUncleCountByBlockNumber(args.api)
