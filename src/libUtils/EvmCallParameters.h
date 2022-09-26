@@ -23,6 +23,13 @@
 #include "boost/multiprecision/cpp_int.hpp"
 
 // input parameters to Json call
+struct EvmCallExtras {
+  uint64_t block_timestamp{};
+  uint64_t block_gas_limit{};
+  uint64_t block_difficulty{};
+  uint64_t block_number{};
+  std::string gas_price{};
+};
 
 struct EvmCallParameters {
   std::string m_contract;
@@ -31,6 +38,7 @@ struct EvmCallParameters {
   std::string m_data;
   uint64_t m_available_gas = {0};
   boost::multiprecision::uint256_t m_apparent_value = {0};
+  EvmCallExtras m_extras;
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_

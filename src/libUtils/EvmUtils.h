@@ -43,4 +43,6 @@ class EvmUtils {
   static bool isEvm(const bytes& code);
 };
 
+bool GetEvmCallExtras(const uint64_t& blockNum, EvmCallExtras& extras);
+
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_

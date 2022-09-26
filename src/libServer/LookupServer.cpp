@@ -44,6 +44,8 @@
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/EvmCallParameters.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -1798,9 +1800,22 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
       data = data.substr(2);
     }
+    EvmCallExtras extras;
+    uint64_t blockNum =
+        m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+    if (!GetEvmCallExtras(blockNum, extras)) {
+      throw JsonRpcException(RPC_INTERNAL_ERROR,
+                             "Failed to get EVM call extras");
+    }
     EvmCallParameters params{
-        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
-        data,       gasRemained,    amount};
+        addr.hex(),
+        fromAddr.hex(),
+        DataConversion::CharArrayToString(code),
+        data,
+        gasRemained,
+        amount,
+        std::move(extras),
+    };
 
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
   } catch (const exception& e) {

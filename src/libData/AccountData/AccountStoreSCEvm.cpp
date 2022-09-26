@@ -20,7 +20,9 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
+#include "common/BaseType.h"
 #include "common/Constants.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
@@ -315,6 +317,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce(),
                                          transaction.GetVersionIdentifier());
+      LOG_GENERAL(INFO, "Contract creation address is " << contractAddress);
       // instantiate the object for contract account
       // ** Remember to call RemoveAccount if deployment failed halfway
       Account* contractAccount;
@@ -389,13 +392,21 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
+      EvmCallExtras extras;
+      if (!GetEvmCallExtras(blockNum, extras)) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       EvmCallParameters params = {
           contractAddress.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(transaction.GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          std::move(extras),
+      };
 
       std::map<std::string, bytes> t_newmetadata;
 
@@ -555,13 +566,20 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
+      EvmCallExtras extras;
+      if (!GetEvmCallExtras(blockNum, extras)) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       EvmCallParameters params = {
           m_curContractAddr.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          std::move(extras)};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "

@@ -29,9 +29,11 @@
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
+#include "libUtils/GasConv.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -46,7 +48,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
     // take off the EVM prefix
     if ((not params.m_code.empty()) && params.m_code.size() >= 3 &&
         params.m_code[0] == 'E' && params.m_code[1] == 'V' &&
-        params.m_code[2]) {
+        params.m_code[2] == 'M') {
       std::copy(params.m_code.begin() + 3, params.m_code.end(),
                 std::back_inserter(code));
       arr_ret.append(code);
@@ -71,6 +73,14 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
 
+  Json::Value extras;
+  extras["chain_id"] = ETH_CHAINID;
+  extras["block_timestamp"] = params.m_extras.block_timestamp;
+  extras["block_gas_limit"] = params.m_extras.block_gas_limit;
+  extras["block_difficulty"] = params.m_extras.block_difficulty;
+  extras["block_number"] = params.m_extras.block_number;
+  extras["gas_price"] = params.m_extras.gas_price;
+
   return arr_ret;
 }
 
@@ -92,4 +102,31 @@ bool EvmUtils::isEvm(const bytes& code) {
   auto const hasEvm = (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 
   return hasEvm;
+}
+
+bool GetEvmCallExtras(const uint64_t& blockNum, EvmCallExtras& extras) {
+  TxBlockSharedPtr txBlockSharedPtr;
+  if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlockSharedPtr)) {
+    LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
+    return false;
+  }
+
+  DSBlockSharedPtr dsBlockSharedPtr;
+  uint64_t dsBlockNum = txBlockSharedPtr->GetHeader().GetDSBlockNum();
+  if (!BlockStorage::GetBlockStorage().GetDSBlock(dsBlockNum,
+                                                  dsBlockSharedPtr)) {
+    LOG_GENERAL(WARNING, "Could not get blockNum DS block " << dsBlockNum);
+    return false;
+  }
+
+  std::stringstream gasPrice;
+  gasPrice << dsBlockSharedPtr->GetHeader().GetGasPrice();
+  extras.block_timestamp =
+      txBlockSharedPtr->GetTimestamp() / 1000000;  // microseconds to seconds
+  extras.block_gas_limit =
+      DS_MICROBLOCK_GAS_LIMIT * GasConv::GetScalingFactor();
+  extras.block_difficulty = dsBlockSharedPtr->GetHeader().GetDifficulty();
+  extras.block_number = blockNum;
+  extras.gas_price = gasPrice.str();
+  return true;
 }

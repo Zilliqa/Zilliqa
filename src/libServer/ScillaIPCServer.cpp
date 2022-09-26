@@ -194,7 +194,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       value = std::to_string(txBlockSharedPtr->GetTimestamp());
     } else {
       value = txBlockSharedPtr->GetBlockHash().hex();
-    }      
+    }
     return true;
   } else if (query_name == "CHAINID") {
     value = std::to_string(CHAIN_ID);

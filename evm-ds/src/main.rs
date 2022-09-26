@@ -107,7 +107,7 @@ pub struct EvmEvalExtras {
     block_gas_limit: u64,
     block_difficulty: u64,
     block_number: u64,
-    gas_price: u64,
+    gas_price: String,  // a 128-bit number to be handled nicely by JSON.
 }
 
 #[derive(serde::Serialize)]
