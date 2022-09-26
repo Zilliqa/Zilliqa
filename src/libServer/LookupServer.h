@@ -342,7 +342,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->getEthGasPrice();
+    response = this->GetEthGasPrice();
   }
 
   /**
@@ -368,7 +368,7 @@ class LookupServer : public Server,
     try {
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
       response = DataConversion::IntToHexString(resp);
     } catch (...) {
       response = "0x0";
@@ -389,7 +389,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
+    auto pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
@@ -501,9 +501,9 @@ class LookupServer : public Server,
 
   /**
    * @brief Handles json rpc 2.0 request on method: net_version. Returns the
-   * chain_id of zilliqa.
+   * current network id.
    * @param request : params none
-   * @param response : string with the zilliqa chain_id
+   * @param response : String - The zilliqa network id.
    */
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
@@ -749,6 +749,9 @@ class LookupServer : public Server,
 
   TxBlock GetBlockFromTransaction(
       const TransactionWithReceipt& transaction) const;
+  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
+                                        const std::string& txnhash) const;
+
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
@@ -760,7 +763,7 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
-  Json::Value getEthGasPrice() const;
+  Json::Value GetEthGasPrice() const;
 
   std::string CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,

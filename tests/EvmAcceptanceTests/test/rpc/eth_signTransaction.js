@@ -11,7 +11,7 @@ describe("Calling " + METHOD, function () {
       }
     })
 
-    it("should return a signed transaction", async function () {
+    it("should return an error on sending a sign transaction request", async function () {
       await helper.callEthMethod(METHOD, 2, ["0xF0C05464f12cB2a011d21dE851108a090C95c755", "0xdeadbeaf"],
         (result, status) => {
           console.log(result);

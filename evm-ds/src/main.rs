@@ -218,8 +218,8 @@ async fn run_evm_impl(
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
 
         info!(
-            "Executing runtime with code \"{:?}\" and data \"{:?}\"",
-            code_hex, data_hex,
+            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}",
+            backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
         );
         let mut listener = LoggingEventListener;
 
