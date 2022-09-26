@@ -149,7 +149,7 @@ describe("Contract Interaction", function () {
             })
 
             it("Should set address internal state correctly", async function() {
-                let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
+                const ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
                 expect(await contract.methods.setAddress(ADDRESS).send(options)).to.be.not.null;
                 expect(await contract.methods.someAddress().call()).to.be.eq(ADDRESS)
             })
