@@ -210,7 +210,9 @@ void ConsensusLeader::GenerateConsensusSubsets() {
       }
     }
 
-    random_shuffle(peersWhoCommitted.begin(), peersWhoCommitted.end());
+    std::random_device randomDevice;
+    std::mt19937 randomEngine(randomDevice());
+    shuffle(peersWhoCommitted.begin(), peersWhoCommitted.end(), randomEngine);
   }
   // Clear out the original commit map stuff, we don't need it anymore at this
   // point
@@ -271,7 +273,9 @@ bool ConsensusLeader::StartConsensusSubsets() {
   }
 
   // Shuffle the peer list so we don't always send challenges in same sequence
-  random_shuffle(peerInfo.begin(), peerInfo.end());
+  std::random_device randomDevice;
+  std::mt19937 randomEngine(randomDevice());
+  shuffle(peerInfo.begin(), peerInfo.end(), randomEngine);
 
   P2PComm::GetInstance().SendMessage(peerInfo, challenge, START_BYTE_NORMAL,
                                      true);

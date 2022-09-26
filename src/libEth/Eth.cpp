@@ -59,7 +59,11 @@ Json::Value populateReceiptHelper(std::string const &txnhash, bool success,
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
   ret["status"] = success ? "0x1" : "0x0";
-  ret["to"] = to;
+  if (to.empty()) {
+    ret["to"] = Json::Value();
+  } else {
+    ret["to"] = to;
+  }
   ret["transactionIndex"] = "0x0";
 
   return ret;
@@ -127,6 +131,9 @@ EthFields parseRawTxFields(std::string const &message) {
     i++;
     it++;
   }
+
+  // Because of the way Zil handles nonces, we increment the nonce here
+  ret.nonce++;
 
   return ret;
 }

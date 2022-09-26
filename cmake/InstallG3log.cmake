@@ -21,15 +21,19 @@ if(NOT "${G3LOG_INSTALL_RET}" STREQUAL "0")
     message(FATAL_ERROR "Error when building and installing g3log, see more in log ${G3LOG_INSTALL_LOG}")
 endif()
 
+file(COPY ${CMAKE_SOURCE_DIR}/vcpkg.json DESTINATION ${G3LOG_SOURCE_DIR})
 
 # generate build directory
 execute_process(
     COMMAND ${CMAKE_COMMAND}
         -H${G3LOG_SOURCE_DIR}
         -B${G3LOG_BINARY_DIR}
+        -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
         -DUSE_DYNAMIC_LOGGING_LEVELS=ON
         -DG3_SHARED_LIB=OFF
         -DCMAKE_INSTALL_PREFIX=${G3LOG_INSTALL_DIR}
+        -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+        -DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}
         -DADD_FATAL_EXAMPLE=OFF
         -DENABLE_FATAL_SIGNALHANDLING=OFF
         -Wno-dev
