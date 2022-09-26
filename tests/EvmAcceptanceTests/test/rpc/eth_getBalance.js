@@ -10,7 +10,6 @@ describe("Calling " + METHOD, async function () {
 
     describe("When tag is 'latest'", async function () {
         it("should return the latest balance from the specified account", async function () {
-
             await helper.callEthMethod(METHOD, 1, [
                 zHelper.getPrimaryAccount().address,
                 "latest"],
@@ -85,7 +84,7 @@ describe("Calling " + METHOD, async function () {
         })
     })
 
-    describe("When getBalance tag is invalid tag", function () {
+    describe("When tag is 'unknown tag'", function () {
         let expectedErrorMessage = ""
         let errorCode = 0;
         before(async function () {
