@@ -18,7 +18,7 @@
 #include "libData/AccountData/Address.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/Logger.h"
-#include "libUtils/nlohmann/json.hpp"  // NOLINT(readability-redundant-declaration)
+#include "nlohmann/json.hpp"  // NOLINT(readability-redundant-declaration)
 #define BOOST_TEST_MODULE utils
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
