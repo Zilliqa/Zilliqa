@@ -6,6 +6,11 @@ contract WithSettersAndGetters {
     uint256 public number;
     string public name;
 
+    enum MyEnum { Zero, One, Two }
+
+    MyEnum public someEnum;
+    address public someAddress;
+
     event logWithoutParam();
     event logWithUint256Param(uint256 value);
     event logWithStringPram(string param); 
@@ -28,7 +33,20 @@ contract WithSettersAndGetters {
         name = _name;
     }
 
+    function setEnum(MyEnum _enum) public {
+        someEnum = _enum;
+    }
+
+    function setAddress(address _address) public {
+        someAddress = _address;
+    }
+
     /// Public Views
+
+    function getEnum() external view returns(MyEnum) {
+        return someEnum;
+    }
+
     function getNumberPublic() external view returns(uint256) {
         return number;
     }

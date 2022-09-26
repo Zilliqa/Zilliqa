@@ -29,6 +29,15 @@ class Web3Helper {
 
         return deployedContract;
     }
+
+    async getCommonOptions(base = {}) {
+        const gasPrice = (base.gasPrice || await web3.eth.getGasPrice());
+        const gas = (base.gasLimit || 250000);
+        const from = (base.account || this.primaryAccount.address);
+        return {
+            gasPrice, gas, from
+        }
+    }
 }
 
 module.exports = { Web3Helper}

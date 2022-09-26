@@ -289,7 +289,7 @@ describe("Contract Deployment", function () {
             })
         });
 
-        describe("When web3.js is used www", function () {
+        describe("When web3.js is used", function () {
             let contract;
             let NAME = "Zilliqa"
             let NUMBER = 100;
