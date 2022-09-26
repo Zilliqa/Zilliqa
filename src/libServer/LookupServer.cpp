@@ -61,6 +61,17 @@ const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
 
+static bool isNumber(const std::string& str) {
+  char* endp{};
+  strtoull(str.c_str(), &endp, 0);
+  return (str.size() > 0 && endp != nullptr && *endp == '\0');
+}
+
+static bool isSupportedTag(const std::string& tag) {
+  return tag == "latest" || tag == "earliest" || tag == "pending" ||
+         isNumber(tag);
+}
+
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
 
@@ -1176,30 +1187,37 @@ Json::Value LookupServer::GetEthBlockNumber() {
   return ret;
 }
 
-Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
-                                              bool includeFullTransactions) {
+Json::Value LookupServer::GetEthBlockByNumber(
+    const std::string& blockNumberStr, const bool includeFullTransactions) {
   try {
     TxBlock txBlock;
 
-    if (blockNumberStr == "latest") {
-      txBlock = m_mediator.m_txBlockChain.GetLastBlock();
-    } else if (blockNumberStr == "earliest") {
-      txBlock = m_mediator.m_txBlockChain.GetBlock(0);
-    } else if (blockNumberStr == "pending") {
+    if (!isSupportedTag(blockNumberStr)) {
+      return Json::nullValue;
+    } else if (blockNumberStr == "latest" ||    //
+               blockNumberStr == "earliest" ||  //
+               isNumber(blockNumberStr)) {
+      // handle latest, earliest and block number requests
+      if (blockNumberStr == "latest") {
+        txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+      } else if (blockNumberStr == "earliest") {
+        txBlock = m_mediator.m_txBlockChain.GetBlock(0);
+      } else if (isNumber(blockNumberStr)) {  // exact block number
+        const uint64_t blockNum =
+            std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+        txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
+      }
+    } else {
       // Not supported
       return Json::nullValue;
-    } else {
-      const uint64_t blockNum =
-          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-      txBlock = m_mediator.m_txBlockChain.GetBlock(blockNum);
     }
+
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
     return GetEthBlockCommon(txBlock, includeFullTransactions);
-
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "
                                 << includeFullTransactions);
@@ -1207,8 +1225,8 @@ Json::Value LookupServer::GetEthBlockByNumber(const std::string& blockNumberStr,
   }
 }
 
-Json::Value LookupServer::GetEthBlockByHash(const std::string& inputHash,
-                                            bool includeFullTransactions) {
+Json::Value LookupServer::GetEthBlockByHash(
+    const std::string& inputHash, const bool includeFullTransactions) {
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock = m_mediator.m_txBlockChain.GetBlockByHash(blockHash);
@@ -1226,8 +1244,8 @@ Json::Value LookupServer::GetEthBlockByHash(const std::string& inputHash,
   }
 }
 
-Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
-                                            bool includeFullTransactions) {
+Json::Value LookupServer::GetEthBlockCommon(
+    const TxBlock& txBlock, const bool includeFullTransactions) {
   const auto dsBlock =
       m_mediator.m_dsBlockChain.GetBlock(txBlock.GetHeader().GetDSBlockNum());
 
@@ -1269,17 +1287,6 @@ Json::Value LookupServer::GetEthBlockCommon(const TxBlock& txBlock,
                                                  includeFullTransactions);
 }
 
-static bool isNumber(const std::string& str) {
-  char* endp;
-  strtoull(str.c_str(), &endp, 0);
-  return (str.size() > 0 && endp != nullptr && *endp == '\0');
-}
-
-static bool isSupportedTag(const std::string& tag) {
-  return tag == "latest" || tag == "earliest" || tag == "pending" ||
-         isNumber(tag);
-}
-
 Json::Value LookupServer::GetEthBalance(const std::string& address,
                                         const std::string& tag) {
   if (isSupportedTag(tag)) {
@@ -1316,8 +1323,8 @@ Json::Value LookupServer::GetEthGasPrice() const {
     gasPrice =
         (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
 
-    // The following ensures we get 'at least' that high price as it was before
-    // dividing by GasScalingFactor
+    // The following ensures we get 'at least' that high price as it was
+    // before dividing by GasScalingFactor
     gasPrice += 1000000;
     std::ostringstream strm;
 
@@ -2962,7 +2969,8 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
         transactionCur += tranHashes.size();
         continue;
       }
-      // Skip this microblock's transactions since we've reached transactionEnd
+      // Skip this microblock's transactions since we've reached
+      // transactionEnd
       if (transactionCur >= transactionEnd) {
         continue;
       }
@@ -3006,7 +3014,8 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
 }
 
 vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
-  // case when the number required is greater than total numbers being shuffled
+  // case when the number required is greater than total numbers being
+  // shuffled
   if (size < num) {
     num = size;
   }
@@ -3161,7 +3170,8 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
       const DSBlock& currDSBlock =
           m_mediator.m_dsBlockChain.GetBlock(currDSBlockNum);
 
-      // Add the public keys of the PoWWinners in that entry to the DS committee
+      // Add the public keys of the PoWWinners in that entry to the DS
+      // committee
       for (const auto& winner : currDSBlock.GetHeader().GetDSPoWWinners()) {
         minerInfoDSComm.m_dsNodes.emplace_front(winner.first);
       }
