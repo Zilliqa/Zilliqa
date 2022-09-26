@@ -12,5 +12,4 @@ target_link_libraries (Server PUBLIC
                               Eth)
 
 target_link_libraries (Server PRIVATE 
-                              CryptoUtils 
                               SafeServer)

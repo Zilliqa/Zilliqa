@@ -49,11 +49,11 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCreate) {
     cout << "Exception caught in EVMResponse " << e.what() << std::endl;
   }
 
-  BOOST_REQUIRE(result.GetSuccess() == true);
-  BOOST_REQUIRE(result.Apply().empty() == true);
+  BOOST_REQUIRE(result.Success() == true);
+  BOOST_REQUIRE(result.GetApplyInstructions().empty() == true);
   BOOST_REQUIRE(result.Logs().empty() == true);
   BOOST_REQUIRE(result.Gas() == 999024);
-  BOOST_REQUIRE(result.Apply().size() == 0);
+  BOOST_REQUIRE(result.GetApplyInstructions().size() == 0);
   BOOST_REQUIRE(result.ExitReason() == "Returned");
   BOOST_REQUIRE(result.ReturnedBytes().size() > 0);
 }
@@ -96,11 +96,11 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCreate2) {
   } catch (std::exception& e) {
     cout << "Exception caught in EVMResponse " << e.what() << std::endl;
   }
-  BOOST_REQUIRE(result.GetSuccess() == true);
-  BOOST_REQUIRE(result.Apply().empty() == true);
+  BOOST_REQUIRE(result.Success() == true);
+  BOOST_REQUIRE(result.GetApplyInstructions().empty() == true);
   BOOST_REQUIRE(result.Logs().empty() == true);
   BOOST_REQUIRE(result.Gas() == 99823);
-  BOOST_REQUIRE(result.Apply().size() == 0);
+  BOOST_REQUIRE(result.GetApplyInstructions().size() == 0);
   BOOST_REQUIRE(result.ExitReason() == "Returned");
   BOOST_REQUIRE(result.ReturnedBytes().size() > 0);
 }
@@ -142,11 +142,11 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCall2) {
   } catch (std::exception& e) {
     cout << "Exception caught in EVMResponse " << e.what() << std::endl;
   }
-  BOOST_REQUIRE(result.GetSuccess());
-  BOOST_REQUIRE(result.Apply().empty());
+  BOOST_REQUIRE(result.Success());
+  BOOST_REQUIRE(result.GetApplyInstructions().empty());
   BOOST_REQUIRE(!result.Logs().empty());
   BOOST_REQUIRE(result.Gas() == 94743);
-  BOOST_REQUIRE(result.Apply().size() == 0);
+  BOOST_REQUIRE(result.GetApplyInstructions().size() == 0);
   BOOST_REQUIRE(result.ExitReason() == "Stopped");
   BOOST_REQUIRE(result.ReturnedBytes().empty());
   BOOST_REQUIRE(result.ReturnedBytes().size() == 0);
@@ -214,18 +214,18 @@ BOOST_AUTO_TEST_CASE(test_EvmJsonResponseGoodCall3) {
 
   auto response = evmproj::GetReturn(tmp, result);
 
-  BOOST_REQUIRE(result.GetSuccess());
-  BOOST_REQUIRE(!result.Apply().empty());
+  BOOST_REQUIRE(result.Success());
+  BOOST_REQUIRE(!result.GetApplyInstructions().empty());
   BOOST_REQUIRE(result.Logs().empty());
   BOOST_REQUIRE(result.Gas() == 77771);
 
-  BOOST_REQUIRE(result.Apply().size() > 0);
+  BOOST_REQUIRE(result.GetApplyInstructions().size() > 0);
   BOOST_REQUIRE(result.ExitReason() == "Returned");
   BOOST_REQUIRE(!result.ReturnedBytes().empty());
   BOOST_REQUIRE(result.ReturnedBytes().size() > 0);
 
-  if (result.Apply().size() > 0) {
-    for (const auto& it : result.Apply()) {
+  if (result.GetApplyInstructions().size() > 0) {
+    for (const auto& it : result.GetApplyInstructions()) {
       BOOST_REQUIRE(it->isResetStorage() == false);
       BOOST_REQUIRE(it->OperationType() == std::string("modify"));
       BOOST_REQUIRE(it->hasAddress() && it->Address().size() > 0);
