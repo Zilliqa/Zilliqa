@@ -34,6 +34,7 @@
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/TxnExtras.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -75,7 +76,8 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
 
   Json::Value extras;
   extras["chain_id"] = ETH_CHAINID;
-  extras["block_timestamp"] = params.m_extras.block_timestamp;
+  extras["block_timestamp"] =
+      params.m_extras.block_timestamp.convert_to<uint64_t>();
   extras["block_gas_limit"] = params.m_extras.block_gas_limit;
   extras["block_difficulty"] = params.m_extras.block_difficulty;
   extras["block_number"] = params.m_extras.block_number;
@@ -104,29 +106,15 @@ bool EvmUtils::isEvm(const bytes& code) {
   return hasEvm;
 }
 
-bool GetEvmCallExtras(const uint64_t& blockNum, EvmCallExtras& extras) {
-  TxBlockSharedPtr txBlockSharedPtr;
-  if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, txBlockSharedPtr)) {
-    LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
-    return false;
-  }
-
-  DSBlockSharedPtr dsBlockSharedPtr;
-  uint64_t dsBlockNum = txBlockSharedPtr->GetHeader().GetDSBlockNum();
-  if (!BlockStorage::GetBlockStorage().GetDSBlock(dsBlockNum,
-                                                  dsBlockSharedPtr)) {
-    LOG_GENERAL(WARNING, "Could not get blockNum DS block " << dsBlockNum);
-    return false;
-  }
-
-  std::stringstream gasPrice;
-  gasPrice << dsBlockSharedPtr->GetHeader().GetGasPrice();
-  extras.block_timestamp =
-      txBlockSharedPtr->GetTimestamp() / 1000000;  // microseconds to seconds
-  extras.block_gas_limit =
+bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
+                      EvmCallExtras& extras_out) {
+  extras_out.block_timestamp = extras_in.block_timestamp;
+  extras_out.block_gas_limit =
       DS_MICROBLOCK_GAS_LIMIT * GasConv::GetScalingFactor();
-  extras.block_difficulty = dsBlockSharedPtr->GetHeader().GetDifficulty();
-  extras.block_number = blockNum;
-  extras.gas_price = gasPrice.str();
+  extras_out.block_difficulty = extras_in.block_difficulty;
+  extras_out.block_number = blockNum;
+  std::stringstream gas_price_str;
+  gas_price_str << (extras_in.gas_price * EVM_ZIL_SCALING_FACTOR);
+  extras_out.gas_price = gas_price_str.str();
   return true;
 }

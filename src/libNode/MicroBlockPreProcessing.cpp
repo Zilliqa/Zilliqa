@@ -348,7 +348,7 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
 }
 
 void Node::ProcessTransactionWhenShardLeader(
-    const uint64_t& microblock_gas_limit) {
+    const uint64_t& microblock_gas_limit, const TxnExtras& txnExtras) {
   LOG_MARKER();
 
   auto startTime = std::chrono::high_resolution_clock::now();
@@ -445,7 +445,8 @@ void Node::ProcessTransactionWhenShardLeader(
         continue;
       }
       TxnStatus error_code;
-      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code)) {
+      if (m_mediator.m_validator->CheckCreatedTransaction(t, txnExtras, tr,
+                                                          error_code)) {
         if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
@@ -519,7 +520,7 @@ void Node::ProcessTransactionWhenShardLeader(
           continue;
         }
         TxnStatus error_code;
-        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr,
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, txnExtras, tr,
                                                             error_code)) {
           if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
                                        m_gasUsedTotal)) {
@@ -669,7 +670,7 @@ void Node::UpdateProcessedTransactions() {
 }
 
 void Node::ProcessTransactionWhenShardBackup(
-    const uint64_t& microblock_gas_limit) {
+    const uint64_t& microblock_gas_limit, const TxnExtras& txnExtras) {
   LOG_MARKER();
 
   auto startTime = std::chrono::high_resolution_clock::now();
@@ -766,7 +767,8 @@ void Node::ProcessTransactionWhenShardBackup(
         continue;
       }
       TxnStatus error_code;
-      if (m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code)) {
+      if (m_mediator.m_validator->CheckCreatedTransaction(t, txnExtras, tr,
+                                                          error_code)) {
         if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
                                      m_gasUsedTotal)) {
           LOG_GENERAL(WARNING, "m_gasUsedTotal addition unsafe!");
@@ -840,7 +842,7 @@ void Node::ProcessTransactionWhenShardBackup(
           continue;
         }
         TxnStatus error_code;
-        if (m_mediator.m_validator->CheckCreatedTransaction(t, tr,
+        if (m_mediator.m_validator->CheckCreatedTransaction(t, txnExtras, tr,
                                                             error_code)) {
           if (!SafeMath<uint64_t>::add(m_gasUsedTotal, tr.GetCumGas(),
                                        m_gasUsedTotal)) {
@@ -1073,15 +1075,21 @@ void Node::StartTxnProcessingThread() {
   if (m_mediator.ToProcessTransaction()) {
     m_mediator.m_node->m_txnProcessingFinished = false;
     auto t = [this]() -> void {
+      TxnExtras txnExtras{
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
+          m_prePrepMicroblock == nullptr ? 0
+                                         : m_prePrepMicroblock->GetTimestamp(),
+          m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
+      };
       if (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE) {
         m_mediator.m_node->ProcessTransactionWhenShardBackup(
-            SHARD_MICROBLOCK_GAS_LIMIT);
+            SHARD_MICROBLOCK_GAS_LIMIT, txnExtras);
         if (!AccountStore::GetInstance().SerializeDelta()) {
           LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
         }
       } else {
         m_mediator.m_node->ProcessTransactionWhenShardBackup(
-            m_mediator.m_ds->m_microBlockGasLimit);
+            m_mediator.m_ds->m_microBlockGasLimit, txnExtras);
       }
     };
     DetachedFunction(1, t);
@@ -1286,7 +1294,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   SetState(MICROBLOCK_CONSENSUS);
 
   if (m_mediator.ToProcessTransaction()) {
-    ProcessTransactionWhenShardLeader(SHARD_MICROBLOCK_GAS_LIMIT);
+    TxnExtras txnExtras{
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
+        m_prePrepMicroblock == nullptr ? 0
+                                       : m_prePrepMicroblock->GetTimestamp(),
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
+    };
+    ProcessTransactionWhenShardLeader(SHARD_MICROBLOCK_GAS_LIMIT, txnExtras);
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return false;

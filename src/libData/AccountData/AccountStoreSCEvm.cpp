@@ -29,6 +29,7 @@
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
@@ -252,12 +253,10 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
-                                            const unsigned int& numShards,
-                                            const bool& isDS,
-                                            const Transaction& transaction,
-                                            TransactionReceipt& receipt,
-                                            TxnStatus& error_code) {
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(
+    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
+    const Transaction& transaction, const TxnExtras& txnExtras,
+    TransactionReceipt& receipt, TxnStatus& error_code) {
   LOG_MARKER();
 
   if (LOG_SC) {
@@ -393,7 +392,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       EvmCallExtras extras;
-      if (!GetEvmCallExtras(blockNum, extras)) {
+      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
@@ -567,7 +566,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       EvmCallExtras extras;
-      if (!GetEvmCallExtras(blockNum, extras)) {
+      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;

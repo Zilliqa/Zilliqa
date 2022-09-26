@@ -30,6 +30,7 @@
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #include "libData/BlockData/BlockHeader/VCBlockHeader.h"
 #include "libNetwork/Peer.h"
+#include "libUtils/TxnExtras.h"
 
 static std::mt19937 rng;
 

@@ -28,6 +28,7 @@
 #pragma GCC diagnostic pop
 
 #include "depends/libTrie/TrieDB.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 
 dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes);
