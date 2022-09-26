@@ -6,9 +6,9 @@ const METHOD = 'eth_getBlockByNumber';
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", async function () {
     before(async function () {
-     // if (!helper.isZilliqaNetworkSelected()) {
-     //   this.skip();
-     // } enable later?
+      // if (!helper.isZilliqaNetworkSelected()) {
+      //   this.skip();
+      // } enable later?
     })
 
     it("should return an error when called with no parameters", async function () {
@@ -43,6 +43,7 @@ describe("Calling " + METHOD, function () {
           console.log(result);
 
           assert.equal(status, 200, 'has status code');
+          // validate all returned fields
 
           assert.property(result, 'result', (result.error) ? result.error.message : 'error');
           assert.isObject(result.result, 'is not an object');
@@ -50,9 +51,12 @@ describe("Calling " + METHOD, function () {
           // difficulty
           assert.match(result.result.difficulty, /^0x/, 'Should be HEX starting with 0x');
           assert.isNumber(+result.result.difficulty, 'Is not a number');
+
           // totalDifficulty
           assert.match(result.result.totalDifficulty, /^0x/, 'Should be HEX starting with 0x');
           assert.isNumber(+result.result.totalDifficulty, 'Is not a number');
+
+          
         })
     })
   })
