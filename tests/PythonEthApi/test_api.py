@@ -84,7 +84,7 @@ def checkHasField(obj, field, is_hex = False):
     if not field in obj:
         raise Exception(f"{obj} is missing field {field}")
 
-    if is_hex and not ("0x" in obj[field] or obj[field] == ""):
+    if is_hex and not (obj[field] is None or "0x" in obj[field] or obj[field] == ""):
         raise Exception(f"{obj} has field {field} but it is not a hex value")
 
 def checkIsTransaction(obj):
@@ -104,6 +104,23 @@ def checkIsTransaction(obj):
     #checkHasField(obj, "raw", True) # TODO(HUT): missing
     #checkHasField(obj, "publicKey", True) # TODO(HUT): missing
     checkHasField(obj, "chainId", True)
+
+def checkIsTransactionReceipt(obj):
+    checkHasField(obj, "transactionHash", True)
+    checkHasField(obj, "transactionIndex", True)
+    checkHasField(obj, "from", True)
+    checkHasField(obj, "to", True)
+    checkHasField(obj, "blockHash", True)
+    checkHasField(obj, "blockNumber", True)
+    checkHasField(obj, "cumulativeGasUsed", True)
+    checkHasField(obj, "gasUsed", True)
+    checkHasField(obj, "contractAddress", True)
+    checkHasField(obj, "logs")
+    checkHasField(obj, "logsBloom", True)
+    #checkHasField(obj, "value", True) # TODO(HUT): missing
+    #checkHasField(obj, "v", True) # TODO(HUT): missing
+    #checkHasField(obj, "r", True) # TODO(HUT): missing
+    #checkHasField(obj, "s", True) # TODO(HUT): missing
 
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
@@ -1082,7 +1099,7 @@ def test_eth_getTransactionByHash(url: str, account: eth_account.signers.local.L
         res = get_result(response)
 
         if res is not None:
-            raise Exception(f"Did not get null response for missing TX eth_getTransactionByHash {res}")
+            raise Exception(f"Did not get null response for missing TX eth_getTransactionByHash. Got: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_getTransactionByHash with error: '{e}'")
@@ -1091,16 +1108,58 @@ def test_eth_getTransactionByHash(url: str, account: eth_account.signers.local.L
 
     return True
 
-def test_eth_getTransactionByBlockHashAndIndex(url: str) -> bool:
+def test_eth_getTransactionByBlockHashAndIndex(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns information about a transaction by block hash and transaction index position.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": ["latest"] })
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        tx_hash = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionByBlockHashAndIndex. Got: {res}")
+        if "blockHash" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if "transactionIndex" not in res:
+            raise Exception(f"Did not find index from TX receipt {res}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": [res["blockHash"], res["transactionIndex"]] })
+
+        res = get_result(response)
+
+        checkIsTransaction(res)
+
+        if tx_hash != res["hash"]:
+            raise Exception(f"Did not find matching TX hash when retrieving TX! {tx_hash} vs {res['hash']}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": ["0x0", "0x0"] })
+
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get null when searching for non existent TX: {res}")
 
     except Exception as e:
         print(f"Failed test test_eth_getTransactionByBlockHashAndIndex with error: '{e}'")
@@ -1109,16 +1168,59 @@ def test_eth_getTransactionByBlockHashAndIndex(url: str) -> bool:
 
     return True
 
-def test_eth_getTransactionByBlockNumberAndIndex(url: str) -> bool:
+def test_eth_getTransactionByBlockNumberAndIndex(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns information about a transaction by block number and transaction index position.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": ["latest"] })
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        tx_hash = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionByBlockNumberAndIndex. Got: {res}")
+        if "blockNumber" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if "transactionIndex" not in res:
+            raise Exception(f"Did not find index from TX receipt {res}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": [res["blockNumber"], res["transactionIndex"]] })
+
+        res = get_result(response)
+
+        checkIsTransaction(res)
+
+        if tx_hash != res["hash"]:
+            raise Exception(f"Did not find matching TX hash when retrieving TX! {tx_hash} vs {res['hash']}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": ["0x0", "0x0"] })
+
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get null when searching for non existent TX: {res}")
+
 
     except Exception as e:
         print(f"Failed test test_eth_getTransactionByBlockNumberAndIndex with error: '{e}'")
@@ -1127,16 +1229,38 @@ def test_eth_getTransactionByBlockNumberAndIndex(url: str) -> bool:
 
     return True
 
-def test_eth_getTransactionReceipt(url: str) -> bool:
+def test_eth_getTransactionReceipt(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns the receipt of a transaction by transaction hash.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": ["latest"] })
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        tx_hash = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionReceipt. Got: {res}")
+        checkIsTransactionReceipt(res)
 
     except Exception as e:
         print(f"Failed test test_eth_getTransactionReceipt with error: '{e}'")
@@ -1351,7 +1475,7 @@ def main():
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
     #ret &= test_eth_chainId(args.api)
     #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    #ret &= test_eth_getStorageAt(args.api, account, w3)
+    ret &= test_eth_getStorageAt(args.api, account, w3)
     #ret &= test_eth_getCode(args.api, account, w3)
     #ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
     ##ret &= test_eth_getProof(args.api) # TODO(HUT): implement
@@ -1387,13 +1511,11 @@ def main():
     ##ret &= test_eth_call(args.api)
     #ret &= test_eth_estimateGas(args.api)
     #ret &= test_eth_getTransactionCount(args.api, account, w3)
-    ret &= test_eth_getTransactionByHash(args.api, account, w3)
-
+    #ret &= test_eth_getTransactionByHash(args.api, account, w3)
+    #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
+    #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionReceipt(args.api, account, w3)
     #ret &= test_eth_sendRawTransaction(args.api, account, w3)
-
-    #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api)
-    #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
-    #ret &= test_eth_getTransactionReceipt(args.api)
     #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
