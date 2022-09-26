@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <chrono>
+#include <future>
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
@@ -28,56 +30,35 @@
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
-    INVOKE_TYPE invoke_type, EvmCallParameters& params, const uint32_t& version,
-    bool& ret, TransactionReceipt& receipt,
+    const INVOKE_TYPE /*invoke_type*/,  //
+    EvmCallParameters& params,          //
+    const uint32_t version,             //
+    bool& ret,                          //
+    TransactionReceipt& receipt,        //
     evmproj::CallResponse& evmReturnValues) {
-  auto call_already_finished{false};
-
-  auto worker = [this, &params, &invoke_type, &ret, &version,
-                 &call_already_finished, &evmReturnValues]() mutable -> void {
-    if (invoke_type == RUNNER_CREATE || invoke_type == RUNNER_CALL) {
-      ret = EvmClient::GetInstance().CallRunner(
-          version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
-    }
-    call_already_finished = true;
-    cv_callContract.notify_all();
+  //
+  // create a worker to be executed in the async method
+  const auto worker = [&params, &ret, &version, &evmReturnValues]() -> void {
+    ret = EvmClient::GetInstance().CallRunner(
+        version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
   };
-  // Run the Lambda on a detached thread and then wait for it to complete.
-  // means it cannot crash us if it dies.
-  DetachedFunction(1, worker);
-  // Wait for the worker to finish
-  {
-    std::chrono::duration<int, std::milli> ks(30000);  // 30 seconds
-    std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
-    if (!call_already_finished) {
-      if (LOG_SC) {
-        LOG_GENERAL(WARNING, "Waiting on lock");
-      }
-      auto tv = cv_callContract.wait_for(lk, ks);
-      if (tv == std::cv_status::no_timeout) {
-        if (LOG_SC) {
-          LOG_GENERAL(WARNING, "lock released normally");
-        }
-      } else {
-        if (LOG_SC) {
-          LOG_GENERAL(WARNING, "lock released due to timeout");
-        }
-        m_txnProcessTimeout = true;
-      }
-    } else {
-      LOG_GENERAL(INFO, "Call functions already finished!");
-    }
-  }
-  if (m_txnProcessTimeout) {
-    if (LOG_SC) {
+
+  const auto fut = std::async(std::launch::async, worker);
+  // check the future return and when time out log error.
+  switch (fut.wait_for(std::chrono::seconds(30))) {
+    case std::future_status::ready: {
+      LOG_GENERAL(WARNING, "lock released normally");
+    } break;
+    case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
+      EvmClient::GetInstance().CheckClient(0, true);
+      receipt.AddError(EXECUTE_CMD_TIMEOUT);
+      ret = false;
+    } break;
+    case std::future_status::deferred: {
+      LOG_GENERAL(WARNING, "Illegal future return status!");
+      ret = false;
     }
-    EvmClient::GetInstance().CheckClient(0, true);
-    if (LOG_SC) {
-      LOG_GENERAL(WARNING, "Txn Checked Client returned!");
-    }
-    receipt.AddError(EXECUTE_CMD_TIMEOUT);
-    ret = false;
   }
 }
 
@@ -86,14 +67,15 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
     EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+  // call evm-ds
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
 
-  if (not evmReturnValues.GetSuccess()) {
+  if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
   }
 
   // switch ret to reflect our overall success
-  ret = evmReturnValues.GetSuccess() ? ret : false;
+  ret = evmReturnValues.Success() ? ret : false;
 
   if (!evmReturnValues.Logs().empty()) {
     Json::Value _json = Json::arrayValue;
@@ -121,7 +103,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   std::map<std::string, bytes> states;
   std::vector<std::string> toDeletes;
   // parse the return values from the call to evm.
-  for (const auto& it : evmReturnValues.m_apply) {
+  for (const auto& it : evmReturnValues.GetApplyInstructions()) {
     if (it->OperationType() == "delete") {
       // be careful with this call needs further testing.
       // TODO: likely needs fixing, test case: remove an account and then revert
@@ -254,15 +236,16 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
                                        std::string& result) {
-  TransactionReceipt rcpt;
   uint32_t evm_version{0};
-  evmproj::CallResponse response;
-  EvmCallRunner(RUNNER_CALL, params, evm_version, ret, rcpt, response);
-  result = response.m_return;
+  evmproj::CallResponse response{};
+
+  ret = EvmClient::GetInstance().CallRunner(
+      evm_version, EvmUtils::GetEvmCallJson(params), response);
+  result = response.ReturnedBytes();
+
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Called Evm, response:" << response);
   }
-
   return ret;
 }
 

@@ -20,7 +20,7 @@ install:
   - docker build --build-arg AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID} --build-arg AWS_REGION=${AWS_REGION} -t "zilliqa_build:$TRAVIS_COMMIT" -f ./scripts/Dockerfile.build .
 
 script:
-  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then docker run --rm -it -v /scilla:/scilla zilliqa_build:$TRAVIS_COMMIT -c './scripts/ci_build.sh ; ./scripts/ci_report_coverage.sh'; fi
+  - if [[ "$TRAVIS_BRANCH" == "master" ]]; then docker run --rm -it -v /scilla:/scilla zilliqa_build:$TRAVIS_COMMIT -c './scripts/ci_build.sh && ./scripts/ci_report_coverage.sh'; fi
 
 env:
   - VCPKG_ROOT=/vcpkg

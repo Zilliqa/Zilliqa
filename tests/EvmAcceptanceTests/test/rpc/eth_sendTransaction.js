@@ -11,7 +11,7 @@ describe("Calling " + METHOD, function () {
       }
     })
 
-    it("should return a send transaction", async function () {
+    it("Should return a an error on sending send transaction request", async function () {
       await helper.callEthMethod(METHOD, 1, [{
         "data": "0xd46e8dd67c5d32be8d46e8dd67c5d32be8058bb8eb970870f072445675058bb8eb970870f072445675",
         "from": "0xF0C05464f12cB2a011d21dE851108a090C95c755",
