@@ -151,7 +151,7 @@ def test_eth_feeHistory(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_feeHistory", "params": ["0x4", "latest"] })
         get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_feeHistory with error: '{e}'")
+        print(f"********* Failed test test_eth_feeHistory with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -206,7 +206,7 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
             raise Exception(f"Failed to retrieve correct contract amount: {res} when expected 0x0000000000000000000000000000000000000000000000000000000000000401")
 
     except Exception as e:
-        print(f"Failed test test_eth_getStorageAt with error: '{e}'")
+        print(f"********* Failed test test_eth_getStorageAt with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -259,7 +259,7 @@ def test_eth_getCode(url: str, account: eth_account.signers.local.LocalAccount, 
             raise Exception(f"Failed to retrieve correct contract amount: {res} when expected {code}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getCode with error: '{e}'")
+        print(f"********* Failed test test_eth_getCode with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -276,7 +276,7 @@ def test_eth_getProof(url: str)   -> bool:
         get_result(response)
 
     except Exception as e:
-        print(f"Failed test test_eth_getProof with error: '{e}'")
+        print(f"********* Failed test test_eth_getProof with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -294,7 +294,7 @@ def test_eth_getBalance(url: str, account: eth_account.signers.local.LocalAccoun
             raise Exception(f"Expected account to have some funds but instead had {amount}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBalance with error: '{e}'")
+        print(f"********* Failed test test_eth_getBalance with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -312,7 +312,7 @@ def test_web3_clientVersion(url: str) -> bool:
             raise Exception(f"Bad client version: {res}")
 
     except Exception as e:
-        print(f"Failed test eth_web3_clientVersion with error: '{e}'")
+        print(f"********* Failed test eth_web3_clientVersion with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -330,7 +330,7 @@ def test_web3_sha3(url: str) -> bool:
             raise Exception(f"Bad sha3 return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_web3_sha3 with error: '{e}'")
+        print(f"********* Failed test test_web3_sha3 with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -351,7 +351,7 @@ def test_net_version(url: str) -> bool:
             raise Exception(f"Bad net_version return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_net_version with error: '{e}'")
+        print(f"********* Failed test test_net_version with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -369,7 +369,7 @@ def test_net_listening(url: str) -> bool:
             raise Exception(f"Bad net_listening return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_net_listening with error: '{e}'")
+        print(f"********* Failed test test_net_listening with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -387,7 +387,7 @@ def test_net_peerCount(url: str) -> bool:
             raise Exception(f"Bad net_listening return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_net_peerCount with error: '{e}'")
+        print(f"********* Failed test test_net_peerCount with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -405,7 +405,7 @@ def test_eth_protocolVersion(url: str) -> bool:
             raise Exception(f"Bad eth_protocolVersion return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_protocolVersion with error: '{e}'")
+        print(f"********* Failed test test_eth_protocolVersion with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -423,7 +423,7 @@ def test_eth_syncing(url: str) -> bool:
             raise Exception(f"Bad eth_syncing return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_syncing with error: '{e}'")
+        print(f"********* Failed test test_eth_syncing with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -442,7 +442,7 @@ def test_eth_coinbase(url: str) -> bool:
             raise Exception(f"Bad eth_coinbase return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_coinbase with error: '{e}'")
+        print(f"********* Failed test test_eth_coinbase with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -460,7 +460,7 @@ def test_eth_mining(url: str) -> bool:
             raise Exception(f"Bad eth_mining return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_mining with error: '{e}'")
+        print(f"********* Failed test test_eth_mining with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -479,7 +479,7 @@ def test_eth_accounts(url: str) -> bool:
             raise Exception(f"Bad eth_accounts return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_accounts with error: '{e}'")
+        print(f"********* Failed test test_eth_accounts with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -505,7 +505,7 @@ def test_eth_blockNumber(url: str) -> bool:
             raise Exception(f"Bad eth_blockNumber, did not increment: {res} vs {res2} - this is not an error on the isolated server.")
 
     except Exception as e:
-        print(f"Failed test test_eth_blockNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_blockNumber with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -556,7 +556,7 @@ def test_eth_getBlockTransactionCountByHash(url: str, account: eth_account.signe
             raise Exception(f"Did not get enough TXs in block: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockTransactionCountByHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockTransactionCountByHash with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -607,7 +607,7 @@ def test_eth_getBlockTransactionCountByNumber(url: str, account: eth_account.sig
             raise Exception(f"Did not get enough TXs in block: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockTransactionCountByNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockTransactionCountByNumber with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -627,7 +627,7 @@ def test_eth_getUncleCountByBlockHash(url: str) -> bool:
             raise Exception(f"Bad eth_getUncleCountByBlockHash return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getUncleCountByBlockHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getUncleCountByBlockHash with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -647,7 +647,7 @@ def test_eth_getUncleCountByBlockNumber(url: str) -> bool:
             raise Exception(f"Bad eth_getUncleCountByBlockNumber return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getUncleCountByBlockNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getUncleCountByBlockNumber with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -718,7 +718,7 @@ def test_eth_getBlockByHash(url: str, account: eth_account.signers.local.LocalAc
             checkIsTransaction(transaction)
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockByHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockByHash with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -789,7 +789,7 @@ def test_eth_getBlockByNumber(url: str, account: eth_account.signers.local.Local
             checkIsTransaction(transaction)
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockByNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockByNumber with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -809,7 +809,7 @@ def test_eth_getUncleByBlockHashAndIndex(url: str) -> bool:
             raise Exception(f"Bad eth_getUncleByBlockHashAndIndex return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockByNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockByNumber with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -828,7 +828,7 @@ def test_eth_getUncleByBlockNumberAndIndex(url: str) -> bool:
         if res is not None:
             raise Exception(f"Bad eth_getUncleByBlockNumberAndIndex return value: {res}")
     except Exception as e:
-        print(f"Failed test test_eth_getUncleByBlockNumberAndIndex with error: '{e}'")
+        print(f"********* Failed test test_eth_getUncleByBlockNumberAndIndex with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -848,7 +848,7 @@ def test_eth_gasPrice(url: str) -> bool:
             raise Exception(f"Did not get hex value for gasPrice. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_gasPrice with error: '{e}'")
+        print(f"********* Failed test test_eth_gasPrice with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -864,7 +864,7 @@ def test_eth_newFilter(url: str) -> bool:
                                             "method": "eth_newFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_newFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_newFilter with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -880,7 +880,7 @@ def test_eth_newBlockFilter(url: str) -> bool:
                                             "method": "eth_newBlockFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_newBlockFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_newBlockFilter with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -896,7 +896,7 @@ def test_eth_newPendingTransactionFilter(url: str) -> bool:
                                             "method": "eth_newPendingTransactionFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_newPendingTransactionFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_newPendingTransactionFilter with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -912,7 +912,7 @@ def test_eth_uninstallFilter(url: str) -> bool:
                                             "method": "eth_uninstallFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_uninstallFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_uninstallFilter with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -928,7 +928,7 @@ def test_eth_getFilterChanges(url: str) -> bool:
                                             "method": "eth_getFilterChanges", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_getFilterChanges with error: '{e}'")
+        print(f"********* Failed test test_eth_getFilterChanges with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -944,7 +944,7 @@ def test_eth_getFilterLogs(url: str) -> bool:
                                             "method": "eth_getFilterLogs", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_getFilterLogs with error: '{e}'")
+        print(f"********* Failed test test_eth_getFilterLogs with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -960,7 +960,7 @@ def test_eth_getLogs(url: str) -> bool:
                                             "method": "eth_getLogs"})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_getLogs with error: '{e}'")
+        print(f"********* Failed test test_eth_getLogs with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -990,7 +990,7 @@ def test_eth_call(url: str) -> bool:
             raise Exception(f"Did not get 1 for eth_call. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_call with error: '{e}'")
+        print(f"********* Failed test test_eth_call with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1011,7 +1011,7 @@ def test_eth_estimateGas(url: str) -> bool:
             raise Exception(f"Did not get 1 for eth_estimateGas. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_estimateGas with error: '{e}'")
+        print(f"********* Failed test test_eth_estimateGas with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1054,7 +1054,7 @@ def test_eth_getTransactionCount(url: str, account: eth_account.signers.local.Lo
             raise Exception(f"Did not get nonce of 0 for unique address. Got: {nonce}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionCount with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionCount with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1102,7 +1102,7 @@ def test_eth_getTransactionByHash(url: str, account: eth_account.signers.local.L
             raise Exception(f"Did not get null response for missing TX eth_getTransactionByHash. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionByHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionByHash with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1162,7 +1162,7 @@ def test_eth_getTransactionByBlockHashAndIndex(url: str, account: eth_account.si
             raise Exception(f"Did not get null when searching for non existent TX: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionByBlockHashAndIndex with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionByBlockHashAndIndex with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1223,7 +1223,7 @@ def test_eth_getTransactionByBlockNumberAndIndex(url: str, account: eth_account.
 
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionByBlockNumberAndIndex with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionByBlockNumberAndIndex with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1263,7 +1263,7 @@ def test_eth_getTransactionReceipt(url: str, account: eth_account.signers.local.
         checkIsTransactionReceipt(res)
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionReceipt with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionReceipt with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1291,7 +1291,7 @@ def test_eth_sign(url: str) -> bool:
             raise Exception(f"Did not get [] for eth_sign. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_sign with error: '{e}'")
+        print(f"********* Failed test test_eth_sign with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1314,7 +1314,7 @@ def test_eth_signTransaction(url: str) -> bool:
             raise Exception(f"Did not get '' for eth_signTransaction. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_signTransaction with error: '{e}'")
+        print(f"********* Failed test test_eth_signTransaction with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1337,7 +1337,7 @@ def test_eth_sendTransaction(url: str) -> bool:
             raise Exception(f"Did not get '' for eth_sendTransaction. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_sendTransaction with error: '{e}'")
+        print(f"********* Failed test test_eth_sendTransaction with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1373,7 +1373,7 @@ def test_eth_sendRawTransaction(url: str, account: eth_account.signers.local.Loc
             raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_sendRawTransaction with error: '{e}'")
+        print(f"********* Failed test test_eth_sendRawTransaction with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1412,7 +1412,7 @@ def test_move_funds(url: str, genesis_privkey: pyzil.account, test_privkey: eth_
         if bal == 0:
             raise Exception(f"Failed to see funds for eth style test address. Subsequent tests will likely fail.")
     except Exception as e:
-        print(f"Failed test test_move_funds with error: '{e}'")
+        print(f"********* Failed test test_move_funds with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1431,7 +1431,7 @@ def test_eth_chainId(url: str) -> bool:
             raise Exception(f"Bad chain ID: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_chainId with error: '{e}'")
+        print(f"********* Failed test test_eth_chainId with error: '{e}'")
         print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
@@ -1473,49 +1473,49 @@ def main():
     ret = True
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
-    #ret &= test_eth_chainId(args.api)
-    #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    ret &= test_eth_chainId(args.api)
+    ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
     ret &= test_eth_getStorageAt(args.api, account, w3)
-    #ret &= test_eth_getCode(args.api, account, w3)
-    #ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
-    ##ret &= test_eth_getProof(args.api) # TODO(HUT): implement
-    #ret &= test_web3_clientVersion(args.api)
-    #ret &= test_web3_sha3(args.api)
-    #ret &= test_net_version(args.api)
-    #ret &= test_net_listening(args.api)
-    #ret &= test_net_peerCount(args.api)
-    #ret &= test_eth_protocolVersion(args.api)
-    #ret &= test_eth_syncing(args.api)
-    #ret &= test_eth_coinbase(args.api)
-    #ret &= test_eth_mining(args.api)
-    #ret &= test_eth_accounts(args.api)
-    #ret &= test_eth_blockNumber(args.api)
-    #ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
-    #ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
-    #ret &= test_eth_getUncleCountByBlockNumber(args.api)
-    #ret &= test_eth_getUncleCountByBlockHash(args.api)
-    #ret &= test_eth_getBlockByHash(args.api, account, w3)
-    #ret &= test_eth_getBlockByNumber(args.api, account, w3)
-    #ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
-    #ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
-    #ret &= test_eth_gasPrice(args.api)
-    ##ret &= test_eth_newFilter(args.api) # Only on isolated server?
-    ##ret &= test_eth_newBlockFilter(args.api)
-    ##ret &= test_eth_newPendingTransactionFilter(args.api)
-    ##ret &= test_eth_uninstallFilter(args.api)
-    ##ret &= test_eth_getFilterChanges(args.api)
-    ##ret &= test_eth_getFilterLogs(args.api)
+    ret &= test_eth_getCode(args.api, account, w3)
+    ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
+    #ret &= test_eth_getProof(args.api) # TODO(HUT): implement
+    ret &= test_web3_clientVersion(args.api)
+    ret &= test_web3_sha3(args.api)
+    ret &= test_net_version(args.api)
+    ret &= test_net_listening(args.api)
+    ret &= test_net_peerCount(args.api)
+    ret &= test_eth_protocolVersion(args.api)
+    ret &= test_eth_syncing(args.api)
+    ret &= test_eth_coinbase(args.api)
+    ret &= test_eth_mining(args.api)
+    ret &= test_eth_accounts(args.api)
+    ret &= test_eth_blockNumber(args.api)
+    ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
+    ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
+    ret &= test_eth_getUncleCountByBlockNumber(args.api)
+    ret &= test_eth_getUncleCountByBlockHash(args.api)
+    ret &= test_eth_getBlockByHash(args.api, account, w3)
+    ret &= test_eth_getBlockByNumber(args.api, account, w3)
+    ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
+    ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
+    ret &= test_eth_gasPrice(args.api)
+    #ret &= test_eth_newFilter(args.api) # Only on isolated server?
+    #ret &= test_eth_newBlockFilter(args.api)
+    #ret &= test_eth_newPendingTransactionFilter(args.api)
+    #ret &= test_eth_uninstallFilter(args.api)
+    #ret &= test_eth_getFilterChanges(args.api)
+    #ret &= test_eth_getFilterLogs(args.api)
     #ret &= test_eth_getLogs(args.api)
-    ##ret &= test_eth_subscribe(args.api)
-    #ret &= test_eth_unsubscribe(args.api)
-    ##ret &= test_eth_call(args.api)
+    #ret &= test_eth_subscribe(args.api)
+    ret &= test_eth_unsubscribe(args.api)
+    #ret &= test_eth_call(args.api)
     #ret &= test_eth_estimateGas(args.api)
-    #ret &= test_eth_getTransactionCount(args.api, account, w3)
-    #ret &= test_eth_getTransactionByHash(args.api, account, w3)
-    #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
-    #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionCount(args.api, account, w3)
+    ret &= test_eth_getTransactionByHash(args.api, account, w3)
+    ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
     ret &= test_eth_getTransactionReceipt(args.api, account, w3)
-    #ret &= test_eth_sendRawTransaction(args.api, account, w3)
+    ret &= test_eth_sendRawTransaction(args.api, account, w3)
     #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
