@@ -22,7 +22,7 @@ set -e
 ls /scilla/0/
 
 re="\\bNOCI\\b"
-if [[ "$TRAVIS_COMMIT_MESSAGE" =~ $re ]]
+if [[ "$PR_TITLE" =~ $re ]]
 then
     exit 0
 fi
