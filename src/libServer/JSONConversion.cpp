@@ -155,7 +155,10 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       (boost::format("0x%x") %
        static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
           .str();
-
+  retJson["totalDifficulty"] =
+      (boost::format("0x%x") %
+       static_cast<int>(dsBlock.GetHeader().GetTotalDifficulty()))
+          .str();
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
   auto timestamp = microsec_to_sec(txblock.GetTimestamp());
