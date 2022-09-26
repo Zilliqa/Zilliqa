@@ -543,7 +543,7 @@ def test_eth_getBlockTransactionCountByHash(url: str, account: eth_account.signe
         res = get_result(response)
 
         if "blockHash" not in res:
-            raise Exception(f"Did not find block hash from TX receipt")
+            raise Exception(f"Did not find block hash from TX receipt {res}")
 
         if res == "" or res is None:
             raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
