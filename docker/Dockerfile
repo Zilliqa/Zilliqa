@@ -191,5 +191,9 @@ ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 RUN python3 -m pip install --upgrade pip setuptools wheel \
   && python3 -m pip install --no-cache-dir -r requirements3.txt
 
+RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
+  && chmod a+x /usr/bin/pip3 \
+  && ln -s /usr/bin/pip3 /usr/bin/pip
+
 ENTRYPOINT ["/bin/bash"]
 
