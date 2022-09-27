@@ -83,6 +83,8 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   extras["block_number"] = params.m_extras.block_number;
   extras["gas_price"] = params.m_extras.gas_price;
 
+  arr_ret.append(extras);
+
   return arr_ret;
 }
 
