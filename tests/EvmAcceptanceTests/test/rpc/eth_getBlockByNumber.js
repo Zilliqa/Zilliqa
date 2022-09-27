@@ -5,6 +5,69 @@ const METHOD = 'eth_getBlockByNumber';
 
 describe("Calling " + METHOD, function () {
 
+  function TestResponse(response) {
+
+    // validate all returned fields
+
+    assert.property(response, 'result', (response.error) ? response.error.message : 'error');
+    assert.isObject(response.result, 'is not an object');
+
+    // difficulty
+    assert.match(response.result.difficulty, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.difficulty, 'Is not a number');
+    // totalDifficulty
+    assert.match(response.result.totalDifficulty, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.totalDifficulty, 'Is not a number');
+    // extraData
+    assert.match(response.result.extraData, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.extraData, 'Is not a number');
+    // gasLimit
+    assert.match(response.result.gasLimit, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.gasLimit, 'Is not a number');
+    // gasUsed
+    assert.match(response.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.gasUsed, 'Is not a number');
+    // hash
+    assert.match(response.result.hash, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.hash, 'Is not a number');
+    // parentHash
+    assert.match(response.result.parentHash, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.parentHash, 'Is not a number');
+    // logsBloom
+    assert.match(response.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.logsBloom, 'Is not a number');
+    // miner
+    assert.match(response.result.miner, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.miner, 'Is not a number');
+    // number
+    assert.match(response.result.number, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.number, 'Is not a number');
+    // sha3Uncles
+    assert.match(response.result.sha3Uncles, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.sha3Uncles, 'Is not a number');
+    // size
+    assert.match(response.result.size, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.size, 'Is not a number');
+    // stateRoot
+    assert.match(response.result.stateRoot, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.stateRoot, 'Is not a number');
+    // timestamp
+    assert.match(response.result.timestamp, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.timestamp, 'Is not a number');
+    // nonce
+    assert.match(response.result.nonce, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.nonce, 'Is not a number');
+    // receiptsRoot
+    assert.match(response.result.receiptsRoot, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.receiptsRoot, 'Is not a number');
+    // transactionsRoot
+    assert.match(response.result.transactionsRoot, /^0x/, 'Should be HEX starting with 0x');
+    assert.isNumber(+response.result.transactionsRoot, 'Is not a number');
+    // transactions
+    assert.isArray(response.result.transactions, 'Is not an array');
+    // uncles
+    assert.isArray(response.result.uncles, 'Is not an array');
+  }
 
   it("should return an error when called with no parameters", async function () {
     await helper.callEthMethod(METHOD, 1, [],
@@ -32,6 +95,15 @@ describe("Calling " + METHOD, function () {
       })
   })
 
+  it("should return get full transactions objects by 'unknown tag' tag", async function () {
+    await helper.callEthMethod(METHOD, 2, ["unknown tag", true],
+      (result, status) => {
+        console.log(result);
+
+        assert.equal(status, 200, 'has status code');
+        assert.equal(result.result, null, 'should be null');
+      })
+  })
 
   it("should return get full transactions objects by 'latest' tag", async function () {
     await helper.callEthMethod(METHOD, 2, ["latest", true],
@@ -40,171 +112,19 @@ describe("Calling " + METHOD, function () {
 
         assert.equal(status, 200, 'has status code');
         // validate all returned fields
-
-        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-        assert.isObject(result.result, 'is not an object');
-
-        // difficulty
-        assert.match(result.result.difficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.difficulty, 'Is not a number');
-
-        // totalDifficulty
-        assert.match(result.result.totalDifficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.totalDifficulty, 'Is not a number');
-
-        // extraData
-        assert.match(result.result.extraData, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.extraData, 'Is not a number');
-
-        // gasLimit
-        assert.match(result.result.gasLimit, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasLimit, 'Is not a number');
-
-        // gasUsed
-        assert.match(result.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasUsed, 'Is not a number');
-
-        // hash
-        assert.match(result.result.hash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.hash, 'Is not a number');
-
-        // parentHash
-        assert.match(result.result.parentHash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.parentHash, 'Is not a number');
-
-        // logsBloom
-        assert.match(result.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.logsBloom, 'Is not a number');
-
-        // miner
-        assert.match(result.result.miner, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.miner, 'Is not a number');
-
-        // number
-        assert.match(result.result.number, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.number, 'Is not a number');
-
-        // sha3Uncles
-        assert.match(result.result.sha3Uncles, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.sha3Uncles, 'Is not a number');
-
-        // size
-        assert.match(result.result.size, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.size, 'Is not a number');
-
-        // stateRoot
-        assert.match(result.result.stateRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.stateRoot, 'Is not a number');
-
-        // timestamp
-        assert.match(result.result.timestamp, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.timestamp, 'Is not a number');
-
-        // nonce
-        assert.match(result.result.nonce, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.nonce, 'Is not a number');
-
-        // receiptsRoot
-        assert.match(result.result.receiptsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.receiptsRoot, 'Is not a number');
-
-        // transactionsRoot
-        assert.match(result.result.transactionsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.transactionsRoot, 'Is not a number');
-
-        // transactions
-        assert.isArray(result.result.transactions, 'Is not an array');
-
-        // uncles
-        assert.isArray(result.result.uncles, 'Is not an array');
+        TestResponse(result);
       })
   })
 
 
-  it("should return transactions hashes by 'latest' tag", async function () {
+  it("should return get only the hashes of the transactions by 'latest' tag", async function () {
     await helper.callEthMethod(METHOD, 2, ["latest", false],
       (result, status) => {
         console.log(result);
 
         assert.equal(status, 200, 'has status code');
         // validate all returned fields
-
-        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-        assert.isObject(result.result, 'is not an object');
-
-        // difficulty
-        assert.match(result.result.difficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.difficulty, 'Is not a number');
-
-        // totalDifficulty
-        assert.match(result.result.totalDifficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.totalDifficulty, 'Is not a number');
-
-        // extraData
-        assert.match(result.result.extraData, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.extraData, 'Is not a number');
-
-        // gasLimit
-        assert.match(result.result.gasLimit, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasLimit, 'Is not a number');
-
-        // gasUsed
-        assert.match(result.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasUsed, 'Is not a number');
-
-        // hash
-        assert.match(result.result.hash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.hash, 'Is not a number');
-
-        // parentHash
-        assert.match(result.result.parentHash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.parentHash, 'Is not a number');
-
-        // logsBloom
-        assert.match(result.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.logsBloom, 'Is not a number');
-
-        // miner
-        assert.match(result.result.miner, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.miner, 'Is not a number');
-
-        // number
-        assert.match(result.result.number, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.number, 'Is not a number');
-
-        // sha3Uncles
-        assert.match(result.result.sha3Uncles, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.sha3Uncles, 'Is not a number');
-
-        // size
-        assert.match(result.result.size, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.size, 'Is not a number');
-
-        // stateRoot
-        assert.match(result.result.stateRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.stateRoot, 'Is not a number');
-
-        // timestamp
-        assert.match(result.result.timestamp, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.timestamp, 'Is not a number');
-
-        // nonce
-        assert.match(result.result.nonce, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.nonce, 'Is not a number');
-
-        // receiptsRoot
-        assert.match(result.result.receiptsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.receiptsRoot, 'Is not a number');
-
-        // transactionsRoot
-        assert.match(result.result.transactionsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.transactionsRoot, 'Is not a number');
-
-        // transactions
-        assert.isArray(result.result.transactions, 'Is not an array');
-
-        // uncles
-        assert.isArray(result.result.uncles, 'Is not an array');
+        TestResponse(result);
       })
   })
 
@@ -215,88 +135,25 @@ describe("Calling " + METHOD, function () {
 
         assert.equal(status, 200, 'has status code');
         // validate all returned fields
+        TestResponse(result);
+        assert.equal(+result.result.number, 0, 'Block number is not "0"');
+      })
+  })
 
-        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-        assert.isObject(result.result, 'is not an object');
+  it("should return get only the hashes of the transactions objects by 'earliest' tag", async function () {
+    await helper.callEthMethod(METHOD, 2, ["earliest", false],
+      (result, status) => {
+        console.log(result);
 
-        // difficulty
-        assert.match(result.result.difficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.difficulty, 'Is not a number');
-
-        // totalDifficulty
-        assert.match(result.result.totalDifficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.totalDifficulty, 'Is not a number');
-
-        // extraData
-        assert.match(result.result.extraData, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.extraData, 'Is not a number');
-
-        // gasLimit
-        assert.match(result.result.gasLimit, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasLimit, 'Is not a number');
-
-        // gasUsed
-        assert.match(result.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasUsed, 'Is not a number');
-
-        // hash
-        assert.match(result.result.hash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.hash, 'Is not a number');
-
-        // parentHash
-        assert.match(result.result.parentHash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.parentHash, 'Is not a number');
-
-        // logsBloom
-        assert.match(result.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.logsBloom, 'Is not a number');
-
-        // miner
-        assert.match(result.result.miner, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.miner, 'Is not a number');
-
-        // number
-        assert.match(result.result.number, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.number, 'Is not a number');
-
-        // sha3Uncles
-        assert.match(result.result.sha3Uncles, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.sha3Uncles, 'Is not a number');
-
-        // size
-        assert.match(result.result.size, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.size, 'Is not a number');
-
-        // stateRoot
-        assert.match(result.result.stateRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.stateRoot, 'Is not a number');
-
-        // timestamp
-        assert.match(result.result.timestamp, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.timestamp, 'Is not a number');
-
-        // nonce
-        assert.match(result.result.nonce, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.nonce, 'Is not a number');
-
-        // receiptsRoot
-        assert.match(result.result.receiptsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.receiptsRoot, 'Is not a number');
-
-        // transactionsRoot
-        assert.match(result.result.transactionsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.transactionsRoot, 'Is not a number');
-
-        // transactions
-        assert.isArray(result.result.transactions, 'Is not an array');
-
-        // uncles
-        assert.isArray(result.result.uncles, 'Is not an array');
+        assert.equal(status, 200, 'has status code');
+        // validate all returned fields
+        TestResponse(result);
+        assert.equal(+result.result.number, 0, 'Block number is not "0"');
       })
   })
 
 
-  it("should return get full transactions objects by its block number", async function () {
+  it("should return get full transactions objects by its block number '0'", async function () {
     await helper.callEthMethod(METHOD, 2, ["0x0", true],
       (result, status) => {
         console.log(result);
@@ -304,85 +161,23 @@ describe("Calling " + METHOD, function () {
         assert.equal(status, 200, 'has status code');
         // validate all returned fields
 
-        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-        assert.isObject(result.result, 'is not an object');
-
-        // difficulty
-        assert.match(result.result.difficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.difficulty, 'Is not a number');
-
-        // totalDifficulty
-        assert.match(result.result.totalDifficulty, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.totalDifficulty, 'Is not a number');
-
-        // extraData
-        assert.match(result.result.extraData, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.extraData, 'Is not a number');
-
-        // gasLimit
-        assert.match(result.result.gasLimit, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasLimit, 'Is not a number');
-
-        // gasUsed
-        assert.match(result.result.gasUsed, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.gasUsed, 'Is not a number');
-
-        // hash
-        assert.match(result.result.hash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.hash, 'Is not a number');
-
-        // parentHash
-        assert.match(result.result.parentHash, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.parentHash, 'Is not a number');
-
-        // logsBloom
-        assert.match(result.result.logsBloom, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.logsBloom, 'Is not a number');
-
-        // miner
-        assert.match(result.result.miner, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.miner, 'Is not a number');
-
-        // number
-        assert.match(result.result.number, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.number, 'Is not a number');
-
-        // sha3Uncles
-        assert.match(result.result.sha3Uncles, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.sha3Uncles, 'Is not a number');
-
-        // size
-        assert.match(result.result.size, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.size, 'Is not a number');
-
-        // stateRoot
-        assert.match(result.result.stateRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.stateRoot, 'Is not a number');
-
-        // timestamp
-        assert.match(result.result.timestamp, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.timestamp, 'Is not a number');
-
-        // nonce
-        assert.match(result.result.nonce, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.nonce, 'Is not a number');
-
-        // receiptsRoot
-        assert.match(result.result.receiptsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.receiptsRoot, 'Is not a number');
-
-        // transactionsRoot
-        assert.match(result.result.transactionsRoot, /^0x/, 'Should be HEX starting with 0x');
-        assert.isNumber(+result.result.transactionsRoot, 'Is not a number');
-
-        // transactions
-        assert.isArray(result.result.transactions, 'Is not an array');
-
-        // uncles
-        assert.isArray(result.result.uncles, 'Is not an array');
+        TestResponse(result);
+        assert.equal(+result.result.number, 0, 'Block number is not "0"');
       })
   })
 
+  it("should return get only the hashes of transactions objects by its block number '0'", async function () {
+    await helper.callEthMethod(METHOD, 2, ["0x0", false],
+      (result, status) => {
+        console.log(result);
+
+        assert.equal(status, 200, 'has status code');
+        // validate all returned fields
+
+        TestResponse(result);
+        assert.equal(+result.result.number, 0, 'Block number is not "0"');
+      })
+  })
 
   it("should return get full transactions objects by 'pending' tag", async function () {
     describe("When on Zilliqa network", async function () {
