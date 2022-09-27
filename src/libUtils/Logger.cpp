@@ -21,6 +21,7 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 #include <cstring>
 #include <iostream>
 
@@ -99,11 +100,9 @@ void Logger::newLog() {
   m_seqNum++;
   m_bRefactor = (m_fileNamePrefix == "zilliqa");
 
-  // Filename = m_fileNamePrefix + 5-digit sequence number + "-log.txt"
-  char buf[16] = {0};
-  snprintf(buf, sizeof(buf), (m_bRefactor ? "-%05d-log" : "-%05d-log.txt"),
-           m_seqNum);
-  m_fileName = m_fileNamePrefix + buf;
+  using boost::format;
+  // Filename = m_fileNamePrefix + 5-digit sequence number + timestamp + ".log"
+  m_fileName = m_fileNamePrefix + str(format("-%05d") % m_seqNum);
 
   if (m_bRefactor) {
     m_logWorker = LogWorker::createLogWorker();
@@ -115,6 +114,7 @@ void Logger::newLog() {
     sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
     initializeLogging(m_logWorker.get());
   } else {
+    m_fileName += ".log";
     m_logFile.open(m_logPath + m_fileName, ios_base::app);
   }
 }
