@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers, web3 } = require("hardhat");
-const { Web3Helper } = require("../helper/Web3Helper");
+const web3_helper = require("../helper/Web3Helper");
 
 describe("Contract Interaction", function () {
     describe("When ethers.js is used", function() {
@@ -109,12 +109,10 @@ describe("Contract Interaction", function () {
         describe("When public setter function is called", async function() {
             let contract;
             const gasLimit = "750000";
-            let web3Helper;
             let options;
             before(async function () {
-                web3Helper = new Web3Helper();
-                contract = await web3Helper.deploy("WithSettersAndGetters", { gasLimit })
-                options = await web3Helper.getCommonOptions();
+                contract = await web3_helper.deploy("WithSettersAndGetters", { gasLimit })
+                options = await web3_helper.getCommonOptions();
             })
 
             it("Should set uint256 internal state correctly", async function() {
