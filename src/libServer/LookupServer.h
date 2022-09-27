@@ -417,6 +417,7 @@ class LookupServer : public Server,
     const std::string tag{request[1u].asString()};
 
     response = this->GetEthBalance(address, tag);
+    LOG_GENERAL(DEBUG, "Response:" << response);
   }
 
   /**
