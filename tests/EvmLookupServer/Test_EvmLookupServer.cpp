@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "libData/BlockData/Block/DSBlock.h"
+#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
@@ -56,7 +58,13 @@ class EvmClientMock : public EvmClient {
 
 static PairOfKey getTestKeyPair() { return Schnorr::GenKeyPair(); }
 
-std::unique_ptr<LookupServer> getLookupServer(
+struct LookupServerBundle {
+  std::unique_ptr<AbstractServerConnectorMock> abstractServerConnector;
+  std::unique_ptr<Mediator> mediator;
+  std::unique_ptr<LookupServer> lookupServer;
+};
+
+LookupServerBundle getLookupServer(
     const std::function<std::shared_ptr<EvmClient>()>& _allocator = []() {
       return std::make_shared<EvmClientMock>();
     }) {
@@ -64,12 +72,20 @@ std::unique_ptr<LookupServer> getLookupServer(
 
   const PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
 
+  auto mediator = std::make_unique<Mediator>(pairOfKey, peer);
+  // We need some blocks, even if dummy
+  mediator->m_txBlockChain.AddBlock(TxBlock{});
+  mediator->m_dsBlockChain.AddBlock(DSBlock{});
+  auto abstractServerConnector =
+      std::make_unique<AbstractServerConnectorMock>();
   auto lookupServer =
-      std::make_unique<LookupServer>(mediator, abstractServerConnector);
-  return lookupServer;
+      std::make_unique<LookupServer>(*mediator, *abstractServerConnector);
+  return LookupServerBundle{
+      std::move(abstractServerConnector),
+      std::move(mediator),
+      std::move(lookupServer),
+  };
 }
 
 // Convenience fn only used to test Eth TXs.
@@ -271,7 +287,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   Json::Value response;
-  lookupServer->GetEthCallEthI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(), "0x");
@@ -326,7 +342,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
 
   Json::Value response;
   try {
-    lookupServer->GetEthCallEthI(paramsRequest, response);
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (...) {
     // success
@@ -426,7 +442,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_success) {
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   Json::Value response;
-  lookupServer->GetEthCallEthI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(),
@@ -467,7 +483,7 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
   const Json::Value paramsRequest = Json::Value(Json::arrayValue);
   // call the method on the lookup server with params
   const auto lookupServer = getLookupServer();
-  lookupServer->GetWeb3ClientVersionI(paramsRequest, response);
+  lookupServer.lookupServer->GetWeb3ClientVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
@@ -484,7 +500,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   paramsRequest[0u] = "0x68656c6c6f20776f726c64";
-  lookupServer->GetWeb3Sha3I(paramsRequest, response);
+  lookupServer.lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -494,7 +510,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   // test with empty string
   paramsRequest[0u] = "";
-  lookupServer->GetWeb3Sha3I(paramsRequest, response);
+  lookupServer.lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -512,7 +528,7 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetEthMiningI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthMiningI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -537,7 +553,7 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetEthCoinbaseI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthCoinbaseI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -554,7 +570,7 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetNetVersionI(paramsRequest, response);
+  lookupServer.lookupServer->GetNetVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -570,7 +586,7 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetNetListeningI(paramsRequest, response);
+  lookupServer.lookupServer->GetNetListeningI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -587,7 +603,7 @@ BOOST_AUTO_TEST_CASE(test_net_peer_count) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetNetPeerCountI(paramsRequest, response);
+  lookupServer.lookupServer->GetNetPeerCountI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -604,7 +620,7 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetProtocolVersionI(paramsRequest, response);
+  lookupServer.lookupServer->GetProtocolVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -621,7 +637,7 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetEthChainIdI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthChainIdI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -638,7 +654,7 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetEthSyncingI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthSyncingI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
   const Json::Value expectedResponse{false};
@@ -655,7 +671,7 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetEthAccountsI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthAccountsI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::arrayValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -674,7 +690,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
   paramsRequest[0u] = "0x68656c6c6f20776f726c64";
   paramsRequest[1u] = "0x1";
 
-  lookupServer->GetEthUncleBlockI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleBlockI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::nullValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -693,7 +709,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
   paramsRequest[0u] = "0x666";
   paramsRequest[1u] = "0x1";
 
-  lookupServer->GetEthUncleBlockI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleBlockI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::nullValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -711,7 +727,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
 
   paramsRequest[0u] = "0x68656c6c6f20776f726c64";
 
-  lookupServer->GetEthUncleCountI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleCountI(paramsRequest, response);
 
   const Json::Value expectedResponse = "0x0";
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -729,7 +745,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
 
   paramsRequest[0u] = "0x10";
 
-  lookupServer->GetEthUncleCountI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleCountI(paramsRequest, response);
 
   const Json::Value expectedResponse = "0x0";
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -784,7 +800,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
                                                ->GetBalance());
 
   const auto lookupServer = getLookupServer();
-  lookupServer->GetEthBalanceI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthBalanceI(paramsRequest, response);
   LOG_GENERAL(INFO, "Got balance: " << response);
   // expected return value should be 1.000.000 times greater
   BOOST_CHECK_EQUAL(boost::algorithm::to_lower_copy(response.asString()),
