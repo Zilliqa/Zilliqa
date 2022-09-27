@@ -30,6 +30,12 @@
 #include "libNode/Node.h"
 #include "libValidator/Validator.h"
 
+namespace evmproj {
+namespace filters {
+class APICache;
+}
+}  // namespace evmproj
+
 /// A mediator class for providing access to global members.
 class Mediator {
  public:
@@ -111,6 +117,9 @@ class Mediator {
 
   /// Average TxBlock time in seconds, used by GetWorkServer
   std::atomic<double> m_aveBlockTimeInSeconds;
+
+  /// Filters API cache
+  std::shared_ptr<evmproj::filters::APICache> m_filtersAPICache;
 
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);

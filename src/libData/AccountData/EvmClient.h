@@ -45,7 +45,7 @@ class EvmClient : public Singleton<EvmClient> {
 
   virtual bool CallRunner(uint32_t version, const Json::Value& _json,
                           evmproj::CallResponse& result,
-                          uint32_t counter = MAXRETRYCONN);
+                          const uint32_t counter = MAXRETRYCONN);
 
  protected:
   virtual bool OpenServer(uint32_t version);

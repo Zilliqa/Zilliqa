@@ -1,0 +1,10 @@
+package-lock.json
+yarn.lock
+node_modules
+contracts
+artifacts
+.vscode
+.npm
+.local
+.config
+.eslintrs.json

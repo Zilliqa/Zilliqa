@@ -21,9 +21,7 @@ module.exports = {
     },
     zilliqa: {
       url: "https://master-mod-api.dev.z7a.xyz/",
-      accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"
-      ],
+      accounts: ["d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba"],
       chainId: 33101,
       zilliqaNetwork: true,
       web3ClientVersion: "Zilliqa/v1.0",

@@ -892,14 +892,12 @@ bool BlockStorage::PutMetadata(MetaType type, const bytes& data) {
 }
 
 bool BlockStorage::PutStateRoot(const bytes& data) {
-  LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
   int ret = m_stateRootDB->Insert(std::to_string((int)STATEROOT), data);
   return (ret == 0);
 }
 
 bool BlockStorage::PutLatestEpochStatesUpdated(const uint64_t& epochNum) {
-  LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
   int ret =
       m_stateRootDB->Insert(LATEST_EPOCH_STATES_UPDATED, to_string(epochNum));
@@ -1879,57 +1877,107 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
 // Don't use short-circuit logical AND (&&) here so that we attempt to reset all
 // databases
 bool BlockStorage::ResetAll() {
+  std::vector<DBTYPE> dbs;
   if (!LOOKUP_NODE_MODE) {
-    return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(TX_BLOCK_HASH_TO_NUM) & ResetDB(MICROBLOCK) &
-           ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) & ResetDB(BLOCKLINK) &
-           ResetDB(SHARD_STRUCTURE) & ResetDB(STATE_DELTA) &
-           ResetDB(TEMP_STATE) & ResetDB(DIAGNOSTIC_NODES) &
-           ResetDB(DIAGNOSTIC_COINBASE) & ResetDB(STATE_ROOT) &
-           ResetDB(PROCESSED_TEMP);
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP};
   } else  // IS_LOOKUP_NODE
   {
-    return ResetDB(META) & ResetDB(DS_BLOCK) & ResetDB(TX_BLOCK) &
-           ResetDB(TX_BLOCK_HASH_TO_NUM) & ResetDB(TX_BODY) &
-           ResetDB(MICROBLOCK) & ResetDB(DS_COMMITTEE) & ResetDB(VC_BLOCK) &
-           ResetDB(BLOCKLINK) & ResetDB(SHARD_STRUCTURE) &
-           ResetDB(STATE_DELTA) & ResetDB(TEMP_STATE) &
-           ResetDB(DIAGNOSTIC_NODES) & ResetDB(DIAGNOSTIC_COINBASE) &
-           ResetDB(STATE_ROOT) & ResetDB(PROCESSED_TEMP) &
-           ResetDB(MINER_INFO_DSCOMM) & ResetDB(MINER_INFO_SHARDS) &
-           ResetDB(EXTSEED_PUBKEYS);
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           TX_BODY,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP,
+           MINER_INFO_DSCOMM,
+           MINER_INFO_SHARDS,
+           EXTSEED_PUBKEYS};
   }
+
+  auto result = true;
+  for (auto db : dbs) {
+    result = ResetDB(db) && result;
+  }
+
+  return result;
 }
 
 // Don't use short-circuit logical AND (&&) here so that we attempt to refresh
 // all databases
 bool BlockStorage::RefreshAll() {
-  bool retVal = false;
+  std::vector<DBTYPE> dbs;
   if (!LOOKUP_NODE_MODE) {
-    retVal = RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-             RefreshDB(TX_BLOCK_HASH_TO_NUM) & RefreshDB(MICROBLOCK) &
-             RefreshDB(DS_COMMITTEE) & RefreshDB(VC_BLOCK) &
-             RefreshDB(BLOCKLINK) & RefreshDB(SHARD_STRUCTURE) &
-             RefreshDB(STATE_DELTA) & RefreshDB(TEMP_STATE) &
-             RefreshDB(DIAGNOSTIC_NODES) & RefreshDB(DIAGNOSTIC_COINBASE) &
-             RefreshDB(STATE_ROOT) & RefreshDB(PROCESSED_TEMP) &
-             Contract::ContractStorage::GetContractStorage().RefreshAll();
-
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP};
   } else  // IS_LOOKUP_NODE
   {
-    retVal = RefreshDB(META) & RefreshDB(DS_BLOCK) & RefreshDB(TX_BLOCK) &
-             RefreshDB(TX_BLOCK_HASH_TO_NUM) & RefreshDB(TX_BODY) &
-             RefreshDB(MICROBLOCK) & RefreshDB(DS_COMMITTEE) &
-             RefreshDB(VC_BLOCK) & RefreshDB(BLOCKLINK) &
-             RefreshDB(SHARD_STRUCTURE) & RefreshDB(STATE_DELTA) &
-             RefreshDB(TEMP_STATE) & RefreshDB(DIAGNOSTIC_NODES) &
-             RefreshDB(DIAGNOSTIC_COINBASE) & RefreshDB(STATE_ROOT) &
-             RefreshDB(PROCESSED_TEMP) & RefreshDB(MINER_INFO_DSCOMM) &
-             RefreshDB(MINER_INFO_SHARDS) & RefreshDB(EXTSEED_PUBKEYS) &
-             Contract::ContractStorage::GetContractStorage().RefreshAll();
+    dbs = {META,
+           DS_BLOCK,
+           TX_BLOCK,
+           TX_BLOCK_HASH_TO_NUM,
+           TX_BODY,
+           MICROBLOCK,
+           DS_COMMITTEE,
+           VC_BLOCK,
+           BLOCKLINK,
+           SHARD_STRUCTURE,
+           STATE_DELTA,
+           TEMP_STATE,
+           DIAGNOSTIC_NODES,
+           DIAGNOSTIC_COINBASE,
+           STATE_ROOT,
+           PROCESSED_TEMP,
+           MINER_INFO_DSCOMM,
+           MINER_INFO_SHARDS,
+           EXTSEED_PUBKEYS};
   }
+
+  auto result = true;
+  for (auto db : dbs) {
+    result = RefreshDB(db) && result;
+  }
+
+  result =
+      Contract::ContractStorage::GetContractStorage().RefreshAll() && result;
+
   BuildHashToNumberMappingForTxBlocks();
-  return retVal;
+  return result;
 }
 
 shared_ptr<LevelDB> BlockStorage::GetMicroBlockDB(const uint64_t& epochNum) {

@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().DeserializeDeltaTemp(delta1, 0);
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
   AccountStore::GetInstance().CommitTempRevertible();
-  auto func = [this]() -> void {
+  auto func = []() -> void {
     AccountStore::GetInstance().MoveUpdatesToDisk(200);
   };
   DetachedFunction(1, func);

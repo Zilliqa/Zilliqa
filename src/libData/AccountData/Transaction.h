@@ -117,7 +117,10 @@ class Transaction : public SerializableDataBlock {
   const TransactionCoreInfo& GetCoreInfo() const;
 
   /// Returns the current version.
-  const uint32_t& GetVersion() const;
+  uint32_t GetVersion() const;
+
+  /// Returns the current version identifier (zil or eth).
+  uint32_t GetVersionIdentifier() const;
 
   bool IsEth() const;
 
@@ -127,6 +130,8 @@ class Transaction : public SerializableDataBlock {
   bool IsSigned(bytes const& txnData) const;
 
   /// Returns the transaction nonce.
+  /// There is an edge case for Eth nonces,
+  /// See PR #2995
   const uint64_t& GetNonce() const;
 
   /// Returns the transaction destination account address.

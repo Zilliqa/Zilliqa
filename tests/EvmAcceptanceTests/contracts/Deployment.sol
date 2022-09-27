@@ -30,6 +30,24 @@ contract WithUintConstructor {
     }
 }
 
+contract WithAddressConstructor {
+    address public someAddress;
+
+    constructor(address _addr) {
+        someAddress = _addr;
+    }
+}
+
+contract WithEnumConstructor {
+    enum MyEnum { Zero, One, Two }
+
+    MyEnum public someEnum;
+
+    constructor(MyEnum _enum) {
+        someEnum = _enum;
+    }
+}
+
 
 contract MultiParamConstructor {
     string public name;
