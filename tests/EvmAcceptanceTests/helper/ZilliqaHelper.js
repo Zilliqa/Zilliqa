@@ -102,6 +102,9 @@ class ZilliqaHelper {
 
     async sendTransaction(tx, senderAccount) {
         const signedTx = await senderAccount.signTransaction(tx);
+
+        console.log("Send transaction from sender:", senderAccount.address, " to:", tx.to);
+
         return web3.eth.sendSignedTransaction(signedTx.rawTransaction)
     }
 
@@ -120,15 +123,13 @@ class ZilliqaHelper {
 
             return this.sendTransaction(tx, senderAccount)
         } catch (err) {
-            console.log("theres an error...");
-            console.log(err);
+            console.log("theres an error...", err);
         }
     }
 
     async moveFunds(amount, toAddr) {
         return this.moveFundsBy(amount, toAddr, this.primaryAccount)
     }
-
 }
 
 module.exports = {

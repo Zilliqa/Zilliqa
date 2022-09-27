@@ -506,8 +506,6 @@ void WebsocketServer::closeSocket(
 }
 
 void WebsocketServer::SendOutMessages() {
-  LOG_MARKER();
-
   vector<std::pair<connection_hdl, string>> hdlToRemove;
 
   {
@@ -524,6 +522,8 @@ void WebsocketServer::SendOutMessages() {
       }
       return;
     }
+    LOG_MARKER();
+
     lock(m_mutexTxnLogDataBuffer, m_mutexEventLogDataBuffer,
          m_mutexTxnBlockNTxnHashes);
     lock_guard<mutex> g2(m_mutexTxnBlockNTxnHashes, adopt_lock);
