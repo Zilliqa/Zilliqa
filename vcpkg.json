@@ -17,7 +17,10 @@
     {
       "name": "leveldb",
       "default-features": false,
-      "features": [ "crc32c", "snappy" ]
+      "features": [
+        "crc32c",
+        "snappy"
+      ]
     },
     "curl",
     "libmicrohttpd",
@@ -26,10 +29,25 @@
   ],
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [
-    { "name": "jsoncpp", "version-string": "1.8.1-1" },
-    { "name": "openssl", "version-string": "1.1.1n" },
-    { "name": "protobuf", "version": "3.9.1" },
-    { "name": "libmicrohttpd", "version-string": "0.9.63#7" }
+    {
+      "name": "nlohmann-json",
+      "version-string": "3.10.5#3"
+    },
+    {
+      "name": "jsoncpp",
+      "version-string": "1.8.1-1"
+    },
+    {
+      "name": "openssl",
+      "version-string": "1.1.1n"
+    },
+    {
+      "name": "protobuf",
+      "version": "3.9.1"
+    },
+    {
+      "name": "libmicrohttpd",
+      "version-string": "0.9.63#7"
+    }
   ]
 }
-

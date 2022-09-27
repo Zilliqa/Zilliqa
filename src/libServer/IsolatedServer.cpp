@@ -622,7 +622,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     LOG_GENERAL(INFO, "Processing On the isolated server completed");
   } catch (const JsonRpcException& je) {
     throw je;
-  } catch (exception& e) {
+  } catch (const exception& e) {
     LOG_GENERAL(INFO,
                 "[Error]" << e.what() << " Input: " << _json.toStyledString());
     throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
@@ -647,7 +647,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    Address toAddr{fields.toAddr};
+    const Address toAddr{fields.toAddr};
     bytes data;
     bytes code;
     if (IsNullAddress(toAddr)) {
@@ -658,7 +658,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
     Transaction tx{fields.version,
                    fields.nonce,
-                   Address(fields.toAddr),
+                   toAddr,
                    PubKey(pubKey, 0),
                    fields.amount,
                    fields.gasPrice,
@@ -696,11 +696,11 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         break;
-      case Transaction::ContractType::CONTRACT_CREATION:
+      case Transaction::ContractType::CONTRACT_CREATION: {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
         }
-        break;
+      } break;
       case Transaction::ContractType::CONTRACT_CALL: {
         if (!ENABLE_SC) {
           throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
@@ -716,22 +716,22 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "To addr is null");
-          }
-
-          else if (!account->isContract()) {
+          } else if (!account->isContract()) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                    "Non - contract address called");
           }
         }
       } break;
 
-      case Transaction::ContractType::ERROR:
+      case Transaction::ContractType::ERROR: {
         throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
                                "The code is empty and To addr is null");
-        break;
-      default:
+      } break;
+
+      default: {
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
-    }
+      }
+    }  // end of switch
 
     TransactionReceipt txreceipt;
 
@@ -775,20 +775,23 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                    twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
+
     const auto& txHash = tx.GetTranID();
     LookupServer::AddToRecentTransactions(txHash);
     {
       lock_guard<mutex> g(m_txnBlockNumMapMutex);
       m_txnBlockNumMap[m_blocknum].emplace_back(txHash);
     }
+
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
     WebsocketServer::GetInstance().ParseTxn(twr);
+
     LOG_GENERAL(
         INFO,
         "Processing On the isolated server completed. Minting a block...");
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input JSON: NA");
-  } catch (exception& e) {
+  } catch (const exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input code: NA");
   }
 
@@ -799,7 +802,6 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     PostTxBlock();
     PostTxBlock();
   }
-
   return ret;
 }
 
@@ -808,7 +810,7 @@ Json::Value IsolatedServer::GetTransactionsForTxBlock(
   uint64_t txNum;
   try {
     txNum = strtoull(txBlockNum.c_str(), NULL, 0);
-  } catch (exception& e) {
+  } catch (const exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER, e.what());
   }
 
@@ -887,7 +889,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
   }
   try {
     newGasPrice = uint128_t(gasPrice);
-  } catch (exception& e) {
+  } catch (const exception& e) {
     throw JsonRpcException(RPC_INVALID_PARAMETER,
                            "Gas price should be numeric");
   }
@@ -983,7 +985,7 @@ void IsolatedServer::PostTxBlock() {
     Json::Value j_txnhashes;
     try {
       j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
-    } catch (exception& e) {
+    } catch (const exception& e) {
       j_txnhashes = Json::arrayValue;
     }
     WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
