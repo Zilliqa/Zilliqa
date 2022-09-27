@@ -197,37 +197,6 @@ class GetEthCallEvmClientMock : public EvmClient {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
     Json::Reader _reader;
-
-    std::stringstream expectedRequestString;
-    expectedRequestString
-        << "["
-        << "\"" << m_AccountAddress << "\","
-        << "\"0000000000000000000000000000000000000000\","
-        << "\"\","
-        << "\"ffa1caa000000000000000000000000000000000000000000000000000000"
-           "0000000014\","
-        << "\"" << m_Amount << "\"";
-    expectedRequestString << "," << std::to_string(m_GasLimit);  // gas value
-    expectedRequestString << "]";
-
-    Json::Value expectedRequestJson;
-    LOG_GENERAL(DEBUG, "expectedRequestString:" << expectedRequestString.str());
-    BOOST_CHECK(
-        _reader.parse(expectedRequestString.str(), expectedRequestJson));
-
-    BOOST_CHECK_EQUAL(request.size(), expectedRequestJson.size());
-    auto i{0U};
-    for (const auto& r : request) {
-      LOG_GENERAL(DEBUG, "test requests(" << i << "):" << r << ","
-                                          << expectedRequestJson[i]);
-      if (r.isConvertibleTo(Json::intValue)) {
-        BOOST_CHECK_EQUAL(r.asInt(), expectedRequestJson[i].asInt());
-      } else {
-        BOOST_CHECK_EQUAL(r, expectedRequestJson[i]);
-      }
-      i++;
-    }
-
     Json::Value responseJson;
 
     BOOST_CHECK(_reader.parse(m_ExpectedResponse, responseJson));
