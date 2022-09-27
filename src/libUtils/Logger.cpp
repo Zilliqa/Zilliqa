@@ -23,6 +23,7 @@
 #include <boost/filesystem.hpp>
 #include <cstring>
 #include <iostream>
+
 using namespace std;
 using namespace g3;
 
@@ -105,14 +106,14 @@ void Logger::newLog() {
   m_fileName = m_fileNamePrefix + buf;
 
   if (m_bRefactor) {
-    logworker = LogWorker::createLogWorker();
-    auto sinkHandle = logworker->addSink(
+    m_logWorker = LogWorker::createLogWorker();
+    auto sinkHandle = m_logWorker->addSink(
         std::make_unique<FileSink>(m_fileName.c_str(), m_logPath, ""),
         &FileSink::fileWrite);
     sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
         .wait();
     sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
-    initializeLogging(logworker.get());
+    initializeLogging(m_logWorker.get());
   } else {
     m_logFile.open(m_logPath + m_fileName, ios_base::app);
   }
