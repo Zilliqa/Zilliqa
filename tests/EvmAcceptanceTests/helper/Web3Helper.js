@@ -31,4 +31,4 @@ class Web3Helper {
     }
 }
 
-module.exports = { Web3Helper}
+module.exports = { Web3Helper;}
