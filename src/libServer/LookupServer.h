@@ -471,7 +471,6 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthUncleBlockI(const Json::Value& /*request*/,
                                         Json::Value& response) {
-    std::cout << "UjRGH" << std::endl;
     response = this->GetEthUncleBlock();
   }
 
