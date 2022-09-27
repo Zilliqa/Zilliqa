@@ -221,7 +221,7 @@ impl ScillaBackend {
 
 impl<'config> Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        self.extras.gas_price.into()
+        U256::from_str(&self.extras.gas_price).expect("parsing gas_price")
     }
 
     fn origin(&self) -> H160 {
