@@ -26,8 +26,9 @@ timestamps {
         try {
           stage('Checkout scm') {
               checkout scm
+              def pr_skipci = sh(script: "curl ${CHANGE_URL} 2> /dev/null | grep 'title' | head -1 | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
               def skipci = sh(script: "git log -1 --pretty=%B | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
-              if (skipci != "0") {
+              if (skipci != "0" || pr_skipci != "0") {
                 error(skipciMessage)
               }
           }
