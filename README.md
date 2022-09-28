@@ -147,9 +147,20 @@ $ ./build.sh
 
 If you want to build the development branch instead, do:
 
-```shell
-$ git checkout master
-```
+1. Switch to the development branch:
+
+    ```shell
+    $ git checkout master
+    ```
+
+1. Clone vcpkg to a separate location:
+
+    ```shell
+    $ git clone https://github.com/Microsoft/vcpkg.git /path/to/vcpkg
+    $ cd /path/to/vcpkg && git checkout 2022.07.25 && ./bootstrap-vcpkg.sh
+    $ cd /path/to/zilliqa
+    $ export VCPKG_ROOT=/path/to/vcpkg
+    ```
 
 If you want to contribute by submitting code changes in a pull request perform the build with `clang-format` and `clang-tidy` enabled by doing:
 

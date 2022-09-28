@@ -54,16 +54,20 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.
     sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install cmake 3.19
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh \
+# Install cmake 3.22
+RUN wget https://github.com/Kitware/CMake/releases/download/v3.22.2/cmake-3.22.2-Linux-x86_64.sh \
+    && echo "faaa0465b72fe467fa193954c9bb67141048a2c7acc3236975ac20fdf241582e  cmake-3.22.2-Linux-x86_64.sh" | sha256sum -c \ 
     && mkdir -p "${HOME}"/.local \
-    && bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+    && bash ./cmake-3.22.2-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
 
 # Include path to refer to latest version of cmake
 ENV PATH="/root/.local/bin:${PATH}"
 
 RUN cmake --version \
-    && rm cmake-3.19.3-Linux-x86_64.sh
+    && rm cmake-3.22.2-Linux-x86_64.sh
+
+# Prepare a (vcpkg) python environment separate from the system-wide one
+RUN apt-get remove -y python3 && apt-get autoremove -y
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
@@ -84,9 +88,6 @@ RUN cd $SOURCE_DIR/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic
 RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
   && cp ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/libffi.so ${INSTALL_DIR}/lib 
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
-
-# Prepare a (vcpkg) python environment separate from the system-wide one
-RUN apt-get remove -y python3 && apt-get autoremove -y
 
 ARG VCPKG_PYTHON_PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/python3
 ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
