@@ -1,4 +1,5 @@
 const zilliqa_helper = require("../../helper/ZilliqaHelper");
+const helper = require("../../helper/GeneralHelper");
 assert = require("chai").assert;
 
 const METHOD = "eth_getBalance";
