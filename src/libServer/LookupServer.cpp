@@ -17,7 +17,7 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include "EthLookupServer.h"
+#include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -35,10 +35,10 @@
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/JsonUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -79,7 +79,7 @@ const unsigned int REF_BLOCK_DIFF = 1;
 LookupServer::LookupServer(Mediator& mediator,
                            jsonrpc::AbstractServerConnector& server)
     : Server(mediator),
-      EthLookupServer(mediator),
+      EthRpcMethods(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
   this->bindAndAddMethod(
@@ -319,7 +319,7 @@ LookupServer::LookupServer(Mediator& mediator,
 
   if (ENABLE_EVM){
     // This is all that is required to Initialise the methods required for EVM
-    EthLookupServer::Init(this);
+    EthRpcMethods::Init(this);
   }
 }
 

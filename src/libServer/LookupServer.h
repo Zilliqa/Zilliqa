@@ -18,10 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
+#include "EthRpcMethods.h"
 #include "Server.h"
-#include "EthLookupServer.h"
-
-
 
 class Mediator;
 
@@ -29,7 +27,7 @@ typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
     CreateTransactionTargetFunc;
 
 class LookupServer : public Server,
-                     public EthLookupServer,
+                     public EthRpcMethods,
                      public jsonrpc::AbstractServer<LookupServer> {
   std::mutex m_mutexBlockTxPair;
   std::pair<uint64_t, uint128_t> m_BlockTxPair;

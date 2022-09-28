@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef ZILLIQA_ETHLOOKUPSERVER_H
-#define ZILLIQA_ETHLOOKUPSERVER_H
+#ifndef ZILLIQA_ETHRPCMETHODS_H
+#define ZILLIQA_ETHRPCMETHODS_H
 
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
@@ -29,9 +29,9 @@ class LookupServer;
 typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
     CreateTransactionTargetFunc;
 
-class EthLookupServer {
+class EthRpcMethods {
  public:
-  EthLookupServer(Mediator& mediator) : m_sharedMediator(mediator) ,m_lookupServer(nullptr){}
+  EthRpcMethods(Mediator& mediator) : m_sharedMediator(mediator) ,m_lookupServer(nullptr){}
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,
@@ -493,4 +493,4 @@ class EthLookupServer {
   LookupServer* m_lookupServer;
 };
 
-#endif  // ZILLIQA_ETHLOOKUPSERVER_H
+#endif  // ZILLIQA_ETHRPCMETHODS_H
