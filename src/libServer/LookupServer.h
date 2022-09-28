@@ -61,7 +61,7 @@ class LookupServer : public Server,
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
 
-  inline bool bindAndAddMethod(const jsonrpc::Procedure& proc, methodPointer_t pointer){
+  inline bool bindAndAddExternalMethod(const jsonrpc::Procedure& proc, methodPointer_t pointer){
     return bindAndAddMethod(proc,pointer);
   }
 

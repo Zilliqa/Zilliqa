@@ -31,7 +31,7 @@ typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
 
 class EthLookupServer {
  public:
-  EthLookupServer(Mediator& mediator) : m_sharedMediator(mediator) {}
+  EthLookupServer(Mediator& mediator) : m_sharedMediator(mediator) ,m_lookupServer(nullptr){}
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,
@@ -45,7 +45,7 @@ class EthLookupServer {
   void Init(LookupServer* lookupServer);
 
   virtual void GetEthCallEthI(const Json::Value& request,
-                                     Json::Value& response) {
+                              Json::Value& response) {
     response = this->GetEthCallEth(request[0u], request[1u].asString());
   }
 
@@ -57,7 +57,7 @@ class EthLookupServer {
 
   // Eth style functions here
   virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
-                                         Json::Value& response) {
+                                  Json::Value& response) {
     response = this->GetEthBlockNumber();
   }
 
@@ -138,10 +138,11 @@ class EthLookupServer {
     auto shards = m_sharedMediator.m_lookup->GetShardPeers().size();
 
     // For Eth transactions, pass gas Price in Wei
-    const auto gasPrice =
-        (m_sharedMediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-         EVM_ZIL_SCALING_FACTOR) /
-        GasConv::GetScalingFactor();
+    const auto gasPrice = (m_sharedMediator.m_dsBlockChain.GetLastBlock()
+                               .GetHeader()
+                               .GetGasPrice() *
+                           EVM_ZIL_SCALING_FACTOR) /
+                          GasConv::GetScalingFactor();
 
     response = CreateTransactionEth(fields, pubKey, shards, gasPrice,
                                     m_createTransactionTarget);
@@ -487,10 +488,9 @@ class EthLookupServer {
 
  public:
   Mediator& m_sharedMediator;
- private:
 
+ private:
   LookupServer* m_lookupServer;
 };
 
 #endif  // ZILLIQA_ETHLOOKUPSERVER_H
-
