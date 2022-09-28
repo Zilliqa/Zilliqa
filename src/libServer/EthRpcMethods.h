@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef ZILLIQA_ETHRPCMETHODS_H
-#define ZILLIQA_ETHRPCMETHODS_H
+#ifndef ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
+#define ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
 
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
@@ -493,4 +493,4 @@ class EthRpcMethods {
   LookupServer* m_lookupServer;
 };
 
-#endif  // ZILLIQA_ETHRPCMETHODS_H
+#endif  // ZILLIQA_SRC_LIBSERVER_ETHRPCMETHODS_H_
