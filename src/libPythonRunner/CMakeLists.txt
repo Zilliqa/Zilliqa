@@ -1,4 +1,9 @@
-set(PY_VERSION "${Python3_VERSION_MAJOR}${Python3_VERSION_MINOR}")
+string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
+list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
+list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
+list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
+
+set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
 
 find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
 find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
@@ -19,6 +24,7 @@ message(STATUS "Python Version: ${Python3_VERSION}")
 find_package(Boost COMPONENTS ${PY_COMP_SUFFIX} REQUIRED)
 
 add_library(PythonRunner PythonRunner.cpp)
+target_include_directories(PythonRunner PRIVATE ${PYTHON_INCLUDE_DIRS})
 target_include_directories(PythonRunner PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(PythonRunner PRIVATE Python3::Python)
+target_link_libraries(PythonRunner PRIVATE ${PYTHON_LIBRARIES})
 target_link_libraries(PythonRunner PUBLIC Boost::${PY_COMP_SUFFIX})
