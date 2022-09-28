@@ -23,6 +23,7 @@
 #endif
 
 #include "PythonRunner.h"
+#include <boost/python.hpp>
 
 #if defined(__APPLE__) && defined(__clang__)
 #pragma clang diagnostic pop
@@ -151,13 +152,4 @@ sys.stderr = catchOutput\n\
   }
 
   return true;
-}
-
-boost::python::list PythonRunner::VectorToPyList(const vector<string>& str) {
-  boost::python::list L;
-
-  for (const auto& s : str) {
-    L.append(s);
-  }
-  return L;
 }

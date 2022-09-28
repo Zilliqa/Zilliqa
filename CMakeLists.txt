@@ -31,8 +31,10 @@ find_package(mongocxx REQUIRED)
 find_package(bsoncxx REQUIRED)
 find_package(websocketpp REQUIRED)
 find_package(leveldb REQUIRED)
+find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
+find_package(PythonLibs REQUIRED)
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -41,40 +43,11 @@ find_package(Protobuf REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(PythonLibs REQUIRED)
-
-string(REPLACE "." ";" PY_VERSION_LIST ${PYTHONLIBS_VERSION_STRING})
-list(GET PY_VERSION_LIST 0 PY_VERSION_MAJOR)
-list(GET PY_VERSION_LIST 1 PY_VERSION_MINOR)
-list(GET PY_VERSION_LIST 2 PY_VERSION_PATCH)
-
-set(PY_VERSION "${PY_VERSION_MAJOR}${PY_VERSION_MINOR}")
-
-find_package(Boost COMPONENTS python-py${PY_VERSION} QUIET)
-find_package(Boost COMPONENTS python${PY_VERSION} QUIET)
-find_package(Boost COMPONENTS python3-py${PY_VERSION} QUIET)
-
-if(Boost_PYTHON-PY${PY_VERSION}_FOUND)
-  set(PY_COMP_SUFFIX "python-py${PY_VERSION}")
-elseif(Boost_PYTHON${PY_VERSION}_FOUND)
-  set(PY_COMP_SUFFIX "python${PY_VERSION}")
-elseif(Boost_PYTHON3-PY${PY_VERSION}_FOUND)
-  set(PY_COMP_SUFFIX "python3-py${PY_VERSION}")
-else()
-  message(FATAL_ERROR "Could not find boost python")
-endif()
-
-message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
-message(STATUS "Python Version: ${PY_VERSION_MAJOR}.${PY_VERSION_MINOR}")
-
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options ${PY_COMP_SUFFIX} REQUIRED)
+find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
 if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
-
-include(InstallG3log)
-find_package(g3logger CONFIG REQUIRED)
 
 include(InstallCryptoUtils)
 include(ProjectSecp256k1)
