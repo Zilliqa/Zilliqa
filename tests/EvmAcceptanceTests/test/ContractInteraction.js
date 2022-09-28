@@ -107,7 +107,7 @@ describe("Contract Interaction", function () {
   describe("When web3.js is used", function () {
     describe("When public setter function is called", function () {
       let contract;
-      const gasLimit = "950000";
+      const gasLimit = "750000";
       let options;
       before(async function () {
         contract = await web3_helper.deploy("WithSettersAndGetters", {gasLimit});
