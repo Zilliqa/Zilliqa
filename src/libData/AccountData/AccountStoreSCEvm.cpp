@@ -87,9 +87,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         Json::Value tmp;
         Json::Reader _reader;
         if (_reader.parse(logJsonString, tmp)) {
-          const auto dataBytesArry = tmp.get("data", Json::arrayValue);
+          const auto dataBytesArray = tmp.get("data", Json::arrayValue);
           bytes bytesVector;
-          std::for_each(dataBytesArry.begin(), dataBytesArry.end(),
+          std::for_each(dataBytesArray.begin(), dataBytesArray.end(),
                         [&bytesVector](const Json::Value& item) {
                           bytesVector.push_back(item.asUInt());
                         });
