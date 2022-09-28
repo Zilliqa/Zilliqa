@@ -1,20 +1,23 @@
-const helper = require('../../helper/GeneralHelper');
-assert = require('chai').assert;
+const helper = require("../../helper/GeneralHelper");
+assert = require("chai").assert;
 
-const METHOD = 'net_listening';
+const METHOD = "net_listening";
 
 describe("Calling " + METHOD, function () {
   it("should return the network listening state", async function () {
-    await helper.callEthMethod(METHOD, 1, [],
-      (result, status) => {
-        console.log(result);
-        
-        assert.equal(status, 200, 'has status code');
-        assert.property(result, 'result', (result.error) ? result.error.message : 'error');
-        assert.isBoolean(result.result, 'can be converted to a boolean');
+    await helper.callEthMethod(METHOD, 1, [], (result, status) => {
+      console.log(result);
 
-        const expectedNetListing = true
-        assert.equal(result.result, expectedNetListing, 'has result:' + result.result + ', expected net_listening:' + expectedNetListing);
-      })
-  })
-})
+      assert.equal(status, 200, "has status code");
+      assert.property(result, "result", result.error ? result.error.message : "error");
+      assert.isBoolean(result.result, "can be converted to a boolean");
+
+      const expectedNetListing = true;
+      assert.equal(
+        result.result,
+        expectedNetListing,
+        "has result:" + result.result + ", expected net_listening:" + expectedNetListing
+      );
+    });
+  });
+});
