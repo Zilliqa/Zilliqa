@@ -1485,7 +1485,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     }
 
     constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-    auto transactionIndex = GetTransactionIndexFromBlock(txBlock, txnhash);
+    const auto transactionIndex =
+        GetTransactionIndexFromBlock(txBlock, txnhash);
     if (transactionIndex == WRONG_INDEX) {
       LOG_GENERAL(WARNING, "Tx index requested but not found");
       return Json::nullValue;
@@ -1515,9 +1516,14 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
 
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
-    auto res =
-        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                   blockHash, blockNumber, contractAddress);
+
+    const auto logs =
+        Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+    const auto bloomLogs =
+        Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
+    auto res = Eth::populateReceiptHelper(
+        hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
+        contractAddress, logs, bloomLogs, transactionIndex);
 
     return res;
   } catch (const JsonRpcException& je) {
