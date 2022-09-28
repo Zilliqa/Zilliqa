@@ -1321,7 +1321,7 @@ Json::Value LookupServer::GetEthGasPrice() const {
 
     // The following ensures we get 'at least' that high price as it was before
     // dividing by GasScalingFactor
-    gasPrice += 1000000;
+    gasPrice += EVM_ZIL_SCALING_FACTOR;
     std::ostringstream strm;
 
     strm << "0x" << std::hex << gasPrice << std::dec;

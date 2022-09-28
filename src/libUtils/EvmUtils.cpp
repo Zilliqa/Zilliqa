@@ -115,9 +115,13 @@ bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
       DS_MICROBLOCK_GAS_LIMIT * GasConv::GetScalingFactor();
   extras_out.block_difficulty = extras_in.block_difficulty;
   extras_out.block_number = blockNum;
+  uint256_t gasPrice = (extras_in.gas_price * EVM_ZIL_SCALING_FACTOR) /
+                       GasConv::GetScalingFactor();
+  // The following ensures we get 'at least' that high price as it was before
+  // dividing by GasScalingFactor
+  gasPrice += EVM_ZIL_SCALING_FACTOR;
   std::stringstream gas_price_str;
-  gas_price_str << (extras_in.gas_price / GasConv::GetScalingFactor() *
-                    EVM_ZIL_SCALING_FACTOR);
+  gas_price_str << gasPrice;
   extras_out.gas_price = gas_price_str.str();
   return true;
 }

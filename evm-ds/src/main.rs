@@ -107,7 +107,7 @@ pub struct EvmEvalExtras {
     block_gas_limit: u64,
     block_difficulty: u64,
     block_number: u64,
-    gas_price: String,  // a 128-bit number to be handled nicely by JSON.
+    gas_price: String, // a 128-bit number to be handled nicely by JSON.
 }
 
 #[derive(serde::Serialize)]
@@ -230,8 +230,9 @@ async fn run_evm_impl(
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
 
         info!(
-            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}",
+            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}",
             backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
+            backend.extras,
         );
         let mut listener = LoggingEventListener;
 
