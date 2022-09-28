@@ -42,7 +42,6 @@
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
-#include "libUtils/BlockTransactionsHelper.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/GasConv.h"
@@ -1486,7 +1485,8 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
     }
 
     constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-    auto transactionIndex = GetTransactionIndexFromBlock(txBlock, txnhash);
+    const auto transactionIndex =
+        GetTransactionIndexFromBlock(txBlock, txnhash);
     if (transactionIndex == WRONG_INDEX) {
       LOG_GENERAL(WARNING, "Tx index requested but not found");
       return Json::nullValue;
@@ -1521,10 +1521,6 @@ Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
         Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
     const auto bloomLogs =
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
-    const auto transactionIndexOpt =
-        BlockTransactionsHelper::GetTransactionIndexInBlock(
-            m_mediator.m_txBlockChain, txnhash, blockHash);
-    const auto transactionIndex = transactionIndexOpt.get_value_or(0);
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
         contractAddress, logs, bloomLogs, transactionIndex);

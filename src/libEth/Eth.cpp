@@ -22,7 +22,6 @@
 #include "jsonrpccpp/server.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
-#include "libUtils/BlockTransactionsHelper.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
