@@ -3,21 +3,13 @@ add_library(Server Server.cpp ScillaIPCServer.cpp JSONConversion.cpp GetWorkServ
 add_dependencies(Server jsonrpc-project)
 
 target_include_directories(Server PUBLIC 
-                                  ${PROJECT_SOURCE_DIR}/src 
-                                  ${JSONRPC_INCLUDE_DIR} 
-                                  ${WEBSOCKETPP_INCLUDE_DIR})
+                                  ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries (Server PUBLIC 
-                              AccountData 
-                              Validator 
-                              RemoteStorageDB 
-                              Eth 
-                              ${JSONCPP_LINK_TARGETS}
-                              ${WEBSOCKETPP_LIB} 
-                              Utils 
-                              Constants 
-                              POW)
+target_link_libraries (Server PUBLIC
+                              jsonrpc::server
+                              AccountData
+                              Validator
+                              Eth)
 
 target_link_libraries (Server PRIVATE 
-                              CryptoUtils 
                               SafeServer)

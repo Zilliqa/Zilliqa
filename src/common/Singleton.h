@@ -38,14 +38,15 @@ class Singleton {
 
  public:
   static T& GetInstance(
-      const std::function<std::shared_ptr<T>()>& _allocator = []() {
-        return std::make_shared<T>();
-      }) noexcept(std::is_nothrow_constructible<T>::value) {
+      const std::function<std::shared_ptr<T>()>& _allocator =
+          []() { return std::make_shared<T>(); },
+      const bool reset =
+          false) noexcept(std::is_nothrow_constructible<T>::value) {
     // Guaranteed to be destroyed.
     // Instantiated on first use.
     // Thread safe in C++11
     static std::shared_ptr<T> instance;
-    if (!instance) {
+    if (!instance || reset) {
       if (_allocator) {
         instance = _allocator();
       }

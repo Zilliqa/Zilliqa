@@ -342,7 +342,7 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
-    response = this->getEthGasPrice();
+    response = this->GetEthGasPrice();
   }
 
   /**
@@ -357,7 +357,10 @@ class LookupServer : public Server,
    */
   inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
                                          Json::Value& response) {
-    response = "0x5208";
+    // TODO: implement eth_estimateGas for real.
+    // At the moment, the default value of 300,000 gas will allow to proceed
+    // with the internal/external testnet testing before it is implemented.
+    response = "0x493e0";
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
@@ -365,7 +368,7 @@ class LookupServer : public Server,
     try {
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
-      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt() + 1;
+      const auto resp = this->GetBalanceAndNonce(address)["nonce"].asUInt();
       response = DataConversion::IntToHexString(resp);
     } catch (...) {
       response = "0x0";
@@ -386,7 +389,7 @@ class LookupServer : public Server,
       rawTx.erase(0, 2);
     }
 
-    auto pubKey = RecoverECDSAPubSig(rawTx, ETH_CHAINID);
+    auto pubKey = RecoverECDSAPubKey(rawTx, ETH_CHAINID);
 
     if (pubKey.empty()) {
       return;
@@ -414,6 +417,7 @@ class LookupServer : public Server,
     const std::string tag{request[1u].asString()};
 
     response = this->GetEthBalance(address, tag);
+    LOG_GENERAL(DEBUG, "Response:" << response);
   }
 
   /**
@@ -498,9 +502,9 @@ class LookupServer : public Server,
 
   /**
    * @brief Handles json rpc 2.0 request on method: net_version. Returns the
-   * chain_id of zilliqa.
+   * current network id.
    * @param request : params none
-   * @param response : string with the zilliqa chain_id
+   * @param response : String - The zilliqa network id.
    */
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
@@ -656,6 +660,31 @@ class LookupServer : public Server,
         request[0u].asString(), request[1u].asString());
   }
 
+  virtual void EthNewFilterI(const Json::Value& request,
+                             Json::Value& response) {
+    response = this->EthNewFilter(request[0u]);
+  }
+
+  virtual void EthNewBlockFilterI(const Json::Value& /*request*/,
+                                  Json::Value& response) {
+    response = this->EthNewBlockFilter();
+  }
+
+  virtual void EthNewPendingTransactionFilterI(const Json::Value& /*request*/,
+                                               Json::Value& response) {
+    response = this->EthNewPendingTransactionFilter();
+  }
+
+  virtual void EthGetFilterChangesI(const Json::Value& request,
+                                    Json::Value& response) {
+    response = this->EthGetFilterChanges(request[0u].asString());
+  }
+
+  virtual void EthUninstallFilterI(const Json::Value& request,
+                                   Json::Value& response) {
+    response = this->EthUninstallFilter(request[0u].asString());
+  }
+
   std::string GetNetworkId();
 
   Json::Value CreateTransaction(const Json::Value& _json,
@@ -721,6 +750,9 @@ class LookupServer : public Server,
 
   TxBlock GetBlockFromTransaction(
       const TransactionWithReceipt& transaction) const;
+  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
+                                        const std::string& txnhash) const;
+
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
@@ -732,7 +764,7 @@ class LookupServer : public Server,
                                 bool includeFullTransactions);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
-  Json::Value getEthGasPrice() const;
+  Json::Value GetEthGasPrice() const;
 
   std::string CreateTransactionEth(
       Eth::EthFields const& fields, bytes const& pubKey,
@@ -749,6 +781,12 @@ class LookupServer : public Server,
       const std::string& blockNumber, const std::string& index) const;
   Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,
                                                 const uint64_t index) const;
+
+  std::string EthNewFilter(const Json::Value& param);
+  std::string EthNewBlockFilter();
+  std::string EthNewPendingTransactionFilter();
+  Json::Value EthGetFilterChanges(const std::string& filter_id);
+  bool EthUninstallFilter(const std::string& filter_id);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();

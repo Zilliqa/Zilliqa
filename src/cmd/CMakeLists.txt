@@ -68,14 +68,14 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getaddr> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getaddr PUBLIC ${CMAKE_SOURCE_DIR}/src Schnorr)
-target_link_libraries(getaddr PUBLIC Schnorr Utils crypto -s)
+target_link_libraries(getaddr PUBLIC Schnorr Utils OpenSSL::Crypto -s)
 
 add_executable(getpub GetPubKeyFromPrivKey.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src Schnorr)
-target_link_libraries(getpub PUBLIC Schnorr Utils crypto -s)
+target_link_libraries(getpub PUBLIC Schnorr Utils OpenSSL::Crypto -s)
 
 add_executable(validateDB validateDB.cpp)
 add_custom_command(TARGET zilliqa
@@ -126,4 +126,11 @@ add_custom_command(TARGET zilliqa
        POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:buildTxBlockHashesToNums> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(buildTxBlockHashesToNums PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(buildTxBlockHashesToNums PUBLIC "-Wl,--start-group" AccountData Persistence)
+
+if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
+  target_link_libraries(buildTxBlockHashesToNums PUBLIC AccountData Persistence)
+else()
+  # FIXME: "-Wl,--start-group" was apparently added as a hack for some circular dependency; this shouldn't
+  #        really be required and resolved by fixing the (circular) dependencies.
+  target_link_libraries(buildTxBlockHashesToNums PUBLIC "-Wl,--start-group" AccountData Persistence)
+endif()

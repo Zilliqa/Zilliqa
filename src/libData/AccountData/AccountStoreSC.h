@@ -101,7 +101,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// for contract execution timeout
   std::mutex m_MutexCVCallContract;
-  std::condition_variable cv_callContract;
+  std::condition_variable m_CallContractConditionVariable;
   std::atomic<bool> m_txnProcessTimeout;
 
   /// Scilla IPC server
@@ -174,8 +174,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
-  void EvmCallRunner(INVOKE_TYPE invoke_type, EvmCallParameters& params,
-                     const uint32_t& version, bool& ret,
+  void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
+                     const uint32_t version, bool& ret,
                      TransactionReceipt& receipt,
                      evmproj::CallResponse& evmReturnValues);
 

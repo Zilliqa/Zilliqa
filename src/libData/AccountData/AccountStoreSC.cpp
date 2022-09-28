@@ -65,7 +65,7 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
     TransactionReceipt& receipt) {
   bool call_already_finished = false;
   auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
-                &available_gas, &balance, &ret, &receipt,
+                &available_gas, &balance,
                 &call_already_finished]() mutable -> void {
     switch (invoke_type) {
       case CHECKER:
@@ -100,14 +100,14 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
         break;
     }
     call_already_finished = true;
-    cv_callContract.notify_all();
+    m_CallContractConditionVariable.notify_all();
   };
   DetachedFunction(1, func2);
 
   {
     std::unique_lock<std::mutex> lk(m_MutexCVCallContract);
     if (!call_already_finished) {
-      cv_callContract.wait(lk);
+      m_CallContractConditionVariable.wait(lk);
     } else {
       LOG_GENERAL(INFO, "Call functions already finished!");
     }
@@ -238,9 +238,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         gasRemained -= SCILLA_CHECKER_INVOKE_GAS;
       }
 
-      // generate address for new contract account
+      // generate address for new contract account (note Eth accounting
+      // difference here)
       toAddr =
-          Account::GetAddressForContract(fromAddr, fromAccount->GetNonce());
+          Account::GetAddressForContract(fromAddr, fromAccount->GetNonce(),
+                                         transaction.GetVersionIdentifier());
       // instantiate the object for contract account
       // ** Remeber to call RemoveAccount if deployment failed halfway
       if (!this->AddAccount(toAddr, {0, 0})) {
@@ -1592,7 +1594,7 @@ template <class MAP>
 void AccountStoreSC<MAP>::NotifyTimeout() {
   LOG_MARKER();
   m_txnProcessTimeout = true;
-  cv_callContract.notify_all();
+  m_CallContractConditionVariable.notify_all();
 }
 
 template <class MAP>

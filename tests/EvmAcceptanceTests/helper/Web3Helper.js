@@ -1,21 +1,34 @@
 const { web3 } = require("hardhat");
 const general_helper = require('./GeneralHelper')
 
-var web3_helper = {
-    primaryAccount: web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0)),
-    auxiliaryAccount: web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1)),
 
-    deploy: async function(contractName, ...arguments) {
-        const ContractRaw = hre.artifacts.readArtifactSync(contractName)
-        const contract = new web3.eth.Contract(ContractRaw.abi)
-        return contract.deploy({ data: ContractRaw.bytecode, arguments: arguments })
-            .send({
-                from: this.primaryAccount.address,
-                ...(general_helper.isZilliqaNetworkSelected()) && { gas: 30_000 },
-                ...(general_helper.isZilliqaNetworkSelected()) && { gasPrice: 2_000_000_000_000_000 },
-            })
-            .on('error', function (error) { console.log(error) })
+class Web3Helper {
+    constructor() {
+        this.primaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0));
+        this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1));
+    }
+
+    getPrimaryAccount() {
+        return this.primaryAccount;
+    }
+
+    async deploy(contractName, options = {}, ...args) {
+        const contractRaw = hre.artifacts.readArtifactSync(contractName);
+        const contract = new web3.eth.Contract(contractRaw.abi);
+        const nonce = (options.nonce || await web3.eth.getTransactionCount(this.primaryAccount.address));
+        const gasPrice = (options.gasPrice || await web3.eth.getGasPrice());
+        const gasLimit = (options.gasLimit || 21_000);
+
+        const deployedContract = await contract.deploy({data: contractRaw.bytecode, arguments: args}).send({
+            from: this.primaryAccount.address,
+            nonce,
+            gas: gasLimit,
+            gasPrice: gasPrice,
+            value: options.value ?? 0
+        })
+
+        return deployedContract;
     }
 }
 
-module.exports = web3_helper
+module.exports = { Web3Helper;}
