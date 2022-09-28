@@ -127,7 +127,6 @@ describe("Contract Interaction", function () {
                 expect(await contract.methods.number().call()).to.be.eq(web3.utils.toBN(TO_BE_SET))
             })
 
-
             it("Should set string internal state correctly", async function() {
                 const TO_BE_SET = "Zilliqa"
                 expect(await contract.methods.setName(TO_BE_SET).send(options)).to.be.not.null;

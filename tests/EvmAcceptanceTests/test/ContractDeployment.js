@@ -358,7 +358,7 @@ describe("Contract Deployment", function () {
             })
         });
 
-        describe("When web3.js is used 1234", function () {
+        describe("When web3.js is used", function () {
             let contract;
             let INITIAL_BALANCE = 10;
             const gasLimit = "350000";
