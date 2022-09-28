@@ -34,7 +34,7 @@ find_package(leveldb REQUIRED)
 find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
-find_package(Python3 COMPONENTS Development REQUIRED)
+find_package(PythonLibs REQUIRED)
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
