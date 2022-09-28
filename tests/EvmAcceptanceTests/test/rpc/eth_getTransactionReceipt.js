@@ -1,6 +1,5 @@
-const {ZilliqaHelper} = require("../../helper/ZilliqaHelper");
+const zilliqa_helper = require("../../helper/ZilliqaHelper");
 const helper = require("../../helper/GeneralHelper");
-const {ethers, web3} = require("hardhat");
 assert = require("chai").assert;
 
 const METHOD = "eth_getTransactionReceipt";
@@ -13,7 +12,6 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return the raw transaction response", async function () {
-    var zHelper = new ZilliqaHelper();
     var transactionHash;
 
     function onMoveFundsFinished(receipt) {
@@ -27,8 +25,8 @@ describe("Calling " + METHOD, function () {
 
     let amount = 10_000;
     // send amount from primary to secondary account
-    await zHelper
-      .moveFundsBy(amount, zHelper.getSecondaryAccount().address, zHelper.getPrimaryAccount())
+    await zilliqa_helper
+      .moveFundsBy(amount, zilliqa_helper.getSecondaryAccountAddress(), zilliqa_helper.primaryAccount)
       .then(onMoveFundsFinished, onMoveFundsError);
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
@@ -73,8 +71,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.to, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.to.toUpperCase(),
-        zHelper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase()
+        zilliqa_helper.getSecondaryAccountAddress().toUpperCase(),
+        "Is not equal to " + zilliqa_helper.getSecondaryAccountAddress().toUpperCase()
       );
 
       // from
@@ -82,8 +80,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.from, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.from.toUpperCase(),
-        zHelper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase()
+        zilliqa_helper.getSecondaryAccount().address.toUpperCase(),
+        "Is not equal to " + zilliqa_helper.getSecondaryAccountAddress().toUpperCase()
       );
 
       // blockHash

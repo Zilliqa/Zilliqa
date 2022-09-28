@@ -16,7 +16,6 @@
     "linebreak-style": ["error", "unix"],
     "quotes": ["error", "double"],
     "semi": ["error", "always"],
-    "function-call-argument-newline": ["error", "never"],
     "mocha/no-pending-tests": "off",
     "comma-dangle": ["error", "never"]
   }
