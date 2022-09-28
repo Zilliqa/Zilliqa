@@ -21,18 +21,11 @@
 #include <string>
 #include <vector>
 
-#include <boost/python.hpp>
-
-#include <vector>
-
 class PythonRunner {
  public:
   static bool RunPyFunc(const std::string& file, const std::string& func,
                         const std::vector<std::string>& params,
                         const std::string& outputFileName);
-
-  static boost::python::list VectorToPyList(
-      const std::vector<std::string>& str);
 };
 
 #endif  // ZILLIQA_SRC_LIBPYTHONRUNNER_PYTHONRUNNER_H_

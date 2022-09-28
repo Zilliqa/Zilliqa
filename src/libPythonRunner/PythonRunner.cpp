@@ -15,7 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#pragma clang diagnostic ignored "-Wmissing-field-initializers"
+#pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#endif
+
 #include "PythonRunner.h"
+#include <boost/python.hpp>
+
+#if defined(__APPLE__) && defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
 #include "libUtils/Logger.h"
 
 using namespace boost::python;
@@ -139,13 +152,4 @@ sys.stderr = catchOutput\n\
   }
 
   return true;
-}
-
-boost::python::list PythonRunner::VectorToPyList(const vector<string>& str) {
-  boost::python::list L;
-
-  for (const auto& s : str) {
-    L.append(s);
-  }
-  return L;
 }
