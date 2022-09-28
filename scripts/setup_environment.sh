@@ -27,19 +27,9 @@ apt update -y
 # Build dependency
 apt install -y build-essential \
     cmake \
-    libboost-filesystem-dev \
-    libboost-program-options-dev \
-    libboost-system-dev \
-    libboost-test-dev \
-    libboost-python-dev \
     libcurl4-openssl-dev \
-    libevent-dev \
     libjsoncpp-dev \
     libjsonrpccpp-dev \
-    libleveldb-dev \
-    libmicrohttpd-dev \
-    libminiupnpc-dev \
-    libsnappy-dev \
     libssl-dev \
     cargo \
     pkg-config \
@@ -54,8 +44,6 @@ apt install -y ccache \
     git \
     lcov \
     libxml2-utils \
-    python-dev \
-    python3-dev \
     libsecp256k1-dev \
     zip \
     unzip \
@@ -68,6 +56,7 @@ echo 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' | tee -a /e
 echo 'deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' | tee -a /etc/apt/sources.list
 apt update
 apt install -y clang-format-7
+apt remove -y python3-dev && apt autoremove -y
 
 wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
 mkdir -p `pwd`/.local
