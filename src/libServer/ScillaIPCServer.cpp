@@ -48,6 +48,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
+  bindAndAddMethod(
+      Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(
