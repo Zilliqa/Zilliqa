@@ -9,7 +9,8 @@ vcpkg_from_github(
 vcpkg_cmake_configure(
     SOURCE_PATH ${SOURCE_PATH}
     OPTIONS
-        -Wno-dev
+      -DCMAKE_CXX_FLAGS=-Wno-dev
+      -DCMAKE_C_FLAGS=-Wno-dev
 )
 
 vcpkg_cmake_install()

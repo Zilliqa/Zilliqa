@@ -20,7 +20,7 @@ else()
 endif()
 
 message(STATUS "Python suffix: ${PY_COMP_SUFFIX}")
-message(STATUS "Python Version: ${Python3_VERSION}")
+message(STATUS "Python Version: ${PY_VERSION}")
 find_package(Boost COMPONENTS ${PY_COMP_SUFFIX} REQUIRED)
 
 add_library(PythonRunner PythonRunner.cpp)
