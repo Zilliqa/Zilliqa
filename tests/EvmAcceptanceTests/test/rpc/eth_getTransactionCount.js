@@ -9,7 +9,7 @@ let zHelper = new ZilliqaHelper();
 describe("Calling " + METHOD, function () {
   // Test that we get no error and that the api call returns a transaction count >= 0.
   it("Should return the latest transaction count >= 0", async function () {
-    await helper.callEthMethod(METHOD, 1, [zHelper.getPrimaryAccountAddress(), "latest"],
+    await helper.callEthMethod(METHOD, 1, [zHelper.getPrimaryAccount().address, "latest"],
       (result, status) => {
         console.log(result);
         assert.equal(status, 200, 'has status code');
@@ -24,7 +24,7 @@ describe("Calling " + METHOD, function () {
   })
 
   it("Should return the pending transaction count >= 0", async function () {
-    await helper.callEthMethod(METHOD, 1, [zHelper.getPrimaryAccountAddress(), "pending"],
+    await helper.callEthMethod(METHOD, 1, [zHelper.getPrimaryAccount().address, "pending"],
       (result, status) => {
         console.log(result);
         assert.equal(status, 200, 'has status code');
@@ -39,7 +39,7 @@ describe("Calling " + METHOD, function () {
   })
 
   it("Should return the earliest transaction count >= 0", async function () {
-    await helper.callEthMethod(METHOD, 1, [zHelper.getPrimaryAccountAddress(), "earliest"],
+    await helper.callEthMethod(METHOD, 1, [zHelper.getPrimaryAccount().address, "earliest"],
       (result, status) => {
         console.log(result);
         assert.equal(status, 200, 'has status code');

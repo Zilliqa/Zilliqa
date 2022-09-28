@@ -14,8 +14,10 @@ var zHelper = new ZilliqaHelper();
 describe("Calling " + METHOD, function () {
   it("should return the from eth call", async function () {
 
-    console.log(await hre.artifacts.getArtifactPaths());
-    const ContractRaw = await hre.artifacts.readArtifact("contracts/Storage.sol:Storage");
+    //console.log(await hre.artifacts.getArtifactPaths());
+
+    const contractFactory = await hre.ethers.getContractFactory("SimpleContract");
+    const ContractRaw = await hre.artifacts.readArtifact("contracts/SimpleContract.sol:SimpleContract");
 
     console.log(ContractRaw.bytecode);
 
