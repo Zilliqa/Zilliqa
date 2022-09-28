@@ -116,7 +116,8 @@ bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
   extras_out.block_difficulty = extras_in.block_difficulty;
   extras_out.block_number = blockNum;
   std::stringstream gas_price_str;
-  gas_price_str << (extras_in.gas_price / GasConv::GetScalingFactor() * EVM_ZIL_SCALING_FACTOR);
+  gas_price_str << (extras_in.gas_price / GasConv::GetScalingFactor() *
+                    EVM_ZIL_SCALING_FACTOR);
   extras_out.gas_price = gas_price_str.str();
   return true;
 }
