@@ -1806,7 +1806,7 @@ string LookupServer::GetEthCallImpl(const Json::Value& _json,
     const auto dsBlock = m_mediator.m_dsBlockChain.GetLastBlock();
     // TODO: adapt to any block, not just latest.
     TxnExtras txnExtras{
-        dsBlock.GetHeader().GetGasPrice() * EVM_ZIL_SCALING_FACTOR,
+        dsBlock.GetHeader().GetGasPrice(),
         txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
         dsBlock.GetHeader().GetDifficulty()};
     uint64_t blockNum =
