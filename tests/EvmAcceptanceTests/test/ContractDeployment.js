@@ -106,7 +106,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When Zilliqa Helper is used", function () {
+    describe("When Zilliqa Helper is used xxx", function () {
       before(async function () {
         if (!general_helper.isZilliqaNetworkSelected()) {
           this.skip();
@@ -345,7 +345,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should return default signer when owner view function is called", async function () {
-        expect(await contract.methods.owner().call()).to.be.eq(await ethers.provider.getSigner(1).getAddress());
+        expect(await contract.methods.owner().call()).to.be.eq(await ethers.provider.getSigner(0).getAddress());
       });
     });
 
