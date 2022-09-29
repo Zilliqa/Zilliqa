@@ -368,7 +368,7 @@ std::string EthRpcMethods::CreateTransactionEth(
                  data,  // either empty or un-hexed byte-stream
                  Signature(fields.signature, 0)};
 
-  std::string ret = tx.GetTranID().hex();
+  const std::string ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
 
   try {
     const Address fromAddr = tx.GetSenderAddr();
