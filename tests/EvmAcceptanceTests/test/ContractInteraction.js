@@ -10,7 +10,7 @@ describe("Contract Interaction", function () {
       contract = await Contract.deploy();
     });
 
-    describe("When public setter function is called", async function () {
+    describe("When public setter function is called", function () {
       it("Should set uint256 internal state correctly", async function () {
         let TO_BE_SET = 100;
         await contract.setNumber(TO_BE_SET);
@@ -28,7 +28,7 @@ describe("Contract Interaction", function () {
       it("Should set address internal state correctly");
     });
 
-    describe("When external setter function is called", async function () {
+    describe("When external setter function is called", function () {
       it("Should set uint256 internal state correctly", async function () {
         let TO_BE_SET = 100;
         await contract.setNumberExternal(TO_BE_SET);
@@ -46,7 +46,7 @@ describe("Contract Interaction", function () {
       it("Should set address internal state correctly");
     });
 
-    describe("When public view function is called", async function () {
+    describe("When public view function is called", function () {
       it("Should return correct value for uint256", async function () {
         expect(await contract.getOne()).to.be.eq(1);
       });
@@ -54,7 +54,7 @@ describe("Contract Interaction", function () {
       // TODO: Consider string, address, enum, tuple return types
     });
 
-    describe("When external view function is called", async function () {
+    describe("When external view function is called", function () {
       it("Should return correct value for uint256", async function () {
         expect(await contract.getNumberExternal()).to.be.eq(100);
       });
@@ -66,7 +66,7 @@ describe("Contract Interaction", function () {
       // TODO: Consider string, address, enum, tuple return types
     });
 
-    describe("When public pure function is called", async function () {
+    describe("When public pure function is called", function () {
       it("Should return correct value for uint256", async function () {
         expect(await contract.getOne()).to.be.eq(1);
       });
@@ -74,7 +74,7 @@ describe("Contract Interaction", function () {
       // TODO: Consider string, address, enum, tuple return types
     });
 
-    describe("When external pure function is called", async function () {
+    describe("When external pure function is called", function () {
       it("Should return correct value for uint256", async function () {
         expect(await contract.getTwo()).to.be.eq(2);
       });
@@ -82,7 +82,7 @@ describe("Contract Interaction", function () {
       // TODO: Consider string, address, enum, tuple return types
     });
 
-    describe("When calling a public function that generates an event", async function () {
+    describe("When calling a public function that generates an event", function () {
       it("Should have the event name in returned object", async function () {
         const tx = await contract.emitLogWithoutParam();
         const result = await tx.wait();
@@ -105,7 +105,7 @@ describe("Contract Interaction", function () {
   });
 
   describe("When web3.js is used", function () {
-    describe("When public setter function is called", async function () {
+    describe("When public setter function is called", function () {
       let contract;
       const gasLimit = "750000";
       let options;

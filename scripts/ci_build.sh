@@ -19,7 +19,12 @@
 
 set -e
 
-ls /scilla/0/
+# fix to make script work locally, please remove and fix to original intent.
+if [ -f /scilla/0 ]
+  then
+    ls /scilla/0/
+fi
+
 
 re="\\bNOCI\\b"
 if [[ "$TRAVIS_COMMIT_MESSAGE" =~ $re ]]
