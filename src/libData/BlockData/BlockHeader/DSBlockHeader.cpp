@@ -25,6 +25,7 @@ using namespace boost::multiprecision;
 DSBlockHeader::DSBlockHeader()
     : m_dsDifficulty(0),
       m_difficulty(0),
+      m_totalDifficulty(0),
       m_leaderPubKey(),
       m_blockNum(INIT_BLOCK_NUMBER),
       m_epochNum((uint64_t)-1),
@@ -53,6 +54,7 @@ DSBlockHeader::DSBlockHeader(
     : BlockHeaderBase(version, committeeHash, prevHash),
       m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),
+      m_totalDifficulty(0),
       m_leaderPubKey(leaderPubKey),
       m_blockNum(blockNum),
       m_epochNum(epochNum),
@@ -109,6 +111,10 @@ bool DSBlockHeader::Deserialize(const string& src, unsigned int offset) {
 const uint8_t& DSBlockHeader::GetDSDifficulty() const { return m_dsDifficulty; }
 
 const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }
+
+const uint8_t& DSBlockHeader::GetTotalDifficulty() const {
+  return m_totalDifficulty;
+}
 
 const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
 

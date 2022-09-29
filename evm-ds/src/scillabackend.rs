@@ -80,7 +80,7 @@ impl ScillaBackend {
                 .await
                 .expect("Failed to connect to the node Unix domain socket");
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(2), // Require response in 2 secs max.
+                tokio::time::Duration::from_secs(10), // Require response in 10 secs max.
                 client.call_method(method, Params::Map(args)),
             )
             .await
@@ -232,7 +232,7 @@ impl ScillaBackend {
 
 impl<'config> Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        U256::from(2_000_000_000) // see constants.xml in the Zilliqa codebase.
+        self.query_jsonrpc_u256("BLOCKGASPRICE")
     }
 
     fn origin(&self) -> H160 {
@@ -254,7 +254,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_timestamp(&self) -> U256 {
-        self.query_jsonrpc_u256("TIMESTAMP")
+        self.query_jsonrpc_u256("BLOCKTIMESTAMP")
     }
 
     fn block_difficulty(&self) -> U256 {
@@ -293,7 +293,10 @@ impl<'config> Backend for ScillaBackend {
             .expect("query_state_value _nonce")
             .and_then(|x| x.as_uint256())
             .unwrap_or_default();
-        Basic { balance: self.scale_zil_to_eth(balance), nonce }
+        Basic {
+            balance: self.scale_zil_to_eth(balance),
+            nonce,
+        }
     }
 
     fn code(&self, address: H160) -> Vec<u8> {

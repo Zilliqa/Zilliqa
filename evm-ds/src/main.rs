@@ -101,11 +101,28 @@ impl Serialize for DirtyState {
 }
 
 #[derive(serde::Serialize)]
+struct EvmLog {
+    pub address: H160,
+    pub topics: Vec<H256>,
+    pub data: String,
+}
+
+impl EvmLog {
+    fn from_internal(log: &ethereum::Log) -> EvmLog {
+        EvmLog {
+            address: log.address,
+            topics: log.topics.to_owned(),
+            data: "0x".to_string() + &hex::encode(&log.data),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
 pub struct EvmResult {
     exit_reason: evm::ExitReason,
     return_value: String,
     apply: Vec<DirtyState>,
-    logs: Vec<ethereum::Log>,
+    logs: Vec<EvmLog>,
     remaining_gas: u64,
 }
 
@@ -273,7 +290,7 @@ async fn run_evm_impl(
                             }),
                         })
                         .collect(),
-                    logs: logs.into_iter().collect(),
+                    logs: logs.into_iter().map(|log| EvmLog::from_internal(&log)).collect(),
                     remaining_gas,
                 })
             }

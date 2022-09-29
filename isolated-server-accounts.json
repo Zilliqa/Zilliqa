@@ -4,6 +4,11 @@
         "amount": "1000000000000000000",
         "nonce": 0
     },
+    "cb57ec3f064a16cadb36c7c712f4c9fa62b77415": {
+        "privateKey": "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "amount": "1000000000000000000",
+        "nonce": 0
+    },
     "d90f2e538ce0df89c8273cad3b63ec44a3c4ed82": {
         "privateKey": "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
         "amount": "1000000000000000000",
@@ -36,6 +41,16 @@
     },
     "ec902fe17d90203d0bddd943d97b29576ece3177": {
         "privateKey": "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004",
+        "amount": "1000000000000000000",
+        "nonce": 0
+    },
+    "c2035715831ab100ec42e562ce341b834bed1f4c": {
+        "privateKey": "b8fc4e270594d87d3f728d0873a38fb0896ea83bd6f96b4f3c9ff0a29122efe4",
+        "amount": "1000000000000000000",
+        "nonce": 0
+    },
+    "6cd3667ba79310837e33f0aecbe13688a6cbca32": {
+        "privateKey": "b87f4ba7dcd6e60f2cca8352c89904e3993c5b2b0b608d255002edcda6374de4",
         "amount": "1000000000000000000",
         "nonce": 0
     }

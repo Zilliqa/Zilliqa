@@ -18,12 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
+#include "EthRpcMethods.h"
 #include "Server.h"
-#include "common/Constants.h"
-#include "libCrypto/EthCrypto.h"
-#include "libEth/Eth.h"
-#include "libUtils/GasConv.h"
-#include "libUtils/Logger.h"
 
 class Mediator;
 
@@ -31,6 +27,7 @@ typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
     CreateTransactionTargetFunc;
 
 class LookupServer : public Server,
+                     public EthRpcMethods,
                      public jsonrpc::AbstractServer<LookupServer> {
   std::mutex m_mutexBlockTxPair;
   std::pair<uint64_t, uint128_t> m_BlockTxPair;
@@ -61,6 +58,11 @@ class LookupServer : public Server,
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
+
+  inline bool bindAndAddExternalMethod(const jsonrpc::Procedure& proc,
+                                       methodPointer_t pointer) {
+    return bindAndAddMethod(proc, pointer);
+  }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,
                                     Json::Value& response) {
@@ -305,6 +307,7 @@ class LookupServer : public Server,
     response = this->GetStateProof(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
+<<<<<<< HEAD
 
   inline virtual void GetEthCallEthI(const Json::Value& request,
                                      Json::Value& response) {
@@ -685,15 +688,14 @@ class LookupServer : public Server,
     response = this->EthUninstallFilter(request[0u].asString());
   }
 
+=======
+>>>>>>> master
   std::string GetNetworkId();
-
   Json::Value CreateTransaction(const Json::Value& _json,
                                 const unsigned int num_shards,
                                 const uint128_t& gasPrice,
                                 const CreateTransactionTargetFunc& targetFunc);
-  Json::Value GetStateProof(const std::string& address,
-                            const Json::Value& request,
-                            const uint64_t& blockNum);
+
   Json::Value GetTransaction(const std::string& transactionHash);
   Json::Value GetSoftConfirmedTransaction(const std::string& txnHash);
   Json::Value GetDsBlock(const std::string& blockNum, bool verbose = false);
@@ -706,7 +708,6 @@ class LookupServer : public Server,
   Json::Value GetSmartContracts(const std::string& address);
   std::string GetContractAddressFromTransactionID(const std::string& tranID);
   unsigned int GetNumPeers();
-
   std::string GetNumTxBlocks();
   std::string GetNumDSBlocks();
   std::string GetNumTransactions();
@@ -719,77 +720,10 @@ class LookupServer : public Server,
   Json::Value DSBlockListing(unsigned int page);
   Json::Value TxBlockListing(unsigned int page);
   Json::Value GetBlockchainInfo();
-  struct ApiKeys;
-  std::string GetEthCallZil(const Json::Value& _json);
-  std::string GetEthCallEth(const Json::Value& _json,
-                            const std::string& block_or_tag);
-  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
-  std::string GetWeb3ClientVersion();
-  std::string GetWeb3Sha3(const Json::Value& _json);
-  Json::Value GetEthUncleCount();
-  Json::Value GetEthUncleBlock();
-  Json::Value GetEthMining();
-  std::string GetEthCoinbase();
-  Json::Value GetNetListening();
-  std::string GetNetPeerCount();
-  std::string GetProtocolVersion();
-  std::string GetEthChainId();
-  Json::Value GetEthSyncing();
-  Json::Value GetEthTransactionByHash(const std::string& hash);
-  Json::Value GetEmptyResponse();
-  Json::Value GetEthStorageAt(std::string const& address,
-                              std::string const& position,
-                              std::string const& blockNum);
-  Json::Value GetEthCode(std::string const& address,
-                         std::string const& blockNum);
-  Json::Value GetEthFeeHistory(std::string const& range,
-                               std::string const& startBlock,
-                               std::string const& rewardPercentiles);
-
   static Json::Value GetRecentTransactions();
   Json::Value GetShardingStructure();
   std::string GetNumTxnsDSEpoch();
   std::string GetNumTxnsTxEpoch();
-
-  TxBlock GetBlockFromTransaction(
-      const TransactionWithReceipt& transaction) const;
-  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
-                                        const std::string& txnhash) const;
-
-  // Eth calls
-  Json::Value GetEthTransactionReceipt(const std::string& txnhash);
-  Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
-                                  bool includeFullTransactions);
-  Json::Value GetEthBlockNumber();
-  Json::Value GetEthBlockByHash(const std::string& blockHash,
-                                bool includeFullTransactions);
-  Json::Value GetEthBlockCommon(const TxBlock& txBlock,
-                                bool includeFullTransactions);
-  Json::Value GetEthBalance(const std::string& address, const std::string& tag);
-
-  Json::Value GetEthGasPrice() const;
-
-  std::string CreateTransactionEth(
-      Eth::EthFields const& fields, bytes const& pubKey,
-      const unsigned int num_shards, const uint128_t& gasPriceWei,
-      const CreateTransactionTargetFunc& targetFunc);
-
-  Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
-  Json::Value GetEthBlockTransactionCountByNumber(
-      const std::string& blockNumber);
-
-  Json::Value GetEthTransactionByBlockHashAndIndex(
-      const std::string& blockHash, const std::string& index) const;
-  Json::Value GetEthTransactionByBlockNumberAndIndex(
-      const std::string& blockNumber, const std::string& index) const;
-  Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,
-                                                const uint64_t index) const;
-
-  std::string EthNewFilter(const Json::Value& param);
-  std::string EthNewBlockFilter();
-  std::string EthNewPendingTransactionFilter();
-  Json::Value EthGetFilterChanges(const std::string& filter_id);
-  bool EthUninstallFilter(const std::string& filter_id);
 
   size_t GetNumTransactions(uint64_t blockNum);
   bool StartCollectorThread();
