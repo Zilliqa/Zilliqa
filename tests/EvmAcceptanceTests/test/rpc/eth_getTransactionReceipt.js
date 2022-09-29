@@ -17,6 +17,7 @@ describe("Calling " + METHOD, function () {
     var transactionHash;
 
     function onMoveFundsFinished(receipt) {
+      console.log("Moved funds successfully, receipt:", receipt);
       transactionHash = receipt.transactionHash;
     }
 
@@ -82,8 +83,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.from, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.from.toUpperCase(),
-        zHelper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase()
+        zHelper.getPrimaryAccount().address.toUpperCase(),
+        "Is not equal to " + zHelper.getPrimaryAccount().address.toUpperCase()
       );
 
       // blockHash
