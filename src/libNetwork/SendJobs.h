@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_SENDJOBS_H_
-#define ZILLIQA_SRC_SENDJOBS_H_
+#ifndef ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_
+#define ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_
 
 #include <memory>
 
@@ -46,4 +46,4 @@ class SendJobs {
   }
 };
 
-#endif  // ZILLIQA_SRC_SENDJOBS_H_
+#endif  // ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_

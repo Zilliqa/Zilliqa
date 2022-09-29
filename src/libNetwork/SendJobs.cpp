@@ -45,10 +45,26 @@ using Milliseconds = std::chrono::milliseconds;
 const ErrorCode OPERATION_ABORTED = boost::asio::error::operation_aborted;
 const ErrorCode END_OF_FILE = boost::asio::error::eof;
 const ErrorCode TIMED_OUT = boost::asio::error::timed_out;
+const ErrorCode HOST_UNREACHABLE = boost::asio::error::host_unreachable;
+const ErrorCode CONN_REFUSED = boost::asio::error::connection_refused;
+const ErrorCode NETWORK_DOWN = boost::asio::error::network_down;
+const ErrorCode NETWORK_UNREACHABLE = boost::asio::error::network_unreachable;
 
 namespace {
 
-Milliseconds Clock() {
+inline bool IsBlacklisted(const Peer& peer, bool allow_relaxed_blacklist) {
+  return Blacklist::GetInstance().Exist(peer.m_ipAddress,
+                                        !allow_relaxed_blacklist);
+}
+
+inline bool IsHostHavingNetworkIssue(const ErrorCode& ec) {
+  return (ec == HOST_UNREACHABLE || ec == TIMED_OUT || ec == NETWORK_DOWN ||
+          ec == NETWORK_UNREACHABLE);
+}
+
+inline bool IsNodeNotRunning(const ErrorCode& ec) { return ec == CONN_REFUSED; }
+
+inline Milliseconds Clock() {
   return std::chrono::duration_cast<Milliseconds>(
       boost::asio::steady_timer::clock_type::now().time_since_epoch());
 }
@@ -116,6 +132,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   struct Item {
     RawMessage msg;
+    bool allow_relaxed_blacklist;
     Milliseconds expires_at;
   };
 
@@ -131,10 +148,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   ~PeerSendQueue() { Close(); }
 
-  void Enqueue(RawMessage msg) {
+  void Enqueue(RawMessage msg, bool allow_relaxed_blacklist) {
     m_queue.emplace_back();
     auto& item = m_queue.back();
     item.msg = std::move(msg);
+    item.allow_relaxed_blacklist = allow_relaxed_blacklist;
     item.expires_at = Clock() + m_expireTime;
     if (m_queue.size() == 1) {
       Connect();
@@ -180,20 +198,17 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (!ec) {
       SendMessage();
     } else {
-      ReconnectOrGiveUp(ec);
+      ScheduleReconnectOrGiveUp(ec);
     }
   }
 
   void SendMessage() {
-    if (m_queue.empty()) {
-      // impossible
-      LOG_GENERAL(WARNING, "Unexpected queue state, peer="
-                               << m_peer.GetPrintableIPAddress() << ":"
-                               << m_peer.GetListenPortHost());
-      Done();
+    if (!CheckAgainstBlacklist()) {
       return;
     }
+
     auto& msg = m_queue.front().msg;
+
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
         [self = shared_from_this()](const ErrorCode& ec, size_t) {
@@ -203,13 +218,43 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         });
   }
 
+  /// Deal with blacklist in which peer may have appeared after some delay
+  bool CheckAgainstBlacklist() {
+    if (IsBlacklisted(m_peer, false)) {
+      if (!IsBlacklisted(m_peer, true)) {
+        // Find 1st item which allows to be sent in non-strict blacklist mode
+        while (!m_queue.empty()) {
+          auto& item = m_queue.front();
+          if (item.allow_relaxed_blacklist) {
+            break;
+          }
+          m_queue.pop_front();
+        }
+
+      } else {
+        // the peer is blocklisted strictly
+        m_queue.clear();
+      }
+    }
+
+    if (m_queue.empty()) {
+      LOG_GENERAL(INFO, "Blocklisted after messages queued, peer="
+                            << m_peer.GetPrintableIPAddress() << ":"
+                            << m_peer.GetListenPortHost());
+      Done();
+      return false;
+    }
+
+    return true;
+  }
+
   void OnWritten(const ErrorCode& ec) {
     if (m_closed) {
       return;
     }
 
     if (ec) {
-      ReconnectOrGiveUp(ec);
+      ScheduleReconnectOrGiveUp(ec);
       return;
     }
 
@@ -241,7 +286,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     return false;
   }
 
-  void ReconnectOrGiveUp(const ErrorCode& ec) {
+  void ScheduleReconnectOrGiveUp(const ErrorCode& ec) {
     if (ExpiredOrDone(ec)) {
       return;
     }
@@ -252,12 +297,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
-    if (ExpiredOrDone()) {
+    if (!CheckAgainstBlacklist() || ExpiredOrDone()) {
       return;
     }
 
-    // TODO the current protocol assumes reconnecting every time. This should be
-    // changed
+    // TODO the current protocol is weird and it assumes reconnecting every
+    // time. This should be changed!!!
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Connect();
@@ -289,7 +334,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 class SendJobsImpl : public SendJobs,
                      public std::enable_shared_from_this<SendJobsImpl> {
  public:
-  SendJobsImpl() : m_workerThread([this] { WorkerThread(); }) {}
+  SendJobsImpl()
+      : m_doneCallback([this](const Peer& peer, ErrorCode ec) {
+          OnPeerQueueFinished(peer, ec);
+        }),
+        m_workerThread([this] { WorkerThread(); }) {}
 
   ~SendJobsImpl() override {
     LOG_MARKER();
@@ -309,9 +358,60 @@ class SendJobsImpl : public SendJobs,
     });
   }
 
-  void OnNewJob(Peer&& /*peer*/, RawMessage&& /*msg*/,
-                bool /*allow_relaxed_blacklist*/) {
-    // Blacklist::
+  void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
+    if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
+      LOG_GENERAL(INFO,
+                  "Ignoring blacklisted peer " << peer.GetPrintableIPAddress());
+      return;
+    }
+
+    auto& ctx = m_activePeers[peer];
+    if (!ctx) {
+      ctx = std::make_shared<PeerSendQueue>(m_asioCtx, m_doneCallback,
+                                            std::move(peer));
+    }
+    ctx->Enqueue(std::move(msg), allow_relaxed_blacklist);
+  }
+
+  void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
+    LOG_GENERAL(INFO,
+                "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
+                                             << ":" << peer.GetListenPortHost()
+                                             << " ec=" << ec.message());
+    auto it = m_activePeers.find(peer);
+    if (it == m_activePeers.end()) {
+      // impossible
+      return;
+    }
+
+    if (IsHostHavingNetworkIssue(ec)) {
+      if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding seed "
+                                 << peer.GetPrintableIPAddress()
+                                 << " as relaxed blacklisted");
+        // Add this seed node to relaxed blacklist even if it is whitelisted
+        // in general.
+        Blacklist::GetInstance().Add(peer.m_ipAddress, false, true);
+      } else {
+        LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                                 << errno << " (" << std::strerror(errno)
+                                 << "). Adding " << peer.GetPrintableIPAddress()
+                                 << " as strictly blacklisted");
+        Blacklist::GetInstance().Add(peer.m_ipAddress);  // strict
+      }
+    } else if (IsNodeNotRunning(ec)) {
+      LOG_GENERAL(WARNING, "[blacklist] Encountered "
+                               << errno << " (" << std::strerror(errno)
+                               << "). Adding " << peer.GetPrintableIPAddress()
+                               << " as relaxed blacklisted");
+      Blacklist::GetInstance().Add(peer.m_ipAddress, false);
+    }
+
+    // explicit Close() because shared_ptr may be reused in async operation
+    it->second->Close();
+    m_activePeers.erase(it);
   }
 
   void WorkerThread() {
@@ -328,6 +428,7 @@ class SendJobsImpl : public SendJobs,
   }
 
   AsioContext m_asioCtx;
+  PeerSendQueue::DoneCallback m_doneCallback;
   std::thread m_workerThread;
   std::map<Peer, std::shared_ptr<PeerSendQueue>> m_activePeers;
 };
