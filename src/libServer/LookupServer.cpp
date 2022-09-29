@@ -642,91 +642,9 @@ Json::Value LookupServer::CreateTransaction(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
-<<<<<<< HEAD
-  }
-  // Possibly out of range index or block with no transactions
-  if (!indexInBlock) {
-    return Json::nullValue;
-  }
 
-  TxBodySharedPtr transactioBodyPtr;
-  const auto txHashes = microBlockPtr->GetTranHashes();
-  if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
-                                                 transactioBodyPtr)) {
-    return Json::nullValue;
-  }
-
-  return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
-                                            *transactioBodyPtr, txBlock);
-}
-
-Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
-  try {
-    TxnHash argHash{txnhash};
-    TxBodySharedPtr transactioBodyPtr;
-    bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
-    if (!isPresent) {
-      LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
-      return Json::nullValue;
-    }
-
-    const TxBlock EMPTY_BLOCK;
-    auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
-    if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks. "
-                               << txnhash);
-      return Json::nullValue;
-    }
-
-    constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-    const auto transactionIndex =
-        GetTransactionIndexFromBlock(txBlock, txnhash);
-    if (transactionIndex == WRONG_INDEX) {
-      LOG_GENERAL(WARNING, "Tx index requested but not found");
-      return Json::nullValue;
-    }
-
-    auto const ethResult = JSONConversion::convertTxtoEthJson(
-        transactionIndex, *transactioBodyPtr, txBlock);
-    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
-
-    auto receipt = zilResult["receipt"];
-
-    std::string hashId = ethResult["hash"].asString();
-    bool success = receipt["success"].asBool();
-    std::string sender = ethResult["from"].asString();
-    std::string toAddr = ethResult["to"].asString();
-    std::string cumGas =
-        (boost::format("0x%x") %
-         GasConv::GasUnitsFromCoreToEth(
-             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
-            .str();
-
-    const TxBlockHeader& txHeader = txBlock.GetHeader();
-    const std::string blockNumber =
-        (boost::format("0x%x") % txHeader.GetBlockNum()).str();
-    const std::string blockHash =
-        (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str();
-
-    Json::Value contractAddress =
-        ethResult.get("contractAddress", Json::nullValue);
-
-    auto logs =
-        Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
-    Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
-                             transactionIndex);
-    const auto bloomLogs =
-        Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
-    auto res = Eth::populateReceiptHelper(
-        hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
-        contractAddress, logs, bloomLogs, transactionIndex);
-
-    return res;
-=======
     ret["TranID"] = tx.GetTranID().hex();
     return ret;
->>>>>>> master
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {

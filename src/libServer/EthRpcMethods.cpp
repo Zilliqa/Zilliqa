@@ -1209,8 +1209,10 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
 
-    const auto logs =
+    auto logs =
         Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+    Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
+                             transactionIndex);
     const auto bloomLogs =
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
