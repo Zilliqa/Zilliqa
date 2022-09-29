@@ -77,10 +77,10 @@ then
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
     ./scripts/license_checker.sh || exit 1
     ./scripts/depends/check_guard.sh || exit 1
-    cmake --build ${dir} --target clang-format -- -j${n_parallel}|| exit 1
+    cmake --build ${dir} --target clang-format || exit 1
     #cmake --build ${dir} --target clang-tidy || exit 1
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
-    cmake --build ${dir} --target Zilliqa_coverage -- -j${n_parallel}|| exit 1
+    cmake --build ${dir} --target Zilliqa_coverage || exit 1
 else
     cd build && ctest --output-on-failure -j1 || exit 1
 fi
