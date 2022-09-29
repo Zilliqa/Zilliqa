@@ -51,17 +51,6 @@ const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
 
-static bool isNumber(const std::string& str) {
-  char* endp{};
-  strtoull(str.c_str(), &endp, 0);
-  return (str.size() > 0 && endp != nullptr && *endp == '\0');
-}
-
-static bool isSupportedTag(const std::string& tag) {
-  return tag == "latest" || tag == "earliest" || tag == "pending" ||
-         isNumber(tag);
-}
-
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
 

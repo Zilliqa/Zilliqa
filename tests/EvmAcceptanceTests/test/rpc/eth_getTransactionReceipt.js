@@ -80,8 +80,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.from, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.from.toUpperCase(),
-        zilliqa_helper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zilliqa_helper.getSecondaryAccountAddress().toUpperCase()
+        zilliqa_helper.getPrimaryAccountAddress().toUpperCase(),
+        "Is not equal to " + zilliqa_helper.getPrimaryAccountAddress().toUpperCase()
       );
 
       // blockHash
