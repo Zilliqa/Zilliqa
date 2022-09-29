@@ -642,6 +642,7 @@ Json::Value LookupServer::CreateTransaction(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
+
     ret["TranID"] = tx.GetTranID().hex();
     return ret;
   } catch (const JsonRpcException& je) {
