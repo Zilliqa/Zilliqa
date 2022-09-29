@@ -232,7 +232,7 @@ impl ScillaBackend {
 
 impl<'config> Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        U256::query_jsonrpc_u256("BLOCKGASPRICE")
+        self.query_jsonrpc_u256("BLOCKGASPRICE")
     }
 
     fn origin(&self) -> H160 {
