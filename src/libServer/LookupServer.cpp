@@ -1787,7 +1787,8 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
         transactionCur += tranHashes.size();
         continue;
       }
-      // Skip this microblock's transactions since we've reached transactionEnd
+      // Skip this microblock's transactions since we've reached
+      // transactionEnd
       if (transactionCur >= transactionEnd) {
         continue;
       }
@@ -1831,7 +1832,8 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
 }
 
 vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
-  // case when the number required is greater than total numbers being shuffled
+  // case when the number required is greater than total numbers being
+  // shuffled
   if (size < num) {
     num = size;
   }
@@ -1986,7 +1988,8 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
       const DSBlock& currDSBlock =
           m_mediator.m_dsBlockChain.GetBlock(currDSBlockNum);
 
-      // Add the public keys of the PoWWinners in that entry to the DS committee
+      // Add the public keys of the PoWWinners in that entry to the DS
+      // committee
       for (const auto& winner : currDSBlock.GetHeader().GetDSPoWWinners()) {
         minerInfoDSComm.m_dsNodes.emplace_front(winner.first);
       }
