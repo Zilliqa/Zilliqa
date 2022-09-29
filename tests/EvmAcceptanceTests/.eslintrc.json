@@ -1,0 +1,22 @@
+{
+  "env": {
+    "browser": false,
+    "commonjs": true,
+    "es2021": true,
+    "node": true
+  },
+  "extends": ["plugin:mocha/recommended", "prettier"],
+  "plugins": ["mocha", "prettier"],
+  "parserOptions": {
+    "ecmaVersion": "latest"
+  },
+  "rules": {
+    "prettier/prettier": ["error"],
+    "indent": ["error", 2],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "double"],
+    "semi": ["error", "always"],
+    "mocha/no-pending-tests": "off",
+    "comma-dangle": ["error", "never"]
+  }
+}

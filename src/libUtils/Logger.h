@@ -28,7 +28,6 @@
 #include <vector>
 #include "common/BaseType.h"
 #include "g3log/g3log.hpp"
-#include "g3log/loglevels.hpp"
 #include "g3log/logworker.hpp"
 #include "libUtils/TimeUtils.h"
 
@@ -48,7 +47,7 @@ class Logger {
   std::mutex m;
   bool m_logToFile;
   std::streampos m_maxFileSize;
-  std::unique_ptr<g3::LogWorker> logworker;
+  std::unique_ptr<g3::LogWorker> m_logWorker;
 
   Logger(const char* prefix, bool log_to_file, const char* logpath,
          std::streampos max_file_size);

@@ -12,10 +12,10 @@ add_library (Network
 
 target_include_directories (Network PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries (Network PUBLIC
-    Constants
-    libevent::core
-    libevent::pthreads
-    RumorSpreading
-    Message
-    Schnorr
-    OpenSSL::Crypto)
+        Constants
+        libevent::core
+        libevent::pthreads
+        RumorSpreading
+        Message
+        ${Schnorr_LIBRARY}
+        OpenSSL::Crypto)

@@ -126,8 +126,6 @@ void CloseGracefully(Socket socket) {
 
 class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
  public:
-  static constexpr Milliseconds RECONNECT_DELAY = Milliseconds(1000);
-
   using RawMessage = SendJobs::RawMessage;
 
   struct Item {
@@ -293,7 +291,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     assert(ec);
 
-    WaitTimer(m_timer, RECONNECT_DELAY, this, &PeerSendQueue::Reconnect);
+    WaitTimer(m_timer, Milliseconds(1000), this, &PeerSendQueue::Reconnect);
   }
 
   void Reconnect() {

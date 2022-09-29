@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "cd ../../ && npx husky install .husky/ && cd - && npx husky add ../../.husky/pre-commit \"cd ./tests/EvmAcceptanceTests && npx lint-staged\"",
+    "lint": "eslint --fix && prettier --write ."
   },
   "author": "",
   "license": "ISC",
@@ -12,10 +14,23 @@
     "@nomicfoundation/hardhat-toolbox": "^1.0.2",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "axios": "^0.27.2",
+    "eslint": "^8.23.1",
+    "eslint-config-prettier": "^8.5.0",
+    "eslint-plugin-mocha": "10.1.0",
+    "eslint-plugin-prettier": "^4.2.1",
     "hardhat": "^2.10.1",
+    "husky": "^8.0.1",
+    "lint-staged": "^13.0.3",
+    "prettier": "^2.7.1",
     "web3": "^1.7.5"
   },
   "dependencies": {
     "@zilliqa-js/zilliqa": "^3.3.4"
+  },
+  "lint-staged": {
+    "*.js": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }
