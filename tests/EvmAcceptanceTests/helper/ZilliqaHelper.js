@@ -1,4 +1,4 @@
-const {ethers, web3} = require("hardhat");
+const { ethers, web3 } = require("hardhat");
 const hre = require("hardhat");
 const general_helper = require("../helper/GeneralHelper");
 
@@ -105,7 +105,7 @@ var zilliqa_helper = {
     return web3.eth.sendSignedTransaction(signedTx.rawTransaction);
   },
 
-  moveFundsBy: async function (amount, toAddr, senderAccount) {
+  async moveFunds(amount, toAddr, senderAccount) {
     try {
       const nonce = await web3.eth.getTransactionCount(senderAccount.address); // nonce starts counting from 0
       const tx = {
@@ -124,8 +124,8 @@ var zilliqa_helper = {
     }
   },
 
-  moveFunds: async function (amount, toAddr) {
-    return this.moveFundsBy(amount, toAddr, this.primaryAccount);
+  async moveFundsTo(amount, toAddr) {
+    return this.moveFunds(amount, toAddr, this.primaryAccount);
   }
 };
 

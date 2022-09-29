@@ -15,6 +15,7 @@ describe("Calling " + METHOD, function () {
     var transactionHash;
 
     function onMoveFundsFinished(receipt) {
+      console.log("Moved funds successfully, receipt:", receipt);
       transactionHash = receipt.transactionHash;
     }
 
@@ -26,7 +27,7 @@ describe("Calling " + METHOD, function () {
     let amount = 10_000;
     // send amount from primary to secondary account
     await zilliqa_helper
-      .moveFundsBy(amount, zilliqa_helper.getSecondaryAccountAddress(), zilliqa_helper.primaryAccount)
+      .moveFundsTo(amount, zilliqa_helper.getSecondaryAccountAddress(), zilliqa_helper.primaryAccount)
       .then(onMoveFundsFinished, onMoveFundsError);
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
@@ -80,8 +81,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.from, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.from.toUpperCase(),
-        zilliqa_helper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zilliqa_helper.getSecondaryAccountAddress().toUpperCase()
+        zilliqa_helper.getPrimaryAccountAddress().toUpperCase(),
+        "Is not equal to " + zilliqa_helper.getPrimaryAccountAddress().toUpperCase()
       );
 
       // blockHash
