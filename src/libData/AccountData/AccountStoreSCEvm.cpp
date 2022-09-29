@@ -87,15 +87,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         Json::Value tmp;
         Json::Reader _reader;
         if (_reader.parse(logJsonString, tmp)) {
-          const auto dataBytesArray = tmp.get("data", Json::arrayValue);
-          bytes bytesVector;
-          std::for_each(dataBytesArray.begin(), dataBytesArray.end(),
-                        [&bytesVector](const Json::Value& item) {
-                          bytesVector.push_back(item.asUInt());
-                        });
-          const auto hexedStr =
-              "0x" + DataConversion::Uint8VecToHexStrRet(bytesVector);
-          tmp["data"] = hexedStr;
           _json.append(tmp);
         } else {
           LOG_GENERAL(WARNING, "Parsing json unsuccessful " << logJsonString);

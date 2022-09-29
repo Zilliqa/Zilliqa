@@ -150,12 +150,12 @@ describe("Contract Interaction", function () {
         expect(await contract.methods.someAddress().call()).to.be.eq(ADDRESS);
       });
 
-      it("Calling a method on a contract that generates event without parameters", async function () {
+      it("Should have event in returned object when no arg is specified", async function () {
         const sendResult = await contract.methods.emitLogWithoutParam().send(options);
         expect(sendResult.events.logWithoutParam).to.be.not.null;
       });
 
-      it("Calling a method on a contract that generates event with parameter", async function () {
+      it("Should have event in returned object when arg type is uint256", async function () {
         const sendResult = await contract.methods.emitLogWithUint256Param().send(options);
         expect(sendResult.events.logWithUint256Param).to.be.not.null;
         expect(sendResult.events.logWithUint256Param.returnValues.value).to.be.eq("234");
