@@ -53,9 +53,9 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       &ScillaIPCServer::fetchExternalStateValueB64I);
 
   // TODO @CSideSteve.
-  // These is a bug in the method below that leads to a crash. This is why it is commented out.
-  // To reproduce the bug, uncomment the below, rebuild, and run ds_test against the isolated server
-  // as
+  // There is a bug in the method below that leads to a crash. This is why it is
+  // commented out. To reproduce the bug, uncomment the below, rebuild, and run
+  // ds_test against the isolated server as
   //      pytest -k test_bcinfo
   //
   // bindAndAddMethod(
