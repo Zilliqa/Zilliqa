@@ -215,6 +215,12 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     }
   } else {
     blockNum = m_BCInfo->getCurBlockNum();
+    if (blockNum > 0) {  
+      blockNum -= 1;     // We need to look at the previous block,
+                         // as the current block is incomplete at the moment
+                         // of transaction execution. It is complete at eth_call time,
+                         // but still look at previous block to keep behavior consistent.
+    }
   }
 
   TxBlockSharedPtr txBlockSharedPtr;
