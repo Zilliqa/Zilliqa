@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
-
 #include "EthRpcMethods.h"
 #include "Server.h"
 
@@ -60,8 +59,9 @@ class LookupServer : public Server,
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
   ~LookupServer() = default;
 
-  inline bool bindAndAddExternalMethod(const jsonrpc::Procedure& proc, methodPointer_t pointer){
-    return bindAndAddMethod(proc,pointer);
+  inline bool bindAndAddExternalMethod(const jsonrpc::Procedure& proc,
+                                       methodPointer_t pointer) {
+    return bindAndAddMethod(proc, pointer);
   }
 
   inline virtual void GetNetworkIdI(const Json::Value& request,

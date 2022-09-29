@@ -14,13 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+#include "EthRpcMethods.h"
 #include <Schnorr.h>
 #include <jsonrpccpp/common/exception.h>
 #include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include <stdexcept>
-#include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "LookupServer.h"
 #include "common/Constants.h"
@@ -555,7 +555,7 @@ string EthRpcMethods::GetEthCallZil(const Json::Value& _json) {
 }
 
 string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
-                                      const string& block_or_tag) {
+                                    const string& block_or_tag) {
   if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
                            "Unsupported block or tag in eth_call");
@@ -564,7 +564,7 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 }
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
-                                       const ApiKeys& apiKeys) {
+                                     const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
@@ -731,8 +731,8 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
 }
 
 Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
-                                             std::string const& position,
-                                             std::string const& /*blockNum*/) {
+                                           std::string const& position,
+                                           std::string const& /*blockNum*/) {
   LOG_MARKER();
 
   Json::Value indices = Json::arrayValue;
@@ -818,7 +818,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
 }
 
 Json::Value EthRpcMethods::GetEthCode(std::string const& address,
-                                        std::string const& /*blockNum*/) {
+                                      std::string const& /*blockNum*/) {
   LOG_MARKER();
 
   // Strip off "0x" if exists
@@ -896,7 +896,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 }
 
 Json::Value EthRpcMethods::GetEthBlockByHash(const std::string& inputHash,
-                                               bool includeFullTransactions) {
+                                             bool includeFullTransactions) {
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock =
@@ -916,7 +916,7 @@ Json::Value EthRpcMethods::GetEthBlockByHash(const std::string& inputHash,
 }
 
 Json::Value EthRpcMethods::GetEthBlockCommon(const TxBlock& txBlock,
-                                               bool includeFullTransactions) {
+                                             bool includeFullTransactions) {
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
       txBlock.GetHeader().GetDSBlockNum());
 
@@ -959,7 +959,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(const TxBlock& txBlock,
 }
 
 Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
-                                           const std::string& tag) {
+                                         const std::string& tag) {
   if (isSupportedTag(tag)) {
     uint256_t ethBalance{0};
     try {

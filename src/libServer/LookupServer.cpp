@@ -317,7 +317,7 @@ LookupServer::LookupServer(Mediator& mediator,
   random_device rd;
   m_eng = mt19937(rd());
 
-  if (ENABLE_EVM){
+  if (ENABLE_EVM) {
     // This is all that is required to Initialise the methods required for EVM
     EthRpcMethods::Init(this);
   }
@@ -2217,7 +2217,6 @@ Json::Value LookupServer::GetStateProof(const string& address,
   return ret;
 }
 
-
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
@@ -2225,7 +2224,8 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
   std::string resultStr;
 
   if (!ENABLE_SC) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Smart contract is disabled");
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "Smart contract is disabled");
   }
 
   if (!toAccountExist) {

@@ -31,7 +31,8 @@ typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
 
 class EthRpcMethods {
  public:
-  EthRpcMethods(Mediator& mediator) : m_sharedMediator(mediator) ,m_lookupServer(nullptr){}
+  EthRpcMethods(Mediator& mediator)
+      : m_sharedMediator(mediator), m_lookupServer(nullptr) {}
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,
