@@ -15,6 +15,11 @@ spec:
     command:
     - cat
     tty: true
+    resources:
+      requests:
+        ephemeral-storage: "20Gi"
+      limits:
+        ephemeral-storage: "20Gi"
 """
 
 String skipciMessage = 'Aborting because commit message contains [skip ci]'
