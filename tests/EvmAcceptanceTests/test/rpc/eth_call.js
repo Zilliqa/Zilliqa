@@ -1,10 +1,9 @@
 const helper = require('../../helper/GeneralHelper');
-const { ZilliqaHelper } = require('../../helper/ZilliqaHelper');
+const zilliqa_helper = require("../../helper/ZilliqaHelper");
 const { hardhat } = require("hardhat");
 assert = require('chai').assert;
 
 const METHOD = 'eth_call';
-var zHelper = new ZilliqaHelper();
 
 describe("Calling " + METHOD, function () {
   it("should return the from eth call", async function () {
@@ -13,7 +12,7 @@ describe("Calling " + METHOD, function () {
     const ContractRaw = await hre.artifacts.readArtifact("contracts/SimpleContract.sol:SimpleContract");
 
     await helper.callEthMethod(METHOD, 2, [{
-      "to": zHelper.getPrimaryAccount().address,
+      "to": zilliqa_helper.getPrimaryAccountAddress(),
       "data": ContractRaw.bytecode,
       "gas": 1000000
     }, "latest"],

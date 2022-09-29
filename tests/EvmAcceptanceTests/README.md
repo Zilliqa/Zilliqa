@@ -8,11 +8,11 @@
 # Setup github pre-commit hook
 
 You may want to set up pre-commit hook to fix your code before commit by:
-```npm run prepare```
+`npm run prepare`
 
 Alternatively, you can always fix your code manually before uploading to remote:
 
-```npm run lint```
+`npm run lint`
 
 # Start Testing
 

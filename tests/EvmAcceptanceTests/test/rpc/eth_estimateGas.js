@@ -1,7 +1,7 @@
-const helper = require('../../helper/GeneralHelper');
-assert = require('chai').assert;
+const helper = require("../../helper/GeneralHelper");
+assert = require("chai").assert;
 
-const METHOD = 'eth_estimateGas';
+const METHOD = "eth_estimateGas";
 
 // TODO, finish test when  code on zilliqa is implemented to calculate the estimated gas price
 
@@ -12,13 +12,13 @@ const METHOD = 'eth_estimateGas';
 //       "latest"],
 //       (result, status) => {
 //         console.log(result);
-// 
+//
 //         assert.equal(status, 200, 'has status code');
 //         assert.property(result, 'result', (result.error) ? result.error.message : 'error');
 //         assert.isString(result.result, 'is string');
 //         assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
 //         assert.isNumber(+result.result, 'can be converted to a number');
-// 
+//
 //         const estimatedGas = 2000000000
 //         assert.equal(+result.result, estimatedGas, 'should have an estimated gas' + estimatedGas);
 //       })

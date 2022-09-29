@@ -26,7 +26,8 @@
     "libmicrohttpd",
     "nlohmann-json",
     "libffi",
-    "g3log"
+    "g3log",
+    "schnorr"
   ],
   "builtin-baseline": "f93ba152d55e1d243160e690bc302ffe8638358e",
   "overrides": [
@@ -49,6 +50,10 @@
     {
       "name": "libmicrohttpd",
       "version-string": "0.9.63#7"
+    },
+    {
+      "name": "schnorr",
+      "version": "8.2.0"
     }
   ]
 }

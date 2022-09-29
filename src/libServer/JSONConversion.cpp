@@ -155,7 +155,10 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       (boost::format("0x%x") %
        static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
           .str();
-
+  retJson["totalDifficulty"] =
+      (boost::format("0x%x") %
+       static_cast<int>(dsBlock.GetHeader().GetTotalDifficulty()))
+          .str();
   bytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
   auto timestamp = microsec_to_sec(txblock.GetTimestamp());
@@ -166,7 +169,10 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["timestamp"] = (boost::format("0x%x") % timestamp).str();
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
-  retJson["extraData"] = "0x";
+  retJson["extraData"] = "0x0";
+  retJson["nonce"] = "0x0";
+  retJson["receiptsRoot"] = "0x0";
+  retJson["transactionsRoot"] = "0x0";
 
   auto transactionsJson = Json::Value{Json::arrayValue};
   if (!includeFullTransactions) {
@@ -661,8 +667,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["from"] = "0x" + tx.GetSenderAddr().hex();
   retJson["gas"] =
       (boost::format("0x%x") %
-       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas() *
-                                      EVM_ZIL_SCALING_FACTOR))
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
           .str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitRaw()).str();

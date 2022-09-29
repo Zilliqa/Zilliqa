@@ -35,8 +35,6 @@ find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 find_package(PythonLibs REQUIRED)
-message(STATUS "PYTHON_LIBRARIES = ${PYTHON_LIBRARIES}")
-message(STATUS "PYTHON_INCLUDE_DIRS = ${PYTHON_INCLUDE_DIRS}")
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -51,9 +49,10 @@ if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
 
+find_package(Schnorr REQUIRED)
+
 include(InstallCryptoUtils)
 include(ProjectSecp256k1)
-include(InstallSchnorr)
 
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 include_directories(${OPENSSL_INCLUDE_DIR})

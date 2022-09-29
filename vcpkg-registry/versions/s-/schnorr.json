@@ -1,0 +1,10 @@
+{
+  "versions": [
+    {
+      "path": "$/ports/schnorr",
+      "version": "8.2.0",
+      "port-version": 0
+    }
+  ]
+}
+
