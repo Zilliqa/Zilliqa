@@ -6,26 +6,16 @@ assert = require('chai').assert;
 const METHOD = 'eth_call';
 var zHelper = new ZilliqaHelper();
 
-// need to test:
-// - contracts call with parameters, check result etc...
-// - contracts with revert
-// ????
-
 describe("Calling " + METHOD, function () {
   it("should return the from eth call", async function () {
 
-    //console.log(await hre.artifacts.getArtifactPaths());
-
     const contractFactory = await hre.ethers.getContractFactory("SimpleContract");
     const ContractRaw = await hre.artifacts.readArtifact("contracts/SimpleContract.sol:SimpleContract");
-
-    console.log(ContractRaw.bytecode);
 
     await helper.callEthMethod(METHOD, 2, [{
       "to": zHelper.getPrimaryAccount().address,
       "data": ContractRaw.bytecode,
       "gas": 1000000
-      //,      "value": 4200
     }, "latest"],
       (result, status) => {
         console.log(result);
@@ -34,9 +24,7 @@ describe("Calling " + METHOD, function () {
         assert.isString(result.result, 'is string');
         assert.match(result.result, /^0x/, 'should be HEX starting with 0x');
         assert.isNumber(+result.result, 'can be converted to a number');
-
-        //const expectedChainId = helper.getEthChainId()
-        //assert.equal(+result.result, expectedChainId, 'should have a chain Id ' + expectedChainId);
+        assert.equal(result.result, "0x");
       })
   })
 })
