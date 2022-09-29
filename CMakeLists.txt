@@ -49,9 +49,10 @@ if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
 
+find_package(Schnorr REQUIRED)
+
 include(InstallCryptoUtils)
 include(ProjectSecp256k1)
-include(InstallSchnorr)
 
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 include_directories(${OPENSSL_INCLUDE_DIR})
