@@ -103,8 +103,8 @@ impl Serialize for DirtyState {
 #[derive(serde::Serialize)]
 struct EvmLog {
     pub address: H160,
-	pub topics: Vec<H256>,
-	pub data: String,
+    pub topics: Vec<H256>,
+    pub data: String,
 }
 
 impl EvmLog {
@@ -112,11 +112,10 @@ impl EvmLog {
         EvmLog {
             address: log.address,
             topics: log.topics.to_owned(),
-            data : "0x".to_string() +  &hex::encode(&log.data),
+            data: "0x".to_string() + &hex::encode(&log.data),
         }
     }
 }
-
 
 #[derive(serde::Serialize)]
 pub struct EvmResult {
