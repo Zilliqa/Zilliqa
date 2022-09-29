@@ -15,6 +15,11 @@ spec:
     command:
     - cat
     tty: true
+    resources:
+      requests:
+        ephemeral-storage: "20Gi"
+      limits:
+        ephemeral-storage: "20Gi"
 """
 
 String skipciMessage = 'Aborting because commit message contains [skip ci]'
@@ -26,7 +31,7 @@ timestamps {
         try {
           stage('Checkout scm') {
               checkout scm
-              def pr_skipci = env.CHANGE_URL ? sh(script: "curl ${env.CHANGE_URL} 2> /dev/null | grep 'title' | head -1 | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim() : "0"
+              def pr_skipci = env.CHANGE_TITLE ? sh(script: "echo ${env.CHANGE_TITLE} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim() : "0"
               def skipci = sh(script: "git log -1 --pretty=%B | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
               if (skipci != "0" || pr_skipci != "0") {
                 error(skipciMessage)

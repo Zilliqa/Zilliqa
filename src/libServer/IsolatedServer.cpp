@@ -908,6 +908,10 @@ string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
   auto incrThread = [this]() mutable -> void {
+    // start the post tx block directly to prevent a 'dead' period before the
+    // first block
+    PostTxBlock();
+
     while (true) {
       this_thread::sleep_for(chrono::milliseconds(m_timeDelta));
       if (m_pause) {
