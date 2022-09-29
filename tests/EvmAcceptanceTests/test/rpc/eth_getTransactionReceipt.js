@@ -1,6 +1,6 @@
-const {ZilliqaHelper} = require("../../helper/ZilliqaHelper");
+const { ZilliqaHelper } = require("../../helper/ZilliqaHelper");
 const helper = require("../../helper/GeneralHelper");
-const {ethers, web3} = require("hardhat");
+const { ethers, web3 } = require("hardhat");
 assert = require("chai").assert;
 
 const METHOD = "eth_getTransactionReceipt";
@@ -28,7 +28,7 @@ describe("Calling " + METHOD, function () {
     let amount = 10_000;
     // send amount from primary to secondary account
     await zHelper
-      .moveFundsBy(amount, zHelper.getSecondaryAccount().address, zHelper.getPrimaryAccount())
+      .moveFundsTo(amount, zHelper.getSecondaryAccount().address)
       .then(onMoveFundsFinished, onMoveFundsError);
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
