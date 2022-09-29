@@ -10,4 +10,4 @@ add_library(Filters
         filters/APICache.cpp
         )
 
-target_link_libraries(Filters Utils jsonrpc::client)
+target_link_libraries(Filters Utils)

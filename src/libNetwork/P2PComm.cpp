@@ -117,9 +117,7 @@ P2PComm::P2PComm() {
   DetachedFunction(1, func);
 }
 
-P2PComm::~P2PComm() {
-  m_base = NULL;
-}
+P2PComm::~P2PComm() { m_base = NULL; }
 
 P2PComm& P2PComm::GetInstance() {
   static P2PComm comm;
