@@ -9,11 +9,10 @@ describe("Calling " + METHOD, function () {
   it("should return the from eth call", async function () {
 
     const contractFactory = await hre.ethers.getContractFactory("SimpleContract");
-    const ContractRaw = await hre.artifacts.readArtifact("contracts/SimpleContract.sol:SimpleContract");
 
     await helper.callEthMethod(METHOD, 2, [{
       "to": zilliqa_helper.getPrimaryAccountAddress(),
-      "data": ContractRaw.bytecode,
+      "data": contractFactory.bytecode,
       "gas": 1000000
     }, "latest"],
       (result, status) => {
