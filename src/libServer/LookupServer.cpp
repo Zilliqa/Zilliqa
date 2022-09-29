@@ -16,35 +16,25 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
-#include <jsonrpccpp/common/exception.h>
-#include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include <ethash/keccak.hpp>
-#include <stdexcept>
+#include "EthRpcMethods.h"
 #include "JSONConversion.h"
-#include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "json/value.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
-#include "libEth/Eth.h"
-#include "libEth/Filters.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
-#include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libUtils/AddressConversion.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -100,6 +90,7 @@ const unsigned int REF_BLOCK_DIFF = 1;
 LookupServer::LookupServer(Mediator& mediator,
                            jsonrpc::AbstractServerConnector& server)
     : Server(mediator),
+      EthRpcMethods(mediator),
       jsonrpc::AbstractServer<LookupServer>(server,
                                             jsonrpc::JSONRPC_SERVER_V2) {
   this->bindAndAddMethod(
@@ -111,7 +102,6 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetCurrentDSEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &Server::GetCurrentDSEpochI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNodeType", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -121,475 +111,210 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetNetworkId", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNetworkIdI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("CreateTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &LookupServer::CreateTransactionI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTransactionI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSoftConfirmedTransaction",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_OBJECT,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetSoftConfirmedTransactionI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDsBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetDsBlockI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDsBlockVerbose", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetDsBlockVerboseI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxBlockI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlockVerbose", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxBlockVerboseI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetLatestDsBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetLatestDsBlockI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetLatestTxBlockI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetBalance", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetBalanceI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinimumGasPrice", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetMinimumGasPriceI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDSDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDSDifficultyI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPrevDifficulty", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &Server::GetPrevDifficultyI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContracts", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractsI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetContractAddressFromTransactionID",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetContractAddressFromTransactionIDI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumPeers", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_INTEGER, NULL),
       &LookupServer::GetNumPeersI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTxBlocks", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxBlocksI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumDSBlocks", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumDSBlocksI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTransactionsI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionRate", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTransactionRateI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxBlockRate", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTxBlockRateI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetDSBlockRate", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetDSBlockRateI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetShardMembers", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::GetShardMembersI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentDSComm", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetCurrentDSCommI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("DSBlockListing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::DSBlockListingI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("TxBlockListing", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_INTEGER,
                          NULL),
       &LookupServer::TxBlockListingI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetBlockchainInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetBlockchainInfoI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetRecentTransactions", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetShardingStructure", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetShardingStructureI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTxnsTxEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxnsTxEpochI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetNumTxnsDSEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetNumTxnsDSEpochI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure(
           "GetSmartContractSubState", jsonrpc::PARAMS_BY_POSITION,
           jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING, "param02",
           jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_ARRAY, NULL),
       &LookupServer::GetSmartContractSubStateI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractState", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractStateI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractCode", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractCodeI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetSmartContractInit", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetSmartContractInitI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionsForTxBlock",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionsForTxBlockEx",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, "param02",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTransactionsForTxBlockExI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetPendingTxnsI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetMinerInfo", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetMinerInfoI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxnBodiesForTxBlock", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_ARRAY, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTxnBodiesForTxBlockI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTxnBodiesForTxBlockEx",
                          jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
                          "param01", jsonrpc::JSON_STRING, "param02",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetTxnBodiesForTxBlockExI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetTransactionStatus", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &LookupServer::GetTransactionStatusI);
-
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetStateProof", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_STRING, "param03",
                          jsonrpc::JSON_STRING, NULL),
       &LookupServer::GetStateProofI);
-
-  // Add Eth compatible RPC endpoints
-  // todo: remove when all tests are updated to use eth_call
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthCallZilI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthCallEthI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthBlockNumberI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getBalance", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthBalanceI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
-      &LookupServer::GetEthBlockByNumberI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getBlockByHash", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_BOOLEAN, NULL),
-      &LookupServer::GetEthBlockByHashI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getBlockTransactionCountByHash",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthBlockTransactionCountByHashI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getBlockTransactionCountByNumber",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthBlockTransactionCountByNumberI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getTransactionByBlockHashAndIndex",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, "param02",
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthTransactionByBlockHashAndIndexI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getTransactionByBlockNumberAndIndex",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, "param02",
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_gasPrice", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthGasPriceI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getCode", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthCodeI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_estimateGas", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::GetEthEstimateGasI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getTransactionCount", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthTransactionCountI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_sendRawTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetEthSendRawTransactionI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getTransactionByHash",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthTransactionByHashI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetWeb3ClientVersionI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("web3_sha3", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::GetWeb3Sha3I);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_mining", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthMiningI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_coinbase", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthCoinbaseI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getUncleByBlockHashAndIndex",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
-                         "param01", jsonrpc::JSON_STRING, "param02",
-                         jsonrpc::JSON_STRING, nullptr),
-      &LookupServer::GetEthUncleBlockI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getUncleByBlockNumberAndIndex",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
-                         "param01", jsonrpc::JSON_STRING, "param02",
-                         jsonrpc::JSON_STRING, nullptr),
-      &LookupServer::GetEthUncleBlockI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getUncleCountByBlockHash",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
-                         "param01", jsonrpc::JSON_STRING, nullptr),
-      &LookupServer::GetEthUncleCountI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getUncleCountByBlockNumber",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_ARRAY,
-                         "param01", jsonrpc::JSON_STRING, nullptr),
-      &LookupServer::GetEthUncleCountI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("net_version", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetVersionI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("net_listening", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetListeningI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetProtocolVersionI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("net_peerCount", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetNetPeerCountI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_chainId", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthChainIdI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_syncing", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthSyncingI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_accounts", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthAccountsI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getStorageAt", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, "param03",
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthStorageAtI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getTransactionReceipt",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthTransactionReceiptI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_newFilter", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &LookupServer::EthNewFilterI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_newBlockFilter", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, NULL),
-      &LookupServer::EthNewBlockFilterI);
-
-  this->bindAndAddMethod(jsonrpc::Procedure("eth_newPendingTransactionFilter",
-                                            jsonrpc::PARAMS_BY_POSITION,
-                                            jsonrpc::JSON_STRING, NULL),
-                         &LookupServer::EthNewPendingTransactionFilterI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_getFilterChanges", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::EthGetFilterChangesI);
-
-  this->bindAndAddMethod(
-      jsonrpc::Procedure("eth_uninstallFilter", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
-      &LookupServer::EthUninstallFilterI);
 
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
@@ -602,6 +327,11 @@ LookupServer::LookupServer(Mediator& mediator,
   m_TxBlockCountSumPair.second = 0;
   random_device rd;
   m_eng = mt19937(rd());
+
+  if (ENABLE_EVM) {
+    // This is all that is required to Initialise the methods required for EVM
+    EthRpcMethods::Init(this);
+  }
 }
 
 string LookupServer::GetNetworkId() {
@@ -817,63 +547,6 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
   return true;
 }
 
-std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
-    bool priority, unsigned int shard, const Transaction& tx,
-    unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-  unsigned int mapIndex = shard;
-  std::string resultStr;
-
-  if (!ENABLE_SC) {
-    throw JsonRpcException(RPC_MISC_ERROR, "Smart contract is disabled");
-  }
-
-  if (!toAccountExist) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                           "Target account does not exist");
-  }
-
-  else if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL &&
-           !toAccountIsContract) {
-    throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                           "Non - contract address called");
-  }
-
-  Address affectedAddress =
-      (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
-          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
-                                           tx.GetVersionIdentifier())
-          : tx.GetToAddr();
-
-  unsigned int to_shard =
-      Transaction::GetShardIndex(affectedAddress, num_shards);
-  // Use m_sendSCCallsToDS as initial setting
-  bool sendToDs = priority || m_mediator.m_lookup->m_sendSCCallsToDS;
-  if ((to_shard == shard) && !sendToDs) {
-    if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding shard maximum limit");
-    }
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    }
-    resultStr =
-        "Contract Creation/Call Txn, Shards Match of the sender "
-        "and receiver";
-  } else {
-    if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding ds maximum limit");
-    }
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
-    } else {
-      mapIndex = num_shards;
-    }
-    resultStr = "Contract Creation/Call Txn, Sent To Ds";
-  }
-  return make_pair(resultStr, mapIndex);
-}
-
 Json::Value LookupServer::CreateTransaction(
     const Json::Value& _json, const unsigned int num_shards,
     const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
@@ -967,6 +640,7 @@ Json::Value LookupServer::CreateTransaction(
         break;
       default:
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
+<<<<<<< HEAD
     }
     if (m_mediator.m_lookup->m_sendAllToDS) {
       if (ARCHIVAL_LOOKUP) {
@@ -1439,102 +1113,30 @@ Json::Value LookupServer::GetEthTransactionFromBlockByIndex(
   for (auto const& mbInfo : microBlockInfos) {
     if (mbInfo.m_txnRootHash == TxnHash{}) {
       continue;
+=======
+>>>>>>> master
     }
-
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
-                                                       microBlockPtr)) {
-      continue;
+    if (m_mediator.m_lookup->m_sendAllToDS) {
+      if (ARCHIVAL_LOOKUP) {
+        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+      } else {
+        mapIndex = num_shards;
+      }
     }
-
-    const auto& currTranHashes = microBlockPtr->GetTranHashes();
-
-    if (processedIndexes + currTranHashes.size() > index) {
-      // We found a block containing transaction
-      indexInBlock = index - processedIndexes;
-      break;
-    } else {
-      processedIndexes += currTranHashes.size();
+    if (!targetFunc(tx, mapIndex)) {
+      throw JsonRpcException(RPC_DATABASE_ERROR,
+                             "Txn could not be added as database exceeded "
+                             "limit or the txn was already present");
     }
-  }
-  // Possibly out of range index or block with no transactions
-  if (!indexInBlock) {
-    return Json::nullValue;
-  }
-
-  TxBodySharedPtr transactioBodyPtr;
-  const auto txHashes = microBlockPtr->GetTranHashes();
-  if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
-                                                 transactioBodyPtr)) {
-    return Json::nullValue;
-  }
-
-  return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
-                                            *transactioBodyPtr, txBlock);
-}
-
-Json::Value LookupServer::GetEthTransactionReceipt(const std::string& txnhash) {
-  try {
-    TxnHash argHash{txnhash};
-    TxBodySharedPtr transactioBodyPtr;
-    bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
-    if (!isPresent) {
-      LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
-      return Json::nullValue;
-    }
-
-    const TxBlock EMPTY_BLOCK;
-    auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
-    if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks. "
-                               << txnhash);
-      return Json::nullValue;
-    }
-
-    constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-    auto transactionIndex = GetTransactionIndexFromBlock(txBlock, txnhash);
-    if (transactionIndex == WRONG_INDEX) {
-      LOG_GENERAL(WARNING, "Tx index requested but not found");
-      return Json::nullValue;
-    }
-
-    auto const ethResult = JSONConversion::convertTxtoEthJson(
-        transactionIndex, *transactioBodyPtr, txBlock);
-    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
-
-    auto receipt = zilResult["receipt"];
-
-    std::string hashId = ethResult["hash"].asString();
-    bool success = receipt["success"].asBool();
-    std::string sender = ethResult["from"].asString();
-    std::string toAddr = ethResult["to"].asString();
-    std::string cumGas =
-        (boost::format("0x%x") %
-         GasConv::GasUnitsFromCoreToEth(
-             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
-            .str();
-
-    const TxBlockHeader& txHeader = txBlock.GetHeader();
-    const std::string blockNumber =
-        (boost::format("0x%x") % txHeader.GetBlockNum()).str();
-    const std::string blockHash =
-        (boost::format("0x%x") % txBlock.GetBlockHash().hex()).str();
-
-    Json::Value contractAddress =
-        ethResult.get("contractAddress", Json::nullValue);
-    auto res =
-        Eth::populateReceiptHelper(hashId, success, sender, toAddr, cumGas,
-                                   blockHash, blockNumber, contractAddress);
-
-    return res;
+    ret["TranID"] = tx.GetTranID().hex();
+    return ret;
   } catch (const JsonRpcException& je) {
     throw je;
   } catch (exception& e) {
-    throw JsonRpcException(RPC_MISC_ERROR,
-                           string("Unable To find hash for txn: ") + e.what());
+    LOG_GENERAL(INFO,
+                "[Error]" << e.what() << " Input: " << _json.toStyledString());
+    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
   }
-
-  return Json::nullValue;
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
@@ -1737,304 +1339,6 @@ Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
     throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
   }
-}
-
-struct LookupServer::ApiKeys {
-  std::string from;
-  std::string to;
-  std::string value;
-  std::string gas;
-  std::string data;
-};
-
-// TODO: remove once we fully move to Eth compatible APIs.
-string LookupServer::GetEthCallZil(const Json::Value& _json) {
-  return this->GetEthCallImpl(
-      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
-}
-
-string LookupServer::GetEthCallEth(const Json::Value& _json,
-                                   const string& block_or_tag) {
-  if (!isSupportedTag(block_or_tag)) {
-    throw JsonRpcException(RPC_INVALID_PARAMS,
-                           "Unsupported block or tag in eth_call");
-  }
-  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
-}
-
-string LookupServer::GetEthCallImpl(const Json::Value& _json,
-                                    const ApiKeys& apiKeys) {
-  LOG_MARKER();
-  LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-  const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
-  bytes code{};
-  auto ret{false};
-  {
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
-    Account* contractAccount =
-        AccountStore::GetInstance().GetAccount(addr, true);
-    if (contractAccount == nullptr) {
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Account does not exist");
-    }
-    code = contractAccount->GetCode();
-  }
-
-  string result;
-  try {
-    Address fromAddr;
-    if (_json.isMember(apiKeys.from)) {
-      fromAddr = Address(_json[apiKeys.from].asString());
-    }
-
-    uint64_t amount{0};
-    if (_json.isMember(apiKeys.value)) {
-      const auto amount_str = _json[apiKeys.value].asString();
-      amount = strtoull(amount_str.c_str(), NULL, 0);
-    }
-
-    // for now set total gas as twice the ds gas limit
-    uint64_t gasRemained =
-        GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
-    if (_json.isMember(apiKeys.gas)) {
-      const auto gasLimit_str = _json[apiKeys.gas].asString();
-      gasRemained =
-          min(gasRemained, (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0));
-    }
-    string data = _json[apiKeys.data].asString();
-    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
-      data = data.substr(2);
-    }
-    EvmCallParameters params{
-        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
-        data,       gasRemained,    amount};
-
-    AccountStore::GetInstance().ViewAccounts(params, ret, result);
-  } catch (const exception& e) {
-    LOG_GENERAL(WARNING, "Error: " << e.what());
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to process");
-  }
-
-  if (!ret) {
-    throw JsonRpcException(RPC_MISC_ERROR, "GetEthCall failed");
-  }
-
-  result = "0x" + result;
-  return result;
-}
-
-std::string LookupServer::GetWeb3ClientVersion() {
-  LOG_MARKER();
-  return "Zilliqa/v8.2";
-}
-
-string LookupServer::GetWeb3Sha3(const Json::Value& _json) {
-  LOG_MARKER();
-  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
-  return POW::BlockhashToHexString(
-      ethash::keccak256(input.data(), input.size()));
-}
-
-Json::Value LookupServer::GetEthUncleCount() {
-  LOG_MARKER();
-  // There's no concept of longest chain hence there will be no uncles
-  // Return 0 instead
-  return Json::Value{"0x0"};
-}
-
-Json::Value LookupServer::GetEthUncleBlock() {
-  LOG_MARKER();
-  // There's no concept of longest chain hence there will be no uncles
-  // Return null instead
-  return Json::nullValue;
-}
-
-Json::Value LookupServer::GetEthMining() {
-  LOG_MARKER();
-
-  return Json::Value(false);
-}
-
-std::string LookupServer::GetEthCoinbase() {
-  LOG_MARKER();
-  return "0x0000000000000000000000000000000000000000";
-}
-
-Json::Value LookupServer::GetNetListening() {
-  LOG_MARKER();
-  return Json::Value(true);
-}
-
-std::string LookupServer::GetNetPeerCount() {
-  LOG_MARKER();
-  return "0x0";
-}
-
-std::string LookupServer::GetProtocolVersion() {
-  LOG_MARKER();
-  return "0x41";  // Similar to Infura, Alchemy
-}
-
-std::string LookupServer::GetEthChainId() {
-  LOG_MARKER();
-  return (boost::format("0x%x") % ETH_CHAINID).str();
-}
-
-Json::Value LookupServer::GetEthSyncing() {
-  LOG_MARKER();
-  return Json::Value(false);
-}
-
-Json::Value LookupServer::GetEmptyResponse() {
-  LOG_MARKER();
-  const Json::Value expectedResponse = Json::arrayValue;
-  return expectedResponse;
-}
-
-Json::Value LookupServer::GetEthTransactionByHash(
-    const std::string& transactionHash) {
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-  }
-  try {
-    TxBodySharedPtr transactioBodyPtr;
-    TxnHash tranHash(transactionHash);
-    bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactioBodyPtr);
-    if (!isPresent) {
-      return Json::nullValue;
-    }
-
-    const TxBlock EMPTY_BLOCK;
-    const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
-    if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
-      return Json::nullValue;
-    }
-
-    constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-    auto transactionIndex =
-        GetTransactionIndexFromBlock(txBlock, transactionHash);
-    if (transactionIndex == WRONG_INDEX) {
-      return Json::nullValue;
-    }
-
-    return JSONConversion::convertTxtoEthJson(transactionIndex,
-                                              *transactioBodyPtr, txBlock);
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable to Process");
-  }
-}
-
-Json::Value LookupServer::GetEthStorageAt(std::string const& address,
-                                          std::string const& position,
-                                          std::string const& /*blockNum*/) {
-  LOG_MARKER();
-
-  Json::Value indices = Json::arrayValue;
-
-  if (Mediator::m_disableGetSmartContractState) {
-    LOG_GENERAL(WARNING, "API disabled");
-    throw JsonRpcException(RPC_INVALID_REQUEST, "API disabled");
-  }
-
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
-  }
-
-  try {
-    Address addr{ToBase16AddrHelper(address)};
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
-
-    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
-
-    if (account == nullptr) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address does not exist");
-    }
-
-    if (!account->isContract()) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address not contract address");
-    }
-    LOG_GENERAL(INFO, "Contract address: " << address);
-    Json::Value root;
-    const auto indices_vector =
-        JSONConversion::convertJsonArrayToVector(indices);
-
-    string vname{};
-    if (!account->FetchStateJson(root, vname, indices_vector)) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR, "FetchStateJson failed");
-    }
-
-    // Attempt to get storage at position.
-    // Left-pad position with 0s up to 64
-    std::string zeroes =
-        "0000000000000000000000000000000000000000000000000000000000000000";
-
-    auto positionIter = position.begin();
-    auto zeroIter = zeroes.begin();
-
-    // Move position iterator past '0x' if it exists
-    if (position.size() > 2 && position[0] == '0' && position[1] == 'x') {
-      std::advance(positionIter, 2);
-    }
-
-    if ((position.end() - positionIter) > static_cast<int>(zeroes.size())) {
-      throw JsonRpcException(RPC_INTERNAL_ERROR,
-                             "position string is too long! " + position);
-    }
-
-    std::advance(zeroIter,
-                 zeroes.size() - std::distance(positionIter, position.end()));
-
-    zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
-
-    auto res = root["_evm_storage"][zeroes];
-    bytes resAsStringBytes;
-
-    for (const auto& item : res.asString()) {
-      resAsStringBytes.push_back(item);
-    }
-
-    auto const resAsStringHex =
-        std::string("0x") +
-        DataConversion::Uint8VecToHexStrRet(resAsStringBytes);
-
-    return resAsStringHex;
-  } catch (const JsonRpcException& je) {
-    throw je;
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
-    throw JsonRpcException(RPC_MISC_ERROR, "Unable To Process");
-  }
-}
-
-Json::Value LookupServer::GetEthCode(std::string const& address,
-                                     std::string const& /*blockNum*/) {
-  LOG_MARKER();
-
-  // Strip off "0x" if exists
-  auto addressCopy = address;
-
-  if (addressCopy.size() >= 2 && addressCopy[0] == '0' &&
-      addressCopy[1] == 'x') {
-    addressCopy.erase(0, 2);
-  }
-
-  auto code = GetSmartContractCode(addressCopy);
-  auto codeStr = code["code"].asString();
-
-  // Erase 'EVM' from beginning, put '0x'
-  if (codeStr.size() > 3) {
-    codeStr[1] = '0';
-    codeStr[2] = 'x';
-    codeStr.erase(0, 1);
-  }
-
-  return codeStr;
 }
 
 Json::Value LookupServer::GetSmartContractState(const string& address,
@@ -3402,43 +2706,60 @@ Json::Value LookupServer::GetStateProof(const string& address,
   return ret;
 }
 
-std::string LookupServer::EthNewFilter(const Json::Value& param) {
-  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
-  auto result = api.InstallNewEventFilter(param);
-  if (!result.success) {
-    throw JsonRpcException(RPC_MISC_ERROR, result.result);
-  }
-  return result.result;
-}
+std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
+    bool priority, unsigned int shard, const Transaction& tx,
+    unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
+  unsigned int mapIndex = shard;
+  std::string resultStr;
 
-std::string LookupServer::EthNewBlockFilter() {
-  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
-  auto result = api.InstallNewBlockFilter();
-  if (!result.success) {
-    throw JsonRpcException(RPC_MISC_ERROR, result.result);
+  if (!ENABLE_SC) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "Smart contract is disabled");
   }
-  return result.result;
-}
 
-std::string LookupServer::EthNewPendingTransactionFilter() {
-  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
-  auto result = api.InstallNewPendingTxnFilter();
-  if (!result.success) {
-    throw JsonRpcException(RPC_MISC_ERROR, result.result);
+  if (!toAccountExist) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "Target account does not exist");
   }
-  return result.result;
-}
 
-Json::Value LookupServer::EthGetFilterChanges(const std::string& filter_id) {
-  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
-  auto result = api.GetFilterChanges(filter_id);
-  if (!result.success) {
-    throw JsonRpcException(RPC_MISC_ERROR, result.error);
+  else if (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CALL &&
+           !toAccountIsContract) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
+                           "Non - contract address called");
   }
-  return result.result;
-}
 
-bool LookupServer::EthUninstallFilter(const std::string& filter_id) {
-  auto& api = m_mediator.m_filtersAPICache->GetFilterAPI();
-  return api.UninstallFilter(filter_id);
+  Address affectedAddress =
+      (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
+          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
+                                           tx.GetVersionIdentifier())
+          : tx.GetToAddr();
+
+  unsigned int to_shard =
+      Transaction::GetShardIndex(affectedAddress, num_shards);
+  // Use m_sendSCCallsToDS as initial setting
+  bool sendToDs = priority || m_sharedMediator.m_lookup->m_sendSCCallsToDS;
+  if ((to_shard == shard) && !sendToDs) {
+    if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "txn gas limit exceeding shard maximum limit");
+    }
+    if (ARCHIVAL_LOOKUP) {
+      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    }
+    resultStr =
+        "Contract Creation/Call Txn, Shards Match of the sender "
+        "and receiver";
+  } else {
+    if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "txn gas limit exceeding ds maximum limit");
+    }
+    if (ARCHIVAL_LOOKUP) {
+      mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+    } else {
+      mapIndex = num_shards;
+    }
+    resultStr = "Contract Creation/Call Txn, Sent To Ds";
+  }
+  return make_pair(resultStr, mapIndex);
 }
