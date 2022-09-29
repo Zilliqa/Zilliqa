@@ -16,6 +16,9 @@
  */
 
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
+#include <sstream>
+#include "common/Constants.h"
+#include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
 #include "libPersistence/BlockStorage.h"
@@ -48,6 +51,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
+  bindAndAddMethod(
+      Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(
@@ -224,7 +231,8 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   // block.
   blockNum = m_BCInfo->getCurDSBlockNum();
   DSBlockSharedPtr dsBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY") {
+  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
+      query_name == "BLOCKGASPRICE") {
     if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
                                                     dsBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
@@ -236,12 +244,22 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     value = txBlockSharedPtr->GetBlockHash().hex();
   } else if (query_name == "BLOCKNUMBER") {
     value = std::to_string(blockNum);
-  } else if (query_name == "TIMESTAMP" || query_name == "BLOCKTIMESTAMP") {
-    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+  } else if (query_name == "BLOCKTIMESTAMP") {
+    value = std::to_string(txBlockSharedPtr->GetTimestamp() /
+                           1000000);  // in seconds
   } else if (query_name == "BLOCKDIFFICULTY") {
     value = std::to_string(dsBlockSharedPtr->GetHeader().GetDifficulty());
   } else if (query_name == "BLOCKGASLIMIT") {
-    value = std::to_string(txBlockSharedPtr->GetHeader().GetGasLimit());
+    value = std::to_string(GasConv::GasUnitsFromCoreToEth(
+        txBlockSharedPtr->GetHeader().GetGasLimit()));
+  } else if (query_name == "BLOCKGASPRICE") {
+    uint256_t gasPrice =
+        (dsBlockSharedPtr->GetHeader().GetGasPrice() * EVM_ZIL_SCALING_FACTOR) /
+            GasConv::GetScalingFactor() +
+        EVM_ZIL_SCALING_FACTOR;
+    std::ostringstream s;
+    s << gasPrice;
+    value = s.str();
   } else {
     LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
     return false;

@@ -232,7 +232,7 @@ impl ScillaBackend {
 
 impl<'config> Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        U256::from(2_000_000_000) // see constants.xml in the Zilliqa codebase.
+        U256::query_jsonrpc_u256("BLOCKGASPRICE")
     }
 
     fn origin(&self) -> H160 {
@@ -254,7 +254,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_timestamp(&self) -> U256 {
-        self.query_jsonrpc_u256("TIMESTAMP")
+        self.query_jsonrpc_u256("BLOCKTIMESTAMP")
     }
 
     fn block_difficulty(&self) -> U256 {
