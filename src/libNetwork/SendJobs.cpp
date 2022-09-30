@@ -232,13 +232,13 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
         }
 
       } else {
-        // the peer is blocklisted strictly
+        // the peer is blacklisted strictly
         m_queue.clear();
       }
     }
 
     if (m_queue.empty()) {
-      LOG_GENERAL(INFO, "Blocklisted after messages queued, peer="
+      LOG_GENERAL(INFO, "Blacklisted after messages queued, peer="
                             << m_peer.GetPrintableIPAddress() << ":"
                             << m_peer.GetListenPortHost());
       Done();
@@ -474,7 +474,8 @@ SendJobs::RawMessage SendJobs::CreateMessage(const bytes& message,
 
   size_t length = msg_hash.size() + message.size();
 
-  uint8_t* buf = (uint8_t*)malloc(HDR_LEN + length);
+  ret.size = HDR_LEN + length;
+  uint8_t* buf = (uint8_t*)malloc(ret.size);
   assert(buf);
   if (!buf) {
     throw std::bad_alloc{};
