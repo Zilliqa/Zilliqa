@@ -92,7 +92,7 @@ npx hardhat test --network ganache
 
 # How to debug
 
-* Use `console.log` but pay attention to best practices Below :smile:
+* Use `hre.logDebug` :smile:
 * Use vscode debugger
 * Use `--verbose` option to enable hardhat verbose logging.
 
