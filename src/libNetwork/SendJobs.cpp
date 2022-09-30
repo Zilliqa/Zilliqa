@@ -69,6 +69,8 @@ inline Milliseconds Clock() {
       boost::asio::steady_timer::clock_type::now().time_since_epoch());
 }
 
+/// Waits for timer and calls a member function of Object,
+/// Timer must be in the scope of object (for pointers validity)
 template <typename Object, typename Time>
 void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
                void (Object::*OnTimer)()) {
