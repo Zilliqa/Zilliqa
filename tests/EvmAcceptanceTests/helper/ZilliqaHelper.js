@@ -1,4 +1,4 @@
-const { ethers, web3 } = require("hardhat");
+const {ethers, web3} = require("hardhat");
 const hre = require("hardhat");
 const general_helper = require("../helper/GeneralHelper");
 
@@ -100,7 +100,9 @@ var zilliqa_helper = {
   sendTransaction: async function (tx, senderAccount) {
     const signedTx = await senderAccount.signTransaction(tx);
 
-    console.log("Send transaction from sender:", senderAccount.address, " to:", tx.to);
+    if (hre.debugMode) {
+      console.log("Send transaction from sender:", senderAccount.address, " to:", tx.to);
+    }
 
     return web3.eth.sendSignedTransaction(signedTx.rawTransaction);
   },

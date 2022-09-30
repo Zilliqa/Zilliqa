@@ -15,12 +15,16 @@ describe("Calling " + METHOD, function () {
     var transactionHash;
 
     function onMoveFundsFinished(receipt) {
-      console.log("Moved funds successfully, receipt:", receipt);
+      if (hre.debugMode) {
+        console.log("Moved funds successfully, receipt:", receipt);
+      }
       transactionHash = receipt.transactionHash;
     }
 
     function onMoveFundsError(error) {
-      console.log("Then with Error:", error);
+      if (hre.debugMode) {
+        console.log("Then with Error:", error);
+      }
       assert.fail("Failure: Unexpected return ", error);
     }
 
@@ -31,7 +35,9 @@ describe("Calling " + METHOD, function () {
       .then(onMoveFundsFinished, onMoveFundsError);
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
-      console.log(result);
+      if (hre.debugMode) {
+        console.log(result);
+      }
 
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");

@@ -42,3 +42,10 @@ module.exports = {
     }
   }
 };
+
+task("test")
+  .addFlag("debug", "Print debugging logs")
+  .setAction(async (taskArgs, hre, runSuper) => {
+    hre.debugMode = taskArgs.debug ?? false;
+    return runSuper();
+  });

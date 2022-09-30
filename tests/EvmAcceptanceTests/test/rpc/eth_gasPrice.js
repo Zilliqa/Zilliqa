@@ -6,7 +6,10 @@ const METHOD = "eth_gasPrice";
 describe("Calling " + METHOD, function () {
   it("should return the gasPrice as specified in the ethereum protocol", async function () {
     await helper.callEthMethod(METHOD, 1, [], (result, status) => {
-      console.log(result);
+      if (hre.debugMode) {
+        console.log(result);
+      }
+
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
       assert.isString(result.result, "is not a string");

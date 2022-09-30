@@ -4,7 +4,7 @@ assert = require("chai").assert;
 const METHOD = "eth_signTransaction";
 
 describe("Calling " + METHOD, function () {
-  describe("When on Zilliqa network", async function () {
+  describe("When on Zilliqa network", function () {
     before(async function () {
       if (!helper.isZilliqaNetworkSelected()) {
         this.skip();
@@ -17,7 +17,9 @@ describe("Calling " + METHOD, function () {
         2,
         ["0xF0C05464f12cB2a011d21dE851108a090C95c755", "0xdeadbeaf"],
         (result, status) => {
-          console.log(result);
+          if (hre.debugMode) {
+            console.log(result);
+          }
 
           assert.equal(status, 200, "has status code");
           assert.isNumber(result.error.code, -32601);

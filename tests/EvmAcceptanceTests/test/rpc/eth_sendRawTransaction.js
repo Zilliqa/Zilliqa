@@ -25,7 +25,9 @@ describe("Calling " + METHOD, function () {
       const signedTx = await fromAccount.signTransaction(tx);
 
       await gHelper.callEthMethod(METHOD, 1, [signedTx.rawTransaction], (result, status) => {
-        console.log("Result:", result);
+        if (hre.debugMode) {
+          console.log("Result:", result);
+        }
 
         // The result contains a transaction hash that is every time different and should match the hash returned in the result
         assert.equal(status, 200, "has status code");

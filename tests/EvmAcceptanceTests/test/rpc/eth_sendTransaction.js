@@ -4,7 +4,7 @@ assert = require("chai").assert;
 const METHOD = "eth_sendTransaction";
 
 describe("Calling " + METHOD, function () {
-  describe("When on Zilliqa network", async function () {
+  describe("When on Zilliqa network", function () {
     before(async function () {
       if (!helper.isZilliqaNetworkSelected()) {
         this.skip();
@@ -26,7 +26,9 @@ describe("Calling " + METHOD, function () {
           }
         ],
         (result, status) => {
-          console.log(result);
+          if (hre.debugMode) {
+            console.log(result);
+          }
 
           assert.equal(status, 200, "has status code");
           assert.isNumber(result.error.code, -32601);

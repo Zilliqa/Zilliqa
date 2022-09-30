@@ -3,6 +3,11 @@
 ```bash
     npm install
     npx hardhat test    # to run tests
+    npx hardhat test --debug    # to run tests and print log messages
+    npx hardhat test --grep something    # to run tests containing `something` in the description
+    npx hardhat test --network net1    # to run tests with `net1` network
+    npx hardhat test filename    # to run tests of `filename`
+    npx hardhat test folder/*    # to run tests of `folder`
 ```
 
 # Setup github pre-commit hook
@@ -87,9 +92,10 @@ npx hardhat test --network ganache
 
 # How to debug
 
-1. Use `console.log` :smile:
-2. Use vscode debugger
-3. Use `--verbose` option to enable hardhat verbose logging
+* Use `console.log` but pay attention to best practices Below :smile:
+* Use vscode debugger
+* Use `--verbose` option to enable hardhat verbose logging.
+* Use `--debug` to print out log messages. 
 
 ```bash
 npx hardhat --verbose test
@@ -98,6 +104,12 @@ npx hardhat --verbose test
 # Testing conventions and best practices
 
 - File names tries to tell us the scenario we're testing.
+- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `--debug` flag and wrap logs with this block:
+```javascript
+if (hre.debugMode) {
+  console.log(result);
+}
+```
 - Every `it` block should have one assertion, readable and easy to understand.
 - Follow `GIVEN`, `WHEN` and, `THEN` BDD style
   - Top level `describe` for `GIVEN`

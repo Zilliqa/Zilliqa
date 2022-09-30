@@ -6,7 +6,9 @@ const METHOD = "net_version";
 describe("Calling " + METHOD, function () {
   it("should return the current network version", async function () {
     await helper.callEthMethod(METHOD, 1, [], (result, status) => {
-      console.log(result);
+      if (hre.debugMode) {
+        console.log(result);
+      }
 
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
