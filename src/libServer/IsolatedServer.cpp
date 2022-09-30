@@ -158,10 +158,10 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 
     StartBlocknumIncrement();
   }
-  BindAlllEvmMethods();
+  BindAllEvmMethods();
 }
 
-void IsolatedServer::BindAlllEvmMethods() {
+void IsolatedServer::BindAllEvmMethods() {
   if (ENABLE_EVM) {
     // todo: remove when all tests are updated to use eth_call
     AbstractServer<IsolatedServer>::bindAndAddMethod(
