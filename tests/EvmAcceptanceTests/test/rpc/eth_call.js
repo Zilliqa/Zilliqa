@@ -20,9 +20,7 @@ describe("Calling " + METHOD, function () {
         "latest"
       ],
       (result, status) => {
-        if (hre.debugMode) {
-          console.log(result);
-        }
+        hre.logDebug(result);
 
         assert.equal(status, 200, "has status code");
         assert.property(result, "result", result.error ? result.error.message : "error");

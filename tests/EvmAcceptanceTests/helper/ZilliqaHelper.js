@@ -100,9 +100,7 @@ var zilliqa_helper = {
   sendTransaction: async function (tx, senderAccount) {
     const signedTx = await senderAccount.signTransaction(tx);
 
-    if (hre.debugMode) {
-      console.log("Send transaction from sender:", senderAccount.address, " to:", tx.to);
-    }
+    hre.logDebug("Send transaction from sender:", senderAccount.address, " to:", tx.to);
 
     return web3.eth.sendSignedTransaction(signedTx.rawTransaction);
   },

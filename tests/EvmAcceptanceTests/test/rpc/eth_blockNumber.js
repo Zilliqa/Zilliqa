@@ -6,9 +6,7 @@ const METHOD = "eth_blockNumber";
 describe("Calling " + METHOD, function () {
   it("should return the block number", async function () {
     await helper.callEthMethod(METHOD, 1, [], (result, status) => {
-      if (hre.debugMode) {
-        console.log(result);
-      }
+      hre.logDebug(result);
 
       // block number changes at every call, so check only the response format
       assert.equal(status, 200, "has status code");

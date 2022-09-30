@@ -26,9 +26,7 @@ describe("Calling " + METHOD, function () {
           }
         ],
         (result, status) => {
-          if (hre.debugMode) {
-            console.log(result);
-          }
+          hre.logDebug(result);
 
           assert.equal(status, 200, "has status code");
           assert.isNumber(result.error.code, -32601);

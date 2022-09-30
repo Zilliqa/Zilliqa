@@ -17,9 +17,7 @@ describe("Calling " + METHOD, function () {
         2,
         ["0xF0C05464f12cB2a011d21dE851108a090C95c755", "0xdeadbeaf"],
         (result, status) => {
-          if (hre.debugMode) {
-            console.log(result);
-          }
+          hre.logDebug(result);
 
           // eth_sign not supported on Zilliqa
           assert.equal(status, 200, "has status code");

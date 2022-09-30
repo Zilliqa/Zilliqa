@@ -95,20 +95,21 @@ npx hardhat test --network ganache
 * Use `console.log` but pay attention to best practices Below :smile:
 * Use vscode debugger
 * Use `--verbose` option to enable hardhat verbose logging.
-* Use `--debug` to print out log messages. 
 
 ```bash
 npx hardhat --verbose test
+```
+* Use `--debug` to print out log messages. 
+```bash
+npx hardhat --debug test
 ```
 
 # Testing conventions and best practices
 
 - File names tries to tell us the scenario we're testing.
-- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `--debug` flag and wrap logs with this block:
+- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `--debug` flag and use `hre.logDebug` function:
 ```javascript
-if (hre.debugMode) {
-  console.log(result);
-}
+hre.logDebug(result);
 ```
 - Every `it` block should have one assertion, readable and easy to understand.
 - Follow `GIVEN`, `WHEN` and, `THEN` BDD style

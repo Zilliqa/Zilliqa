@@ -17,9 +17,7 @@ describe("Calling " + METHOD, function () {
         2,
         ["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],
         (result, status) => {
-          if (hre.debugMode) {
-            console.log(result);
-          }
+          hre.logDebug(result);
           assert.equal(status, 200, "has status code");
           assert.property(result, "result", result.error ? result.error.message : "error");
           assert.isNumber(+result.result, "can be converted to a number");

@@ -17,9 +17,7 @@ describe("Calling " + METHOD, function () {
         2,
         ["0xF0C05464f12cB2a011d21dE851108a090C95c755", "0xdeadbeaf"],
         (result, status) => {
-          if (hre.debugMode) {
-            console.log(result);
-          }
+          hre.logDebug(result);
 
           assert.equal(status, 200, "has status code");
           assert.isNumber(result.error.code, -32601);
