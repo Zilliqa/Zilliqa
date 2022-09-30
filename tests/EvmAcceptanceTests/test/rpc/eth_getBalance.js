@@ -8,7 +8,7 @@ describe("Calling " + METHOD, function () {
   describe("When tag is 'latest'", function () {
     it("should return the latest balance from the specified account", async function () {
       await helper.callEthMethod(METHOD, 1, [zilliqa_helper.getPrimaryAccountAddress(), "latest"], (result, status) => {
-        console.log("Result:", result);
+        hre.logDebug("Result:", result);
 
         assert.equal(status, 200, "has status code");
         assert.property(result, "result", result.error ? result.error.message : "error");
@@ -40,7 +40,7 @@ describe("Calling " + METHOD, function () {
           1,
           [zilliqa_helper.getPrimaryAccountAddress(), "earliest"],
           (result, status) => {
-            console.log("Result:", result);
+            hre.logDebug("Result:", result);
 
             assert.equal(status, 200, "has status code");
             assert.property(result, "result", result.error ? result.error.message : "error");
@@ -74,7 +74,7 @@ describe("Calling " + METHOD, function () {
           1,
           [zilliqa_helper.getPrimaryAccountAddress(), "pending"],
           (result, status) => {
-            console.log("Result:", result);
+            hre.logDebug("Result:", result);
 
             assert.equal(status, 200, "has status code");
             assert.property(result, "result", result.error ? result.error.message : "error");
@@ -114,7 +114,8 @@ describe("Calling " + METHOD, function () {
         1,
         [zilliqa_helper.getPrimaryAccountAddress(), "unknown tag"], // not supported tag should give an error
         (result, status) => {
-          console.log(result);
+          hre.logDebug(result);
+
           assert.equal(status, 200, "has status code");
           assert.equal(result.error.code, errorCode);
           assert.equal(result.error.message, expectedErrorMessage);
