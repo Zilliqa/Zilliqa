@@ -19,38 +19,43 @@
 #ifndef __TRIEDB_H__
 #define __TRIEDB_H__
 
-#include <map>
 #include <memory>
+#include <map>
 
-#include "TrieCommon.h"
 #include "depends/common/Exceptions.h"
 #include "depends/common/SHA3.h"
+#include "TrieCommon.h"
 #include "libUtils/DataConversion.h"
 
-namespace dev {
-struct InvalidTrie : virtual dev::Exception {};
+namespace dev
+{
+    struct InvalidTrie: virtual dev::Exception {};
 
-enum class Verification { Skip, Normal };
+    enum class Verification {
+        Skip,
+        Normal
+    };
 
-/**
- * @brief Merkle Patricia Tree "Trie": a modifed base-16 Radix tree.
- * This version uses a database backend.
- * Usage:
- * @code
- * GenericTrieDB<MyDB> t(&myDB);
- * assert(t.isNull());
- * t.init();
- * assert(t.isEmpty());
- * t.insert(x, y);
- * assert(t.at(x) == y.toString());
- * t.remove(x);
- * assert(t.isEmpty());
- * @endcode
- */
-template <class _DB>
-class GenericTrieDB {
- public:
-  using DB = _DB;
+    /**
+     * @brief Merkle Patricia Tree "Trie": a modifed base-16 Radix tree.
+     * This version uses a database backend.
+     * Usage:
+     * @code
+     * GenericTrieDB<MyDB> t(&myDB);
+     * assert(t.isNull());
+     * t.init();
+     * assert(t.isEmpty());
+     * t.insert(x, y);
+     * assert(t.at(x) == y.toString());
+     * t.remove(x);
+     * assert(t.isEmpty());
+     * @endcode
+     */
+    template <class _DB>
+    class GenericTrieDB
+    {
+    public:
+        using DB = _DB;
 
   explicit GenericTrieDB(DB* _db = nullptr) : m_db(_db) {}
 
