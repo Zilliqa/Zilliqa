@@ -227,6 +227,7 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
+    logEntry["logIndex"] = "0x0";
   }
 }
 
