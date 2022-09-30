@@ -108,8 +108,8 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Dispatcher = std::function<void(
-      std::pair<bytes, std::pair<Peer, const unsigned char>>*)>;
+  using Msg = std::pair<bytes, std::pair<Peer, const unsigned char>>;
+  using Dispatcher = std::function<void(std::shared_ptr<Msg> msg)>;
 
   using BroadcastListFunc = std::function<VectorOfPeer(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;

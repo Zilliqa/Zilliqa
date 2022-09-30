@@ -130,6 +130,16 @@ void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
   m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
+namespace {
+
+inline std::shared_ptr<P2PComm::Msg> MakeMsg(bytes msg, Peer peer,
+                                             unsigned char startByte) {
+  return std::make_shared<P2PComm::Msg>(std::make_pair(
+      std::move(msg), std::make_pair(std::move(peer), startByte)));
+}
+
+}  // namespace
+
 void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
   bytes msg_hash(message.begin() + HDR_LEN,
                  message.begin() + HDR_LEN + HASH_LEN);
@@ -175,14 +185,10 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
   LOG_STATE("[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
                        << msgHashStr.substr(0, 6) << "] RECV");
 
-  // Move the shared_ptr message to raw pointer type
-  pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-      new pair<bytes, std::pair<Peer, const unsigned char>>(
-          bytes(message.begin() + HDR_LEN + HASH_LEN, message.end()),
-          std::make_pair(from, START_BYTE_BROADCAST));
-
   // Queue the message
-  m_dispatcher(raw_message);
+  m_dispatcher(
+      MakeMsg(bytes(message.begin() + HDR_LEN + HASH_LEN, message.end()), from,
+              START_BYTE_BROADCAST));
 }
 
 /*static*/ void P2PComm::ProcessGossipMsg(bytes& message, Peer& from) {
@@ -215,27 +221,20 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
       bytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
                     SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
                 rumor_message.end());
-      std::pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-          new pair<bytes, std::pair<Peer, const unsigned char>>(
-              tmp, make_pair(from, START_BYTE_GOSSIP));
 
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
-      m_dispatcher(raw_message);
+      m_dispatcher(MakeMsg(std::move(tmp), from, START_BYTE_GOSSIP));
     }
   } else {
     auto resp = p2p.m_rumorManager.RumorReceived(
         (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
     if (resp.first) {
-      std::pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-          new pair<bytes, std::pair<Peer, const unsigned char>>(
-              resp.second, make_pair(from, START_BYTE_GOSSIP));
-
       LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
 
       // Queue the message
-      m_dispatcher(raw_message);
+      m_dispatcher(MakeMsg(std::move(resp.second), from, START_BYTE_GOSSIP));
     }
   }
 }
@@ -453,14 +452,9 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     LOG_PAYLOAD(INFO, "Incoming normal " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    // Move the shared_ptr message to raw pointer type
-    pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-        new pair<bytes, std::pair<Peer, const unsigned char>>(
-            bytes(message.begin() + HDR_LEN, message.end()),
-            std::make_pair(from, START_BYTE_NORMAL));
-
     // Queue the message
-    m_dispatcher(raw_message);
+    m_dispatcher(MakeMsg(bytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_NORMAL));
   } else if (startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
@@ -650,11 +644,6 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
     LOG_PAYLOAD(INFO, "Incoming request from ext seed " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    pair<bytes, pair<Peer, const unsigned char>>* raw_message =
-        new pair<bytes, pair<Peer, const unsigned char>>(
-            bytes(message.begin() + HDR_LEN, message.end()),
-            std::make_pair(from, START_BYTE_SEED_TO_SEED_REQUEST));
-
     string bufKey = from.GetPrintableIPAddress() + ":" +
                     boost::lexical_cast<string>(from.GetListenPortHost());
     LOG_GENERAL(DEBUG, "bufferEventMap key=" << bufKey << " msg len=" << len
@@ -666,7 +655,8 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
       m_bufferEventMap[bufKey] = bev;
     }
     // Queue the message
-    m_dispatcher(raw_message);
+    m_dispatcher(MakeMsg(bytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_SEED_TO_SEED_REQUEST));
   } else {
     // Unexpected start byte. Drop this message
     LOG_CHECK_FAIL("Start byte", startByte, START_BYTE_SEED_TO_SEED_REQUEST);
@@ -945,13 +935,9 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
     LOG_PAYLOAD(INFO, "Incoming normal response from server seed " << from,
                 message, Logger::MAX_BYTES_TO_DISPLAY);
 
-    pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-        new pair<bytes, std::pair<Peer, const unsigned char>>(
-            bytes(message.begin() + HDR_LEN, message.end()),
-            make_pair(from, START_BYTE_SEED_TO_SEED_RESPONSE));
-
     // Queue the message
-    m_dispatcher(raw_message);
+    m_dispatcher(MakeMsg(bytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_SEED_TO_SEED_RESPONSE));
   } else {
     // Unexpected start byte. Drop this message
     LOG_CHECK_FAIL("Start byte", startByte, START_BYTE_SEED_TO_SEED_RESPONSE);
@@ -1017,14 +1003,6 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   bufferevent_set_timeouts(bev, &tv, NULL);
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
-
-// inline bool P2PComm::IsHostHavingNetworkIssue() {
-//   return (errno == EHOSTUNREACH || errno == ETIMEDOUT);
-// }
-//
-// inline bool P2PComm::IsNodeNotRunning() {
-//   return (errno == EHOSTDOWN || errno == ECONNREFUSED);
-// }
 
 void P2PComm::StartMessagePump(Dispatcher dispatcher) {
   LOG_MARKER();
