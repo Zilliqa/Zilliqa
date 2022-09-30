@@ -1211,8 +1211,12 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 
     auto logs =
         Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+
+    const auto baselogIndex =
+        Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
+
     Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
-                             transactionIndex);
+                             transactionIndex, baselogIndex);
     const auto bloomLogs =
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
