@@ -44,7 +44,7 @@ describe("Contract Deployment", function () {
     describe("When web3.js is used", function () {
       let contract;
       before(async function () {
-        contract = await web3_helper.deploy("ZeroParamConstructor", { gasLimit: 220000 });
+        contract = await web3_helper.deploy("ZeroParamConstructor", {gasLimit: 220000});
       });
 
       it("Should be deployed successfully", async function () {
@@ -169,7 +169,7 @@ describe("Contract Deployment", function () {
         const gasLimit = 220000;
 
         before(async function () {
-          contract = await web3_helper.deploy("WithUintConstructor", { gasLimit }, INITIAL_NUMBER);
+          contract = await web3_helper.deploy("WithUintConstructor", {gasLimit}, INITIAL_NUMBER);
         });
 
         it("Should be deployed successfully", async function () {
@@ -185,7 +185,7 @@ describe("Contract Deployment", function () {
         let INITIAL_NAME = "Zilliqa";
         const gasLimit = 220000;
         before(async function () {
-          contract = await web3_helper.deploy("WithStringConstructor", { gasLimit }, INITIAL_NAME);
+          contract = await web3_helper.deploy("WithStringConstructor", {gasLimit}, INITIAL_NAME);
         });
 
         it("Should be deployed successfully", async function () {
@@ -201,7 +201,7 @@ describe("Contract Deployment", function () {
         let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
         const gasLimit = "220000";
         before(async function () {
-          contract = await web3_helper.deploy("WithAddressConstructor", { gasLimit }, ADDRESS);
+          contract = await web3_helper.deploy("WithAddressConstructor", {gasLimit}, ADDRESS);
         });
         it("Should be deployed successfully", async function () {
           expect(contract.options.address).exist;
@@ -216,7 +216,7 @@ describe("Contract Deployment", function () {
         let ENUM = "1";
         const gasLimit = "220000";
         before(async function () {
-          contract = await web3_helper.deploy("WithEnumConstructor", { gasLimit }, ENUM);
+          contract = await web3_helper.deploy("WithEnumConstructor", {gasLimit}, ENUM);
         });
         it("Should be deployed successfully", async function () {
           expect(contract.options.address).exist;
@@ -284,7 +284,7 @@ describe("Contract Deployment", function () {
       const gasLimit = "350000";
 
       before(async function () {
-        contract = await web3_helper.deploy("MultiParamConstructor", { gasLimit }, NAME, NUMBER);
+        contract = await web3_helper.deploy("MultiParamConstructor", {gasLimit}, NAME, NUMBER);
       });
 
       it("Should be deployed successfully", async function () {
@@ -355,7 +355,7 @@ describe("Contract Deployment", function () {
       const gasLimit = "350000";
 
       before(async function () {
-        contract = await web3_helper.deploy("WithPayableConstructor", { gasLimit, value: INITIAL_BALANCE });
+        contract = await web3_helper.deploy("WithPayableConstructor", {gasLimit, value: INITIAL_BALANCE});
       });
 
       it("Should be deployed successfully", async function () {
@@ -367,7 +367,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should return Zilliqa when name view function is called", async function () {
-        expect(await contract.methods.owner().call()).to.be.eq(web3_helper.getPrimaryAccount().address);
+        expect(await contract.methods.owner().call()).to.be.eq(web3_helper.getPrimaryAccountAddress());
       });
     });
   });
