@@ -50,6 +50,8 @@ class IsolatedServer : public LookupServer,
     response = this->CreateTransaction(request[0u]);
   }
 
+  void BindAlllEvmMethods();
+
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
     auto rawTx = request[0u].asString();

@@ -126,6 +126,42 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
                          jsonrpc::JSON_OBJECT, NULL),
       &LookupServer::GetRecentTransactionsI);
 
+  if (timeDelta > 0) {
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("GetTransactionsForTxBlock",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &IsolatedServer::GetTransactionsForTxBlockI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetTxBlockI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_OBJECT, NULL),
+        &LookupServer::GetLatestTxBlockI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("TogglePause", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_BOOLEAN, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &IsolatedServer::TogglePauseI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("CheckPause", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_BOOLEAN, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &IsolatedServer::CheckPauseI);
+
+    StartBlocknumIncrement();
+  }
+  BindAlllEvmMethods();
+}
+
+void IsolatedServer::BindAlllEvmMethods() {
   if (ENABLE_EVM) {
     // todo: remove when all tests are updated to use eth_call
     AbstractServer<IsolatedServer>::bindAndAddMethod(
@@ -217,41 +253,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
         jsonrpc::Procedure("eth_accounts", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthAccountsI);
-  }
-  if (timeDelta > 0) {
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("GetTransactionsForTxBlock",
-                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
-        &IsolatedServer::GetTransactionsForTxBlockI);
-
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("GetTxBlock", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_OBJECT, "param01",
-                           jsonrpc::JSON_STRING, NULL),
-        &LookupServer::GetTxBlockI);
-
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("GetLatestTxBlock", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_OBJECT, NULL),
-        &LookupServer::GetLatestTxBlockI);
-
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("TogglePause", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_BOOLEAN, "param01",
-                           jsonrpc::JSON_STRING, NULL),
-        &IsolatedServer::TogglePauseI);
-
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("CheckPause", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_BOOLEAN, "param01",
-                           jsonrpc::JSON_STRING, NULL),
-        &IsolatedServer::CheckPauseI);
-
-    StartBlocknumIncrement();
-  }
-
-  if (ENABLE_EVM) {
     // Add the JSON-RPC eth style methods
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_blockNumber", jsonrpc::PARAMS_BY_POSITION,
