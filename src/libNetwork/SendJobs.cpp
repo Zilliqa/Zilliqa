@@ -183,6 +183,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
+    // XXX
+    LOG_GENERAL(INFO, "Connecting to " << m_peer);
+
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
                              if (ec != OPERATION_ABORTED) {
@@ -208,6 +211,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     auto& msg = m_queue.front().msg;
+
+    // XXX
+    LOG_GENERAL(INFO, "Sending " << msg.size << " bytes to " << m_peer);
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -310,6 +316,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void Done(const ErrorCode& ec = ErrorCode{}) {
     if (!m_closed) {
+      // XXX
+      LOG_GENERAL(INFO, "Done with peer " << m_peer);
+
       m_doneCallback(m_peer, ec);
     }
   }
@@ -349,6 +358,9 @@ class SendJobsImpl : public SendJobs,
  private:
   void SendMessageToPeer(const Peer& peer, RawMessage message,
                          bool allow_relaxed_blacklist) override {
+    // XXX
+    LOG_GENERAL(INFO, "Enqueueing message, size=" << message.size);
+
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
     m_asioCtx.post([this, peer = peer, msg = std::move(message),
@@ -415,8 +427,6 @@ class SendJobsImpl : public SendJobs,
   }
 
   void WorkerThread() {
-    LOG_MARKER();
-
     pthread_setname_np(pthread_self(), "SendJobs");
 
     // Need this workaround to prevent the event loop from returning when there
@@ -424,7 +434,9 @@ class SendJobsImpl : public SendJobs,
     boost::asio::signal_set sig(m_asioCtx, SIGABRT);
     sig.async_wait([](const ErrorCode&, int) {});
 
+    LOG_GENERAL(INFO, "SendJobs event loop is starting");
     m_asioCtx.run();
+    LOG_GENERAL(INFO, "SendJobs event loop stopped");
   }
 
   AsioContext m_asioCtx;

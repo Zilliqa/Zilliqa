@@ -483,6 +483,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 Zilliqa::~Zilliqa() { m_msgQueue.stop(); }
 
 void Zilliqa::Dispatch(Zilliqa::Msg message) {
+  // XXX
+  LOG_MARKER();
+
   // Queue message
   if (!m_msgQueue.bounded_push(std::move(message))) {
     LOG_GENERAL(WARNING, "Input MsgQueue is full");
