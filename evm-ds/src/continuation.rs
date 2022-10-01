@@ -2,6 +2,8 @@
 #[derive(Default)]
 pub struct Continuation {
     pub context: Option<evm::Context>,
+    pub memory: Option<evm::Memory>,
+    pub stack: Option<evm::Stack>,
 }
 
 impl Continuation {
@@ -10,7 +12,7 @@ impl Continuation {
         Self::default()
     }
 
-    pub fn get_context(&mut self) -> Option<evm::Context> {
+    pub fn take_context(&mut self) -> Option<evm::Context> {
         self.context.take()
     }
 }

@@ -17,6 +17,7 @@ use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
+use bytes::Bytes;
 use clap::Parser;
 use evm::{
     backend::{Apply, Basic},
@@ -35,6 +36,9 @@ use jsonrpc_derive::rpc;
 use jsonrpc_server_utils::codecs;
 use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
+
+type ContinuationId = usize;
+type ContinuationSerialized = Bytes;
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -126,7 +130,7 @@ pub struct EvmResult {
     apply: Vec<DirtyState>,
     logs: Vec<EvmLog>,
     remaining_gas: u64,
-    continuation_id: usize,
+    continuation_id: ContinuationId,
 }
 
 #[rpc(server)]
@@ -140,7 +144,7 @@ pub trait Rpc: Send + 'static {
         data: String,
         apparent_value: String,
         gas_limit: u64,
-        continuation_id: usize,
+        continuation_id: ContinuationId,
     ) -> BoxFuture<Result<EvmResult>>;
 }
 
@@ -152,17 +156,34 @@ struct EvmServer {
     // By how much to scale gas price.
     gas_scaling_factor: u64,
     // A cache of known continuations.
-    continuations: Arc<Mutex<HashMap<usize, Continuation>>>,
+    continuations: Arc<Mutex<HashMap<ContinuationId, Continuation>>>,
 }
 
 impl EvmServer {
-    fn remove_continuation_by_id(&self, continuation_id: usize) -> Option<Continuation> {
+    fn take_continuation_by_id(&self, continuation_id: ContinuationId) -> Option<Continuation> {
         if continuation_id > 0 {
             let mut continuations = self.continuations.lock().unwrap();
             continuations.remove(&continuation_id)
         } else {
             None
         }
+    }
+
+    fn export_continuation(
+        &self,
+        continuation_id: ContinuationId,
+    ) -> Option<ContinuationSerialized> {
+        // TODO: implement serializing and importing
+        None
+    }
+
+    fn import_continuation(
+        &mut self,
+        continuation_blob: ContinuationSerialized,
+    ) -> Result<ContinuationId> {
+        Err(Error::invalid_params(
+            "continuation deserializaion not implemented",
+        ))
     }
 }
 
@@ -183,7 +204,7 @@ impl Rpc for EvmServer {
                 let backend = ScillaBackend::new(self.backend_config.clone(), origin);
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
-                match self.remove_continuation_by_id(continuation_id) {
+                match self.take_continuation_by_id(continuation_id) {
                     Some(continuation) => Box::pin(run_evm_impl(
                         address,
                         code_hex,
@@ -240,7 +261,7 @@ async fn run_evm_impl(
         let mut continuation = continuation;
         let apparent_value = U256::from_dec_str(&apparent_value)
             .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?;
-        let context = continuation.get_context().map_or_else(
+        let context = continuation.take_context().map_or_else(
             || {
                  Ok::<evm::Context, jsonrpc_core::Error>(evm::Context {
                      address: H160::from_str(&address)
