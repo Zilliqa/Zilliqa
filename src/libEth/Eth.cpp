@@ -16,6 +16,9 @@
  */
 
 #include "Eth.h"
+#include <boost/format.hpp>
+#include <boost/range.hpp>
+#include <ethash/keccak.hpp>
 #include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "json/value.h"
@@ -25,9 +28,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
-
-#include <boost/range.hpp>
-#include <ethash/keccak.hpp>
 
 using namespace jsonrpc;
 
@@ -58,7 +58,7 @@ Json::Value populateReceiptHelper(
   } else {
     ret["to"] = to;
   }
-  ret["transactionIndex"] = transactionIndex;
+  ret["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
 
   return ret;
 }
@@ -227,6 +227,7 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
+    logEntry["logIndex"] = "0x0";
   }
 }
 

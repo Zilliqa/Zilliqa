@@ -865,29 +865,36 @@ Json::Value EthRpcMethods::GetEthBlockNumber() {
 }
 
 Json::Value EthRpcMethods::GetEthBlockByNumber(
-    const std::string& blockNumberStr, bool includeFullTransactions) {
+    const std::string& blockNumberStr, const bool includeFullTransactions) {
   try {
     TxBlock txBlock;
 
-    if (blockNumberStr == "latest") {
-      txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
-    } else if (blockNumberStr == "earliest") {
-      txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
-    } else if (blockNumberStr == "pending") {
+    if (!isSupportedTag(blockNumberStr)) {
+      return Json::nullValue;
+    } else if (blockNumberStr == "latest" ||    //
+               blockNumberStr == "earliest" ||  //
+               isNumber(blockNumberStr)) {
+      // handle latest, earliest and block number requests
+      if (blockNumberStr == "latest") {
+        txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+      } else if (blockNumberStr == "earliest") {
+        txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
+      } else if (isNumber(blockNumberStr)) {  // exact block number
+        const uint64_t blockNum =
+            std::strtoull(blockNumberStr.c_str(), nullptr, 0);
+        txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNum);
+      }
+    } else {
       // Not supported
       return Json::nullValue;
-    } else {
-      const uint64_t blockNum =
-          std::strtoull(blockNumberStr.c_str(), nullptr, 0);
-      txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNum);
     }
+
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
     return GetEthBlockCommon(txBlock, includeFullTransactions);
-
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "
                                 << includeFullTransactions);
@@ -895,8 +902,8 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
   }
 }
 
-Json::Value EthRpcMethods::GetEthBlockByHash(const std::string& inputHash,
-                                             bool includeFullTransactions) {
+Json::Value EthRpcMethods::GetEthBlockByHash(
+    const std::string& inputHash, const bool includeFullTransactions) {
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock =
@@ -915,8 +922,8 @@ Json::Value EthRpcMethods::GetEthBlockByHash(const std::string& inputHash,
   }
 }
 
-Json::Value EthRpcMethods::GetEthBlockCommon(const TxBlock& txBlock,
-                                             bool includeFullTransactions) {
+Json::Value EthRpcMethods::GetEthBlockCommon(
+    const TxBlock& txBlock, const bool includeFullTransactions) {
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
       txBlock.GetHeader().GetDSBlockNum());
 
@@ -1202,8 +1209,10 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     Json::Value contractAddress =
         ethResult.get("contractAddress", Json::nullValue);
 
-    const auto logs =
+    auto logs =
         Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+    Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
+                             transactionIndex);
     const auto bloomLogs =
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(

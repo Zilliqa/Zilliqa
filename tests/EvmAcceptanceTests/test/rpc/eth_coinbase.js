@@ -4,7 +4,7 @@ assert = require("chai").assert;
 const METHOD = "eth_coinbase";
 
 describe("Calling " + METHOD, function () {
-  describe("When on Zilliqa network", async function () {
+  describe("When on Zilliqa network", function () {
     before(async function () {
       if (!helper.isZilliqaNetworkSelected()) {
         this.skip();
@@ -13,7 +13,8 @@ describe("Calling " + METHOD, function () {
 
     it("should return the coin base", async function () {
       await helper.callEthMethod(METHOD, 1, [], (result, status) => {
-        console.log(result);
+        hre.logDebug(result);
+
         assert.equal(status, 200, "has status code");
         assert.property(result, "result", result.error ? result.error.message : "error");
         assert.isString(result.result, "is string");

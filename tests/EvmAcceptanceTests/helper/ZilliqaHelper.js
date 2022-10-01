@@ -100,12 +100,12 @@ var zilliqa_helper = {
   sendTransaction: async function (tx, senderAccount) {
     const signedTx = await senderAccount.signTransaction(tx);
 
-    console.log("Send transaction from sender:", senderAccount.address, " to:", tx.to);
+    hre.logDebug("Send transaction from sender:", senderAccount.address, " to:", tx.to);
 
     return web3.eth.sendSignedTransaction(signedTx.rawTransaction);
   },
 
-  moveFundsBy: async function (amount, toAddr, senderAccount) {
+  async moveFunds(amount, toAddr, senderAccount) {
     try {
       const nonce = await web3.eth.getTransactionCount(senderAccount.address); // nonce starts counting from 0
       const tx = {
@@ -124,8 +124,8 @@ var zilliqa_helper = {
     }
   },
 
-  moveFunds: async function (amount, toAddr) {
-    return this.moveFundsBy(amount, toAddr, this.primaryAccount);
+  async moveFundsTo(amount, toAddr) {
+    return this.moveFunds(amount, toAddr, this.primaryAccount);
   }
 };
 
