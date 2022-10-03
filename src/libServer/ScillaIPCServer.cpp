@@ -58,10 +58,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   // ds_test against the isolated server as
   //      pytest -k test_bcinfo
   //
-  // bindAndAddMethod(
-  //     Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
-  //               "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
-  //     &ScillaIPCServer::fetchBlockchainInfoI);
+  bindAndAddMethod(
+       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+       &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(
@@ -232,7 +232,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   }
 
   TxBlockSharedPtr txBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKTIMESTAMP" ||
+  if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" || query_name == "BLOCKTIMESTAMP" ||
       query_name == "BLOCKDIFFICULTY" || query_name == "BLOCKGASLIMIT") {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
                                                     txBlockSharedPtr)) {
@@ -245,7 +245,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   // block.
   blockNum = m_BCInfo->getCurDSBlockNum();
   DSBlockSharedPtr dsBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
+  if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
       query_name == "BLOCKGASPRICE") {
     if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
                                                     dsBlockSharedPtr)) {
