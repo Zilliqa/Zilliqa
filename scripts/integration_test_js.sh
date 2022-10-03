@@ -67,6 +67,14 @@ else
     echo "NOT starting isolated server - it should be running already"
     ps -e | grep isolated
 
+    # install dependencies
+    apt update
+    apt install -y nodejs
+    apt install -y libssl1.0-dev
+    apt install -y nodejs-dev
+    apt install -y node-gyp
+    apt install -y npm
+
     echo "Starting js test"
     cd tests/EvmAcceptanceTests && npm install && npx hardhat test 2>&1 > out.txt
 
