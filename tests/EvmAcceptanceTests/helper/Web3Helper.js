@@ -1,4 +1,4 @@
-const {web3} = require("hardhat");
+const { web3 } = require("hardhat");
 const general_helper = require("./GeneralHelper");
 
 getPrimaryAccount = function () {
@@ -15,7 +15,7 @@ var web3_helper = {
     const contract = new web3.eth.Contract(contractRaw.abi);
     const nonce = options.nonce || (await web3.eth.getTransactionCount(getPrimaryAccount().address));
     const gasPrice = options.gasPrice || (await web3.eth.getGasPrice());
-    const gasLimit = options.gasLimit || 21_000;
+    const gasLimit = options.gasLimit || 210_000;
 
     const deployedContract = await contract.deploy({data: contractRaw.bytecode, arguments: args}).send({
       from: getPrimaryAccount().address,

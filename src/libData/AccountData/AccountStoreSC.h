@@ -266,7 +266,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Adds an Account to the atomic AccountStore.
   bool AddAccountAtomic(const Address& address, const Account& account);
 
-  bool ViewAccounts(EvmCallParameters& params, bool& ret, std::string& result);
+  bool ViewAccounts(const EvmCallParameters& params,
+                    evmproj::CallResponse & response);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

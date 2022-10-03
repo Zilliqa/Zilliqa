@@ -569,7 +569,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
-  auto ret{false};
+  auto success{false};
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
@@ -582,7 +582,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     code = contractAccount->GetCode();
   }
 
-  string result;
+  evmproj::CallResponse response;
   try {
     Address fromAddr;
     if (_json.isMember(apiKeys.from)) {
@@ -603,26 +603,35 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       gasRemained =
           min(gasRemained, (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0));
     }
+
     string data = _json[apiKeys.data].asString();
     if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
       data = data.substr(2);
     }
-    EvmCallParameters params{
+
+    const EvmCallParameters params{
         addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
         data,       gasRemained,    amount};
 
-    AccountStore::GetInstance().ViewAccounts(params, ret, result);
+    if (AccountStore::GetInstance().ViewAccounts(params, response) &&
+        response.Success()) {
+      success = true;
+    }
+
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Called Evm, response:" << response);
+    }
+
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
   }
 
-  if (!ret) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "GetEthCall failed");
+  if (!success) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
 
-  result = "0x" + result;
-  return result;
+  return "0x" + response.ReturnedBytes();
 }
 
 std::string EthRpcMethods::GetWeb3ClientVersion() {
