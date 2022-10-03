@@ -220,13 +220,16 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,
                          const std::string &blockNum,
-                         const Json::Value &transactionIndex) {
+                         const Json::Value &transactionIndex,
+                         uint32_t logIndex) {
   for (auto &logEntry : logsArrayFromEvm) {
     logEntry["removed"] = false;
     logEntry["transactionIndex"] = transactionIndex;
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
+    logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
+    ++logIndex;
   }
 }
 
@@ -288,6 +291,43 @@ LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
     bloom |= single;
   }
   return bloom;
+}
+
+uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
+                                          const TxBlock &block) {
+  uint32_t logIndex = 0;
+  MicroBlockSharedPtr microBlockPtr;
+
+  const auto &microBlockInfos = block.GetMicroBlockInfos();
+  for (auto const &mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto &tranHashes = microBlockPtr->GetTranHashes();
+    for (const auto &transactionHash : tranHashes) {
+      TxBodySharedPtr transactionBodyPtr;
+      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                     transactionBodyPtr)) {
+        continue;
+      }
+
+      if (transactionBodyPtr->GetTransaction().GetTranID() == txnHash) {
+        return logIndex;
+      }
+
+      const auto &receipt = transactionBodyPtr->GetTransactionReceipt();
+      const auto currLogs = GetLogsFromReceipt(receipt);
+
+      logIndex += currLogs.size();
+    }
+  }
+
+  return logIndex;
 }
 
 }  // namespace Eth

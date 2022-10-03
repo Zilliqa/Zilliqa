@@ -23,9 +23,11 @@
 #include "common/BaseType.h"
 #include "libData/AccountData/Address.h"
 
+class Account;
 class Transaction;
 class TransactionReceipt;
-class Account;
+class TxBlock;
+using TxnHash = dev::h256;
 
 namespace Eth {
 
@@ -61,7 +63,8 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,
                          const std::string &blockNum,
-                         const Json::Value &transactionIndex);
+                         const Json::Value &transactionIndex,
+                         uint32_t logIndex);
 
 LogBloom GetBloomFromReceipt(const TransactionReceipt &receipt);
 Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt);
@@ -70,6 +73,8 @@ Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt);
 
 LogBloom BuildBloomForLogObject(const Json::Value &logObject);
 LogBloom BuildBloomForLogs(const Json::Value &logsArray);
+uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
+                                          const TxBlock &block);
 
 }  // namespace Eth
 
