@@ -106,7 +106,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When Zilliqa Helper is used xxx", function () {
+    describe("When Zilliqa Helper is used", function () {
       before(async function () {
         if (!general_helper.isZilliqaNetworkSelected()) {
           this.skip();
@@ -367,7 +367,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should return Zilliqa when name view function is called", async function () {
-        expect(await contract.methods.owner().call()).to.be.eq(web3_helper.getPrimaryAccount().address);
+        expect(await contract.methods.owner().call()).to.be.eq(web3_helper.getPrimaryAccountAddress());
       });
     });
   });
