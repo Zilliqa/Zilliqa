@@ -74,7 +74,7 @@ void help(const char* argv[]) {
 int main(int argc, const char* argv[]) {
   string accountJsonFilePath;
   uint port{5555};
-  string blocknum_str{"0"};
+  string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
   bool nonisoload{false};
