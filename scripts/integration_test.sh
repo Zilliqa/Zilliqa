@@ -109,6 +109,9 @@ else
 
     cat out.txt
 
+    echo "Killing iso server"
+    pkill -i isolatedServer
+
     # Make constants.xml as it was
     mv constants_backup.xml constants.xml
 
