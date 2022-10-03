@@ -245,7 +245,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   // block.
   blockNum = m_BCInfo->getCurDSBlockNum();
   DSBlockSharedPtr dsBlockSharedPtr;
-  if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
+  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
       query_name == "BLOCKGASPRICE") {
     if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
                                                     dsBlockSharedPtr)) {
@@ -253,7 +253,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       return false;
     }
   }
-  if (not dsBlockSharedPtr || not txBlockSharedPtr) {
+  if (not txBlockSharedPtr) {
     LOG_GENERAL(WARNING, "Smart pointers work better when Initialized ");
     return false;
   }
