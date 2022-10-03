@@ -254,7 +254,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     }
   }
   if (not dsBlockSharedPtr || not txBlockSharedPtr) {
-    LOG_GENERAL(WARNING, "Smart pointers work better when Initialized " << blockNum);
+    LOG_GENERAL(WARNING, "Smart pointers work better when Initialized ");
     return false;
   }
 
