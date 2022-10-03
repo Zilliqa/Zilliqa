@@ -54,7 +54,8 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex, const Transaction& txn);
+    const Json::Value &logsBloom, const Json::Value &transactionIndex,
+    const Transaction &txn);
 
 EthFields parseRawTxFields(std::string const &message);
 

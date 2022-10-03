@@ -1233,7 +1233,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
-        contractAddress, logs, bloomLogs, transactionIndex, transactioBodyPtr->GetTransaction());
+        contractAddress, logs, bloomLogs, transactionIndex,
+        transactioBodyPtr->GetTransaction());
 
     return res;
   } catch (const JsonRpcException& je) {
