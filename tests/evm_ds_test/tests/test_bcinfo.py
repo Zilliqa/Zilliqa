@@ -28,9 +28,33 @@ class TestBCInfo(test_case.EvmDsTestCase):
             self.account, compilation_result
         )
 
-    
+    def test_blockOrigin(self):
+        self.init()
+        resp = self.call_view(self.contract, "getOrigin")
+        print(resp)
+
+    def test_Coinbase(self):
+        self.init()
+        resp = self.call_view(self.contract, "getCoinbase")
+        print(resp)
+
+
     def test_blockhash(self):
         self.init()
         resp = self.call_view(self.contract, "getBlockHash", 0)
         print(resp)
-        
+
+    def test_blockGasPrice(self):
+        self.init()
+        resp = self.call_view(self.contract, "getBlockGasprice", 0)
+        print(resp)
+
+    def test_TimeStamp(self):
+        self.init()
+        resp = self.call_view(self.contract, "getTimestamp")
+        print(resp)
+
+    def test_GasLimit(self):
+        self.init()
+        resp = self.call_view(self.contract, "getBlockGaslimit", 0)
+        print(resp)
