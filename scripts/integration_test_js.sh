@@ -42,50 +42,26 @@ else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
 
-    # Just to check evm-ds has been built
-    if [[ -d /home/travis ]]; then
-        echo "Does not run on travis"
-    fi
-
-    if [[ -d /home/jenkins ]]; then
-        echo "Running on jenkins"
-        pwd
-        ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
-
-        # For convenience move the required files to tmp directory
-        cp /home/jenkins/agent/workspace/*/evm-ds/target/release/evm-ds /tmp || exit 1
-        cp /home/jenkins/agent/workspace/*/evm-ds/log4rs.yml /tmp
-
-        # Modify constants.xml for use by isolated server
-        cp constants.xml constants_backup.xml
-        sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
-        sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
-        sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
-        sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/tmp\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
-    fi
-
     echo "NOT starting isolated server - it should be running already"
     ps -e | grep isolated
 
     # install dependencies
     apt update
-    apt install -y nodejs
-    apt install -y libssl1.0-dev
-    apt install -y nodejs-dev
-    apt install -y node-gyp
-    apt install -y npm
-
-    echo "Starting js test"
-    cd tests/EvmAcceptanceTests && npm install && npx hardhat test 2>&1 > out.txt
+    apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
+    curl -sL https://deb.nodesource.com/setup_14.x | bash -
+    apt -y install nodejs
+    node --version
+    pwd
+    cd tests/EvmAcceptanceTests/
+    npm install
+    npm install --save-dev "@ethersproject/providers@^5.4.7" "@nomicfoundation/hardhat-network-helpers@^1.0.0" "@nomicfoundation/hardhat-chai-matchers@^1.0.0" "@nomiclabs/hardhat-ethers@^2.0.0" "@nomiclabs/hardhat-etherscan@^3.0.0" "@types/chai@^4.2.0" "@types/mocha@^9.1.0" "@typechain/ethers-v5@^10.1.0" "@typechain/hardhat@^6.1.2" "chai@^4.2.0" "ethers@^5.4.7" "hardhat-gas-reporter@^1.0.8" "solidity-coverage@^0.7.21" "ts-node@>=8.0.0" "typechain@^8.1.0" "typescript@>=4.5.0"
+    npx hardhat test
 
     retVal=$?
     if [ $retVal -ne 0 ]; then
         echo "!!!!!! Error with JS integration test !!!!!!"
-        cat out.txt
         exit 1
     fi
-
-    cat out.txt
 
     echo "Success with integration test"
     exit 0
