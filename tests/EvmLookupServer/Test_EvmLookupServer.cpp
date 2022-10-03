@@ -267,6 +267,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
 
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
@@ -323,6 +326,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
 
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
@@ -379,6 +385,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
 
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
@@ -436,6 +445,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
 
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
@@ -447,14 +459,10 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
     // success
   }
 
-  // LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
-  // BOOST_CHECK_EQUAL(response.asString(), "0x");
-  //
-  // const auto balance =
-  // AccountStore::GetInstance().GetBalance(accountAddress); LOG_GENERAL(DEBUG,
-  // "Balance:" << balance);
-  //// the balance should be unchanged
-  // BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_success) {
