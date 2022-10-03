@@ -229,11 +229,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetNetListeningI);
 
-  AbstractServer<IsolatedServer>::bindAndAddMethod(
-      jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_STRING, NULL),
-      &LookupServer::GetEthFeeHistoryI);
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_feeHistory", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_STRING, "param02",
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetEthFeeHistoryI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("net_peerCount", jsonrpc::PARAMS_BY_POSITION,
