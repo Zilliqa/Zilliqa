@@ -85,11 +85,19 @@ ReadVerifierExclusionListFromConstantsFile() {
   return result;
 }
 
+// pair<uint64_t, uint32_t> represents the TXBLOCK and MICROBLOCK
+/*
+  <entry>
+        <TXBLOCK>175637</TXBLOCK>
+        <MICROBLOCK>2</MICROBLOCK>
+  </entry>
+*/
 const vector<pair<uint64_t, uint32_t>>
 ReadVerifierMicroblockExclusionListFromConstantsFile() {
   auto pt = PTree::GetInstance();
   vector<pair<uint64_t, uint32_t>> result;
-  for (auto& entry : pt.get_child("node.verifier.microblock_exclusion_list")) {
+  for (const auto& entry :
+       pt.get_child("node.verifier.microblock_exclusion_list")) {
     result.emplace_back(make_pair(entry.second.get<uint64_t>("TXBLOCK"),
                                   entry.second.get<uint32_t>("MICROBLOCK")));
   }
