@@ -330,6 +330,18 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &EthRpcMethods::EthUninstallFilterI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_getFilterLogs", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::EthGetFilterLogsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_getLogs", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &EthRpcMethods::EthGetLogsI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1211,8 +1223,12 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 
     auto logs =
         Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+
+    const auto baselogIndex =
+        Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
+
     Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
-                             transactionIndex);
+                             transactionIndex, baselogIndex);
     const auto bloomLogs =
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
@@ -1269,6 +1285,35 @@ Json::Value EthRpcMethods::EthGetFilterChanges(const std::string& filter_id) {
 bool EthRpcMethods::EthUninstallFilter(const std::string& filter_id) {
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   return api.UninstallFilter(filter_id);
+}
+
+Json::Value EthRpcMethods::EthGetFilterLogs(const std::string& filter_id) {
+  auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
+  auto result = api.GetFilterLogs(filter_id);
+  if (!result.success) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, result.error);
+  }
+  return result.result;
+}
+
+Json::Value EthRpcMethods::EthGetLogs(const Json::Value& param) {
+  auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
+  auto result = api.GetLogs(param);
+  if (!result.success) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, result.error);
+  }
+  return result.result;
+}
+
+void EthRpcMethods::EnsureEvmAndLookupEnabled() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "Sent to a non-lookup");
+  }
+  if (!ENABLE_EVM) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "EVM mode disabled");
+  }
 }
 
 TxBlock EthRpcMethods::GetBlockFromTransaction(

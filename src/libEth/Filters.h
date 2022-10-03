@@ -63,12 +63,23 @@ class FilterAPIBackend {
   /// Backend entry for eth_newPendingTransactionsFilter
   virtual InstallResult InstallNewPendingTxnFilter() = 0;
 
+  /// Backend entry for eth_uninstallFilter
   /// Uninstalls filter and returns: true on success, false if filter_id was
   /// not installed (or expired and not found)
-  virtual bool UninstallFilter(const std::string &filter_id) = 0;
+  virtual bool UninstallFilter(const FilterId &filter_id) = 0;
 
+  /// Backend entry for eth_getFilterChanges
   /// Returns changes since the last poll
-  virtual PollResult GetFilterChanges(const std::string &filter_id) = 0;
+  virtual PollResult GetFilterChanges(const FilterId &filter_id) = 0;
+
+  /// Backend entry for eth_getFilterLogs
+  /// Almost the same as GetFilterChanges, but returns all items subject to the
+  /// filter, ignoring 'last seen' internal cursor
+  virtual PollResult GetFilterLogs(const FilterId &filter_id) = 0;
+
+  /// Backend entry for eth_getLogs
+  /// Stateless version of event filters polling
+  virtual PollResult GetLogs(const Json::Value &params) = 0;
 };
 
 class SubscriptionAPIBackend {
