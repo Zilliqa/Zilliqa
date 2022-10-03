@@ -26,8 +26,8 @@
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+#include "libCrypto/EthCrypto.h"
 
 using namespace jsonrpc;
 
@@ -38,7 +38,7 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex) {
+    const Json::Value &logsBloom, const Json::Value &transactionIndex, const Transaction& tx) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -59,6 +59,11 @@ Json::Value populateReceiptHelper(
     ret["to"] = to;
   }
   ret["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
+
+  std::string sig{tx.GetSignature()};
+  ret["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  ret["r"] = GetR(sig);
+  ret["s"] = GetS(sig);
 
   return ret;
 }

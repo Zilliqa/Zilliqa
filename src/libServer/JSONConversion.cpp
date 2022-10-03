@@ -186,6 +186,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   }
   retJson["transactions"] = transactionsJson;
   retJson["uncles"] = Json::arrayValue;
+
   return retJson;
 }
 
