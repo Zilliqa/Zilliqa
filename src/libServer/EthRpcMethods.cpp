@@ -1301,6 +1301,17 @@ Json::Value EthRpcMethods::EthGetLogs(const Json::Value& param) {
   return result.result;
 }
 
+void EthRpcMethods::EnsureEvmAndLookupEnabled() {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "Sent to a non-lookup");
+  }
+  if (!ENABLE_EVM) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "EVM mode disabled");
+  }
+}
+
 TxBlock EthRpcMethods::GetBlockFromTransaction(
     const TransactionWithReceipt& transaction) const {
   const TxBlock EMPTY_BLOCK;

@@ -407,6 +407,7 @@ class EthRpcMethods {
    */
   virtual void EthNewFilterI(const Json::Value& request,
                              Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthNewFilter(request[0u]);
   }
 
@@ -418,6 +419,7 @@ class EthRpcMethods {
    */
   virtual void EthNewBlockFilterI(const Json::Value& /*request*/,
                                   Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthNewBlockFilter();
   }
 
@@ -429,6 +431,7 @@ class EthRpcMethods {
    */
   virtual void EthNewPendingTransactionFilterI(const Json::Value& /*request*/,
                                                Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthNewPendingTransactionFilter();
   }
 
@@ -440,6 +443,7 @@ class EthRpcMethods {
    */
   virtual void EthGetFilterChangesI(const Json::Value& request,
                                     Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthGetFilterChanges(request[0u].asString());
   }
 
@@ -451,6 +455,7 @@ class EthRpcMethods {
    */
   virtual void EthUninstallFilterI(const Json::Value& request,
                                    Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthUninstallFilter(request[0u].asString());
   }
 
@@ -462,6 +467,7 @@ class EthRpcMethods {
    */
   virtual void EthGetFilterLogsI(const Json::Value& request,
                                  Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthGetFilterLogs(request[0u].asString());
   }
 
@@ -472,6 +478,7 @@ class EthRpcMethods {
    * @param response : Json array of items applicable to the filter
    */
   virtual void EthGetLogsI(const Json::Value& request, Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthGetLogs(request[0u]);
   }
 
@@ -540,6 +547,8 @@ class EthRpcMethods {
   bool EthUninstallFilter(const std::string& filter_id);
   Json::Value EthGetFilterLogs(const std::string& filter_id);
   Json::Value EthGetLogs(const Json::Value& param);
+
+  void EnsureEvmAndLookupEnabled();
 
  public:
   Mediator& m_sharedMediator;
