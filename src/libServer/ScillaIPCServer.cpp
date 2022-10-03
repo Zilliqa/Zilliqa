@@ -253,6 +253,10 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       return false;
     }
   }
+  if (not dsBlockSharedPtr || not txBlockSharedPtr) {
+    LOG_GENERAL(WARNING, "Smart pointers work better when Initialized " << blockNum);
+    return false;
+  }
 
   if (query_name == "BLOCKHASH") {
     value = txBlockSharedPtr->GetBlockHash().hex();
