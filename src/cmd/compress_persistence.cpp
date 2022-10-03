@@ -24,22 +24,24 @@
 /// Should be run with working directory where folder "persistence" consisting
 /// of the individual dbs exists.
 
-#define SUCCESS 0
-#define ERROR_IN_COMMAND_LINE -1
-#define ERROR_UNHANDLED_EXCEPTION -2
-#define ERROR_UNEXPECTED -3
+enum class STATUS {
+  ERROR_UNEXPECTED = -3,
+  ERROR_UNHANDLED_EXCEPTION = -2,
+  ERROR_IN_COMMAND_LINE = -1,
+  SUCCESS = 0,
+};
 
 using namespace std;
 namespace po = boost::program_options;
 
 int main(int argc, const char* argv[]) {
-  string dbname;
+  string dbName;
   try {
     po::options_description desc("Options");
 
     desc.add_options()("help,h", "Print help messages")(
         "db name,p",
-        po::value<string>(&dbname)->default_value(bfs::current_path().string()),
+        po::value<string>(&dbName)->default_value(bfs::current_path().string()),
         "name of leveldb that resides in persistence folder and is to be "
         "compressed");
 
@@ -49,27 +51,27 @@ int main(int argc, const char* argv[]) {
 
       if (vm.count("help")) {
         cout << desc << endl;
-        return SUCCESS;
+        return static_cast<int>(STATUS::SUCCESS);
       }
       po::notify(vm);
     } catch (boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
-      return ERROR_IN_COMMAND_LINE;
+      return static_cast<int>(STATUS::ERROR_IN_COMMAND_LINE);
     } catch (boost::program_options::error& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-      return ERROR_IN_COMMAND_LINE;
+      return static_cast<int>(STATUS::ERROR_IN_COMMAND_LINE);
     }
 
-    LOG_GENERAL(INFO, "Begin compression of " << dbname);
-    auto dbptr = std::make_shared<LevelDB>(dbname);
+    LOG_GENERAL(INFO, "Begin compression of " << dbName);
+    auto dbptr = std::make_unique<LevelDB>(dbName);
     dbptr->compact();
     LOG_GENERAL(INFO, "Finished compression");
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
-    return ERROR_UNHANDLED_EXCEPTION;
+    return static_cast<int>(STATUS::ERROR_UNHANDLED_EXCEPTION);
   }
 
-  return SUCCESS;
+  return static_cast<int>(STATUS::SUCCESS);
 }
