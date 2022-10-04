@@ -244,14 +244,15 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
 
   const Address contractAddr(params.m_contract);
   const Address origin(params.m_caller);
-  Account* account = this->GetAccountAtomic(contractAddr);
 
-  account->SetStorageRoot(dev::h256());
+  //Account* account = this->GetAccountAtomic(contractAddr);
+
+  //account->SetStorageRoot(dev::h256());
 
 
   auto sbcip = std::make_unique<ScillaBCInfo>(
       getCurBlockNum(), getCurDSBlockNum(), origin, contractAddr,
-      account->GetStorageRoot(), evm_version);
+      dev::h256(), evm_version);
 
   if (not sbcip){
     LOG_GENERAL(INFO,"Failed to setup dbcinfo pointer");
