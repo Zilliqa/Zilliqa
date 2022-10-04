@@ -259,7 +259,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   }
 
 
-
+  // TODO : This causes a crash, Steve.
   // m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
 
   ret = EvmClient::GetInstance().CallRunner(
