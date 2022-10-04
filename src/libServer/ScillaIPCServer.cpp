@@ -52,12 +52,6 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
 
-  // TODO @CSideSteve.
-  // There is a bug in the method below that leads to a crash. This is why it is
-  // commented out. To reproduce the bug, uncomment the below, rebuild, and run
-  // ds_test against the isolated server as
-  //      pytest -k test_bcinfo
-  //
   bindAndAddMethod(
        Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                  "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -65,6 +59,11 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
 }
 
 void ScillaIPCServer::setBCInfoProvider(
+    std::unique_ptr<const ScillaBCInfo> &&bcInfo) {
+  m_BCInfo = std::move(bcInfo);
+}
+
+std::unique_ptr<const ScillaBCInfo> get::ScillaIPCServer::setBCInfoProvider(
     std::unique_ptr<const ScillaBCInfo> &&bcInfo) {
   m_BCInfo = std::move(bcInfo);
 }

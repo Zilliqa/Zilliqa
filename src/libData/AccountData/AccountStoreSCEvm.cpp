@@ -239,6 +239,29 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   uint32_t evm_version{0};
   evmproj::CallResponse response{};
 
+
+  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+
+  const Address contractAddr(params.m_contract);
+  const Address origin(params.m_caller);
+  Account* account = this->GetAccountAtomic(contractAddr);
+
+  account->SetStorageRoot(dev::h256());
+
+
+  auto sbcip = std::make_unique<ScillaBCInfo>(
+      getCurBlockNum(), getCurDSBlockNum(), origin, contractAddr,
+      account->GetStorageRoot(), evm_version);
+
+  if (not sbcip){
+    LOG_GENERAL(INFO,"Failed to setup dbcinfo pointer");
+    return false;
+  }
+
+
+
+  // m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+
   ret = EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
   result = response.ReturnedBytes();
