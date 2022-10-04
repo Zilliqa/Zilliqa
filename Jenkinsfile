@@ -31,7 +31,12 @@ timestamps {
         try {
           stage('Checkout scm') {
               checkout scm
-              def pr_skipci = env.CHANGE_TITLE ? sh(script: "echo ${env.CHANGE_TITLE} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim() : "0"
+              def pr_skipci = "0"
+              try {
+                pr_skipci = env.CHANGE_TITLE ?: sh(script: "echo ${env.CHANGE_TITLE.replace("(","").replace(")","")} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
+              } catch (err) {
+                error("Error reading the Pull Request title, please check and eventually remove special characters")
+              }
               def skipci = sh(script: "git log -1 --pretty=%B | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
               if (skipci != "0" || pr_skipci != "0") {
                 error(skipciMessage)
