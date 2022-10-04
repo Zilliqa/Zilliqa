@@ -240,7 +240,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
   evmproj::CallResponse response{};
 
 
-  std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+  //std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   const Address contractAddr(params.m_contract);
   const Address origin(params.m_caller);

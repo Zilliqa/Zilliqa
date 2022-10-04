@@ -63,11 +63,6 @@ void ScillaIPCServer::setBCInfoProvider(
   m_BCInfo = std::move(bcInfo);
 }
 
-std::unique_ptr<const ScillaBCInfo> get::ScillaIPCServer::setBCInfoProvider(
-    std::unique_ptr<const ScillaBCInfo> &&bcInfo) {
-  m_BCInfo = std::move(bcInfo);
-}
-
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
                                        Json::Value &response) {
   std::string value;
