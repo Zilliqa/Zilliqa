@@ -46,7 +46,7 @@ class TestBCInfo(test_case.EvmDsTestCase):
 
     def test_blockGasPrice(self):
         self.init()
-        resp = self.call_view(self.contract, "getBlockGasprice", 0)
+        resp = self.call_view(self.contract, "getGasprice")
         print(resp)
 
     def test_TimeStamp(self):
@@ -56,5 +56,5 @@ class TestBCInfo(test_case.EvmDsTestCase):
 
     def test_GasLimit(self):
         self.init()
-        resp = self.call_view(self.contract, "getBlockGaslimit", 0)
+        resp = self.call_view(self.contract, "getGaslimit")
         print(resp)
