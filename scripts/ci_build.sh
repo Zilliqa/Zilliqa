@@ -82,7 +82,7 @@ then
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
     cmake --build ${dir} --target Zilliqa_coverage || exit 1
 else
-    cd build && ctest --output-on-failure -j1 --timeout 5 || exit 1
+    cd build && ctest --timeout 1 --output-on-failure -j1 || exit 1
 fi
 
 echo "ccache status"
