@@ -77,7 +77,6 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    npm install
     npx hardhat test --debug
 
     retVal=$?
