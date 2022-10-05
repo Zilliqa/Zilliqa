@@ -267,7 +267,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool AddAccountAtomic(const Address& address, const Account& account);
 
   bool ViewAccounts(const EvmCallParameters& params,
-                    evmproj::CallResponse & response);
+                    evmproj::CallResponse& response);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
