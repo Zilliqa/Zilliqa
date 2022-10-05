@@ -228,8 +228,14 @@ async fn run_evm_impl(
         // TODO: implement all precompiles.
         let precompiles = BTreeMap::from([(
             H160::from_str("0000000000000000000000000000000000000001").unwrap(),
-            precompiles::ecrecover as PrecompileFn,
-        )]);
+            precompiles::ecrecover::ecrecover as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000004").unwrap(),
+            precompiles::identity::identity as PrecompileFn,
+
+        )
+        ]);
 
         let mut executor =
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
