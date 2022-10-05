@@ -22,6 +22,7 @@
 #include <cstdint>
 #include "common/BaseType.h"
 #include "libData/AccountData/Address.h"
+#include "libData/AccountData/TransactionReceipt.h"
 
 class Account;
 class Transaction;
@@ -53,7 +54,8 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex);
+    const Json::Value &logsBloom, const Json::Value &transactionIndex,
+    const Transaction &txn);
 
 EthFields parseRawTxFields(std::string const &message);
 
