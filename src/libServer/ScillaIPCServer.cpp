@@ -58,10 +58,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   // ds_test against the isolated server as
   //      pytest -k test_bcinfo
   //
-  // bindAndAddMethod(
-  //     Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
-  //               "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
-  //     &ScillaIPCServer::fetchBlockchainInfoI);
+   bindAndAddMethod(
+       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+       &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(const ScillaBCInfo &bcInfo) {
