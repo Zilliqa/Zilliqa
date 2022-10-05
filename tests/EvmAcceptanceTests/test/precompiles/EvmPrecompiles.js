@@ -11,7 +11,7 @@ describe("Precompile tests with web3.js", function () {
     contract = await web3_helper.deploy("Precompiles", options);
   });
 
-  it("When recover function is used it should return signer address", async function () {
+  it("Should return signer address when recover function is used", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const docHash = web3.utils.keccak256(msg);
     const privKey = general_helper.getPrivateAddressAt(0);
@@ -22,7 +22,7 @@ describe("Precompile tests with web3.js", function () {
     expect(result).to.be.eq(accountAddress);
   });
 
-  it("When identity function is used it should return input value", async function () {
+  it("Should return input value when identity function is used", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const hash = web3.utils.keccak256(msg);
 
