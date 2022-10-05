@@ -64,9 +64,8 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   //     &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
-void ScillaIPCServer::setBCInfoProvider(
-    std::unique_ptr<const ScillaBCInfo> &&bcInfo) {
-  m_BCInfo = std::move(bcInfo);
+void ScillaIPCServer::setBCInfoProvider(const ScillaBCInfo &bcInfo) {
+  m_BCInfo = bcInfo;
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
@@ -147,7 +146,7 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchStateValue(
-          m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query),
+          m_BCInfo.getCurContrAddr(), DataConversion::StringToCharArray(query),
           0, destination, 0, found)) {
     return false;
   }
@@ -164,7 +163,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
-          m_BCInfo->getCurContrAddr(), Address(addr),
+          m_BCInfo.getCurContrAddr(), Address(addr),
           DataConversion::StringToCharArray(query), 0, destination, 0, found,
           type)) {
     return false;
@@ -178,7 +177,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
   return ContractStorage::GetContractStorage().UpdateStateValue(
-      m_BCInfo->getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
+      m_BCInfo.getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
 }
 
@@ -186,7 +185,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
   if (query_name == "BLOCKNUMBER") {
-    value = std::to_string(m_BCInfo->getCurBlockNum());
+    value = std::to_string(m_BCInfo.getCurBlockNum());
     return true;
   } else if (query_name == "TIMESTAMP") {
     uint64_t blockNum = 0;
@@ -221,7 +220,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       return false;
     }
   } else {
-    blockNum = m_BCInfo->getCurBlockNum();
+    blockNum = m_BCInfo.getCurBlockNum();
     if (blockNum > 0) {
       // We need to look at the previous block,
       // as the current block is incomplete at the moment
@@ -243,7 +242,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
 
   // TODO: this will always return the value 0 so far, as we need the real DS
   // block.
-  blockNum = m_BCInfo->getCurDSBlockNum();
+  blockNum = m_BCInfo.getCurDSBlockNum();
   DSBlockSharedPtr dsBlockSharedPtr;
   if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
       query_name == "BLOCKGASPRICE") {

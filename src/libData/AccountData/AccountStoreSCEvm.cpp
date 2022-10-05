@@ -361,11 +361,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-      auto sbcip = std::make_unique<ScillaBCInfo>(
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-          contractAccount->GetStorageRoot(), scilla_version);
 
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      m_scillaIPCServer->setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
+           contractAccount->GetStorageRoot(), scilla_version});
 
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
@@ -537,11 +536,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-      auto sbcip = std::make_unique<ScillaBCInfo>(
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-          contractAccount->GetStorageRoot(), scilla_version);
-
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      m_scillaIPCServer->setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
+           contractAccount->GetStorageRoot(), scilla_version});
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
