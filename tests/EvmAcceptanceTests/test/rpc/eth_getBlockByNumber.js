@@ -127,13 +127,11 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  describe("When on network", function () {
+  describe("When executing 'earliest' tag", function () {
     let blockNumber = 0x0;
     before(async function () {
       if (hre.network.name == "isolated_server") {
-        this.skip(); // isolated server does not returns block '0' back, but a null object.
-      } else if (hre.network.name == "zilliqa") {
-        blockNumber = 0x1;
+        this.skip(); // FIXME: isolated server does not returns block '0' back, but a null object. see ZIL-4877
       }
     });
 
