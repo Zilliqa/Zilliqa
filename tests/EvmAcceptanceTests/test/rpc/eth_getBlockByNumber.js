@@ -98,7 +98,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return get full transactions objects by 'unknown tag' tag", async function () {
+  it("should get full transactions objects by 'unknown tag' tag", async function () {
     await helper.callEthMethod(METHOD, 2, ["unknown tag", true], (result, status) => {
       hre.logDebug(result);
 
@@ -107,7 +107,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return get full transactions objects by 'latest' tag", async function () {
+  it("should get full transactions objects by 'latest' tag", async function () {
     await helper.callEthMethod(METHOD, 2, ["latest", true], (result, status) => {
       hre.logDebug(result);
 
@@ -117,7 +117,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return get only the hashes of the transactions by 'latest' tag", async function () {
+  it("should get only the hashes of the transactions by 'latest' tag", async function () {
     await helper.callEthMethod(METHOD, 2, ["latest", false], (result, status) => {
       hre.logDebug(result);
 
@@ -127,51 +127,72 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  //it("should return get full transactions objects by 'earliest' tag", async function () {
-  //  await helper.callEthMethod(METHOD, 2, ["earliest", true], (result, status) => {
-  //    hre.logDebug(result);
+  describe("When executing 'earliest' tag", function () {
+    let blockNumber = 0x0;
+    before(async function () {
+      if (hre.network.name == "isolated_server") {
+        this.skip(); // FIXME: isolated server does not returns block '0' back, but a null object. see ZIL-4877
+      }
+    });
 
-  //    assert.equal(status, 200, "has status code");
-  //    // validate all returned fields
-  //    TestResponse(result);
-  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
-  //  });
-  //});
+    it("should get full transactions objects by 'earliest' tag", async function () {
+      await helper.callEthMethod(METHOD, 2, ["earliest", true], (result, status) => {
+        hre.logDebug(result);
 
-  //it("should return get only the hashes of the transactions objects by 'earliest' tag", async function () {
-  //  await helper.callEthMethod(METHOD, 2, ["earliest", false], (result, status) => {
-  //    hre.logDebug(result);
+        assert.equal(status, 200, "has status code");
+        // validate all returned fields
+        TestResponse(result);
+        assert.equal(+result.result.number, blockNumber, "Block number is not ", blockNumber);
+      });
+    });
 
-  //    assert.equal(status, 200, "has status code");
-  //    // validate all returned fields
-  //    TestResponse(result);
-  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
-  //  });
-  //});
+    it("should get only the hashes of the transactions objects by 'earliest' tag", async function () {
+      await helper.callEthMethod(METHOD, 2, ["earliest", false], (result, status) => {
+        hre.logDebug(result);
 
-  //it("should return get full transactions objects by its block number '0'", async function () {
-  //  await helper.callEthMethod(METHOD, 2, ["0x0", true], (result, status) => {
-  //    hre.logDebug(result);
+        assert.equal(status, 200, "has status code");
+        // validate all returned fields
+        TestResponse(result);
+        assert.equal(+result.result.number, blockNumber, "Block number is not ", blockNumber);
+      });
+    });
+  });
 
-  //    assert.equal(status, 200, "has status code");
-  //    // validate all returned fields
+  it("should get full transactions objects by its block number '0'", async function () {
+    let blockNumber = 0x0;
+    before(async function () {
+      if (helper.isZilliqaNetworkSelected()) {
+        blockNumber = 0x1;
+      }
 
-  //    TestResponse(result);
-  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
-  //  });
-  //});
+      await helper.callEthMethod(METHOD, 2, [blockNumber, true], (result, status) => {
+        hre.logDebug(result);
 
-  //it("should return get only the hashes of transactions objects by its block number '0'", async function () {
-  //  await helper.callEthMethod(METHOD, 2, ["0x0", false], (result, status) => {
-  //    hre.logDebug(result);
+        assert.equal(status, 200, "has status code");
+        // validate all returned fields
+        TestResponse(result);
+        assert.equal(+result.result.number, blockNumber, "Block number is not ", blockNumber);
+      });
+    });
+  });
 
-  //    assert.equal(status, 200, "has status code");
-  //    // validate all returned fields
+  it("should get only the hashes of transactions objects by its block number '0'", async function () {
+    let blockNumber = 0x0;
+    before(async function () {
+      if (helper.isZilliqaNetworkSelected()) {
+        blockNumber = 0x1;
+      }
 
-  //    TestResponse(result);
-  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
-  //  });
-  //});
+      await helper.callEthMethod(METHOD, 2, [blockNumber, false], (result, status) => {
+        hre.logDebug(result);
+
+        assert.equal(status, 200, "has status code");
+        // validate all returned fields
+        TestResponse(result);
+        assert.equal(+result.result.number, blockNumber, "Block number is not ", blockNumber);
+      });
+    });
+  });
 
   describe("When on Zilliqa network", function () {
     before(function () {
@@ -179,13 +200,13 @@ describe("Calling " + METHOD, function () {
         this.skip();
       }
     });
-    it("should return get full transactions objects by 'pending' tag", async function () {
+
+    it("should get full transactions objects by 'pending' tag", async function () {
       await helper.callEthMethod(METHOD, 2, ["pending", true], (result, status) => {
         hre.logDebug(result);
 
         assert.equal(status, 200, "has status code");
         // validate all returned fields
-
         assert.property(result, "result", result.error ? result.error.message : "error");
         assert.equal(result.result, null, "should be null");
       });
