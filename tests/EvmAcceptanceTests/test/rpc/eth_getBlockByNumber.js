@@ -127,51 +127,51 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  it("should return get full transactions objects by 'earliest' tag", async function () {
-    await helper.callEthMethod(METHOD, 2, ["earliest", true], (result, status) => {
-      hre.logDebug(result);
+  //it("should return get full transactions objects by 'earliest' tag", async function () {
+  //  await helper.callEthMethod(METHOD, 2, ["earliest", true], (result, status) => {
+  //    hre.logDebug(result);
 
-      assert.equal(status, 200, "has status code");
-      // validate all returned fields
-      TestResponse(result);
-      assert.equal(+result.result.number, 0, "Block number is not '0'");
-    });
-  });
+  //    assert.equal(status, 200, "has status code");
+  //    // validate all returned fields
+  //    TestResponse(result);
+  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
+  //  });
+  //});
 
-  it("should return get only the hashes of the transactions objects by 'earliest' tag", async function () {
-    await helper.callEthMethod(METHOD, 2, ["earliest", false], (result, status) => {
-      hre.logDebug(result);
+  //it("should return get only the hashes of the transactions objects by 'earliest' tag", async function () {
+  //  await helper.callEthMethod(METHOD, 2, ["earliest", false], (result, status) => {
+  //    hre.logDebug(result);
 
-      assert.equal(status, 200, "has status code");
-      // validate all returned fields
-      TestResponse(result);
-      assert.equal(+result.result.number, 0, "Block number is not '0'");
-    });
-  });
+  //    assert.equal(status, 200, "has status code");
+  //    // validate all returned fields
+  //    TestResponse(result);
+  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
+  //  });
+  //});
 
-  it("should return get full transactions objects by its block number '0'", async function () {
-    await helper.callEthMethod(METHOD, 2, ["0x0", true], (result, status) => {
-      hre.logDebug(result);
+  //it("should return get full transactions objects by its block number '0'", async function () {
+  //  await helper.callEthMethod(METHOD, 2, ["0x0", true], (result, status) => {
+  //    hre.logDebug(result);
 
-      assert.equal(status, 200, "has status code");
-      // validate all returned fields
+  //    assert.equal(status, 200, "has status code");
+  //    // validate all returned fields
 
-      TestResponse(result);
-      assert.equal(+result.result.number, 0, "Block number is not '0'");
-    });
-  });
+  //    TestResponse(result);
+  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
+  //  });
+  //});
 
-  it("should return get only the hashes of transactions objects by its block number '0'", async function () {
-    await helper.callEthMethod(METHOD, 2, ["0x0", false], (result, status) => {
-      hre.logDebug(result);
+  //it("should return get only the hashes of transactions objects by its block number '0'", async function () {
+  //  await helper.callEthMethod(METHOD, 2, ["0x0", false], (result, status) => {
+  //    hre.logDebug(result);
 
-      assert.equal(status, 200, "has status code");
-      // validate all returned fields
+  //    assert.equal(status, 200, "has status code");
+  //    // validate all returned fields
 
-      TestResponse(result);
-      assert.equal(+result.result.number, 0, "Block number is not '0'");
-    });
-  });
+  //    TestResponse(result);
+  //    assert.equal(+result.result.number, 0, "Block number is not '0'");
+  //  });
+  //});
 
   describe("When on Zilliqa network", function () {
     before(function () {
