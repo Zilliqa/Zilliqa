@@ -1,5 +1,5 @@
 # Additional targets to perform clang-format/clang-tidy
-# It requires clang-format/clang-tidy 14.0.0+
+# It requires clang-format/clang-tidy 7.0.0+
 
 include_guard(GLOBAL)
 
