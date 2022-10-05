@@ -112,16 +112,12 @@ void Zilliqa::ProcessMessage(
           message->second.second);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-/*
         auto tpNow = std::chrono::high_resolution_clock::now();
-
         auto timeInMicro = static_cast<int64_t>(
             (std::chrono::duration<double, std::micro>(tpNow - tpStart))
                 .count());
-
         LOG_GENERAL(
             INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
-            */
       }
 
       if (!result) {
