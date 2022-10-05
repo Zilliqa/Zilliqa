@@ -697,15 +697,15 @@ def test_eth_getBlockByHash(url: str, account: eth_account.signers.local.LocalAc
         checkHasField(res, "number", True)
         checkHasField(res, "hash", True)
         checkHasField(res, "parentHash", True)
-        #checkHasField(res, "nonce", True) # TODO(HUT): missing
+        checkHasField(res, "nonce", True)
         checkHasField(res, "sha3Uncles", True)
         checkHasField(res, "logsBloom", True)
-        #checkHasField(res, "transactionsRoot", True) # TODO(HUT): missing
+        checkHasField(res, "transactionsRoot", True)
         checkHasField(res, "stateRoot", True)
-        #checkHasField(res, "receiptsRoot", True) # TODO(HUT): missing
+        checkHasField(res, "receiptsRoot", True)
         checkHasField(res, "miner", True)
         checkHasField(res, "difficulty", True)
-        #checkHasField(res, "totalDifficulty", True) # TODO(HUT): missing
+        checkHasField(res, "totalDifficulty", True)
         checkHasField(res, "extraData", True)
         checkHasField(res, "size", True)
         checkHasField(res, "gasLimit", True)
