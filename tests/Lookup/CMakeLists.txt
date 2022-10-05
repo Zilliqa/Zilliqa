@@ -11,11 +11,13 @@ add_executable(Test_LookupNodeForDSBlock Test_LookupNodeForDSBlock.cpp)
 target_include_directories(Test_LookupNodeForDSBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_LookupNodeForDSBlock PUBLIC AccountData Message Network TestUtils)
 add_test(NAME Test_LookupNodeForDSBlock COMMAND Test_LookupNodeForDSBlock)
+set_tests_properties(Test_LookupNodeForDSBlock PROPERTIES TIMEOUT 3)
 
 add_executable(Test_LookupNodeForTxBlock Test_LookupNodeForTxBlock.cpp)
 target_include_directories(Test_LookupNodeForTxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_LookupNodeForTxBlock PUBLIC AccountData Message Network TestUtils)
 add_test(NAME Test_LookupNodeForTxBlock COMMAND Test_LookupNodeForTxBlock)
+set_tests_properties(Test_LookupNodeForTxBlock PROPERTIES TIMEOUT 3)
 
 
 

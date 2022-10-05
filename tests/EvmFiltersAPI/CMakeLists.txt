@@ -15,3 +15,4 @@ target_link_libraries(Test_EvmFiltersAPI
         )
 
 add_test(NAME Test_EvmFiltersAPI COMMAND Test_EvmFiltersAPI)
+set_tests_properties(Test_EvmFiltersAPI PROPERTIES TIMEOUT 3)
