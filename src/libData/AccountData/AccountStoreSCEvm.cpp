@@ -234,43 +234,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
-                                       std::string& result) {
+bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
+                                       evmproj::CallResponse& response) {
   uint32_t evm_version{0};
-  evmproj::CallResponse response{};
 
-
-  //std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-
-  const Address contractAddr(params.m_contract);
-  const Address origin(params.m_caller);
-
-  //Account* account = this->GetAccountAtomic(contractAddr);
-
-  //account->SetStorageRoot(dev::h256());
-
-
-  auto sbcip = std::make_unique<ScillaBCInfo>(
-      getCurBlockNum(), getCurDSBlockNum(), origin, contractAddr,
-      dev::h256(), evm_version);
-
-  if (not sbcip){
-    LOG_GENERAL(INFO,"Failed to setup dbcinfo pointer");
-    return false;
-  }
-
-
-  // TODO : This causes a crash, Steve.
-  // m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
-
-  ret = EvmClient::GetInstance().CallRunner(
+  return EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
-  result = response.ReturnedBytes();
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Called Evm, response:" << response);
-  }
-  return ret;
 }
 
 template <class MAP>
