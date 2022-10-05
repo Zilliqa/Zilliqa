@@ -22,7 +22,7 @@ describe("Precompile tests with web3.js", function () {
     expect(result).to.be.eq(accountAddress);
   });
 
-  it("When identity function is used it should return input value 222", async function () {
+  it("When identity function is used it should return input value", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const hash = web3.utils.keccak256(msg);
 
