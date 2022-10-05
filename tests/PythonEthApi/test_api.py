@@ -118,9 +118,9 @@ def checkIsTransactionReceipt(obj):
     checkHasField(obj, "logs")
     checkHasField(obj, "logsBloom", True)
     #checkHasField(obj, "value", True) # TODO(HUT): missing
-    #checkHasField(obj, "v", True) # TODO(HUT): missing
-    #checkHasField(obj, "r", True) # TODO(HUT): missing
-    #checkHasField(obj, "s", True) # TODO(HUT): missing
+    checkHasField(obj, "v", True)
+    checkHasField(obj, "r", True)
+    checkHasField(obj, "s", True)
 
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
