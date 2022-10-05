@@ -64,9 +64,11 @@ using namespace boost::multiprecision;
 bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_MARKER();
 
-  m_mediator.m_filtersAPICache->GetUpdate().StartEpoch(
-      txBlock.GetHeader().GetBlockNum(), txBlock.GetBlockHash().hex(),
-      txBlock.GetMicroBlockInfos().size(), txBlock.GetHeader().GetNumTxs());
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_filtersAPICache->GetUpdate().StartEpoch(
+        txBlock.GetHeader().GetBlockNum(), txBlock.GetBlockHash().hex(),
+        txBlock.GetMicroBlockInfos().size(), txBlock.GetHeader().GetNumTxs());
+  }
 
   AddBlock(txBlock);
 
@@ -1558,7 +1560,9 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
       continue;
     }
 
-    cacheUpdate.AddPendingTransaction(entry.first.hex(), currentEpochNum);
+    if (LOOKUP_NODE_MODE) {
+      cacheUpdate.AddPendingTransaction(entry.first.hex(), currentEpochNum);
+    }
 
     if (IsTxnDropped(entry.second)) {
       LOG_GENERAL(INFO, "[DTXN]" << entry.first << " " << currentEpochNum);

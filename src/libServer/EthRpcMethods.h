@@ -399,30 +399,89 @@ class EthRpcMethods {
         request[0u].asString(), request[1u].asString());
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_newFilter
+   * @param request : params: Json object
+   * @param response : Filter ID (string) on success
+   */
   virtual void EthNewFilterI(const Json::Value& request,
                              Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthNewFilter(request[0u]);
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_newBlockFilter
+   * @param request : params: none
+   * @param response : Filter ID (string) on success
+   */
   virtual void EthNewBlockFilterI(const Json::Value& /*request*/,
                                   Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthNewBlockFilter();
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_newPendingTransactionFilter
+   * @param request : params: none
+   * @param response : Filter ID (string) on success
+   */
   virtual void EthNewPendingTransactionFilterI(const Json::Value& /*request*/,
                                                Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthNewPendingTransactionFilter();
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterChanges
+   * @param request : params: Filter ID (string)
+   * @param response : Json array of filter changes since last seen state
+   */
   virtual void EthGetFilterChangesI(const Json::Value& request,
                                     Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthGetFilterChanges(request[0u].asString());
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_uninstallFilter
+   * @param request : params: Filter ID (string)
+   * @param response : boolean (if the filter was uninstalled)
+   */
   virtual void EthUninstallFilterI(const Json::Value& request,
                                    Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->EthUninstallFilter(request[0u].asString());
   }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterLogs
+   * @param request : params: Filter ID (string)
+   * @param response : Json array of items applicable to the filter
+   */
+  virtual void EthGetFilterLogsI(const Json::Value& request,
+                                 Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
+    response = this->EthGetFilterLogs(request[0u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterLogs
+   * @param request : params: event filter params json object
+   * @param response : Json array of items applicable to the filter
+   */
+  virtual void EthGetLogsI(const Json::Value& request, Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
+    response = this->EthGetLogs(request[0u]);
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
@@ -486,6 +545,10 @@ class EthRpcMethods {
   std::string EthNewPendingTransactionFilter();
   Json::Value EthGetFilterChanges(const std::string& filter_id);
   bool EthUninstallFilter(const std::string& filter_id);
+  Json::Value EthGetFilterLogs(const std::string& filter_id);
+  Json::Value EthGetLogs(const Json::Value& param);
+
+  void EnsureEvmAndLookupEnabled();
 
  public:
   Mediator& m_sharedMediator;
