@@ -109,13 +109,6 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
     return;
   }
 
-  // Add Eth compatible RPC endpoints
-  // todo: remove when all tests are updated to use eth_call
-  m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         NULL),
-      &EthRpcMethods::GetEthCallZilI);
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
@@ -561,26 +554,24 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string& address) {
   }
 }
 
-string EthRpcMethods::GetEthCallZil(const Json::Value& _json) {
-  return this->GetEthCallImpl(
-      _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
-}
-
 string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
                                     const string& block_or_tag) {
   if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
                            "Unsupported block or tag in eth_call");
   }
-  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
+
+  return this->GetEthCallImpl(_json, block_or_tag,
+                              {"from", "to", "value", "gas", "data"});
 }
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
+                                     const std::string& tag,
                                      const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
-  bytes code{};
+  bytes contractCode{};
   auto ret{false};
   {
     shared_lock<shared_timed_mutex> lock(
@@ -591,7 +582,8 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
                              "Account does not exist");
     }
-    code = contractAccount->GetCode();
+    // get the contract code
+    contractCode = contractAccount->GetCode();
   }
 
   string result;
@@ -619,11 +611,19 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
       data = data.substr(2);
     }
-    EvmCallParameters params{
-        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
-        data,       gasRemained,    amount};
 
+    const EvmCallParameters params{
+        addr.hex(),
+        fromAddr.hex(),
+        DataConversion::CharArrayToString(contractCode),
+        data,
+        gasRemained,
+        amount,
+        tag};
+
+    LOG_GENERAL(DEBUG, "EvmCall parameter:" << params);
     AccountStore::GetInstance().ViewAccounts(params, ret, result);
+
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");

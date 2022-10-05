@@ -31,7 +31,7 @@
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
-    EvmCallParameters& params,          //
+    const EvmCallParameters& params,    //
     const uint32_t version,             //
     bool& ret,                          //
     TransactionReceipt& receipt,        //
@@ -65,7 +65,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, const uint32_t& version, bool& ret,
+    const EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
@@ -234,8 +234,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
-                                       std::string& result) {
+bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
+                                       bool& ret, std::string& result) {
   uint32_t evm_version{0};
   evmproj::CallResponse response{};
 
@@ -389,14 +389,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      EvmCallParameters params = {
-          contractAddress.hex(),
-          fromAddr.hex(),
-          DataConversion::CharArrayToString(transaction.GetCode()),
-          DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
-
       std::map<std::string, bytes> t_newmetadata;
 
       t_newmetadata.emplace(Contract::ContractStorage::GenerateStorageKey(
@@ -408,7 +400,17 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
+
+      const EvmCallParameters params = {
+          contractAddress.hex(),
+          fromAddr.hex(),
+          DataConversion::CharArrayToString(transaction.GetCode()),
+          DataConversion::CharArrayToString(transaction.GetData()),
+          transaction.GetGasLimitEth(),
+          transaction.GetAmountWei(),
+          "latest"};
       evmproj::CallResponse response;
+
       const auto gasRemained = InvokeEvmInterpreter(
           contractAccount, RUNNER_CREATE, params, evm_version,
           evm_call_run_succeeded, receipt, response);
@@ -555,13 +557,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      EvmCallParameters params = {
+      const EvmCallParameters params = {
           m_curContractAddr.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          "latest"};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "

@@ -163,13 +163,6 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
 
 void IsolatedServer::BindAllEvmMethods() {
   if (ENABLE_EVM) {
-    // todo: remove when all tests are updated to use eth_call
-    AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("GetEthCall", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_OBJECT, NULL),
-        &LookupServer::GetEthCallZilI);
-
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("eth_call", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, "param01",

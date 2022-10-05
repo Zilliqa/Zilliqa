@@ -50,12 +50,6 @@ class EthRpcMethods {
     response = this->GetEthCallEth(request[0u], request[1u].asString());
   }
 
-  // TODO: remove once we fully move to Eth compatible APIs.
-  inline virtual void GetEthCallZilI(const Json::Value& request,
-                                     Json::Value& response) {
-    response = this->GetEthCallZil(request[0u]);
-  }
-
   // Eth style functions here
   virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                   Json::Value& response) {
@@ -483,10 +477,10 @@ class EthRpcMethods {
   }
 
   struct ApiKeys;
-  std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
                             const std::string& block_or_tag);
-  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
+  std::string GetEthCallImpl(const Json::Value& _json, const std::string& tag,
+                             const ApiKeys& apiKeys);
   Json::Value GetBalanceAndNonce(const std::string& address);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);

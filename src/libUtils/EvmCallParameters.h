@@ -18,19 +18,33 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
 #define ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
 
+#include <ostream>
 #include <string>
-
 #include "boost/multiprecision/cpp_int.hpp"
 
 // input parameters to Json call
 
 struct EvmCallParameters {
-  std::string m_contract;
-  std::string m_caller;
-  std::string m_code;
-  std::string m_data;
-  uint64_t m_available_gas = {0};
-  boost::multiprecision::uint256_t m_apparent_value = {0};
+  const std::string m_contract;
+  const std::string m_caller;
+  const std::string m_code;
+  const std::string m_data;
+  const uint64_t m_available_gas = {0};
+  const boost::multiprecision::uint256_t m_apparent_value = {0};
+  const std::string m_tag;
 };
 
+inline std::ostream& operator<<(std::ostream& os,
+                                const EvmCallParameters& evmCallParameters) {
+  os << "{"                                                        //
+     << "Contract:" << evmCallParameters.m_contract                //
+     << ", Caller:" << evmCallParameters.m_caller                  //
+     << ", Code:" << evmCallParameters.m_code                      //
+     << ", Data:" << evmCallParameters.m_data                      //
+     << ", Available gas:" << evmCallParameters.m_available_gas    //
+     << ", Apparent value:" << evmCallParameters.m_apparent_value  //
+     << ", Tag:" << evmCallParameters.m_tag                        //
+     << "}";
+  return os;
+}
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
