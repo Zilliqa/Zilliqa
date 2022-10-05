@@ -91,7 +91,8 @@ Address ToBase16AddrHelper(const std::string& addr) {
 
 }  // namespace
 
-struct LookupServer::ApiKeys {
+
+struct EthRpcMethods::ApiKeys {
   std::string from;
   std::string to;
   std::string value;
@@ -1319,7 +1320,7 @@ void EthRpcMethods::EnsureEvmAndLookupEnabled() {
 TxBlock EthRpcMethods::GetBlockFromTransaction(
     const TransactionWithReceipt& transaction) const {
   const TxBlock EMPTY_BLOCK;
-  const auto txReceipt = transaction.GetTransactionReceipt();
+  const auto& txReceipt = transaction.GetTransactionReceipt();
 
   const Json::Value blockNumStr = txReceipt.GetJsonValue().get("epoch_num", "");
 

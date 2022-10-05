@@ -516,7 +516,7 @@ class EthRpcMethods {
   Json::Value GetEthBlockByNumber(const std::string& blockNumberStr,
                                   const bool includeFullTransactions);
   Json::Value GetEthBlockNumber();
-  Json::Value GetEthBlockByHash(const std::string& blockHash,
+  Json::Value GetEthBlockByHash(const std::string& inputHash,
                                 const bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 const bool includeFullTransactions);
@@ -529,12 +529,12 @@ class EthRpcMethods {
       const unsigned int num_shards, const uint128_t& gasPriceWei,
       const CreateTransactionTargetFunc& targetFunc);
 
-  Json::Value GetEthBlockTransactionCountByHash(const std::string& blockHash);
+  Json::Value GetEthBlockTransactionCountByHash(const std::string& inputHash);
   Json::Value GetEthBlockTransactionCountByNumber(
       const std::string& blockNumber);
 
   Json::Value GetEthTransactionByBlockHashAndIndex(
-      const std::string& blockHash, const std::string& index) const;
+      const std::string& inputHash, const std::string& index) const;
   Json::Value GetEthTransactionByBlockNumberAndIndex(
       const std::string& blockNumber, const std::string& index) const;
   Json::Value GetEthTransactionFromBlockByIndex(const TxBlock& txBlock,

@@ -143,7 +143,7 @@ std::ostream& operator<<(
 std::ostream& operator<<(std::ostream& os,
                          const std::vector<KeyValue>& storage);
 std::ostream& operator<<(std::ostream& os,
-                         const std::vector<std::string>& strings);
+                         const std::vector<std::string>& stringVector);
 std::ostream& operator<<(std::ostream& os, const CallResponse& evmRet);
 
 }  // namespace evmproj

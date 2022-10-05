@@ -46,10 +46,10 @@ class PendingTxnCache {
  private:
   struct Item {
     /// Internal counter
-    EpochNumber counter;
+    EpochNumber counter{};
 
     /// Epoch of the TX
-    EpochNumber epoch;
+    EpochNumber epoch{};
 
     /// Txn hash
     TxnHash hash;

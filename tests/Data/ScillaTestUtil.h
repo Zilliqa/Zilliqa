@@ -16,7 +16,7 @@
  */
 
 #ifndef __SCILLATESTUTIL_H__
-#define __SCILLATESTUTIL_H__
+#define SCILLATESTUTIL_H_
 
 #include "boost/multiprecision/cpp_int.hpp"
 #include "libData/AccountData/Address.h"

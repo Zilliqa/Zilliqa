@@ -1,5 +1,5 @@
 # Additional targets to perform clang-format/clang-tidy
-# It requires clang-format/clang-tidy 7.0.0+
+# It requires clang-format/clang-tidy 14.0.0+
 
 include_guard(GLOBAL)
 
@@ -34,7 +34,7 @@ endif()
 
 find_program(
     CLANG_FORMAT
-    NAMES clang-format-7 clang-format
+    NAMES clang-format-14 clang-format
 )
 
 find_program(
@@ -53,7 +53,7 @@ if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
 
     string(REGEX REPLACE "^.*version ([.0-9]+).*" "\\1" CLANG_FORMAT_VERSION "${CLANG_FORMAT_VERSION_OUTPUT}")
 
-    if("${CLANG_FORMAT_VERSION}" VERSION_EQUAL "7.0.0" OR "${CLANG_FORMAT_VERSION}" VERSION_GREATER "7.0.0")
+    if("${CLANG_FORMAT_VERSION}" VERSION_EQUAL "14.0.0" OR "${CLANG_FORMAT_VERSION}" VERSION_GREATER "14.0.0")
         # message(${CLANG_FORMAT_VERSION})
         add_custom_target(
             clang-format
@@ -70,7 +70,7 @@ if(CLANG_FORMAT AND RUN_CLANG_FORMAT)
             ${ALL_CXX_SOURCES}
         )
     else()
-        message(WARNING "clang-format version (${CLANG_FORMAT_VERSION}) does not satisify (>=7.0.0)")
+        message(WARNING "clang-format version (${CLANG_FORMAT_VERSION}) does not satisify (>=14.0.0)")
     endif()
 endif()
 
@@ -82,12 +82,12 @@ endif()
 
 find_program(
     CLANG_TIDY
-    NAMES clang-tidy-7 clang-tidy
+    NAMES clang-tidy-14 clang-tidy
 )
 
 find_program(
     CLANG_APPLY_REPLACEMENTS
-    NAMES clang-apply-replacements-7 clang-apply-replacements
+    NAMES clang-apply-replacements-14 clang-apply-replacements
 )
 
 find_program(
@@ -110,7 +110,7 @@ if(CLANG_TIDY)
 
     string(REGEX REPLACE "^.*version ([.0-9]+).*" "\\1" CLANG_TIDY_VERSION ${CLANG_TIDY_VERSION_OUTPUT})
 
-    if("${CLANG_TIDY_VERSION}" VERSION_EQUAL "7.0.0" OR "${CLANG_TIDY_VERSION}" VERSION_GREATER "7.0.0")
+    if("${CLANG_TIDY_VERSION}" VERSION_EQUAL "14.0.0" OR "${CLANG_TIDY_VERSION}" VERSION_GREATER "14.0.0")
         # message(${CLANG_TIDY_VERSION})
         add_custom_target(
             clang-tidy
@@ -141,6 +141,6 @@ if(CLANG_TIDY)
             )
         endif()
     else()
-        message(WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) does not satisify (>=7.0.0)")
+        message(WARNING "clang-tidy version (${CLANG_TIDY_VERSION}) does not satisify (>=14.0.0)")
     endif()
 endif()

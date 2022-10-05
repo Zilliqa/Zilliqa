@@ -71,7 +71,7 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
                                               receipt)) {
       EpochFinalized(epoch);
     }
-    m_pendingTxnCache.TransactionCommitted(std::move(hash_normalized));
+    m_pendingTxnCache.TransactionCommitted(hash_normalized);
   }
 
   EpochNumber GetEventFilterChanges(EpochNumber after_epoch,

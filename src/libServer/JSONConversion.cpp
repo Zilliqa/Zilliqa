@@ -659,7 +659,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
     const TxBlock& txblock) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
-  auto const tx = txn.GetTransaction();
+  auto const& tx = txn.GetTransaction();
 
   retJson["blockNumber"] =
       (boost::format("0x%x") % txheader.GetBlockNum()).str();

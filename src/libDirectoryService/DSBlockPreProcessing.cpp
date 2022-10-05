@@ -870,7 +870,7 @@ VectorOfPoWSoln DirectoryService::SortPoWSoln(
       }
 
       // Sort "FilteredPoWOrderSorter" and stored it in "sortedPoWSolns"
-      for (auto kv : FilteredPoWOrderSorter) {
+      for (const auto& kv : FilteredPoWOrderSorter) {
         sortedPoWSolns.emplace_back(kv);
       }
       LOG_GENERAL(INFO, "Trimmed counts = " << trimmedGuardCount << " "

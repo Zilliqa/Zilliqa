@@ -517,7 +517,7 @@ bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
       isEvm = EvmUtils::isEvm(contractAccount->GetCode());
     }
   }
-  if (ENABLE_EVM == false && isEvm) {
+  if (!ENABLE_EVM && isEvm) {
     LOG_GENERAL(WARNING,
                 "EVM is disabled so not processing this EVM transaction ");
     return false;

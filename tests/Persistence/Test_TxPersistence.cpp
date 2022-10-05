@@ -383,8 +383,7 @@ BOOST_AUTO_TEST_CASE(testBuildPendingTxHashToNumMapping) {
   BlockStorage::GetBlockStorage().RefreshAll();
 
   // All blocks should be now queried by hash/num
-  for (uint32_t i = 0; i < alreadyKnownBlocks.size(); ++i) {
-    const auto& iteratedBlock = alreadyKnownBlocks[i];
+  for (auto& iteratedBlock : alreadyKnownBlocks) {
     TxBlockSharedPtr blockRetrieved;
 
     // Query by num
@@ -491,8 +490,7 @@ BOOST_AUTO_TEST_CASE(testNoNeedToBuildTxHashToNumMapping) {
   BlockStorage::GetBlockStorage().RefreshAll();
 
   // All blocks should be queried by hash/num
-  for (uint32_t i = 0; i < alreadyKnownBlocks.size(); ++i) {
-    const auto& iteratedBlock = alreadyKnownBlocks[i];
+  for (auto& iteratedBlock : alreadyKnownBlocks) {
     TxBlockSharedPtr blockRetrieved;
 
     // Query by num

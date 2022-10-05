@@ -16,7 +16,7 @@
  */
 
 #ifndef __TESTUTILS_H__
-#define __TESTUTILS_H__
+#define TESTUTILS_H_
 
 #include <Schnorr.h>
 #include <limits>

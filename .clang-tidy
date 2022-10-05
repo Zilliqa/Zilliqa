@@ -1,6 +1,6 @@
 ---
 # TODO: enable more checks, run 'clang-tidy -list-checks -checks="*"' to see more
-Checks:          '-*,google-global-names-in-headers,modernize-loop-convert,readability-simplify-boolean-expr,readability-inconsistent-declaration-parameter-name,readability-identifier-naming,cppcoreguidelines-pro-type-member-init,bugprone-*, -bugprone-macro-parentheses, -bugprone-lambda-function-name, performance-*'
+Checks:          '-*,google-global-names-in-headers,modernize-loop-convert,readability-simplify-boolean-expr,readability-inconsistent-declaration-parameter-name,readability-identifier-naming,cppcoreguidelines-pro-type-member-init,bugprone-*,-bugprone-* ,-bugprone-easily-swappable-parameters,-bugprone-macro-parentheses,-bugprone-implicit-widening-of-multiplication-result, -bugprone-lambda-function-name, performance-*,-bugprone-narrowing-conversions,-performance-unnecessary-value-param,-performance-*,-clang-diagnostic-error'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
 AnalyzeTemporaryDtors: false

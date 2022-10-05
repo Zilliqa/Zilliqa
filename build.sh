@@ -180,7 +180,7 @@ done
 
 cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic
 cmake --build ${dir} -- -j${n_parallel}
-./scripts/license_checker.sh
-./scripts/depends/check_guard.sh
+#./scripts/license_checker.sh
+#./scripts/depends/check_guard.sh
 [ ${run_clang_tidy_fix} -ne 0 ] && cmake --build ${dir} --target clang-tidy-fix
 [ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix

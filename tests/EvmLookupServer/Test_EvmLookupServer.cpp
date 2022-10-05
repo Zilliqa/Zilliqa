@@ -108,6 +108,7 @@ MicroBlock constructMicroBlockWithTransactions(
                        keyPair.first, 0, {}, {});
 
   std::vector<TxnHash> transactionHashes;
+  transactionHashes.reserve(transactions.size());
   for (const auto& transaction : transactions) {
     transactionHashes.push_back(transaction.GetTransaction().GetTranID());
   }
@@ -843,17 +844,17 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
         (boost::format("0x%x") % firstValidTxBlock.GetBlockHash().hex()).str());
 
     std::vector<std::string> expectedHashes;
-    for (uint32_t i = 0; i < transactions.size(); ++i) {
+    expectedHashes.reserve(transactions.size());
+    for (auto& transaction : transactions) {
       expectedHashes.emplace_back(
-          "0x" + transactions[i].GetTransaction().GetTranID().hex());
+          "0x" + transaction.GetTransaction().GetTranID().hex());
     }
     std::sort(expectedHashes.begin(), expectedHashes.end());
 
     std::vector<std::string> receivedHashes;
     const Json::Value arrayOfHashes = response["transactions"];
-    for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
-         ++jsonIter) {
-      receivedHashes.emplace_back(jsonIter->asString());
+    for (const auto& arrayOfHashe : arrayOfHashes) {
+      receivedHashes.emplace_back(arrayOfHashe.asString());
     }
     std::sort(receivedHashes.begin(), receivedHashes.end());
     BOOST_CHECK_EQUAL_COLLECTIONS(
@@ -875,9 +876,10 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
         (boost::format("0x%x") % firstValidTxBlock.GetBlockHash().hex()).str());
 
     std::vector<std::string> expectedHashes;
-    for (uint32_t i = 0; i < transactions.size(); ++i) {
+    expectedHashes.reserve(transactions.size());
+    for (auto& transaction : transactions) {
       expectedHashes.emplace_back(
-          "0x" + transactions[i].GetTransaction().GetTranID().hex());
+          "0x" + transaction.GetTransaction().GetTranID().hex());
     }
     std::sort(expectedHashes.begin(), expectedHashes.end());
 
@@ -886,7 +888,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     for (auto jsonIter = arrayOfTransactions.begin();
          jsonIter != arrayOfTransactions.end(); ++jsonIter) {
       BOOST_TEST_CHECK(jsonIter->isObject() == true);
-      const auto tranJsonObject = *jsonIter;
+      const auto& tranJsonObject = *jsonIter;
       receivedHashes.emplace_back(tranJsonObject["hash"].asString());
     }
     std::sort(receivedHashes.begin(), receivedHashes.end());
@@ -980,17 +982,17 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
       (boost::format("0x%x") % txBlock.GetHeader().GetBlockNum()).str());
 
   std::vector<std::string> expectedHashes;
-  for (uint32_t i = 0; i < transactions.size(); ++i) {
-    expectedHashes.emplace_back(
-        "0x" + transactions[i].GetTransaction().GetTranID().hex());
+  expectedHashes.reserve(transactions.size());
+  for (auto& transaction : transactions) {
+    expectedHashes.emplace_back("0x" +
+                                transaction.GetTransaction().GetTranID().hex());
   }
   std::sort(expectedHashes.begin(), expectedHashes.end());
 
   std::vector<std::string> receivedHashes;
   const Json::Value arrayOfHashes = response["transactions"];
-  for (auto jsonIter = arrayOfHashes.begin(); jsonIter != arrayOfHashes.end();
-       ++jsonIter) {
-    receivedHashes.emplace_back(jsonIter->asString());
+  for (const auto& arrayOfHashe : arrayOfHashes) {
+    receivedHashes.emplace_back(arrayOfHashe.asString());
   }
   std::sort(receivedHashes.begin(), receivedHashes.end());
   BOOST_CHECK_EQUAL_COLLECTIONS(expectedHashes.cbegin(), expectedHashes.cend(),
@@ -1171,27 +1173,27 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   // transaction receipt (tx index)
   buildCommonEthBlockCase(mediator, EPOCH_NUM, transactions, pairOfKey);
 
-  for (uint32_t i = 0; i < transactions.size(); ++i) {
+  for (auto& transaction : transactions) {
     // call the method on the lookup server with params
     Json::Value paramsRequest = Json::Value(Json::arrayValue);
-    paramsRequest[0u] = transactions[i].GetTransaction().GetTranID().hex();
+    paramsRequest[0u] = transaction.GetTransaction().GetTranID().hex();
 
     Json::Value response;
 
     lookupServer.GetEthTransactionByHashI(paramsRequest, response);
 
     BOOST_TEST_CHECK(response["hash"] ==
-                     "0x" + transactions[i].GetTransaction().GetTranID().hex());
+                     "0x" + transaction.GetTransaction().GetTranID().hex());
     // The internal nonce representation is always one ahead for Eth TXs than
     // was originally sent due to accounting differences with Zil
-    BOOST_TEST_CHECK(response["nonce"] ==
-                     (boost::format("0x%x") %
-                      (transactions[i].GetTransaction().GetNonce() - 1))
-                         .str());
-    BOOST_TEST_CHECK(response["value"] ==
-                     (boost::format("0x%x") %
-                      transactions[i].GetTransaction().GetAmountWei())
-                         .str());
+    BOOST_TEST_CHECK(
+        response["nonce"] ==
+        (boost::format("0x%x") % (transaction.GetTransaction().GetNonce() - 1))
+            .str());
+    BOOST_TEST_CHECK(
+        response["value"] ==
+        (boost::format("0x%x") % transaction.GetTransaction().GetAmountWei())
+            .str());
   }
 
   // Get non-existing transaction
@@ -1381,6 +1383,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
   TxBlockHeader txblockheader(2, 1, 0, 1, {}, transactions.size(),
                               pairOfKey.first, TXBLOCK_VERSION);
   std::vector<MicroBlockInfo> mbInfos;
+  mbInfos.reserve(microBlocks.size());
   for (const auto& microBlock : microBlocks) {
     mbInfos.emplace_back(MicroBlockInfo{microBlock.GetBlockHash(),
                                         microBlock.GetHeader().GetTxRootHash(),

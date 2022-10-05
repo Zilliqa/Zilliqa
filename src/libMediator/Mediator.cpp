@@ -138,11 +138,8 @@ std::string Mediator::GetNodeMode(const Peer& peer) {
 void Mediator::IncreaseEpochNum() {
   std::lock_guard<mutex> lock(m_mutexVacuousEpoch);
   m_currentEpochNum++;
-  if ((m_currentEpochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW == 0) {
-    m_isVacuousEpoch = true;
-  } else {
-    m_isVacuousEpoch = false;
-  }
+  m_isVacuousEpoch =
+      (m_currentEpochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW == 0;
 
   // Update GetWork Server info for nodes in shard
   if (GETWORK_SERVER_MINE) {
