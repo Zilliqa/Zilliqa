@@ -11,17 +11,17 @@ describe("Revert Contract Call", function () {
   });
 
 
-  it("Will revert the contract when revert is called", async function () {
-
-    function onCallViewFinished(receipt) {
-      assert.fail("Failure: Should not be successful");
-    }
-
-    function onCallViewError(error) {
-      assert.notEqual(error.data.stack.search("Reverted"), -1);
-    }
-
-    await zilliqa_helper.callView(contract, "revertCall")
-      .then(onCallViewFinished, onCallViewError);
-  });
+//  it("Will revert the contract when revert is called", async function () {
+//
+//    function onCallViewFinished(receipt) {
+//      assert.fail("Failure: Should not be successful");
+//    }
+//
+//    function onCallViewError(error) {
+//      assert.notEqual(error.data.stack.search("Reverted"), -1);
+//    }
+//
+//    await zilliqa_helper.callView(contract, "revertCall")
+//      .then(onCallViewFinished, onCallViewError);
+//  });
 })
