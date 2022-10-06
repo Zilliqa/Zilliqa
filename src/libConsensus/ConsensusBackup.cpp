@@ -187,10 +187,6 @@ bool ConsensusBackup::GenerateCommitMessage(bytes& commit,
     m_commitInfo.emplace_back(ci);
     m_commitSecrets.emplace_back(cs);
   }
-  for (const auto& secret : m_commitSecrets) {
-    LOG_GENERAL(INFO, "refine_set backup response m_commitSecret = "
-                          << m_commitSecret.get());
-  }
 
   // Assemble commit message body
   // ============================
@@ -262,9 +258,6 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     }
 
     ResponseSubsetInfo rsi;
-    LOG_GENERAL(INFO, "refine_set backup response m_commitSecret = "
-                          << m_commitSecret.get()
-                          << " subset Id = " << subsetID);
 
     rsi.response =
         Response(m_commitSecrets.at(subsetID),

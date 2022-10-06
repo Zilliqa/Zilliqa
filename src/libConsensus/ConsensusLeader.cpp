@@ -262,8 +262,6 @@ bool ConsensusLeader::StartConsensusSubsets() {
     SetStateSubset(index, m_state);
 
     // Add the leader to the responses
-    LOG_GENERAL(INFO, "refine_set leader m_commitSecret = "
-                          << m_commitSecrets.at(index).get());
     Response r(m_commitSecrets.at(index), subset.challenge, m_myPrivKey);
     subset.responseData.emplace_back(r);
     subset.responseDataMap.at(m_myID) = r;
