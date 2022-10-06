@@ -52,10 +52,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
 
-   bindAndAddMethod(
-       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
-                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
-       &ScillaIPCServer::fetchBlockchainInfoI);
+  bindAndAddMethod(
+      Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(const ScillaBCInfo &bcInfo) {
@@ -225,8 +225,9 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   }
 
   TxBlockSharedPtr txBlockSharedPtr;
-  if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" || query_name == "BLOCKTIMESTAMP" ||
-      query_name == "BLOCKDIFFICULTY" || query_name == "BLOCKGASLIMIT") {
+  if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" ||
+      query_name == "BLOCKTIMESTAMP" || query_name == "BLOCKDIFFICULTY" ||
+      query_name == "BLOCKGASLIMIT") {
     if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
                                                     txBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
@@ -246,6 +247,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       return false;
     }
   }
+
   if (not txBlockSharedPtr) {
     LOG_GENERAL(WARNING, "Smart pointers work better when Initialized ");
     return false;
