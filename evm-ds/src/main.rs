@@ -8,6 +8,7 @@ mod ipc_connect;
 mod precompiles;
 mod protos;
 mod scillabackend;
+mod cps_executor;
 
 use std::collections::{BTreeMap, HashMap};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
