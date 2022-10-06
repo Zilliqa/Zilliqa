@@ -41,7 +41,6 @@ describe("Parent Child Contract Functionality", function () {
     // FIXME: In ZIL-4885
     xit(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
       const [owner] = await ethers.getSigners();
-      // TODO: Try to use ethers.js instead of web3.
       childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
         from: owner.address
       });
