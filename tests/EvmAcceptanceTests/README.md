@@ -139,3 +139,6 @@ describe("Contract with payable constructor", function () {
   });
 });
 ```
+- It's acceptable to disable tests but with two prerequisites:
+  1. it should be in `xit` instead of `it` block. `xit` blocks are for skipping tests. Commented tests are FORBIDDEN.
+  2. it should have a `FIXME` comment containing an issue number to track it. Disabled tests must be addressed ASAP.
