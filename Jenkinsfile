@@ -27,7 +27,7 @@ String skipciMessage = 'Aborting because commit message contains [skip ci]'
 timestamps {
   ansiColor('gnome-terminal') {
     podTemplate(yaml: podDefinition) {
-      timeout(time: 30, unit: 'MINUTES') {
+      timeout(time: 20, unit: 'MINUTES') {
         node(POD_LABEL) {
           try {
             stage('Checkout scm') {
