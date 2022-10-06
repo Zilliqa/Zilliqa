@@ -1,11 +1,11 @@
-use evm::executor::stack::{MemoryStackSubstate, PrecompileSet, StackExecutor, StackState};
+use evm::executor::stack::{PrecompileSet, StackExecutor, StackState};
 use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Stack, Transfer,
 };
 use primitive_types::{H160, H256, U256};
 
-pub struct CpsExecutor<'config, 'precompiles, P, B> {
-    stack_executor: StackExecutor<'config, 'precompiles, MemoryStackSubstate<'config>, P>,
+pub struct CpsExecutor<'config, 'precompiles, S, P> {
+    stack_executor: StackExecutor<'config, 'precompiles, S, P>,
 }
 
 pub struct CpsCreateInterrupt {
@@ -29,11 +29,13 @@ pub struct CpsCallInterrupt {
 
 pub struct CpsCallFeedback {}
 
-impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, B>
-    CpsExecutor<'config, 'precompiles, P, B>
+impl<'config, 'precompiles, S, P: PrecompileSet> CpsExecutor<'config, 'precompiles, S, P>
+where
+    S: StackState<'config>,
+    P: PrecompileSet,
 {
     /// Create a new stack-based executor with given precompiles.
-    pub fn new_with_precompiles(
+    pub fn new_with_precompiles<'backend, B>(
         state: S,
         config: &'config Config,
         precompile_set: &'precompiles P,
@@ -44,8 +46,10 @@ impl<'config, 'precompiles, S: StackState<'config>, P: PrecompileSet, B>
     }
 }
 
-impl<'config, 'precompiles, P: PrecompileSet, B> Handler
-    for CpsExecutor<'config, 'precompiles, P, B>
+impl<'config, 'precompiles, S, P> Handler for CpsExecutor<'config, 'precompiles, S, P>
+where
+    S: StackState<'config>,
+    P: PrecompileSet,
 {
     type CreateInterrupt = CpsCreateInterrupt;
     type CreateFeedback = CpsCreateFeedback;
@@ -94,7 +98,7 @@ impl<'config, 'precompiles, P: PrecompileSet, B> Handler
 
     /// Get execution origin.
     fn origin(&self) -> H160 {
-        self.stack_executor.gas_price()
+        self.stack_executor.origin()
     }
 
     /// Get environmental block hash.

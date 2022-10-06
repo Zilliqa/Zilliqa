@@ -16,4 +16,3 @@ impl Continuation {
         self.context.take()
     }
 }
-

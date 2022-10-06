@@ -4,11 +4,11 @@
 #![forbid(unsafe_code)]
 
 mod continuation;
+mod cps_executor;
 mod ipc_connect;
 mod precompiles;
 mod protos;
 mod scillabackend;
-mod cps_executor;
 
 use std::collections::{BTreeMap, HashMap};
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -131,6 +131,11 @@ pub struct EvmResult {
     apply: Vec<DirtyState>,
     logs: Vec<EvmLog>,
     remaining_gas: u64,
+}
+
+#[derive(serde::Serialize)]
+pub struct EvmContResult {
+    result: EvmResult,
     continuation_id: ContinuationId,
 }
 
@@ -145,8 +150,19 @@ pub trait Rpc: Send + 'static {
         data: String,
         apparent_value: String,
         gas_limit: u64,
-        continuation_id: ContinuationId,
     ) -> BoxFuture<Result<EvmResult>>;
+
+    #[rpc(name = "run_cont")]
+    fn run_cont(
+        &self,
+        address: String,
+        origin: String,
+        code: String,
+        data: String,
+        apparent_value: String,
+        gas_limit: u64,
+        continuation_id: u64,
+    ) -> BoxFuture<Result<EvmContResult>>;
 }
 
 struct EvmServer {
@@ -197,7 +213,6 @@ impl Rpc for EvmServer {
         data_hex: String,
         apparent_value: String,
         gas_limit: u64,
-        continuation_id: usize,
     ) -> BoxFuture<Result<EvmResult>> {
         let origin = H160::from_str(&origin);
         match origin {
@@ -205,29 +220,44 @@ impl Rpc for EvmServer {
                 let backend = ScillaBackend::new(self.backend_config.clone(), origin);
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
-                match self.take_continuation_by_id(continuation_id) {
-                    Some(continuation) => Box::pin(run_evm_impl(
-                        address,
-                        code_hex,
-                        data_hex,
-                        apparent_value,
-                        gas_limit,
-                        continuation,
-                        backend,
-                        tracing,
-                        gas_scaling_factor,
-                    )),
-                    None => Box::pin(futures::future::err(Error::invalid_params(format!(
-                        "Cannot find continuation {}",
-                        continuation_id
-                    )))),
-                }
+                Box::pin(run_evm_impl(
+                    address,
+                    code_hex,
+                    data_hex,
+                    apparent_value,
+                    gas_limit,
+                    backend,
+                    tracing,
+                    gas_scaling_factor,
+                ))
             }
             Err(e) => Box::pin(futures::future::err(Error::invalid_params(format!(
                 "origin: {}",
                 e
             )))),
         }
+    }
+
+    fn run_cont(
+        &self,
+        address: String,
+        origin: String,
+        code: String,
+        data: String,
+        apparent_value: String,
+        gas_limit: u64,
+        continuation_id: u64,
+    ) -> BoxFuture<Result<EvmContResult>> {
+        Box::pin(futures::future::ready(Ok(EvmContResult {
+            result: EvmResult {
+                exit_reason: evm::ExitReason::Succeed(evm::ExitSucceed::Returned),
+                return_value: "".to_string(),
+                apply: vec![],
+                logs: vec![],
+                remaining_gas: 0,
+            },
+            continuation_id: 0,
+        })))
     }
 }
 
@@ -238,7 +268,6 @@ async fn run_evm_impl(
     data_hex: String,
     apparent_value: String,
     gas_limit: u64,
-    continuation: Continuation,
     backend: ScillaBackend,
     tracing: bool,
     gas_scaling_factor: u64,
@@ -259,20 +288,14 @@ async fn run_evm_impl(
             })?);
 
         let config = evm::Config::london();
-        let mut continuation = continuation;
         let apparent_value = U256::from_dec_str(&apparent_value)
             .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?;
-        let context = continuation.take_context().map_or_else(
-            || {
-                 Ok::<evm::Context, jsonrpc_core::Error>(evm::Context {
+        let context = evm::Context {
                      address: H160::from_str(&address)
                          .map_err(|e| Error::invalid_params(format!("address: {}", e)))?,
                      caller: backend.origin,
                      apparent_value,
-                 })
-             },
-            Ok,
-        )?;
+                 };
         let mut runtime = evm::Runtime::new(code, data, context, &config);
         // Scale the gas limit.
         let gas_limit = gas_limit * gas_scaling_factor;
@@ -346,7 +369,6 @@ async fn run_evm_impl(
                         .collect(),
                     logs: logs.into_iter().map(|log| EvmLog::from_internal(&log)).collect(),
                     remaining_gas,
-                    continuation_id: 0,
                 })
             }
             Err(panic) => {
@@ -362,7 +384,6 @@ async fn run_evm_impl(
                     apply: vec![],
                     logs: vec![], // TODO: shouldn't we get the logs here too?
                     remaining_gas,
-                    continuation_id: 0
                 })
             }
         }
