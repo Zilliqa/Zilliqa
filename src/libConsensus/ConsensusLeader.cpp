@@ -116,7 +116,7 @@ void ConsensusLeader::GenerateConsensusSubsets() {
   // more than 1 subset
 
   const unsigned int numSubsets =
-      (peersWhoCommitted.size() <= m_numForConsensus) ? 2 : m_numOfSubsets;
+      (peersWhoCommitted.size() <= m_numForConsensus) ? 1 : m_numOfSubsets;
   LOG_GENERAL(INFO, "peersWhoCommitted = " << peersWhoCommitted.size() + 1);
   LOG_GENERAL(INFO, "m_numForConsensus = " << m_numForConsensus);
   LOG_GENERAL(INFO, "numSubsets        = " << numSubsets);
