@@ -46,7 +46,7 @@ describe("ERC20 functionality", function () {
     // TODO: Add event related test(s), e.g. for Transfer event
 
     // FIXME: In ZIL-4879
-    xit("Should not be possible to move more than available tokens to some address", async function () {
+    it("Should not be possible to move more than available tokens to some address", async function () {
       const [owner, receiver] = await ethers.getSigners();
       const prevBalance = await contract.balanceOf(owner.address);
 
