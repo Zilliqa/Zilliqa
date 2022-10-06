@@ -188,7 +188,7 @@ impl EvmServer {
 
     fn export_continuation(
         &self,
-        continuation_id: ContinuationId,
+        _continuation_id: ContinuationId,
     ) -> Option<ContinuationSerialized> {
         // TODO: implement serializing and importing
         None
@@ -196,7 +196,7 @@ impl EvmServer {
 
     fn import_continuation(
         &mut self,
-        continuation_blob: ContinuationSerialized,
+        _continuation_blob: ContinuationSerialized,
     ) -> Result<ContinuationId> {
         Err(Error::invalid_params(
             "continuation deserializaion not implemented",
@@ -240,13 +240,13 @@ impl Rpc for EvmServer {
 
     fn run_cont(
         &self,
-        address: String,
-        origin: String,
-        code: String,
-        data: String,
-        apparent_value: String,
-        gas_limit: u64,
-        continuation_id: u64,
+        _address: String,
+        _origin: String,
+        _code: String,
+        _data: String,
+        _apparent_value: String,
+        _gas_limit: u64,
+        _continuation_id: u64,
     ) -> BoxFuture<Result<EvmContResult>> {
         Box::pin(futures::future::ready(Ok(EvmContResult {
             result: EvmResult {
