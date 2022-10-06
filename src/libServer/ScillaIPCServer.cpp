@@ -40,28 +40,25 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
   bindAndAddMethod(Procedure("fetchStateValue", PARAMS_BY_NAME, JSON_OBJECT,
                              "query", JSON_STRING, NULL),
                    &ScillaIPCServer::fetchStateValueI);
+
   bindAndAddMethod(
       Procedure("fetchExternalStateValue", PARAMS_BY_NAME, JSON_OBJECT, "addr",
                 JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueI);
+
   bindAndAddMethod(Procedure("updateStateValue", PARAMS_BY_NAME, JSON_STRING,
                              "query", JSON_STRING, "value", JSON_STRING, NULL),
                    &ScillaIPCServer::updateStateValueI);
+
   bindAndAddMethod(
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
 
-  // TODO @CSideSteve.
-  // There is a bug in the method below that leads to a crash. This is why it is
-  // commented out. To reproduce the bug, uncomment the below, rebuild, and run
-  // ds_test against the isolated server as
-  //      pytest -k test_bcinfo
-  //
-  // bindAndAddMethod(
-  //     Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
-  //               "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
-  //     &ScillaIPCServer::fetchBlockchainInfoI);
+  bindAndAddMethod(
+      Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
+                "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
+      &ScillaIPCServer::fetchBlockchainInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(
@@ -86,7 +83,7 @@ void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
 void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
                                                Json::Value &response) {
   std::string value, type;
-  bool found;
+  bool found{false};
   if (!fetchExternalStateValue(request["addr"].asString(),
                                request["query"].asString(), value, found,
                                type)) {
@@ -103,7 +100,7 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
 void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
   std::string value, type;
-  bool found;
+  bool found{false};
   string query = base64_decode(request["query"].asString());
   if (!fetchExternalStateValue(request["addr"].asString(), query, value, found,
                                type)) {
