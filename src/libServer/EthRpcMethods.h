@@ -21,8 +21,8 @@
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
+#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/Logger.h"
 
 class LookupServer;
 
@@ -48,6 +48,7 @@ class EthRpcMethods {
   virtual void GetEthCallEthI(const Json::Value& request,
                               Json::Value& response) {
     response = this->GetEthCallEth(request[0u], request[1u].asString());
+    LOG_GENERAL(DEBUG, "EthCall response:" << response);
   }
 
   // Eth style functions here

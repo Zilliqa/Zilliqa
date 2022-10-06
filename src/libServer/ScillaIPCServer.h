@@ -35,6 +35,13 @@ class ScillaBCInfo {
         m_curContrAddr(curContrAddr)
   {}
 
+  ScillaBCInfo() = default;
+  ~ScillaBCInfo() = default;
+  ScillaBCInfo(const ScillaBCInfo&) = default;
+  ScillaBCInfo(ScillaBCInfo&&) = default;
+  ScillaBCInfo& operator=(const ScillaBCInfo&) = default;
+  ScillaBCInfo& operator=(ScillaBCInfo&&) = default;
+
   const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
   const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
   const Address& getCurContrAddr() const { return m_curContrAddr; }
@@ -51,7 +58,12 @@ class ScillaBCInfo {
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
   ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
+
   ~ScillaIPCServer() = default;
+  ScillaIPCServer(const ScillaIPCServer&) = delete;
+  ScillaIPCServer(ScillaIPCServer&&) = delete;
+  ScillaIPCServer& operator=(const ScillaIPCServer&) = delete;
+  ScillaIPCServer& operator=(ScillaIPCServer&) = delete;
 
   inline virtual void fetchStateValueI(const Json::Value& request,
                                        Json::Value& response);
@@ -74,13 +86,13 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   virtual bool fetchBlockchainInfo(const std::string& query_name,
                                    const std::string& query_args,
                                    std::string& value);
-  void setBCInfoProvider(std::unique_ptr<const ScillaBCInfo>&& bcInfo);
+  void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
   //                              bool& found, std::string& type);
  private:
-  std::unique_ptr<const ScillaBCInfo> m_BCInfo;
+  ScillaBCInfo m_BCInfo;
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_

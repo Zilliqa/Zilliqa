@@ -45,9 +45,10 @@ region_id=us-west-2
 
 # See above comment about the image tag.
 source_image=zilliqa:v${major}.${minor}.${fix}-deps
-target_image=${account_id}.dkr.ecr.${region_id}.amazonaws.com/${source_image}
+target_image=zilliqa/${source_image}
 
-eval $(aws ecr get-login --no-include-email --region ${region_id})
+docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKERHUB_PASSWORD}
+
 set +e
 make -C docker deps COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
 set -e

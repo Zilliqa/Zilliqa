@@ -92,6 +92,7 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
 }
 
 bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
+  LOG_GENERAL(INFO,"Stored Block "<< blockNum);
   return PutBlock(blockNum, body, BlockType::DS);
 }
 

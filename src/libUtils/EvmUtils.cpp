@@ -57,7 +57,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
                       << arr_ret);
       arr_ret.append(params.m_code);
     }
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG_GENERAL(WARNING,
                 "Exception caught attempting to slice off prefix of "
                 "code"
