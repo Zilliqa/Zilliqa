@@ -139,7 +139,7 @@ describe("Contract with payable constructor", function () {
   });
 });
 ```
-- It's acceptable to disable tests but with three prerequisites:
+- It's acceptable to disable tests as long as the following rules are fulfilled:
   1. A useless test should be removed from code, not disabled.
   2. A disabled test should be in `xit` instead of `it` block. `xit` blocks are for skipping tests. Commented tests are FORBIDDEN.
   3. A disabled test should have a `FIXME` comment containing an issue number to track it. Disabled tests must be addressed ASAP.
