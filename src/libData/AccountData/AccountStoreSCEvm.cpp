@@ -234,19 +234,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
-                                       std::string& result) {
+bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
+                                       evmproj::CallResponse& response) {
   uint32_t evm_version{0};
-  evmproj::CallResponse response{};
 
-  ret = EvmClient::GetInstance().CallRunner(
+  return EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
-  result = response.ReturnedBytes();
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Called Evm, response:" << response);
-  }
-  return ret;
 }
 
 template <class MAP>

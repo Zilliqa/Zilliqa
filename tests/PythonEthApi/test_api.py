@@ -15,6 +15,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys
+import traceback
 import argparse
 
 import solcx
@@ -79,6 +80,48 @@ contract Storage {
 }
 """
 
+def checkHasField(obj, field, is_hex = False):
+    if not field in obj:
+        raise Exception(f"{obj} is missing field {field}")
+
+    if is_hex and not (obj[field] is None or "0x" in obj[field] or obj[field] == ""):
+        raise Exception(f"{obj} has field {field} but it is not a hex value")
+
+def checkIsTransaction(obj):
+    checkHasField(obj, "hash", True)
+    checkHasField(obj, "nonce", True)
+    checkHasField(obj, "blockHash", True)
+    checkHasField(obj, "blockNumber", True)
+    checkHasField(obj, "transactionIndex", True)
+    checkHasField(obj, "from", True)
+    checkHasField(obj, "to", True)
+    checkHasField(obj, "value", True)
+    checkHasField(obj, "gasPrice", True)
+    checkHasField(obj, "gas", True)
+    checkHasField(obj, "input", True)
+    checkHasField(obj, "v", True)
+    #checkHasField(obj, "standardV", True) # TODO(HUT): missing
+    #checkHasField(obj, "raw", True) # TODO(HUT): missing
+    #checkHasField(obj, "publicKey", True) # TODO(HUT): missing
+    checkHasField(obj, "chainId", True)
+
+def checkIsTransactionReceipt(obj):
+    checkHasField(obj, "transactionHash", True)
+    checkHasField(obj, "transactionIndex", True)
+    checkHasField(obj, "from", True)
+    checkHasField(obj, "to", True)
+    checkHasField(obj, "blockHash", True)
+    checkHasField(obj, "blockNumber", True)
+    checkHasField(obj, "cumulativeGasUsed", True)
+    checkHasField(obj, "gasUsed", True)
+    checkHasField(obj, "contractAddress", True)
+    checkHasField(obj, "logs")
+    checkHasField(obj, "logsBloom", True)
+    #checkHasField(obj, "value", True) # TODO(HUT): missing
+    checkHasField(obj, "v", True)
+    checkHasField(obj, "r", True)
+    checkHasField(obj, "s", True)
+
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
         raise Exception(f"Bad status code {response.status_code} - {response.text}")
@@ -105,10 +148,11 @@ def test_eth_feeHistory(url: str) -> bool:
         was introduced with EIP-1559. https://docs.alchemy.com/alchemy/apis/ethereum/eth-feehistory
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_feeHistory", "params": [4, "latest", [25, 75]] })
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_feeHistory", "params": ["0x4", "latest"] })
         get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_feeHistory with error: '{e}'")
+        print(f"********* Failed test test_eth_feeHistory with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -149,7 +193,9 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
                                             "params": [res]})
 
         res = get_result(response)
-        res.replace("0x", "")
+
+        if "0x" not in res:
+            res = "0x" + res
 
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getStorageAt",
                                             "params": [res, "0x1", "latest"]})
@@ -160,7 +206,8 @@ def test_eth_getStorageAt(url: str, account: eth_account.signers.local.LocalAcco
             raise Exception(f"Failed to retrieve correct contract amount: {res} when expected 0x0000000000000000000000000000000000000000000000000000000000000401")
 
     except Exception as e:
-        print(f"Failed test test_eth_getStorageAt with error: '{e}'")
+        print(f"********* Failed test test_eth_getStorageAt with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -199,7 +246,9 @@ def test_eth_getCode(url: str, account: eth_account.signers.local.LocalAccount, 
                                             "params": [res]})
 
         res = get_result(response)
-        res.replace("0x", "")
+
+        if "0x" not in res:
+            res = "0x" + res
 
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getCode",
                                             "params": [res, "latest"]})
@@ -210,7 +259,8 @@ def test_eth_getCode(url: str, account: eth_account.signers.local.LocalAccount, 
             raise Exception(f"Failed to retrieve correct contract amount: {res} when expected {code}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getCode with error: '{e}'")
+        print(f"********* Failed test test_eth_getCode with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -226,21 +276,26 @@ def test_eth_getProof(url: str)   -> bool:
         get_result(response)
 
     except Exception as e:
-        print(f"Failed test test_eth_getProof with error: '{e}'")
+        print(f"********* Failed test test_eth_getProof with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getBalance(url: str) -> bool:
+def test_eth_getBalance(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns the balance of the account of a given address.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBalance", "params":["0xc94770007dda54cF92009BFF0dE90c06F603a09f", "latest"]})
-        get_result(response)
+        # Just use the base w3 api
+        amount = w3.eth.getBalance(account.address)
+
+        if not amount > 0:
+            raise Exception(f"Expected account to have some funds but instead had {amount}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBalance with error: '{e}'")
+        print(f"********* Failed test test_eth_getBalance with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -250,14 +305,15 @@ def test_web3_clientVersion(url: str) -> bool:
         Returns the current client version.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_web3_clientVersion"})
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "web3_clientVersion"})
         res = get_result(response)
 
-        if "0x66" not in res:
+        if "Zilliqa/v8.2" not in res:
             raise Exception(f"Bad client version: {res}")
 
     except Exception as e:
-        print(f"Failed test eth_web3_clientVersion with error: '{e}'")
+        print(f"********* Failed test eth_web3_clientVersion with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -267,14 +323,15 @@ def test_web3_sha3(url: str) -> bool:
         Returns the string provided as a sha3.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_web3_sha3", "params":["0x68656c6c6f20776f726c64"]})
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "web3_sha3", "params":["0x68656c6c6f20776f726c64"]})
         res = get_result(response)
 
         if "0x47173285a8d7341e5e972fc677286384f802f8ef42a5ec5f03bbfa254cb01fad" not in res.lower():
             raise Exception(f"Bad sha3 return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_web3_sha3 with error: '{e}'")
+        print(f"********* Failed test test_web3_sha3 with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -289,11 +346,13 @@ def test_net_version(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "net_version"})
         res = get_result(response)
 
-        if "" not in res.lower():
+        # Just test the response is a hex value
+        if "0x" not in res.lower():
             raise Exception(f"Bad net_version return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_net_version with error: '{e}'")
+        print(f"********* Failed test test_net_version with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -306,11 +365,12 @@ def test_net_listening(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "net_listening"})
         res = get_result(response)
 
-        if res is not False:
+        if res is not True:
             raise Exception(f"Bad net_listening return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_net_listening with error: '{e}'")
+        print(f"********* Failed test test_net_listening with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -327,7 +387,8 @@ def test_net_peerCount(url: str) -> bool:
             raise Exception(f"Bad net_listening return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_net_peerCount with error: '{e}'")
+        print(f"********* Failed test test_net_peerCount with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -340,11 +401,12 @@ def test_eth_protocolVersion(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_protocolVersion"})
         res = get_result(response)
 
-        if res != "":
+        if res != "0x41":
             raise Exception(f"Bad eth_protocolVersion return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_protocolVersion with error: '{e}'")
+        print(f"********* Failed test test_eth_protocolVersion with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -361,7 +423,8 @@ def test_eth_syncing(url: str) -> bool:
             raise Exception(f"Bad eth_syncing return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_syncing with error: '{e}'")
+        print(f"********* Failed test test_eth_syncing with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -379,7 +442,8 @@ def test_eth_coinbase(url: str) -> bool:
             raise Exception(f"Bad eth_coinbase return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_coinbase with error: '{e}'")
+        print(f"********* Failed test test_eth_coinbase with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -396,7 +460,8 @@ def test_eth_mining(url: str) -> bool:
             raise Exception(f"Bad eth_mining return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_mining with error: '{e}'")
+        print(f"********* Failed test test_eth_mining with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -410,11 +475,12 @@ def test_eth_accounts(url: str) -> bool:
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_accounts"})
         res = get_result(response)
 
-        if res != "":
+        if res != []:
             raise Exception(f"Bad eth_accounts return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_accounts with error: '{e}'")
+        print(f"********* Failed test test_eth_accounts with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -436,50 +502,113 @@ def test_eth_blockNumber(url: str) -> bool:
         res2 = get_result(response2)
 
         if not int(res, base=16) < int(res2, base=16):
-            raise Exception(f"Bad eth_blockNumber, did not increment: {res} vs {res2}")
+            raise Exception(f"Bad eth_blockNumber, did not increment: {res} vs {res2} - this is not an error on the isolated server.")
 
     except Exception as e:
-        print(f"Failed test test_eth_blockNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_blockNumber with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getBlockTransactionCountByHash(url: str) -> bool:
+def test_eth_getBlockTransactionCountByHash(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
-        Returns the information about a transaction requested by transaction hash.
-        In the response object, `blockHash`, `blockNumber`, and `transactionIndex` are `null`
-        when the transaction is pending.
-        We will assume the TX is not pending for this test
+        Returns the number of transactions in a block from a block matching the given block hash.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockTransactionCountByHash"})
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if "0x" not in res.lower():
-            raise Exception(f"Bad eth_getBlockTransactionCountByHash return value: {res}")
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [res] })
+
+        res = get_result(response)
+
+        if "blockHash" not in res:
+            raise Exception(f"Did not find block hash from TX receipt {res}")
+
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockTransactionCountByHash", "params": [res["blockHash"]] })
+
+        res = get_result(response)
+
+        if not int(res, 16) > 0:
+            raise Exception(f"Did not get enough TXs in block: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockTransactionCountByHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockTransactionCountByHash with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getBlockTransactionCountByNumber(url: str) -> bool:
+def test_eth_getBlockTransactionCountByNumber(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
-        Returns the information about a transaction requested by transaction hash.
-        In the response object, `blockHash`, `blockNumber`, and `transactionIndex` are `null`
-        when the transaction is pending.
-        We will assume the TX is not pending for this test
+        Returns the number of TXs in a block by the block number
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockTransactionCountByNumber"})
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if "0x" not in res.lower():
-            raise Exception(f"Bad eth_getBlockTransactionCountByNumber return value: {res}")
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [res] })
+
+        res = get_result(response)
+
+        if "blockNumber" not in res:
+            raise Exception(f"Did not find block number from TX receipt")
+
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockTransactionCountByNumber", "params": [res["blockNumber"]] })
+
+        res = get_result(response)
+
+        if not int(res, 16) > 0:
+            raise Exception(f"Did not get enough TXs in block: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockTransactionCountByNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockTransactionCountByNumber with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -498,7 +627,8 @@ def test_eth_getUncleCountByBlockHash(url: str) -> bool:
             raise Exception(f"Bad eth_getUncleCountByBlockHash return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getUncleCountByBlockHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getUncleCountByBlockHash with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -517,58 +647,150 @@ def test_eth_getUncleCountByBlockNumber(url: str) -> bool:
             raise Exception(f"Bad eth_getUncleCountByBlockNumber return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getUncleCountByBlockNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getUncleCountByBlockNumber with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getBlockByHash(url: str) -> bool:
+def test_eth_getBlockByHash(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns information about a block by hash.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_getBlockByHash",
-                                            "params": [
-                                                "0xc0f4906fea23cf6f3cce98cb44e8e1449e455b28d684dfa9ff65426495584de6",
-                                                True
-                                            ]})
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if res.lower() != "0x0":
-            raise Exception(f"Bad eth_getBlockByHash return value: {res}")
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [res] })
+
+        res = get_result(response)
+
+        if "blockHash" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
+
+        # First path: Full TX formats
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockByHash", "params": [res["blockHash"], True] })
+
+        res = get_result(response)
+        checkHasField(res, "number", True)
+        checkHasField(res, "hash", True)
+        checkHasField(res, "parentHash", True)
+        checkHasField(res, "nonce", True)
+        checkHasField(res, "sha3Uncles", True)
+        checkHasField(res, "logsBloom", True)
+        checkHasField(res, "transactionsRoot", True)
+        checkHasField(res, "stateRoot", True)
+        checkHasField(res, "receiptsRoot", True)
+        checkHasField(res, "miner", True)
+        checkHasField(res, "difficulty", True)
+        checkHasField(res, "totalDifficulty", True)
+        checkHasField(res, "extraData", True)
+        checkHasField(res, "size", True)
+        checkHasField(res, "gasLimit", True)
+        checkHasField(res, "gasUsed", True)
+        checkHasField(res, "timestamp", True)
+        checkHasField(res, "transactions")
+        checkHasField(res, "uncles")
+
+        for transaction in res["transactions"]:
+            checkIsTransaction(transaction)
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockByHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockByHash with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getBlockByNumber(url: str) -> bool:
+def test_eth_getBlockByNumber(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns information about a block by number.
     """
     try:
-        # Get the block at the head of the chain
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_blockNumber"})
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if "0x" not in res.lower():
-            raise Exception(f"Did not get block height for use in block by number test")
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [res] })
 
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_getBlockByNumber",
-                                            "params": [
-                                                res,
-                                                True
-                                            ]})
         res = get_result(response)
 
-        if res.lower() != "0x0":
-            raise Exception(f"Bad eth_getBlockByNumber return value: {res}")
+        if "blockNumber" not in res:
+            raise Exception(f"Did not find block number from TX receipt")
+
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
+
+        # First path: Full TX formats
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockByNumber", "params": [res["blockNumber"], True] })
+
+        res = get_result(response)
+        checkHasField(res, "number", True)
+        checkHasField(res, "hash", True)
+        checkHasField(res, "parentHash", True)
+        #checkHasField(res, "nonce", True) # TODO(HUT): missing
+        checkHasField(res, "sha3Uncles", True)
+        checkHasField(res, "logsBloom", True)
+        #checkHasField(res, "transactionsRoot", True) # TODO(HUT): missing
+        checkHasField(res, "stateRoot", True)
+        #checkHasField(res, "receiptsRoot", True) # TODO(HUT): missing
+        checkHasField(res, "miner", True)
+        checkHasField(res, "difficulty", True)
+        #checkHasField(res, "totalDifficulty", True) # TODO(HUT): missing
+        checkHasField(res, "extraData", True)
+        checkHasField(res, "size", True)
+        checkHasField(res, "gasLimit", True)
+        checkHasField(res, "gasUsed", True)
+        checkHasField(res, "timestamp", True)
+        checkHasField(res, "transactions")
+        checkHasField(res, "uncles")
+
+        for transaction in res["transactions"]:
+            checkIsTransaction(transaction)
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockByNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockByNumber with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -578,18 +800,17 @@ def test_eth_getUncleByBlockHashAndIndex(url: str) -> bool:
         Returns information about an uncle of a block by hash and uncle index position. Always return null.
     """
     try:
-        # Get the block at the head of the chain
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
                                             "method": "eth_getUncleByBlockHashAndIndex",
-                                            "params":["0xb3b20624f8f0f86eb50dd04688409e5cea4bd02d700bf6e79e9384d47d6a5a35",
-                                                      "0x0"]})
+                                            "params":["0x0", "0x0"]})
         res = get_result(response)
 
         if res is not None:
-            raise Exception(f"Did not get None/null for uncle call")
+            raise Exception(f"Bad eth_getUncleByBlockHashAndIndex return value: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getBlockByNumber with error: '{e}'")
+        print(f"********* Failed test test_eth_getBlockByNumber with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -599,113 +820,16 @@ def test_eth_getUncleByBlockNumberAndIndex(url: str) -> bool:
         Returns information about an uncle of a block by number and uncle index position. Always return null.
     """
     try:
-        # Get the block at the head of the chain
         response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
                                             "method": "eth_getUncleByBlockNumberAndIndex",
-                                            "params":["0x29c",
-                                                      "0x0"]})
+                                            "params":["0x0", "0x0"]})
         res = get_result(response)
 
         if res is not None:
-            raise Exception(f"Did not get None/null for uncle call (by index)")
-
+            raise Exception(f"Bad eth_getUncleByBlockNumberAndIndex return value: {res}")
     except Exception as e:
-        print(f"Failed test test_eth_getUncleByBlockNumberAndIndex with error: '{e}'")
-        return False
-
-    return True
-
-def test_eth_getCompilers(url: str) -> bool:
-    """
-        Returns information about an uncle of a block by number and uncle index position. Always return null.
-    """
-    try:
-        # Get the block at the head of the chain
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_getCompilers"})
-        res = get_result(response)
-
-        if res is not []:
-            raise Exception(f"Did not get empty list for eth get compilers")
-
-    except Exception as e:
-        print(f"Failed test test_eth_getCompilers with error: '{e}'")
-        return False
-
-    return True
-
-def test_eth_compileSolidity(url: str) -> bool:
-    """
-        Always return null.
-    """
-    try:
-        # Get the block at the head of the chain
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_compileSolidity"})
-        res = get_result(response)
-
-        if res is not None:
-            raise Exception(f"Did not get None/null for solidity compile call (by index)")
-
-    except Exception as e:
-        print(f"Failed test test_eth_compileSolidity with error: '{e}'")
-        return False
-
-    return True
-
-def test_eth_compile(url: str) -> bool:
-    """
-        Always return null.
-    """
-    try:
-        # Get the block at the head of the chain
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_compile"})
-        res = get_result(response)
-
-        if res is not None:
-            raise Exception(f"Did not get None/null for solidity call")
-
-    except Exception as e:
-        print(f"Failed test test_eth_compile with error: '{e}'")
-        return False
-
-    return True
-
-def test_eth_compileSerpent(url: str) -> bool:
-    """
-        Always return empty string.
-    """
-    try:
-        # Get the block at the head of the chain
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_compileSerpent", "params": "0x000"})
-        res = get_result(response)
-
-        if res != "":
-            raise Exception(f"Did not get empty string for compile serpent")
-
-    except Exception as e:
-        print(f"Failed test test_eth_compile with error: '{e}'")
-        return False
-
-    return True
-
-def test_eth_hashrate(url: str) -> bool:
-    """
-        Return the number of hashes per second the node is mining with. Always return 0x1.
-    """
-    try:
-        # Get the block at the head of the chain
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0",
-                                            "method": "eth_hashrate"})
-        res = get_result(response)
-
-        if res != "0x1":
-            raise Exception(f"Did not get 1 for hashrate. Got: {res}")
-
-    except Exception as e:
-        print(f"Failed test test_eth_hashrate with error: '{e}'")
+        print(f"********* Failed test test_eth_getUncleByBlockNumberAndIndex with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -720,11 +844,12 @@ def test_eth_gasPrice(url: str) -> bool:
                                             "method": "eth_gasPrice", "params": [] })
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for gasPrice. Got: {res}")
+        if "0x" not in res:
+            raise Exception(f"Did not get hex value for gasPrice. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_gasPrice with error: '{e}'")
+        print(f"********* Failed test test_eth_gasPrice with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -739,7 +864,8 @@ def test_eth_newFilter(url: str) -> bool:
                                             "method": "eth_newFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_newFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_newFilter with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -754,7 +880,8 @@ def test_eth_newBlockFilter(url: str) -> bool:
                                             "method": "eth_newBlockFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_newBlockFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_newBlockFilter with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -769,7 +896,8 @@ def test_eth_newPendingTransactionFilter(url: str) -> bool:
                                             "method": "eth_newPendingTransactionFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_newPendingTransactionFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_newPendingTransactionFilter with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -784,7 +912,8 @@ def test_eth_uninstallFilter(url: str) -> bool:
                                             "method": "eth_uninstallFilter", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_uninstallFilter with error: '{e}'")
+        print(f"********* Failed test test_eth_uninstallFilter with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -799,7 +928,8 @@ def test_eth_getFilterChanges(url: str) -> bool:
                                             "method": "eth_getFilterChanges", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_getFilterChanges with error: '{e}'")
+        print(f"********* Failed test test_eth_getFilterChanges with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -814,7 +944,8 @@ def test_eth_getFilterLogs(url: str) -> bool:
                                             "method": "eth_getFilterLogs", "params": []})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_getFilterLogs with error: '{e}'")
+        print(f"********* Failed test test_eth_getFilterLogs with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -829,7 +960,8 @@ def test_eth_getLogs(url: str) -> bool:
                                             "method": "eth_getLogs"})
         res = get_result(response)
     except Exception as e:
-        print(f"Failed test test_eth_getLogs with error: '{e}'")
+        print(f"********* Failed test test_eth_getLogs with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -858,7 +990,8 @@ def test_eth_call(url: str) -> bool:
             raise Exception(f"Did not get 1 for eth_call. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_call with error: '{e}'")
+        print(f"********* Failed test test_eth_call with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -878,92 +1011,260 @@ def test_eth_estimateGas(url: str) -> bool:
             raise Exception(f"Did not get 1 for eth_estimateGas. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_estimateGas with error: '{e}'")
+        print(f"********* Failed test test_eth_estimateGas with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getTransactionCount(url: str) -> bool:
+def test_eth_getTransactionCount(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns the number of transactions sent from an address.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionCount", "params": ["latest"] })
+        nonce = w3.eth.getTransactionCount(account.address)
+        unique_address = "0xaaB168343e743141A10CE6C3D454454A7D522506"
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionCount. Got: {res}")
+        nonce_after = w3.eth.getTransactionCount(account.address)
+
+        if nonce_after != nonce + 1:
+            raise Exception(f"Did not get nonce increment for sent TX. Got: {nonce_after} and {nonce}")
+
+        nonce = w3.eth.getTransactionCount(unique_address)
+
+        if nonce != 0:
+            raise Exception(f"Did not get nonce of 0 for unique address. Got: {nonce}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionCount with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionCount with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getTransactionByHash(url: str) -> bool:
+def test_eth_getTransactionByHash(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns the information about a transaction requested by transaction hash.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByHash", "params": ["latest"] })
+        # Submit a normal transaction to self, then use the response to get the TX by hash
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionByHash. Got: {res}")
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByHash",
+                                            "params": [res]})
+
+        res = get_result(response)
+        checkIsTransaction(res)
+
+        # Now test failure case
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByHash",
+                                            "params": ["0x1"]})
+
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get null response for missing TX eth_getTransactionByHash. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionByHash with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionByHash with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getTransactionByBlockHashAndIndex(url: str) -> bool:
+def test_eth_getTransactionByBlockHashAndIndex(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns information about a transaction by block hash and transaction index position.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": ["latest"] })
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        tx_hash = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionByBlockHashAndIndex. Got: {res}")
+        if "blockHash" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if "transactionIndex" not in res:
+            raise Exception(f"Did not find index from TX receipt {res}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": [res["blockHash"], res["transactionIndex"]] })
+
+        res = get_result(response)
+
+        checkIsTransaction(res)
+
+        if tx_hash != res["hash"]:
+            raise Exception(f"Did not find matching TX hash when retrieving TX! {tx_hash} vs {res['hash']}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockHashAndIndex", "params": ["0x0", "0x0"] })
+
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get null when searching for non existent TX: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionByBlockHashAndIndex with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionByBlockHashAndIndex with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getTransactionByBlockNumberAndIndex(url: str) -> bool:
+def test_eth_getTransactionByBlockNumberAndIndex(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns information about a transaction by block number and transaction index position.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": ["latest"] })
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        tx_hash = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionByBlockNumberAndIndex. Got: {res}")
+        if "blockNumber" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if "transactionIndex" not in res:
+            raise Exception(f"Did not find index from TX receipt {res}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": [res["blockNumber"], res["transactionIndex"]] })
+
+        res = get_result(response)
+
+        checkIsTransaction(res)
+
+        if tx_hash != res["hash"]:
+            raise Exception(f"Did not find matching TX hash when retrieving TX! {tx_hash} vs {res['hash']}")
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionByBlockNumberAndIndex", "params": ["0x0", "0x0"] })
+
+        res = get_result(response)
+
+        if res is not None:
+            raise Exception(f"Did not get null when searching for non existent TX: {res}")
+
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionByBlockNumberAndIndex with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionByBlockNumberAndIndex with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
 
-def test_eth_getTransactionReceipt(url: str) -> bool:
+def test_eth_getTransactionReceipt(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
     """
         Returns the receipt of a transaction by transaction hash.
     """
     try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": ["latest"] })
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        tx_hash = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+
         res = get_result(response)
 
-        if res != "0x123":
-            raise Exception(f"Did not get 1 for eth_getTransactionReceipt. Got: {res}")
+        checkIsTransactionReceipt(res)
 
     except Exception as e:
-        print(f"Failed test test_eth_getTransactionReceipt with error: '{e}'")
+        print(f"********* Failed test test_eth_getTransactionReceipt with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -990,7 +1291,8 @@ def test_eth_sign(url: str) -> bool:
             raise Exception(f"Did not get [] for eth_sign. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_sign with error: '{e}'")
+        print(f"********* Failed test test_eth_sign with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -1012,7 +1314,8 @@ def test_eth_signTransaction(url: str) -> bool:
             raise Exception(f"Did not get '' for eth_signTransaction. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_signTransaction with error: '{e}'")
+        print(f"********* Failed test test_eth_signTransaction with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -1034,7 +1337,8 @@ def test_eth_sendTransaction(url: str) -> bool:
             raise Exception(f"Did not get '' for eth_sendTransaction. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_sendTransaction with error: '{e}'")
+        print(f"********* Failed test test_eth_sendTransaction with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -1069,7 +1373,8 @@ def test_eth_sendRawTransaction(url: str, account: eth_account.signers.local.Loc
             raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_sendRawTransaction with error: '{e}'")
+        print(f"********* Failed test test_eth_sendRawTransaction with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -1107,7 +1412,8 @@ def test_move_funds(url: str, genesis_privkey: pyzil.account, test_privkey: eth_
         if bal == 0:
             raise Exception(f"Failed to see funds for eth style test address. Subsequent tests will likely fail.")
     except Exception as e:
-        print(f"Failed test test_move_funds with error: '{e}'")
+        print(f"********* Failed test test_move_funds with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -1125,7 +1431,8 @@ def test_eth_chainId(url: str) -> bool:
             raise Exception(f"Bad chain ID: {res}")
 
     except Exception as e:
-        print(f"Failed test test_eth_chainId with error: '{e}'")
+        print(f"********* Failed test test_eth_chainId with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
         return False
 
     return True
@@ -1167,37 +1474,32 @@ def main():
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
     ret &= test_eth_chainId(args.api)
-    ret &= test_eth_blockNumber(args.api)
-    #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    ret &= test_eth_getStorageAt(args.api, account, w3)
     ret &= test_eth_getCode(args.api, account, w3)
-    #ret &= test_eth_sendRawTransaction(args.api, account, w3)
-    #ret &= test_eth_getStorageAt(args.api, account, w3)
-    #ret &= test_eth_getProof(args.api)
-    #ret &= test_eth_getBalance(args.api)
-    #ret &= test_web3_clientVersion(args.api)
-    #ret &= test_web3_sha3(args.api)
-    #ret &= test_net_version(args.api)
-    #ret &= test_net_listening(args.api)
-    #ret &= test_net_peerCount(args.api)
-    #ret &= test_eth_protocolVersion(args.api)
-    #ret &= test_eth_syncing(args.api)
-    #ret &= test_eth_coinbase(args.api)
-    #ret &= test_eth_mining(args.api)
-    #ret &= test_eth_accounts(args.api)
-    #ret &= test_eth_getBlockTransactionCountByNumber(args.api)
-    #ret &= test_eth_getUncleCountByBlockHash(args.api)
-    #ret &= test_eth_getUncleCountByBlockNumber(args.api)
-    #ret &= test_eth_getBlockByHash(args.api)
-    #ret &= test_eth_getBlockByNumber(args.api)
-    #ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
-    #ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
-    #ret &= test_eth_getCompilers(args.api)
-    #ret &= test_eth_compileSolidity(args.api)
-    #ret &= test_eth_compile(args.api)
-    #ret &= test_eth_compileSerpent(args.api)
-    #ret &= test_eth_hashrate(args.api)
-    #ret &= test_eth_gasPrice(args.api)
-    #ret &= test_eth_newFilter(args.api)
+    ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
+    #ret &= test_eth_getProof(args.api) # TODO(HUT): implement
+    ret &= test_web3_clientVersion(args.api)
+    ret &= test_web3_sha3(args.api)
+    ret &= test_net_version(args.api)
+    ret &= test_net_listening(args.api)
+    ret &= test_net_peerCount(args.api)
+    ret &= test_eth_protocolVersion(args.api)
+    ret &= test_eth_syncing(args.api)
+    ret &= test_eth_coinbase(args.api)
+    ret &= test_eth_mining(args.api)
+    ret &= test_eth_accounts(args.api)
+    #ret &= test_eth_blockNumber(args.api)
+    ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
+    ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
+    ret &= test_eth_getUncleCountByBlockNumber(args.api)
+    ret &= test_eth_getUncleCountByBlockHash(args.api)
+    ret &= test_eth_getBlockByHash(args.api, account, w3)
+    ret &= test_eth_getBlockByNumber(args.api, account, w3)
+    ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
+    ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
+    ret &= test_eth_gasPrice(args.api)
+    #ret &= test_eth_newFilter(args.api) # Only on isolated server?
     #ret &= test_eth_newBlockFilter(args.api)
     #ret &= test_eth_newPendingTransactionFilter(args.api)
     #ret &= test_eth_uninstallFilter(args.api)
@@ -1205,18 +1507,18 @@ def main():
     #ret &= test_eth_getFilterLogs(args.api)
     #ret &= test_eth_getLogs(args.api)
     #ret &= test_eth_subscribe(args.api)
-    #ret &= test_eth_unsubscribe(args.api)
+    ret &= test_eth_unsubscribe(args.api)
     #ret &= test_eth_call(args.api)
     #ret &= test_eth_estimateGas(args.api)
-    #ret &= test_eth_getTransactionCount(args.api)
-    #ret &= test_eth_getTransactionByHash(args.api)
-    #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api)
-    #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api)
-    #ret &= test_eth_getTransactionReceipt(args.api)
+    ret &= test_eth_getTransactionCount(args.api, account, w3)
+    ret &= test_eth_getTransactionByHash(args.api, account, w3)
+    ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionReceipt(args.api, account, w3)
+    ret &= test_eth_sendRawTransaction(args.api, account, w3)
     #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
-    #ret &= test_eth_getBlockTransactionCountByHash(args.api)
 
     if not ret:
         print(f"Test failed")

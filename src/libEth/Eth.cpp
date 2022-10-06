@@ -23,10 +23,10 @@
 #include "depends/common/RLP.h"
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
@@ -38,7 +38,8 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex) {
+    const Json::Value &logsBloom, const Json::Value &transactionIndex,
+    const Transaction &tx) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -59,6 +60,11 @@ Json::Value populateReceiptHelper(
     ret["to"] = to;
   }
   ret["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
+
+  std::string sig{tx.GetSignature()};
+  ret["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  ret["r"] = GetR(sig);
+  ret["s"] = GetS(sig);
 
   return ret;
 }
@@ -220,14 +226,16 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,
                          const std::string &blockNum,
-                         const Json::Value &transactionIndex) {
+                         const Json::Value &transactionIndex,
+                         uint32_t logIndex) {
   for (auto &logEntry : logsArrayFromEvm) {
     logEntry["removed"] = false;
     logEntry["transactionIndex"] = transactionIndex;
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
-    logEntry["logIndex"] = "0x0";
+    logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
+    ++logIndex;
   }
 }
 
@@ -289,6 +297,43 @@ LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
     bloom |= single;
   }
   return bloom;
+}
+
+uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
+                                          const TxBlock &block) {
+  uint32_t logIndex = 0;
+  MicroBlockSharedPtr microBlockPtr;
+
+  const auto &microBlockInfos = block.GetMicroBlockInfos();
+  for (auto const &mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto &tranHashes = microBlockPtr->GetTranHashes();
+    for (const auto &transactionHash : tranHashes) {
+      TxBodySharedPtr transactionBodyPtr;
+      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                     transactionBodyPtr)) {
+        continue;
+      }
+
+      if (transactionBodyPtr->GetTransaction().GetTranID() == txnHash) {
+        return logIndex;
+      }
+
+      const auto &receipt = transactionBodyPtr->GetTransactionReceipt();
+      const auto currLogs = GetLogsFromReceipt(receipt);
+
+      logIndex += currLogs.size();
+    }
+  }
+
+  return logIndex;
 }
 
 }  // namespace Eth

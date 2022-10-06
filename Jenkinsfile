@@ -31,7 +31,15 @@ timestamps {
         try {
           stage('Checkout scm') {
               checkout scm
-              def pr_skipci = env.CHANGE_TITLE ? sh(script: "echo ${env.CHANGE_TITLE} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim() : "0"
+              def pr_skipci = "0"
+              try {
+                if (env.CHANGE_TITLE != null && env.CHANGE_TITLE != "") {
+                  pr_skipci = sh(script: "echo ${env.CHANGE_TITLE.replace("(","").replace(")","")} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
+                }
+              } catch (err) {
+                println err.getMessage()
+                error("Error reading the Pull Request title, please check and eventually remove special characters")
+              }
               def skipci = sh(script: "git log -1 --pretty=%B | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
               if (skipci != "0" || pr_skipci != "0") {
                 error(skipciMessage)
@@ -61,6 +69,9 @@ timestamps {
               }
               stage('Integration test') {
                   sh "scripts/integration_test.sh --setup-env"
+              }
+              stage('Integration test JS') {
+                  sh "scripts/integration_test_js.sh --setup-env"
               }
               stage('Report coverage') {
                   // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting

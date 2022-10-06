@@ -154,7 +154,8 @@ PollResult FilterAPIBackendImpl::GetFilterChanges(
 }
 
 void FilterAPIBackendImpl::GetEventFilterChanges(const std::string &filter_id,
-                                                 PollResult &result) {
+                                                 PollResult &result,
+                                                 bool ignore_last_seen_cursor) {
   SharedLock lock(m_installMutex);
 
   auto it = m_eventFilters.find(filter_id);
@@ -167,6 +168,12 @@ void FilterAPIBackendImpl::GetEventFilterChanges(const std::string &filter_id,
   result.result = Json::arrayValue;
 
   Lock personal_lock(filter.inProcessMutex);
+
+  if (ignore_last_seen_cursor) {
+    std::ignore =
+        m_cache.GetEventFilterChanges(SEEN_NOTHING, filter.params, result);
+    return;
+  }
 
   if (filter.lastSeen >= m_latestEpoch) {
     result.success = true;
@@ -222,6 +229,37 @@ void FilterAPIBackendImpl::GetBlockFilterChanges(const std::string &filter_id,
   }
 
   filter.lastSeen = m_cache.GetBlockFilterChanges(filter.lastSeen, result);
+}
+
+PollResult FilterAPIBackendImpl::GetFilterLogs(const FilterId &filter_id) {
+  PollResult ret;
+
+  if (GuessFilterType(filter_id) != FilterType::EVENT_FILTER) {
+    ret.error = INVALID_FILTER_ID;
+  } else {
+    GetEventFilterChanges(filter_id, ret, true);
+  }
+
+  return ret;
+}
+
+PollResult FilterAPIBackendImpl::GetLogs(const Json::Value &params) {
+  PollResult ret;
+
+  if (m_latestEpoch < 0) {
+    ret.error = API_NOT_READY;
+    return ret;
+  }
+
+  EventFilterParams filter;
+
+  if (!InitializeEventFilter(params, filter, ret.error)) {
+    return ret;
+  }
+
+  std::ignore = m_cache.GetEventFilterChanges(SEEN_NOTHING, filter, ret);
+
+  return ret;
 }
 
 }  // namespace filters

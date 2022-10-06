@@ -77,8 +77,10 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             }
             // The new balance for this account
             try {
-              apply->SetBalance(arr["balance"]);
-              apply->SetHasBalance(true);
+              if (arr.contains("balance")) {
+                apply->SetBalance(arr["balance"]);
+                apply->SetHasBalance(true);
+              }
             } catch (const std::exception& e) {
               LOG_GENERAL(WARNING, "Exception reading Balance : " << e.what());
               throw e;
@@ -86,7 +88,9 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             // The new binary code that should be associated with the account
             nlohmann::json cobj;
             try {
-              cobj = arr["code"];
+              if (arr.contains("code")) {
+                cobj = arr["code"];
+              }
             } catch (const std::exception& e) {
               LOG_GENERAL(WARNING, "Exception reading Code : " << e.what());
               throw e;
@@ -112,15 +116,19 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             }
             // get the nonce for the account specified in the address
             try {
-              apply->SetNonce(arr["nonce"]);
-              apply->SetHasNonce(true);
+              if (arr.contains("nonce")) {
+                apply->SetNonce(arr["nonce"]);
+                apply->SetHasNonce(true);
+              }
             } catch (const std::exception& e) {
               LOG_GENERAL(WARNING, "Exception reading Nonce : " << e.what());
               throw e;
             }
             // whether the storage values for this account should be reset
             try {
-              apply->SetResetStorage(arr["reset_storage"]);
+              if (arr.contains("reset_storage")) {
+                apply->SetResetStorage(arr["reset_storage"]);
+              }
             } catch (const std::exception& e) {
               LOG_GENERAL(WARNING,
                           "Exception reading reset_storage : " << e.what());
@@ -130,7 +138,9 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             // the storage object contains an array of key value pairs.
             nlohmann::json storageObj;
             try {
-              storageObj = arr["storage"];
+              if (arr.contains("storage")) {
+                storageObj = arr["storage"];
+              }
             } catch (const std::exception& e) {
               LOG_GENERAL(WARNING, "Exception reading storage : " << e.what());
               throw e;
@@ -184,11 +194,12 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
           try {
             if (er.key() == "Succeed") {
               fo.SetSuccess(true);
-              fo.SetExitReason(er.value());
-            } else if (er.key() == "Fatal") {
+            } else if ((er.key() == "Fatal") || (er.key() == "Revert")) {
               fo.SetSuccess(false);
-              fo.SetExitReason(er.value());
+            } else {
+              throw std::runtime_error("Unexpected exit reason:" + er.key());
             }
+            fo.SetExitReason(er.value());
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING,
                         "Exception reading exit_reason : " << e.what());
