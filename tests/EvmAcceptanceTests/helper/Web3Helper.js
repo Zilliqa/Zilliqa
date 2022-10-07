@@ -1,4 +1,4 @@
-const { web3 } = require("hardhat");
+const {web3} = require("hardhat");
 const general_helper = require("./GeneralHelper");
 
 var web3_helper = {
