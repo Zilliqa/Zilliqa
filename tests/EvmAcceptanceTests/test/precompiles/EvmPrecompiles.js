@@ -11,7 +11,7 @@ describe("Precompile tests with web3.js", function () {
     contract = await web3_helper.deploy("Precompiles", options);
   });
 
-  it("When recover function is used it should return signer address", async function () {
+  it("should return signer address when recover function is used", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const docHash = web3.utils.keccak256(msg);
     const privKey = general_helper.getPrivateAddressAt(0);
@@ -22,7 +22,7 @@ describe("Precompile tests with web3.js", function () {
     expect(result).to.be.eq(accountAddress);
   });
 
-  it("When identity function is used it should return input value", async function () {
+  it("should return input value when identity function is used", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const hash = web3.utils.keccak256(msg);
 
@@ -34,7 +34,7 @@ describe("Precompile tests with web3.js", function () {
     expect(readValue).to.be.eq(hash);
   });
 
-  it("When SHA2-256 function is used it should return correct hash", async function () {
+  it("should return correct hash when SHA2-256 function is used", async function () {
     const msg = "Hello World!";
     const expectedHash = "0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069";
 
@@ -42,7 +42,7 @@ describe("Precompile tests with web3.js", function () {
     expect(readValue).to.be.eq(expectedHash);
   });
 
-  it("When Ripemd160 function is used it should return correct hash", async function () {
+  it("should return correct hash when Ripemd160 function is used", async function () {
     const msg = "Hello World!";
     const expectedHash = "0x8476ee4631b9b30ac2754b0ee0c47e161d3f724c";
 
