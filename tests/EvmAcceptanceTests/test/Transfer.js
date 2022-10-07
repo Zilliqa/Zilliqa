@@ -1,4 +1,4 @@
-const {expect, use} = require("chai");
+const {expect} = require("chai");
 const {ethers} = require("hardhat");
 
 const FUND = ethers.utils.parseUnits("2", "ether");
