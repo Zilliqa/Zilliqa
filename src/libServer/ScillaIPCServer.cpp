@@ -228,8 +228,9 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" ||
       query_name == "BLOCKTIMESTAMP" || query_name == "BLOCKDIFFICULTY" ||
       query_name == "BLOCKGASLIMIT") {
-    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
-                                                    txBlockSharedPtr)) {
+    if ((not BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
+                                                        txBlockSharedPtr)) ||
+        (not txBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
       return false;
     }
@@ -241,16 +242,12 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   DSBlockSharedPtr dsBlockSharedPtr;
   if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
       query_name == "BLOCKGASPRICE") {
-    if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
-                                                    dsBlockSharedPtr)) {
+    if ((not BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
+                                                        dsBlockSharedPtr)) ||
+        (not dsBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
       return false;
     }
-  }
-
-  if (not txBlockSharedPtr) {
-    LOG_GENERAL(WARNING, "Smart pointers work better when Initialized ");
-    return false;
   }
 
   if (query_name == "BLOCKHASH") {
