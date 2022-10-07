@@ -24,7 +24,7 @@
 /// Should be run with working directory where folder "persistence" consisting
 /// of the individual dbs exists.
 
-enum class STATUS {
+enum STATUS {
   ERROR_UNEXPECTED = -3,
   ERROR_UNHANDLED_EXCEPTION = -2,
   ERROR_IN_COMMAND_LINE = -1,
@@ -51,27 +51,26 @@ int main(int argc, const char* argv[]) {
 
       if (vm.count("help")) {
         cout << desc << endl;
-        return static_cast<int>(STATUS::SUCCESS);
+        return STATUS::SUCCESS;
       }
       po::notify(vm);
     } catch (boost::program_options::required_option& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       std::cout << desc;
-      return static_cast<int>(STATUS::ERROR_IN_COMMAND_LINE);
+      return STATUS::ERROR_IN_COMMAND_LINE;
     } catch (boost::program_options::error& e) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
-      return static_cast<int>(STATUS::ERROR_IN_COMMAND_LINE);
+      return STATUS::ERROR_IN_COMMAND_LINE;
     }
 
     LOG_GENERAL(INFO, "Begin compression of " << dbName);
     auto dbptr = std::make_unique<LevelDB>(dbName);
     dbptr->compact();
     LOG_GENERAL(INFO, "Finished compression");
+    return STATUS::SUCCESS;
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
-    return static_cast<int>(STATUS::ERROR_UNHANDLED_EXCEPTION);
+    return STATUS::ERROR_UNHANDLED_EXCEPTION;
   }
-
-  return static_cast<int>(STATUS::SUCCESS);
 }
