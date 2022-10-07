@@ -78,9 +78,10 @@ const vector<pair<uint64_t, uint32_t>>
 ReadVerifierExclusionListFromConstantsFile() {
   auto pt = PTree::GetInstance();
   vector<pair<uint64_t, uint32_t>> result;
-  for (auto& entry : pt.get_child("node.verifier.exclusion_list")) {
-    result.emplace_back(make_pair(entry.second.get<uint64_t>("TXBLOCK"),
-                                  entry.second.get<uint32_t>("MICROBLOCK")));
+  for (const auto& entry : pt.get_child("node.verifier.exclusion_list")) {
+    uint64_t txBlock = entry.second.get<uint64_t>("TXBLOCK");
+    uint32_t microBlock = entry.second.get<uint64_t>("MICROBLOCK");
+    result.emplace_back(make_pair(txBlock, microBlock));
   }
   return result;
 }
@@ -98,8 +99,9 @@ ReadVerifierMicroblockExclusionListFromConstantsFile() {
   vector<pair<uint64_t, uint32_t>> result;
   for (const auto& entry :
        pt.get_child("node.verifier.microblock_exclusion_list")) {
-    result.emplace_back(make_pair(entry.second.get<uint64_t>("TXBLOCK"),
-                                  entry.second.get<uint32_t>("MICROBLOCK")));
+    uint64_t txBlock = entry.second.get<uint64_t>("TXBLOCK");
+    uint32_t microBlock = entry.second.get<uint64_t>("MICROBLOCK");
+    result.emplace_back(make_pair(txBlock, microBlock));
   }
   return result;
 }
