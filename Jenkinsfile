@@ -70,6 +70,9 @@ timestamps {
               stage('Integration test') {
                   sh "scripts/integration_test.sh --setup-env"
               }
+              stage('Integration test JS') {
+                  sh "scripts/integration_test_js.sh --setup-env"
+              }
               stage('Report coverage') {
                   // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
                   sh "./scripts/ci_report_coverage.sh"
