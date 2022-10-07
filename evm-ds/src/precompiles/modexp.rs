@@ -41,12 +41,10 @@ fn calc_iter_count(exp_len: u64, base_len: u64, bytes: &[u8]) -> Result<U256, Ex
         .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
     let exp_len = usize::try_from(exp_len)
         .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
-    // #[allow(clippy::redundant_closure)]
     let exp = parse_bytes(
         bytes,
         start.saturating_add(96),
         core::cmp::min(32, exp_len),
-        // I don't understand why I need a closure here, but doesn't compile without one
         |x| U256::from(x),
     );
 
@@ -55,7 +53,6 @@ fn calc_iter_count(exp_len: u64, base_len: u64, bytes: &[u8]) -> Result<U256, Ex
     } else if exp_len <= 32 {
         Ok(U256::from(exp.bits()) - U256::from(1))
     } else {
-        // else > 32
         Ok(U256::from(8) * U256::from(exp_len - 32) + U256::from(exp.bits()) - U256::from(1))
     }
 }
@@ -87,8 +84,6 @@ fn run_inner(input: &[u8]) -> Result<Vec<u8>, ExitError> {
         } else {
             base.modpow(&exponent, &modulus).to_bytes_be()
         };
-        // The result must be the same length as the input modulus.
-        // To ensure this we pad on the left with zeros.
         if mod_len > computed_result.len() {
             let diff = mod_len - computed_result.len();
             let mut padded_result = Vec::with_capacity(mod_len);
@@ -108,7 +103,6 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
 
     let mul = mul_complexity(base_len, mod_len);
     let iter_count = calc_iter_count(exp_len, base_len, input)?;
-    // mul * iter_count bounded by 2^189 (so no overflow)
     let gas = mul * iter_count / U256::from(3);
 
     Ok(core::cmp::max(200, saturating_round(gas)))
@@ -127,7 +121,6 @@ fn parse_bytes<T, F: FnOnce(&[u8]) -> T>(input: &[u8], start: usize, size: usize
     }
     let end = start + size;
     if end > len {
-        // Pad on the right with zeros if input is too short
         let bytes: Vec<u8> = input[start..]
             .iter()
             .copied()
@@ -150,7 +143,6 @@ fn saturating_round(x: U256) -> u64 {
 
 fn parse_lengths(input: &[u8]) -> (u64, u64, u64) {
     let parse = |start: usize| -> u64 {
-        // I don't understand why I need a closure here, but doesn't compile without one
         #[allow(clippy::redundant_closure)]
         saturating_round(parse_bytes(input, start, 32, |x| U256::from(x)))
     };
