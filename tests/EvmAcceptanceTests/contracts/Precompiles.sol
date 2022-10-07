@@ -4,6 +4,7 @@ pragma solidity ^0.8.9;
 contract Precompiles {
 
   bytes public idStored;
+  uint256 public modExpResult;
 
   constructor() {}
 
@@ -33,6 +34,27 @@ contract Precompiles {
   function testRipemd160(string memory word) pure public returns (bytes20) {
         bytes20 hash = ripemd160(bytes (word));
         return hash;        
+  }
+  
+  function testModexp( uint _base, uint _exp, uint _modulus) public {
+        modExpResult = _modExp(_base, _exp, _modulus);
+  }
+
+  function _modExp(uint256 base, uint256 exponent, uint256 modulus) internal returns (uint256 result) {
+        assembly {
+            let pointer := mload(0x40)
+            mstore(pointer, 0x20)
+            mstore(add(pointer, 0x20), 0x20)
+            mstore(add(pointer, 0x40), 0x20)
+            mstore(add(pointer, 0x60), base)
+            mstore(add(pointer, 0x80), exponent)
+            mstore(add(pointer, 0xa0), modulus)
+            let value := mload(0xc0)
+            if iszero(call(gas(), 0x05, 0, pointer, 0xc0, value, 0x20)) {
+                revert(0, 0)
+            }
+            result := mload(value)
+        }
   }
 
 }

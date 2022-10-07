@@ -24,6 +24,8 @@ jsonrpc-server-utils = "18.0.0"
 hex = "0.4"
 libsecp256k1 = "0.7.0"
 log = "0.4.16"
+num-bigint = "0.4"
+num-integer = "0.1.45"
 primitive-types = { version = "0.11.1", features = ["serde"] }
 parity-tokio-ipc = "0.9"
 protobuf = { version = "2.27.1",  features = ["with-bytes"] }

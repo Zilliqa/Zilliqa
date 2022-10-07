@@ -49,4 +49,19 @@ describe("Precompile tests with web3.js", function () {
     const readValue = await contract.methods.testRipemd160(msg).call({gasLimit: 50000});
     expect(readValue).to.be.eq(expectedHash);
   });
+
+  it("When modeExp function is used it should return correct result 222", async function () {
+    const base = 8;
+    const exponent = 9;
+    const modulus = 10;
+    const expectedResult = 8;
+
+    const sendResult = await contract.methods
+      .testModexp(base, exponent, modulus)
+      .send({gasLimit: 700000, from: web3_helper.getPrimaryAccountAddress()});
+    expect(sendResult).to.be.not.null;
+
+    const readValue = await contract.methods.modExpResult().call({gasLimit: 50000});
+    expect(web3.utils.toBN(readValue)).to.be.eq(web3.utils.toBN(expectedResult));
+  });
 });
