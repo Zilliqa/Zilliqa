@@ -50,7 +50,7 @@ describe("Precompile tests with web3.js", function () {
     expect(readValue).to.be.eq(expectedHash);
   });
 
-  it("When modeExp function is used it should return correct result 222", async function () {
+  it("When modeExp function is used it should return correct result", async function () {
     const base = 8;
     const exponent = 9;
     const modulus = 10;
