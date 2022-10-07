@@ -44,6 +44,16 @@ expect(contract.address).exist;
 expect("foobar").to.have.string("bar");
 expect(badFn).to.throw();
 ```
+It's also useful to use [hardhat chai matchers](https://hardhat.org/hardhat-chai-matchers/docs/overview) if possible:
+```javascript
+await expect(contract.call()).to.emit(contract, "Uint").withArgs(3); // For events
+await expect(contract.call()).to.be.reverted;
+await expect(contract.call()).to.be.revertedWith("Some revert message");
+expect("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266").to.be.a.properAddress;
+await expect(contract.withdraw())
+      .to.changeEtherBalance(contract.address, ethers.utils.parseEther("-1.0"))
+      .to.changeEtherBalance(owner.address, ethers.utils.parseEther("1.0"));
+```
 
 ## Run the tests
 
