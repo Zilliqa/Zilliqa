@@ -38,7 +38,7 @@ namespace {
 
 // Create a dummy BCInfo provider. The details do not matter for the tests here.
 static auto makeBCInfo() {
-  return ScillaBCInfo(0, 0, Address(), Address(), dev::h256(), 0);
+  return ScillaBCInfo(uint64_t(0), uint64_t(0), Address());
 }
 }  // namespace
 

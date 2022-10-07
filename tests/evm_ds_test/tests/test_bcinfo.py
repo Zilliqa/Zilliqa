@@ -24,37 +24,44 @@ class TestBCInfo(test_case.EvmDsTestCase):
     def _deploy_contract(self):
         self.init(num_accounts=1)
         compilation_result = self.compile_solidity_file("bcinfo.sol")
-        self.contract = self.install_contract(
-            self.account, compilation_result
-        )
+        self.contract = self.install_contract(self.account, compilation_result)
 
     def test_blockOrigin(self):
         self.init()
         resp = self.call_view(self.contract, "getOrigin")
         print(resp)
 
-    def test_Coinbase(self):
+    def test_BlockCoinbase(self):
         self.init()
-        resp = self.call_view(self.contract, "getCoinbase")
+        resp = self.call_view(self.contract, "getBlockCoinbase")
         print(resp)
 
-
-    def test_blockhash(self):
+    def test_BlockHash(self):
         self.init()
         resp = self.call_view(self.contract, "getBlockHash", 0)
         print(resp)
 
-    def test_blockGasPrice(self):
+    def test_BlockGasPrice(self):
         self.init()
         resp = self.call_view(self.contract, "getGasprice")
         print(resp)
 
-    def test_TimeStamp(self):
+    def test_BlockTimestamp(self):
         self.init()
-        resp = self.call_view(self.contract, "getTimestamp")
+        resp = self.call_view(self.contract, "getBlockTimestamp")
         print(resp)
 
-    def test_GasLimit(self):
+    def test_BlockGasLimit(self):
         self.init()
-        resp = self.call_view(self.contract, "getGaslimit")
+        resp = self.call_view(self.contract, "getBlockGaslimit")
+        print(resp)
+
+    def test_BlockNumber(self):
+        self.init()
+        resp = self.call_view(self.contract, "getBlockNumber")
+        print(resp)
+
+    def test_BlockDifficulty(self):
+        self.init()
+        resp = self.call_view(self.contract, "getBlockDifficulty")
         print(resp)

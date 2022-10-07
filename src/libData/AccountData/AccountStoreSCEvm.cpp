@@ -236,7 +236,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
                                        evmproj::CallResponse& response) {
-  uint32_t evm_version{0};
+  const uint32_t evm_version{0};
 
   return EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
@@ -356,8 +356,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       // prepare IPC with current blockchain info provider.
 
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-           contractAccount->GetStorageRoot(), scilla_version});
+          {m_curBlockNum, m_curDSBlockNum, contractAddress});
 
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
@@ -507,8 +506,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       m_curBlockNum = blockNum;
-      uint32_t scilla_version{0};
-      uint32_t evm_version{0};
 
       DiscardAtomics();
       const uint128_t amountToDecrease =
@@ -532,8 +529,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-           contractAccount->GetStorageRoot(), scilla_version});
+          {m_curBlockNum, m_curDSBlockNum, m_curContractAddr});
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
@@ -560,6 +556,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                                   << " caller account is "
                                                   << params.m_caller);
       evmproj::CallResponse response;
+      uint32_t evm_version{0};
+
       const uint64_t gasRemained = InvokeEvmInterpreter(
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);

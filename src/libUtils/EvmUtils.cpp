@@ -37,8 +37,11 @@ using namespace std;
 using namespace boost::multiprecision;
 
 Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
-  Json::Value arr_ret(Json::arrayValue);
+  // convert the evm call parameters in to a json array with at indexes:
+  // ["contract", "caller", "contractCode", "data", "apparent",
+  // "availableGas","tag"]
 
+  Json::Value arr_ret(Json::arrayValue);
   arr_ret.append(params.m_contract);
   arr_ret.append(params.m_caller);
   std::string code;
@@ -67,9 +70,12 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
                              << arr_ret);
     arr_ret.append("");
   }
+
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
+  // <Disable when evm-ds is changed to accept tag>
+  // arr_ret.append(params.m_tag);
 
   return arr_ret;
 }

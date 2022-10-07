@@ -253,6 +253,10 @@ impl<'config> Backend for ScillaBackend {
         H160::zero()
     }
 
+    //fn block_coinBase(&self) -> U256 {
+    //    self.query_jsonrpc_u256("BLOCKCOINBASE")
+    //}
+
     fn block_timestamp(&self) -> U256 {
         self.query_jsonrpc_u256("BLOCKTIMESTAMP")
     }

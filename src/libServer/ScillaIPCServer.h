@@ -27,13 +27,11 @@
 
 class ScillaBCInfo {
  public:
-  ScillaBCInfo(uint64_t curBlockNum, uint64_t curDSBlockNum,
-               Address /*originAddr*/, Address curContrAddr,
-               dev::h256 /*rootHash*/, uint32_t /*scillaVersion*/)
+  ScillaBCInfo(const uint64_t curBlockNum, const uint64_t curDSBlockNum,
+               const Address& curContrAddr)
       : m_curBlockNum(curBlockNum),
         m_curDSBlockNum(curDSBlockNum),
-        m_curContrAddr(curContrAddr)
-  {}
+        m_curContrAddr(curContrAddr) {}
 
   ScillaBCInfo() = default;
   ~ScillaBCInfo() = default;
@@ -50,9 +48,6 @@ class ScillaBCInfo {
   uint64_t m_curBlockNum{};
   uint64_t m_curDSBlockNum{};
   Address m_curContrAddr{};
-  // Address m_originAddr;
-  // dev::h256 m_rootHash;
-  // uint32_t m_scillaVersion;
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {

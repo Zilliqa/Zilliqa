@@ -816,10 +816,8 @@ bool AccountStore::MigrateContractStates(
     account.SetStorageRoot(dev::h256());
     // invoke scilla checker
     // prepare IPC with current blockchain info provider.
-    const Address origin{};  // Zero origin address is okay for the checker.
     m_scillaIPCServer->setBCInfoProvider(
-        ScillaBCInfo(getCurBlockNum(), getCurDSBlockNum(), origin, address,
-                     account.GetStorageRoot(), scilla_version));
+        {getCurBlockNum(), getCurDSBlockNum(), address});
 
     std::string checkerPrint;
 

@@ -98,6 +98,8 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
+  LOG_GENERAL(DEBUG, "fetchExternalStateValueB64I request:" << request);
+
   std::string value, type;
   bool found{false};
   string query = base64_decode(request["query"].asString());
@@ -111,6 +113,7 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
   response.append(Json::Value(found));
   response.append(Json::Value(base64_encode(value)));
   response.append(Json::Value(type));
+  LOG_GENERAL(DEBUG, "fetchExternalStateValueB64I response:" << response);
 }
 
 void ScillaIPCServer::updateStateValueI(const Json::Value &request,
@@ -126,8 +129,10 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
                                            Json::Value &response) {
+  LOG_GENERAL(DEBUG, "fetchBlockchainInfoI request:" << request);
+
   std::string value;
-  if (!fetchBlockchainInfo(request["query_name"].asString(),
+  if (not fetchBlockchainInfo(request["query_name"].asString(),
                            request["query_args"].asString(), value)) {
     throw JsonRpcException("Fetching blockchain info failed");
   }
@@ -136,6 +141,7 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
   response.clear();
   response.append(Json::Value(true));
   response.append(Json::Value(value));
+  LOG_GENERAL(DEBUG, "fetchBlockchainInfoI response:" << response);
 }
 
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
@@ -194,8 +200,9 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     }
 
     TxBlockSharedPtr txBlockSharedPtr;
-    if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
-                                                    txBlockSharedPtr)) {
+    if (not BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
+                                                       txBlockSharedPtr) ||  //
+        not txBlockSharedPtr) {
       LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
       return false;
     }
@@ -209,7 +216,9 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
 
   // For queries that include the block number.
   uint64_t blockNum = 0;
-  if (query_name == "BLOCKHASH" || query_name == "TIMESTAMP") {
+  if ((query_name == "BLOCKHASH") ||
+      (query_name ==
+       "TIMESTAMP")) {  // FIXME: timestamp is never called here, remove
     try {
       blockNum = stoull(query_args);
     } catch (...) {
@@ -244,8 +253,9 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   DSBlockSharedPtr dsBlockSharedPtr;
   if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
       query_name == "BLOCKGASPRICE") {
-    if (!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
-                                                    dsBlockSharedPtr)) {
+    if ((!BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
+                                                     dsBlockSharedPtr)) ||
+        (not dsBlockSharedPtr)) {
       LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
       return false;
     }
@@ -269,7 +279,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
     value = std::to_string(GasConv::GasUnitsFromCoreToEth(
         txBlockSharedPtr->GetHeader().GetGasLimit()));
   } else if (query_name == "BLOCKGASPRICE") {
-    uint256_t gasPrice =
+    const uint256_t gasPrice =
         (dsBlockSharedPtr->GetHeader().GetGasPrice() * EVM_ZIL_SCALING_FACTOR) /
             GasConv::GetScalingFactor() +
         EVM_ZIL_SCALING_FACTOR;

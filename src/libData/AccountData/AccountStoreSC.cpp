@@ -322,8 +322,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (m_scillaIPCServer) {
         m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
-             toAccount->GetStorageRoot(), scilla_version});
+            {m_curBlockNum, m_curDSBlockNum, toAddr});
       } else {
         LOG_GENERAL(
             WARNING,
@@ -604,8 +603,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // prepare IPC with current blockchain info provider.
       if (m_scillaIPCServer) {
         m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-             toAccount->GetStorageRoot(), scilla_version});
+            {m_curBlockNum, m_curDSBlockNum, m_curContractAddr});
       } else {
         LOG_GENERAL(WARNING, "m_scillaIPCServer not Initialised");
       }
@@ -1458,8 +1456,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          {m_curBlockNum, m_curDSBlockNum, recipient});
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -1494,8 +1491,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          {m_curBlockNum, m_curDSBlockNum, recipient});
 
       std::string runnerPrint;
       bool result = true;

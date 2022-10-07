@@ -3,13 +3,13 @@
 pragma solidity ^0.8.7;
 
 contract BlockchainInstructions {
-        address public _origin;
-        address public _coinbase;
-        uint256 public _gasprice;
-        bytes32 public _blockHash;
-        uint256 public _timestamp;
-        uint256 public _difficulty;
-        uint256 public _gaslimit;
+    address public _origin;
+    address public _coinbase;
+    uint256 public _gasprice;
+    bytes32 public _blockHash;
+    uint256 public _timestamp;
+    uint256 public _difficulty;
+    uint256 public _gaslimit;
 
     function origin() external returns (address) {
         _origin = tx.origin;
@@ -25,7 +25,7 @@ contract BlockchainInstructions {
         return _coinbase;
     }
 
-    function getCoinbase() external view returns (address) {
+    function getBlockCoinbase() external view returns (address) {
         return block.coinbase;
     }
 
@@ -48,13 +48,12 @@ contract BlockchainInstructions {
         return blockhash(blockNumber);
     }
 
-
     function timestamp() external returns (uint256) {
         _timestamp = block.timestamp;
         return _timestamp;
     }
 
-    function getTimestamp() external view returns (uint256) {
+    function getBlockTimestamp() external view returns (uint256) {
         return block.timestamp;
     }
 
@@ -63,18 +62,22 @@ contract BlockchainInstructions {
         return _difficulty;
     }
 
-    function getDifficulty() external view returns (uint256) {
+    function getBlockDifficulty() external view returns (uint256) {
         return block.difficulty;
     }
+
     function gaslimit() external returns (uint256) {
         _gaslimit = block.gaslimit;
         return _gaslimit;
     }
 
-    function getGaslimit() external view returns (uint256) {
+    function getBlockGaslimit() external view returns (uint256) {
         return block.gaslimit;
     }
-    
-    // TODO implement basefee similarly.
 
+    function getBlockNumber() external view returns (uint256) {
+        return block.number;
+    }
+
+    // TODO implement basefee similarly.
 }
