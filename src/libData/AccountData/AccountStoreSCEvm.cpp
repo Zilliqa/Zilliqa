@@ -234,19 +234,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
-                                       std::string& result) {
+bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
+                                       evmproj::CallResponse& response) {
   uint32_t evm_version{0};
-  evmproj::CallResponse response{};
 
-  ret = EvmClient::GetInstance().CallRunner(
+  return EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
-  result = response.ReturnedBytes();
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Called Evm, response:" << response);
-  }
-  return ret;
 }
 
 template <class MAP>
@@ -361,11 +354,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-      auto sbcip = std::make_unique<ScillaBCInfo>(
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-          contractAccount->GetStorageRoot(), scilla_version);
 
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      m_scillaIPCServer->setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
+           contractAccount->GetStorageRoot(), scilla_version});
 
       std::map<std::string, bytes> t_metadata;
       t_metadata.emplace(
@@ -537,11 +529,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-      auto sbcip = std::make_unique<ScillaBCInfo>(
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-          contractAccount->GetStorageRoot(), scilla_version);
-
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      m_scillaIPCServer->setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
+           contractAccount->GetStorageRoot(), scilla_version});
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 

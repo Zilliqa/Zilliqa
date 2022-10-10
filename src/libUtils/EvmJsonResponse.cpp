@@ -194,10 +194,17 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
           try {
             if (er.key() == "Succeed") {
               fo.SetSuccess(true);
-              fo.SetExitReason(er.value());
-            } else if (er.key() == "Fatal") {
+            } else if ((er.key() == "Fatal") || (er.key() == "Revert")) {
               fo.SetSuccess(false);
+            } else {
+              throw std::runtime_error("Unexpected exit reason:" + er.key());
+            }
+            // exit reason value can be any type  and is converted 'as is' to a
+            // string
+            if (er.value().is_string()) {
               fo.SetExitReason(er.value());
+            } else {
+              fo.SetExitReason(to_string(er.value()));
             }
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING,
