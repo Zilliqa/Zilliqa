@@ -14,7 +14,7 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-FROM zilliqa/scilla:v0.11.0
+FROM zilliqa/scilla:456db82c
 
 COPY requirements3.cuda.txt ./
 
@@ -72,12 +72,12 @@ RUN cmake --version \
 RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 10
 
 ############################### CUDA Installation ##############################
-# taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu18.04/10.0/base/Dockerfile
+# taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu20.04/10.0/base/Dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
 gnupg2 curl ca-certificates && \
-    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub | apt-key add - && \
-    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
-    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list && \
+    curl -fsSL https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub | apt-key add - && \
+    echo "deb https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64 /" > /etc/apt/sources.list.d/cuda.list && \
+    echo "deb https://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list && \
     apt-get purge --autoremove -y curl && \
 rm -rf /var/lib/apt/lists/*
 
@@ -104,7 +104,7 @@ ENV NVIDIA_VISIBLE_DEVICES all
 ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
 ENV NVIDIA_REQUIRE_CUDA "cuda>=10.0 brand=tesla,driver>=384,driver<385 brand=tesla,driver>=410,driver<411"
 
-#taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu18.04/10.0/runtime/Dockerfile
+#taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu20.04/10.0/runtime/Dockerfile
 ENV NCCL_VERSION 2.4.8
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -115,7 +115,7 @@ libnccl2=$NCCL_VERSION-1+cuda10.0 && \
     rm -rf /var/lib/apt/lists/*
 
 
-# taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu18.04/10.0/devel/Dockerfile
+# taken from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/ubuntu20.04/10.0/devel/Dockerfile
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         cuda-nvml-dev-$CUDA_PKG_VERSION \
@@ -130,7 +130,7 @@ ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
 
 ####################### End of CUDA Installation ###############################
 
-ARG ZILLIQA_VERSION=v8.2.0-alpha.0
+ARG ZILLIQA_VERSION=release/v8.3
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build

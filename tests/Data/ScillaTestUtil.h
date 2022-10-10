@@ -34,7 +34,7 @@ struct ScillaTest {
 };
 
 // Parse a JSON file from filesystem.
-bool ParseJsonFile(Json::Value &j, std::string filename);
+bool ParseJsonFile(Json::Value &j, const std::string &filename);
 
 // Get the size in bytes of a file from filesystem.
 uint64_t GetFileSize(const std::string &filename);

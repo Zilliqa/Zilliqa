@@ -168,6 +168,8 @@ class Account : public AccountBase {
 
   const bytes GetCode() const;
 
+  bool GetContractCodeHash(dev::h256& contractCodeHash) const;
+
   bool SetInitData(const bytes& initData);
 
   const bytes GetInitData() const;

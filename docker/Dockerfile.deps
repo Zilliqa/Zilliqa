@@ -15,7 +15,7 @@
 #
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM ubuntu:18.04 AS builder
+FROM ubuntu:20.04 AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -24,7 +24,6 @@ RUN apt-get update \
     bison \
     build-essential \
     ca-certificates \
-    cmake \
     wget \
     curl \
     git \
@@ -37,9 +36,26 @@ RUN apt-get update \
     tar \
     && rm -rf /var/lib/apt/lists/*
 
+# Install cmake 3.24
+ARG CMAKE_VERSION=3.24.2
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+    && mkdir -p "${HOME}"/.local \
+    && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
+
+# Include path to refer to latest version of cmake
+ENV PATH="/root/.local/bin:${PATH}"
+
+RUN cmake --version \
+    && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+
+# Remove the system-wide cmake if there is one as it could collide with the above
+# CMake and find the wrong libraries.
+RUN apt-get remove -y cmake && apt-get autoremove -y
+
 # This tag must be equivalent to the hash specified by "builtin-baseline" in vcpkg.json
 # in the Zilliqa repository.
-ARG VCPKG_COMMIT_OR_TAG=2022.07.25
+ARG VCPKG_COMMIT_OR_TAG=2022.09.27
 ARG VCPKG_ROOT=/vcpkg
 
 # Clone vcpkg

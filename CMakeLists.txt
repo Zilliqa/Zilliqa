@@ -34,7 +34,10 @@ find_package(leveldb REQUIRED)
 find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
-find_package(PythonLibs REQUIRED)
+find_package(Python3 COMPONENTS Development REQUIRED)
+# Temporary workaround for Python3: for some reason it only finds debug library upon a second call to 
+# find_package. Otherwise, the release library will be used and if it's a debug build linkage could fail.
+find_package(Python3 COMPONENTS Development REQUIRED)
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -48,6 +51,7 @@ find_package(Boost COMPONENTS filesystem system unit_test_framework program_opti
 if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
+include_directories(${JSONRPC_INCLUDE_DIR})
 
 find_package(Schnorr REQUIRED)
 
@@ -279,10 +283,10 @@ endif()
 # using internal jsonrpc variant
 include_directories(${CMAKE_BINARY_DIR}/src/depends/jsonrpc/include)
 
-add_subdirectory (src)
-add_subdirectory (daemon)
+add_subdirectory(src)
+add_subdirectory(daemon)
 
-if(TESTS)
+if (TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
@@ -292,7 +296,6 @@ endif()
 set_target_properties(buildTxBlockHashesToNums data_migrate genaccounts genkeypair genTxnBodiesFromS3 
                       getpub getaddr gentxn signmultisig verifymultisig gensigninitialds getnetworkhistory grepperf  
                       getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
-
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie CryptoUtils NAT
