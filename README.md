@@ -107,6 +107,13 @@ cmake --version
 rm cmake-3.19.3-Linux-x86_64.sh
 ```
 
+Install vcpkg:
+
+```
+git clone https://github.com/Microsoft/vcpkg.git
+./vcpkg/bootstrap-vcpkg.sh
+```
+
 ### Additional Requirements for Contributors
 
 If you intend to contribute to the code base, please perform these additional steps:
@@ -142,7 +149,7 @@ $ git clone https://github.com/Zilliqa/Zilliqa.git
 $ cd Zilliqa && git checkout tags/v8.1.2
 
 # build Zilliqa binary
-$ ./build.sh
+$ VCPKG_ROOT=../vcpkg ./build.sh
 ```
 
 If you want to build the development branch instead, do:
