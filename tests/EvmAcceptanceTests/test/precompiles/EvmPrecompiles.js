@@ -18,7 +18,19 @@ describe("Precompile tests with web3.js", function () {
     const accountAddress = web3.eth.accounts.privateKeyToAccount(privKey).address;
 
     const signed = web3.eth.accounts.sign(docHash, privKey);
-    const result = await contract.methods.testRecovery(docHash, signed.v, signed.r, signed.s).call({gasLimit: 5500000});
+    const result = await contract.methods.testRecovery(docHash, signed.v, signed.r, signed.s).call({gasLimit: 7500000});
     expect(result).to.be.eq(accountAddress);
+  });
+
+  it("Should return input value when identity function is used", async function () {
+    const msg = web3.utils.toHex("SomeMessage");
+    const hash = web3.utils.keccak256(msg);
+
+    const sendResult = await contract.methods
+      .testIdentity(hash)
+      .send({gasLimit: 500000, from: web3_helper.getPrimaryAccountAddress()});
+    expect(sendResult).to.be.not.null;
+    const readValue = await contract.methods.idStored().call({gasLimit: 50000});
+    expect(readValue).to.be.eq(hash);
   });
 });
