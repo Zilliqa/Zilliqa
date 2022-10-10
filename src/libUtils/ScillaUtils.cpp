@@ -109,13 +109,9 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
   ret["argv"].append(boost::filesystem::current_path().string() + '/' +
                      OUTPUT_JSON);
   ret["argv"].append("-i");
-  if (is_library) {
-    ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                       INPUT_CODE + LIBRARY_CODE_EXTENSION);
-  } else {
-    ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                       INPUT_CODE + CONTRACT_FILE_EXTENSION);
-  }
+  ret["argv"].append(
+      boost::filesystem::current_path().string() + '/' + INPUT_CODE +
+      (is_library ? LIBRARY_CODE_EXTENSION : CONTRACT_FILE_EXTENSION));
   ret["argv"].append("-gaslimit");
   ret["argv"].append(to_string(available_gas));
   ret["argv"].append("-balance");

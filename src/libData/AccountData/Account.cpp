@@ -136,11 +136,11 @@ void AccountBase::SetCodeHash(const dev::h256& codeHash) {
 const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
 
 bool Account::isContract() const {
-  return (m_codeHash != dev::h256() && !m_is_library);
+  return (!m_is_library && m_codeHash != dev::h256());
 }
 
 bool Account::IsLibrary() const {
-  return (m_codeHash != dev::h256() && m_is_library);
+  return (m_is_library && m_codeHash != dev::h256());
 }
 
 // =======================================
