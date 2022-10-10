@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <jsonrpccpp/common/specification.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 #include <sstream>
 #include "common/Constants.h"
@@ -24,8 +25,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
-
-#include "ScillaIPCServer.h"
 
 using namespace std;
 using namespace Contract;

@@ -56,9 +56,6 @@ using namespace jsonrpc;
 using namespace std;
 
 namespace {
-const unsigned int PAGE_SIZE = 10;
-const unsigned int NUM_PAGES_CACHE = 2;
-const unsigned int TXN_PAGE_SIZE = 100;
 
 bool isNumber(const std::string& str) {
   char* endp;
@@ -91,7 +88,7 @@ Address ToBase16AddrHelper(const std::string& addr) {
 
 }  // namespace
 
-struct LookupServer::ApiKeys {
+struct EthRpcMethods::ApiKeys {
   std::string from;
   std::string to;
   std::string value;

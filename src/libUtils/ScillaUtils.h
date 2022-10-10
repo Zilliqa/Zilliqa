@@ -27,9 +27,6 @@ class ScillaUtils {
   static bool PrepareRootPathWVersion(const uint32_t& scilla_version,
                                       std::string& root_w_version);
 
-  /// get the json format file for the current blocknum
-  static Json::Value GetBlockStateJson(const uint64_t& BlockNum);
-
   /// get the command for invoking the scilla_checker while deploying
   static Json::Value GetContractCheckerJson(const std::string& root_w_version,
                                             bool is_library,

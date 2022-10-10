@@ -567,6 +567,9 @@ Json::Value LookupServer::CreateTransaction(
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
+      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+        return AccountStore::GetInstance().GetPrimaryWriteAccess();
+      });
 
       const Account* sender =
           AccountStore::GetInstance().GetAccount(fromAddr, true);
@@ -872,8 +875,12 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
 
   try {
     Address addr{ToBase16AddrHelper(address)};
+
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
 
     const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
 
@@ -956,8 +963,12 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
 
   try {
     Address addr{ToBase16AddrHelper(address)};
+
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
 
     const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
 
@@ -991,37 +1002,51 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
 
   try {
     Address addr{ToBase16AddrHelper(address)};
+    uint64_t nonce = 0;
+    {
+      shared_lock<shared_timed_mutex> lock(
+          AccountStore::GetInstance().GetPrimaryMutex());
+      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+        return AccountStore::GetInstance().GetPrimaryWriteAccess();
+      });
 
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
+      const Account* account =
+          AccountStore::GetInstance().GetAccount(addr, true);
 
-    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
-
-    if (account == nullptr) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "Address does not exist");
+      if (account == nullptr) {
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "Address does not exist");
+      }
+      if (account->isContract()) {
+        throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
+                               "A contract account queried");
+      }
+      nonce = account->GetNonce();
     }
-    if (account->isContract()) {
-      throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
-                             "A contract account queried");
-    }
-    uint64_t nonce = account->GetNonce();
+
     //[TODO] find out a more efficient way (using storage)
     Json::Value _json;
 
     for (uint64_t i = 0; i < nonce; i++) {
       Address contractAddr =
           Account::GetAddressForContract(addr, i, TRANSACTION_VERSION);
-      const Account* contractAccount =
-          AccountStore::GetInstance().GetAccount(contractAddr, true);
+      {
+        shared_lock<shared_timed_mutex> lock(
+            AccountStore::GetInstance().GetPrimaryMutex());
+        AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+          return AccountStore::GetInstance().GetPrimaryWriteAccess();
+        });
 
-      if (contractAccount == nullptr || !contractAccount->isContract()) {
-        continue;
+        const Account* contractAccount =
+            AccountStore::GetInstance().GetAccount(contractAddr, true);
+
+        if (contractAccount == nullptr || !contractAccount->isContract()) {
+          continue;
+        }
       }
 
       Json::Value tmpJson;
       tmpJson["address"] = contractAddr.hex();
-      tmpJson["state"] = GetSmartContractState(contractAddr.hex());
 
       _json.append(tmpJson);
     }
@@ -1297,6 +1322,10 @@ string LookupServer::GetTotalCoinSupply() {
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
+
     balance =
         AccountStore::GetInstance().GetAccount(NullAddress, true)->GetBalance();
   }

@@ -856,10 +856,6 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
     os << extlib_export.second.second;
     os.close();
   }
-
-  // Block Json
-  JSONUtils::GetInstance().writeJsontoFile(
-      INPUT_BLOCKCHAIN_JSON, ScillaUtils::GetBlockStateJson(m_curBlockNum));
 }
 
 template <class MAP>

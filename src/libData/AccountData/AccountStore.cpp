@@ -41,7 +41,7 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() {
+AccountStore::AccountStore() : m_externalWriters{0} {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
 
@@ -104,6 +104,8 @@ void AccountStore::InitSoft() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
   AccountStoreTrie<unordered_map<Address, Account>>::Init();
+
+  m_externalWriters = 0;
 
   InitRevertibles();
 
@@ -233,7 +235,13 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
       return false;
     }
   } else {
+    if (LOOKUP_NODE_MODE) {
+      IncrementPrimaryWriteAccessCount();
+    }
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+    if (LOOKUP_NODE_MODE) {
+      DecrementPrimaryWriteAccessCount();
+    }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
@@ -262,6 +270,8 @@ bool AccountStore::MoveRootToDisk(const dev::h256& root) {
 }
 
 bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
+  LOG_MARKER();
+
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
