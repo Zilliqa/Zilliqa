@@ -493,6 +493,8 @@ dependencies = [
  "libsecp256k1",
  "log 0.4.17",
  "log4rs",
+ "num-bigint",
+ "num-integer",
  "parity-tokio-ipc",
  "primitive-types",
  "protobuf",
@@ -1394,6 +1396,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c28774a7fd2fbb4f0babd8237ce554b73af68021b5f695a3cebd6c59bac0980f"
 dependencies = [
  "winapi 0.3.9",
+]
+
+[[package]]
+name = "num-bigint"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f93ab6289c7b344a8a9f60f88d80aa20032336fe78da341afc91c8a2341fc75f"
+dependencies = [
+ "autocfg 1.1.0",
+ "num-integer",
+ "num-traits",
 ]
 
 [[package]]

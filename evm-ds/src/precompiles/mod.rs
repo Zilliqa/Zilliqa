@@ -1,5 +1,6 @@
 pub mod ecrecover;
 pub mod identity;
+pub mod modexp;
 pub mod ripemd160;
 pub mod sha2_256;
 
@@ -27,6 +28,10 @@ pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
         (
             H160::from_str("0000000000000000000000000000000000000004").unwrap(),
             identity::identity as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000005").unwrap(),
+            modexp::modexp as PrecompileFn,
         ),
     ])
 }
