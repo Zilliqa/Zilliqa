@@ -44,6 +44,16 @@ expect(contract.address).exist;
 expect("foobar").to.have.string("bar");
 expect(badFn).to.throw();
 ```
+It's also useful to use [hardhat chai matchers](https://hardhat.org/hardhat-chai-matchers/docs/overview) if possible:
+```javascript
+await expect(contract.call()).to.emit(contract, "Uint").withArgs(3); // For events
+await expect(contract.call()).to.be.reverted;
+await expect(contract.call()).to.be.revertedWith("Some revert message");
+expect("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266").to.be.a.properAddress;
+await expect(contract.withdraw())
+      .to.changeEtherBalance(contract.address, ethers.utils.parseEther("-1.0"))
+      .to.changeEtherBalance(owner.address, ethers.utils.parseEther("1.0"));
+```
 
 ## Run the tests
 
@@ -138,4 +148,13 @@ describe("Contract with payable constructor", function () {
     });
   });
 });
+```
+- It's acceptable to disable tests as long as the following rules are fulfilled:
+  1. A useless test should be removed from code, not disabled.
+  2. A disabled test should be in `xit` instead of `it` block. `xit` blocks are for skipping tests. Commented tests are FORBIDDEN.
+  3. A disabled test should have a `FIXME` comment containing an issue number to track it. Disabled tests must be addressed ASAP.
+
+```javascript
+    // FIXME: In ZIL-4879
+    xit("Should not be possible to move more than available tokens to some address", async function () {
 ```
