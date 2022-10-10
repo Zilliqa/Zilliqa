@@ -42,6 +42,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -1402,8 +1403,10 @@ std::string EthRpcMethods::EthRecoverTransaction(const std::string& txnRpc) cons
 
   auto asStr = DataConversion::Uint8VecToHexStrRet(asAddr.asBytes());
 
-  //auto out = DataConversion::Uint8VecToHexStrRet(toAddr);
-  std::cout << "generated addr is " << asStr << std::endl;
+  auto asStr2 = AddressChecksum::GetChecksummedAddressEth(asStr);
 
-  return asStr;
+  //auto out = DataConversion::Uint8VecToHexStrRet(toAddr);
+  std::cout << "generated addr is " << asStr2 << std::endl;
+
+  return DataConversion::AddOXPrefix(std::move(asStr2));
 }
