@@ -292,7 +292,8 @@ bytes ToUncompressedPubKey(std::string const& pubKey) {
     LOG_GENERAL(WARNING, "Pubkey size incorrect after decompressing:"
                              << pubKeyOut2 - &pubKeyOut[0]);
   } else {
-    std::copy(&pubKeyOut[0], &pubKeyOut[UNCOMPRESSED_SIGNATURE_SIZE], std::back_inserter(ret));
+    std::copy(&pubKeyOut[0], &pubKeyOut[UNCOMPRESSED_SIGNATURE_SIZE],
+              std::back_inserter(ret));
   }
 
   return ret;
@@ -590,7 +591,7 @@ Address CreateAddr(bytes const& publicKey) {
   Address address;
 
   // Do not hash the first byte, as it specifies the encoding
-  auto result = ethash::keccak256(publicKey.data()+1, publicKey.size() -1);
+  auto result = ethash::keccak256(publicKey.data() + 1, publicKey.size() - 1);
 
   std::string res;
   boost::algorithm::hex(&result.bytes[12], &result.bytes[32],
