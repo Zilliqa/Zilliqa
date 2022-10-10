@@ -12,7 +12,7 @@ contract Precompiles {
       bytes32 prefixedProof = keccak256(abi.encodePacked(prefix, documentHash));
       address recovered = ecrecover(prefixedProof, v, r, s);
       return recovered;
-    }
+  }
 
   function testIdentity(bytes memory data) public {
       bytes memory result = new bytes(data.length);
@@ -23,5 +23,16 @@ contract Precompiles {
           }
         }
       idStored = result;
-    }
+  }
+
+  function testSHA256(string memory word) pure public returns (bytes32) {
+        bytes32 hash = sha256(bytes (word));
+        return hash;        
+  }
+
+  function testRipemd160(string memory word) pure public returns (bytes20) {
+        bytes20 hash = ripemd160(bytes (word));
+        return hash;        
+  }
+
 }
