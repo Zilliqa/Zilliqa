@@ -1464,12 +1464,6 @@ def test_eth_recoverTransaction(url: str, account: eth_account.signers.local.Loc
 
         originalSender = get_result(response)
 
-        #import ipdb; ipdb.set_trace()
-
-        #print(f"OG pubkey is {account.pubKey}")
-        print(f"OG sender is {account.address}")
-        print(f"derived sender is {originalSender}")
-
         ## Here rely on another api call to find the block the TX was in.
         #response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
         #res = get_result(response)
