@@ -1389,24 +1389,14 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
   return WRONG_INDEX;
 }
 
+// Given a transmitted RLP, return checksum-encoded original sender address
 std::string EthRpcMethods::EthRecoverTransaction(const std::string& txnRpc) const {
-  auto asBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
-  auto asString = DataConversion::Uint8VecToHexStrRet(asBytes);
 
-  std::cout << "pubkey is " << asString << std::endl;
+  auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
 
-  //auto toAddr = CreateEthAddrFromPubkey(asBytes);
+  auto const asAddr = CreateAddr(pubKeyBytes);
 
-  //std::string toAddrStr = DataConversion::Uint8VecToHexStrRet(toAddr);
+  auto addrChksum = AddressChecksum::GetChecksummedAddressEth(DataConversion::Uint8VecToHexStrRet(asAddr.asBytes()));
 
-  auto asAddr = GetAddressFromPublicKeyEthX(asBytes);
-
-  auto asStr = DataConversion::Uint8VecToHexStrRet(asAddr.asBytes());
-
-  auto asStr2 = AddressChecksum::GetChecksummedAddressEth(asStr);
-
-  //auto out = DataConversion::Uint8VecToHexStrRet(toAddr);
-  std::cout << "generated addr is " << asStr2 << std::endl;
-
-  return DataConversion::AddOXPrefix(std::move(asStr2));
+  return DataConversion::AddOXPrefix(std::move(addrChksum));
 }

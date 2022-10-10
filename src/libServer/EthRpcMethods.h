@@ -491,7 +491,6 @@ class EthRpcMethods {
      */
     virtual void EthRecoverTransactionI(const Json::Value& request, Json::Value& response) {
       EnsureEvmAndLookupEnabled();
-      std::cout << "Happening nowww " << request[0u] << std::endl;
       response = this->EthRecoverTransaction(request[0u].asString());
     }
 

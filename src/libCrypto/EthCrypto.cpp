@@ -16,7 +16,6 @@
  */
 
 #include "EthCrypto.h"
-//#include <algorithm>    // std::copy
 #include <boost/algorithm/string.hpp>
 
 #ifdef __clang__
@@ -254,7 +253,7 @@ bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-std::string ToUncompressedPubKey(std::string const& pubKey) {
+bytes ToUncompressedPubKey(std::string const& pubKey) {
   // Create public key pointer
   std::unique_ptr<EC_KEY, decltype(ekFree)> zPublicKey(
       EC_KEY_new_by_curve_name(NID_secp256k1), ekFree);
@@ -287,14 +286,13 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
     printf("pub key to data fail\n");
   }
 
-  std::string ret{};
+  bytes ret{};
 
   if (pubKeyOut2 - &pubKeyOut[0] != UNCOMPRESSED_SIGNATURE_SIZE) {
     LOG_GENERAL(WARNING, "Pubkey size incorrect after decompressing:"
                              << pubKeyOut2 - &pubKeyOut[0]);
   } else {
-    ret = std::string(reinterpret_cast<const char*>(pubKeyOut),
-                      UNCOMPRESSED_SIGNATURE_SIZE);
+    std::copy(&pubKeyOut[0], &pubKeyOut[UNCOMPRESSED_SIGNATURE_SIZE], std::back_inserter(ret));
   }
 
   return ret;
@@ -524,23 +522,6 @@ bytes CreateHash(std::string const& rawTx) {
   return hashBytes;
 }
 
-bytes CreateEthAddrFromPubkey(bytes const& pubKey) {
-
-  auto const hash = ethash::keccak256(pubKey.data(), pubKey.size());
-
-  bytes hashBytes;
-
-
-  // Only the last 40 bytes needed
-  hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
-
-  bytes fullHash;
-  hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
-  std::cout << "Full sha is: " << DataConversion::Uint8VecToHexStrRet(fullHash) << std::endl;
-
-  return hashBytes;
-}
-
 bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   dev::RLPStream rlpStream(2);
   rlpStream << senderAddr;
@@ -605,13 +586,8 @@ std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
 // 2. Remove first byte (compression indicator byte)
 // 3. Keccak256 on remaining
 // 4. Last 20 bytes is result
-Address GetAddressFromPublicKeyEthX(bytes const& publicKey) {
+Address CreateAddr(bytes const& publicKey) {
   Address address;
-
-  //// The public key must be uncompressed!
-  //auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
-
-  std::cout << "ARGH " << DataConversion::Uint8VecToHexStrRet(publicKey) << std::endl;
 
   // Do not hash the first byte, as it specifies the encoding
   auto result = ethash::keccak256(publicKey.data()+1, publicKey.size() -1);

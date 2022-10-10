@@ -446,21 +446,10 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 // 3. Keccak256 on remaining
 // 4. Last 20 bytes is result
 Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
-  Address address;
-
   // The public key must be uncompressed!
   auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
-  // Do not hash the first byte, as it specifies the encoding
-  auto result = ethash::keccak256(
-      reinterpret_cast<const uint8_t*>(&publicKey[1]), publicKey.size() - 1);
-
-  std::string res;
-  boost::algorithm::hex(&result.bytes[12], &result.bytes[32],
-                        back_inserter(res));
-
-  // Want the last 20 bytes of the result
-  copy(&result.bytes[12], &result.bytes[32], address.asArray().begin());
+  auto const address = CreateAddr(publicKey);
 
   return address;
 }
