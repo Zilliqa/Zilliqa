@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 anyhow = { version = "1.0.56", default-features = false }
 base64 = "0.13.0"
+witnet-bn = "0.4.5" # TODO: This has some old dependencies that I'd rather not be pulling in. Maybe we should fork and update?
 bytes = "1.1.0"
 clap = { version = "3.1.6", features = ["derive"] }
 log4rs = { version = "1.1.1", features = ["all_components", "gzip"] }
