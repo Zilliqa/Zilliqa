@@ -342,6 +342,13 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &EthRpcMethods::EthGetLogsI);
+
+  // Recover who the sender of a transaction was given only the RLP
+  m_lookupServer->bindAndAddExternalMethod(
+          jsonrpc::Procedure("eth_recoverTransaction", jsonrpc::PARAMS_BY_POSITION,
+                             jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                             NULL),
+          &EthRpcMethods::EthRecoverTransactionI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1379,4 +1386,24 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
   }
 
   return WRONG_INDEX;
+}
+
+std::string EthRpcMethods::EthRecoverTransaction(const std::string& txnRpc) const {
+  auto asBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
+  auto asString = DataConversion::Uint8VecToHexStrRet(asBytes);
+
+  std::cout << "pubkey is " << asString << std::endl;
+
+  //auto toAddr = CreateEthAddrFromPubkey(asBytes);
+
+  //std::string toAddrStr = DataConversion::Uint8VecToHexStrRet(toAddr);
+
+  auto asAddr = GetAddressFromPublicKeyEthX(asBytes);
+
+  auto asStr = DataConversion::Uint8VecToHexStrRet(asAddr.asBytes());
+
+  //auto out = DataConversion::Uint8VecToHexStrRet(toAddr);
+  std::cout << "generated addr is " << asStr << std::endl;
+
+  return asStr;
 }

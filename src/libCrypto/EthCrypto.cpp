@@ -16,6 +16,7 @@
  */
 
 #include "EthCrypto.h"
+//#include <algorithm>    // std::copy
 #include <boost/algorithm/string.hpp>
 
 #ifdef __clang__
@@ -39,30 +40,15 @@
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
-#include <cstddef>
 #include <ethash/keccak.hpp>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
 
 // Inspiration from:
 // https://stackoverflow.com/questions/10906524
 // https://stackoverflow.com/questions/57385412/
 // https://medium.com/mycrypto/the-magic-of-digital-signatures-on-ethereum-98fe184dc9c7
-
-// Prefix signed txs in Ethereum with Keccak256("\x19Ethereum Signed
-// Message:\n32" + Keccak256(message))
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-const-variable"
-#endif
-constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
-                               32,  83,  105, 103, 110, 101, 100, 32,  77,
-                               101, 115, 115, 97,  103, 101, 58,  10,  48};
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 auto bnFree = [](BIGNUM* b) { BN_free(b); };
 auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
@@ -538,6 +524,23 @@ bytes CreateHash(std::string const& rawTx) {
   return hashBytes;
 }
 
+bytes CreateEthAddrFromPubkey(bytes const& pubKey) {
+
+  auto const hash = ethash::keccak256(pubKey.data(), pubKey.size());
+
+  bytes hashBytes;
+
+
+  // Only the last 40 bytes needed
+  hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
+
+  bytes fullHash;
+  hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
+  std::cout << "Full sha is: " << DataConversion::Uint8VecToHexStrRet(fullHash) << std::endl;
+
+  return hashBytes;
+}
+
 bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
   dev::RLPStream rlpStream(2);
   rlpStream << senderAddr;
@@ -594,4 +597,31 @@ std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
   GetTransmittedRLP(info, chainId, signature, recid);
 
   return (boost::format("0x%x") % recid).str();
+}
+
+// Get Address from public key, eth stye.
+// The pubkeys in this database are compressed elliptic curve. Algo is:
+// 1. Decompress public key
+// 2. Remove first byte (compression indicator byte)
+// 3. Keccak256 on remaining
+// 4. Last 20 bytes is result
+Address GetAddressFromPublicKeyEthX(bytes const& publicKey) {
+  Address address;
+
+  //// The public key must be uncompressed!
+  //auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
+
+  std::cout << "ARGH " << DataConversion::Uint8VecToHexStrRet(publicKey) << std::endl;
+
+  // Do not hash the first byte, as it specifies the encoding
+  auto result = ethash::keccak256(publicKey.data()+1, publicKey.size() -1);
+
+  std::string res;
+  boost::algorithm::hex(&result.bytes[12], &result.bytes[32],
+                        back_inserter(res));
+
+  // Want the last 20 bytes of the result
+  std::copy(&result.bytes[12], &result.bytes[32], address.asArray().begin());
+
+  return address;
 }

@@ -63,9 +63,16 @@ bytes CreateHash(std::string const& rawTx);
 // Create the eth-style contract address given the sender address and nonce
 bytes CreateContractAddr(bytes const& senderAddr, int nonce);
 
+// Given an ethereum public key, derive the address
+bytes CreateEthAddrFromPubkey(bytes const& pubKey);
+
 std::string GetR(std::string signature);
 std::string GetS(std::string signature);
 std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
                  std::string signature);
+
+
+// todo : comment
+Address GetAddressFromPublicKeyEthX(bytes const& publicKey);
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_ETHCRYPTO_H_

@@ -483,34 +483,46 @@ class EthRpcMethods {
     response = this->EthGetLogs(request[0u]);
   }
 
-  struct ApiKeys;
-  std::string GetEthCallZil(const Json::Value& _json);
-  std::string GetEthCallEth(const Json::Value& _json,
-                            const std::string& block_or_tag);
-  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
-  Json::Value GetBalanceAndNonce(const std::string& address);
-  std::string GetWeb3ClientVersion();
-  std::string GetWeb3Sha3(const Json::Value& _json);
-  Json::Value GetEthUncleCount();
-  Json::Value GetEthUncleBlock();
-  Json::Value GetEthMining();
-  std::string GetEthCoinbase();
-  Json::Value GetNetListening();
-  std::string GetNetPeerCount();
-  std::string GetProtocolVersion();
-  std::string GetEthChainId();
-  Json::Value GetEthSyncing();
-  Json::Value GetEthTransactionByHash(const std::string& hash);
-  Json::Value GetEmptyResponse();
-  Json::Value GetEthStorageAt(std::string const& address,
-                              std::string const& position,
-                              std::string const& blockNum);
-  Json::Value GetEthCode(std::string const& address,
-                         std::string const& blockNum);
-  TxBlock GetBlockFromTransaction(
-      const TransactionWithReceipt& transaction) const;
-  uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
-                                        const std::string& txnhash) const;
+    /**
+     * @brief Handles json rpc 2.0 request on method:
+     * eth_getFilterLogs
+     * @param request : params: event filter params json object
+     * @param response : Json array of items applicable to the filter
+     */
+    virtual void EthRecoverTransactionI(const Json::Value& request, Json::Value& response) {
+      EnsureEvmAndLookupEnabled();
+      std::cout << "Happening nowww " << request[0u] << std::endl;
+      response = this->EthRecoverTransaction(request[0u].asString());
+    }
+
+    struct ApiKeys;
+    std::string GetEthCallZil(const Json::Value& _json);
+    std::string GetEthCallEth(const Json::Value& _json,
+                              const std::string& block_or_tag);
+    std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
+    Json::Value GetBalanceAndNonce(const std::string& address);
+    std::string GetWeb3ClientVersion();
+    std::string GetWeb3Sha3(const Json::Value& _json);
+    Json::Value GetEthUncleCount();
+    Json::Value GetEthUncleBlock();
+    Json::Value GetEthMining();
+    std::string GetEthCoinbase();
+    Json::Value GetNetListening();
+    std::string GetNetPeerCount();
+    std::string GetProtocolVersion();
+    std::string GetEthChainId();
+    Json::Value GetEthSyncing();
+    Json::Value GetEthTransactionByHash(const std::string& hash);
+    Json::Value GetEmptyResponse();
+    Json::Value GetEthStorageAt(std::string const& address,
+                                std::string const& position,
+                                std::string const& blockNum);
+    Json::Value GetEthCode(std::string const& address,
+                           std::string const& blockNum);
+    TxBlock GetBlockFromTransaction(
+            const TransactionWithReceipt& transaction) const;
+    uint64_t GetTransactionIndexFromBlock(const TxBlock& txBlock,
+                                          const std::string& txnhash) const;
 
   // Eth calls
   Json::Value GetEthTransactionReceipt(const std::string& txnhash);
@@ -548,6 +560,8 @@ class EthRpcMethods {
   bool EthUninstallFilter(const std::string& filter_id);
   Json::Value EthGetFilterLogs(const std::string& filter_id);
   Json::Value EthGetLogs(const Json::Value& param);
+
+  std::string EthRecoverTransaction(const std::string& txnRpc) const;
 
   void EnsureEvmAndLookupEnabled();
 
