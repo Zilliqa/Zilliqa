@@ -16,8 +16,8 @@ message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 #             This is a simple workaround against this issue.
 if (APPLE)
   file(CREATE_LINK
-    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/lib
-    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/tools/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/lib
     SYMBOLIC)
 endif()
 
