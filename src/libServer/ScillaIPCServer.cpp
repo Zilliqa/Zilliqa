@@ -133,7 +133,7 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
 
   std::string value;
   if (not fetchBlockchainInfo(request["query_name"].asString(),
-                           request["query_args"].asString(), value)) {
+                              request["query_args"].asString(), value)) {
     throw JsonRpcException("Fetching blockchain info failed");
   }
 

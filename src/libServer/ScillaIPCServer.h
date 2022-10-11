@@ -83,9 +83,6 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    std::string& value);
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
-  // bool fetchExternalStateValue(const std::string& addr,
-  //                              const std::string& query, std::string& value,
-  //                              bool& found, std::string& type);
  private:
   ScillaBCInfo m_BCInfo;
 };
