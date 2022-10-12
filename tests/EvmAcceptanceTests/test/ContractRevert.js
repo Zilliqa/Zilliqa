@@ -1,27 +1,28 @@
-const { web3 } = require("hardhat");
-const web3_helper = require("../helper/Web3Helper");
-const zilliqa_helper = require("../helper/ZilliqaHelper");
-assert = require('chai').assert;
-
+const {expect} = require("chai");
+const {ethers} = require("hardhat");
 
 describe("Revert Contract Call", function () {
   let contract;
   before(async function () {
-    contract = await web3_helper.deploy("Revert");
+    const Contract = await ethers.getContractFactory("Revert");
+    contract = await Contract.deploy();
   });
 
-
-  xit("Will revert the contract when revert is called", async function () {
-
-    function onCallViewFinished(receipt) {
-      assert.fail("Failure: Should not be successful");
-    }
-
-    function onCallViewError(error) {
-      assert.notEqual(error.data.stack.search("Reverted"), -1);
-    }
-
-    await zilliqa_helper.callView(contract, "revertCall")
-      .then(onCallViewFinished, onCallViewError);
+  it("Will revert the contract when revert is called", async function () {
+    await expect(contract.revertCall()).to.be.reverted;
   });
-})
+
+  // FIXME: In ZIL-4899
+  xit("Should return revert error message if the called function reverts with custom message", async function () {
+    const REVERT_MESSAGE = "reverted!!";
+    await expect(contract.revertCallWithMessage(REVERT_MESSAGE)).to.be.revertedWith(REVERT_MESSAGE);
+  });
+
+  // FIXME: In ZIL-4899
+  xit("Should return revert error object if the called function reverts with custom error", async function () {
+    const [owner] = await ethers.getSigners();
+    await expect(contract.revertCallWithCustomError({value: 1000}))
+      .to.be.revertedWithCustomError(contract, "FakeError")
+      .withArgs(1000, owner.address);
+  });
+});
