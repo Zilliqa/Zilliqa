@@ -2124,7 +2124,7 @@ Json::Value LookupServer::GetStateProof(const string& address,
     } catch (invalid_argument& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);
-      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid arugment");
+      throw JsonRpcException(RPC_INVALID_PARAMS, "Invalid argument");
     } catch (out_of_range& e) {
       LOG_GENERAL(INFO,
                   "[Error]" << e.what() << " TxBlockNum: " << txBlockNumOrTag);

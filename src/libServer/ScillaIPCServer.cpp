@@ -159,15 +159,21 @@ bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
   return true;
 }
 
-bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
-                                              const string &query,
-                                              string &value, bool &found,
+bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,  //
+                                              const string &query,      //
+                                              string &value,            //
+                                              bool &found,              //
                                               string &type) {
   bytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
-          m_BCInfo.getCurContrAddr(), Address(addr),
-          DataConversion::StringToCharArray(query), 0, destination, 0, found,
+          m_BCInfo.getCurContrAddr(),                //
+          Address(addr),                             //
+          DataConversion::StringToCharArray(query),  //
+          0,                                         //
+          destination,                               //
+          0,                                         //
+          found,                                     //
           type)) {
     return false;
   }
