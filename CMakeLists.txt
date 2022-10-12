@@ -277,7 +277,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     link_libraries(--coverage)
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
     # TODO: remove the hardcoded number in -j option
-    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure")
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure;--timeout;90")
 endif()
 
 # using internal jsonrpc variant
