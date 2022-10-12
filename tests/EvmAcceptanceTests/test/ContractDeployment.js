@@ -14,7 +14,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract.address).exist;
+        expect(contract.address).to.be.properAddress;
       });
 
       it("Should return 123 when number view function is called", async function () {
@@ -33,7 +33,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract._address).exist;
+        expect(contract._address).to.be.properAddress;
       });
 
       it("Should return 123 when number view function is called", async function () {
@@ -48,7 +48,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract.options.address).exist;
+        expect(contract.options.address).to.be.properAddress;
       });
 
       it("Should return 123 when number view function is called", async function () {
@@ -68,7 +68,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should be deployed successfully", async function () {
-          expect(contract.address).exist;
+          expect(contract.address).to.be.properAddress;
         });
 
         it("Should return 100 when number view function is called", async function () {
@@ -85,7 +85,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should be deployed successfully", async function () {
-          expect(contract.address).exist;
+          expect(contract.address).to.be.properAddress;
         });
 
         it("Should return Zilliqa when name view function is called", async function () {
@@ -145,7 +145,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should be deployed successfully", async function () {
-          expect(contract._address).exist;
+          expect(contract._address).to.be.properAddress;
         });
 
         it("Should return 100 when number view function is called", async function () {
@@ -163,7 +163,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should be deployed successfully", async function () {
-          expect(contract._address).exist;
+          expect(contract._address).to.be.properAddress;
         });
 
         it("Should return Zilliqa when name view function is called", async function () {
@@ -220,7 +220,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should be deployed successfully", async function () {
-          expect(contract.options.address).exist;
+          expect(contract.options.address).to.be.properAddress;
         });
 
         it("Should return 100 when number view function is called", async function () {
@@ -236,7 +236,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should be deployed successfully", async function () {
-          expect(contract.options.address).exist;
+          expect(contract.options.address).to.be.properAddress;
         });
 
         it("Should return Zilliqa when name view function is called", async function () {
@@ -251,7 +251,7 @@ describe("Contract Deployment", function () {
           contract = await web3_helper.deploy("WithAddressConstructor", {gasLimit}, ADDRESS);
         });
         it("Should be deployed successfully", async function () {
-          expect(contract.options.address).exist;
+          expect(contract.options.address).to.be.properAddress;
         });
 
         it("Should return constructor address when ctorAddress view function is called", async function () {
@@ -266,7 +266,7 @@ describe("Contract Deployment", function () {
           contract = await web3_helper.deploy("WithEnumConstructor", {gasLimit}, ENUM);
         });
         it("Should be deployed successfully", async function () {
-          expect(contract.options.address).exist;
+          expect(contract.options.address).to.be.properAddress;
         });
         it("Should return constructor enum when someEnum view function is called", async function () {
           expect(await contract.methods.someEnum().call()).to.be.eq(ENUM);
@@ -286,7 +286,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract.address).exist;
+        expect(contract.address).to.be.properAddress;
       });
 
       it("Should return 100 when number view function is called", async function () {
@@ -312,7 +312,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract._address).exist;
+        expect(contract._address).to.be.properAddress;
       });
 
       it("Should return 100 when number view function is called", async function () {
@@ -335,7 +335,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract.options.address).exist;
+        expect(contract.options.address).to.be.properAddress;
       });
 
       it("Should return 100 when number view function is called", async function () {
@@ -361,7 +361,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract.address).exist;
+        expect(contract.address).to.be.properAddress;
       });
 
       it("Should return 10 when balance view function is called", async function () {
@@ -384,7 +384,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract._address).exist;
+        expect(contract._address).to.be.properAddress;
       });
 
       it("Should return 10 when balance view function is called", async function () {
@@ -406,7 +406,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should be deployed successfully", async function () {
-        expect(contract.options.address).exist;
+        expect(contract.options.address).to.be.properAddress;
       });
 
       it("Should return 10 when balance view function is called", async function () {
