@@ -23,6 +23,7 @@ fi
 
 # Determine vcpkg os and arch triplet
 OS="unknown"
+ARCH="$(uname -m)"
 
 unameOut="$(uname -s)"
 case "${unameOut}" in
@@ -31,7 +32,13 @@ case "${unameOut}" in
     *)          echo "Unknown machine ${unameOut}"
 esac
 
-ARCH="$(uname -m)"
+unameOut="$(uname -m)"
+case "${unameOut}" in
+    arm*)       ARCH=arm;;
+    x86_64*)    ARCH=x64;;
+    *)          echo "Unknown machine ${unameOut}"
+esac
+
 VCPKG_TRIPLET=${ARCH}-${OS}-dynamic
 
 # set n_parallel to fully utilize the resources
