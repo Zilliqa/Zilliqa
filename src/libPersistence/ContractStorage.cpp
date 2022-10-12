@@ -417,7 +417,7 @@ bool ContractStorage::FetchExternalStateValue(const dev::h160& caller,  //
   query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
 
   std::string special_query;
-  Account* account;
+  Account* account{};
   Account* accountAtomic =
       AccountStore::GetInstance().GetAccountTempAtomic(target);
   if (!accountAtomic) {
@@ -469,7 +469,7 @@ bool ContractStorage::FetchExternalStateValue(const dev::h160& caller,  //
   }
 
   // For _evm_storage, we know the type, so we don't have to query it.
-  bool fetchType;
+  bool fetchType{false};
   if (query.name() == "_evm_storage") {
     type = "ByStr32";
     fetchType = false;

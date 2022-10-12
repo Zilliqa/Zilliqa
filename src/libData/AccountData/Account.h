@@ -130,8 +130,6 @@ class Account : public AccountBase {
   bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
                      bool& is_library, std::vector<Address>& extlibs);
 
-  AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
-
  public:
   Account() {}
 
@@ -142,7 +140,7 @@ class Account : public AccountBase {
   Account(const uint128_t& balance, const uint64_t& nonce,
           const uint32_t& version = ACCOUNT_VERSION);
 
-  /// Parse the Immutable Data at Constract Initialization Stage
+  /// Parse the Immutable Data at Contract Initialization Stage
   bool InitContract(const bytes& code, const bytes& initData,
                     const Address& addr, const uint64_t& blockNum);
 
