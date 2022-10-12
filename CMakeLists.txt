@@ -16,8 +16,8 @@ message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 #             This is a simple workaround against this issue.
 if (APPLE)
   file(CREATE_LINK
-    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/lib
-    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/tools/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/lib
     SYMBOLIC)
 endif()
 
@@ -34,10 +34,18 @@ find_package(leveldb REQUIRED)
 find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
+
+# Temporary workarounds for Python3:
+#
+# 1. Make sure PATH points to the python3 in the vcpkg tools sub-directory; otherwise on some systems find_package 
+#    will fail (e.g. if libpython3-dev is installed on Ubuntu 20.04).
+# 2. For some reason it only finds debug library upon a second call to  find_package. Otherwise, the release
+#    library will be used and if it's a debug build linkage could fail.
+set(PREV_PATH $ENV{PATH})
+set(ENV{PATH} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/python3:$ENV{PATH}")
 find_package(Python3 COMPONENTS Development REQUIRED)
-# Temporary workaround for Python3: for some reason it only finds debug library upon a second call to 
-# find_package. Otherwise, the release library will be used and if it's a debug build linkage could fail.
 find_package(Python3 COMPONENTS Development REQUIRED)
+set(ENV{PATH} "${PREV_PATH}")
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -277,7 +285,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     link_libraries(--coverage)
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
     # TODO: remove the hardcoded number in -j option
-    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure")
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure;--timeout;90")
 endif()
 
 # using internal jsonrpc variant

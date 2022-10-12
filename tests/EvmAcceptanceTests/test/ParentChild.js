@@ -30,7 +30,7 @@ describe("Parent Child Contract Functionality", function () {
       await parentContract.installChild(CHILD_CONTRACT_VALUE);
       childContractAddress = await parentContract.childAddress();
 
-      expect(childContractAddress).to.exist;
+      expect(childContractAddress).to.be.properAddress;
     });
 
     // FIXME: In ZIL-4885
