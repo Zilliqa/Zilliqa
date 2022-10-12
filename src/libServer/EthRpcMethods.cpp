@@ -42,6 +42,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -339,6 +340,13 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &EthRpcMethods::EthGetLogsI);
+
+  // Recover who the sender of a transaction was given only the RLP
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_recoverTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &EthRpcMethods::EthRecoverTransactionI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1376,4 +1384,17 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
   }
 
   return WRONG_INDEX;
+}
+
+// Given a transmitted RLP, return checksum-encoded original sender address
+std::string EthRpcMethods::EthRecoverTransaction(
+    const std::string& txnRpc) const {
+  auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
+
+  auto const asAddr = CreateAddr(pubKeyBytes);
+
+  auto addrChksum = AddressChecksum::GetChecksummedAddressEth(
+      DataConversion::Uint8VecToHexStrRet(asAddr.asBytes()));
+
+  return DataConversion::AddOXPrefix(std::move(addrChksum));
 }
