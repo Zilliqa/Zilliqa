@@ -3,13 +3,13 @@
 pragma solidity ^0.8.7;
 
 contract BlockchainInstructions {
-        address public _origin;
-        address public _coinbase;
-        uint256 public _gasprice;
-        bytes32 public _blockHash;
-        uint256 public _timestamp;
-        uint256 public _difficulty;
-        uint256 public _gaslimit;
+    address public _origin;
+    address public _coinbase;
+    uint256 public _gasprice;
+    bytes32 public _blockHash;
+    uint256 public _timestamp;
+    uint256 public _difficulty;
+    uint256 public _gaslimit;
 
     function origin() external returns (address) {
         _origin = tx.origin;
