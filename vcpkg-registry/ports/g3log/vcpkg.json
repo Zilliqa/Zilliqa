@@ -4,5 +4,5 @@
   "port-version": 3,
   "description": "Asynchronous logger with Dynamic Sinks (with dynamic log levels)",
   "homepage": "https://github.com/KjellKod/g3log",
-  "supports": "!(arm | uwp)"
+  "supports": "!(uwp)"
 }
