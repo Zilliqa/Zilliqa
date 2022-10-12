@@ -48,7 +48,6 @@ contract BlockchainInstructions {
         return blockhash(blockNumber);
     }
 
-
     function timestamp() external returns (uint256) {
         _timestamp = block.timestamp;
         return _timestamp;
