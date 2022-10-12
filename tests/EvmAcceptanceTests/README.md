@@ -158,3 +158,11 @@ describe("Contract with payable constructor", function () {
     // FIXME: In ZIL-4879
     xit("Should not be possible to move more than available tokens to some address", async function () {
 ```
+- We use `[@tag1, @tag2, @tag3, ...]` in test descriptions to add tags to tests. This is based on [Mocha's tagging convention](https://github.com/mochajs/mocha/wiki/Tagging). In order to run `tag1` tests, you can use `--grep @tag1`.
+```javascript
+      it("Should return correct value for string [@transactional, @ethers_js]", async function () {
+        await contract.setName(STRING);
+        expect(await contract.getStringPublic()).to.be.eq(STRING);
+      });
+```
+- `@transactional` tag is used for those tests which generate ethereum transactions. Calling pure functions or view functions doesn't generate a transaction for example. Transactional tests may use for populating an empty testnet with some transactions.

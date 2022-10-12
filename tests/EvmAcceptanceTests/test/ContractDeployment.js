@@ -6,7 +6,7 @@ const zilliqa_helper = require("../helper/ZilliqaHelper");
 
 describe("Contract Deployment", function () {
   describe("Contract with zero parameter constructor", function () {
-    describe("When ethers.js is used", function () {
+    describe("When ethers.js is used [@ethers_js]", function () {
       let contract;
       before(async function () {
         const Contract = await ethers.getContractFactory("ZeroParamConstructor");
@@ -22,7 +22,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When Zilliqa Helper is used", function () {
+    describe("When Zilliqa Helper is used [@zilliqa_helper]", function () {
       let contract;
       before(async function () {
         if (!general_helper.isZilliqaNetworkSelected()) {
@@ -41,7 +41,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When web3.js is used", function () {
+    describe("When web3.js is used [@web3_js]", function () {
       let contract;
       before(async function () {
         contract = await web3_helper.deploy("ZeroParamConstructor", {gasLimit: 220000});
@@ -58,7 +58,7 @@ describe("Contract Deployment", function () {
   });
 
   describe("Contract with one parameter constructor", function () {
-    describe("When ethers.js is used", function () {
+    describe("When ethers.js is used [@ethers_js]", function () {
       describe("When constructor parameter is a uint256", function () {
         let contract;
         let INITIAL_NUMBER = 100;
@@ -128,7 +128,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When Zilliqa Helper is used", function () {
+    describe("When Zilliqa Helper is used [@zilliqa_helper]", function () {
       before(async function () {
         if (!general_helper.isZilliqaNetworkSelected()) {
           this.skip();
