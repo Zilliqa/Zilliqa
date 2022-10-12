@@ -139,11 +139,9 @@ describe("Contract Interaction", function () {
       // TODO: Add for address
     });
 
-    describe("When calling a public function that generates an event khar", function () {
-      it("Should have the event name in returned object", async function () {
-        const tx = await contract.emitLogWithoutParam();
-        const result = await tx.wait();
-        expect(result.events[0].event).to.be.equal("logWithoutParam");
+    describe("When calling a public function that generates an event", function () {
+      it("Should emit an event if emitLogWithoutParam is called", async function () {
+        await expect(contract.emitLogWithoutParam()).emit(contract, "logWithoutParam");
       });
 
       it("Should emit an event with uint256 param if emitLogWithUint256Param is called", async function () {
