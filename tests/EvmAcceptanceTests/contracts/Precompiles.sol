@@ -57,4 +57,44 @@ contract Precompiles {
         }
   }
 
+  function testEcAdd(uint256 a_x, uint256 a_y, uint256 b_x, uint256 b_y) public returns (uint256[2] memory p) {
+    uint256[4] memory input;
+    input[0] = a_x;
+    input[1] = a_y;
+    input[2] = b_x;
+    input[3] = b_y;
+    assembly {
+      // input size  = (256 / 8) * 4 = 0x80
+      // output size = (256 / 8) * 2 = 0x40
+      if iszero(call(gas(), 0x06, 0, input, 0x80, p, 0x40)) {
+        revert(0, 0)
+      }
+    }
+  }
+
+  function testEcMul(uint256 p_x, uint256 p_y, uint256 s) public returns (uint256[2] memory p) {
+    uint256[3] memory input;
+    input[0] = p_x;
+    input[1] = p_y;
+    input[2] = s;
+    assembly {
+      // input size  = (256 / 8) * 3 = 0x60
+      // output size = (256 / 8) * 2 = 0x40
+      if iszero(call(gas(), 0x07, 0, input, 0x60, p, 0x40)) {
+        revert(0, 0)
+      }
+    }
+  }
+
+  function testEcPairing(uint256[] memory pairs) public returns (uint256) {
+    uint256 elements = pairs.length;
+    assembly {
+      // `pairs` is prefixed by its length, so we jump forward one integer to skip this prefix
+      // output size = (256 / 8) * 1 = 0x20
+      if iszero(call(gas(), 0x08, 0, add(pairs, 0x20), mul(elements, 0x20), add(pairs, 0x20), 0x20)) {
+        revert(0, 0)
+      }
+    }
+    return pairs[0];
+  }
 }
