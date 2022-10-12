@@ -6,14 +6,14 @@ const zilliqa_helper = require("../helper/ZilliqaHelper");
 
 describe("Contract Deployment", function () {
   describe("Contract with zero parameter constructor", function () {
-    describe("When ethers.js is used [@ethers_js]", function () {
+    describe("When ethers.js is used", function () {
       let contract;
       before(async function () {
         const Contract = await ethers.getContractFactory("ZeroParamConstructor");
         contract = await Contract.deploy();
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.address).to.be.properAddress;
       });
 
@@ -22,7 +22,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When Zilliqa Helper is used [@zilliqa_helper]", function () {
+    describe("When Zilliqa Helper is used", function () {
       let contract;
       before(async function () {
         if (!general_helper.isZilliqaNetworkSelected()) {
@@ -32,7 +32,7 @@ describe("Contract Deployment", function () {
         contract = await zilliqa_helper.deployContract("ZeroParamConstructor");
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract._address).to.be.properAddress;
       });
 
@@ -41,13 +41,13 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When web3.js is used [@web3_js]", function () {
+    describe("When web3.js is used", function () {
       let contract;
       before(async function () {
         contract = await web3_helper.deploy("ZeroParamConstructor", {gasLimit: 220000});
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
       });
 
@@ -58,7 +58,7 @@ describe("Contract Deployment", function () {
   });
 
   describe("Contract with one parameter constructor", function () {
-    describe("When ethers.js is used [@ethers_js]", function () {
+    describe("When ethers.js is used", function () {
       describe("When constructor parameter is a uint256", function () {
         let contract;
         let INITIAL_NUMBER = 100;
@@ -67,7 +67,7 @@ describe("Contract Deployment", function () {
           contract = await Contract.deploy(INITIAL_NUMBER);
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.address).to.be.properAddress;
         });
 
@@ -84,7 +84,7 @@ describe("Contract Deployment", function () {
           contract = await Contract.deploy(INITIAL_NAME);
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.address).to.be.properAddress;
         });
 
@@ -101,7 +101,7 @@ describe("Contract Deployment", function () {
           contract = await Contract.deploy(ADDRESS);
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.address).to.be.properAddress;
         });
 
@@ -118,7 +118,7 @@ describe("Contract Deployment", function () {
           contract = await Contract.deploy(ENUM);
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.address).to.be.a.properAddress;
         });
 
@@ -128,7 +128,7 @@ describe("Contract Deployment", function () {
       });
     });
 
-    describe("When Zilliqa Helper is used [@zilliqa_helper]", function () {
+    describe("When Zilliqa Helper is used", function () {
       before(async function () {
         if (!general_helper.isZilliqaNetworkSelected()) {
           this.skip();
@@ -144,7 +144,7 @@ describe("Contract Deployment", function () {
           });
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract._address).to.be.properAddress;
         });
 
@@ -162,7 +162,7 @@ describe("Contract Deployment", function () {
           });
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract._address).to.be.properAddress;
         });
 
@@ -180,7 +180,7 @@ describe("Contract Deployment", function () {
           });
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract._address).to.be.a.properAddress;
         });
 
@@ -199,7 +199,7 @@ describe("Contract Deployment", function () {
           });
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract._address).to.be.a.properAddress;
         });
 
@@ -219,7 +219,7 @@ describe("Contract Deployment", function () {
           contract = await web3_helper.deploy("WithUintConstructor", {gasLimit}, INITIAL_NUMBER);
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.options.address).to.be.properAddress;
         });
 
@@ -235,7 +235,7 @@ describe("Contract Deployment", function () {
           contract = await web3_helper.deploy("WithStringConstructor", {gasLimit}, INITIAL_NAME);
         });
 
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.options.address).to.be.properAddress;
         });
 
@@ -250,7 +250,7 @@ describe("Contract Deployment", function () {
         before(async function () {
           contract = await web3_helper.deploy("WithAddressConstructor", {gasLimit}, ADDRESS);
         });
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.options.address).to.be.properAddress;
         });
 
@@ -265,7 +265,7 @@ describe("Contract Deployment", function () {
         before(async function () {
           contract = await web3_helper.deploy("WithEnumConstructor", {gasLimit}, ENUM);
         });
-        it("Should be deployed successfully", async function () {
+        it("Should be deployed successfully [@transactional]", async function () {
           expect(contract.options.address).to.be.properAddress;
         });
         it("Should return constructor enum when someEnum view function is called", async function () {
@@ -285,7 +285,7 @@ describe("Contract Deployment", function () {
         contract = await Contract.deploy(NAME, NUMBER);
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.address).to.be.properAddress;
       });
 
@@ -311,7 +311,7 @@ describe("Contract Deployment", function () {
         });
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract._address).to.be.properAddress;
       });
 
@@ -334,7 +334,7 @@ describe("Contract Deployment", function () {
         contract = await web3_helper.deploy("MultiParamConstructor", {gasLimit}, NAME, NUMBER);
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
       });
 
@@ -360,7 +360,7 @@ describe("Contract Deployment", function () {
         });
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.address).to.be.properAddress;
       });
 
@@ -383,7 +383,7 @@ describe("Contract Deployment", function () {
         });
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract._address).to.be.properAddress;
       });
 
@@ -405,7 +405,7 @@ describe("Contract Deployment", function () {
         contract = await web3_helper.deploy("WithPayableConstructor", {gasLimit, value: INITIAL_BALANCE});
       });
 
-      it("Should be deployed successfully", async function () {
+      it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
       });
 

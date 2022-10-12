@@ -6,10 +6,9 @@ const general_helper = require("../helper/GeneralHelper");
 describe("Contract destruction with web3.js", function () {
   let contract;
   const gasLimit = "750000";
-  let amountPaid;
+  const amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
   let options;
   before(async function () {
-    amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
     contract = await web3_helper.deploy("ParentContract", {gasLimit, value: amountPaid});
     options = await web3_helper.getCommonOptions();
   });
