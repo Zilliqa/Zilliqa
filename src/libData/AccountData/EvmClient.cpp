@@ -32,17 +32,14 @@ void EvmClient::Init() {
 }
 
 EvmClient::~EvmClient() {
-
-
   std::lock_guard<std::mutex> g(m_mutexMain);
   Json::Value _json;
   LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
   // call evm
   try {
     const auto oldJson = m_clients.at(0)->CallMethod("die", _json);
-  } catch (std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Caught an exception calling die " << e.what());
+  } catch (const std::exception& e) {
+    LOG_GENERAL(WARNING, "Caught an exception calling die " << e.what());
     std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
     LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
 
@@ -53,9 +50,9 @@ EvmClient::~EvmClient() {
     } catch (const std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception caught in SysCommand::ExecuteCmd: " << e.what());
-    } catch (...) {
-      LOG_GENERAL(WARNING, "Unknown error encountered");
     }
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unknown error encountered");
   }
 }
 
