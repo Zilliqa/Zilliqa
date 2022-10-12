@@ -83,6 +83,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
     Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
@@ -91,17 +94,17 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
       return false;
     }
-  }
 
-  // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Insufficient funds in source account!"
-                  << " From Account  = 0x" << fromAddr << " Balance = "
-                  << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmountQa());
-    error_code = TxnStatus::INSUFFICIENT_BALANCE;
-    return false;
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Insufficient funds in source account!"
+                    << " From Account  = 0x" << fromAddr << " Balance = "
+                    << AccountStore::GetInstance().GetBalance(fromAddr)
+                    << " Debit Amount = " << tx.GetAmountQa());
+      error_code = TxnStatus::INSUFFICIENT_BALANCE;
+      return false;
+    }
   }
 
   receipt.SetEpochNum(m_mediator.m_currentEpochNum);
@@ -226,6 +229,9 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
     Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
@@ -234,17 +240,17 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
       return false;
     }
-  }
 
-  // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Insufficient funds in source account!"
-                  << " From Account  = 0x" << fromAddr << " Balance = "
-                  << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmountQa());
-    error_code = TxnStatus::INSUFFICIENT_BALANCE;
-    return false;
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Insufficient funds in source account!"
+                    << " From Account  = 0x" << fromAddr << " Balance = "
+                    << AccountStore::GetInstance().GetBalance(fromAddr)
+                    << " Debit Amount = " << tx.GetAmountQa());
+      error_code = TxnStatus::INSUFFICIENT_BALANCE;
+      return false;
+    }
   }
 
   return true;

@@ -21,6 +21,7 @@ contract ChildContract {
        uint amount = address(this).balance;
        (bool success, ) = sender.call{value: amount}("");
        require(success, "Failed to send Ether");
+       selfdestruct(sender);
     }
 }
 
@@ -34,7 +35,7 @@ contract ParentContract {
     }
 
     function installChild(uint256 initial_data) public returns (address payable) {
-      child = new ChildContract{value: 300000 gwei}(initial_data);
+      child = new ChildContract{value: value}(initial_data);
       return payable(address(child));
     }
 
@@ -44,6 +45,10 @@ contract ParentContract {
 
     function getPaidValue() public view returns (uint256) {
       return value;
+    }
+
+    function returnToSenderAndDestruct(address account) public payable {
+      selfdestruct(payable(account));
     }
 
     receive() external payable {

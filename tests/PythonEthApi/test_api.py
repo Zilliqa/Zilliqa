@@ -118,9 +118,9 @@ def checkIsTransactionReceipt(obj):
     checkHasField(obj, "logs")
     checkHasField(obj, "logsBloom", True)
     #checkHasField(obj, "value", True) # TODO(HUT): missing
-    #checkHasField(obj, "v", True) # TODO(HUT): missing
-    #checkHasField(obj, "r", True) # TODO(HUT): missing
-    #checkHasField(obj, "s", True) # TODO(HUT): missing
+    checkHasField(obj, "v", True)
+    checkHasField(obj, "r", True)
+    checkHasField(obj, "s", True)
 
 def get_result(response: requests.models.Response) -> any:
     if response.status_code != 200:
@@ -697,15 +697,15 @@ def test_eth_getBlockByHash(url: str, account: eth_account.signers.local.LocalAc
         checkHasField(res, "number", True)
         checkHasField(res, "hash", True)
         checkHasField(res, "parentHash", True)
-        #checkHasField(res, "nonce", True) # TODO(HUT): missing
+        checkHasField(res, "nonce", True)
         checkHasField(res, "sha3Uncles", True)
         checkHasField(res, "logsBloom", True)
-        #checkHasField(res, "transactionsRoot", True) # TODO(HUT): missing
+        checkHasField(res, "transactionsRoot", True)
         checkHasField(res, "stateRoot", True)
-        #checkHasField(res, "receiptsRoot", True) # TODO(HUT): missing
+        checkHasField(res, "receiptsRoot", True)
         checkHasField(res, "miner", True)
         checkHasField(res, "difficulty", True)
-        #checkHasField(res, "totalDifficulty", True) # TODO(HUT): missing
+        checkHasField(res, "totalDifficulty", True)
         checkHasField(res, "extraData", True)
         checkHasField(res, "size", True)
         checkHasField(res, "gasLimit", True)
@@ -1437,6 +1437,48 @@ def test_eth_chainId(url: str) -> bool:
 
     return True
 
+def test_eth_recoverTransaction(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
+    """
+        Returns the receipt of a transaction by transaction hash.
+    """
+    try:
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+        rawTx = signed_transaction.rawTransaction.hex()
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_recoverTransaction",
+                                            "params": [rawTx]})
+
+        originalSender = get_result(response)
+
+        ## Here rely on another api call to find the block the TX was in.
+        #response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [tx_hash] })
+        #res = get_result(response)
+        #checkIsTransactionReceipt(res)
+
+        if originalSender != account.address:
+            raise Exception(f"Did not get back the original sender. Received: {originalSender} Expected: {account.address}")
+
+    except Exception as e:
+        print(f"********* Failed test test_eth_recoverTransaction with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
+        return False
+
+    return True
+
 def parse_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('--api', type=str, required=True, help='API to test against')
@@ -1519,6 +1561,9 @@ def main():
     #ret &= test_eth_sign(args.api)
     #ret &= test_eth_signTransaction(args.api)
     #ret &= test_eth_sendTransaction(args.api)
+
+    # Non-standard (for fireblocks)
+    ret &= test_eth_recoverTransaction(args.api, account, w3)
 
     if not ret:
         print(f"Test failed")

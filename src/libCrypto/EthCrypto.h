@@ -37,7 +37,7 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-std::string ToUncompressedPubKey(const std::string& pubKey);
+bytes ToUncompressedPubKey(const std::string& pubKey);
 
 // Recover the public signature of a transaction given its RLP
 bytes RecoverECDSAPubKey(std::string const& message, int chain_id);
@@ -62,6 +62,9 @@ bytes CreateHash(std::string const& rawTx);
 
 // Create the eth-style contract address given the sender address and nonce
 bytes CreateContractAddr(bytes const& senderAddr, int nonce);
+
+// Get the eth-style address given the sender public key (UNCOMPRESSED BYTES)
+Address CreateAddr(bytes const& publicKey);
 
 std::string GetR(std::string signature);
 std::string GetS(std::string signature);

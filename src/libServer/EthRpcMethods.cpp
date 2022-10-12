@@ -42,6 +42,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -56,9 +57,6 @@ using namespace jsonrpc;
 using namespace std;
 
 namespace {
-const unsigned int PAGE_SIZE = 10;
-const unsigned int NUM_PAGES_CACHE = 2;
-const unsigned int TXN_PAGE_SIZE = 100;
 
 bool isNumber(const std::string& str) {
   char* endp;
@@ -91,7 +89,7 @@ Address ToBase16AddrHelper(const std::string& addr) {
 
 }  // namespace
 
-struct LookupServer::ApiKeys {
+struct EthRpcMethods::ApiKeys {
   std::string from;
   std::string to;
   std::string value;
@@ -342,6 +340,13 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &EthRpcMethods::EthGetLogsI);
+
+  // Recover who the sender of a transaction was given only the RLP
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_recoverTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &EthRpcMethods::EthRecoverTransactionI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -581,7 +586,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   bytes code{};
-  auto ret{false};
+  auto success{false};
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
@@ -594,7 +599,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     code = contractAccount->GetCode();
   }
 
-  string result;
+  evmproj::CallResponse response;
   try {
     Address fromAddr;
     if (_json.isMember(apiKeys.from)) {
@@ -615,26 +620,35 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       gasRemained =
           min(gasRemained, (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0));
     }
+
     string data = _json[apiKeys.data].asString();
     if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
       data = data.substr(2);
     }
-    EvmCallParameters params{
+
+    const EvmCallParameters params{
         addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
         data,       gasRemained,    amount};
 
-    AccountStore::GetInstance().ViewAccounts(params, ret, result);
+    if (AccountStore::GetInstance().ViewAccounts(params, response) &&
+        response.Success()) {
+      success = true;
+    }
+
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Called Evm, response:" << response);
+    }
+
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
   }
 
-  if (!ret) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "GetEthCall failed");
+  if (!success) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
 
-  result = "0x" + result;
-  return result;
+  return "0x" + response.ReturnedBytes();
 }
 
 std::string EthRpcMethods::GetWeb3ClientVersion() {
@@ -1233,7 +1247,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
-        contractAddress, logs, bloomLogs, transactionIndex);
+        contractAddress, logs, bloomLogs, transactionIndex,
+        transactioBodyPtr->GetTransaction());
 
     return res;
   } catch (const JsonRpcException& je) {
@@ -1369,4 +1384,17 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
   }
 
   return WRONG_INDEX;
+}
+
+// Given a transmitted RLP, return checksum-encoded original sender address
+std::string EthRpcMethods::EthRecoverTransaction(
+    const std::string& txnRpc) const {
+  auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
+
+  auto const asAddr = CreateAddr(pubKeyBytes);
+
+  auto addrChksum = AddressChecksum::GetChecksummedAddressEth(
+      DataConversion::Uint8VecToHexStrRet(asAddr.asBytes()));
+
+  return DataConversion::AddOXPrefix(std::move(addrChksum));
 }

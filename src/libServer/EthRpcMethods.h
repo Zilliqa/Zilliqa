@@ -21,8 +21,8 @@
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
+#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/Logger.h"
 
 class LookupServer;
 
@@ -48,6 +48,7 @@ class EthRpcMethods {
   virtual void GetEthCallEthI(const Json::Value& request,
                               Json::Value& response) {
     response = this->GetEthCallEth(request[0u], request[1u].asString());
+    LOG_GENERAL(DEBUG, "EthCall response:" << response);
   }
 
   // TODO: remove once we fully move to Eth compatible APIs.
@@ -482,6 +483,18 @@ class EthRpcMethods {
     response = this->EthGetLogs(request[0u]);
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterLogs
+   * @param request : params: event filter params json object
+   * @param response : Json array of items applicable to the filter
+   */
+  virtual void EthRecoverTransactionI(const Json::Value& request,
+                                      Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
+    response = this->EthRecoverTransaction(request[0u].asString());
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
@@ -547,6 +560,8 @@ class EthRpcMethods {
   bool EthUninstallFilter(const std::string& filter_id);
   Json::Value EthGetFilterLogs(const std::string& filter_id);
   Json::Value EthGetLogs(const Json::Value& param);
+
+  std::string EthRecoverTransaction(const std::string& txnRpc) const;
 
   void EnsureEvmAndLookupEnabled();
 

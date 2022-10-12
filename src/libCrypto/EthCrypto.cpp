@@ -39,30 +39,15 @@
 #include <openssl/ec.h>  // for EC_GROUP_new_by_curve_name, EC_GROUP_free, EC_KEY_new, EC_KEY_set_group, EC_KEY_generate_key, EC_KEY_free
 #include <openssl/obj_mac.h>  // for NID_secp192k1
 #include <openssl/sha.h>      //for SHA512_DIGEST_LENGTH
-#include <cstddef>
 #include <ethash/keccak.hpp>
 #include <iostream>
 #include <memory>
-#include <stdexcept>
 #include <string>
 
 // Inspiration from:
 // https://stackoverflow.com/questions/10906524
 // https://stackoverflow.com/questions/57385412/
 // https://medium.com/mycrypto/the-magic-of-digital-signatures-on-ethereum-98fe184dc9c7
-
-// Prefix signed txs in Ethereum with Keccak256("\x19Ethereum Signed
-// Message:\n32" + Keccak256(message))
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunused-const-variable"
-#endif
-constexpr uint8_t prelude[] = {25,  69,  116, 104, 101, 114, 101, 117, 109,
-                               32,  83,  105, 103, 110, 101, 100, 32,  77,
-                               101, 115, 115, 97,  103, 101, 58,  10,  48};
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
 auto bnFree = [](BIGNUM* b) { BN_free(b); };
 auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
@@ -268,7 +253,7 @@ bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-std::string ToUncompressedPubKey(std::string const& pubKey) {
+bytes ToUncompressedPubKey(std::string const& pubKey) {
   // Create public key pointer
   std::unique_ptr<EC_KEY, decltype(ekFree)> zPublicKey(
       EC_KEY_new_by_curve_name(NID_secp256k1), ekFree);
@@ -301,14 +286,14 @@ std::string ToUncompressedPubKey(std::string const& pubKey) {
     printf("pub key to data fail\n");
   }
 
-  std::string ret{};
+  bytes ret{};
 
   if (pubKeyOut2 - &pubKeyOut[0] != UNCOMPRESSED_SIGNATURE_SIZE) {
     LOG_GENERAL(WARNING, "Pubkey size incorrect after decompressing:"
                              << pubKeyOut2 - &pubKeyOut[0]);
   } else {
-    ret = std::string(reinterpret_cast<const char*>(pubKeyOut),
-                      UNCOMPRESSED_SIGNATURE_SIZE);
+    std::copy(&pubKeyOut[0], &pubKeyOut[UNCOMPRESSED_SIGNATURE_SIZE],
+              std::back_inserter(ret));
   }
 
   return ret;
@@ -594,4 +579,26 @@ std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
   GetTransmittedRLP(info, chainId, signature, recid);
 
   return (boost::format("0x%x") % recid).str();
+}
+
+// Get Address from public key, eth stye.
+// The pubkeys in this database are compressed elliptic curve. Algo is:
+// 1. Decompress public key
+// 2. Remove first byte (compression indicator byte)
+// 3. Keccak256 on remaining
+// 4. Last 20 bytes is result
+Address CreateAddr(bytes const& publicKey) {
+  Address address;
+
+  // Do not hash the first byte, as it specifies the encoding
+  auto result = ethash::keccak256(publicKey.data() + 1, publicKey.size() - 1);
+
+  std::string res;
+  boost::algorithm::hex(&result.bytes[12], &result.bytes[32],
+                        back_inserter(res));
+
+  // Want the last 20 bytes of the result
+  std::copy(&result.bytes[12], &result.bytes[32], address.asArray().begin());
+
+  return address;
 }

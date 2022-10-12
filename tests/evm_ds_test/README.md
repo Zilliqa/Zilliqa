@@ -16,5 +16,8 @@ Running the tests
 
 ```
 poetry run pytest
+or with optional parameters:
+- Filter on test case : -k <test name>
+- For extra debug logging: --log-level=DEBUG
 ```
 

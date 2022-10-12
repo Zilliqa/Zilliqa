@@ -618,7 +618,7 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
                                                 const string& vname,
                                                 const vector<string>& indices,
                                                 bool temp) {
-  LOG_MARKER();
+  // LOG_MARKER();
 
   std::map<std::string, bytes> states;
   FetchStateDataForContract(states, address, vname, indices, temp);

@@ -373,7 +373,14 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerList, powmessage);
+  // Instead of sending whole list at once, send 1 by 1 to prevent incidents
+  // where that particular node is down and hence the whole list is being
+  // delayed or gone
+  auto& p2pComm = P2PComm::GetInstance();
+  for (const auto& p : peerList) {
+    p2pComm.SendMessage(p, powmessage);
+  }
+
   return true;
 }
 

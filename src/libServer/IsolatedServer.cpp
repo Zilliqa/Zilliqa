@@ -372,6 +372,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            "param01", jsonrpc::JSON_STRING, "param02",
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_recoverTransaction",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::EthRecoverTransactionI);
   }
 }
 
@@ -517,6 +523,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
+      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+        return AccountStore::GetInstance().GetPrimaryWriteAccess();
+      });
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
@@ -562,6 +571,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         {
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
+          AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
+              lock, [] {
+                return AccountStore::GetInstance().GetPrimaryWriteAccess();
+              });
 
           const Account* account =
               AccountStore::GetInstance().GetAccount(tx.GetToAddr());
