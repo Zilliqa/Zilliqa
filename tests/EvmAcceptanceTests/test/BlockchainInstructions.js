@@ -10,7 +10,7 @@ describe("Blockchain Instructions contract", function () {
   });
 
   it("Should be deployed successfully", async function () {
-    expect(contract.address).exist;
+    expect(contract.address).to.be.properAddress;
   });
 
   it("Should return the owner address when getOrigin function is called", async function () {
