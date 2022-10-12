@@ -34,7 +34,7 @@ describe("ERC20 functionality", function () {
   });
 
   describe("Transfer", function () {
-    it("Should be possible to transfer ZERC from the owner to another", async function () {
+    it("Should be possible to transfer ZERC from the owner to another [@transactional]", async function () {
       const [owner, receiver] = await ethers.getSigners();
       const prevBalance = await contract.balanceOf(owner.address);
 
@@ -46,7 +46,7 @@ describe("ERC20 functionality", function () {
     // TODO: Add event related test(s), e.g. for Transfer event
 
     // FIXME: In ZIL-4879
-    xit("Should not be possible to move more than available tokens to some address", async function () {
+    xit("Should not be possible to move more than available tokens to some address [@transactional]", async function () {
       const [owner, receiver] = await ethers.getSigners();
       const prevBalance = await contract.balanceOf(owner.address);
 
@@ -63,7 +63,7 @@ describe("ERC20 functionality", function () {
       expect(await contract.allowance(owner.address, receiver.address)).to.be.eq(0);
     });
 
-    it("Should be possible to approve", async function () {
+    it("Should be possible to approve [@transactional]", async function () {
       const [sender, spender] = await ethers.getSigners();
 
       await contract.approve(spender.address, 50_000);
@@ -74,7 +74,7 @@ describe("ERC20 functionality", function () {
 
   describe("Transfer From", function () {
     // FIXME: In ZIL-4879
-    xit("Should be possible to transfer from one account to another", async function () {
+    xit("Should be possible to transfer from one account to another [@transactional]", async function () {
       const [owner, _, sender, spender] = await ethers.getSigners();
 
       // Fund the 2nd account first

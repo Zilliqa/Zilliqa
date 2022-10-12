@@ -15,67 +15,67 @@ describe("Contract Interaction", function () {
       contract = await Contract.deploy();
     });
 
-    describe("When public setter function is called", function () {
+    describe("When public setter function is called [@transactional]", function () {
       it("Should set uint256 internal state correctly", async function () {
         await contract.setNumber(UINT256);
         expect(await contract.number()).to.be.eq(UINT256);
       });
 
-      it("Should set string internal state correctly", async function () {
+      it("Should set string internal state correctly [@transactional]", async function () {
         await contract.setName(STRING);
         expect(await contract.name()).to.be.eq(STRING);
       });
 
-      it("Should set enum internal state correctly", async function () {
+      it("Should set enum internal state correctly [@transactional]", async function () {
         await contract.setEnum(ENUM);
         expect(await contract.someEnum()).to.be.eq(ENUM);
       });
 
-      it("Should set address internal state correctly", async function () {
+      it("Should set address internal state correctly [@transactional]", async function () {
         await contract.setAddress(ADDRESS);
         expect(await contract.someAddress()).to.be.eq(ADDRESS);
       });
     });
 
     describe("When external setter function is called", function () {
-      it("Should set uint256 internal state correctly", async function () {
+      it("Should set uint256 internal state correctly [@transactional]", async function () {
         await contract.setNumberExternal(UINT256);
         expect(await contract.number()).to.be.eq(UINT256);
       });
 
-      it("Should set string internal state correctly", async function () {
+      it("Should set string internal state correctly [@transactional]", async function () {
         await contract.setNameExternal(STRING);
         expect(await contract.name()).to.be.eq(STRING);
       });
 
-      it("Should set enum internal state correctly", async function () {
+      it("Should set enum internal state correctly [@transactional]", async function () {
         await contract.setEnumExternal(ENUM);
         expect(await contract.someEnum()).to.be.eq(ENUM);
       });
 
-      it("Should set address internal state correctly", async function () {
+      it("Should set address internal state correctly [@transactional]", async function () {
         await contract.setAddressExternal(ADDRESS);
         expect(await contract.someAddress()).to.be.eq(ADDRESS);
       });
     });
 
     describe("When public view function is called", function () {
-      it("Should return correct value for uint256", async function () {
+      it("Should return correct value for uint256 [@transactional]", async function () {
         await contract.setNumber(UINT256);
         expect(await contract.getNumberPublic()).to.be.eq(UINT256);
       });
 
-      it("Should return correct value for string", async function () {
+      it("Should return correct value for string [@transactional]", async function () {
         await contract.setName(STRING);
         expect(await contract.getStringPublic()).to.be.eq(STRING);
       });
 
-      it("Should return correct value for address", async function () {
+      it("Should return correct value for address [@transactional]", async function () {
         await contract.setAddress(ADDRESS);
         expect(await contract.getAddressPublic()).to.be.eq(ADDRESS);
       });
 
-      it("Should return correct value for enum", async function () {
+      it("Should return correct value for enum [@transactional]", async function () {
         await contract.setEnum(ENUM);
         expect(await contract.getEnumPublic()).to.be.eq(ENUM);
       });
