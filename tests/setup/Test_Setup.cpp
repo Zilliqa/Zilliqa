@@ -46,11 +46,11 @@ BOOST_AUTO_TEST_CASE(test_configuration) {
     boost::filesystem::path scilla_image(SCILLA_ROOT);
     if (not boost::filesystem::exists(scilla_image)) {
       LOG_GENERAL(WARNING,
-                  "scilla image does not seem to exist " << EVM_SERVER_BINARY);
+                  "scilla directory does not seem to exist " << SCILLA_ROOT);
     }
-    if (not boost::filesystem::is_directory(EVM_SERVER_BINARY)) {
+    if (not boost::filesystem::is_directory(SCILLA_ROOT)) {
       LOG_GENERAL(WARNING, "scilla root does not exist as a directory "
-                               << EVM_SERVER_BINARY);
+                               << SCILLA_ROOT);
     }
   }
   LOG_GENERAL(INFO, " ");
