@@ -119,7 +119,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
   zbytes getDSBlockMessage = {MessageType::LOOKUP,
-                             LookupInstructionType::GETDSBLOCKFROMSEED};
+                              LookupInstructionType::GETDSBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetDSBlockFromSeed(
           getDSBlockMessage, MessageOffset::BODY, 0, 1, 5000, false)) {

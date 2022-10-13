@@ -45,7 +45,8 @@ bool AccountStoreBase<MAP>::Serialize(zbytes& dst, unsigned int offset) const {
 }
 
 template <class MAP>
-bool AccountStoreBase<MAP>::Deserialize(const zbytes& src, unsigned int offset) {
+bool AccountStoreBase<MAP>::Deserialize(const zbytes& src,
+                                        unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");

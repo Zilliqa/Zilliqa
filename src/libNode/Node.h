@@ -619,8 +619,8 @@ class Node : public Executable {
   void UpdateBalanceForPreGeneratedAccounts();
 
   void AddToMicroBlockConsensusBuffer(uint32_t consensusId,
-                                      const zbytes& message, unsigned int offset,
-                                      const Peer& peer,
+                                      const zbytes& message,
+                                      unsigned int offset, const Peer& peer,
                                       const PubKey& senderPubKey);
   void CleanMicroblockConsensusBuffer();
 

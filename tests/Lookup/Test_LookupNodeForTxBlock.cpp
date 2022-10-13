@@ -155,7 +155,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
   zbytes getTxBlockMessage = {MessageType::LOOKUP,
-                             LookupInstructionType::GETTXBLOCKFROMSEED};
+                              LookupInstructionType::GETTXBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetTxBlockFromSeed(
           getTxBlockMessage, MessageOffset::BODY, 0, 1, 5000)) {

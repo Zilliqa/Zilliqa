@@ -779,7 +779,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
   // }
 
   zbytes mb_message = {MessageType::DIRECTORY,
-                      DSInstructionType::MICROBLOCKSUBMISSION};
+                       DSInstructionType::MICROBLOCKSUBMISSION};
 
   if (!Messenger::SetDSMicroBlockSubmission(
           mb_message, MessageOffset::BODY,

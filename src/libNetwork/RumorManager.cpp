@@ -234,8 +234,8 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   }
 
   zbytes raw_message(message.begin() + PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE +
-                        SIGNATURE_RESPONSE_SIZE,
-                    message.end());
+                         SIGNATURE_RESPONSE_SIZE,
+                     message.end());
 
   if (!P2PComm::GetInstance().VerifyMessage(raw_message, toVerify,
                                             senderPubKey)) {

@@ -461,8 +461,8 @@ class DirectoryService : public Executable {
   void CleanUpViewChange(bool isPrecheckFail);
 
   void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
-                                      const zbytes& message, unsigned int offset,
-                                      const Peer& peer,
+                                      const zbytes& message,
+                                      unsigned int offset, const Peer& peer,
                                       const PubKey& senderPubKey);
   void CleanFinalBlockConsensusBuffer();
 

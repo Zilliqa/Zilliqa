@@ -203,7 +203,8 @@ class ConsensusCommon {
                           const Response& aggregated_response);
 
   /// Generates the challenge according to the aggregated commit and key.
-  Challenge GetChallenge(const zbytes& msg, const CommitPoint& aggregated_commit,
+  Challenge GetChallenge(const zbytes& msg,
+                         const CommitPoint& aggregated_commit,
                          const PubKey& aggregated_key);
 
   PairOfNode GetCommitteeMember(const unsigned int index);

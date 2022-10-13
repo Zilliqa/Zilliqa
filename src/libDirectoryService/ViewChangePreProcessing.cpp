@@ -41,10 +41,10 @@
 using namespace std;
 
 bool DirectoryService::ViewChangeValidator(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] zbytes& errorMsg,
-    const uint32_t consensusID, const uint64_t blockNumber,
-    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    zbytes& messageToCosign) {
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] zbytes& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, zbytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ViewChangeValidator not expected to be "
@@ -730,7 +730,7 @@ bool DirectoryService::VCFetchLatestDSTxBlockFromSeedNodes() {
 zbytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
   LOG_MARKER();
   zbytes getDSTxBlockMessage = {MessageType::LOOKUP,
-                               LookupInstructionType::VCGETLATESTDSTXBLOCK};
+                                LookupInstructionType::VCGETLATESTDSTXBLOCK};
   uint64_t dslowBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   uint64_t txlowBlockNum =
@@ -750,7 +750,8 @@ zbytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
 }
 
 bool DirectoryService::ProcessVCPushLatestDSTxBlock(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 

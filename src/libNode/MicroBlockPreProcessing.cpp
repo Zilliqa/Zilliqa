@@ -255,7 +255,7 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
 
   unsigned int cur_offset = 0;
   zbytes tx_message = {MessageType::NODE,
-                      NodeInstructionType::SUBMITTRANSACTION};
+                       NodeInstructionType::SUBMITTRANSACTION};
   cur_offset += MessageOffset::BODY;
   tx_message.push_back(SUBMITTRANSACTIONTYPE::MISSINGTXN);
   cur_offset += MessageOffset::INST;

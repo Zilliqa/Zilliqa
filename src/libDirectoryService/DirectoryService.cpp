@@ -158,7 +158,8 @@ uint32_t DirectoryService::GetNumShards() const {
 }
 
 bool DirectoryService::ProcessSetPrimary(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -856,7 +857,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 
   // To provide current pubkey, new IP, new Port and current timestamp
   zbytes updatedsguardidentitymessage = {MessageType::DIRECTORY,
-                                        DSInstructionType::NEWDSGUARDIDENTITY};
+                                         DSInstructionType::NEWDSGUARDIDENTITY};
 
   uint64_t curDSEpochNo =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
@@ -895,7 +896,8 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 }
 
 bool DirectoryService::ProcessNewDSGuardNetworkInfo(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -1017,7 +1019,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 }
 
 bool DirectoryService::ProcessCosigsRewardsFromSeed(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 

@@ -172,7 +172,7 @@ void DirectoryService::SendDSBlockToShardNodes(
         m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
 
     zbytes dsblock_message_to_shard = {MessageType::NODE,
-                                      NodeInstructionType::DSBLOCK};
+                                       NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
             *m_pendingDSBlock, m_VCBlockVector, SHARDINGSTRUCTURE_VERSION,
@@ -846,7 +846,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

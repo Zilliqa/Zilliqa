@@ -730,9 +730,9 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
 }
 
 zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
-                         const std::array<unsigned char, UINT256_SIZE>& rand2,
-                         const Peer& peer, const PubKey& pubKey,
-                         uint32_t lookupId, const uint128_t& gasPrice) {
+                          const std::array<unsigned char, UINT256_SIZE>& rand2,
+                          const Peer& peer, const PubKey& pubKey,
+                          uint32_t lookupId, const uint128_t& gasPrice) {
   zbytes vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);

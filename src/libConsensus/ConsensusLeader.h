@@ -32,10 +32,11 @@ typedef std::function<bool(const zbytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;
 typedef std::function<bool(std::map<unsigned int, zbytes>)>
     ShardCommitFailureHandlerFunc;
-typedef std::function<bool(
-    zbytes& dst, unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, zbytes& messageToCosign)>
+typedef std::function<bool(zbytes& dst, unsigned int offset,
+                           const uint32_t consensusID,
+                           const uint64_t blockNumber, const zbytes& blockHash,
+                           const uint16_t leaderID, const PairOfKey& leaderKey,
+                           zbytes& messageToCosign)>
     AnnouncementGeneratorFunc;
 
 /// Implements the functionality for the consensus committee leader.
@@ -130,8 +131,8 @@ class ConsensusLeader : public ConsensusCommon {
  public:
   /// Constructor.
   ConsensusLeader(
-      uint32_t consensus_id,    // unique identifier for this consensus session
-      uint64_t block_number,    // latest final block number
+      uint32_t consensus_id,     // unique identifier for this consensus session
+      uint64_t block_number,     // latest final block number
       const zbytes& block_hash,  // unique identifier for this consensus session
       uint16_t node_id,  // leader's identifier (= index in some ordered lookup
                          // table shared by all nodes)

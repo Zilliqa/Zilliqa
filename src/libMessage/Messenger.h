@@ -194,7 +194,8 @@ class Messenger {
   static bool SetTransactionReceipt(
       zbytes& dst, const unsigned int offset,
       const TransactionReceipt& transactionReceipt);
-  static bool GetTransactionReceipt(const zbytes& src, const unsigned int offset,
+  static bool GetTransactionReceipt(const zbytes& src,
+                                    const unsigned int offset,
                                     TransactionReceipt& transactionReceipt);
   static bool GetTransactionReceipt(const std::string& src,
                                     const unsigned int offset,
@@ -293,8 +294,9 @@ class Messenger {
       std::vector<DSPowSolution>& dsPowSolutions, PubKey& pubKey);
 
   static bool SetDSMicroBlockSubmission(
-      zbytes& dst, const unsigned int offset, const unsigned char microBlockType,
-      const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
+      zbytes& dst, const unsigned int offset,
+      const unsigned char microBlockType, const uint64_t epochNumber,
+      const std::vector<MicroBlock>& microBlocks,
       const std::vector<zbytes>& stateDeltas, const PairOfKey& keys);
   static bool GetDSMicroBlockSubmission(const zbytes& src,
                                         const unsigned int offset,
@@ -448,7 +450,8 @@ class Messenger {
   static bool ShardStructureToArray(zbytes& dst, const unsigned int offset,
                                     const uint32_t& version,
                                     const DequeOfShard& shards);
-  static bool ArrayToShardStructure(const zbytes& src, const unsigned int offset,
+  static bool ArrayToShardStructure(const zbytes& src,
+                                    const unsigned int offset,
                                     uint32_t& version, DequeOfShard& shards);
 
   static bool SetNodeMissingTxnsErrorMsg(
@@ -476,12 +479,14 @@ class Messenger {
 
   static bool SetLookupGetSeedPeers(zbytes& dst, const unsigned int offset,
                                     const uint32_t listenPort);
-  static bool GetLookupGetSeedPeers(const zbytes& src, const unsigned int offset,
+  static bool GetLookupGetSeedPeers(const zbytes& src,
+                                    const unsigned int offset,
                                     uint32_t& listenPort);
   static bool SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
                                     const PairOfKey& lookupKey,
                                     const VectorOfPeer& candidateSeeds);
-  static bool GetLookupSetSeedPeers(const zbytes& src, const unsigned int offset,
+  static bool GetLookupSetSeedPeers(const zbytes& src,
+                                    const unsigned int offset,
                                     PubKey& lookupPubKey,
                                     VectorOfPeer& candidateSeeds);
   static bool SetLookupGetDSInfoFromSeed(zbytes& dst, const unsigned int offset,
@@ -500,7 +505,8 @@ class Messenger {
                                          PubKey& senderPubKey,
                                          uint32_t& dsCommitteeVersion,
                                          DequeOfNode& dsNodes, bool& initialDS);
-  static bool SetLookupGetDSBlockFromSeed(zbytes& dst, const unsigned int offset,
+  static bool SetLookupGetDSBlockFromSeed(zbytes& dst,
+                                          const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
                                           const uint32_t listenPort,
@@ -508,7 +514,8 @@ class Messenger {
   static bool GetLookupGetDSBlockFromSeed(
       const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
       uint64_t& highBlockNum, uint32_t& listenPort, bool& includeMinerInfo);
-  static bool SetLookupSetDSBlockFromSeed(zbytes& dst, const unsigned int offset,
+  static bool SetLookupSetDSBlockFromSeed(zbytes& dst,
+                                          const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
                                           const PairOfKey& lookupKey,
@@ -527,7 +534,8 @@ class Messenger {
       const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
       std::map<uint64_t, std::pair<MinerInfoDSComm, MinerInfoShards>>&
           minerInfoPerDS);
-  static bool SetLookupGetTxBlockFromSeed(zbytes& dst, const unsigned int offset,
+  static bool SetLookupGetTxBlockFromSeed(zbytes& dst,
+                                          const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
                                           const uint32_t listenPort);
@@ -569,7 +577,8 @@ class Messenger {
                                             uint64_t& blockNum,
                                             uint32_t& shardId, Peer& from,
                                             PubKey& senderPubKey);
-  static bool SetLookupSetTxBlockFromSeed(zbytes& dst, const unsigned int offset,
+  static bool SetLookupSetTxBlockFromSeed(zbytes& dst,
+                                          const unsigned int offset,
                                           const uint64_t lowBlockNum,
                                           const uint64_t highBlockNum,
                                           const PairOfKey& lookupKey,

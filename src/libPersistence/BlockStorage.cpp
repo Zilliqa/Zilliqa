@@ -226,8 +226,8 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   if (blockString.empty()) {
     return false;
   }
-  microblock =
-      make_shared<MicroBlock>(zbytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>(
+      zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -251,8 +251,8 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
   if (blockString.empty()) {
     return false;
   }
-  microblock =
-      make_shared<MicroBlock>(zbytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>(
+      zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -458,8 +458,8 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   // LOG_GENERAL(INFO, blockString);
   // LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
-  if (!Messenger::GetBlockLink(zbytes(blockString.begin(), blockString.end()), 0,
-                               blnk)) {
+  if (!Messenger::GetBlockLink(zbytes(blockString.begin(), blockString.end()),
+                               0, blnk)) {
     LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
@@ -1469,8 +1469,8 @@ bool BlockStorage::GetMinerInfoDSComm(const uint64_t& dsBlockNum,
     dataStr = m_minerInfoDSCommDB->Lookup(dsBlockNum, found);
   }
   if (found) {
-    if (!Messenger::GetMinerInfoDSComm(zbytes(dataStr.begin(), dataStr.end()), 0,
-                                       entry)) {
+    if (!Messenger::GetMinerInfoDSComm(zbytes(dataStr.begin(), dataStr.end()),
+                                       0, entry)) {
       LOG_GENERAL(WARNING, "Messenger::GetMinerInfoDSComm failed");
       found = false;
     }
@@ -1511,8 +1511,8 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
     dataStr = m_minerInfoShardsDB->Lookup(dsBlockNum, found);
   }
   if (found) {
-    if (!Messenger::GetMinerInfoShards(zbytes(dataStr.begin(), dataStr.end()), 0,
-                                       entry)) {
+    if (!Messenger::GetMinerInfoShards(zbytes(dataStr.begin(), dataStr.end()),
+                                       0, entry)) {
       LOG_GENERAL(WARNING, "Messenger::GetMinerInfoShards failed");
       found = false;
     }

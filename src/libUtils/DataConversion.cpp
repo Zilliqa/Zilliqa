@@ -112,8 +112,9 @@ bool DataConversion::StringToHexStr(const string& hex_str, string& str) {
   return true;
 }
 
-bool DataConversion::Uint8VecToHexStr(const zbytes& hex_vec, unsigned int offset,
-                                      unsigned int len, string& str) {
+bool DataConversion::Uint8VecToHexStr(const zbytes& hex_vec,
+                                      unsigned int offset, unsigned int len,
+                                      string& str) {
   try {
     str = "";
     boost::algorithm::hex(hex_vec.begin() + offset,

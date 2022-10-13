@@ -2950,7 +2950,8 @@ bool Messenger::SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMicroBlockHeader(const zbytes& src, const unsigned int offset,
+bool Messenger::GetMicroBlockHeader(const zbytes& src,
+                                    const unsigned int offset,
                                     MicroBlockHeader& microBlockHeader) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3379,7 +3380,8 @@ bool Messenger::SetTransactionArray(zbytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionArray(const zbytes& src, const unsigned int offset,
+bool Messenger::GetTransactionArray(const zbytes& src,
+                                    const unsigned int offset,
                                     std::vector<Transaction>& txns) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3716,7 +3718,8 @@ bool Messenger::GetDiagnosticDataNodes(const zbytes& src,
                                dsCommittee);
 }
 
-bool Messenger::SetDiagnosticDataCoinbase(zbytes& dst, const unsigned int offset,
+bool Messenger::SetDiagnosticDataCoinbase(zbytes& dst,
+                                          const unsigned int offset,
                                           const DiagnosticDataCoinbase& entry) {
   ProtoDiagnosticDataCoinbase result;
 
@@ -4119,12 +4122,10 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
   return true;
 }
 
-bool Messenger::SetDSMicroBlockSubmission(zbytes& dst, const unsigned int offset,
-                                          const unsigned char microBlockType,
-                                          const uint64_t epochNumber,
-                                          const vector<MicroBlock>& microBlocks,
-                                          const vector<zbytes>& stateDeltas,
-                                          const PairOfKey& keys) {
+bool Messenger::SetDSMicroBlockSubmission(
+    zbytes& dst, const unsigned int offset, const unsigned char microBlockType,
+    const uint64_t epochNumber, const vector<MicroBlock>& microBlocks,
+    const vector<zbytes>& stateDeltas, const PairOfKey& keys) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
@@ -4216,8 +4217,8 @@ bool Messenger::GetDSMicroBlockSubmission(
 
 bool Messenger::SetDSDSBlockAnnouncement(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, const DSBlock& dsBlock,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
     const MapOfPubKeyPoW& dsWinnerPoWs, zbytes& messageToCosign) {
   LOG_MARKER();
@@ -4280,9 +4281,9 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
 bool Messenger::GetDSDSBlockAnnouncement(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
-    MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
+    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
     zbytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4378,8 +4379,8 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
 bool Messenger::SetDSFinalBlockAnnouncement(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, const TxBlock& txBlock,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey, const TxBlock& txBlock,
     const shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4424,8 +4425,8 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 
 bool Messenger::GetDSFinalBlockAnnouncement(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, TxBlock& txBlock,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
     shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4484,8 +4485,8 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
 bool Messenger::SetDSVCBlockAnnouncement(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, const VCBlock& vcBlock,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey, const VCBlock& vcBlock,
     zbytes& messageToCosign) {
   LOG_MARKER();
 
@@ -4525,8 +4526,9 @@ bool Messenger::SetDSVCBlockAnnouncement(
 
 bool Messenger::GetDSVCBlockAnnouncement(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, VCBlock& vcBlock, zbytes& messageToCosign) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4726,7 +4728,8 @@ bool Messenger::SetNodeVCFinalBlock(zbytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCFinalBlock(const zbytes& src, const unsigned int offset,
+bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
+                                    const unsigned int offset,
                                     uint64_t& dsBlockNumber,
                                     uint32_t& consensusID, TxBlock& txBlock,
                                     zbytes& stateDelta,
@@ -5226,9 +5229,9 @@ bool Messenger::GetNodeForwardTxnBlock(
 
 bool Messenger::SetNodeMicroBlockAnnouncement(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, const MicroBlock& microBlock,
-    zbytes& messageToCosign) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey,
+    const MicroBlock& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -5267,8 +5270,9 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
 
 bool Messenger::GetNodeMicroBlockAnnouncement(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, MicroBlock& microBlock, zbytes& messageToCosign) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, MicroBlock& microBlock,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6739,7 +6743,8 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupSetLookupOffline(zbytes& dst, const unsigned int offset,
+bool Messenger::SetLookupSetLookupOffline(zbytes& dst,
+                                          const unsigned int offset,
                                           const uint8_t msgType,
                                           const uint32_t listenPort,
                                           const PairOfKey& lookupKey) {
@@ -7802,10 +7807,13 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
 // Consensus messages
 // ============================================================================
 
-bool Messenger::SetConsensusCommit(
-    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t backupID,
-    const vector<CommitInfo>& commitInfo, const PairOfKey& backupKey) {
+bool Messenger::SetConsensusCommit(zbytes& dst, const unsigned int offset,
+                                   const uint32_t consensusID,
+                                   const uint64_t blockNumber,
+                                   const zbytes& blockHash,
+                                   const uint16_t backupID,
+                                   const vector<CommitInfo>& commitInfo,
+                                   const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -7947,8 +7955,9 @@ bool Messenger::GetConsensusCommit(const zbytes& src, const unsigned int offset,
 
 bool Messenger::SetConsensusChallenge(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const vector<ChallengeSubsetInfo>& subsetInfo, const PairOfKey& leaderKey) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const vector<ChallengeSubsetInfo>& subsetInfo,
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -7998,8 +8007,9 @@ bool Messenger::SetConsensusChallenge(
 
 bool Messenger::GetConsensusChallenge(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    vector<ChallengeSubsetInfo>& subsetInfo, const PubKey& leaderKey) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, vector<ChallengeSubsetInfo>& subsetInfo,
+    const PubKey& leaderKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -8090,8 +8100,9 @@ bool Messenger::GetConsensusChallenge(
 
 bool Messenger::SetConsensusResponse(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t backupID,
-    const vector<ResponseSubsetInfo>& subsetInfo, const PairOfKey& backupKey) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t backupID, const vector<ResponseSubsetInfo>& subsetInfo,
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -8228,9 +8239,10 @@ bool Messenger::GetConsensusResponse(
 
 bool Messenger::SetConsensusCollectiveSig(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const Signature& collectiveSig, const vector<bool>& bitmap,
-    const PairOfKey& leaderKey, const zbytes& newAnnouncementMessage) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const Signature& collectiveSig,
+    const vector<bool>& bitmap, const PairOfKey& leaderKey,
+    const zbytes& newAnnouncementMessage) {
   LOG_MARKER();
 
   ConsensusCollectiveSig result;
@@ -8289,9 +8301,9 @@ bool Messenger::SetConsensusCollectiveSig(
 
 bool Messenger::GetConsensusCollectiveSig(
     const zbytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    vector<bool>& bitmap, Signature& collectiveSig, const PubKey& leaderKey,
-    zbytes& newAnnouncement) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, vector<bool>& bitmap, Signature& collectiveSig,
+    const PubKey& leaderKey, zbytes& newAnnouncement) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -8394,8 +8406,9 @@ bool Messenger::GetConsensusCollectiveSig(
 
 bool Messenger::SetConsensusCommitFailure(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t backupID,
-    const zbytes& errorMsg, const PairOfKey& backupKey) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t backupID, const zbytes& errorMsg,
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommitFailure result;
@@ -8524,8 +8537,8 @@ bool Messenger::GetConsensusCommitFailure(
 
 bool Messenger::SetConsensusConsensusFailure(
     zbytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey) {
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusConsensusFailure result;

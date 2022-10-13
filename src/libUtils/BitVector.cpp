@@ -29,7 +29,8 @@ unsigned int BitVector::GetBitVectorSerializedSize(
   return 2 + GetBitVectorLengthInBytes(length_in_bits);
 }
 
-std::vector<bool> BitVector::GetBitVector(const zbytes& src, unsigned int offset,
+std::vector<bool> BitVector::GetBitVector(const zbytes& src,
+                                          unsigned int offset,
                                           unsigned int expected_length) {
   std::vector<bool> result;
   unsigned int actual_length = 0;

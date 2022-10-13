@@ -121,7 +121,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
   // ===============
 
   zbytes commit = {m_classByte, m_insByte,
-                  static_cast<uint8_t>(ConsensusMessageType::COMMIT)};
+                   static_cast<uint8_t>(ConsensusMessageType::COMMIT)};
 
   bool result =
       GenerateCommitMessage(commit, MessageOffset::BODY + sizeof(uint8_t));
@@ -269,7 +269,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   // =================
 
   zbytes response = {m_classByte, m_insByte,
-                    static_cast<uint8_t>(returnmsgtype)};
+                     static_cast<uint8_t>(returnmsgtype)};
   if (GenerateResponseMessage(response, MessageOffset::BODY + sizeof(uint8_t),
                               responseSubsetInfo)) {
     // Update internal state

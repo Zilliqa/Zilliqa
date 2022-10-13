@@ -179,7 +179,8 @@ uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
 }
 
 // Return the _amount in message.json. Remove _amount, _sender and _origin.
-uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, zbytes &data) {
+uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message,
+                                            zbytes &data) {
   LOG_GENERAL(INFO, JSONUtils::GetInstance().convertJsontoStr(message));
   uint64_t amount;
   try {

@@ -144,15 +144,15 @@ class Lookup : public Executable {
   zbytes ComposeGetDSInfoMessage(bool initialDS = false);
 
   zbytes ComposeGetDSBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum,
-                                 const bool includeMinerInfo = false);
+                                  const bool includeMinerInfo = false);
   zbytes ComposeGetDSBlockMessageForL2l(uint64_t blockNum);
   zbytes ComposeGetVCFinalBlockMessageForL2l(uint64_t blockNum);
   zbytes ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
-                                             uint32_t shardId);
+                                              uint32_t shardId);
   zbytes ComposeGetTxBlockMessage(uint64_t lowBlockNum, uint64_t highBlockNum);
   zbytes ComposeGetStateDeltaMessage(uint64_t blockNum);
   zbytes ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
-                                     uint64_t highBlockNum);
+                                      uint64_t highBlockNum);
 
   zbytes ComposeGetLookupOfflineMessage();
   zbytes ComposeGetLookupOnlineMessage();
@@ -272,8 +272,8 @@ class Lookup : public Executable {
   bool ProcessGetVCFinalBlockFromL2l(const zbytes& message, unsigned int offset,
                                      const Peer& from,
                                      const unsigned char& startByte);
-  bool ProcessGetMBnForwardTxnFromL2l(const zbytes& message, unsigned int offset,
-                                      const Peer& from,
+  bool ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
+                                      unsigned int offset, const Peer& from,
                                       const unsigned char& startByte);
 
   // Get the offline lookup nodes from lookup nodes
@@ -363,8 +363,8 @@ class Lookup : public Executable {
 
   void SendGetMicroBlockFromL2l(const std::vector<BlockHash>& mbHashes);
 
-  bool ProcessGetMicroBlockFromLookup(const zbytes& message, unsigned int offset,
-                                      const Peer& from,
+  bool ProcessGetMicroBlockFromLookup(const zbytes& message,
+                                      unsigned int offset, const Peer& from,
                                       const unsigned char& startByte);
 
   bool ProcessGetMicroBlockFromL2l(const zbytes& message, unsigned int offset,

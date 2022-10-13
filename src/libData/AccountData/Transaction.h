@@ -83,7 +83,8 @@ class Transaction : public SerializableDataBlock {
               const uint64_t& nonce, const Address& toAddr,
               const PubKey& senderPubKey, const uint128_t& amount,
               const uint128_t& gasPrice, const uint64_t& gasLimit,
-              const zbytes& code, const zbytes& data, const Signature& signature);
+              const zbytes& code, const zbytes& data,
+              const Signature& signature);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,

@@ -255,7 +255,8 @@ bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
   return true;
 }
 
-bool AccountStore::DeserializeDeltaTemp(const zbytes& src, unsigned int offset) {
+bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
+                                        unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }

@@ -594,7 +594,8 @@ bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
 }
 
 bool Node::ProcessVCFinalBlockCore(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
   uint64_t dsBlockNumber = 0;
@@ -691,7 +692,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
       // Avoid using the original message in case it contains
       // excess data beyond the FINALBLOCK
       zbytes vc_fb_message = {MessageType::NODE,
-                             NodeInstructionType::VCFINALBLOCK};
+                              NodeInstructionType::VCFINALBLOCK};
       /*
         Check if the VCBlock exist in local store for key:
         txBlock.GetHeader().GetBlockNum()
@@ -1595,7 +1596,7 @@ bool Node::SendPendingTxnToLookup() {
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   zbytes pend_txns_message = {MessageType::NODE,
-                             NodeInstructionType::PENDINGTXN};
+                              NodeInstructionType::PENDINGTXN};
   if (!Messenger::SetNodePendingTxn(pend_txns_message, MessageOffset::BODY,
                                     blocknum, pendingTxns, m_myshardId,
                                     m_mediator.m_selfKey)) {
@@ -1674,7 +1675,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
 
     // Microblock and Transaction body sharing
     zbytes mb_txns_message = {MessageType::NODE,
-                             NodeInstructionType::MBNFORWARDTRANSACTION};
+                              NodeInstructionType::MBNFORWARDTRANSACTION};
 
     if (!Messenger::SetNodeMBnForwardTransaction(
             mb_txns_message, MessageOffset::BODY, entry.m_microBlock,

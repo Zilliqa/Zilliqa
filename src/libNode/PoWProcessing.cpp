@@ -338,7 +338,8 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  zbytes powmessage = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+  zbytes powmessage = {MessageType::DIRECTORY,
+                       DSInstructionType::POWSUBMISSION};
 
   if (!Messenger::SetDSPoWSubmission(
           powmessage, MessageOffset::BODY, block_num, difficultyLevel,

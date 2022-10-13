@@ -136,8 +136,9 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool IsReservedVName(const std::string& name);
 
   bool FetchStateValue(const dev::h160& addr, const zbytes& src,
-                       unsigned int s_offset, zbytes& dst, unsigned int d_offset,
-                       bool& foundVal, bool getType = false,
+                       unsigned int s_offset, zbytes& dst,
+                       unsigned int d_offset, bool& foundVal,
+                       bool getType = false,
                        std::string& type = type_placeholder);
 
   bool FetchStateValue(const dev::h160& addr, const ProtoScillaQuery& query,

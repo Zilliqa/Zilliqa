@@ -1145,10 +1145,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 }
 
 bool DirectoryService::DSBlockValidator(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] zbytes& errorMsg,
-    const uint32_t consensusID, const uint64_t blockNumber,
-    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    zbytes& messageToCosign) {
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] zbytes& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {

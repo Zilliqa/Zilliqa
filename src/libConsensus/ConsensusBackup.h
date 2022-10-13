@@ -65,8 +65,9 @@ class ConsensusBackup : public ConsensusCommon {
   bool ProcessMessageAnnounce(const zbytes& announcement, unsigned int offset);
   bool GenerateCommitFailureMessage(zbytes& commitFailure, unsigned int offset,
                                     const zbytes& errorMsg);
-  bool ProcessMessageConsensusFailure([[gnu::unused]] const zbytes& announcement,
-                                      [[gnu::unused]] unsigned int offset);
+  bool ProcessMessageConsensusFailure(
+      [[gnu::unused]] const zbytes& announcement,
+      [[gnu::unused]] unsigned int offset);
   bool GenerateCommitMessage(zbytes& commit, unsigned int offset);
   bool ProcessMessageChallengeCore(const zbytes& challenge, unsigned int offset,
                                    Action action,
@@ -89,8 +90,8 @@ class ConsensusBackup : public ConsensusCommon {
  public:
   /// Constructor.
   ConsensusBackup(
-      uint32_t consensus_id,    // unique identifier for this consensus session
-      uint64_t block_number,    // latest final block number
+      uint32_t consensus_id,     // unique identifier for this consensus session
+      uint64_t block_number,     // latest final block number
       const zbytes& block_hash,  // unique identifier for this consensus session
       uint16_t node_id,  // backup's identifier (= index in some ordered lookup
                          // table shared by all nodes)

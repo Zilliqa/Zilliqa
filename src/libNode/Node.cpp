@@ -1547,7 +1547,8 @@ bool Node::ProcessSubmitMissingTxn(const zbytes& message, unsigned int offset,
 }
 
 bool Node::ProcessSubmitTransaction(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -2346,7 +2347,7 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     return false;
   }
   zbytes message = {MessageType::NODE,
-                   NodeInstructionType::REMOVENODEFROMBLACKLIST};
+                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
 
   uint64_t curDSEpochNo =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
@@ -2788,7 +2789,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 }
 
 bool Node::ProcessDSGuardNetworkInfoUpdate(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(

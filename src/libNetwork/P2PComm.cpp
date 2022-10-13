@@ -411,7 +411,7 @@ void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
 
 void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
   zbytes msg_hash(message.begin() + HDR_LEN,
-                 message.begin() + HDR_LEN + HASH_LEN);
+                  message.begin() + HDR_LEN + HASH_LEN);
 
   P2PComm& p2p = P2PComm::GetInstance();
 
@@ -492,8 +492,8 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
     if (p2p.SpreadForeignRumor(rumor_message)) {
       // skip the keys and signature.
       zbytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
-                    SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
-                rumor_message.end());
+                     SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
+                 rumor_message.end());
       std::pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
           new pair<zbytes, std::pair<Peer, const unsigned char>>(
               tmp, make_pair(from, START_BYTE_GOSSIP));

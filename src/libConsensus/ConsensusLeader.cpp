@@ -456,9 +456,8 @@ bool ConsensusLeader::ProcessMessageCommit(const zbytes& commit,
                                   CHALLENGE_DONE, from);
 }
 
-bool ConsensusLeader::ProcessMessageCommitFailure(const zbytes& commitFailureMsg,
-                                                  unsigned int offset,
-                                                  const Peer& from) {
+bool ConsensusLeader::ProcessMessageCommitFailure(
+    const zbytes& commitFailureMsg, unsigned int offset, const Peer& from) {
   LOG_MARKER();
 
   if (!CheckState(PROCESS_COMMITFAILURE)) {
@@ -696,7 +695,7 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       LOG_GENERAL(INFO, "[Subset " << subsetID << "] Sufficient responses");
 
       zbytes collectivesig = {m_classByte, m_insByte,
-                             static_cast<uint8_t>(returnmsgtype)};
+                              static_cast<uint8_t>(returnmsgtype)};
       if (!GenerateCollectiveSigMessage(
               collectivesig, MessageOffset::BODY + sizeof(uint8_t), subsetID)) {
         LOG_GENERAL(WARNING, "GenerateCollectiveSigMessage failed");
@@ -970,7 +969,7 @@ bool ConsensusLeader::StartConsensus(
   // Assemble announcement message body
   // ==================================
   zbytes announcement_message = {m_classByte, m_insByte,
-                                ConsensusMessageType::ANNOUNCE};
+                                 ConsensusMessageType::ANNOUNCE};
 
   if (!announcementGeneratorFunc(
           announcement_message, MessageOffset::BODY + sizeof(uint8_t),

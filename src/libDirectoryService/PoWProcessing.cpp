@@ -44,7 +44,7 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
   LOG_MARKER();
 
   zbytes powpacketmessage = {MessageType::DIRECTORY,
-                            DSInstructionType::POWPACKETSUBMISSION};
+                             DSInstructionType::POWPACKETSUBMISSION};
 
   std::unique_lock<std::mutex> lk(m_mutexPowSolution);
 
@@ -84,7 +84,8 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
 }
 
 bool DirectoryService::ProcessPoWPacketSubmission(
-    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {

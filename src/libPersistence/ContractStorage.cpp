@@ -155,9 +155,10 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr, const zbytes& src,
 }
 
 bool ContractStorage::FetchStateValue(const dev::h160& addr,
-                                      const ProtoScillaQuery& query, zbytes& dst,
-                                      unsigned int d_offset, bool& foundVal,
-                                      bool getType, string& type) {
+                                      const ProtoScillaQuery& query,
+                                      zbytes& dst, unsigned int d_offset,
+                                      bool& foundVal, bool getType,
+                                      string& type) {
   if (LOG_SC) {
     LOG_MARKER();
   }
@@ -880,7 +881,7 @@ void ContractStorage::FetchUpdatedStateValuesForAddress(
            it->Next()) {
         if (t_states.find(it->key().ToString()) == t_states.end()) {
           zbytes val(it->value().data(),
-                    it->value().data() + it->value().size());
+                     it->value().data() + it->value().size());
           t_states.emplace(it->key().ToString(), val);
         }
       }
