@@ -17,18 +17,17 @@
 
 #include "EvmClient.h"
 #include <boost/filesystem.hpp>
-#include <boost/range/iterator_range.hpp>
+#include <boost/process/args.hpp>
+#include <boost/process/child.hpp>
 #include <thread>
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/SysCommand.h"
 
 /* EvmClient Init */
 void EvmClient::Init() {
   LOG_MARKER();
 
-  CheckClient(0, false);
+  ConnectClient(0, false);
 }
 
 EvmClient::~EvmClient() {
@@ -40,16 +39,12 @@ EvmClient::~EvmClient() {
     const auto oldJson = m_clients.at(0)->CallMethod("die", _json);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Caught an exception calling die " << e.what());
-    std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
-    LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
-
     try {
-      if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+      if (m_child.running()) {
+        m_child.terminate();
       }
     } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING,
-                  "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+      LOG_GENERAL(WARNING, "Exception caught terminating child " << e.what());
     }
   } catch (...) {
     LOG_GENERAL(WARNING, "Unknown error encountered");
@@ -58,51 +53,46 @@ EvmClient::~EvmClient() {
 
 bool EvmClient::OpenServer(uint32_t version) {
   LOG_MARKER();
+  boost::filesystem::path p(EVM_SERVER_BINARY);
 
-  const std::string programName =
-      boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  const std::string cmdStr =
-      "pkill " + programName + " ; " + EVM_SERVER_BINARY +                 //
-      " --socket " + EVM_SERVER_SOCKET_PATH +                              //
-      " --tracing " +                                                      //
-      " --zil-scaling-factor " + std::to_string(EVM_ZIL_SCALING_FACTOR) +  //
-      " --log4rs '" + EVM_LOG_CONFIG +                                     //
-      "'>/dev/null &";
+  LOG_GENERAL(INFO, "OpenServer for EVM " << p << " version " << version);
 
-  LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
-
-  try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-      return false;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
-    return false;
-  } catch (...) {
-    LOG_GENERAL(WARNING, "Unknown error encountered");
+  if (not boost::filesystem::exists(p)) {
+    LOG_GENERAL(INFO, "Cannot create a subprocess that does not exist " +
+                          EVM_SERVER_BINARY);
     return false;
   }
 
-  LOG_GENERAL(WARNING, "Executed: " << cmdStr << "on " << version);
+  const std::vector<std::string> args = {"--socket",
+                                         EVM_SERVER_SOCKET_PATH,
+                                         "--tracing",
+                                         "--zil-scaling-factor",
+                                         std::to_string(EVM_ZIL_SCALING_FACTOR),
+                                         "--log4rs",
+                                         EVM_LOG_CONFIG};
 
-  // Sleep an extra 5x because of very slow networks on Devnet
-
-  std::this_thread::sleep_for(
-      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS * 5));
-
+  try {
+    boost::process::child c(p, boost::process::args(args));
+    LOG_GENERAL(INFO, "child created ");
+    m_child = std::move(c);
+  } catch (std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
+    return false;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
+    return false;
+  }
   return true;
 }
 
-bool EvmClient::CheckClient(uint32_t version, bool enforce) {
+bool EvmClient::ConnectClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
   if (m_clients.find(version) != m_clients.end() && !enforce) {
     return true;
   }
 
-  if (!OpenServer(enforce)) {
+  if (!OpenServer(version)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
@@ -129,8 +119,8 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   version = 0;
 
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
+  if (!ConnectClient(version)) {
+    LOG_GENERAL(WARNING, "ConnectClient failed");
     return false;
   }
 
@@ -158,8 +148,16 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                 "restart "
                     << e.what());
 
-    if (!CheckClient(version, true)) {
-      LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+    try {
+      if (m_child.running()) {
+        m_child.terminate();
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught terminating child " << e.what());
+    }
+
+    if (!ConnectClient(version, true)) {
+      LOG_GENERAL(WARNING, "ConnectClient for version " << version << "failed");
       return CallRunner(version, _json, result, counter - 1);
     } else {
       result.SetSuccess(false);
