@@ -17,21 +17,17 @@
 
 #include "EvmClient.h"
 #include <boost/filesystem.hpp>
-#include <boost/process.hpp>
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
-#include <boost/range/iterator_range.hpp>
 #include <thread>
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/SysCommand.h"
 
 /* EvmClient Init */
 void EvmClient::Init() {
   LOG_MARKER();
 
-  CheckClient(0, false);
+  ConnectClient(0, false);
 }
 
 EvmClient::~EvmClient() {
@@ -48,7 +44,7 @@ EvmClient::~EvmClient() {
         m_child.terminate();
       }
     } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING,"Exception caught terminating child " << e.what());
+      LOG_GENERAL(WARNING, "Exception caught terminating child " << e.what());
     }
   } catch (...) {
     LOG_GENERAL(WARNING, "Unknown error encountered");
@@ -59,10 +55,11 @@ bool EvmClient::OpenServer(uint32_t version) {
   LOG_MARKER();
   boost::filesystem::path p(EVM_SERVER_BINARY);
 
-  LOG_GENERAL(INFO, "OpenServer for EVM " << p);
+  LOG_GENERAL(INFO, "OpenServer for EVM " << p << " version " << version);
 
   if (not boost::filesystem::exists(p)) {
-    LOG_GENERAL(INFO, "Cannot create a subprocess that does not exist " + EVM_SERVER_BINARY);
+    LOG_GENERAL(INFO, "Cannot create a subprocess that does not exist " +
+                          EVM_SERVER_BINARY);
     return false;
   }
 
@@ -76,7 +73,7 @@ bool EvmClient::OpenServer(uint32_t version) {
 
   try {
     boost::process::child c(p, boost::process::args(args));
-    LOG_GENERAL(INFO, "child created " );
+    LOG_GENERAL(INFO, "child created ");
     m_child = std::move(c);
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
@@ -88,14 +85,14 @@ bool EvmClient::OpenServer(uint32_t version) {
   return true;
 }
 
-bool EvmClient::CheckClient(uint32_t version, bool enforce) {
+bool EvmClient::ConnectClient(uint32_t version, bool enforce) {
   std::lock_guard<std::mutex> g(m_mutexMain);
 
   if (m_clients.find(version) != m_clients.end() && !enforce) {
     return true;
   }
 
-  if (!OpenServer(enforce)) {
+  if (!OpenServer(version)) {
     LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
     return false;
   }
@@ -122,8 +119,8 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
 
   version = 0;
 
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
+  if (!ConnectClient(version)) {
+    LOG_GENERAL(WARNING, "ConnectClient failed");
     return false;
   }
 
@@ -151,8 +148,16 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                 "restart "
                     << e.what());
 
-    if (!CheckClient(version, true)) {
-      LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+    try {
+      if (m_child.running()) {
+        m_child.terminate();
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception caught terminating child " << e.what());
+    }
+
+    if (!ConnectClient(version, true)) {
+      LOG_GENERAL(WARNING, "ConnectClient for version " << version << "failed");
       return CallRunner(version, _json, result, counter - 1);
     } else {
       result.SetSuccess(false);

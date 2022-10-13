@@ -42,7 +42,7 @@ class EvmClient : public Singleton<EvmClient> {
 
   void Init();
 
-  bool CheckClient(uint32_t version,
+  bool ConnectClient(uint32_t version,
                    __attribute__((unused)) bool enforce = false);
 
   virtual bool CallRunner(uint32_t version, const Json::Value& _json,
