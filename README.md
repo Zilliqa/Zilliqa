@@ -112,7 +112,7 @@ To install, clone vcpkg to a separate location (do not use brew on macos):
 
 ```shell
 $ git clone https://github.com/Microsoft/vcpkg.git /path/to/vcpkg
-$ cd /path/to/vcpkg && git fetch && git checkout 2022.09.27 && ./bootstrap-vcpkg.sh
+$ cd /path/to/vcpkg && git checkout 2022.09.27 && ./bootstrap-vcpkg.sh
 $ cd /path/to/zilliqa
 $ export VCPKG_ROOT=/path/to/vcpkg
 ```
