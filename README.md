@@ -117,7 +117,6 @@ $ cd /path/to/zilliqa
 $ export VCPKG_ROOT=/path/to/vcpkg
 ```
 
-Ensure your envoronment variables $CC and $CXX point to your compiler
 
 Build Zilliqa from the source:
 
