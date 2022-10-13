@@ -1,5 +1,6 @@
 #add_subdirectory (Consensus)
 #add_subdirectory (Contracts)
+add_subdirectory(setup)
 add_subdirectory (cmd)
 add_subdirectory (Data)
 add_subdirectory (Directory)
