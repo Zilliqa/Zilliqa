@@ -117,7 +117,7 @@ class IsolatedServer : public LookupServer,
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
   std::string CreateTransactionEth(Eth::EthFields const& fields,
-                                   bytes const& pubKey);
+                                   zbytes const& pubKey);
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
                               std::string const& blockNum);

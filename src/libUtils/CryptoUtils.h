@@ -24,11 +24,11 @@
 
 namespace CryptoUtils {
 Address GetAddressFromPubKey(const PubKey& pubKey) {
-  bytes addr_ser;
+  zbytes addr_ser;
   pubKey.Serialize(addr_ser, 0);
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(addr_ser, 0, PUB_KEY_SIZE);
-  const bytes& tmp = sha2.Finalize();
+  const zbytes& tmp = sha2.Finalize();
   Address ret;
   copy(tmp.end() - ACC_ADDR_SIZE, tmp.end(), ret.asArray().begin());
   return ret;

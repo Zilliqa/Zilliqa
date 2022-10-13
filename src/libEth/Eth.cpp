@@ -74,7 +74,7 @@ Json::Value populateReceiptHelper(
 EthFields parseRawTxFields(std::string const &message) {
   EthFields ret;
 
-  bytes asBytes;
+  zbytes asBytes;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes,
@@ -92,7 +92,7 @@ EthFields parseRawTxFields(std::string const &message) {
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
-    auto byteIt = (*it).operator bytes();
+    auto byteIt = (*it).operator zbytes();
 
     switch (i) {
       case 0:
@@ -117,12 +117,12 @@ EthFields parseRawTxFields(std::string const &message) {
         break;
       case 7:  // R
       {
-        bytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(*it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       case 8:  // S
       {
-        bytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(*it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       default:

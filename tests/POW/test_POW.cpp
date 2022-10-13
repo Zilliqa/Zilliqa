@@ -40,7 +40,7 @@
 
 using namespace std;
 using zbyte = uint8_t;
-using bytes = std::vector<zbyte>;
+using zbytes = std::vector<zbyte>;
 
 static constexpr uint64_t ETHASH_DATASET_BYTES_INIT = 1073741824U;  // 2**30
 static constexpr uint64_t ETHASH_MIX_BYTES = 128;
@@ -73,7 +73,7 @@ int fromHex(char _i) {
   return -1;
 }
 
-bytes hexStringToBytes(std::string const& _s) {
+zbytes hexStringToBytes(std::string const& _s) {
   unsigned s = (_s[0] == '0' && _s[1] == 'x') ? 2 : 0;
   std::vector<uint8_t> ret;
   ret.reserve((_s.size() - s + 1) / 2);

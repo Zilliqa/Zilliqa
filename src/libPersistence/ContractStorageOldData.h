@@ -93,7 +93,7 @@ struct RecordableAddDeleteMap : public AddDeleteMap<ADDS, DELETES> {
       if (found == DELETED) {
         r_deletes.emplace(_h);
       } else {
-        bytes r_val;
+        zbytes r_val;
         if (found == FOUND) {
           r_val = DataConversion::StringToCharArray(
               AddDeleteMap<ADDS, DELETES>::lookup(_h));

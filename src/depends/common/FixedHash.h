@@ -82,7 +82,7 @@ namespace dev
         explicit FixedHash(unsigned _u) { toBigEndian(_u, m_data); }
 
         /// Explicitly construct, copying from a byte array.
-        explicit FixedHash(bytes const& _b, ConstructFromHashType _t = FailIfDifferent) 
+        explicit FixedHash(zbytes const& _b, ConstructFromHashType _t = FailIfDifferent) 
         { 
             if (_b.size() == N)
             { 
@@ -173,7 +173,7 @@ namespace dev
         auto end() const -> typename std::array<zbyte, N>::const_iterator { return m_data.end(); }
 
         /// @returns a copy of the object's data as a byte vector.
-        bytes asBytes() const { return bytes(data(), data() + N); }
+        zbytes asBytes() const { return zbytes(data(), data() + N); }
 
         /// @returns a mutable reference to the object's data as an STL array.
         std::array<zbyte, N>& asArray() { return m_data; }
@@ -278,13 +278,13 @@ namespace dev
         using ConstructFromPointerType = typename FixedHash<T>::ConstructFromPointerType;
         SecureFixedHash() = default;
         SecureFixedHash(SecureFixedHash const&) = default;
-        explicit SecureFixedHash(bytes const& _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
+        explicit SecureFixedHash(zbytes const& _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
         explicit SecureFixedHash(bytesConstRef _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
         explicit SecureFixedHash(bytesSec const& _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b.ref(), _t) {}
         template <unsigned M> explicit SecureFixedHash(FixedHash<M> const& _h, ConstructFromHashType _t = FixedHash<T>::AlignLeft): FixedHash<T>(_h, _t) {}
         template <unsigned M> explicit SecureFixedHash(SecureFixedHash<M> const& _h, ConstructFromHashType _t = FixedHash<T>::AlignLeft): FixedHash<T>(_h.makeInsecure(), _t) {}
         explicit SecureFixedHash(std::string const& _s, ConstructFromStringType _t = FixedHash<T>::FromHex, ConstructFromHashType _ht = FixedHash<T>::FailIfDifferent): FixedHash<T>(_s, _t, _ht) {}
-        explicit SecureFixedHash(bytes const* _d, ConstructFromPointerType _t): FixedHash<T>(_d, _t) {}
+        explicit SecureFixedHash(zbytes const* _d, ConstructFromPointerType _t): FixedHash<T>(_d, _t) {}
         ~SecureFixedHash() { ref().cleanse(); }
 
         SecureFixedHash<T>& operator=(SecureFixedHash<T> const& _c)

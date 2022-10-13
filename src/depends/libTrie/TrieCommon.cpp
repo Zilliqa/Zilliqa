@@ -41,7 +41,7 @@ namespace dev
      * [1,2,3,4,T]       0x201234
      */
 
-    std::string hexPrefixEncode(bytes const& _hexVector, bool _leaf, int _begin, int _end)
+    std::string hexPrefixEncode(zbytes const& _hexVector, bool _leaf, int _begin, int _end)
     {
         unsigned begin = _begin;
         unsigned end = _end < 0 ? _hexVector.size() + 1 + _end : _end;

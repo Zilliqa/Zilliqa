@@ -399,7 +399,7 @@ bool LookupServer::StartCollectorThread() {
         continue;
       }
 
-      bytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
+      zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
       {
         lock_guard<mutex> g(m_mediator.m_lookup->m_txnShardMapMutex);
@@ -918,7 +918,7 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
 
   try {
     Address addr{ToBase16AddrHelper(address)};
-    bytes initData;
+    zbytes initData;
 
     {
       shared_lock<shared_timed_mutex> lock(
@@ -1366,10 +1366,10 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
       // add the hash of genesis block
       DSBlockHeader dshead = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
       SHA2<HashType::HASH_VARIANT_256> sha2;
-      bytes vec;
+      zbytes vec;
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
-      const bytes& resVec = sha2.Finalize();
+      const zbytes& resVec = sha2.Finalize();
       string resStr;
       DataConversion::Uint8VecToHexStr(resVec, resStr);
       m_DSBlockCache.second.insert_new(m_DSBlockCache.second.size(), resStr);
@@ -1394,10 +1394,10 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
     DSBlockHeader dshead =
         m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
     SHA2<HashType::HASH_VARIANT_256> sha2;
-    bytes vec;
+    zbytes vec;
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
-    const bytes& resVec = sha2.Finalize();
+    const zbytes& resVec = sha2.Finalize();
     string resStr;
     DataConversion::Uint8VecToHexStr(resVec, resStr);
 
@@ -1463,10 +1463,10 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
       // add the hash of genesis block
       TxBlockHeader txhead = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
       SHA2<HashType::HASH_VARIANT_256> sha2;
-      bytes vec;
+      zbytes vec;
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
-      const bytes& resVec = sha2.Finalize();
+      const zbytes& resVec = sha2.Finalize();
       string resStr;
       DataConversion::Uint8VecToHexStr(resVec, resStr);
       m_TxBlockCache.second.insert_new(m_TxBlockCache.second.size(), resStr);
@@ -1491,10 +1491,10 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     TxBlockHeader txhead =
         m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
     SHA2<HashType::HASH_VARIANT_256> sha2;
-    bytes vec;
+    zbytes vec;
     txhead.Serialize(vec, 0);
     sha2.Update(vec);
-    const bytes& resVec = sha2.Finalize();
+    const zbytes& resVec = sha2.Finalize();
     string resStr;
     DataConversion::Uint8VecToHexStr(resVec, resStr);
 
@@ -2196,8 +2196,8 @@ Json::Value LookupServer::GetStateProof(const string& address,
     throw JsonRpcException(RPC_INVALID_PARAMETER, "Key size not appropriate");
   }
 
-  bytes tmpaddr;
-  bytes tmpHashedKey;
+  zbytes tmpaddr;
+  zbytes tmpHashedKey;
   if (!DataConversion::HexStrToUint8Vec(address, tmpaddr)) {
     throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY, "invalid address");
   }

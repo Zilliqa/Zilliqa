@@ -211,7 +211,7 @@ void RumorManager::SpreadBufferedRumors() {
 bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
   // verify if the pubkey is from with-in our network
   PubKey senderPubKey;
-  bytes messagePubK;
+  zbytes messagePubK;
   std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
 
   if (!senderPubKey.Deserialize(messagePubK, 0)) {
@@ -233,7 +233,7 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
     return false;
   }
 
-  bytes raw_message(message.begin() + PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE +
+  zbytes raw_message(message.begin() + PUB_KEY_SIZE + SIGNATURE_CHALLENGE_SIZE +
                         SIGNATURE_RESPONSE_SIZE,
                     message.end());
 
@@ -387,7 +387,7 @@ void RumorManager::SendRumorToForeignPeer(const Peer& toForeignPeer,
 
 std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
     const RawBytes& message, const RRS::Message::Type& t, const Peer& from) {
-  bytes message_wo_keysig;
+  zbytes message_wo_keysig;
 
   if (((RRS::Message::Type::EMPTY_PUSH == t ||
         RRS::Message::Type::EMPTY_PULL == t) &&
@@ -398,7 +398,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::VerifyMessage(
        SIGN_VERIFY_NONEMPTY_MSGTYP)) {
     // verify if the pubkey is from with-in our network
     PubKey senderPubKey;
-    bytes messagePubK;
+    zbytes messagePubK;
     std::copy_n(message.begin(), PUB_KEY_SIZE, std::back_inserter(messagePubK));
 
     if (!senderPubKey.Deserialize(messagePubK, 0)) {
@@ -478,7 +478,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
   if (!result.first) {
     return {false, {}};
   }
-  bytes message_wo_keysig(result.second);
+  zbytes message_wo_keysig(result.second);
 
   // All checks passed. Good to accept this rumor
 
@@ -727,7 +727,7 @@ void RumorManager::PrintStatistics() {
     uint32_t rumorId = i.first;
     auto it = m_rumorIdHashBimap.left.find(rumorId);
     if (it != m_rumorIdHashBimap.left.end()) {
-      bytes this_msg_hash = HashUtils::BytesToHash(it->second);
+      zbytes this_msg_hash = HashUtils::BytesToHash(it->second);
       const RRS::RumorStateMachine& state = i.second;
       std::string gossipHashStr;
       if (!DataConversion::Uint8VecToHexStr(this_msg_hash, gossipHashStr)) {

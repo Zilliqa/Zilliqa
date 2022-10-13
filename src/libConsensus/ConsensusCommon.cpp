@@ -66,7 +66,7 @@ map<ConsensusCommon::ConsensusErrorCode, std::string>
         MAKE_LITERAL_PAIR(INVALID_COMMHASH)};
 
 ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
-                                 const bytes& block_hash, uint16_t my_id,
+                                 const zbytes& block_hash, uint16_t my_id,
                                  const PrivKey& privkey,
                                  const DequeOfNode& committee,
                                  unsigned char class_byte,
@@ -88,7 +88,7 @@ ConsensusCommon::ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
 
 ConsensusCommon::~ConsensusCommon() {}
 
-Signature ConsensusCommon::SignMessage(const bytes& msg, unsigned int offset,
+Signature ConsensusCommon::SignMessage(const zbytes& msg, unsigned int offset,
                                        unsigned int size) {
   LOG_MARKER();
 
@@ -101,7 +101,7 @@ Signature ConsensusCommon::SignMessage(const bytes& msg, unsigned int offset,
   return signature;
 }
 
-bool ConsensusCommon::VerifyMessage(const bytes& msg, unsigned int offset,
+bool ConsensusCommon::VerifyMessage(const zbytes& msg, unsigned int offset,
                                     unsigned int size,
                                     const Signature& toverify,
                                     uint16_t peer_id) {
@@ -175,7 +175,7 @@ Signature ConsensusCommon::AggregateSign(const Challenge& challenge,
   return *result;
 }
 
-Challenge ConsensusCommon::GetChallenge(const bytes& msg,
+Challenge ConsensusCommon::GetChallenge(const zbytes& msg,
                                         const CommitPoint& aggregated_commit,
                                         const PubKey& aggregated_key) {
   LOG_MARKER();
@@ -194,11 +194,11 @@ PairOfNode ConsensusCommon::GetCommitteeMember(const unsigned int index) {
 
 ConsensusCommon::State ConsensusCommon::GetState() const { return m_state; }
 
-bool ConsensusCommon::PreProcessMessage(const bytes& message,
+bool ConsensusCommon::PreProcessMessage(const zbytes& message,
                                         const unsigned int offset,
                                         uint32_t& consensusID,
                                         PubKey& senderPubKey,
-                                        bytes& reserializedMessage) const {
+                                        zbytes& reserializedMessage) const {
   if (message.size() > offset) {
     switch (message.at(offset)) {
       case ConsensusMessageType::ANNOUNCE:
@@ -308,7 +308,7 @@ unsigned int ConsensusCommon::NumForConsensus(unsigned int shardSize) {
   return ceil(shardSize * TOLERANCE_FRACTION);
 }
 
-bool ConsensusCommon::CanProcessMessage(const bytes& message,
+bool ConsensusCommon::CanProcessMessage(const zbytes& message,
                                         unsigned int offset) {
   if (message.size() <= offset) {
     LOG_GENERAL(WARNING,

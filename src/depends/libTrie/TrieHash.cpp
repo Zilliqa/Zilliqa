@@ -91,7 +91,7 @@ namespace dev
             _rlp << sha3(rlp.out());
     }
 
-    bytes rlp256(BytesMap const& _s)
+    zbytes rlp256(BytesMap const& _s)
     {
         // build patricia tree.
         if (_s.empty())
@@ -109,7 +109,7 @@ namespace dev
         return sha3(rlp256(_s));
     }
 
-    h256 orderedTrieRoot(std::vector<bytes> const& _data)
+    h256 orderedTrieRoot(std::vector<zbytes> const& _data)
     {
         BytesMap m;
         unsigned j = 0;

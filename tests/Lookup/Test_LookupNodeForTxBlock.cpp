@@ -49,7 +49,7 @@ BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
 void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
   LOG_MARKER();
 
-  bytes dsblockmsg = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+  zbytes dsblockmsg = {MessageType::NODE, NodeInstructionType::DSBLOCK};
   unsigned int curr_offset = MessageOffset::BODY;
 
   BlockHash prevHash1;
@@ -107,7 +107,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 
   SendDSBlockFirstToMatchDSBlockNum(lookup_node);
 
-  bytes txblockmsg = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
+  zbytes txblockmsg = {MessageType::NODE, NodeInstructionType::FINALBLOCK};
   unsigned int curr_offset = MessageOffset::BODY;
 
   // 32-byte DS blocknum
@@ -154,7 +154,7 @@ BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-  bytes getTxBlockMessage = {MessageType::LOOKUP,
+  zbytes getTxBlockMessage = {MessageType::LOOKUP,
                              LookupInstructionType::GETTXBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetTxBlockFromSeed(

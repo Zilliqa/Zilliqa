@@ -34,7 +34,7 @@
 using namespace std;
 using namespace dev;
 
-string dev::memDump(bytes const& _bytes, unsigned _width, bool _html)
+string dev::memDump(zbytes const& _bytes, unsigned _width, bool _html)
 {
     stringstream ret;
     if (_html)
@@ -86,14 +86,14 @@ inline _T contentsGeneric(boost::filesystem::path const& _file)
     return ret;
 }
 
-bytes dev::contents(boost::filesystem::path const& _file)
+zbytes dev::contents(boost::filesystem::path const& _file)
 {
-    return contentsGeneric<bytes>(_file);
+    return contentsGeneric<zbytes>(_file);
 }
 
 bytesSec dev::contentsSec(boost::filesystem::path const& _file)
 {
-    bytes b = contentsGeneric<bytes>(_file);
+    zbytes b = contentsGeneric<zbytes>(_file);
     bytesSec ret(b);
     bytesRef(&b).cleanse();
     return ret;

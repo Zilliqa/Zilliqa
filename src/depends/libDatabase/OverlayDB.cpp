@@ -79,14 +79,14 @@ namespace dev
 		return true;
 	}
 
-	bytes OverlayDB::lookupAux(h256 const& _h) const
+	zbytes OverlayDB::lookupAux(h256 const& _h) const
 	{
-		bytes ret = MemoryDB::lookupAux(_h);
+		zbytes ret = MemoryDB::lookupAux(_h);
 		if (!ret.empty())
 			return ret;
 		
 		string v;
-		bytes b = _h.asBytes();
+		zbytes b = _h.asBytes();
 		b.push_back(255);	// for aux
 
 

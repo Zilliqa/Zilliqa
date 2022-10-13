@@ -48,7 +48,7 @@ ContractStorage::ContractStorage()
 //=================================
 
 bool ContractStorage::PutContractCode(const dev::h160& address,
-                                      const bytes& code) {
+                                      const zbytes& code) {
   lock_guard<mutex> g(m_codeMutex);
   return m_codeDB.Insert(address.hex(), code) == 0;
 }
@@ -59,7 +59,7 @@ bool ContractStorage::PutContractCodeBatch(
   return m_codeDB.BatchInsert(batch);
 }
 
-bytes ContractStorage::GetContractCode(const dev::h160& address) {
+zbytes ContractStorage::GetContractCode(const dev::h160& address) {
   lock_guard<mutex> g(m_codeMutex);
   return DataConversion::StringToCharArray(m_codeDB.Lookup(address.hex()));
 }
@@ -72,7 +72,7 @@ bool ContractStorage::DeleteContractCode(const dev::h160& address) {
 // InitData
 // ========================================
 bool ContractStorage::PutInitData(const dev::h160& address,
-                                  const bytes& initData) {
+                                  const zbytes& initData) {
   lock_guard<mutex> g(m_initDataMutex);
   return m_initDataDB.Insert(address.hex(), initData) == 0;
 }
@@ -83,7 +83,7 @@ bool ContractStorage::PutInitDataBatch(
   return m_initDataDB.BatchInsert(batch);
 }
 
-bytes ContractStorage::GetInitData(const dev::h160& address) {
+zbytes ContractStorage::GetInitData(const dev::h160& address) {
   lock_guard<mutex> g(m_initDataMutex);
   return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
 }
@@ -95,7 +95,7 @@ bool ContractStorage::DeleteInitData(const dev::h160& address) {
 // State
 // ========================================
 template <class T>
-bool SerializeToArray(const T& protoMessage, bytes& dst,
+bool SerializeToArray(const T& protoMessage, zbytes& dst,
                       const unsigned int offset) {
   if ((offset + protoMessage.ByteSize()) > dst.size()) {
     dst.resize(offset + protoMessage.ByteSize());
@@ -139,8 +139,8 @@ string ContractStorage::RemoveAddrFromKey(const std::string& key) {
   return ret;
 }
 
-bool ContractStorage::FetchStateValue(const dev::h160& addr, const bytes& src,
-                                      unsigned int s_offset, bytes& dst,
+bool ContractStorage::FetchStateValue(const dev::h160& addr, const zbytes& src,
+                                      unsigned int s_offset, zbytes& dst,
                                       unsigned int d_offset, bool& foundVal,
                                       bool getType, string& type) {
   if (s_offset > src.size()) {
@@ -155,7 +155,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr, const bytes& src,
 }
 
 bool ContractStorage::FetchStateValue(const dev::h160& addr,
-                                      const ProtoScillaQuery& query, bytes& dst,
+                                      const ProtoScillaQuery& query, zbytes& dst,
                                       unsigned int d_offset, bool& foundVal,
                                       bool getType, string& type) {
   if (LOG_SC) {
@@ -186,7 +186,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
   }
 
   if (getType) {
-    std::map<std::string, bytes> t_type;
+    std::map<std::string, zbytes> t_type;
     std::string type_key =
         GenerateStorageKey(addr, TYPE_INDICATOR, {query.name()});
     FetchStateDataForKey(t_type, type_key, true);
@@ -243,7 +243,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 
   if ((unsigned int)query.indices().size() == query.mapdepth()) {
     // result will not be a map and can be just fetched into the store
-    bytes bval;
+    zbytes bval;
     bool found = false;
 
     const auto& t_found = t_stateDataMap.find(key);
@@ -281,7 +281,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
   // first fetch from t_data, then m_data, lastly db
   auto p = t_stateDataMap.lower_bound(key);
 
-  unordered_map<string, bytes> entries;
+  unordered_map<string, zbytes> entries;
 
   while (p != t_stateDataMap.end() &&
          p->first.compare(0, key.size(), key) == 0) {
@@ -330,7 +330,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
          it->Next()) {
       auto exist = entries.find(it->key().ToString());
       if (exist == entries.end()) {
-        bytes val(it->value().data(), it->value().data() + it->value().size());
+        zbytes val(it->value().data(), it->value().data() + it->value().size());
         entries.emplace(it->key().ToString(), val);
       }
     }
@@ -400,8 +400,8 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 }
 
 bool ContractStorage::FetchExternalStateValue(
-    const dev::h160& caller, const dev::h160& target, const bytes& src,
-    unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
+    const dev::h160& caller, const dev::h160& target, const zbytes& src,
+    unsigned int s_offset, zbytes& dst, unsigned int d_offset, bool& foundVal,
     string& type, uint32_t caller_version) {
   if (s_offset > src.size() || d_offset > dst.size()) {
     LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
@@ -446,7 +446,7 @@ bool ContractStorage::FetchExternalStateValue(
     type = "ByStr32";
   } else if (query.name() == "_code") {
     // Get the code directly from the account storage.
-    bytes code = account->GetCode();
+    zbytes code = account->GetCode();
     ProtoScillaVal value;
     value.set_bval(&code[0], code.size());
     SerializeToArray(value, dst, 0);
@@ -471,7 +471,7 @@ bool ContractStorage::FetchExternalStateValue(
     fetchType = true;
     // External state queries don't have map depth set. Get it from the
     // database.
-    map<string, bytes> map_depth;
+    map<string, zbytes> map_depth;
     string map_depth_key =
         GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
     FetchStateDataForKey(map_depth, map_depth_key, true);
@@ -620,7 +620,7 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
                                                 bool temp) {
   // LOG_MARKER();
 
-  std::map<std::string, bytes> states;
+  std::map<std::string, zbytes> states;
   FetchStateDataForContract(states, address, vname, indices, temp);
   LOG_GENERAL(INFO, "local states map size=" << states.size());
 
@@ -645,10 +645,10 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
     /// addr+vname+[indices...]
     vector<string> map_indices(fragments.begin() + 2, fragments.end());
 
-    std::function<void(Json::Value&, const vector<string>&, const bytes&,
+    std::function<void(Json::Value&, const vector<string>&, const zbytes&,
                        unsigned int, int)>
         jsonMapWrapper = [&](Json::Value& _json, const vector<string>& indices,
-                             const bytes& value, unsigned int cur_index,
+                             const zbytes& value, unsigned int cur_index,
                              int mapdepth) -> void {
       if (cur_index + 1 < indices.size()) {
         string key = indices.at(cur_index);
@@ -689,7 +689,7 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
       }
     };
 
-    map<string, bytes> map_depth;
+    map<string, zbytes> map_depth;
     string map_depth_key =
         GenerateStorageKey(address, MAP_DEPTH_INDICATOR, {vname});
     FetchStateDataForKey(map_depth, map_depth_key, temp);
@@ -704,9 +704,9 @@ bool ContractStorage::FetchStateJsonForContract(Json::Value& _json,
   return true;
 }
 
-void ContractStorage::FetchStateDataForKey(map<string, bytes>& states,
+void ContractStorage::FetchStateDataForKey(map<string, zbytes>& states,
                                            const string& key, bool temp) {
-  std::map<std::string, bytes>::iterator p;
+  std::map<std::string, zbytes>::iterator p;
   if (temp) {
     p = t_stateDataMap.lower_bound(key);
     while (p != t_stateDataMap.end() &&
@@ -735,7 +735,7 @@ void ContractStorage::FetchStateDataForKey(map<string, bytes>& states,
     for (; it->Valid() && it->key().ToString().compare(0, key.size(), key) == 0;
          it->Next()) {
       if (states.find(it->key().ToString()) == states.end()) {
-        bytes val(it->value().data(), it->value().data() + it->value().size());
+        zbytes val(it->value().data(), it->value().data() + it->value().size());
         states.emplace(it->key().ToString(), val);
       }
     }
@@ -763,7 +763,7 @@ void ContractStorage::FetchStateDataForKey(map<string, bytes>& states,
 }
 
 bool ContractStorage::CheckIfKeyIsEmpty(const string& key, bool temp) {
-  std::map<std::string, bytes>::iterator p;
+  std::map<std::string, zbytes>::iterator p;
   unordered_set<string> keys_to_be_deleted;
 
   auto checkIfKeyIsToBeDeleted = [&](const string& key) mutable {
@@ -822,7 +822,7 @@ bool ContractStorage::CheckIfKeyIsEmpty(const string& key, bool temp) {
   return true;
 }
 
-void ContractStorage::FetchStateDataForContract(map<string, bytes>& states,
+void ContractStorage::FetchStateDataForContract(map<string, zbytes>& states,
                                                 const dev::h160& address,
                                                 const string& vname,
                                                 const vector<string>& indices,
@@ -832,7 +832,7 @@ void ContractStorage::FetchStateDataForContract(map<string, bytes>& states,
 }
 
 void ContractStorage::FetchUpdatedStateValuesForAddress(
-    const dev::h160& address, map<string, bytes>& t_states,
+    const dev::h160& address, map<string, zbytes>& t_states,
     set<std::string>& toDeletedIndices, bool temp) {
   LOG_MARKER();
 
@@ -879,7 +879,7 @@ void ContractStorage::FetchUpdatedStateValuesForAddress(
                                 0, address.hex().size(), address.hex()) == 0;
            it->Next()) {
         if (t_states.find(it->key().ToString()) == t_states.end()) {
-          bytes val(it->value().data(),
+          zbytes val(it->value().data(),
                     it->value().data() + it->value().size());
           t_states.emplace(it->key().ToString(), val);
         }
@@ -928,7 +928,7 @@ bool ContractStorage::CleanEmptyMapPlaceholders(const string& key) {
   return true;
 }
 
-void ContractStorage::UpdateStateData(const string& key, const bytes& value,
+void ContractStorage::UpdateStateData(const string& key, const zbytes& value,
                                       bool cleanEmpty) {
   if (LOG_SC) {
     LOG_GENERAL(INFO, "key: " << key);
@@ -985,11 +985,11 @@ bool ContractStorage::FetchStateProofForContract(std::set<string>& proof,
   return true;
 }
 
-bytes ConvertStringToHashedKey(const string& input) {
+zbytes ConvertStringToHashedKey(const string& input) {
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(input);
 
-  const bytes& output = sha2.Finalize();
+  const zbytes& output = sha2.Finalize();
   dev::h256 key(output);
   return DataConversion::StringToCharArray(key.hex());
 }
@@ -1001,8 +1001,8 @@ void ContractStorage::FetchProofForKey(std::set<string>& proof,
   m_stateTrie.getProof(DataConversion::StringToCharArray(key.hex()), proof);
 }
 
-bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
-                                       unsigned int q_offset, const bytes& v,
+bool ContractStorage::UpdateStateValue(const dev::h160& addr, const zbytes& q,
+                                       unsigned int q_offset, const zbytes& v,
                                        unsigned int v_offset) {
   if (LOG_SC) {
     LOG_MARKER();
@@ -1064,7 +1064,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
     if (CheckIfKeyIsEmpty(parent_key, true)) {
       ProtoScillaVal empty_val;
       empty_val.mutable_mval()->mutable_m();
-      bytes dst;
+      zbytes dst;
       if (!SerializeToArray(empty_val, dst, 0)) {
         LOG_GENERAL(WARNING, "empty_mval SerializeToArray failed");
         return false;
@@ -1099,7 +1099,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
         if (value.mval().m().empty()) {
           // We have an empty map. Insert an entry for keyAcc in
           // the store to indicate that the key itself exists.
-          bytes dst;
+          zbytes dst;
           if (!SerializeToArray(value, dst, 0)) {
             return false;
           }
@@ -1138,7 +1138,7 @@ bool ContractStorage::UpdateStateValue(const dev::h160& addr, const bytes& q,
 
 void ContractStorage::UpdateStateDatasAndToDeletes(
     const dev::h160& addr, const dev::h256& rootHash,
-    const std::map<std::string, bytes>& states,
+    const std::map<std::string, zbytes>& states,
     const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
     bool temp, bool revertible) {
   LOG_MARKER();
@@ -1171,7 +1171,7 @@ void ContractStorage::UpdateStateDatasAndToDeletes(
       }
     }
 
-    std::unordered_map<std::string, bytes> t_r_stateDataMap;
+    std::unordered_map<std::string, zbytes> t_r_stateDataMap;
 
     for (const auto& state : states) {
       if (revertible) {
@@ -1344,7 +1344,7 @@ void ContractStorage::InitTempState(bool callFromExternal) {
 }
 
 bool ContractStorage::CheckHasMap(const dev::h160& addr, bool temp) {
-  std::map<std::string, bytes> t_hasMap;
+  std::map<std::string, zbytes> t_hasMap;
   std::string hasMap_key = GenerateStorageKey(addr, HAS_MAP_INDICATOR, {});
 
   FetchStateDataForKey(t_hasMap, hasMap_key, temp);

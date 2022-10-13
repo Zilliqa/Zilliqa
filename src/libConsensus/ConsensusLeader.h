@@ -28,14 +28,14 @@
 #include "ConsensusCommon.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const bytes& errorMsg, const Peer& from)>
+typedef std::function<bool(const zbytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;
-typedef std::function<bool(std::map<unsigned int, bytes>)>
+typedef std::function<bool(std::map<unsigned int, zbytes>)>
     ShardCommitFailureHandlerFunc;
 typedef std::function<bool(
-    bytes& dst, unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const PairOfKey& leaderKey, bytes& messageToCosign)>
+    zbytes& dst, unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
+    const PairOfKey& leaderKey, zbytes& messageToCosign)>
     AnnouncementGeneratorFunc;
 
 /// Implements the functionality for the consensus committee leader.
@@ -72,7 +72,7 @@ class ConsensusLeader : public ConsensusCommon {
   Challenge m_challenge;
 
   unsigned int m_commitFailureCounter;
-  std::map<unsigned int, bytes> m_commitFailureMap;
+  std::map<unsigned int, zbytes> m_commitFailureMap;
 
   // Tracking data for each consensus subset
   struct ConsensusSubset {
@@ -105,26 +105,26 @@ class ConsensusLeader : public ConsensusCommon {
   void GenerateConsensusSubsets();
   bool StartConsensusSubsets();
   void SubsetEnded(uint16_t subsetID);
-  bool ProcessMessageCommitCore(const bytes& commit, unsigned int offset,
+  bool ProcessMessageCommitCore(const zbytes& commit, unsigned int offset,
                                 Action action,
                                 ConsensusMessageType returnmsgtype,
                                 State nextstate, const Peer& from);
-  bool ProcessMessageCommit(const bytes& commit, unsigned int offset,
+  bool ProcessMessageCommit(const zbytes& commit, unsigned int offset,
                             const Peer& from);
-  bool ProcessMessageCommitFailure(const bytes& commitFailureMsg,
+  bool ProcessMessageCommitFailure(const zbytes& commitFailureMsg,
                                    unsigned int offset, const Peer& from);
-  bool GenerateChallengeMessage(bytes& challenge, unsigned int offset);
-  bool ProcessMessageResponseCore(const bytes& response, unsigned int offset,
+  bool GenerateChallengeMessage(zbytes& challenge, unsigned int offset);
+  bool ProcessMessageResponseCore(const zbytes& response, unsigned int offset,
                                   Action action,
                                   ConsensusMessageType returnmsgtype,
                                   State nextstate, const Peer& from);
-  bool ProcessMessageResponse(const bytes& response, unsigned int offset,
+  bool ProcessMessageResponse(const zbytes& response, unsigned int offset,
                               const Peer& from);
-  bool GenerateCollectiveSigMessage(bytes& collectivesig, unsigned int offset,
+  bool GenerateCollectiveSigMessage(zbytes& collectivesig, unsigned int offset,
                                     uint16_t subsetID);
-  bool ProcessMessageFinalCommit(const bytes& finalcommit, unsigned int offset,
+  bool ProcessMessageFinalCommit(const zbytes& finalcommit, unsigned int offset,
                                  const Peer& from);
-  bool ProcessMessageFinalResponse(const bytes& finalresponse,
+  bool ProcessMessageFinalResponse(const zbytes& finalresponse,
                                    unsigned int offset, const Peer& from);
 
  public:
@@ -132,7 +132,7 @@ class ConsensusLeader : public ConsensusCommon {
   ConsensusLeader(
       uint32_t consensus_id,    // unique identifier for this consensus session
       uint64_t block_number,    // latest final block number
-      const bytes& block_hash,  // unique identifier for this consensus session
+      const zbytes& block_hash,  // unique identifier for this consensus session
       uint16_t node_id,  // leader's identifier (= index in some ordered lookup
                          // table shared by all nodes)
       const PrivKey& privkey,        // leader's private key
@@ -156,7 +156,7 @@ class ConsensusLeader : public ConsensusCommon {
       bool useGossipProto = false);
 
   /// Function to process any consensus message received.
-  bool ProcessMessage(const bytes& message, unsigned int offset,
+  bool ProcessMessage(const zbytes& message, unsigned int offset,
                       const Peer& from);
 
   unsigned int GetNumForConsensusFailure() { return m_numForConsensusFailure; }

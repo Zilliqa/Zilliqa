@@ -70,7 +70,7 @@ std::map<std::string, struct bufferevent*> P2PComm::m_bufferEventMap;
 
 /// Comparison operator for ordering the list of message hashes.
 struct HashCompare {
-  bool operator()(const bytes& l, const bytes& r) {
+  bool operator()(const zbytes& l, const zbytes& r) {
     return equal(l.begin(), l.end(), r.begin(), r.end());
   }
 };
@@ -83,8 +83,8 @@ static void close_socket(int* cli_sock) {
 }
 
 static bool comparePairSecond(
-    const pair<bytes, chrono::time_point<chrono::system_clock>>& a,
-    const pair<bytes, chrono::time_point<chrono::system_clock>>& b) {
+    const pair<zbytes, chrono::time_point<chrono::system_clock>>& a,
+    const pair<zbytes, chrono::time_point<chrono::system_clock>>& b) {
   return a.second < b.second;
 }
 
@@ -92,7 +92,7 @@ P2PComm::P2PComm() : m_sendQueue(SENDQUEUE_SIZE) {
   // set libevent m_base to NULL
   m_base = NULL;
   auto func = [this]() -> void {
-    bytes emptyHash;
+    zbytes emptyHash;
 
     while (true) {
       this_thread::sleep_for(chrono::seconds(BROADCAST_INTERVAL));
@@ -192,9 +192,9 @@ uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
   return written_length;
 }
 
-bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
+bool SendJob::SendMessageSocketCore(const Peer& peer, const zbytes& message,
                                     unsigned char start_byte,
-                                    const bytes& msg_hash) {
+                                    const zbytes& msg_hash) {
   // LOG_MARKER();
   LOG_PAYLOAD(DEBUG, "Sending to " << peer, message,
               Logger::MAX_BYTES_TO_DISPLAY);
@@ -321,8 +321,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
   return true;
 }
 
-void SendJob::SendMessageCore(const Peer& peer, const bytes& message,
-                              unsigned char startbyte, const bytes& hash) {
+void SendJob::SendMessageCore(const Peer& peer, const zbytes& message,
+                              unsigned char startbyte, const zbytes& hash) {
   uint32_t retry_counter = 0;
   while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
     if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
@@ -403,14 +403,14 @@ void P2PComm::ProcessSendJob(SendJob* job) {
   m_SendPool.AddJob(funcSendMsg);
 }
 
-void P2PComm::ClearBroadcastHashAsync(const bytes& message_hash) {
+void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
   LOG_MARKER();
   lock_guard<mutex> guard(m_broadcastToRemoveMutex);
   m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
 
-void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
-  bytes msg_hash(message.begin() + HDR_LEN,
+void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
+  zbytes msg_hash(message.begin() + HDR_LEN,
                  message.begin() + HDR_LEN + HASH_LEN);
 
   P2PComm& p2p = P2PComm::GetInstance();
@@ -427,7 +427,7 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
       SHA2<HashType::HASH_VARIANT_256> sha256;
       sha256.Update(message, HDR_LEN + HASH_LEN,
                     message.size() - HDR_LEN - HASH_LEN);
-      bytes this_msg_hash = sha256.Finalize();
+      zbytes this_msg_hash = sha256.Finalize();
 
       if (this_msg_hash == msg_hash) {
         p2p.m_broadcastHashes.insert(this_msg_hash);
@@ -455,16 +455,16 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
                        << msgHashStr.substr(0, 6) << "] RECV");
 
   // Move the shared_ptr message to raw pointer type
-  pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-      new pair<bytes, std::pair<Peer, const unsigned char>>(
-          bytes(message.begin() + HDR_LEN + HASH_LEN, message.end()),
+  pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
+      new pair<zbytes, std::pair<Peer, const unsigned char>>(
+          zbytes(message.begin() + HDR_LEN + HASH_LEN, message.end()),
           std::make_pair(from, START_BYTE_BROADCAST));
 
   // Queue the message
   m_dispatcher(raw_message);
 }
 
-/*static*/ void P2PComm::ProcessGossipMsg(bytes& message, Peer& from) {
+/*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from) {
   unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
   const uint32_t gossipMsgRound =
@@ -491,11 +491,11 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
 
     if (p2p.SpreadForeignRumor(rumor_message)) {
       // skip the keys and signature.
-      bytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
+      zbytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
                     SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
                 rumor_message.end());
-      std::pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-          new pair<bytes, std::pair<Peer, const unsigned char>>(
+      std::pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
+          new pair<zbytes, std::pair<Peer, const unsigned char>>(
               tmp, make_pair(from, START_BYTE_GOSSIP));
 
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
@@ -507,8 +507,8 @@ void P2PComm::ProcessBroadCastMsg(bytes& message, const Peer& from) {
     auto resp = p2p.m_rumorManager.RumorReceived(
         (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
     if (resp.first) {
-      std::pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-          new pair<bytes, std::pair<Peer, const unsigned char>>(
+      std::pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
+          new pair<zbytes, std::pair<Peer, const unsigned char>>(
               resp.second, make_pair(from, START_BYTE_GOSSIP));
 
       LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
@@ -586,7 +586,7 @@ void P2PComm::CloseAndFreeBevP2PSeedConnClient(struct bufferevent* bufev,
     }
   }
   // free request msg memory
-  bytes* destBytes = (bytes*)ctx;
+  zbytes* destBytes = (zbytes*)ctx;
   if (destBytes != NULL) {
     LOG_GENERAL(DEBUG, "P2PSeed Deleting ctx len=" << destBytes->size());
     delete destBytes;
@@ -635,7 +635,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     LOG_GENERAL(WARNING, "evbuffer_get_length failure.");
     return;
   }
-  bytes message(len);
+  zbytes message(len);
   if (evbuffer_copyout(input, message.data(), len) !=
       static_cast<ev_ssize_t>(len)) {
     LOG_GENERAL(WARNING, "evbuffer_copyout failure.");
@@ -733,9 +733,9 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Move the shared_ptr message to raw pointer type
-    pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-        new pair<bytes, std::pair<Peer, const unsigned char>>(
-            bytes(message.begin() + HDR_LEN, message.end()),
+    pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
+        new pair<zbytes, std::pair<Peer, const unsigned char>>(
+            zbytes(message.begin() + HDR_LEN, message.end()),
             std::make_pair(from, START_BYTE_NORMAL));
 
     // Queue the message
@@ -860,7 +860,7 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
     CloseAndFreeBevP2PSeedConnServer(bev);
   }
 
-  bytes message(len);
+  zbytes message(len);
   if (evbuffer_copyout(input, message.data(), len) !=
       static_cast<ev_ssize_t>(len)) {
     LOG_GENERAL(WARNING, "Error: evbuffer_copyout failure.");
@@ -929,9 +929,9 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
     LOG_PAYLOAD(INFO, "Incoming request from ext seed " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    pair<bytes, pair<Peer, const unsigned char>>* raw_message =
-        new pair<bytes, pair<Peer, const unsigned char>>(
-            bytes(message.begin() + HDR_LEN, message.end()),
+    pair<zbytes, pair<Peer, const unsigned char>>* raw_message =
+        new pair<zbytes, pair<Peer, const unsigned char>>(
+            zbytes(message.begin() + HDR_LEN, message.end()),
             std::make_pair(from, START_BYTE_SEED_TO_SEED_REQUEST));
 
     string bufKey = from.GetPrintableIPAddress() + ":" +
@@ -1087,7 +1087,7 @@ void P2PComm ::EventCbClientSeed([[gnu::unused]] struct bufferevent* bev,
   socklen_t addr_size = sizeof(struct sockaddr_in);
   getpeername(fd, (struct sockaddr*)&cli_addr, &addr_size);
   Peer peer(cli_addr.sin_addr.s_addr, cli_addr.sin_port);
-  bytes* destBytes = (bytes*)ctx;
+  zbytes* destBytes = (zbytes*)ctx;
   LOG_GENERAL(DEBUG, "P2PSeed EventCbClient peer=" << peer << " bev=" << bev);
   // TODO Remove all if conditions except last two. For now debugging purpose
   // only
@@ -1155,7 +1155,7 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
     CloseAndFreeBevP2PSeedConnClient(bev, ctx);
   }
 
-  bytes message(len);
+  zbytes message(len);
   if (evbuffer_copyout(input, message.data(), len) !=
       static_cast<ev_ssize_t>(len)) {
     LOG_GENERAL(WARNING, "Error: evbuffer_copyout failure.");
@@ -1224,9 +1224,9 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
     LOG_PAYLOAD(INFO, "Incoming normal response from server seed " << from,
                 message, Logger::MAX_BYTES_TO_DISPLAY);
 
-    pair<bytes, std::pair<Peer, const unsigned char>>* raw_message =
-        new pair<bytes, std::pair<Peer, const unsigned char>>(
-            bytes(message.begin() + HDR_LEN, message.end()),
+    pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
+        new pair<zbytes, std::pair<Peer, const unsigned char>>(
+            zbytes(message.begin() + HDR_LEN, message.end()),
             make_pair(from, START_BYTE_SEED_TO_SEED_RESPONSE));
 
     // Queue the message
@@ -1403,7 +1403,7 @@ void P2PComm::EnableConnect() {
 }
 
 void P2PComm::WriteMsgOnBufferEvent(struct bufferevent* bev,
-                                    const bytes& message,
+                                    const zbytes& message,
                                     const unsigned char& startByte) {
   LOG_MARKER();
   uint32_t length = message.size();
@@ -1415,7 +1415,7 @@ void P2PComm::WriteMsgOnBufferEvent(struct bufferevent* bev,
                                 (unsigned char)((length >> 16) & 0xFF),
                                 (unsigned char)((length >> 8) & 0xFF),
                                 (unsigned char)(length & 0xFF)};
-  bytes destMsg(std::begin(buf), std::end(buf));
+  zbytes destMsg(std::begin(buf), std::end(buf));
   destMsg.insert(destMsg.end(), message.begin(), message.end());
   LOG_GENERAL(DEBUG, "P2PSeed msg len=" << length + HDR_LEN << " bev=" << bev
                                         << " destMsg size=" << destMsg.size());
@@ -1426,7 +1426,7 @@ void P2PComm::WriteMsgOnBufferEvent(struct bufferevent* bev,
 }
 
 void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
-                                      const bytes& message,
+                                      const zbytes& message,
                                       const unsigned char& startByteType) {
   lock_guard<mutex> g(m_mutexBufferEvent);
   if (startByteType == START_BYTE_SEED_TO_SEED_REQUEST) {
@@ -1449,12 +1449,12 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
                                     (unsigned char)((length >> 16) & 0xFF),
                                     (unsigned char)((length >> 8) & 0xFF),
                                     (unsigned char)(length & 0xFF)};
-      bytes destMsg(std::begin(buf), std::end(buf));
+      zbytes destMsg(std::begin(buf), std::end(buf));
       destMsg.insert(destMsg.end(), message.begin(), message.end());
       LOG_GENERAL(DEBUG,
                   "P2PSeed msg len=" << length + HDR_LEN << " bev=" << bev
                                      << " destMsg size=" << destMsg.size());
-      bytes* destBytes = new bytes(std::move(destMsg));
+      zbytes* destBytes = new zbytes(std::move(destMsg));
       bufferevent_setwatermark(bev, EV_READ, MIN_READ_WATERMARK_IN_BYTES,
                                MAX_READ_WATERMARK_IN_BYTES);
       bufferevent_setcb(bev, ReadCbClientSeed, NULL, EventCbClientSeed,
@@ -1504,7 +1504,7 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
   }
 }
 
-void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
+void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
                           const unsigned char& startByteType) {
   if (peers.empty()) {
     return;
@@ -1526,7 +1526,7 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const bytes& message,
   }
 }
 
-void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
+void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
                           const unsigned char& startByteType,
                           const bool bAllowSendToRelaxedBlacklist) {
   // LOG_MARKER();
@@ -1550,7 +1550,7 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const bytes& message,
   }
 }
 
-void P2PComm::SendMessage(const Peer& peer, const bytes& message,
+void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
                           const unsigned char& startByteType) {
   // Make job
   SendJob* job = new SendJobPeer;
@@ -1571,7 +1571,7 @@ void P2PComm::SendMessage(const Peer& peer, const bytes& message,
 // Overloaded for p2pseed as we need actual socket port coming in from
 // parameter. Seedpubs lookup will call this overloaded function
 void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
-                          const bytes& message,
+                          const zbytes& message,
                           const unsigned char& startByteType) {
   if (ENABLE_SEED_TO_SEED_COMMUNICATION &&
       startByteType == START_BYTE_SEED_TO_SEED_REQUEST) {
@@ -1596,7 +1596,7 @@ void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
 }
 
 void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
-                                   const bytes& message) {
+                                   const zbytes& message) {
   LOG_MARKER();
 
   if (peers.empty()) {
@@ -1615,7 +1615,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   job->m_hash = sha256.Finalize();
   job->m_allowSendToRelaxedBlacklist = false;
 
-  bytes hashCopy(job->m_hash);
+  zbytes hashCopy(job->m_hash);
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -1628,7 +1628,7 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
-                                   const bytes& message) {
+                                   const zbytes& message) {
   LOG_MARKER();
 
   if (peers.empty()) {
@@ -1647,7 +1647,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   job->m_hash = sha256.Finalize();
   job->m_allowSendToRelaxedBlacklist = false;
 
-  bytes hashCopy(job->m_hash);
+  zbytes hashCopy(job->m_hash);
 
   // Queue job
   if (!m_sendQueue.bounded_push(job)) {
@@ -1659,7 +1659,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   m_broadcastHashes.insert(hashCopy);
 }
 
-void P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
+void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
                                  const unsigned char& startByteType) {
   // LOG_MARKER();
 
@@ -1673,30 +1673,30 @@ void P2PComm::SendMessageNoQueue(const Peer& peer, const bytes& message,
   SendJob::SendMessageCore(peer, message, startByteType, {});
 }
 
-bool P2PComm::SpreadRumor(const bytes& message) {
+bool P2PComm::SpreadRumor(const zbytes& message) {
   LOG_MARKER();
   return m_rumorManager.AddRumor(message);
 }
 
-bool P2PComm::SpreadForeignRumor(const bytes& message) {
+bool P2PComm::SpreadForeignRumor(const zbytes& message) {
   LOG_MARKER();
   return m_rumorManager.AddForeignRumor(message);
 }
 
 void P2PComm::SendRumorToForeignPeer(const Peer& foreignPeer,
-                                     const bytes& message) {
+                                     const zbytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeer(foreignPeer, message);
 }
 
 void P2PComm::SendRumorToForeignPeers(const VectorOfPeer& foreignPeers,
-                                      const bytes& message) {
+                                      const zbytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }
 
 void P2PComm::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
-                                      const bytes& message) {
+                                      const zbytes& message) {
   LOG_MARKER();
   m_rumorManager.SendRumorToForeignPeers(foreignPeers, message);
 }
@@ -1727,7 +1727,7 @@ void P2PComm::UpdatePeerInfoInRumorManager(const Peer& peer,
   m_rumorManager.UpdatePeerInfo(peer, pubKey);
 }
 
-Signature P2PComm::SignMessage(const bytes& message) {
+Signature P2PComm::SignMessage(const zbytes& message) {
   // LOG_MARKER();
 
   Signature signature;
@@ -1739,7 +1739,7 @@ Signature P2PComm::SignMessage(const bytes& message) {
   return signature;
 }
 
-bool P2PComm::VerifyMessage(const bytes& message, const Signature& toverify,
+bool P2PComm::VerifyMessage(const zbytes& message, const Signature& toverify,
                             const PubKey& pubKey) {
   // LOG_MARKER();
   bool result = Schnorr::Verify(message, 0, message.size(), toverify, pubKey);

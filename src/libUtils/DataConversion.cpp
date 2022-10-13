@@ -19,7 +19,7 @@
 
 using namespace std;
 
-bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
+bool DataConversion::HexStrToUint8Vec(const string& hex_input, zbytes& out) {
   int offset = 0;
   if (hex_input.size() >= 2 && hex_input[0] == '0' && hex_input[1] == 'x') {
     offset = 2;
@@ -36,8 +36,8 @@ bool DataConversion::HexStrToUint8Vec(const string& hex_input, bytes& out) {
   return true;
 }
 
-bytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
-  bytes out;
+zbytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
+  zbytes out;
   int offset = 0;
   if (hex_input.size() >= 2 && hex_input[0] == '0' && hex_input[1] == 'x') {
     offset = 2;
@@ -57,7 +57,7 @@ bytes DataConversion::HexStrToUint8VecRet(const string& hex_input) {
 bool DataConversion::HexStrToStdArray(const string& hex_input,
                                       array<uint8_t, 32>& d) {
   d = {{0}};
-  bytes v;
+  zbytes v;
   if (HexStrToUint8Vec(hex_input, v)) {
     copy(v.begin(), v.begin() + min((int)v.size(), 32), d.begin());
     return true;
@@ -69,7 +69,7 @@ bool DataConversion::HexStrToStdArray(const string& hex_input,
 bool DataConversion::HexStrToStdArray64(const string& hex_input,
                                         array<uint8_t, 64>& d) {
   d = {{0}};
-  bytes v;
+  zbytes v;
   if (HexStrToUint8Vec(hex_input, v)) {
     copy(v.begin(), v.begin() + min((int)v.size(), 64), d.begin());
     return true;
@@ -78,7 +78,7 @@ bool DataConversion::HexStrToStdArray64(const string& hex_input,
   return false;
 }
 
-bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
+bool DataConversion::Uint8VecToHexStr(const zbytes& hex_vec, string& str) {
   try {
     str = "";
     boost::algorithm::hex(hex_vec.begin(), hex_vec.end(), back_inserter(str));
@@ -89,7 +89,7 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, string& str) {
   return true;
 }
 
-std::string DataConversion::Uint8VecToHexStrRet(const bytes& hex_vec) {
+std::string DataConversion::Uint8VecToHexStrRet(const zbytes& hex_vec) {
   std::string str;
   try {
     str = "";
@@ -112,7 +112,7 @@ bool DataConversion::StringToHexStr(const string& hex_str, string& str) {
   return true;
 }
 
-bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+bool DataConversion::Uint8VecToHexStr(const zbytes& hex_vec, unsigned int offset,
                                       unsigned int len, string& str) {
   try {
     str = "";
@@ -127,7 +127,7 @@ bool DataConversion::Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
 
 bool DataConversion::SerializableToHexStr(const Serializable& input,
                                           string& str) {
-  bytes tmp;
+  zbytes tmp;
   input.Serialize(tmp, 0);
   try {
     str = "";
@@ -141,7 +141,7 @@ bool DataConversion::SerializableToHexStr(const Serializable& input,
 
 bool DataConversion::SerializableToHexStr(const SerializableCrypto& input,
                                           string& str) {
-  bytes tmp;
+  zbytes tmp;
   input.Serialize(tmp, 0);
   try {
     str = "";
@@ -153,7 +153,7 @@ bool DataConversion::SerializableToHexStr(const SerializableCrypto& input,
   return true;
 }
 
-uint16_t DataConversion::charArrTo16Bits(const bytes& hex_arr) {
+uint16_t DataConversion::charArrTo16Bits(const zbytes& hex_arr) {
   if (hex_arr.size() == 0) {
     return 0;
   }

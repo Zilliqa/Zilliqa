@@ -69,7 +69,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    bytes message(message_.begin(), message_.end());
+    zbytes message(message_.begin(), message_.end());
 
     try {
       string line;
@@ -97,7 +97,7 @@ int main(int argc, const char* argv[]) {
     /// Aggregate public keys
     shared_ptr<PubKey> aggregatedPubkey = MultiSig::AggregatePubKeys(pubKeys);
 
-    bytes signature;
+    zbytes signature;
     DataConversion::HexStrToUint8Vec(signature_, signature);
     shared_ptr<Signature> sig(new Signature(signature, 0));
 

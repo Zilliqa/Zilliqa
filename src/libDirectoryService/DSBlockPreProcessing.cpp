@@ -155,21 +155,21 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
   // Push all the sorted PoW submissions into an ordered map with key =
   // H(last_block_hash, pow_hash)
   map<array<unsigned char, BLOCK_HASH_SIZE>, PubKey> sortedPoWs;
-  bytes lastBlockHash(BLOCK_HASH_SIZE);
+  zbytes lastBlockHash(BLOCK_HASH_SIZE);
 
   if (m_mediator.m_currentEpochNum > 1) {
     lastBlockHash =
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
   }
 
-  bytes hashVec(BLOCK_HASH_SIZE + POW_SIZE);
+  zbytes hashVec(BLOCK_HASH_SIZE + POW_SIZE);
   copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
   for (const auto& kv : sortedPoWSolns) {
     const PubKey& key = kv.second;
     const auto& powHash = kv.first;
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
-    const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+    const zbytes& sortHashVec = HashUtils::BytesToHash(hashVec);
     array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
@@ -241,7 +241,7 @@ void DirectoryService::InjectPoWForDSNode(
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
   SHA2<HashType::HASH_VARIANT_256> sha2;
-  bytes serializedPubK;
+  zbytes serializedPubK;
 
   // Iterate through the current DS committee from the back, add a PoW
   // solution for the expiring nodes.
@@ -266,7 +266,7 @@ void DirectoryService::InjectPoWForDSNode(
     PubKey nodePubKey = rit->first;
     nodePubKey.Serialize(serializedPubK, 0);
     sha2.Update(serializedPubK);
-    bytes PubKeyHash;
+    zbytes PubKeyHash;
     PubKeyHash = sha2.Finalize();
     array<unsigned char, 32> PubKeyHashArr{};
 
@@ -482,7 +482,7 @@ bool DirectoryService::VerifyPoWOrdering(
   LOG_MARKER();
 
   // Requires mutex for m_shards
-  bytes lastBlockHash(BLOCK_HASH_SIZE, 0);
+  zbytes lastBlockHash(BLOCK_HASH_SIZE, 0);
   set<PubKey> keyset;
 
   if (m_mediator.m_currentEpochNum > 1) {
@@ -539,10 +539,10 @@ bool DirectoryService::VerifyPoWOrdering(
     }
   }
 
-  bytes hashVec(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
+  zbytes hashVec(BLOCK_HASH_SIZE + BLOCK_HASH_SIZE);
   std::copy(lastBlockHash.begin(), lastBlockHash.end(), hashVec.begin());
   bool ret = true;
-  bytes vec(BLOCK_HASH_SIZE), preVec(BLOCK_HASH_SIZE);
+  zbytes vec(BLOCK_HASH_SIZE), preVec(BLOCK_HASH_SIZE);
   uint32_t misorderNodes = 0;
   for (const auto& shard : shards) {
     for (const auto& shardNode : shard) {
@@ -594,7 +594,7 @@ bool DirectoryService::VerifyPoWOrdering(
       }
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-      const bytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+      const zbytes& sortHashVec = HashUtils::BytesToHash(hashVec);
 
       if (DEBUG_LEVEL >= 5) {
         string sortHashVecStr;
@@ -1131,10 +1131,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // into closures.
   auto announcementGeneratorFunc =
       [this, dsWinnerPoWs = move(dsWinnerPoWs)](
-          bytes& dst, unsigned int offset, const uint32_t consensusID,
-          const uint64_t blockNumber, const bytes& blockHash,
+          zbytes& dst, unsigned int offset, const uint32_t consensusID,
+          const uint64_t blockNumber, const zbytes& blockHash,
           const uint16_t leaderID, const PairOfKey& leaderKey,
-          bytes& messageToCosign) mutable -> bool {
+          zbytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSDSBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_pendingDSBlock, m_shards, m_allPoWs, dsWinnerPoWs, messageToCosign);
@@ -1145,10 +1145,10 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
 }
 
 bool DirectoryService::DSBlockValidator(
-    const bytes& message, unsigned int offset, [[gnu::unused]] bytes& errorMsg,
+    const zbytes& message, unsigned int offset, [[gnu::unused]] zbytes& errorMsg,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    bytes& messageToCosign) {
+    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -1345,11 +1345,11 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSBackup() {
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto func = [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+  auto func = [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
                      const uint32_t consensusID, const uint64_t blockNumber,
-                     const bytes& blockHash, const uint16_t leaderID,
+                     const zbytes& blockHash, const uint16_t leaderID,
                      const PubKey& leaderKey,
-                     bytes& messageToCosign) mutable -> bool {
+                     zbytes& messageToCosign) mutable -> bool {
     return DSBlockValidator(input, offset, errorMsg, consensusID, blockNumber,
                             blockHash, leaderID, leaderKey, messageToCosign);
   };

@@ -21,8 +21,8 @@
 using namespace std;
 using namespace dev;
 
-bytes dev::RLPNull = rlp("");
-bytes dev::RLPEmptyList = rlpList();
+zbytes dev::RLPNull = rlp("");
+zbytes dev::RLPEmptyList = rlpList();
 
 RLP::RLP(bytesConstRef _d, Strictness _s):
         m_data(_d)
@@ -277,7 +277,7 @@ RLPStream& RLPStream::appendList(size_t _items)
     if (_items)
         m_listStack.push_back(std::make_pair(_items, m_out.size()));
     else
-        appendList(bytes());
+        appendList(zbytes());
     return *this;
 }
 

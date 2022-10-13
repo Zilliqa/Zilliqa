@@ -122,7 +122,7 @@ namespace dev
     }
 
     zbyte uniqueInUse(RLP const& _orig, zbyte except);
-    std::string hexPrefixEncode(bytes const& _hexVector, bool _leaf = false, int _begin = 0, int _end = -1);
+    std::string hexPrefixEncode(zbytes const& _hexVector, bool _leaf = false, int _begin = 0, int _end = -1);
     std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset);
     std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf);
 

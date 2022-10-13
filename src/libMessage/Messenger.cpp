@@ -42,21 +42,21 @@ using namespace ZilliqaMessage;
 template <class T>
 void SerializableToProtobufByteArray(const T& serializable,
                                      ByteArray& byteArray) {
-  bytes tmp;
+  zbytes tmp;
   serializable.Serialize(tmp, 0);
   byteArray.set_data(tmp.data(), tmp.size());
 }
 
 bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      Serializable& serializable) {
-  bytes tmp(byteArray.data().size());
+  zbytes tmp(byteArray.data().size());
   copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
   return serializable.Deserialize(tmp, 0) == 0;
 }
 
 bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
                                      SerializableCrypto& serializable) {
-  bytes tmp(byteArray.data().size());
+  zbytes tmp(byteArray.data().size());
   copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
   return serializable.Deserialize(tmp, 0);
 }
@@ -64,7 +64,7 @@ bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
 // Temporary function for use by data blocks
 void SerializableToProtobufByteArray(const SerializableDataBlock& serializable,
                                      ByteArray& byteArray) {
-  bytes tmp;
+  zbytes tmp;
   serializable.Serialize(tmp, 0);
   byteArray.set_data(tmp.data(), tmp.size());
 }
@@ -77,20 +77,20 @@ bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
 
 template <class T, size_t S>
 void NumberToProtobufByteArray(const T& number, ByteArray& byteArray) {
-  bytes tmp;
+  zbytes tmp;
   Serializable::SetNumber<T>(tmp, 0, number, S);
   byteArray.set_data(tmp.data(), tmp.size());
 }
 
 template <class T, size_t S>
 void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
-  bytes tmp(byteArray.data().size());
+  zbytes tmp(byteArray.data().size());
   copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
   number = Serializable::GetNumber<T>(tmp, 0, S);
 }
 
 template <class T>
-bool SerializeToArray(const T& protoMessage, bytes& dst,
+bool SerializeToArray(const T& protoMessage, zbytes& dst,
                       const unsigned int offset) {
   if ((offset + protoMessage.ByteSize()) > dst.size()) {
     dst.resize(offset + protoMessage.ByteSize());
@@ -101,11 +101,11 @@ bool SerializeToArray(const T& protoMessage, bytes& dst,
 }
 
 template bool SerializeToArray<ProtoAccountStore>(
-    const ProtoAccountStore& protoMessage, bytes& dst,
+    const ProtoAccountStore& protoMessage, zbytes& dst,
     const unsigned int offset);
 
 template <class T>
-bool RepeatableToArray(const T& repeatable, bytes& dst,
+bool RepeatableToArray(const T& repeatable, zbytes& dst,
                        const unsigned int offset) {
   int tempOffset = offset;
   for (const auto& element : repeatable) {
@@ -119,7 +119,7 @@ bool RepeatableToArray(const T& repeatable, bytes& dst,
 }
 
 template <class T, size_t S>
-void NumberToArray(const T& number, bytes& dst, const unsigned int offset) {
+void NumberToArray(const T& number, zbytes& dst, const unsigned int offset) {
   Serializable::SetNumber<T>(dst, offset, number, S);
 }
 
@@ -493,15 +493,15 @@ bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
   AccountBaseToProtobuf(account, *protoAccountBase);
 
   if (!protoAccountBase->codehash().empty()) {
-    bytes codebytes = account.GetCode();
+    zbytes codebytes = account.GetCode();
     protoAccount.set_code(codebytes.data(), codebytes.size());
 
     // set initdata
-    bytes initbytes = account.GetInitData();
+    zbytes initbytes = account.GetInitData();
     protoAccount.set_initdata(initbytes.data(), initbytes.size());
 
     // set data
-    map<std::string, bytes> t_states;
+    map<std::string, zbytes> t_states;
     set<std::string> deletedIndices;
     if (!account.GetUpdatedStates(t_states, deletedIndices, false)) {
       LOG_GENERAL(WARNING, "Account::GetUpdatedStates failed");
@@ -541,7 +541,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
       LOG_GENERAL(WARNING, "Account has valid codehash but no code content");
       return false;
     }
-    bytes codeBytes, initBytes;
+    zbytes codeBytes, initBytes;
     codeBytes.resize(protoAccount.code().size());
     copy(protoAccount.code().begin(), protoAccount.code().end(),
          codeBytes.begin());
@@ -560,7 +560,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 
     dev::h256 tmpStorageRoot = account.GetStorageRoot();
 
-    map<string, bytes> t_states;
+    map<string, zbytes> t_states;
     vector<std::string> toDeleteIndices;
 
     for (const auto& entry : protoAccount.storage2()) {
@@ -633,7 +633,7 @@ bool AccountDeltaToProtobuf(const Account* oldAccount,
         newAccount.GetStorageRoot() != oldAccount->GetStorageRoot()) {
       accbase.SetStorageRoot(newAccount.GetStorageRoot());
 
-      map<std::string, bytes> t_states;
+      map<std::string, zbytes> t_states;
       set<std::string> deletedIndices;
       if (!newAccount.GetUpdatedStates(t_states, deletedIndices, true)) {
         return false;
@@ -702,7 +702,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
 
   if ((protoAccount.code().size() > 0) || account.isContract()) {
     if (fullCopy) {
-      bytes codeBytes, initDataBytes;
+      zbytes codeBytes, initDataBytes;
 
       if (protoAccount.code().size() > MAX_CODE_SIZE_IN_BYTES) {
         LOG_GENERAL(WARNING, "Code size "
@@ -741,7 +741,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     if (accbase.GetStorageRoot() == dev::h256()) {
       dev::h256 tmpHash;
 
-      map<string, bytes> t_states;
+      map<string, zbytes> t_states;
       vector<std::string> toDeleteIndices;
 
       for (const auto& entry : protoAccount.storage2()) {
@@ -1234,7 +1234,7 @@ bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTransaction.signature(), signature);
 
-  bytes txnData;
+  zbytes txnData;
   if (!SerializeToArray(protoTransaction.info(), txnData, 0)) {
     LOG_GENERAL(WARNING, "Serialize protoTransaction core info failed");
     return false;
@@ -2043,7 +2043,7 @@ bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
 
 bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
-    const uint32_t consensusID, uint64_t blockNumber, const bytes& blockHash,
+    const uint32_t consensusID, uint64_t blockNumber, const zbytes& blockHash,
     const uint16_t leaderID, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
@@ -2061,7 +2061,7 @@ bool SetConsensusAnnouncementCore(
     return false;
   }
 
-  bytes tmp(announcement.consensusinfo().ByteSize());
+  zbytes tmp(announcement.consensusinfo().ByteSize());
   announcement.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -2077,7 +2077,7 @@ bool SetConsensusAnnouncementCore(
 
   // Sign the announcement
 
-  bytes inputToSigning;
+  zbytes inputToSigning;
 
   switch (announcement.announcement_case()) {
     case ConsensusAnnouncement::AnnouncementCase::kDsblock:
@@ -2154,7 +2154,7 @@ bool SetConsensusAnnouncementCore(
 bool GetConsensusAnnouncementCore(
     const ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey) {
+    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey) {
   LOG_MARKER();
 
   // Check the consensus parameters
@@ -2179,7 +2179,7 @@ bool GetConsensusAnnouncementCore(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
 
@@ -2207,7 +2207,7 @@ bool GetConsensusAnnouncementCore(
   }
 
   // Verify the signature
-  bytes tmp;
+  zbytes tmp;
 
   if (announcement.has_dsblock() && announcement.dsblock().IsInitialized()) {
     tmp.resize(announcement.consensusinfo().ByteSize() +
@@ -2278,7 +2278,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
-  bytes tmp;
+  zbytes tmp;
 
   if (!SerializeToArray(protoCommittee, tmp, 0)) {
     LOG_GENERAL(WARNING, "ProtoCommittee serialization failed");
@@ -2304,7 +2304,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
     return false;
   }
 
-  bytes tmp;
+  zbytes tmp;
 
   if (!SerializeToArray(protoCommittee, tmp, 0)) {
     LOG_GENERAL(WARNING, "ProtoCommittee serialization failed");
@@ -2332,7 +2332,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
     return false;
   }
 
-  bytes tmp;
+  zbytes tmp;
 
   if (!SerializeToArray(protoShardingStructure, tmp, 0)) {
     LOG_GENERAL(WARNING, "ProtoShardingStructure serialization failed");
@@ -2348,7 +2348,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
   return true;
 }
 
-bool Messenger::SetAccountBase(bytes& dst, const unsigned int offset,
+bool Messenger::SetAccountBase(zbytes& dst, const unsigned int offset,
                                const AccountBase& accountbase) {
   ProtoAccountBase result;
 
@@ -2362,7 +2362,7 @@ bool Messenger::SetAccountBase(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetAccountBase(const bytes& src, const unsigned int offset,
+bool Messenger::GetAccountBase(const zbytes& src, const unsigned int offset,
                                AccountBase& accountbase) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2410,7 +2410,7 @@ bool Messenger::GetAccountBase(const string& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
+bool Messenger::SetAccount(zbytes& dst, const unsigned int offset,
                            const Account& account) {
   ProtoAccount result;
 
@@ -2427,7 +2427,7 @@ bool Messenger::SetAccount(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetAccount(const bytes& src, const unsigned int offset,
+bool Messenger::GetAccount(const zbytes& src, const unsigned int offset,
                            Account& account) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2453,7 +2453,7 @@ bool Messenger::GetAccount(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
+bool Messenger::SetAccountDelta(zbytes& dst, const unsigned int offset,
                                 Account* oldAccount,
                                 const Account& newAccount) {
   ProtoAccount result;
@@ -2471,7 +2471,7 @@ bool Messenger::SetAccountDelta(bytes& dst, const unsigned int offset,
 }
 
 template <class MAP>
-bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
+bool Messenger::SetAccountStore(zbytes& dst, const unsigned int offset,
                                 const MAP& addressToAccount) {
   ProtoAccountStore result;
 
@@ -2500,7 +2500,7 @@ bool Messenger::SetAccountStore(bytes& dst, const unsigned int offset,
 }
 
 template <class MAP>
-bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
+bool Messenger::GetAccountStore(const zbytes& src, const unsigned int offset,
                                 MAP& addressToAccount) {
   if (offset > src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2538,7 +2538,7 @@ bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::GetAccountStore(const bytes& src, const unsigned int offset,
+bool Messenger::GetAccountStore(const zbytes& src, const unsigned int offset,
                                 AccountStore& accountStore) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2614,7 +2614,7 @@ bool Messenger::GetAccountStore(const string& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
+bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
                                      AccountStoreTemp& accountStoreTemp,
                                      AccountStore& accountStore) {
   ProtoAccountStore result;
@@ -2646,7 +2646,7 @@ bool Messenger::SetAccountStoreDelta(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::StateDeltaToAddressMap(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     unordered_map<Address, int256_t>& accountMap) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2686,7 +2686,7 @@ bool Messenger::StateDeltaToAddressMap(
   return true;
 }
 
-bool Messenger::GetAccountStoreDelta(const bytes& src,
+bool Messenger::GetAccountStoreDelta(const zbytes& src,
                                      const unsigned int offset,
                                      AccountStore& accountStore,
                                      const bool revertible, bool temp) {
@@ -2741,7 +2741,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
   return true;
 }
 
-bool Messenger::GetAccountStoreDelta(const bytes& src,
+bool Messenger::GetAccountStoreDelta(const zbytes& src,
                                      const unsigned int offset,
                                      AccountStoreTemp& accountStoreTemp,
                                      bool temp) {
@@ -2799,7 +2799,7 @@ bool Messenger::GetAccountStoreDelta(const bytes& src,
 
 bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
                               MBInfoHash& dst) {
-  bytes tmp;
+  zbytes tmp;
 
   for (const auto& mbInfo : mbInfos) {
     ProtoMbInfo ProtoMbInfo;
@@ -2830,7 +2830,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
   return true;
 }
 
-bool Messenger::SetDSBlockHeader(bytes& dst, const unsigned int offset,
+bool Messenger::SetDSBlockHeader(zbytes& dst, const unsigned int offset,
                                  const DSBlockHeader& dsBlockHeader,
                                  bool concreteVarsOnly) {
   ProtoDSBlock::DSBlockHeader result;
@@ -2845,7 +2845,7 @@ bool Messenger::SetDSBlockHeader(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSBlockHeader(const bytes& src, const unsigned int offset,
+bool Messenger::GetDSBlockHeader(const zbytes& src, const unsigned int offset,
                                  DSBlockHeader& dsBlockHeader) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2883,7 +2883,7 @@ bool Messenger::GetDSBlockHeader(const string& src, const unsigned int offset,
   return ProtobufToDSBlockHeader(result, dsBlockHeader);
 }
 
-bool Messenger::SetDSBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetDSBlock(zbytes& dst, const unsigned int offset,
                            const DSBlock& dsBlock) {
   ProtoDSBlock result;
 
@@ -2897,7 +2897,7 @@ bool Messenger::SetDSBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetDSBlock(const zbytes& src, const unsigned int offset,
                            DSBlock& dsBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2935,7 +2935,7 @@ bool Messenger::GetDSBlock(const string& src, const unsigned int offset,
   return ProtobufToDSBlock(result, dsBlock);
 }
 
-bool Messenger::SetMicroBlockHeader(bytes& dst, const unsigned int offset,
+bool Messenger::SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
                                     const MicroBlockHeader& microBlockHeader) {
   ProtoMicroBlock::MicroBlockHeader result;
 
@@ -2950,7 +2950,7 @@ bool Messenger::SetMicroBlockHeader(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMicroBlockHeader(const bytes& src, const unsigned int offset,
+bool Messenger::GetMicroBlockHeader(const zbytes& src, const unsigned int offset,
                                     MicroBlockHeader& microBlockHeader) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -2991,7 +2991,7 @@ bool Messenger::GetMicroBlockHeader(const string& src,
   return ProtobufToMicroBlockHeader(result, microBlockHeader);
 }
 
-bool Messenger::SetMicroBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetMicroBlock(zbytes& dst, const unsigned int offset,
                               const MicroBlock& microBlock) {
   ProtoMicroBlock result;
 
@@ -3005,7 +3005,7 @@ bool Messenger::SetMicroBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMicroBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetMicroBlock(const zbytes& src, const unsigned int offset,
                               MicroBlock& microBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3043,7 +3043,7 @@ bool Messenger::GetMicroBlock(const string& src, const unsigned int offset,
   return ProtobufToMicroBlock(result, microBlock);
 }
 
-bool Messenger::SetTxBlockHeader(bytes& dst, const unsigned int offset,
+bool Messenger::SetTxBlockHeader(zbytes& dst, const unsigned int offset,
                                  const TxBlockHeader& txBlockHeader) {
   ProtoTxBlock::TxBlockHeader result;
 
@@ -3057,7 +3057,7 @@ bool Messenger::SetTxBlockHeader(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTxBlockHeader(const bytes& src, const unsigned int offset,
+bool Messenger::GetTxBlockHeader(const zbytes& src, const unsigned int offset,
                                  TxBlockHeader& txBlockHeader) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3095,7 +3095,7 @@ bool Messenger::GetTxBlockHeader(const string& src, const unsigned int offset,
   return ProtobufToTxBlockHeader(result, txBlockHeader);
 }
 
-bool Messenger::SetTxBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetTxBlock(zbytes& dst, const unsigned int offset,
                            const TxBlock& txBlock) {
   ProtoTxBlock result;
 
@@ -3109,7 +3109,7 @@ bool Messenger::SetTxBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTxBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetTxBlock(const zbytes& src, const unsigned int offset,
                            TxBlock& txBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3147,7 +3147,7 @@ bool Messenger::GetTxBlock(const string& src, const unsigned int offset,
   return ProtobufToTxBlock(result, txBlock);
 }
 
-bool Messenger::SetVCBlockHeader(bytes& dst, const unsigned int offset,
+bool Messenger::SetVCBlockHeader(zbytes& dst, const unsigned int offset,
                                  const VCBlockHeader& vcBlockHeader) {
   ProtoVCBlock::VCBlockHeader result;
 
@@ -3161,7 +3161,7 @@ bool Messenger::SetVCBlockHeader(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetVCBlockHeader(const bytes& src, const unsigned int offset,
+bool Messenger::GetVCBlockHeader(const zbytes& src, const unsigned int offset,
                                  VCBlockHeader& vcBlockHeader) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3199,7 +3199,7 @@ bool Messenger::GetVCBlockHeader(const string& src, const unsigned int offset,
   return ProtobufToVCBlockHeader(result, vcBlockHeader);
 }
 
-bool Messenger::SetVCBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetVCBlock(zbytes& dst, const unsigned int offset,
                            const VCBlock& vcBlock) {
   ProtoVCBlock result;
 
@@ -3213,7 +3213,7 @@ bool Messenger::SetVCBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetVCBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetVCBlock(const zbytes& src, const unsigned int offset,
                            VCBlock& vcBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3251,7 +3251,7 @@ bool Messenger::GetVCBlock(const string& src, const unsigned int offset,
   return ProtobufToVCBlock(result, vcBlock);
 }
 
-bool Messenger::SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
+bool Messenger::SetTransactionCoreInfo(zbytes& dst, const unsigned int offset,
                                        const TransactionCoreInfo& transaction) {
   ProtoTransactionCoreInfo result;
 
@@ -3264,7 +3264,7 @@ bool Messenger::SetTransactionCoreInfo(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionCoreInfo(const bytes& src,
+bool Messenger::GetTransactionCoreInfo(const zbytes& src,
                                        const unsigned int offset,
                                        TransactionCoreInfo& transaction) {
   if (offset >= src.size()) {
@@ -3284,7 +3284,7 @@ bool Messenger::GetTransactionCoreInfo(const bytes& src,
   return ProtobufToTransactionCoreInfo(result, transaction);
 }
 
-bool Messenger::SetTransaction(bytes& dst, const unsigned int offset,
+bool Messenger::SetTransaction(zbytes& dst, const unsigned int offset,
                                const Transaction& transaction) {
   ProtoTransaction result;
 
@@ -3297,7 +3297,7 @@ bool Messenger::SetTransaction(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransaction(const bytes& src, const unsigned int offset,
+bool Messenger::GetTransaction(const zbytes& src, const unsigned int offset,
                                Transaction& transaction) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3336,7 +3336,7 @@ bool Messenger::GetTransaction(const string& src, const unsigned int offset,
 }
 
 bool Messenger::SetTransactionFileOffset(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const std::vector<uint32_t>& txnOffsets) {
   ProtoTxnFileOffset result;
   TransactionOffsetToProtobuf(txnOffsets, result);
@@ -3347,7 +3347,7 @@ bool Messenger::SetTransactionFileOffset(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionFileOffset(const bytes& src,
+bool Messenger::GetTransactionFileOffset(const zbytes& src,
                                          const unsigned int offset,
                                          std::vector<uint32_t>& txnOffsets) {
   if (offset >= src.size()) {
@@ -3368,7 +3368,7 @@ bool Messenger::GetTransactionFileOffset(const bytes& src,
   return true;
 }
 
-bool Messenger::SetTransactionArray(bytes& dst, const unsigned int offset,
+bool Messenger::SetTransactionArray(zbytes& dst, const unsigned int offset,
                                     const std::vector<Transaction>& txns) {
   ProtoTransactionArray result;
   TransactionArrayToProtobuf(txns, result);
@@ -3379,7 +3379,7 @@ bool Messenger::SetTransactionArray(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionArray(const bytes& src, const unsigned int offset,
+bool Messenger::GetTransactionArray(const zbytes& src, const unsigned int offset,
                                     std::vector<Transaction>& txns) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3399,7 +3399,7 @@ bool Messenger::GetTransactionArray(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::SetTransactionReceipt(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const TransactionReceipt& transactionReceipt) {
   ProtoTransactionReceipt result;
 
@@ -3412,7 +3412,7 @@ bool Messenger::SetTransactionReceipt(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionReceipt(const bytes& src,
+bool Messenger::GetTransactionReceipt(const zbytes& src,
                                       const unsigned int offset,
                                       TransactionReceipt& transactionReceipt) {
   if (offset >= src.size()) {
@@ -3453,7 +3453,7 @@ bool Messenger::GetTransactionReceipt(const string& src,
 }
 
 bool Messenger::SetTransactionWithReceipt(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const TransactionWithReceipt& transactionWithReceipt) {
   ProtoTransactionWithReceipt result;
 
@@ -3467,7 +3467,7 @@ bool Messenger::SetTransactionWithReceipt(
 }
 
 bool Messenger::GetTransactionWithReceipt(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     TransactionWithReceipt& transactionWithReceipt) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3506,7 +3506,7 @@ bool Messenger::GetTransactionWithReceipt(
   return ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
 }
 
-bool Messenger::SetStateIndex(bytes& dst, const unsigned int offset,
+bool Messenger::SetStateIndex(zbytes& dst, const unsigned int offset,
                               const vector<Contract::Index>& indexes) {
   ProtoStateIndex result;
 
@@ -3520,7 +3520,7 @@ bool Messenger::SetStateIndex(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetStateIndex(const bytes& src, const unsigned int offset,
+bool Messenger::GetStateIndex(const zbytes& src, const unsigned int offset,
                               vector<Contract::Index>& indexes) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3539,7 +3539,7 @@ bool Messenger::GetStateIndex(const bytes& src, const unsigned int offset,
   return ProtobufToStateIndex(result, indexes);
 }
 
-bool Messenger::SetStateData(bytes& dst, const unsigned int offset,
+bool Messenger::SetStateData(zbytes& dst, const unsigned int offset,
                              const Contract::StateEntry& entry) {
   ProtoStateData result;
 
@@ -3553,7 +3553,7 @@ bool Messenger::SetStateData(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
+bool Messenger::GetStateData(const zbytes& src, const unsigned int offset,
                              Contract::StateEntry& entry, uint32_t& version) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3572,7 +3572,7 @@ bool Messenger::GetStateData(const bytes& src, const unsigned int offset,
   return ProtobufToStateData(result, entry, version);
 }
 
-bool Messenger::SetPeer(bytes& dst, const unsigned int offset,
+bool Messenger::SetPeer(zbytes& dst, const unsigned int offset,
                         const Peer& peer) {
   ProtoPeer result;
 
@@ -3586,7 +3586,7 @@ bool Messenger::SetPeer(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetPeer(const bytes& src, const unsigned int offset,
+bool Messenger::GetPeer(const zbytes& src, const unsigned int offset,
                         Peer& peer) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
@@ -3608,7 +3608,7 @@ bool Messenger::GetPeer(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::SetBlockLink(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>&
         blocklink) {
   ProtoBlockLink result;
@@ -3628,7 +3628,7 @@ bool Messenger::SetBlockLink(
 }
 
 bool Messenger::GetBlockLink(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
   ProtoBlockLink result;
   BlockHash blkhash;
@@ -3665,7 +3665,7 @@ bool Messenger::GetBlockLink(
   return true;
 }
 
-bool Messenger::SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
+bool Messenger::SetDiagnosticDataNodes(zbytes& dst, const unsigned int offset,
                                        const uint32_t& shardingStructureVersion,
                                        const DequeOfShard& shards,
                                        const uint32_t& dsCommitteeVersion,
@@ -3685,7 +3685,7 @@ bool Messenger::SetDiagnosticDataNodes(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDiagnosticDataNodes(const bytes& src,
+bool Messenger::GetDiagnosticDataNodes(const zbytes& src,
                                        const unsigned int offset,
                                        uint32_t& shardingStructureVersion,
                                        DequeOfShard& shards,
@@ -3716,7 +3716,7 @@ bool Messenger::GetDiagnosticDataNodes(const bytes& src,
                                dsCommittee);
 }
 
-bool Messenger::SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
+bool Messenger::SetDiagnosticDataCoinbase(zbytes& dst, const unsigned int offset,
                                           const DiagnosticDataCoinbase& entry) {
   ProtoDiagnosticDataCoinbase result;
 
@@ -3754,7 +3754,7 @@ bool Messenger::SetDiagnosticDataCoinbase(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
+bool Messenger::GetDiagnosticDataCoinbase(const zbytes& src,
                                           const unsigned int offset,
                                           DiagnosticDataCoinbase& entry) {
   if (offset >= src.size()) {
@@ -3803,7 +3803,7 @@ bool Messenger::GetDiagnosticDataCoinbase(const bytes& src,
   return true;
 }
 
-bool Messenger::SetBloomFilter(bytes& dst, const unsigned int offset,
+bool Messenger::SetBloomFilter(zbytes& dst, const unsigned int offset,
                                const BloomFilter& filter) {
   ProtoBloomFilter result;
 
@@ -3826,7 +3826,7 @@ bool Messenger::SetBloomFilter(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetBloomFilter(const bytes& src, const unsigned int offset,
+bool Messenger::GetBloomFilter(const zbytes& src, const unsigned int offset,
                                BloomFilter& filter) {
   ProtoBloomFilter protoBloomFilter;
   protoBloomFilter.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -3858,7 +3858,7 @@ bool Messenger::GetBloomFilter(const bytes& src, const unsigned int offset,
 // Peer Manager messages
 // ============================================================================
 
-bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
+bool Messenger::SetPMHello(zbytes& dst, const unsigned int offset,
                            const PairOfKey& key, const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -3872,7 +3872,7 @@ bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "PMHello.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -3891,7 +3891,7 @@ bool Messenger::SetPMHello(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetPMHello(const bytes& src, const unsigned int offset,
+bool Messenger::GetPMHello(const zbytes& src, const unsigned int offset,
                            PubKey& pubKey, uint32_t& listenPort) {
   LOG_MARKER();
 
@@ -3915,7 +3915,7 @@ bool Messenger::GetPMHello(const bytes& src, const unsigned int offset,
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
@@ -3931,7 +3931,7 @@ bool Messenger::GetPMHello(const bytes& src, const unsigned int offset,
 // ============================================================================
 
 bool Messenger::SetDSPoWSubmission(
-    bytes& dst, const unsigned int offset, const uint64_t blockNumber,
+    zbytes& dst, const unsigned int offset, const uint64_t blockNumber,
     const uint8_t difficultyLevel, const Peer& submitterPeer,
     const PairOfKey& submitterKey, const uint64_t nonce,
     const string& resultingHash, const string& mixHash,
@@ -3973,7 +3973,7 @@ bool Messenger::SetDSPoWSubmission(
 
   result.mutable_data()->set_version(version);
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   // We use MultiSig::SignKey to emphasize that this is for the
@@ -3995,7 +3995,7 @@ bool Messenger::SetDSPoWSubmission(
 }
 
 bool Messenger::GetDSPoWSubmission(
-    const bytes& src, const unsigned int offset, uint64_t& blockNumber,
+    const zbytes& src, const unsigned int offset, uint64_t& blockNumber,
     uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
     uint64_t& nonce, string& resultingHash, string& mixHash,
     Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
@@ -4034,7 +4034,7 @@ bool Messenger::GetDSPoWSubmission(
     govProposalId = result.data().govdata().proposalid();
     govVoteValue = result.data().govdata().votevalue();
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   version = result.data().version();
@@ -4050,7 +4050,7 @@ bool Messenger::GetDSPoWSubmission(
 }
 
 bool Messenger::SetDSPoWPacketSubmission(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys) {
   LOG_MARKER();
 
@@ -4063,7 +4063,7 @@ bool Messenger::SetDSPoWPacketSubmission(
 
   SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
@@ -4080,7 +4080,7 @@ bool Messenger::SetDSPoWPacketSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSPowPacketSubmission(const bytes& src,
+bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
                                          const unsigned int offset,
                                          vector<DSPowSolution>& dsPowSolutions,
                                          PubKey& pubKey) {
@@ -4103,7 +4103,7 @@ bool Messenger::GetDSPowPacketSubmission(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSPoWPacketSubmission signature wrong");
@@ -4119,11 +4119,11 @@ bool Messenger::GetDSPowPacketSubmission(const bytes& src,
   return true;
 }
 
-bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
+bool Messenger::SetDSMicroBlockSubmission(zbytes& dst, const unsigned int offset,
                                           const unsigned char microBlockType,
                                           const uint64_t epochNumber,
                                           const vector<MicroBlock>& microBlocks,
-                                          const vector<bytes>& stateDeltas,
+                                          const vector<zbytes>& stateDeltas,
                                           const PairOfKey& keys) {
   LOG_MARKER();
 
@@ -4144,7 +4144,7 @@ bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
     return false;
   }
 
-  bytes tmp(result.mutable_data()->ByteSize());
+  zbytes tmp(result.mutable_data()->ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -4165,9 +4165,9 @@ bool Messenger::SetDSMicroBlockSubmission(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetDSMicroBlockSubmission(
-    const bytes& src, const unsigned int offset, unsigned char& microBlockType,
+    const zbytes& src, const unsigned int offset, unsigned char& microBlockType,
     uint64_t& epochNumber, vector<MicroBlock>& microBlocks,
-    vector<bytes>& stateDeltas, PubKey& pubKey) {
+    vector<zbytes>& stateDeltas, PubKey& pubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4190,7 +4190,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong");
@@ -4207,7 +4207,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   }
 
   for (const auto& proto_delta : result.data().statedeltas()) {
-    stateDeltas.emplace_back(bytes(proto_delta.size()));
+    stateDeltas.emplace_back(zbytes(proto_delta.size()));
     copy(proto_delta.begin(), proto_delta.end(), stateDeltas.back().begin());
   }
 
@@ -4215,11 +4215,11 @@ bool Messenger::GetDSMicroBlockSubmission(
 }
 
 bool Messenger::SetDSDSBlockAnnouncement(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PairOfKey& leaderKey, const DSBlock& dsBlock,
     const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
-    const MapOfPubKeyPoW& dsWinnerPoWs, bytes& messageToCosign) {
+    const MapOfPubKeyPoW& dsWinnerPoWs, zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -4279,11 +4279,11 @@ bool Messenger::SetDSDSBlockAnnouncement(
 }
 
 bool Messenger::GetDSDSBlockAnnouncement(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, DSBlock& dsBlock, DequeOfShard& shards,
     MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
-    bytes& messageToCosign) {
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4377,10 +4377,10 @@ bool Messenger::GetDSDSBlockAnnouncement(
 }
 
 bool Messenger::SetDSFinalBlockAnnouncement(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PairOfKey& leaderKey, const TxBlock& txBlock,
-    const shared_ptr<MicroBlock>& microBlock, bytes& messageToCosign) {
+    const shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -4423,10 +4423,10 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 }
 
 bool Messenger::GetDSFinalBlockAnnouncement(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PubKey& leaderKey, TxBlock& txBlock,
-    shared_ptr<MicroBlock>& microBlock, bytes& messageToCosign) {
+    shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4483,10 +4483,10 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 }
 
 bool Messenger::SetDSVCBlockAnnouncement(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PairOfKey& leaderKey, const VCBlock& vcBlock,
-    bytes& messageToCosign) {
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -4524,9 +4524,9 @@ bool Messenger::SetDSVCBlockAnnouncement(
 }
 
 bool Messenger::GetDSVCBlockAnnouncement(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, VCBlock& vcBlock, bytes& messageToCosign) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, VCBlock& vcBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4574,7 +4574,7 @@ bool Messenger::GetDSVCBlockAnnouncement(
 }
 
 bool Messenger::SetDSMissingMicroBlocksErrorMsg(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const vector<BlockHash>& missingMicroBlockHashes, const uint64_t epochNum,
     const uint32_t listenPort) {
   LOG_MARKER();
@@ -4597,7 +4597,7 @@ bool Messenger::SetDSMissingMicroBlocksErrorMsg(
 }
 
 bool Messenger::GetDSMissingMicroBlocksErrorMsg(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     vector<BlockHash>& missingMicroBlockHashes, uint64_t& epochNum,
     uint32_t& listenPort) {
   LOG_MARKER();
@@ -4635,7 +4635,7 @@ bool Messenger::GetDSMissingMicroBlocksErrorMsg(
 // ============================================================================
 
 bool Messenger::SetNodeVCDSBlocksMessage(
-    bytes& dst, const unsigned int offset, const uint32_t shardId,
+    zbytes& dst, const unsigned int offset, const uint32_t shardId,
     const DSBlock& dsBlock, const std::vector<VCBlock>& vcBlocks,
     const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
   LOG_MARKER();
@@ -4659,7 +4659,7 @@ bool Messenger::SetNodeVCDSBlocksMessage(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCDSBlocksMessage(const bytes& src,
+bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
                                          const unsigned int offset,
                                          uint32_t& shardId, DSBlock& dsBlock,
                                          std::vector<VCBlock>& vcBlocks,
@@ -4699,11 +4699,11 @@ bool Messenger::GetNodeVCDSBlocksMessage(const bytes& src,
                                      shardingStructureVersion, shards);
 }
 
-bool Messenger::SetNodeVCFinalBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetNodeVCFinalBlock(zbytes& dst, const unsigned int offset,
                                     const uint64_t dsBlockNumber,
                                     const uint32_t consensusID,
                                     const TxBlock& txBlock,
-                                    const bytes& stateDelta,
+                                    const zbytes& stateDelta,
                                     const std::vector<VCBlock>& vcBlocks) {
   LOG_MARKER();
 
@@ -4726,10 +4726,10 @@ bool Messenger::SetNodeVCFinalBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCFinalBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetNodeVCFinalBlock(const zbytes& src, const unsigned int offset,
                                     uint64_t& dsBlockNumber,
                                     uint32_t& consensusID, TxBlock& txBlock,
-                                    bytes& stateDelta,
+                                    zbytes& stateDelta,
                                     std::vector<VCBlock>& vcBlocks) {
   LOG_MARKER();
 
@@ -4767,11 +4767,11 @@ bool Messenger::GetNodeVCFinalBlock(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetNodeFinalBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetNodeFinalBlock(zbytes& dst, const unsigned int offset,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
                                   const TxBlock& txBlock,
-                                  const bytes& stateDelta) {
+                                  const zbytes& stateDelta) {
   LOG_MARKER();
 
   NodeFinalBlock result;
@@ -4789,10 +4789,10 @@ bool Messenger::SetNodeFinalBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetNodeFinalBlock(const zbytes& src, const unsigned int offset,
                                   uint64_t& dsBlockNumber,
                                   uint32_t& consensusID, TxBlock& txBlock,
-                                  bytes& stateDelta) {
+                                  zbytes& stateDelta) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4822,7 +4822,7 @@ bool Messenger::GetNodeFinalBlock(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::SetNodeMBnForwardTransaction(
-    bytes& dst, const unsigned int offset, const MicroBlock& microBlock,
+    zbytes& dst, const unsigned int offset, const MicroBlock& microBlock,
     const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
@@ -4850,7 +4850,7 @@ bool Messenger::SetNodeMBnForwardTransaction(
 }
 
 bool Messenger::SetNodePendingTxn(
-    bytes& dst, const unsigned offset, const uint64_t& epochnum,
+    zbytes& dst, const unsigned offset, const uint64_t& epochnum,
     const unordered_map<TxnHash, TxnStatus>& hashCodeMap,
     const uint32_t shardId, const PairOfKey& key) {
   LOG_MARKER();
@@ -4874,7 +4874,7 @@ bool Messenger::SetNodePendingTxn(
     sha2.Update(to_string(hashCodePair.second));
   }
 
-  const bytes& txnlisthash = sha2.Finalize();
+  const zbytes& txnlisthash = sha2.Finalize();
   result.mutable_data()->set_txnlisthash(txnlisthash.data(),
                                          txnlisthash.size());
 
@@ -4883,7 +4883,7 @@ bool Messenger::SetNodePendingTxn(
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -4903,9 +4903,9 @@ bool Messenger::SetNodePendingTxn(
 }
 
 bool Messenger::GetNodePendingTxn(
-    const bytes& src, const unsigned offset, uint64_t& epochnum,
+    const zbytes& src, const unsigned offset, uint64_t& epochnum,
     unordered_map<TxnHash, TxnStatus>& hashCodeMap, uint32_t& shardId,
-    PubKey& pubKey, bytes& txnListHash) {
+    PubKey& pubKey, zbytes& txnListHash) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4927,7 +4927,7 @@ bool Messenger::GetNodePendingTxn(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
@@ -4956,7 +4956,7 @@ bool Messenger::GetNodePendingTxn(
   return true;
 }
 
-bool Messenger::GetNodeMBnForwardTransaction(const bytes& src,
+bool Messenger::GetNodeMBnForwardTransaction(const zbytes& src,
                                              const unsigned int offset,
                                              MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
@@ -4991,7 +4991,7 @@ bool Messenger::GetNodeMBnForwardTransaction(const bytes& src,
   return true;
 }
 
-bool Messenger::SetNodeVCBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetNodeVCBlock(zbytes& dst, const unsigned int offset,
                                const VCBlock& vcBlock) {
   LOG_MARKER();
 
@@ -5007,7 +5007,7 @@ bool Messenger::SetNodeVCBlock(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
+bool Messenger::GetNodeVCBlock(const zbytes& src, const unsigned int offset,
                                VCBlock& vcBlock) {
   LOG_MARKER();
 
@@ -5029,7 +5029,7 @@ bool Messenger::GetNodeVCBlock(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::SetNodeForwardTxnBlock(
-    bytes& dst, const unsigned int offset, const uint64_t& epochNumber,
+    zbytes& dst, const unsigned int offset, const uint64_t& epochNumber,
     const uint64_t& dsBlockNum, const uint32_t& shardId,
     const PairOfKey& lookupKey,
     deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
@@ -5097,7 +5097,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
   Signature signature;
   if (result.transactions().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -5122,7 +5122,7 @@ bool Messenger::SetNodeForwardTxnBlock(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
+bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
                                        const uint64_t& epochNumber,
                                        const uint64_t& dsBlockNum,
                                        const uint32_t& shardId,
@@ -5171,7 +5171,7 @@ bool Messenger::SetNodeForwardTxnBlock(bytes& dst, const unsigned int offset,
 }
 
 bool Messenger::GetNodeForwardTxnBlock(
-    const bytes& src, const unsigned int offset, uint64_t& epochNumber,
+    const zbytes& src, const unsigned int offset, uint64_t& epochNumber,
     uint64_t& dsBlockNum, uint32_t& shardId, PubKey& lookupPubKey,
     std::vector<Transaction>& txns, Signature& signature) {
   LOG_MARKER();
@@ -5196,7 +5196,7 @@ bool Messenger::GetNodeForwardTxnBlock(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
   if (result.transactions().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -5225,10 +5225,10 @@ bool Messenger::GetNodeForwardTxnBlock(
 }
 
 bool Messenger::SetNodeMicroBlockAnnouncement(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PairOfKey& leaderKey, const MicroBlock& microBlock,
-    bytes& messageToCosign) {
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
@@ -5266,9 +5266,9 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
 }
 
 bool Messenger::GetNodeMicroBlockAnnouncement(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
-    const PubKey& leaderKey, MicroBlock& microBlock, bytes& messageToCosign) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
+    const PubKey& leaderKey, MicroBlock& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5315,7 +5315,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
   return true;
 }
 
-bool Messenger::ShardStructureToArray(bytes& dst, const unsigned int offset,
+bool Messenger::ShardStructureToArray(zbytes& dst, const unsigned int offset,
                                       const uint32_t& version,
                                       const DequeOfShard& shards) {
   ProtoShardingStructure protoShardingStructure;
@@ -5334,7 +5334,7 @@ bool Messenger::ShardStructureToArray(bytes& dst, const unsigned int offset,
   return true;
 }
 
-bool Messenger::ArrayToShardStructure(const bytes& src,
+bool Messenger::ArrayToShardStructure(const zbytes& src,
                                       const unsigned int offset,
                                       uint32_t& version, DequeOfShard& shards) {
   if (offset >= src.size()) {
@@ -5350,7 +5350,7 @@ bool Messenger::ArrayToShardStructure(const bytes& src,
 }
 
 bool Messenger::SetNodeMissingTxnsErrorMsg(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const vector<TxnHash>& missingTxnHashes, const uint64_t epochNum,
     const uint32_t listenPort) {
   LOG_MARKER();
@@ -5373,7 +5373,7 @@ bool Messenger::SetNodeMissingTxnsErrorMsg(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeMissingTxnsErrorMsg(const bytes& src,
+bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes& src,
                                            const unsigned int offset,
                                            vector<TxnHash>& missingTxnHashes,
                                            uint64_t& epochNum,
@@ -5408,7 +5408,7 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const bytes& src,
   return true;
 }
 
-bool Messenger::SetNodeGetVersion(bytes& dst, const unsigned int offset,
+bool Messenger::SetNodeGetVersion(zbytes& dst, const unsigned int offset,
                                   const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -5422,7 +5422,7 @@ bool Messenger::SetNodeGetVersion(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeGetVersion(const bytes& src, const unsigned int offset,
+bool Messenger::GetNodeGetVersion(const zbytes& src, const unsigned int offset,
                                   uint32_t& listenPort) {
   LOG_MARKER();
 
@@ -5445,7 +5445,7 @@ bool Messenger::GetNodeGetVersion(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetNodeSetVersion(bytes& dst, const unsigned int offset,
+bool Messenger::SetNodeSetVersion(zbytes& dst, const unsigned int offset,
                                   const std::string& version) {
   LOG_MARKER();
 
@@ -5459,7 +5459,7 @@ bool Messenger::SetNodeSetVersion(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeSetVersion(const bytes& src, const unsigned int offset,
+bool Messenger::GetNodeSetVersion(const zbytes& src, const unsigned int offset,
                                   std::string& version) {
   LOG_MARKER();
 
@@ -5486,7 +5486,7 @@ bool Messenger::GetNodeSetVersion(const bytes& src, const unsigned int offset,
 // Lookup messages
 // ============================================================================
 
-bool Messenger::SetLookupGetSeedPeers(bytes& dst, const unsigned int offset,
+bool Messenger::SetLookupGetSeedPeers(zbytes& dst, const unsigned int offset,
                                       const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -5502,7 +5502,7 @@ bool Messenger::SetLookupGetSeedPeers(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetSeedPeers(const bytes& src,
+bool Messenger::GetLookupGetSeedPeers(const zbytes& src,
                                       const unsigned int offset,
                                       uint32_t& listenPort) {
   LOG_MARKER();
@@ -5526,7 +5526,7 @@ bool Messenger::GetLookupGetSeedPeers(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
+bool Messenger::SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
                                       const PairOfKey& lookupKey,
                                       const vector<Peer>& candidateSeeds) {
   LOG_MARKER();
@@ -5554,7 +5554,7 @@ bool Messenger::SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
 
   Signature signature;
   if (result.candidateseeds().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
@@ -5575,7 +5575,7 @@ bool Messenger::SetLookupSetSeedPeers(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetSeedPeers(const bytes& src,
+bool Messenger::GetLookupSetSeedPeers(const zbytes& src,
                                       const unsigned int offset,
                                       PubKey& lookupPubKey,
                                       vector<Peer>& candidateSeeds) {
@@ -5607,7 +5607,7 @@ bool Messenger::GetLookupSetSeedPeers(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.candidateseeds().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.candidateseeds(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize candidate seeds");
       return false;
@@ -5622,7 +5622,7 @@ bool Messenger::GetLookupSetSeedPeers(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetDSInfoFromSeed(bytes& dst,
+bool Messenger::SetLookupGetDSInfoFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort,
                                            const bool initialDS) {
@@ -5641,7 +5641,7 @@ bool Messenger::SetLookupGetDSInfoFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDSInfoFromSeed(const bytes& src,
+bool Messenger::GetLookupGetDSInfoFromSeed(const zbytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort,
                                            bool& initialDS) {
@@ -5667,7 +5667,7 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetDSInfoFromSeed(bytes& dst,
+bool Messenger::SetLookupSetDSInfoFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const PairOfKey& senderKey,
                                            const uint32_t& dsCommitteeVersion,
@@ -5682,7 +5682,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(bytes& dst,
 
   SerializableToProtobufByteArray(senderKey.second, *result.mutable_pubkey());
 
-  bytes tmp;
+  zbytes tmp;
   if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize DS committee");
     return false;
@@ -5707,7 +5707,7 @@ bool Messenger::SetLookupSetDSInfoFromSeed(bytes& dst,
 }
 
 bool Messenger::GetLookupSetDSInfoFromSeed(
-    const bytes& src, const unsigned int offset, PubKey& senderPubKey,
+    const zbytes& src, const unsigned int offset, PubKey& senderPubKey,
     uint32_t& dsCommitteeVersion, DequeOfNode& dsNodes, bool& initialDS) {
   LOG_MARKER();
 
@@ -5735,7 +5735,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  bytes tmp;
+  zbytes tmp;
   if (!SerializeToArray(result.dscommittee(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize DS committee");
     return false;
@@ -5751,7 +5751,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetDSBlockFromSeed(bytes& dst,
+bool Messenger::SetLookupGetDSBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
@@ -5775,7 +5775,7 @@ bool Messenger::SetLookupGetDSBlockFromSeed(bytes& dst,
 }
 
 bool Messenger::GetLookupGetDSBlockFromSeed(
-    const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, uint32_t& listenPort, bool& includeMinerInfo) {
   LOG_MARKER();
 
@@ -5801,7 +5801,7 @@ bool Messenger::GetLookupGetDSBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
+bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
@@ -5825,7 +5825,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
     LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -5844,7 +5844,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(bytes& dst,
 }
 
 bool Messenger::GetLookupSetDSBlockFromSeed(
-    const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
@@ -5875,7 +5875,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     dsBlocks.emplace_back(dsblock);
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -5890,7 +5890,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
 }
 
 bool Messenger::SetLookupSetMinerInfoFromSeed(
-    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>&
         minerInfoPerDS) {
   LOG_MARKER();
@@ -5947,7 +5947,7 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
                 "LookupSetMinerInfoFromSeed.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -5966,7 +5966,7 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
 }
 
 bool Messenger::GetLookupSetMinerInfoFromSeed(
-    const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
+    const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
     map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>& minerInfoPerDS) {
   LOG_MARKER();
 
@@ -5988,7 +5988,7 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in LookupSetMinerInfoFromSeed");
@@ -6035,7 +6035,7 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetTxBlockFromSeed(bytes& dst,
+bool Messenger::SetLookupGetTxBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
@@ -6056,7 +6056,7 @@ bool Messenger::SetLookupGetTxBlockFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetLookupGetVCFinalBlockFromL2l(bytes& dst,
+bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes& dst,
                                                 const unsigned int offset,
                                                 const uint64_t& blockNum,
                                                 const Peer& sender,
@@ -6077,7 +6077,7 @@ bool Messenger::SetLookupGetVCFinalBlockFromL2l(bytes& dst,
                 "LookupGetVCFinalBlockFromL2l.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6096,7 +6096,7 @@ bool Messenger::SetLookupGetVCFinalBlockFromL2l(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetVCFinalBlockFromL2l(const bytes& src,
+bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes& src,
                                                 const unsigned int offset,
                                                 uint64_t& blockNum, Peer& from,
                                                 PubKey& senderPubKey) {
@@ -6120,7 +6120,7 @@ bool Messenger::GetLookupGetVCFinalBlockFromL2l(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetVCFinalBlockFromL2l signature wrong");
@@ -6133,7 +6133,7 @@ bool Messenger::GetLookupGetVCFinalBlockFromL2l(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetDSBlockFromL2l(bytes& dst,
+bool Messenger::SetLookupGetDSBlockFromL2l(zbytes& dst,
                                            const unsigned int offset,
                                            const uint64_t& blockNum,
                                            const Peer& sender,
@@ -6153,7 +6153,7 @@ bool Messenger::SetLookupGetDSBlockFromL2l(bytes& dst,
     LOG_GENERAL(WARNING, "LookupGetDSBlockFromL2l.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6172,7 +6172,7 @@ bool Messenger::SetLookupGetDSBlockFromL2l(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDSBlockFromL2l(const bytes& src,
+bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
                                            const unsigned int offset,
                                            uint64_t& blockNum, Peer& from,
                                            PubKey& senderPubKey) {
@@ -6195,7 +6195,7 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetDSBlockFromL2l signature wrong");
@@ -6209,7 +6209,7 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const bytes& src,
 }
 
 bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
-    bytes& dst, const unsigned int offset, const uint64_t& blockNum,
+    zbytes& dst, const unsigned int offset, const uint64_t& blockNum,
     const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
   LOG_MARKER();
 
@@ -6228,7 +6228,7 @@ bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
                 "LookupGetMBnForwardTxnFromL2l.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6247,7 +6247,7 @@ bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const bytes& src,
+bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes& src,
                                                  const unsigned int offset,
                                                  uint64_t& blockNum,
                                                  uint32_t& shardId, Peer& from,
@@ -6271,7 +6271,7 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetMBnForwardTxnFromL2l signature wrong");
@@ -6286,7 +6286,7 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const bytes& src,
 }
 
 bool Messenger::SetLookupGetPendingTxnFromL2l(
-    bytes& dst, const unsigned int offset, const uint64_t& blockNum,
+    zbytes& dst, const unsigned int offset, const uint64_t& blockNum,
     const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
   LOG_MARKER();
 
@@ -6305,7 +6305,7 @@ bool Messenger::SetLookupGetPendingTxnFromL2l(
                 "LookupGetPendingTxnFromL2l.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6324,7 +6324,7 @@ bool Messenger::SetLookupGetPendingTxnFromL2l(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetPendingTxnFromL2l(const bytes& src,
+bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes& src,
                                               const unsigned int offset,
                                               uint64_t& blockNum,
                                               uint32_t& shardId, Peer& from,
@@ -6348,7 +6348,7 @@ bool Messenger::GetLookupGetPendingTxnFromL2l(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetPendingTxnFromL2l signature wrong");
@@ -6362,7 +6362,7 @@ bool Messenger::GetLookupGetPendingTxnFromL2l(const bytes& src,
   return true;
 }
 
-bool Messenger::GetLookupGetTxBlockFromSeed(const bytes& src,
+bool Messenger::GetLookupGetTxBlockFromSeed(const zbytes& src,
                                             const unsigned int offset,
                                             uint64_t& lowBlockNum,
                                             uint64_t& highBlockNum,
@@ -6390,7 +6390,7 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
+bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
@@ -6415,7 +6415,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6434,7 +6434,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(bytes& dst,
 }
 
 bool Messenger::GetLookupSetTxBlockFromSeed(
-    const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
     uint64_t& highBlockNum, PubKey& lookupPubKey, vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
@@ -6464,7 +6464,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
     txBlocks.emplace_back(block);
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6479,7 +6479,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetStateDeltaFromSeed(bytes& dst,
+bool Messenger::SetLookupGetStateDeltaFromSeed(zbytes& dst,
                                                const unsigned int offset,
                                                const uint64_t blockNum,
                                                const uint32_t listenPort) {
@@ -6498,7 +6498,7 @@ bool Messenger::SetLookupGetStateDeltaFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetLookupGetStateDeltasFromSeed(bytes& dst,
+bool Messenger::SetLookupGetStateDeltasFromSeed(zbytes& dst,
                                                 const unsigned int offset,
                                                 uint64_t& lowBlockNum,
                                                 uint64_t& highBlockNum,
@@ -6519,7 +6519,7 @@ bool Messenger::SetLookupGetStateDeltasFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetStateDeltaFromSeed(const bytes& src,
+bool Messenger::GetLookupGetStateDeltaFromSeed(const zbytes& src,
                                                const unsigned int offset,
                                                uint64_t& blockNum,
                                                uint32_t& listenPort) {
@@ -6545,7 +6545,7 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::GetLookupGetStateDeltasFromSeed(const bytes& src,
+bool Messenger::GetLookupGetStateDeltasFromSeed(const zbytes& src,
                                                 const unsigned int offset,
                                                 uint64_t& lowBlockNum,
                                                 uint64_t& highBlockNum,
@@ -6573,11 +6573,11 @@ bool Messenger::GetLookupGetStateDeltasFromSeed(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
+bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes& dst,
                                                const unsigned int offset,
                                                const uint64_t blockNum,
                                                const PairOfKey& lookupKey,
-                                               const bytes& stateDelta) {
+                                               const zbytes& stateDelta) {
   LOG_MARKER();
 
   LookupSetStateDeltaFromSeed result;
@@ -6594,7 +6594,7 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
                 "LookupSetStateDeltaFromSeed.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6613,9 +6613,9 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(bytes& dst,
 }
 
 bool Messenger::SetLookupSetStateDeltasFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
+    zbytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
     const uint64_t highBlockNum, const PairOfKey& lookupKey,
-    const vector<bytes>& stateDeltas) {
+    const vector<zbytes>& stateDeltas) {
   LOG_MARKER();
 
   LookupSetStateDeltasFromSeed result;
@@ -6635,7 +6635,7 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
                 "LookupSetStateDeltasFromSeed.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6653,11 +6653,11 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
+bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes& src,
                                                const unsigned int offset,
                                                uint64_t& blockNum,
                                                PubKey& lookupPubKey,
-                                               bytes& stateDelta) {
+                                               zbytes& stateDelta) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6680,7 +6680,7 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
   std::copy(result.data().statedelta().begin(),
             result.data().statedelta().end(), stateDelta.begin());
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6696,8 +6696,8 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const bytes& src,
 }
 
 bool Messenger::GetLookupSetStateDeltasFromSeed(
-    const bytes& src, const unsigned int offset, uint64_t& lowBlockNum,
-    uint64_t& highBlockNum, PubKey& lookupPubKey, vector<bytes>& stateDeltas) {
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, PubKey& lookupPubKey, vector<zbytes>& stateDeltas) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6718,13 +6718,13 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
   highBlockNum = result.data().highblocknum();
   stateDeltas.clear();
   for (const auto& delta : result.data().statedeltas()) {
-    bytes tmp;
+    zbytes tmp;
     tmp.resize(delta.size());
     std::copy(delta.begin(), delta.end(), tmp.begin());
     stateDeltas.emplace_back(tmp);
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6739,7 +6739,7 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
+bool Messenger::SetLookupSetLookupOffline(zbytes& dst, const unsigned int offset,
                                           const uint8_t msgType,
                                           const uint32_t listenPort,
                                           const PairOfKey& lookupKey) {
@@ -6756,7 +6756,7 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupSetLookupOffline.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6774,7 +6774,7 @@ bool Messenger::SetLookupSetLookupOffline(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetLookupOffline(const bytes& src,
+bool Messenger::GetLookupSetLookupOffline(const zbytes& src,
                                           const unsigned int offset,
                                           uint8_t& msgType,
                                           uint32_t& listenPort,
@@ -6798,7 +6798,7 @@ bool Messenger::GetLookupSetLookupOffline(const bytes& src,
   listenPort = result.data().listenport();
   msgType = result.data().msgtype();
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubkey);
@@ -6813,7 +6813,7 @@ bool Messenger::GetLookupSetLookupOffline(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
+bool Messenger::SetLookupSetLookupOnline(zbytes& dst, const unsigned int offset,
                                          const uint8_t msgType,
                                          const uint32_t listenPort,
                                          const PairOfKey& lookupKey) {
@@ -6830,7 +6830,7 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6847,7 +6847,7 @@ bool Messenger::SetLookupSetLookupOnline(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetLookupOnline(const bytes& src,
+bool Messenger::GetLookupSetLookupOnline(const zbytes& src,
                                          const unsigned int offset,
                                          uint8_t& msgType, uint32_t& listenPort,
                                          PubKey& pubKey) {
@@ -6870,7 +6870,7 @@ bool Messenger::GetLookupSetLookupOnline(const bytes& src,
   msgType = result.data().msgtype();
   listenPort = result.data().listenport();
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
@@ -6885,7 +6885,7 @@ bool Messenger::GetLookupSetLookupOnline(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetOfflineLookups(bytes& dst,
+bool Messenger::SetLookupGetOfflineLookups(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
   LOG_MARKER();
@@ -6902,7 +6902,7 @@ bool Messenger::SetLookupGetOfflineLookups(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetOfflineLookups(const bytes& src,
+bool Messenger::GetLookupGetOfflineLookups(const zbytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort) {
   LOG_MARKER();
@@ -6926,7 +6926,7 @@ bool Messenger::GetLookupGetOfflineLookups(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupSetOfflineLookups(bytes& dst,
+bool Messenger::SetLookupSetOfflineLookups(zbytes& dst,
                                            const unsigned int offset,
                                            const PairOfKey& lookupKey,
                                            const vector<Peer>& nodes) {
@@ -6941,7 +6941,7 @@ bool Messenger::SetLookupSetOfflineLookups(bytes& dst,
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.nodes().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.nodes(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
@@ -6963,7 +6963,7 @@ bool Messenger::SetLookupSetOfflineLookups(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetOfflineLookups(const bytes& src,
+bool Messenger::GetLookupSetOfflineLookups(const zbytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey,
                                            vector<Peer>& nodes) {
@@ -6994,7 +6994,7 @@ bool Messenger::GetLookupSetOfflineLookups(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.nodes().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.nodes(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize offline lookup nodes");
       return false;
@@ -7010,7 +7010,7 @@ bool Messenger::GetLookupSetOfflineLookups(const bytes& src,
 }
 
 bool Messenger::SetForwardTxnBlockFromSeed(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const deque<pair<Transaction, uint32_t>>& shardTransactions,
     const deque<pair<Transaction, uint32_t>>& dsTransactions) {
   LookupForwardTxnsFromSeed result;
@@ -7032,7 +7032,7 @@ bool Messenger::SetForwardTxnBlockFromSeed(
 }
 
 bool Messenger::GetForwardTxnBlockFromSeed(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     vector<Transaction>& shardTransactions,
     vector<Transaction>& dsTransactions) {
   if (offset >= src.size()) {
@@ -7059,7 +7059,7 @@ bool Messenger::GetForwardTxnBlockFromSeed(
 }
 
 // UNUSED
-bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
+bool Messenger::SetLookupGetShardsFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
   LOG_MARKER();
@@ -7077,7 +7077,7 @@ bool Messenger::SetLookupGetShardsFromSeed(bytes& dst,
 }
 
 // UNUSED
-bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
+bool Messenger::GetLookupGetShardsFromSeed(const zbytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort) {
   LOG_MARKER();
@@ -7103,7 +7103,7 @@ bool Messenger::GetLookupGetShardsFromSeed(const bytes& src,
 
 // UNUSED
 bool Messenger::SetLookupSetShardsFromSeed(
-    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
   LOG_MARKER();
 
@@ -7114,7 +7114,7 @@ bool Messenger::SetLookupSetShardsFromSeed(
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
-  bytes tmp;
+  zbytes tmp;
   if (!SerializeToArray(result.sharding(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
     return false;
@@ -7135,7 +7135,7 @@ bool Messenger::SetLookupSetShardsFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetShardsFromSeed(const bytes& src,
+bool Messenger::GetLookupSetShardsFromSeed(const zbytes& src,
                                            const unsigned int offset,
                                            PubKey& lookupPubKey,
                                            uint32_t& shardingStructureVersion,
@@ -7166,7 +7166,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const bytes& src,
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  bytes tmp;
+  zbytes tmp;
   if (!SerializeToArray(result.sharding(), tmp, 0)) {
     LOG_GENERAL(WARNING, "Failed to serialize sharding structure");
     return false;
@@ -7181,7 +7181,7 @@ bool Messenger::GetLookupSetShardsFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupGetMicroBlockFromLookup(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const vector<BlockHash>& microBlockHashes, const uint32_t portNo) {
   LOG_MARKER();
 
@@ -7201,7 +7201,7 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
 }
 
 bool Messenger::SetLookupGetMicroBlockFromL2l(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const vector<BlockHash>& microBlockHashes, uint32_t portNo,
     const PairOfKey& seedKey) {
   LOG_MARKER();
@@ -7222,7 +7222,7 @@ bool Messenger::SetLookupGetMicroBlockFromL2l(
                 "LookupGetMicroBlockFromL2l.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -7241,7 +7241,7 @@ bool Messenger::SetLookupGetMicroBlockFromL2l(
 }
 
 bool Messenger::GetLookupGetMicroBlockFromL2l(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     vector<BlockHash>& microBlockHashes, uint32_t& portNo,
     PubKey& senderPubKey) {
   LOG_MARKER();
@@ -7263,7 +7263,7 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetMicroBlockFromL2l signature wrong");
@@ -7285,7 +7285,7 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
 
 // UNUSED
 bool Messenger::GetLookupGetMicroBlockFromLookup(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     vector<BlockHash>& microBlockHashes, uint32_t& portNo) {
   LOG_MARKER();
 
@@ -7317,7 +7317,7 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 }
 
 bool Messenger::SetLookupSetMicroBlockFromLookup(
-    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const vector<MicroBlock>& mbs) {
   LOG_MARKER();
   LookupSetMicroBlockFromLookup result;
@@ -7329,7 +7329,7 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.microblocks().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
@@ -7351,7 +7351,7 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
+bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
                                                  const unsigned int offset,
                                                  PubKey& lookupPubKey,
                                                  vector<MicroBlock>& mbs) {
@@ -7376,7 +7376,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   if (result.microblocks().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.microblocks(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize micro blocks");
       return false;
@@ -7400,7 +7400,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const bytes& src,
 }
 
 // UNUSED
-bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
+bool Messenger::SetLookupGetTxnsFromLookup(zbytes& dst,
                                            const unsigned int offset,
                                            const BlockHash& mbHash,
                                            const vector<TxnHash>& txnhashes,
@@ -7425,7 +7425,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(bytes& dst,
 }
 
 // UNUSED
-bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
+bool Messenger::GetLookupGetTxnsFromLookup(const zbytes& src,
                                            const unsigned int offset,
                                            BlockHash& mbHash,
                                            vector<TxnHash>& txnhashes,
@@ -7459,7 +7459,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetTxnsFromL2l(bytes& dst, const unsigned int offset,
+bool Messenger::SetLookupGetTxnsFromL2l(zbytes& dst, const unsigned int offset,
                                         const BlockHash& mbHash,
                                         const vector<TxnHash>& txnhashes,
                                         const uint32_t portNo,
@@ -7482,7 +7482,7 @@ bool Messenger::SetLookupGetTxnsFromL2l(bytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupGetTxnsFromL2l.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -7502,7 +7502,7 @@ bool Messenger::SetLookupGetTxnsFromL2l(bytes& dst, const unsigned int offset,
 
 // UNUSED
 bool Messenger::GetLookupGetTxnsFromL2l(
-    const bytes& src, const unsigned int offset, BlockHash& mbHash,
+    const zbytes& src, const unsigned int offset, BlockHash& mbHash,
     vector<TxnHash>& txnhashes, uint32_t& portNo, PubKey& senderPubKey) {
   LOG_MARKER();
 
@@ -7523,7 +7523,7 @@ bool Messenger::GetLookupGetTxnsFromL2l(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetTxnsFromL2l signature wrong");
@@ -7545,7 +7545,7 @@ bool Messenger::GetLookupGetTxnsFromL2l(
 
 // UNUSED
 bool Messenger::SetLookupSetTxnsFromLookup(
-    bytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
     const BlockHash& mbHash, const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
@@ -7560,7 +7560,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
   Signature signature;
   if (result.transactions().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -7584,7 +7584,7 @@ bool Messenger::SetLookupSetTxnsFromLookup(
 
 // UNUSED
 bool Messenger::GetLookupSetTxnsFromLookup(
-    const bytes& src, const unsigned int offset, PubKey& lookupPubKey,
+    const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
     BlockHash& mbHash, vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
@@ -7611,7 +7611,7 @@ bool Messenger::GetLookupSetTxnsFromLookup(
   copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
   if (result.transactions().size() > 0) {
-    bytes tmp;
+    zbytes tmp;
     if (!RepeatableToArray(result.transactions(), tmp, 0)) {
       LOG_GENERAL(WARNING, "Failed to serialize transactions");
       return false;
@@ -7633,7 +7633,7 @@ bool Messenger::GetLookupSetTxnsFromLookup(
 }
 
 bool Messenger::SetLookupGetDirectoryBlocksFromSeed(
-    bytes& dst, const unsigned int offset, const uint32_t portNo,
+    zbytes& dst, const unsigned int offset, const uint32_t portNo,
     const uint64_t& indexNum, const bool includeMinerInfo) {
   LookupGetDirectoryBlocksFromSeed result;
 
@@ -7650,7 +7650,7 @@ bool Messenger::SetLookupGetDirectoryBlocksFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
+bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const zbytes& src,
                                                     const unsigned int offset,
                                                     uint32_t& portNo,
                                                     uint64_t& indexNum,
@@ -7678,7 +7678,7 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const uint32_t& shardingStructureVersion,
     const vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
     const uint64_t& indexNum, const PairOfKey& lookupKey) {
@@ -7706,7 +7706,7 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -7725,7 +7725,7 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
 }
 
 bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     uint32_t& shardingStructureVersion,
     vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
     uint64_t& indexNum, PubKey& pubKey) {
@@ -7744,7 +7744,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
@@ -7803,8 +7803,8 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
 // ============================================================================
 
 bool Messenger::SetConsensusCommit(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t backupID,
     const vector<CommitInfo>& commitInfo, const PairOfKey& backupKey) {
   LOG_MARKER();
 
@@ -7829,7 +7829,7 @@ bool Messenger::SetConsensusCommit(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7850,10 +7850,10 @@ bool Messenger::SetConsensusCommit(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
+bool Messenger::GetConsensusCommit(const zbytes& src, const unsigned int offset,
                                    const uint32_t consensusID,
                                    const uint64_t blockNumber,
-                                   const bytes& blockHash, uint16_t& backupID,
+                                   const zbytes& blockHash, uint16_t& backupID,
                                    vector<CommitInfo>& commitInfo,
                                    const DequeOfNode& committeeKeys) {
   LOG_MARKER();
@@ -7892,7 +7892,7 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
 
@@ -7930,7 +7930,7 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
     commitInfo.emplace_back(ci);
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7946,8 +7946,8 @@ bool Messenger::GetConsensusCommit(const bytes& src, const unsigned int offset,
 }
 
 bool Messenger::SetConsensusChallenge(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const vector<ChallengeSubsetInfo>& subsetInfo, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
@@ -7975,7 +7975,7 @@ bool Messenger::SetConsensusChallenge(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7997,8 +7997,8 @@ bool Messenger::SetConsensusChallenge(
 }
 
 bool Messenger::GetConsensusChallenge(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     vector<ChallengeSubsetInfo>& subsetInfo, const PubKey& leaderKey) {
   LOG_MARKER();
 
@@ -8036,7 +8036,7 @@ bool Messenger::GetConsensusChallenge(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
 
@@ -8073,7 +8073,7 @@ bool Messenger::GetConsensusChallenge(
     subsetInfo.emplace_back(si);
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8089,8 +8089,8 @@ bool Messenger::GetConsensusChallenge(
 }
 
 bool Messenger::SetConsensusResponse(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t backupID,
     const vector<ResponseSubsetInfo>& subsetInfo, const PairOfKey& backupKey) {
   LOG_MARKER();
 
@@ -8113,7 +8113,7 @@ bool Messenger::SetConsensusResponse(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8135,8 +8135,8 @@ bool Messenger::SetConsensusResponse(
 }
 
 bool Messenger::GetConsensusResponse(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, uint16_t& backupID,
     vector<ResponseSubsetInfo>& subsetInfo, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
@@ -8174,7 +8174,7 @@ bool Messenger::GetConsensusResponse(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
 
@@ -8211,7 +8211,7 @@ bool Messenger::GetConsensusResponse(
     subsetInfo.emplace_back(si);
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8227,10 +8227,10 @@ bool Messenger::GetConsensusResponse(
 }
 
 bool Messenger::SetConsensusCollectiveSig(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const Signature& collectiveSig, const vector<bool>& bitmap,
-    const PairOfKey& leaderKey, const bytes& newAnnouncementMessage) {
+    const PairOfKey& leaderKey, const zbytes& newAnnouncementMessage) {
   LOG_MARKER();
 
   ConsensusCollectiveSig result;
@@ -8251,7 +8251,7 @@ bool Messenger::SetConsensusCollectiveSig(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8288,10 +8288,10 @@ bool Messenger::SetConsensusCollectiveSig(
 }
 
 bool Messenger::GetConsensusCollectiveSig(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     vector<bool>& bitmap, Signature& collectiveSig, const PubKey& leaderKey,
-    bytes& newAnnouncement) {
+    zbytes& newAnnouncement) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -8328,7 +8328,7 @@ bool Messenger::GetConsensusCollectiveSig(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
     std::string blockhashStr, remoteblockhashStr;
@@ -8361,7 +8361,7 @@ bool Messenger::GetConsensusCollectiveSig(
     bitmap.emplace_back(i);
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8393,9 +8393,9 @@ bool Messenger::GetConsensusCollectiveSig(
 }
 
 bool Messenger::SetConsensusCommitFailure(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t backupID,
-    const bytes& errorMsg, const PairOfKey& backupKey) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t backupID,
+    const zbytes& errorMsg, const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommitFailure result;
@@ -8413,7 +8413,7 @@ bool Messenger::SetConsensusCommitFailure(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8435,9 +8435,9 @@ bool Messenger::SetConsensusCommitFailure(
 }
 
 bool Messenger::GetConsensusCommitFailure(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, uint16_t& backupID,
-    bytes& errorMsg, const DequeOfNode& committeeKeys) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, uint16_t& backupID,
+    zbytes& errorMsg, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -8474,7 +8474,7 @@ bool Messenger::GetConsensusCommitFailure(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
 
@@ -8507,7 +8507,7 @@ bool Messenger::GetConsensusCommitFailure(
   copy(result.consensusinfo().errormsg().begin(),
        result.consensusinfo().errormsg().end(), errorMsg.begin());
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8523,8 +8523,8 @@ bool Messenger::GetConsensusCommitFailure(
 }
 
 bool Messenger::SetConsensusConsensusFailure(
-    bytes& dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, const uint16_t leaderID,
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, const uint16_t leaderID,
     const PairOfKey& leaderKey) {
   LOG_MARKER();
 
@@ -8542,7 +8542,7 @@ bool Messenger::SetConsensusConsensusFailure(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8564,8 +8564,8 @@ bool Messenger::SetConsensusConsensusFailure(
 }
 
 bool Messenger::GetConsensusConsensusFailure(
-    const bytes& src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const bytes& blockHash, uint16_t& leaderID,
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, uint16_t& leaderID,
     const PubKey& leaderKey) {
   LOG_MARKER();
 
@@ -8603,7 +8603,7 @@ bool Messenger::GetConsensusConsensusFailure(
                   [](const unsigned char left, const char right) -> bool {
                     return left == (unsigned char)right;
                   })) {
-    bytes remoteBlockHash(tmpBlockHash.size());
+    zbytes remoteBlockHash(tmpBlockHash.size());
     std::copy(tmpBlockHash.begin(), tmpBlockHash.end(),
               remoteBlockHash.begin());
 
@@ -8630,7 +8630,7 @@ bool Messenger::GetConsensusConsensusFailure(
     return false;
   }
 
-  bytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSize());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8650,7 +8650,7 @@ bool Messenger::GetConsensusConsensusFailure(
 // ============================================================================
 
 bool Messenger::SetLookupGetDSTxBlockFromSeed(
-    bytes& dst, const unsigned int offset, const uint64_t dsLowBlockNum,
+    zbytes& dst, const unsigned int offset, const uint64_t dsLowBlockNum,
     const uint64_t dsHighBlockNum, const uint64_t txLowBlockNum,
     const uint64_t txHighBlockNum, const uint32_t listenPort) {
   LOG_MARKER();
@@ -8672,7 +8672,7 @@ bool Messenger::SetLookupGetDSTxBlockFromSeed(
 }
 
 bool Messenger::GetLookupGetDSTxBlockFromSeed(
-    const bytes& src, const unsigned int offset, uint64_t& dsLowBlockNum,
+    const zbytes& src, const unsigned int offset, uint64_t& dsLowBlockNum,
     uint64_t& dsHighBlockNum, uint64_t& txLowBlockNum, uint64_t& txHighBlockNum,
     uint32_t& listenPort) {
   LOG_MARKER();
@@ -8700,7 +8700,7 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
+bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes& dst,
                                               const unsigned int offset,
                                               const PairOfKey& lookupKey,
                                               const vector<DSBlock>& DSBlocks,
@@ -8726,7 +8726,7 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -8744,7 +8744,7 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
+bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
                                               const unsigned int offset,
                                               vector<DSBlock>& dsBlocks,
                                               vector<TxBlock>& txBlocks,
@@ -8785,7 +8785,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8800,7 +8800,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const bytes& src,
 }
 
 bool Messenger::SetNodeNewShardNodeNetworkInfo(
-    bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+    zbytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
     const Peer& shardNodeNewNetworkInfo, const uint64_t timestamp,
     const PairOfKey& shardNodeKey) {
   LOG_MARKER();
@@ -8819,7 +8819,7 @@ bool Messenger::SetNodeNewShardNodeNetworkInfo(
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8839,7 +8839,7 @@ bool Messenger::SetNodeNewShardNodeNetworkInfo(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeNewShardNodeNetworkInfo(const bytes& src,
+bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes& src,
                                                const unsigned int offset,
                                                uint64_t& dsEpochNumber,
                                                Peer& shardNodeNewNetworkInfo,
@@ -8869,7 +8869,7 @@ bool Messenger::GetNodeNewShardNodeNetworkInfo(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, shardNodePubKey)) {
     LOG_GENERAL(WARNING, "NodeSetShardNodeNetworkInfoUpdate signature wrong");
@@ -8886,7 +8886,7 @@ bool Messenger::GetNodeNewShardNodeNetworkInfo(const bytes& src,
 }
 
 bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
-    bytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+    zbytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
     const Peer& dsGuardNewNetworkInfo, const uint64_t timestamp,
     const PairOfKey& dsguardkey) {
   LOG_MARKER();
@@ -8906,7 +8906,7 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8927,7 +8927,7 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
 }
 
 bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
-    const bytes& src, const unsigned int offset, uint64_t& dsEpochNumber,
+    const zbytes& src, const unsigned int offset, uint64_t& dsEpochNumber,
     Peer& dsGuardNewNetworkInfo, uint64_t& timestamp, PubKey& dsGuardPubkey) {
   LOG_MARKER();
 
@@ -8952,7 +8952,7 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, dsGuardPubkey)) {
     LOG_GENERAL(WARNING, "DSLookupSetDSGuardNetworkInfoUpdate signature wrong");
@@ -8968,7 +8968,7 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
 }
 
 bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
-    bytes& dst, const unsigned int offset, const uint32_t portNo,
+    zbytes& dst, const unsigned int offset, const uint32_t portNo,
     const uint64_t dsEpochNumber, const PairOfKey& lookupKey) {
   LOG_MARKER();
 
@@ -8978,7 +8978,7 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   if (result.data().IsInitialized()) {
-    bytes tmp(result.data().ByteSize());
+    zbytes tmp(result.data().ByteSize());
     result.data().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
@@ -8997,7 +8997,7 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
 }
 
 bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
-    const bytes& src, const unsigned int offset, uint32_t& portNo,
+    const zbytes& src, const unsigned int offset, uint32_t& portNo,
     uint64_t& dsEpochNumber) {
   LOG_MARKER();
 
@@ -9027,7 +9027,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong");
@@ -9041,7 +9041,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
 }
 
 bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
-    bytes& dst, unsigned int offset,
+    zbytes& dst, unsigned int offset,
     const vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
     const PairOfKey& lookupKey) {
   LOG_MARKER();
@@ -9063,7 +9063,7 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
                 "NodeSetGuardNodeNetworkInfoUpdate.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -9084,7 +9084,7 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
 }
 
 bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
     PubKey& lookupPubKey) {
   LOG_MARKER();
@@ -9107,7 +9107,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.lookuppubkey(), lookupPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "NodeSetGuardNodeNetworkInfoUpdate signature wrong");
@@ -9129,7 +9129,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   return true;
 }
 
-bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
+bool Messenger::SetNodeRemoveFromBlacklist(zbytes& dst,
                                            const unsigned int offset,
                                            const PairOfKey& myKey,
                                            const uint128_t& ipAddress,
@@ -9146,7 +9146,7 @@ bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
@@ -9162,7 +9162,7 @@ bool Messenger::SetNodeRemoveFromBlacklist(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
+bool Messenger::GetNodeRemoveFromBlacklist(const zbytes& src,
                                            const unsigned int offset,
                                            PubKey& senderPubKey,
                                            uint128_t& ipAddress,
@@ -9184,7 +9184,7 @@ bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "NodeRemoveFromBlacklist signature wrong");
@@ -9197,7 +9197,7 @@ bool Messenger::GetNodeRemoveFromBlacklist(const bytes& src,
   return true;
 }
 
-bool Messenger::SetLookupGetCosigsRewardsFromSeed(bytes& dst,
+bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes& dst,
                                                   const unsigned int offset,
                                                   const uint64_t txBlkNum,
                                                   const uint32_t listenPort,
@@ -9215,7 +9215,7 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(bytes& dst,
                 "LookupGetCosigsRewardsFromSeed.Data initialization failed");
     return false;
   }
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
@@ -9235,7 +9235,7 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(bytes& dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetCosigsRewardsFromSeed(const bytes& src,
+bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes& src,
                                                   const unsigned int offset,
                                                   PubKey& senderPubKey,
                                                   uint64_t& txBlockNumber,
@@ -9258,7 +9258,7 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const bytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetCosigRewardsFromSeed signature wrong");
@@ -9271,7 +9271,7 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const bytes& src,
 }
 
 bool Messenger::SetLookupSetCosigsRewardsFromSeed(
-    bytes& dst, const unsigned int offset, const PairOfKey& myKey,
+    zbytes& dst, const unsigned int offset, const PairOfKey& myKey,
     const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,
     const TxBlock& txBlock, const uint32_t& numberOfShards) {
   LookupSetCosigsRewardsFromSeed result;
@@ -9327,7 +9327,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
     return false;
   }
 
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
@@ -9345,7 +9345,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
 }
 
 bool Messenger::GetLookupSetCosigsRewardsFromSeed(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     vector<CoinbaseStruct>& cosigrewards, PubKey& senderPubkey) {
   LOG_MARKER();
 
@@ -9370,7 +9370,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  bytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSize());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubkey)) {
     LOG_GENERAL(WARNING, "LookupSetCosigsRewardsFromSeed signature wrong");
@@ -9403,7 +9403,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   return true;
 }
 
-bool Messenger::SetMinerInfoDSComm(bytes& dst, const unsigned int offset,
+bool Messenger::SetMinerInfoDSComm(zbytes& dst, const unsigned int offset,
                                    const MinerInfoDSComm& minerInfo) {
   LOG_MARKER();
 
@@ -9427,7 +9427,7 @@ bool Messenger::SetMinerInfoDSComm(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMinerInfoDSComm(const bytes& src, const unsigned int offset,
+bool Messenger::GetMinerInfoDSComm(const zbytes& src, const unsigned int offset,
                                    MinerInfoDSComm& minerInfo) {
   LOG_MARKER();
 
@@ -9468,7 +9468,7 @@ bool Messenger::GetMinerInfoDSComm(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetMinerInfoShards(bytes& dst, const unsigned int offset,
+bool Messenger::SetMinerInfoShards(zbytes& dst, const unsigned int offset,
                                    const MinerInfoShards& minerInfo) {
   LOG_MARKER();
 
@@ -9492,7 +9492,7 @@ bool Messenger::SetMinerInfoShards(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMinerInfoShards(const bytes& src, const unsigned int offset,
+bool Messenger::GetMinerInfoShards(const zbytes& src, const unsigned int offset,
                                    MinerInfoShards& minerInfo) {
   LOG_MARKER();
 
@@ -9531,7 +9531,7 @@ bool Messenger::GetMinerInfoShards(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetMicroBlockKey(bytes& dst, const unsigned int offset,
+bool Messenger::SetMicroBlockKey(zbytes& dst, const unsigned int offset,
                                  const uint64_t& epochNum,
                                  const uint32_t& shardID) {
   ProtoMicroBlockKey result;
@@ -9546,7 +9546,7 @@ bool Messenger::SetMicroBlockKey(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMicroBlockKey(const bytes& src, const unsigned int offset,
+bool Messenger::GetMicroBlockKey(const zbytes& src, const unsigned int offset,
                                  uint64_t& epochNum, uint32_t& shardID) {
   if (src.size() == 0) {
     LOG_GENERAL(INFO, "Empty ProtoMicroBlockKey");
@@ -9573,7 +9573,7 @@ bool Messenger::GetMicroBlockKey(const bytes& src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetTxEpoch(bytes& dst, const unsigned int offset,
+bool Messenger::SetTxEpoch(zbytes& dst, const unsigned int offset,
                            const uint64_t& epochNum) {
   ProtoTxEpoch result;
   result.set_epochnum(epochNum);
@@ -9586,7 +9586,7 @@ bool Messenger::SetTxEpoch(bytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTxEpoch(const bytes& src, const unsigned int offset,
+bool Messenger::GetTxEpoch(const zbytes& src, const unsigned int offset,
                            uint64_t& epochNum) {
   if (src.size() == 0) {
     LOG_GENERAL(INFO, "Empty TxEpoch");

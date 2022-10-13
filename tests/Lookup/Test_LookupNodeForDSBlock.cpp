@@ -56,7 +56,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-  bytes dsblockmsg = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+  zbytes dsblockmsg = {MessageType::NODE, NodeInstructionType::DSBLOCK};
   unsigned int curr_offset = MessageOffset::BODY;
 
   BlockHash prevHash1;
@@ -118,7 +118,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-  bytes getDSBlockMessage = {MessageType::LOOKUP,
+  zbytes getDSBlockMessage = {MessageType::LOOKUP,
                              LookupInstructionType::GETDSBLOCKFROMSEED};
 
   if (!Messenger::SetLookupGetDSBlockFromSeed(

@@ -35,7 +35,7 @@ using zbyte = unsigned char;
 
 namespace dev
 {
-    using bytes = std::vector<zbyte>;
+    using zbytes = std::vector<zbyte>;
     using bytesRef = vector_ref<zbyte>;
     using bytesConstRef = vector_ref<zbyte const>;
 
@@ -109,9 +109,9 @@ namespace dev
 
     // Map types.
     using StringMap = std::map<std::string, std::string>;
-    using BytesMap = std::map<bytes, bytes>;
+    using BytesMap = std::map<zbytes, zbytes>;
     using u256Map = std::map<u256, u256>;
-    using HexMap = std::map<bytes, bytes>;
+    using HexMap = std::map<zbytes, zbytes>;
 
     // Hash types.
     using StringHashMap = std::unordered_map<std::string, std::string>;
@@ -124,7 +124,7 @@ namespace dev
     using string32 = std::array<char, 32>;
 
     // Null/Invalid values for convenience.
-    extern bytes const NullBytes;
+    extern zbytes const NullBytes;
     extern u128 const Invalid128;
     extern u256 const Invalid256;
 

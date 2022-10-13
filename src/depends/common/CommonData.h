@@ -77,7 +77,7 @@ namespace dev
 /// Converts a (printable) ASCII hex string into the corresponding byte stream.
 /// @example fromHex("41626261") == asBytes("Abba")
 /// If _throw = ThrowType::DontThrow, it replaces bad hex characters with 0's, otherwise it will throw an exception.
-    bytes fromHex(std::string const &_s, WhenError _throw = WhenError::DontThrow);
+    zbytes fromHex(std::string const &_s, WhenError _throw = WhenError::DontThrow);
 
 /// @returns true if @a _s is a hex string.
     bool isHex(std::string const &_s) noexcept;
@@ -91,7 +91,7 @@ namespace dev
 
 /// Converts byte array to a string containing the same (binary) data. Unless
 /// the byte array happens to contain ASCII data, this won't be printable.
-    inline std::string asString(bytes const &_b) {
+    inline std::string asString(zbytes const &_b) {
         return std::string((char const *) _b.data(), (char const *) (_b.data() + _b.size()));
     }
 
@@ -102,13 +102,13 @@ namespace dev
     }
 
 /// Converts a string to a byte array containing the string's (byte) data.
-    inline bytes asBytes(std::string const &_b) {
-        return bytes((zbyte const *) _b.data(), (zbyte const *) (_b.data() + _b.size()));
+    inline zbytes asBytes(std::string const &_b) {
+        return zbytes((zbyte const *) _b.data(), (zbyte const *) (_b.data() + _b.size()));
     }
 
 /// Converts a string into the big-endian base-16 stream of integers (NOT ASCII).
 /// @example asNibbles("A")[0] == 4 && asNibbles("A")[1] == 1
-    bytes asNibbles(bytesConstRef const &_s);
+    zbytes asNibbles(bytesConstRef const &_s);
 
 
 // Big-endian to/from host endian conversion functions.
@@ -162,20 +162,20 @@ namespace dev
         return ret;
     }
 
-    inline bytes toBigEndian(u256 _val) {
-        bytes ret(32);
+    inline zbytes toBigEndian(u256 _val) {
+        zbytes ret(32);
         toBigEndian(_val, ret);
         return ret;
     }
 
-    inline bytes toBigEndian(u160 _val) {
-        bytes ret(20);
+    inline zbytes toBigEndian(u160 _val) {
+        zbytes ret(20);
         toBigEndian(_val, ret);
         return ret;
     }
 
-    inline bytes toBigEndian(u128 _val) {
-        bytes ret(16);
+    inline zbytes toBigEndian(u128 _val) {
+        zbytes ret(16);
         toBigEndian(_val, ret);
         return ret;
     }
@@ -183,7 +183,7 @@ namespace dev
 /// Convenience function for toBigEndian.
 /// @returns a byte array just big enough to represent @a _val.
     template<class T>
-    inline bytes toCompactBigEndian(T _val, unsigned _min = 0) {
+    inline zbytes toCompactBigEndian(T _val, unsigned _min = 0) {
         if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
         {
             LOG_GENERAL(FATAL,
@@ -192,13 +192,13 @@ namespace dev
         }
         int i = 0;
         for (T v = _val; v; ++i, v >>= 8) {}
-        bytes ret(std::max<unsigned>(_min, i), 0);
+        zbytes ret(std::max<unsigned>(_min, i), 0);
         toBigEndian(_val, ret);
         return ret;
     }
 
-    inline bytes toCompactBigEndian(zbyte _val, unsigned _min = 0) {
-        return (_min || _val) ? bytes{_val} : bytes{};
+    inline zbytes toCompactBigEndian(zbyte _val, unsigned _min = 0) {
+        return (_min || _val) ? zbytes{_val} : zbytes{};
     }
 
 /// Convenience function for toBigEndian.

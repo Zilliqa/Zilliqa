@@ -295,7 +295,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto commitErrorFunc = [this](const bytes& errorMsg,
+  auto commitErrorFunc = [this](const zbytes& errorMsg,
                                 const Peer& from) mutable -> bool {
     return OnNodeFinalConsensusError(errorMsg, from);
   };
@@ -326,21 +326,21 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   }
 
   auto preprepFBAnnouncementGeneratorFunc =
-      [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
-             const uint64_t blockNumber, const bytes& blockHash,
+      [this](zbytes& dst, unsigned int offset, const uint32_t consensusID,
+             const uint64_t blockNumber, const zbytes& blockHash,
              const uint16_t leaderID, const PairOfKey& leaderKey,
-             bytes& messageToCosign) mutable -> bool {
+             zbytes& messageToCosign) mutable -> bool {
     return Messenger::SetDSFinalBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_finalBlock, m_mediator.m_node->m_prePrepMicroblock, messageToCosign);
   };
 
   auto newFBAnnouncementReadinessFunc =
-      [this](bytes& newAnnouncement, unsigned int offset,
+      [this](zbytes& newAnnouncement, unsigned int offset,
              const uint32_t consensusID, const uint64_t blockNumber,
-             const bytes& blockHash, const uint16_t leaderID,
+             const zbytes& blockHash, const uint16_t leaderID,
              const PairOfKey& leaderKey,
-             bytes& messageToCosign) mutable -> bool {
+             zbytes& messageToCosign) mutable -> bool {
     // wait for complete final block (with complete microblock) being ready by
     // me (leader)
     if (!WaitUntilCompleteFinalBlockIsReady()) {
@@ -479,7 +479,7 @@ bool DirectoryService::CheckFinalBlockTimestamp() {
 }
 
 // Check microblock hashes
-bool DirectoryService::CheckMicroBlocks(bytes& errorMsg, bool fromShards,
+bool DirectoryService::CheckMicroBlocks(zbytes& errorMsg, bool fromShards,
                                         bool generateErrorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -660,7 +660,7 @@ bool DirectoryService::CheckLegitimacyOfMicroBlocks() {
   return ret;
 }
 
-bool DirectoryService::OnNodeFinalConsensusError(const bytes& errorMsg,
+bool DirectoryService::OnNodeFinalConsensusError(const zbytes& errorMsg,
                                                  const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -703,7 +703,7 @@ bool DirectoryService::OnNodeFinalConsensusError(const bytes& errorMsg,
   }
 }
 
-bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
+bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
                                                 const unsigned int offset,
                                                 const Peer& from) {
   if (LOOKUP_NODE_MODE) {
@@ -732,7 +732,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   auto& microBlocks = m_microBlocks[epochNum];
 
   vector<MicroBlock> microBlocksSent;
-  vector<bytes> stateDeltasSent;
+  vector<zbytes> stateDeltasSent;
 
   for (const auto& hash : missingMicroBlocks) {
     bool found = false;
@@ -778,7 +778,7 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const bytes& errorMsg,
   //               "State Delta Hash is empty, skip sharing final state delta");
   // }
 
-  bytes mb_message = {MessageType::DIRECTORY,
+  zbytes mb_message = {MessageType::DIRECTORY,
                       DSInstructionType::MICROBLOCKSUBMISSION};
 
   if (!Messenger::SetDSMicroBlockSubmission(
@@ -955,7 +955,7 @@ bool DirectoryService::CheckBlockHash() {
   return true;
 }
 
-bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
+bool DirectoryService::CheckFinalBlockValidity(zbytes& errorMsg) {
   LOG_MARKER();
 
   if (LOOKUP_NODE_MODE) {
@@ -973,7 +973,7 @@ bool DirectoryService::CheckFinalBlockValidity(bytes& errorMsg) {
          CheckStateRoot() && CheckStateDeltaHash();
 }
 
-bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
+bool DirectoryService::CheckMicroBlockValidity(zbytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckMicroBlockValidity not expected to "
@@ -1018,10 +1018,10 @@ bool DirectoryService::CheckMicroBlockValidity(bytes& errorMsg) {
 }
 
 bool DirectoryService::FinalBlockValidator(
-    const bytes& message, unsigned int offset, bytes& errorMsg,
+    const zbytes& message, unsigned int offset, zbytes& errorMsg,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    bytes& messageToCosign) {
+    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    zbytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::FinalBlockValidator not expected to be "
@@ -1045,7 +1045,7 @@ bool DirectoryService::FinalBlockValidator(
     return false;
   }
 
-  bytes t_errorMsg;
+  zbytes t_errorMsg;
   if (CheckMicroBlocks(t_errorMsg, true,
                        false)) {  // Firstly check whether the leader
                                   // has any mb that I don't have
@@ -1100,10 +1100,10 @@ bool DirectoryService::FinalBlockValidator(
 }
 
 bool DirectoryService::PrePrepFinalBlockValidator(
-    const bytes& message, unsigned int offset, bytes& errorMsg,
+    const zbytes& message, unsigned int offset, zbytes& errorMsg,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    bytes& messageToCosign) {
+    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    zbytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1225,20 +1225,20 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
   auto completeFBValidatorFunc =
-      [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
              const uint32_t consensusID, const uint64_t blockNumber,
-             const bytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, bytes& messageToCosign) mutable -> bool {
+             const zbytes& blockHash, const uint16_t leaderID,
+             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
     return FinalBlockValidator(input, offset, errorMsg, consensusID,
                                blockNumber, blockHash, leaderID, leaderKey,
                                messageToCosign);
   };
 
   auto preprepFBValidatorFunc =
-      [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
              const uint32_t consensusID, const uint64_t blockNumber,
-             const bytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, bytes& messageToCosign) mutable -> bool {
+             const zbytes& blockHash, const uint16_t leaderID,
+             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
     return PrePrepFinalBlockValidator(input, offset, errorMsg, consensusID,
                                       blockNumber, blockHash, leaderID,
                                       leaderKey, messageToCosign);

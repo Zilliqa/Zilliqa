@@ -80,7 +80,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   }
 
   // Verify the collective signature
-  bytes message;
+  zbytes message;
   if (!vcblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
     return false;
@@ -99,7 +99,7 @@ bool Node::VerifyVCBlockCoSignature(const VCBlock& vcblock) {
   return true;
 }
 
-bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
+bool Node::ProcessVCBlock(const zbytes& message, unsigned int cur_offset,
                           [[gnu::unused]] const Peer& from,
                           [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -138,7 +138,7 @@ bool Node::ProcessVCBlock(const bytes& message, unsigned int cur_offset,
 
   // Avoid using the original message for broadcasting in case it contains
   // excess data beyond the VCBlock
-  bytes message2 = {MessageType::NODE, NodeInstructionType::VCBLOCK};
+  zbytes message2 = {MessageType::NODE, NodeInstructionType::VCBLOCK};
   if (!Messenger::SetNodeVCBlock(message2, MessageOffset::BODY, vcblock)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeVCBlock failed");
   } else if (!LOOKUP_NODE_MODE && BROADCAST_TREEBASED_CLUSTER_MODE) {
@@ -226,7 +226,7 @@ bool Node::ProcessVCBlockCore(const VCBlock& vcblock) {
       latestInd, vcblock.GetHeader().GetViewChangeDSEpochNo(), BlockType::VC,
       vcblock.GetBlockHash());
 
-  bytes dst;
+  zbytes dst;
   vcblock.Serialize(dst, 0);
 
   if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
@@ -335,7 +335,7 @@ void Node::UpdateRetrieveDSCommitteeCompositionAfterVC(const VCBlock& vcblock,
   }
 }
 
-void Node::SendVCBlockToOtherShardNodes(const bytes& vcblock_message) {
+void Node::SendVCBlockToOtherShardNodes(const zbytes& vcblock_message) {
   LOG_MARKER();
   unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
   if (cluster_size <= NUM_DS_ELECTION) {

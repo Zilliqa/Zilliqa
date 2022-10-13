@@ -83,7 +83,7 @@ namespace dev
         explicit RLP(bytesConstRef _d, Strictness _s = VeryStrict);
 
         /// Construct a node of value given in the bytes.
-        explicit RLP(bytes const& _d, Strictness _s = VeryStrict): RLP(&_d, _s) {}
+        explicit RLP(zbytes const& _d, Strictness _s = VeryStrict): RLP(&_d, _s) {}
 
         /// Construct a node to read RLP data in the bytes given.
         RLP(zbyte const* _b, unsigned _s, Strictness _st = VeryStrict): RLP(bytesConstRef(_b, _s), _st) {}
@@ -176,7 +176,7 @@ namespace dev
 
         /// Best-effort conversion operators.
         explicit operator std::string() const { return toString(); }
-        explicit operator bytes() const { return toBytes(); }
+        explicit operator zbytes() const { return toBytes(); }
         explicit operator RLPs() const { return toList(); }
         explicit operator uint8_t() const { return toInt<uint8_t>(); }
         explicit operator uint16_t() const { return toInt<uint16_t>(); }
@@ -193,7 +193,7 @@ namespace dev
         template <class T, size_t N> explicit operator std::array<T, N>() const { return toArray<T, N>(); }
 
         /// Converts to bytearray. @returns the empty byte array if not a string.
-        bytes toBytes(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return bytes(); } return bytes(payload().data(), payload().data() + length()); }
+        zbytes toBytes(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return zbytes(); } return zbytes(payload().data(), payload().data() + length()); }
         /// Converts to bytearray. @returns the empty byte array if not a string.
         bytesConstRef toBytesConstRef(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return bytesConstRef(); } return payload().cropped(0, length()); }
         /// Converts to string. @returns the empty string if not a string.
@@ -327,7 +327,7 @@ namespace dev
 
     private:
         /// Disable construction from rvalue
-        explicit RLP(bytes const&&) {}
+        explicit RLP(zbytes const&&) {}
 
         /// Throws if is non-canonical data (i.e. single byte done in two bytes that could be done in one).
         void requireGood() const;
@@ -360,7 +360,7 @@ namespace dev
     };
 
     template <> struct Converter<std::string> { static std::string convert(RLP const& _r, int _flags) { return _r.toString(_flags); } };
-    template <> struct Converter<bytes> { static bytes convert(RLP const& _r, int _flags) { return _r.toBytes(_flags); } };
+    template <> struct Converter<zbytes> { static zbytes convert(RLP const& _r, int _flags) { return _r.toBytes(_flags); } };
     template <> struct Converter<RLPs> { static RLPs convert(RLP const& _r, int _flags) { return _r.toList(_flags); } };
     template <> struct Converter<uint8_t> { static uint8_t convert(RLP const& _r, int _flags) { return _r.toInt<uint8_t>(_flags); } };
     template <> struct Converter<uint16_t> { static uint16_t convert(RLP const& _r, int _flags) { return _r.toInt<uint16_t>(_flags); } };
@@ -400,7 +400,7 @@ namespace dev
         RLPStream& append(u256 _s) { return append(bigint(_s)); }
         RLPStream& append(bigint _s);
         RLPStream& append(bytesConstRef _s, bool _compact = false);
-        RLPStream& append(bytes const& _s) { return append(bytesConstRef(&_s)); }
+        RLPStream& append(zbytes const& _s) { return append(bytesConstRef(&_s)); }
         RLPStream& append(std::string const& _s) { return append(bytesConstRef(_s)); }
         RLPStream& append(char const* _s) { return append(std::string(_s)); }
         template <unsigned N> RLPStream& append(FixedHash<N> _s, bool _compact = false, bool _allOrNothing = false) { return _allOrNothing && !_s ? append(bytesConstRef()) : append(_s.ref(), _compact); }
@@ -419,12 +419,12 @@ namespace dev
         /// Appends a list.
         RLPStream& appendList(size_t _items);
         RLPStream& appendList(bytesConstRef _rlp);
-        RLPStream& appendList(bytes const& _rlp) { return appendList(&_rlp); }
+        RLPStream& appendList(zbytes const& _rlp) { return appendList(&_rlp); }
         RLPStream& appendList(RLPStream const& _s) { return appendList(&_s.out()); }
 
         /// Appends raw (pre-serialised) RLP data. Use with caution.
         RLPStream& appendRaw(bytesConstRef _rlp, size_t _itemCount = 1);
-        RLPStream& appendRaw(bytes const& _rlp, size_t _itemCount = 1) { return appendRaw(&_rlp, _itemCount); }
+        RLPStream& appendRaw(zbytes const& _rlp, size_t _itemCount = 1) { return appendRaw(&_rlp, _itemCount); }
 
         /// Shift operators for appending data items.
         template <class T> RLPStream& operator<<(T _data) { return append(_data); }
@@ -433,13 +433,13 @@ namespace dev
         void clear() { m_out.clear(); m_listStack.clear(); }
 
         /// Read the byte stream.
-        bytes const& out() const { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); return m_out; }
+        zbytes const& out() const { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); return m_out; }
 
         /// Invalidate the object and steal the output byte stream.
-        bytes&& invalidate() { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); return std::move(m_out); }
+        zbytes&& invalidate() { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); return std::move(m_out); }
 
         /// Swap the contents of the output stream out for some other byte array.
-        void swapOut(bytes& _dest) { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); swap(m_out, _dest); }
+        void swapOut(zbytes& _dest) { if(!m_listStack.empty()) BOOST_THROW_EXCEPTION(RLPException() << errinfo_comment("listStack is not empty")); swap(m_out, _dest); }
 
     private:
         void noteAppended(size_t _itemCount = 1);
@@ -458,7 +458,7 @@ namespace dev
         }
 
         /// Our output byte stream.
-        bytes m_out;
+        zbytes m_out;
 
         std::vector<std::pair<size_t, size_t>> m_listStack;
     };
@@ -467,11 +467,11 @@ namespace dev
     template <class _T, class ... _Ts> void rlpListAux(RLPStream& _out, _T _t, _Ts ... _ts) { rlpListAux(_out << _t, _ts...); }
 
     /// Export a single item in RLP format, returning a byte array.
-    template <class _T> bytes rlp(_T _t) { return (RLPStream() << _t).out(); }
+    template <class _T> zbytes rlp(_T _t) { return (RLPStream() << _t).out(); }
 
     /// Export a list of items in RLP format, returning a byte array.
-    inline bytes rlpList() { return RLPStream(0).out(); }
-    template <class ... _Ts> bytes rlpList(_Ts ... _ts)
+    inline zbytes rlpList() { return RLPStream(0).out(); }
+    template <class ... _Ts> zbytes rlpList(_Ts ... _ts)
     {
         RLPStream out(sizeof ...(_Ts));
         rlpListAux(out, _ts...);
@@ -479,10 +479,10 @@ namespace dev
     }
 
     /// The empty string in RLP format.
-    extern bytes RLPNull;
+    extern zbytes RLPNull;
 
     /// The empty list in RLP format.
-    extern bytes RLPEmptyList;
+    extern zbytes RLPEmptyList;
 
     /// Human readable version of RLP.
     std::ostream& operator<<(std::ostream& _out, dev::RLP const& _d);

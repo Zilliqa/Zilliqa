@@ -53,10 +53,10 @@ class AccountBase : public SerializableDataBlock {
               const uint32_t& version);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const zbytes& src, unsigned int offset);
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset);
@@ -113,8 +113,8 @@ inline std::ostream& operator<<(std::ostream& out,
 
 class Account : public AccountBase {
   // The associated code for this account.
-  bytes m_codeCache;
-  bytes m_initDataCache;
+  zbytes m_codeCache;
+  zbytes m_initDataCache;
 
   Address m_address;  // used by contract account only
   Json::Value m_initDataJson = Json::nullValue;
@@ -122,7 +122,7 @@ class Account : public AccountBase {
   bool m_is_library = false;
   std::vector<Address> m_extlibs;
 
-  bool PrepareInitDataJson(const bytes& initData, const Address& addr,
+  bool PrepareInitDataJson(const zbytes& initData, const Address& addr,
                            const uint64_t& blockNum, Json::Value& root,
                            uint32_t& scilla_version, bool& is_library,
                            std::vector<Address>& extlibs);
@@ -136,43 +136,43 @@ class Account : public AccountBase {
   Account() {}
 
   /// Constructor for loading account information from a byte stream.
-  Account(const bytes& src, unsigned int offset);
+  Account(const zbytes& src, unsigned int offset);
 
   /// Constructor for a account.
   Account(const uint128_t& balance, const uint64_t& nonce,
           const uint32_t& version = ACCOUNT_VERSION);
 
   /// Parse the Immutable Data at Constract Initialization Stage
-  bool InitContract(const bytes& code, const bytes& initData,
+  bool InitContract(const zbytes& code, const zbytes& initData,
                     const Address& addr, const uint64_t& blockNum);
 
-  bool SetImmutable(const bytes& code, const bytes& initData);
+  bool SetImmutable(const zbytes& code, const zbytes& initData);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const zbytes& src, unsigned int offset);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool SerializeBase(bytes& dst, unsigned int offset) const;
+  bool SerializeBase(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool DeserializeBase(const bytes& src, unsigned int offset);
+  bool DeserializeBase(const zbytes& src, unsigned int offset);
 
   void SetAddress(const Address& addr);
 
   const Address& GetAddress() const;
 
-  bool SetCode(const bytes& code);
+  bool SetCode(const zbytes& code);
 
-  const bytes GetCode() const;
+  const zbytes GetCode() const;
 
   bool GetContractCodeHash(dev::h256& contractCodeHash) const;
 
-  bool SetInitData(const bytes& initData);
+  bool SetInitData(const zbytes& initData);
 
-  const bytes GetInitData() const;
+  const zbytes GetInitData() const;
 
   bool GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                               std::vector<Address>& extlibs);
@@ -181,12 +181,12 @@ class Account : public AccountBase {
   bool RetrieveContractAuxiliaries();
 
   /// !temp represents getting whole states
-  bool GetUpdatedStates(std::map<std::string, bytes>& t_states,
+  bool GetUpdatedStates(std::map<std::string, zbytes>& t_states,
                         std::set<std::string>& toDeleteIndices,
                         bool temp) const;
 
   bool UpdateStates(const Address& addr,
-                    const std::map<std::string, bytes>& t_states,
+                    const std::map<std::string, zbytes>& t_states,
                     const std::vector<std::string>& toDeleteIndices, bool temp,
                     bool revertible = false);
 

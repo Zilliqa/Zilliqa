@@ -70,7 +70,7 @@ bool DirectoryService::StoreDSBlockToStorage() {
   }
 
   // Store DS Block to disk
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
   if (!m_pendingDSBlock->Serialize(serializedDSBlock, 0)) {
     LOG_GENERAL(WARNING, "DSBlock::Serialize failed");
     return false;
@@ -104,7 +104,7 @@ bool DirectoryService::StoreDSBlockToStorage() {
   return true;
 }
 
-bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
+bool DirectoryService::ComposeDSBlockMessageForSender(zbytes& dsblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeDSBlockMessageForSender not expected "
@@ -127,7 +127,7 @@ bool DirectoryService::ComposeDSBlockMessageForSender(bytes& dsblock_message) {
 }
 
 void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
-    const bytes& dsblock_message) {
+    const zbytes& dsblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers not "
@@ -152,7 +152,7 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
 }
 
 void DirectoryService::SendDSBlockToShardNodes(
-    [[gnu::unused]] const bytes& dsblock_message, const DequeOfShard& shards,
+    [[gnu::unused]] const zbytes& dsblock_message, const DequeOfShard& shards,
     const unsigned int& my_shards_lo, const unsigned int& my_shards_hi) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -171,7 +171,7 @@ void DirectoryService::SendDSBlockToShardNodes(
     uint32_t shardId =
         m_publicKeyToshardIdMap.at(std::get<SHARD_NODE_PUBKEY>(p->front()));
 
-    bytes dsblock_message_to_shard = {MessageType::NODE,
+    zbytes dsblock_message_to_shard = {MessageType::NODE,
                                       NodeInstructionType::DSBLOCK};
     if (!Messenger::SetNodeVCDSBlocksMessage(
             dsblock_message_to_shard, MessageOffset::BODY, shardId,
@@ -776,18 +776,18 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "DSBlock to be sent to the lookup nodes");
 
-    auto composeDSBlockMessageForSender = [this](bytes& message) -> bool {
+    auto composeDSBlockMessageForSender = [this](zbytes& message) -> bool {
       return ComposeDSBlockMessageForSender(message);
     };
 
     auto sendDSBlockToLookupNodesAndNewDSMembers =
         [this]([[gnu::unused]] const VectorOfNode& lookups,
-               const bytes& message) -> void {
+               const zbytes& message) -> void {
       SendDSBlockToLookupNodesAndNewDSMembers(message);
     };
 
     auto sendDSBlockToShardNodes =
-        [this](const bytes& message, const DequeOfShard& shards,
+        [this](const zbytes& message, const DequeOfShard& shards,
                const unsigned int& my_shards_lo,
                const unsigned int& my_shards_hi) -> void {
       SendDSBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
@@ -846,7 +846,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 }
 
 bool DirectoryService::ProcessDSBlockConsensus(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -863,7 +863,7 @@ bool DirectoryService::ProcessDSBlockConsensus(
   // processed before ANNOUNCE! So, ANNOUNCE should acquire a lock here
 
   uint32_t unused_consensus_id = 0;
-  bytes unused_reserialized_message;
+  zbytes unused_reserialized_message;
   PubKey senderPubKey;
 
   if (!m_consensusObject->PreProcessMessage(message, offset,

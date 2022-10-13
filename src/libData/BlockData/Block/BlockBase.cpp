@@ -26,12 +26,12 @@ using namespace boost::multiprecision;
 
 BlockBase::BlockBase() : m_timestamp(0) {}
 
-bool BlockBase::Serialize([[gnu::unused]] bytes& dst,
+bool BlockBase::Serialize([[gnu::unused]] zbytes& dst,
                           [[gnu::unused]] unsigned int offset) const {
   return true;
 }
 
-bool BlockBase::Deserialize([[gnu::unused]] const bytes& src,
+bool BlockBase::Deserialize([[gnu::unused]] const zbytes& src,
                             [[gnu::unused]] unsigned int offset) {
   return true;
 }

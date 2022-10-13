@@ -338,7 +338,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  bytes powmessage = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
+  zbytes powmessage = {MessageType::DIRECTORY, DSInstructionType::POWSUBMISSION};
 
   if (!Messenger::SetDSPoWSubmission(
           powmessage, MessageOffset::BODY, block_num, difficultyLevel,
@@ -385,7 +385,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
 }
 
 bool Node::ReadVariablesFromStartPoWMessage(
-    const bytes& message, unsigned int cur_offset, uint64_t& block_num,
+    const zbytes& message, unsigned int cur_offset, uint64_t& block_num,
     uint8_t& ds_difficulty, uint8_t& difficulty,
     array<unsigned char, 32>& rand1, array<unsigned char, 32>& rand2) {
   if (LOOKUP_NODE_MODE) {
@@ -492,7 +492,7 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   return true;
 }
 
-bool Node::ProcessStartPoW(const bytes& message, unsigned int offset,
+bool Node::ProcessStartPoW(const zbytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from,
                            [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {

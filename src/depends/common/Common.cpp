@@ -21,7 +21,7 @@ using namespace std;
 
 namespace dev
 {
-    bytes const NullBytes;
+    zbytes const NullBytes;
     u256 const Invalid256 = ~(u256) 0;
     u128 const Invalid128 = ~(u128) 0;
     std::string const EmptyString;

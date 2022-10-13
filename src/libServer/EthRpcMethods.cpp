@@ -350,7 +350,7 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
-    Eth::EthFields const& fields, bytes const& pubKey,
+    Eth::EthFields const& fields, zbytes const& pubKey,
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
@@ -366,8 +366,8 @@ std::string EthRpcMethods::CreateTransactionEth(
   }
 
   Address toAddr{fields.toAddr};
-  bytes data;
-  bytes code;
+  zbytes data;
+  zbytes code;
   if (IsNullAddress(toAddr)) {
     code = ToEVM(fields.code);
   } else {
@@ -585,7 +585,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
-  bytes code{};
+  zbytes code{};
   auto success{false};
   {
     shared_lock<shared_timed_mutex> lock(
@@ -658,7 +658,7 @@ std::string EthRpcMethods::GetWeb3ClientVersion() {
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
+  zbytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
   return POW::BlockhashToHexString(
       ethash::keccak256(input.data(), input.size()));
 }
@@ -824,7 +824,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
     zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
 
     auto res = root["_evm_storage"][zeroes];
-    bytes resAsStringBytes;
+    zbytes resAsStringBytes;
 
     for (const auto& item : res.asString()) {
       resAsStringBytes.push_back(item);
