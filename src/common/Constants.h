@@ -147,7 +147,7 @@ constexpr uint16_t MAX_REPUTATION =
 // General constants
 extern const unsigned int DEBUG_LEVEL;
 extern const bool ENABLE_DO_REJOIN;
-extern const bool LOOKUP_NODE_MODE;
+extern bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 extern const uint16_t NETWORK_ID;
