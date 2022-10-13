@@ -18,12 +18,12 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 
-#include <map>
-#include <memory>
-#include <boost/process.hpp>
-#include <boost/process/child.hpp>
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
+#include <boost/process.hpp>
+#include <boost/process/child.hpp>
+#include <map>
+#include <memory>
 #include "common/Constants.h"
 #include "common/Singleton.h"
 
@@ -35,15 +35,14 @@ struct CallResponse;
 
 class EvmClient : public Singleton<EvmClient> {
  public:
-  EvmClient(){
-  };
+  EvmClient(){};
 
   virtual ~EvmClient();
 
   void Init();
 
   bool ConnectClient(uint32_t version,
-                   __attribute__((unused)) bool enforce = false);
+                     __attribute__((unused)) bool enforce = false);
 
   virtual bool CallRunner(uint32_t version, const Json::Value& _json,
                           evmproj::CallResponse& result,
@@ -58,7 +57,7 @@ class EvmClient : public Singleton<EvmClient> {
       m_connectors;
 
   std::mutex m_mutexMain;
-  boost::process::child  m_child;
+  boost::process::child m_child;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
