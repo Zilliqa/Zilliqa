@@ -20,7 +20,8 @@
 
 #include <map>
 #include <memory>
-
+#include <boost/process.hpp>
+#include <boost/process/child.hpp>
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 #include "common/Constants.h"
@@ -34,7 +35,8 @@ struct CallResponse;
 
 class EvmClient : public Singleton<EvmClient> {
  public:
-  EvmClient(){};
+  EvmClient(){
+  };
 
   virtual ~EvmClient();
 
@@ -56,6 +58,7 @@ class EvmClient : public Singleton<EvmClient> {
       m_connectors;
 
   std::mutex m_mutexMain;
+  boost::process::child  m_child;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
