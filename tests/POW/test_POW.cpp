@@ -39,8 +39,8 @@
 #include "libTestUtils/TestUtils.h"
 
 using namespace std;
-using byte = uint8_t;
-using bytes = std::vector<byte>;
+using zbyte = uint8_t;
+using bytes = std::vector<zbyte>;
 
 static constexpr uint64_t ETHASH_DATASET_BYTES_INIT = 1073741824U;  // 2**30
 static constexpr uint64_t ETHASH_MIX_BYTES = 128;
@@ -84,7 +84,7 @@ bytes hexStringToBytes(std::string const& _s) {
       ret.emplace_back(0);
     }
   for (unsigned i = s; i < _s.size(); i += 2) try {
-      ret.emplace_back((byte)(fromHex(_s[i]) * 16 + fromHex(_s[i + 1])));
+      ret.emplace_back((zbyte)(fromHex(_s[i]) * 16 + fromHex(_s[i + 1])));
     } catch (...) {
       ret.emplace_back(0);
     }

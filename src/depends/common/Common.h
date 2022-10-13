@@ -31,13 +31,13 @@
 #include "vector_ref.h"
 
 // Binary data types.
-using byte = unsigned char;
+using zbyte = unsigned char;
 
 namespace dev
 {
-    using bytes = std::vector<byte>;
-    using bytesRef = vector_ref<byte>;
-    using bytesConstRef = vector_ref<byte const>;
+    using bytes = std::vector<zbyte>;
+    using bytesRef = vector_ref<zbyte>;
+    using bytesConstRef = vector_ref<zbyte const>;
 
     template<class T>
     class secure_vector {
@@ -90,7 +90,7 @@ namespace dev
         std::vector<T> m_data;
     };
 
-    using bytesSec = secure_vector<byte>;
+    using bytesSec = secure_vector<zbyte>;
 
     // Numeric types.
     using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;

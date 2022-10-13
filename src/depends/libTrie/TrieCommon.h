@@ -27,7 +27,7 @@ namespace dev
 {
     extern const h256 EmptyTrie;
 
-    inline byte nibble(bytesConstRef _data, unsigned _i)
+    inline zbyte nibble(bytesConstRef _data, unsigned _i)
     {
         return (_i & 1) ? (_data[_i / 2] & 15) : (_data[_i / 2] >> 4);
     }
@@ -55,7 +55,7 @@ namespace dev
         unsigned offset;
 
         NibbleSlice(bytesConstRef _data = bytesConstRef(), unsigned _offset = 0): data(_data), offset(_offset) {}
-        byte operator[](unsigned _index) const { return nibble(data, offset + _index); }
+        zbyte operator[](unsigned _index) const { return nibble(data, offset + _index); }
         unsigned size() const { return data.size() * 2 - offset; }
         bool empty() const { return !size(); }
         NibbleSlice mid(unsigned _index) const { return NibbleSlice(data, offset + _index); }
@@ -121,7 +121,7 @@ namespace dev
         return keyOf(_twoItem[0].payload());
     }
 
-    byte uniqueInUse(RLP const& _orig, byte except);
+    zbyte uniqueInUse(RLP const& _orig, zbyte except);
     std::string hexPrefixEncode(bytes const& _hexVector, bool _leaf = false, int _begin = 0, int _end = -1);
     std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset);
     std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf);

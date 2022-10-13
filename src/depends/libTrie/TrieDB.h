@@ -171,7 +171,7 @@ class GenericTrieDB {
     struct Node {
       std::string rlp;
       std::string key;  // as hexPrefixEncoding.
-      byte child;       // 255 -> entering, 16 -> actually at the node, 17 ->
+      zbyte child;       // 255 -> entering, 16 -> actually at the node, 17 ->
                         // exiting, 0-15 -> actual children.
 
       // 255 -> 16 -> 0 -> 1 -> ... -> 15 -> 17
@@ -310,7 +310,7 @@ class GenericTrieDB {
   // in: [V0, ... V15, S] (DEL)
   // out1: [k{i}, Vi]    where i < 16
   // out2: [k{}, S]      where i == 16
-  bytes merge(RLP const& _orig, byte _i);
+  bytes merge(RLP const& _orig, zbyte _i);
 
   // in: [k{}, S] (DEL)
   // out: [null ** 16, S]
@@ -379,32 +379,32 @@ class SpecificTrieDB : public Generic {
   std::string operator[](KeyType _k) const { return at(_k); }
 
   bool contains(KeyType _k) const {
-    return Generic::contains(bytesConstRef((byte const*)&_k, sizeof(KeyType)));
+    return Generic::contains(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   std::string at(KeyType _k) const {
-    bytesConstRef((byte const*)&_k, sizeof(KeyType));
+    bytesConstRef((zbyte const*)&_k, sizeof(KeyType));
 
-    return Generic::at(bytesConstRef((byte const*)&_k, sizeof(KeyType)));
+    return Generic::at(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   std::string getProof(KeyType _k, std::set<std::string>& nodes) const {
-    bytesConstRef((byte const*)&_k, sizeof(KeyType));
+    bytesConstRef((zbyte const*)&_k, sizeof(KeyType));
 
-    return Generic::getProof(bytesConstRef((byte const*)&_k, sizeof(KeyType)),
+    return Generic::getProof(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)),
                              nodes);
   }
 
   void insert(KeyType _k, bytesConstRef _value) {
     //            LOG_GENERAL(INFO, "Inserting to SpecificTrieDB Key : Value = "
     //            << _k << " : " << _value);
-    Generic::insert(bytesConstRef((byte const*)&_k, sizeof(KeyType)), _value);
+    Generic::insert(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)), _value);
   }
   void insert(KeyType _k, bytes const& _value) {
     insert(_k, bytesConstRef(&_value));
   }
   void remove(KeyType _k) {
-    Generic::remove(bytesConstRef((byte const*)&_k, sizeof(KeyType)));
+    Generic::remove(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   class iterator : public Generic::iterator {
@@ -425,7 +425,7 @@ class SpecificTrieDB : public Generic {
   iterator begin() const { return this; }
   iterator end() const { return iterator(); }
   iterator lower_bound(KeyType _k) const {
-    return iterator(this, bytesConstRef((byte const*)&_k, sizeof(KeyType)));
+    return iterator(this, bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 };
 
@@ -1019,9 +1019,9 @@ bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 const& _origHash,
     if (!_inLine) killNode(_orig, _origHash);
 
     // not exactly our node - delve to next level at the correct index.
-    byte n = _k[0];
+    zbyte n = _k[0];
     RLPStream r(17);
-    for (byte i = 0; i < 17; ++i)
+    for (zbyte i = 0; i < 17; ++i)
       if (i == n)
         mergeAtAux(r, _orig[i], _k.mid(1), _v);
       else
@@ -1120,7 +1120,7 @@ bytes GenericTrieDB<DB>::deleteAt(RLP const& _orig, NibbleSlice _k) {
       // Kill the node.
       killNode(_orig);
 
-      byte used = uniqueInUse(_orig, 16);
+      zbyte used = uniqueInUse(_orig, 16);
       if (used != 255)
         if (isTwoItemNode(_orig[used])) {
           auto merged = merge(_orig, used);
@@ -1129,15 +1129,15 @@ bytes GenericTrieDB<DB>::deleteAt(RLP const& _orig, NibbleSlice _k) {
           return merge(_orig, used);
       else {
         RLPStream r(17);
-        for (byte i = 0; i < 16; ++i) r << _orig[i];
+        for (zbyte i = 0; i < 16; ++i) r << _orig[i];
         r << "";
         return r.out();
       }
     } else {
       // not exactly our node - delve to next level at the correct index.
       RLPStream r(17);
-      byte n = _k[0];
-      for (byte i = 0; i < 17; ++i)
+      zbyte n = _k[0];
+      for (zbyte i = 0; i < 17; ++i)
         if (i == n)
           if (!deleteAtAux(r, _orig[i],
                            _k.mid(1)))  // bomb out if the key didn't turn up.
@@ -1152,7 +1152,7 @@ bytes GenericTrieDB<DB>::deleteAt(RLP const& _orig, NibbleSlice _k) {
 
       // check if we ended up leaving the node invalid.
       RLP rlp(r.out());
-      byte used = uniqueInUse(rlp, 255);
+      zbyte used = uniqueInUse(rlp, 255);
       if (used == 255)  // no - all ok.
         return r.out();
 
@@ -1292,7 +1292,7 @@ bytes GenericTrieDB<DB>::graft(RLP const& _orig) {
 }
 
 template <class DB>
-bytes GenericTrieDB<DB>::merge(RLP const& _orig, byte _i) {
+bytes GenericTrieDB<DB>::merge(RLP const& _orig, zbyte _i) {
   if (!_orig.isList() || _orig.itemCount() != 17) {
     LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
                                             << ": " << __FUNCTION__ << ")");
@@ -1332,7 +1332,7 @@ bytes GenericTrieDB<DB>::branch(RLP const& _orig) {
     for (unsigned i = 0; i < 16; ++i) r << "";
     r << _orig[1];
   } else {
-    byte b = k[0];
+    zbyte b = k[0];
     for (unsigned i = 0; i < 16; ++i)
       if (i == b)
         if (isLeaf(_orig) || k.size() > 1)
