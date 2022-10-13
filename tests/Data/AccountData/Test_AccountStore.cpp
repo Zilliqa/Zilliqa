@@ -34,6 +34,7 @@
 BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 BOOST_AUTO_TEST_CASE(rwtest) {
+  ENABLE_SCILLA = false;
   AccountStore::GetInstance().Init();
 
   std::vector<PairOfKey> kps;
