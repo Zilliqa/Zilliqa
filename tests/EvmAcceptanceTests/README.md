@@ -10,14 +10,6 @@
     npx hardhat test folder/*    # to run tests of `folder`
 ```
 
-# Setup github pre-commit hook
-
-You may want to set up pre-commit hook to fix your code before commit by:
-`npm run prepare`
-
-Alternatively, you can always fix your code manually before uploading to remote:
-
-`npm run lint`
 
 # Start Testing
 
@@ -166,3 +158,20 @@ describe("Contract with payable constructor", function () {
       });
 ```
 - `@transactional` tag is used for those tests which generate ethereum transactions. Calling pure functions or view functions doesn't generate a transaction for example. Transactional tests may use for populating an empty testnet with some transactions.
+
+# miscellaneous
+## Setup github pre-commit hook
+
+You may want to set up pre-commit hook to fix your code before commit by:
+`npm run prepare`
+
+Alternatively, you can always fix your code manually before uploading to remote:
+
+`npm run lint`
+
+## Feed devnet with transactions
+It's possible to use [FeedDevnet.js](scripts/FeedDevnet.js) to send transactions to devnet continuously:
+```bash
+npx hardhat run scripts/FeedDevnet.js --network devnet
+```
+Instead of `devnet` we can pass any other networks in the [config file](hardhat.config.js).
