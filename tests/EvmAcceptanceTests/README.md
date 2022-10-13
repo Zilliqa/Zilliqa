@@ -10,7 +10,6 @@
     npx hardhat test folder/*    # to run tests of `folder`
 ```
 
-
 # Start Testing
 
 ## Add a new contract
