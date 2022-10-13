@@ -47,7 +47,7 @@ ScillaClient::~ScillaClient() {
 void ScillaClient::Init() {
   LOG_MARKER();
 
-  if(!ENABLE_SCILLA) {
+  if (!ENABLE_SCILLA) {
     return;
   }
 
