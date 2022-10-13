@@ -23,7 +23,7 @@ describe("Transfer functionality", function () {
   // TODO: Add notPayable contract function test.
 
   // FIXME: In ZIL-4890
-  xit("Should move 1 ether to the owner if withdraw function is called so 1 ether is left for the contract itself", async function () {
+  xit("Should move 1 ether to the owner if withdraw function is called so 1 ether is left for the contract itself [@transactional]", async function () {
     const [owner] = await ethers.getSigners();
     await expect(contract.withdraw())
       .to.changeEtherBalance(contract.address, ethers.utils.parseEther("-1.0"))

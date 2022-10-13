@@ -22,7 +22,7 @@ describe("Precompile tests with web3.js", function () {
     expect(result).to.be.eq(accountAddress);
   });
 
-  it("should return input value when identity function is used", async function () {
+  it("should return input value when identity function is used [@transactional]", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const hash = web3.utils.keccak256(msg);
 
@@ -50,7 +50,7 @@ describe("Precompile tests with web3.js", function () {
     expect(readValue).to.be.eq(expectedHash);
   });
 
-  it("should return correct result when modexp function is used", async function () {
+  it("should return correct result when modexp function is used [@transactional]", async function () {
     const base = 8;
     const exponent = 9;
     const modulus = 10;
