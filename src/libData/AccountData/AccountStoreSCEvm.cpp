@@ -51,7 +51,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
-      EvmClient::GetInstance().CheckClient(0, true);
+      EvmClient::GetInstance().ConnectClient(0, true);
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
