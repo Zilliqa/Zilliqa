@@ -53,7 +53,6 @@ BOOST_AUTO_TEST_CASE(test_configuration) {
                                << SCILLA_ROOT);
     }
   }
-  LOG_GENERAL(INFO, " ");
 }
 
 BOOST_AUTO_TEST_SUITE_END()
