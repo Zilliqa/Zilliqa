@@ -98,7 +98,7 @@ namespace dev
             return rlp("");
         HexMap hexMap;
         for (auto i = _s.rbegin(); i != _s.rend(); ++i)
-            hexMap[asNibbles(bytesConstRef(&i->first))] = i->second;
+            hexMap[asNibbles(zbytesConstRef(&i->first))] = i->second;
         RLPStream s;
         hash256rlp(hexMap, hexMap.cbegin(), hexMap.cend(), 0, s);
         return s.out();
@@ -118,7 +118,7 @@ namespace dev
         return hash256(m);
     }
 
-    h256 orderedTrieRoot(std::vector<bytesConstRef> const& _data)
+    h256 orderedTrieRoot(std::vector<zbytesConstRef> const& _data)
     {
         BytesMap m;
         unsigned j = 0;

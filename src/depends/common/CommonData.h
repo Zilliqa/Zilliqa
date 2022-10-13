@@ -97,7 +97,7 @@ namespace dev
 
 /// Converts byte array ref to a string containing the same (binary) data. Unless
 /// the byte array happens to contain ASCII data, this won't be printable.
-    inline std::string asString(bytesConstRef _b) {
+    inline std::string asString(zbytesConstRef _b) {
         return std::string((char const *) _b.data(), (char const *) (_b.data() + _b.size()));
     }
 
@@ -108,7 +108,7 @@ namespace dev
 
 /// Converts a string into the big-endian base-16 stream of integers (NOT ASCII).
 /// @example asNibbles("A")[0] == 4 && asNibbles("A")[1] == 1
-    zbytes asNibbles(bytesConstRef const &_s);
+    zbytes asNibbles(zbytesConstRef const &_s);
 
 
 // Big-endian to/from host endian conversion functions.

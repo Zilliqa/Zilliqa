@@ -86,7 +86,7 @@ namespace dev
         return false;
     }
 
-    void MemoryDB::insert(h256 const& _h, bytesConstRef _v)
+    void MemoryDB::insert(h256 const& _h, zbytesConstRef _v)
     {
 // #if DEV_GUARDED_DB
         // WriteGuard l(x_this);
@@ -141,7 +141,7 @@ namespace dev
         m_aux[_h].second = false;
     }
 
-    void MemoryDB::insertAux(h256 const& _h, bytesConstRef _v)
+    void MemoryDB::insertAux(h256 const& _h, zbytesConstRef _v)
     {
 // #if DEV_GUARDED_DB
         // WriteGuard l(x_this);

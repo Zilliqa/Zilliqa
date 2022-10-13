@@ -95,7 +95,7 @@ bytesSec dev::contentsSec(boost::filesystem::path const& _file)
 {
     zbytes b = contentsGeneric<zbytes>(_file);
     bytesSec ret(b);
-    bytesRef(&b).cleanse();
+    zbytesRef(&b).cleanse();
     return ret;
 }
 
@@ -104,7 +104,7 @@ string dev::contentsString(boost::filesystem::path const& _file)
     return contentsGeneric<string>(_file);
 }
 
-void dev::writeFile(boost::filesystem::path const& _file, bytesConstRef _data, bool _writeDeleteRename)
+void dev::writeFile(boost::filesystem::path const& _file, zbytesConstRef _data, bool _writeDeleteRename)
 {
     namespace fs = boost::filesystem;
     if (_writeDeleteRename)

@@ -54,9 +54,9 @@ namespace dev
     /// Throws exception on error.
     /// @param _writeDeleteRename useful not to lose any data: If set, first writes to another file in
     /// the same directory and then moves that file.
-    void writeFile(boost::filesystem::path const& _file, bytesConstRef _data, bool _writeDeleteRename = false);
+    void writeFile(boost::filesystem::path const& _file, zbytesConstRef _data, bool _writeDeleteRename = false);
     /// Write the given binary data into the given file, replacing the file if it pre-exists.
-    inline void writeFile(boost::filesystem::path const& _file, zbytes const& _data, bool _writeDeleteRename = false) { writeFile(_file, bytesConstRef(&_data), _writeDeleteRename); }
+    inline void writeFile(boost::filesystem::path const& _file, zbytes const& _data, bool _writeDeleteRename = false) { writeFile(_file, zbytesConstRef(&_data), _writeDeleteRename); }
 
     /// Nicely renders the given bytes to a string, optionally as HTML.
     /// @a _bytes: bytes array to be rendered as string. @a _width of a bytes line.

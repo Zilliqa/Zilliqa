@@ -24,7 +24,7 @@ using namespace dev;
 zbytes dev::RLPNull = rlp("");
 zbytes dev::RLPEmptyList = rlpList();
 
-RLP::RLP(bytesConstRef _d, Strictness _s):
+RLP::RLP(zbytesConstRef _d, Strictness _s):
         m_data(_d)
 {
     if ((_s & FailIfTooBig) && actualSize() < _d.size())
@@ -216,7 +216,7 @@ size_t RLP::items() const
 {
     if (isList())
     {
-        bytesConstRef d = payload();
+        zbytesConstRef d = payload();
         size_t i = 0;
         for (; d.size(); ++i)
             d = d.cropped(sizeAsEncoded(d));
@@ -225,7 +225,7 @@ size_t RLP::items() const
     return 0;
 }
 
-RLPStream& RLPStream::appendRaw(bytesConstRef _s, size_t _itemCount)
+RLPStream& RLPStream::appendRaw(zbytesConstRef _s, size_t _itemCount)
 {
     m_out.insert(m_out.end(), _s.begin(), _s.end());
     noteAppended(_itemCount);
@@ -281,7 +281,7 @@ RLPStream& RLPStream::appendList(size_t _items)
     return *this;
 }
 
-RLPStream& RLPStream::appendList(bytesConstRef _rlp)
+RLPStream& RLPStream::appendList(zbytesConstRef _rlp)
 {
     if (_rlp.size() < c_rlpListImmLenCount)
         m_out.push_back((zbyte)(_rlp.size() + c_rlpListStart));
@@ -291,7 +291,7 @@ RLPStream& RLPStream::appendList(bytesConstRef _rlp)
     return *this;
 }
 
-RLPStream& RLPStream::append(bytesConstRef _s, bool _compact)
+RLPStream& RLPStream::append(zbytesConstRef _s, bool _compact)
 {
     size_t s = _s.size();
     zbyte const* d = _s.data();
@@ -306,7 +306,7 @@ RLPStream& RLPStream::append(bytesConstRef _s, bool _compact)
             m_out.push_back((zbyte)(s + c_rlpDataImmLenStart));
         else
             pushCount(s, c_rlpDataIndLenZero);
-        appendRaw(bytesConstRef(d, s), 0);
+        appendRaw(zbytesConstRef(d, s), 0);
     }
     noteAppended();
     return *this;

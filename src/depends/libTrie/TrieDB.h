@@ -115,41 +115,41 @@ class GenericTrieDB {
 
   std::string at(zbytes const& _key) const { return at(&_key); }
 
-  std::string at(bytesConstRef _key) const;
+  std::string at(zbytesConstRef _key) const;
 
   void insert(zbytes const& _key, zbytes const& _value) {
     insert(&_key, &_value);
   }
 
-  void insert(bytesConstRef _key, zbytes const& _value) {
+  void insert(zbytesConstRef _key, zbytes const& _value) {
     insert(_key, &_value);
   }
 
-  void insert(zbytes const& _key, bytesConstRef _value) {
+  void insert(zbytes const& _key, zbytesConstRef _value) {
     insert(&_key, _value);
   }
 
-  void insert(bytesConstRef _key, bytesConstRef _value);
+  void insert(zbytesConstRef _key, zbytesConstRef _value);
 
   void remove(zbytes const& _key) { remove(&_key); }
-  void remove(bytesConstRef _key);
+  void remove(zbytesConstRef _key);
 
   bool contains(zbytes const& _key) const { return contains(&_key); }
-  bool contains(bytesConstRef _key) const { return !at(_key).empty(); }
+  bool contains(zbytesConstRef _key) const { return !at(_key).empty(); }
 
   std::string getProof(zbytes const& _key, std::set<std::string>& nodes) const {
     return getProof(&_key, nodes);
   }
 
-  std::string getProof(bytesConstRef _key, std::set<std::string>& nodes) const;
+  std::string getProof(zbytesConstRef _key, std::set<std::string>& nodes) const;
 
   class iterator {
    public:
-    using value_type = std::pair<bytesConstRef, bytesConstRef>;
+    using value_type = std::pair<zbytesConstRef, zbytesConstRef>;
 
     iterator() {}
     explicit iterator(GenericTrieDB const* _db);
-    iterator(GenericTrieDB const* _db, bytesConstRef _key);
+    iterator(GenericTrieDB const* _db, zbytesConstRef _key);
 
     iterator& operator++() {
       next();
@@ -196,7 +196,7 @@ class GenericTrieDB {
   iterator begin() const { return iterator(this); }
   iterator end() const { return iterator(); }
 
-  iterator lower_bound(bytesConstRef _key) const {
+  iterator lower_bound(zbytesConstRef _key) const {
     return iterator(this, _key);
   }
 
@@ -276,11 +276,11 @@ class GenericTrieDB {
                        std::set<std::string>& nodes) const;
 
   void mergeAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key,
-                  bytesConstRef _value);
-  zbytes mergeAt(RLP const& _replace, NibbleSlice _k, bytesConstRef _v,
+                  zbytesConstRef _value);
+  zbytes mergeAt(RLP const& _replace, NibbleSlice _k, zbytesConstRef _v,
                 bool _inLine = false);
   zbytes mergeAt(RLP const& _replace, h256 const& _replaceHash, NibbleSlice _k,
-                bytesConstRef _v, bool _inLine = false);
+                zbytesConstRef _v, bool _inLine = false);
 
   bool deleteAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key);
   zbytes deleteAt(RLP const& _replace, NibbleSlice _k);
@@ -290,7 +290,7 @@ class GenericTrieDB {
   // -- OR --
   // in: [V0, ..., V15, S16] (DEL)  AND  _k == {}
   // out: [V0, ..., V15, _s]
-  zbytes place(RLP const& _orig, NibbleSlice _k, bytesConstRef _s);
+  zbytes place(RLP const& _orig, NibbleSlice _k, zbytesConstRef _s);
 
   // in: [K, S] (DEL)
   // out: null
@@ -330,12 +330,12 @@ class GenericTrieDB {
 
   // These are low-level node insertion functions that just go straight through
   // into the DB.
-  h256 forceInsertNode(bytesConstRef _v) const {
+  h256 forceInsertNode(zbytesConstRef _v) const {
     auto h = sha3(_v);
     forceInsertNode(h, _v);
     return h;
   }
-  void forceInsertNode(h256 const& _h, bytesConstRef _v) const {
+  void forceInsertNode(h256 const& _h, zbytesConstRef _v) const {
     m_db->insert(_h, _v);
   }
   void forceKillNode(h256 const& _h) { m_db->kill(_h); }
@@ -379,42 +379,42 @@ class SpecificTrieDB : public Generic {
   std::string operator[](KeyType _k) const { return at(_k); }
 
   bool contains(KeyType _k) const {
-    return Generic::contains(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
+    return Generic::contains(zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   std::string at(KeyType _k) const {
-    bytesConstRef((zbyte const*)&_k, sizeof(KeyType));
+    zbytesConstRef((zbyte const*)&_k, sizeof(KeyType));
 
-    return Generic::at(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
+    return Generic::at(zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   std::string getProof(KeyType _k, std::set<std::string>& nodes) const {
-    bytesConstRef((zbyte const*)&_k, sizeof(KeyType));
+    zbytesConstRef((zbyte const*)&_k, sizeof(KeyType));
 
-    return Generic::getProof(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)),
+    return Generic::getProof(zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)),
                              nodes);
   }
 
-  void insert(KeyType _k, bytesConstRef _value) {
+  void insert(KeyType _k, zbytesConstRef _value) {
     //            LOG_GENERAL(INFO, "Inserting to SpecificTrieDB Key : Value = "
     //            << _k << " : " << _value);
-    Generic::insert(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)), _value);
+    Generic::insert(zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)), _value);
   }
   void insert(KeyType _k, zbytes const& _value) {
-    insert(_k, bytesConstRef(&_value));
+    insert(_k, zbytesConstRef(&_value));
   }
   void remove(KeyType _k) {
-    Generic::remove(bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
+    Generic::remove(zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   class iterator : public Generic::iterator {
    public:
     using Super = typename Generic::iterator;
-    using value_type = std::pair<KeyType, bytesConstRef>;
+    using value_type = std::pair<KeyType, zbytesConstRef>;
 
     iterator() {}
     iterator(Generic const* _db) : Super(_db) {}
-    iterator(Generic const* _db, bytesConstRef _k) : Super(_db, _k) {}
+    iterator(Generic const* _db, zbytesConstRef _k) : Super(_db, _k) {}
 
     value_type operator*() const { return at(); }
     value_type operator->() const { return at(); }
@@ -425,7 +425,7 @@ class SpecificTrieDB : public Generic {
   iterator begin() const { return this; }
   iterator end() const { return iterator(); }
   iterator lower_bound(KeyType _k) const {
-    return iterator(this, bytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
+    return iterator(this, zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 };
 
@@ -467,24 +467,24 @@ class HashedGenericTrieDB : private SpecificTrieDB<GenericTrieDB<_DB>, h256> {
   using Super::debugStructure;
   using Super::leftOvers;
 
-  std::string at(bytesConstRef _key) const { return Super::at(sha3(_key)); }
-  bool contains(bytesConstRef _key) const {
+  std::string at(zbytesConstRef _key) const { return Super::at(sha3(_key)); }
+  bool contains(zbytesConstRef _key) const {
     return Super::contains(sha3(_key));
   }
-  void insert(bytesConstRef _key, bytesConstRef _value) {
+  void insert(zbytesConstRef _key, zbytesConstRef _value) {
     Super::insert(sha3(_key), _value);
   }
-  void remove(bytesConstRef _key) { Super::remove(sha3(_key)); }
+  void remove(zbytesConstRef _key) { Super::remove(sha3(_key)); }
 
   // empty from the PoV of the iterator interface; still need a basic iterator
   // impl though.
   class iterator {
    public:
-    using value_type = std::pair<bytesConstRef, bytesConstRef>;
+    using value_type = std::pair<zbytesConstRef, zbytesConstRef>;
 
     iterator() {}
     iterator(HashedGenericTrieDB const*) {}
-    iterator(HashedGenericTrieDB const*, bytesConstRef) {}
+    iterator(HashedGenericTrieDB const*, zbytesConstRef) {}
 
     iterator& operator++() { return *this; }
     value_type operator*() const { return value_type(); }
@@ -497,7 +497,7 @@ class HashedGenericTrieDB : private SpecificTrieDB<GenericTrieDB<_DB>, h256> {
   };
   iterator begin() const { return iterator(); }
   iterator end() const { return iterator(); }
-  iterator lower_bound(bytesConstRef) const { return iterator(); }
+  iterator lower_bound(zbytesConstRef) const { return iterator(); }
 };
 
 // Hashed & Hash-key mapping
@@ -522,11 +522,11 @@ class FatGenericTrieDB : private SpecificTrieDB<GenericTrieDB<_DB>, h256> {
   using Super::root;
   using Super::setRoot;
 
-  std::string at(bytesConstRef _key) const { return Super::at(sha3(_key)); }
-  bool contains(bytesConstRef _key) const {
+  std::string at(zbytesConstRef _key) const { return Super::at(sha3(_key)); }
+  bool contains(zbytesConstRef _key) const {
     return Super::contains(sha3(_key));
   }
-  void insert(bytesConstRef _key, bytesConstRef _value) {
+  void insert(zbytesConstRef _key, zbytesConstRef _value) {
     h256 hash = sha3(_key);
     //            LOG_GENERAL(INFO, "Inserting to FatGenericTrieDB Hash : Value
     //            = " << hash << " : " << _value);
@@ -534,7 +534,7 @@ class FatGenericTrieDB : private SpecificTrieDB<GenericTrieDB<_DB>, h256> {
     Super::db()->insertAux(hash, _key);
   }
 
-  void remove(bytesConstRef _key) { Super::remove(sha3(_key)); }
+  void remove(zbytesConstRef _key) { Super::remove(sha3(_key)); }
 
   // iterates over <key, value> pairs
   class iterator : public GenericTrieDB<_DB>::iterator {
@@ -597,7 +597,7 @@ GenericTrieDB<DB>::iterator::iterator(GenericTrieDB const* _db) {
 
 template <class DB>
 GenericTrieDB<DB>::iterator::iterator(GenericTrieDB const* _db,
-                                      bytesConstRef _fullKey) {
+                                      zbytesConstRef _fullKey) {
   m_that = _db;
   m_trail.push_back({_db->node(_db->m_root), std::string(1, '\0'),
                      255});  // one null byte is the HPE for the empty key.
@@ -624,7 +624,7 @@ GenericTrieDB<DB>::iterator::at() const {
   }
 
   RLP rlp(b.rlp);
-  return std::make_pair(bytesConstRef(b.key).cropped(1),
+  return std::make_pair(zbytesConstRef(b.key).cropped(1),
                         rlp[rlp.itemCount() == 2 ? 1 : 16].payload());
 }
 
@@ -734,7 +734,7 @@ void GenericTrieDB<DB>::iterator::next(NibbleSlice _key) {
           m_trail.push_back(Node{
               m_that->deref(rlp[back.child]),
               hexPrefixEncode(keyOf(back.key),
-                              NibbleSlice(bytesConstRef(&back.child, 1), 1),
+                              NibbleSlice(zbytesConstRef(&back.child, 1), 1),
                               false),
               255});
           break;
@@ -818,7 +818,7 @@ void GenericTrieDB<DB>::iterator::next() {
           m_trail.push_back(Node{
               m_that->deref(rlp[back.child]),
               hexPrefixEncode(keyOf(back.key),
-                              NibbleSlice(bytesConstRef(&back.child, 1), 1),
+                              NibbleSlice(zbytesConstRef(&back.child, 1), 1),
                               false),
               255});
           break;
@@ -845,7 +845,7 @@ SpecificTrieDB<KeyType, DB>::iterator::at() const {
 }
 
 template <class DB>
-void GenericTrieDB<DB>::insert(bytesConstRef _key, bytesConstRef _value) {
+void GenericTrieDB<DB>::insert(zbytesConstRef _key, zbytesConstRef _value) {
   //        LOG_GENERAL(INFO, "Inserting to GenericTrieDB Key : Value = " <<
   //        _key << " : " << _value);
   std::string rootValue = node(m_root);
@@ -866,7 +866,7 @@ void GenericTrieDB<DB>::insert(bytesConstRef _key, bytesConstRef _value) {
 }
 
 template <class DB>
-std::string GenericTrieDB<DB>::at(bytesConstRef _key) const {
+std::string GenericTrieDB<DB>::at(zbytesConstRef _key) const {
   return atAux(RLP(node(m_root)), _key);
 }
 
@@ -906,7 +906,7 @@ std::string GenericTrieDB<DB>::atAux(RLP const& _here, NibbleSlice _key) const {
 }
 
 template <class DB>
-std::string GenericTrieDB<DB>::getProof(bytesConstRef _key,
+std::string GenericTrieDB<DB>::getProof(zbytesConstRef _key,
                                         std::set<std::string>& nodes) const {
   LOG_MARKER();
   return getProof(RLP(node(m_root)), _key, nodes);
@@ -960,13 +960,13 @@ std::string GenericTrieDB<DB>::getProof(RLP const& _here, NibbleSlice _key,
 
 template <class DB>
 zbytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, NibbleSlice _k,
-                                 bytesConstRef _v, bool _inLine) {
+                                 zbytesConstRef _v, bool _inLine) {
   return mergeAt(_orig, sha3(_orig.data()), _k, _v, _inLine);
 }
 
 template <class DB>
 zbytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 const& _origHash,
-                                 NibbleSlice _k, bytesConstRef _v,
+                                 NibbleSlice _k, zbytesConstRef _v,
                                  bool _inLine) {
   // The caller will make sure that the bytes are inserted properly.
   // - This might mean inserting an entry into m_over
@@ -1032,7 +1032,7 @@ zbytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 const& _origHash,
 
 template <class DB>
 void GenericTrieDB<DB>::mergeAtAux(RLPStream& _out, RLP const& _orig,
-                                   NibbleSlice _k, bytesConstRef _v) {
+                                   NibbleSlice _k, zbytesConstRef _v) {
   RLP r = _orig;
   std::string s;
   // _orig is always a segment of a node's RLP - removing it alone is pointless.
@@ -1055,7 +1055,7 @@ void GenericTrieDB<DB>::mergeAtAux(RLPStream& _out, RLP const& _orig,
 }
 
 template <class DB>
-void GenericTrieDB<DB>::remove(bytesConstRef _key) {
+void GenericTrieDB<DB>::remove(zbytesConstRef _key) {
   std::string rv = node(m_root);
   zbytes b = deleteAt(RLP(rv), NibbleSlice(_key));
   if (b.size()) {
@@ -1189,7 +1189,7 @@ bool GenericTrieDB<DB>::deleteAtAux(RLPStream& _out, RLP const& _orig,
 
 template <class DB>
 zbytes GenericTrieDB<DB>::place(RLP const& _orig, NibbleSlice _k,
-                               bytesConstRef _s) {
+                               zbytesConstRef _s) {
   killNode(_orig);
   if (_orig.isEmpty()) return rlpList(hexPrefixEncode(_k, true), _s);
 
@@ -1305,7 +1305,7 @@ zbytes GenericTrieDB<DB>::merge(RLP const& _orig, zbyte _i) {
                                               << ": " << __FUNCTION__ << ")");
     }
 
-    s << hexPrefixEncode(bytesConstRef(&_i, 1), false, 1, 2, 0);
+    s << hexPrefixEncode(zbytesConstRef(&_i, 1), false, 1, 2, 0);
   } else
     s << hexPrefixEncode(zbytes(), true);
   s << _orig[_i];

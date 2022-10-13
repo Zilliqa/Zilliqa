@@ -274,7 +274,7 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
 
   const auto addressHash =
       ethash::keccak256(address.ref().data(), address.ref().size());
-  dev::h256 addressBloom{dev::bytesConstRef{boost::begin(addressHash.bytes),
+  dev::h256 addressBloom{dev::zbytesConstRef{boost::begin(addressHash.bytes),
                                             boost::size(addressHash.bytes)}};
 
   LogBloom bloom;
@@ -283,7 +283,7 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
   for (const auto &topic : topics) {
     const auto topicHash =
         ethash::keccak256(topic.ref().data(), topic.ref().size());
-    dev::h256 topicBloom{dev::bytesConstRef{boost::begin(topicHash.bytes),
+    dev::h256 topicBloom{dev::zbytesConstRef{boost::begin(topicHash.bytes),
                                             boost::size(topicHash.bytes)}};
     bloom.shiftBloom<3>(topicBloom);
   }

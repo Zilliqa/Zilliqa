@@ -36,8 +36,8 @@ using zbyte = unsigned char;
 namespace dev
 {
     using zbytes = std::vector<zbyte>;
-    using bytesRef = vector_ref<zbyte>;
-    using bytesConstRef = vector_ref<zbyte const>;
+    using zbytesRef = vector_ref<zbyte>;
+    using zbytesConstRef = vector_ref<zbyte const>;
 
     template<class T>
     class secure_vector {

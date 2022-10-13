@@ -80,19 +80,19 @@ namespace dev
         RLP() {}
 
         /// Construct a node of value given in the bytes.
-        explicit RLP(bytesConstRef _d, Strictness _s = VeryStrict);
+        explicit RLP(zbytesConstRef _d, Strictness _s = VeryStrict);
 
         /// Construct a node of value given in the bytes.
         explicit RLP(zbytes const& _d, Strictness _s = VeryStrict): RLP(&_d, _s) {}
 
         /// Construct a node to read RLP data in the bytes given.
-        RLP(zbyte const* _b, unsigned _s, Strictness _st = VeryStrict): RLP(bytesConstRef(_b, _s), _st) {}
+        RLP(zbyte const* _b, unsigned _s, Strictness _st = VeryStrict): RLP(zbytesConstRef(_b, _s), _st) {}
 
         /// Construct a node to read RLP data in the string.
-        explicit RLP(std::string const& _s, Strictness _st = VeryStrict): RLP(bytesConstRef((zbyte const*)_s.data(), _s.size()), _st) {}
+        explicit RLP(std::string const& _s, Strictness _st = VeryStrict): RLP(zbytesConstRef((zbyte const*)_s.data(), _s.size()), _st) {}
 
         /// The bare data of the RLP.
-        bytesConstRef data() const { return m_data; }
+        zbytesConstRef data() const { return m_data; }
 
         /// @returns true if the RLP is non-null.
         explicit operator bool() const { return !isNull(); }
@@ -163,7 +163,7 @@ namespace dev
             iterator(RLP const& _parent, bool _begin);
 
             size_t m_remaining = 0;
-            bytesConstRef m_currentItem;
+            zbytesConstRef m_currentItem;
         };
 
         /// @brief Iterator into beginning of sub-item list (valid only if we are a list).
@@ -195,7 +195,7 @@ namespace dev
         /// Converts to bytearray. @returns the empty byte array if not a string.
         zbytes toBytes(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return zbytes(); } return zbytes(payload().data(), payload().data() + length()); }
         /// Converts to bytearray. @returns the empty byte array if not a string.
-        bytesConstRef toBytesConstRef(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return bytesConstRef(); } return payload().cropped(0, length()); }
+        zbytesConstRef toBytesConstRef(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return zbytesConstRef(); } return payload().cropped(0, length()); }
         /// Converts to string. @returns the empty string if not a string.
         std::string toString(int _flags = LaissezFaire) const { if (!isData()) { if (_flags & ThrowOnFail) BOOST_THROW_EXCEPTION(BadCast()); else return std::string(); } return payload().cropped(0, length()).toString(); }
         /// Converts to string. @throws BadCast if not a string.
@@ -319,7 +319,7 @@ namespace dev
         RLPs toList(int _flags = Strict) const;
 
         /// @returns the data payload. Valid for all types.
-        bytesConstRef payload() const { auto l = length(); if (l > m_data.size()) BOOST_THROW_EXCEPTION(BadRLP()); return m_data.cropped(payloadOffset(), l); }
+        zbytesConstRef payload() const { auto l = length(); if (l > m_data.size()) BOOST_THROW_EXCEPTION(BadRLP()); return m_data.cropped(payloadOffset(), l); }
 
         /// @returns the theoretical size of this item as encoded in the data.
         /// @note Under normal circumstances, is equivalent to m_data.size() - use that unless you know it won't work.
@@ -348,15 +348,15 @@ namespace dev
         size_t items() const;
 
         /// @returns the size encoded into the RLP in @a _data and throws if _data is too short.
-        static size_t sizeAsEncoded(bytesConstRef _data) { return RLP(_data, ThrowOnFail | FailIfTooSmall).actualSize(); }
+        static size_t sizeAsEncoded(zbytesConstRef _data) { return RLP(_data, ThrowOnFail | FailIfTooSmall).actualSize(); }
 
         /// Our byte data.
-        bytesConstRef m_data;
+        zbytesConstRef m_data;
 
         /// The list-indexing cache.
         mutable size_t m_lastIndex = (size_t)-1;
         mutable size_t m_lastEnd = 0;
-        mutable bytesConstRef m_lastItem;
+        mutable zbytesConstRef m_lastItem;
     };
 
     template <> struct Converter<std::string> { static std::string convert(RLP const& _r, int _flags) { return _r.toString(_flags); } };
@@ -399,11 +399,11 @@ namespace dev
         RLPStream& append(u160 _s) { return append(bigint(_s)); }
         RLPStream& append(u256 _s) { return append(bigint(_s)); }
         RLPStream& append(bigint _s);
-        RLPStream& append(bytesConstRef _s, bool _compact = false);
-        RLPStream& append(zbytes const& _s) { return append(bytesConstRef(&_s)); }
-        RLPStream& append(std::string const& _s) { return append(bytesConstRef(_s)); }
+        RLPStream& append(zbytesConstRef _s, bool _compact = false);
+        RLPStream& append(zbytes const& _s) { return append(zbytesConstRef(&_s)); }
+        RLPStream& append(std::string const& _s) { return append(zbytesConstRef(_s)); }
         RLPStream& append(char const* _s) { return append(std::string(_s)); }
-        template <unsigned N> RLPStream& append(FixedHash<N> _s, bool _compact = false, bool _allOrNothing = false) { return _allOrNothing && !_s ? append(bytesConstRef()) : append(_s.ref(), _compact); }
+        template <unsigned N> RLPStream& append(FixedHash<N> _s, bool _compact = false, bool _allOrNothing = false) { return _allOrNothing && !_s ? append(zbytesConstRef()) : append(_s.ref(), _compact); }
 
         /// Appends an arbitrary RLP fragment - this *must* be a single item unless @a _itemCount is given.
         RLPStream& append(RLP const& _rlp, size_t _itemCount = 1) { return appendRaw(_rlp.data(), _itemCount); }
@@ -418,12 +418,12 @@ namespace dev
 
         /// Appends a list.
         RLPStream& appendList(size_t _items);
-        RLPStream& appendList(bytesConstRef _rlp);
+        RLPStream& appendList(zbytesConstRef _rlp);
         RLPStream& appendList(zbytes const& _rlp) { return appendList(&_rlp); }
         RLPStream& appendList(RLPStream const& _s) { return appendList(&_s.out()); }
 
         /// Appends raw (pre-serialised) RLP data. Use with caution.
-        RLPStream& appendRaw(bytesConstRef _rlp, size_t _itemCount = 1);
+        RLPStream& appendRaw(zbytesConstRef _rlp, size_t _itemCount = 1);
         RLPStream& appendRaw(zbytes const& _rlp, size_t _itemCount = 1) { return appendRaw(&_rlp, _itemCount); }
 
         /// Shift operators for appending data items.

@@ -129,7 +129,7 @@ void LevelDB::Reopen() {
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num)
 {
     dev::FixedHash<32> h;
-    dev::bytesRef ref(h.data(), 32);
+    dev::zbytesRef ref(h.data(), 32);
     dev::toBigEndian(num, ref);
     return (leveldb::Slice)h.ref();
 }
@@ -214,7 +214,7 @@ string LevelDB::Lookup(const dev::h256 & key) const
     return value;
 }
 
-string LevelDB::Lookup(const dev::bytesConstRef & key) const
+string LevelDB::Lookup(const dev::zbytesConstRef & key) const
 {
     string value;
     leveldb::Status s = m_db->Get(leveldb::ReadOptions(), ldb::Slice((char const*)key.data(), 32),
@@ -233,7 +233,7 @@ std::shared_ptr<leveldb::DB> LevelDB::GetDB()
     return this->m_db;
 }
 
-int LevelDB::Insert(const dev::h256 & key, dev::bytesConstRef value)
+int LevelDB::Insert(const dev::h256 & key, dev::zbytesConstRef value)
 {
     return Insert(key, value.toString());
 }
@@ -289,10 +289,10 @@ int LevelDB::Insert(const boost::multiprecision::uint256_t & blockNum,
 
 int LevelDB::Insert(const string & key, const vector<unsigned char> & body)
 {
-    return Insert(leveldb::Slice(key), leveldb::Slice(dev::bytesConstRef(&body[0], body.size())));
+    return Insert(leveldb::Slice(key), leveldb::Slice(dev::zbytesConstRef(&body[0], body.size())));
 }
 
-int LevelDB::Insert(const leveldb::Slice & key, dev::bytesConstRef value)
+int LevelDB::Insert(const leveldb::Slice & key, dev::zbytesConstRef value)
 {
     leveldb::Status s = m_db->Put(leveldb::WriteOptions(), key, ldb::Slice(value));
     if (!s.ok())
@@ -365,7 +365,7 @@ bool LevelDB::BatchInsert(const std::unordered_map<dev::h256, std::pair<std::str
         if (i.second.second) {
             dev::zbytes b = i.first.asBytes();
             b.push_back(255);   // for aux
-            batch.Put(dev::bytesConstRef(&b), dev::bytesConstRef(&i.second.first));
+            batch.Put(dev::zbytesConstRef(&b), dev::zbytesConstRef(&i.second.first));
             inserted.emplace(i.first);
         }
     }

@@ -30,7 +30,7 @@ enum FINDRESULT { FOUND, NOTFOUND, DELETED };
 struct MapBase {
   virtual FINDRESULT exists(dev::h256 const& _h) const = 0;
   virtual std::string lookup(dev::h256 const& _h) const = 0;
-  virtual void insert(dev::h256 const& _h, dev::bytesConstRef _v) = 0;
+  virtual void insert(dev::h256 const& _h, dev::zbytesConstRef _v) = 0;
   virtual bool kill(dev::h256 const& _h) = 0;
 };
 
@@ -54,7 +54,7 @@ struct AddDeleteMap : private MapBase {
     }
     return "";
   }
-  virtual void insert(dev::h256 const& _h, dev::bytesConstRef _v) {
+  virtual void insert(dev::h256 const& _h, dev::zbytesConstRef _v) {
     auto find = m_deletes->find(_h);
     if (find != m_deletes->end()) {
       m_deletes->erase(find);
@@ -87,7 +87,7 @@ struct RecordableAddDeleteMap : public AddDeleteMap<ADDS, DELETES> {
   RecordableAddDeleteMap(std::shared_ptr<ADDS> adds,
                          std::shared_ptr<DELETES> deletes)
       : AddDeleteMap<ADDS, DELETES>(adds, deletes) {}
-  void insert(dev::h256 const& _h, dev::bytesConstRef _v) override {
+  void insert(dev::h256 const& _h, dev::zbytesConstRef _v) override {
     if (m_recording) {
       FINDRESULT found = AddDeleteMap<ADDS, DELETES>::exists(_h);
       if (found == DELETED) {
@@ -178,7 +178,7 @@ struct LevelDBMap : private MapBase {
   }
   std::string lookup(dev::h256 const& _h) const { return m_db->Lookup(_h); }
   void insert([[gnu::unused]] dev::h256 const& _h,
-              [[gnu::unused]] dev::bytesConstRef _v) {
+              [[gnu::unused]] dev::zbytesConstRef _v) {
     // do nothing
   }
   bool kill([[gnu::unused]] dev::h256 const& _h) {
@@ -228,7 +228,7 @@ struct OverlayMap<Head, Tail...> {
     return tail.lookup(_h);
   }
 
-  void insert(dev::h256 const& _h, dev::bytesConstRef _v) {
+  void insert(dev::h256 const& _h, dev::zbytesConstRef _v) {
     head->insert(_h, _v);
   }
 
@@ -253,7 +253,7 @@ struct OverlayMap<> {
   std::string lookup([[gnu::unused]] dev::h256 const& _h) const { return ""; }
 
   void insert([[gnu::unused]] dev::h256 const& _h,
-              [[gnu::unused]] dev::bytesConstRef _v) {}
+              [[gnu::unused]] dev::zbytesConstRef _v) {}
 
   bool kill([[gnu::unused]] dev::h256 const& _h) { return false; }
 };

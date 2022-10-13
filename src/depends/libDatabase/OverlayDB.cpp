@@ -91,7 +91,7 @@ namespace dev
 
 
     
-        v = m_levelDB.Lookup(bytesConstRef(&b));
+        v = m_levelDB.Lookup(zbytesConstRef(&b));
     
     	if(v.empty())
 		{	

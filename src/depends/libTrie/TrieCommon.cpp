@@ -58,7 +58,7 @@ namespace dev
         return ret;
     }
 
-    std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset)
+    std::string hexPrefixEncode(zbytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset)
     {
 
         unsigned begin = _beginNibble + _offset;
@@ -80,7 +80,7 @@ namespace dev
         return ret;
     }
 
-    std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf)
+    std::string hexPrefixEncode(zbytesConstRef _d1, unsigned _o1, zbytesConstRef _d2, unsigned _o2, bool _leaf)
     {
         unsigned begin1 = _o1;
         unsigned end1 = _d1.size() * 2;

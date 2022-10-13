@@ -116,7 +116,7 @@ zbytes dev::fromHex(std::string const& _s, WhenError _throw)
     return ret;
 }
 
-zbytes dev::asNibbles(bytesConstRef const& _s)
+zbytes dev::asNibbles(zbytesConstRef const& _s)
 {
     std::vector<uint8_t> ret;
     ret.reserve(_s.size() * 2);

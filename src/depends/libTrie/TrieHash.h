@@ -44,7 +44,7 @@ namespace dev
         return hash256(m);
     }
 
-    h256 orderedTrieRoot(std::vector<bytesConstRef> const& _data);
+    h256 orderedTrieRoot(std::vector<zbytesConstRef> const& _data);
     h256 orderedTrieRoot(std::vector<zbytes> const& _data);
 }
 

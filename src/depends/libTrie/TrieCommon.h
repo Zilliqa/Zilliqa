@@ -27,14 +27,14 @@ namespace dev
 {
     extern const h256 EmptyTrie;
 
-    inline zbyte nibble(bytesConstRef _data, unsigned _i)
+    inline zbyte nibble(zbytesConstRef _data, unsigned _i)
     {
         return (_i & 1) ? (_data[_i / 2] & 15) : (_data[_i / 2] >> 4);
     }
 
     /// Interprets @a _first and @a _second as vectors of nibbles and returns the length of the longest common
     /// prefix of _first[_beginFirst..._endFirst] and _second[_beginSecond..._endSecond].
-    inline unsigned sharedNibbles(bytesConstRef _first, unsigned _beginFirst, unsigned _endFirst, bytesConstRef _second, unsigned _beginSecond, unsigned _endSecond)
+    inline unsigned sharedNibbles(zbytesConstRef _first, unsigned _beginFirst, unsigned _endFirst, zbytesConstRef _second, unsigned _beginSecond, unsigned _endSecond)
     {
         unsigned ret = 0;
         while (_beginFirst < _endFirst && _beginSecond < _endSecond && nibble(_first, _beginFirst) == nibble(_second, _beginSecond))
@@ -47,14 +47,14 @@ namespace dev
     }
 
     /**
-     * Nibble-based view on a bytesConstRef.
+     * Nibble-based view on a zbytesConstRef.
      */
     struct NibbleSlice
     {
-        bytesConstRef data;
+        zbytesConstRef data;
         unsigned offset;
 
-        NibbleSlice(bytesConstRef _data = bytesConstRef(), unsigned _offset = 0): data(_data), offset(_offset) {}
+        NibbleSlice(zbytesConstRef _data = zbytesConstRef(), unsigned _offset = 0): data(_data), offset(_offset) {}
         zbyte operator[](unsigned _index) const { return nibble(data, offset + _index); }
         unsigned size() const { return data.size() * 2 - offset; }
         bool empty() const { return !size(); }
@@ -106,7 +106,7 @@ namespace dev
         return (pl[0] & 0x20) != 0;
     }
 
-    inline NibbleSlice keyOf(bytesConstRef _hpe)
+    inline NibbleSlice keyOf(zbytesConstRef _hpe)
     {
         if (!_hpe.size())
             return NibbleSlice(_hpe, 0);
@@ -123,8 +123,8 @@ namespace dev
 
     zbyte uniqueInUse(RLP const& _orig, zbyte except);
     std::string hexPrefixEncode(zbytes const& _hexVector, bool _leaf = false, int _begin = 0, int _end = -1);
-    std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset);
-    std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf);
+    std::string hexPrefixEncode(zbytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset);
+    std::string hexPrefixEncode(zbytesConstRef _d1, unsigned _o1, zbytesConstRef _d2, unsigned _o2, bool _leaf);
 
     inline std::string hexPrefixEncode(NibbleSlice _s, bool _leaf, int _begin = 0, int _end = -1)
     {

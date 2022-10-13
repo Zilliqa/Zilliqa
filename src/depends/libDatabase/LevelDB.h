@@ -85,10 +85,10 @@ public:
     std::string Lookup(const dev::h256 & key) const;
 
     /// Returns the value at the specified key.
-    std::string Lookup(const dev::bytesConstRef & key) const;
+    std::string Lookup(const dev::zbytesConstRef & key) const;
 
     /// Sets the value at the specified key.
-    int Insert(const dev::h256 & key, dev::bytesConstRef value);
+    int Insert(const dev::h256 & key, dev::zbytesConstRef value);
 
     /// Sets the value at the specified key.
     int Insert(const std::vector<unsigned char>& key,
@@ -106,7 +106,7 @@ public:
     int Insert(const std::string & key, const std::vector<unsigned char> & body);
 
     /// Sets the value at the specified key.
-    int Insert(const leveldb::Slice & key, dev::bytesConstRef value);
+    int Insert(const leveldb::Slice & key, dev::zbytesConstRef value);
 
     /// Sets the value at the specified key.
     int Insert(const dev::h256 & key, const std::string & value);
