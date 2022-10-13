@@ -42,6 +42,7 @@ BOOST_AUTO_TEST_SUITE(test_coinbase)
 BOOST_AUTO_TEST_CASE(test_coinbase_correctness) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
+  ENABLE_SCILLA = false;
 
   Mediator mediator(GenerateRandomKeyPair(), GenerateRandomPeer());
   DirectoryService dummyDS(mediator);
