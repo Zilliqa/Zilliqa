@@ -82,6 +82,9 @@ bool EvmClient::OpenServer(uint32_t version) {
     LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
     return false;
   }
+  // It would be nice not fix design problems with sleep
+  std::this_thread::sleep_for(
+      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS * 2));
   return true;
 }
 
