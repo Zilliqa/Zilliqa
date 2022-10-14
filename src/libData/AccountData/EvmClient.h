@@ -41,6 +41,9 @@ class EvmClient : public Singleton<EvmClient> {
 
   void Init();
 
+  // This method was renamed from CheckClient which is not what the method
+  // did at all.
+
   bool ConnectClient(uint32_t version,
                      __attribute__((unused)) bool enforce = false);
 
