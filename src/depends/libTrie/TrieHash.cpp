@@ -91,7 +91,7 @@ namespace dev
             _rlp << sha3(rlp.out());
     }
 
-    zbytes rlp256(BytesMap const& _s)
+    zbytes rlp256(ZBytesMap const& _s)
     {
         // build patricia tree.
         if (_s.empty())
@@ -104,14 +104,14 @@ namespace dev
         return s.out();
     }
 
-    h256 hash256(BytesMap const& _s)
+    h256 hash256(ZBytesMap const& _s)
     {
         return sha3(rlp256(_s));
     }
 
     h256 orderedTrieRoot(std::vector<zbytes> const& _data)
     {
-        BytesMap m;
+        ZBytesMap m;
         unsigned j = 0;
         for (auto i: _data)
             m[rlp(j++)] = i;
@@ -120,7 +120,7 @@ namespace dev
 
     h256 orderedTrieRoot(std::vector<zbytesConstRef> const& _data)
     {
-        BytesMap m;
+        ZBytesMap m;
         unsigned j = 0;
         for (auto i: _data)
             m[rlp(j++)] = i.toBytes();

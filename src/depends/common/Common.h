@@ -109,7 +109,7 @@ namespace dev
 
     // Map types.
     using StringMap = std::map<std::string, std::string>;
-    using BytesMap = std::map<zbytes, zbytes>;
+    using ZBytesMap = std::map<zbytes, zbytes>;
     using u256Map = std::map<u256, u256>;
     using HexMap = std::map<zbytes, zbytes>;
 

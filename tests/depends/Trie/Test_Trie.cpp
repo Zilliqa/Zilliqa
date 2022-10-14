@@ -330,7 +330,7 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
 
 // h256 stringMapHash256(StringMap const& _s)
 // {
-//     BytesMap bytesMap;
+//     ZBytesMap bytesMap;
 //     for (auto const& _v : _s)
 //         bytesMap.emplace(
 //             std::make_pair(bytes(_v.first.begin(), _v.first.end()),
@@ -340,7 +340,7 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
 
 // bytes stringMapRlp256(StringMap const& _s)
 // {
-//     BytesMap bytesMap;
+//     ZBytesMap bytesMap;
 //     for (auto const& _v : _s)
 //         bytesMap.emplace(
 //             std::make_pair(bytes(_v.first.begin(), _v.first.end()),
