@@ -347,6 +347,12 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &EthRpcMethods::EthRecoverTransactionI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_getBlockReceipts",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, NULL),
+      &EthRpcMethods::GetEthBlockReceiptsI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -991,6 +997,49 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
                                                  includeFullTransactions);
 }
 
+Json::Value EthRpcMethods::GetEthBlockReceiptsCommon(
+    const TxBlock& txBlock) {
+  const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
+      txBlock.GetHeader().GetDSBlockNum());
+
+  std::vector<TxBodySharedPtr> transactions;
+  std::vector<TxnHash> transactionHashes;
+
+  // Gather either transaction hashes or full transactions
+  const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
+  for (auto const& mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+
+    MicroBlockSharedPtr microBlockPtr;
+
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto& currTranHashes = microBlockPtr->GetTranHashes();
+    if (!false) {
+      transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
+                               currTranHashes.end());
+      continue;
+    }
+    for (const auto& transactionHash : currTranHashes) {
+      TxBodySharedPtr transactionBodyPtr;
+      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                     transactionBodyPtr)) {
+        continue;
+      }
+      transactions.push_back(std::move(transactionBodyPtr));
+    }
+  }
+
+  return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
+                                                 transactionHashes,
+                                                 false);
+}
+
 Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
                                          const std::string& tag) {
   if (isSupportedTag(tag)) {
@@ -1397,4 +1446,27 @@ std::string EthRpcMethods::EthRecoverTransaction(
       DataConversion::Uint8VecToHexStrRet(asAddr.asBytes()));
 
   return DataConversion::AddOXPrefix(std::move(addrChksum));
+}
+
+Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
+  Json::Value res = Json::nullValue;
+
+  std::cout << "We are here (!!) " << blockId << std::endl;
+
+  try {
+    const BlockHash blockHash{blockId};
+    const auto txBlock =
+        m_sharedMediator.m_txBlockChain.GetBlockByHash(blockHash);
+    const TxBlock NON_EXISTING_TX_BLOCK{};
+    if (txBlock == NON_EXISTING_TX_BLOCK) {
+      return Json::nullValue;
+    }
+    return GetEthBlockReceiptsCommon(txBlock);
+
+  } catch (std::exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockId);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  }
+
+  return res;
 }

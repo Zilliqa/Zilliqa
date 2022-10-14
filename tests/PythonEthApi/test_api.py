@@ -1479,6 +1479,57 @@ def test_eth_recoverTransaction(url: str, account: eth_account.signers.local.Loc
 
     return True
 
+def eth_getBlockReceipts(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
+    """
+        Returns the receipt of a transaction by transaction hash.
+    """
+    try:
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        res = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [res] })
+
+        res = get_result(response)
+
+        if "blockHash" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
+
+        # First path: Full TX formats
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipts", "params": [res["blockHash"], True] })
+
+        res = get_result(response)
+
+        print(f"REP : {res}")
+
+    except Exception as e:
+        print(f"********* Failed test eth_getBlockReceipts with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
+        return False
+
+    return True
+
 def parse_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('--api', type=str, required=True, help='API to test against')
@@ -1515,55 +1566,57 @@ def main():
     ret = True
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
-    ret &= test_eth_chainId(args.api)
-    ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
-    ret &= test_eth_getStorageAt(args.api, account, w3)
-    ret &= test_eth_getCode(args.api, account, w3)
-    ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
-    #ret &= test_eth_getProof(args.api) # TODO(HUT): implement
-    ret &= test_web3_clientVersion(args.api)
-    ret &= test_web3_sha3(args.api)
-    ret &= test_net_version(args.api)
-    ret &= test_net_listening(args.api)
-    ret &= test_net_peerCount(args.api)
-    ret &= test_eth_protocolVersion(args.api)
-    ret &= test_eth_syncing(args.api)
-    ret &= test_eth_coinbase(args.api)
-    ret &= test_eth_mining(args.api)
-    ret &= test_eth_accounts(args.api)
-    #ret &= test_eth_blockNumber(args.api)
-    ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
-    ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
-    ret &= test_eth_getUncleCountByBlockNumber(args.api)
-    ret &= test_eth_getUncleCountByBlockHash(args.api)
-    ret &= test_eth_getBlockByHash(args.api, account, w3)
-    ret &= test_eth_getBlockByNumber(args.api, account, w3)
-    ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
-    ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
-    ret &= test_eth_gasPrice(args.api)
-    #ret &= test_eth_newFilter(args.api) # Only on isolated server?
-    #ret &= test_eth_newBlockFilter(args.api)
-    #ret &= test_eth_newPendingTransactionFilter(args.api)
-    #ret &= test_eth_uninstallFilter(args.api)
-    #ret &= test_eth_getFilterChanges(args.api)
-    #ret &= test_eth_getFilterLogs(args.api)
-    #ret &= test_eth_getLogs(args.api)
-    #ret &= test_eth_subscribe(args.api)
-    ret &= test_eth_unsubscribe(args.api)
-    #ret &= test_eth_call(args.api)
-    #ret &= test_eth_estimateGas(args.api)
-    ret &= test_eth_getTransactionCount(args.api, account, w3)
-    ret &= test_eth_getTransactionByHash(args.api, account, w3)
-    ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
-    ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
-    ret &= test_eth_getTransactionReceipt(args.api, account, w3)
-    ret &= test_eth_sendRawTransaction(args.api, account, w3)
-    #ret &= test_eth_sign(args.api)
-    #ret &= test_eth_signTransaction(args.api)
-    #ret &= test_eth_sendTransaction(args.api)
+    ret &= eth_getBlockReceipts(args.api, account, w3)
 
-    # Non-standard (for fireblocks)
-    ret &= test_eth_recoverTransaction(args.api, account, w3)
+    #ret &= test_eth_chainId(args.api)
+    #ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
+    #ret &= test_eth_getStorageAt(args.api, account, w3)
+    #ret &= test_eth_getCode(args.api, account, w3)
+    #ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
+    ##ret &= test_eth_getProof(args.api) # TODO(HUT): implement
+    #ret &= test_web3_clientVersion(args.api)
+    #ret &= test_web3_sha3(args.api)
+    #ret &= test_net_version(args.api)
+    #ret &= test_net_listening(args.api)
+    #ret &= test_net_peerCount(args.api)
+    #ret &= test_eth_protocolVersion(args.api)
+    #ret &= test_eth_syncing(args.api)
+    #ret &= test_eth_coinbase(args.api)
+    #ret &= test_eth_mining(args.api)
+    #ret &= test_eth_accounts(args.api)
+    ##ret &= test_eth_blockNumber(args.api)
+    #ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
+    #ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
+    #ret &= test_eth_getUncleCountByBlockNumber(args.api)
+    #ret &= test_eth_getUncleCountByBlockHash(args.api)
+    #ret &= test_eth_getBlockByHash(args.api, account, w3)
+    #ret &= test_eth_getBlockByNumber(args.api, account, w3)
+    #ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
+    #ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
+    #ret &= test_eth_gasPrice(args.api)
+    ##ret &= test_eth_newFilter(args.api) # Only on isolated server?
+    ##ret &= test_eth_newBlockFilter(args.api)
+    ##ret &= test_eth_newPendingTransactionFilter(args.api)
+    ##ret &= test_eth_uninstallFilter(args.api)
+    ##ret &= test_eth_getFilterChanges(args.api)
+    ##ret &= test_eth_getFilterLogs(args.api)
+    ##ret &= test_eth_getLogs(args.api)
+    ##ret &= test_eth_subscribe(args.api)
+    #ret &= test_eth_unsubscribe(args.api)
+    ##ret &= test_eth_call(args.api)
+    ##ret &= test_eth_estimateGas(args.api)
+    #ret &= test_eth_getTransactionCount(args.api, account, w3)
+    #ret &= test_eth_getTransactionByHash(args.api, account, w3)
+    #ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
+    #ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
+    #ret &= test_eth_getTransactionReceipt(args.api, account, w3)
+    #ret &= test_eth_sendRawTransaction(args.api, account, w3)
+    ##ret &= test_eth_sign(args.api)
+    ##ret &= test_eth_signTransaction(args.api)
+    ##ret &= test_eth_sendTransaction(args.api)
+
+    ## Non-standard (for fireblocks)
+    #ret &= test_eth_recoverTransaction(args.api, account, w3)
 
     if not ret:
         print(f"Test failed")

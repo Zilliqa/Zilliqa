@@ -486,14 +486,26 @@ class EthRpcMethods {
   /**
    * @brief Handles json rpc 2.0 request on method:
    * eth_getFilterLogs
-   * @param request : params: event filter params json object
-   * @param response : Json array of items applicable to the filter
+   * @param request : params: Transaction rlp as string
+   * @param response : Address of the sender of the RLP
    */
   virtual void EthRecoverTransactionI(const Json::Value& request,
                                       Json::Value& response) {
     EnsureEvmAndLookupEnabled();
     response = this->EthRecoverTransaction(request[0u].asString());
   }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterLogs
+   * @param request : params: Bloc number, hash or identifier as string
+   * @param response : Json array of transaction receipts from block
+   */
+  inline virtual void GetEthBlockReceiptsI(const Json::Value& request,
+                                                Json::Value& response) {
+    response = this->GetEthBlockReceipts(request[0u].asString());
+  }
+
 
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
@@ -533,6 +545,7 @@ class EthRpcMethods {
                                 const bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 const bool includeFullTransactions);
+  Json::Value GetEthBlockReceiptsCommon(const TxBlock& txBlock);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value GetEthGasPrice() const;
@@ -562,6 +575,8 @@ class EthRpcMethods {
   Json::Value EthGetLogs(const Json::Value& param);
 
   std::string EthRecoverTransaction(const std::string& txnRpc) const;
+
+  Json::Value GetEthBlockReceipts(const std::string& blockId);
 
   void EnsureEvmAndLookupEnabled();
 

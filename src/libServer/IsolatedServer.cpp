@@ -378,6 +378,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, NULL),
         &LookupServer::EthRecoverTransactionI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_getBlockReceipts",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::GetEthBlockReceiptsI);
   }
 }
 
