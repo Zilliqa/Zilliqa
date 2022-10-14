@@ -105,12 +105,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   // parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.GetApplyInstructions()) {
     if (it->OperationType() == "delete") {
-      // Set account balance to 0 to avoid any leakage of funds in case
-      // selfdestruct is called multiple times
-      Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
-      targetAccount->SetBalance(uint128_t(0));
-      m_storageRootUpdateBufferAtomic.emplace(it->Address());
-
+      // be careful with this call needs further testing.
+      // TODO: likely needs fixing, test case: remove an account and then revert
+      // a transaction. this will likely remove the account anyways, despite the
+      // revert.
+      this->RemoveAccount(Address(it->Address()));
     } else {
       // Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
