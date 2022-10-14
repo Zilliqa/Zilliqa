@@ -125,7 +125,7 @@ class ConsensusCommon {
   uint64_t m_blockNumber;
 
   /// [TODO] The unique block hash assigned to the active consensus session.
-  bytes m_blockHash;
+  zbytes m_blockHash;
 
   /// The ID assigned to this peer (equal to its index in the peer table).
   uint16_t m_myID;
@@ -137,7 +137,7 @@ class ConsensusCommon {
   DequeOfNode m_committee;
 
   /// The payload segment to be co-signed by the committee.
-  bytes m_messageToCosign;
+  zbytes m_messageToCosign;
 
   /// The class byte value for the next consensus message to be composed.
   unsigned char m_classByte;
@@ -174,7 +174,7 @@ class ConsensusCommon {
 
   /// Constructor.
   ConsensusCommon(uint32_t consensus_id, uint64_t block_number,
-                  const bytes& block_hash, uint16_t my_id,
+                  const zbytes& block_hash, uint16_t my_id,
                   const PrivKey& privkey, const DequeOfNode& committee,
                   unsigned char class_byte, unsigned char ins_byte, bool isDS);
 
@@ -182,11 +182,11 @@ class ConsensusCommon {
   virtual ~ConsensusCommon();
 
   /// Generates the signature over a consensus message.
-  Signature SignMessage(const bytes& msg, unsigned int offset,
+  Signature SignMessage(const zbytes& msg, unsigned int offset,
                         unsigned int size);
 
   /// Verifies the signature attached to a consensus message.
-  bool VerifyMessage(const bytes& msg, unsigned int offset, unsigned int size,
+  bool VerifyMessage(const zbytes& msg, unsigned int offset, unsigned int size,
                      const Signature& toverify, uint16_t peer_id);
 
   /// Aggregates public keys according to the response map.
@@ -203,14 +203,15 @@ class ConsensusCommon {
                           const Response& aggregated_response);
 
   /// Generates the challenge according to the aggregated commit and key.
-  Challenge GetChallenge(const bytes& msg, const CommitPoint& aggregated_commit,
+  Challenge GetChallenge(const zbytes& msg,
+                         const CommitPoint& aggregated_commit,
                          const PubKey& aggregated_key);
 
   PairOfNode GetCommitteeMember(const unsigned int index);
 
  public:
   /// Consensus message processing function
-  virtual bool ProcessMessage([[gnu::unused]] const bytes& message,
+  virtual bool ProcessMessage([[gnu::unused]] const zbytes& message,
                               [[gnu::unused]] unsigned int offset,
                               [[gnu::unused]] const Peer& from) {
     return false;  // Should be implemented by ConsensusLeader and
@@ -221,9 +222,9 @@ class ConsensusCommon {
   State GetState() const;
 
   /// Returns some general data about the consensus message
-  bool PreProcessMessage(const bytes& message, const unsigned int offset,
+  bool PreProcessMessage(const zbytes& message, const unsigned int offset,
                          uint32_t& consensusID, PubKey& senderPubKey,
-                         bytes& reserializedMessage) const;
+                         zbytes& reserializedMessage) const;
 
   /// Returns the consensus error code
   ConsensusErrorCode GetConsensusErrorCode() const;
@@ -253,7 +254,7 @@ class ConsensusCommon {
   static unsigned int NumForConsensus(unsigned int shardSize);
 
   /// Checks whether the message can be processed now
-  bool CanProcessMessage(const bytes& message, unsigned int offset);
+  bool CanProcessMessage(const zbytes& message, unsigned int offset);
 
   /// Returns a string representation of the current state
   std::string GetStateString() const;

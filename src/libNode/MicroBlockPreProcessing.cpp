@@ -230,7 +230,7 @@ bool Node::ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit) {
   return true;
 }
 
-bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
+bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
                              const Peer& from) {
   LOG_MARKER();
 
@@ -254,8 +254,8 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
   Peer peer(from.m_ipAddress, portNo);
 
   unsigned int cur_offset = 0;
-  bytes tx_message = {MessageType::NODE,
-                      NodeInstructionType::SUBMITTRANSACTION};
+  zbytes tx_message = {MessageType::NODE,
+                       NodeInstructionType::SUBMITTRANSACTION};
   cur_offset += MessageOffset::BODY;
   tx_message.push_back(SUBMITTRANSACTIONTYPE::MISSINGTXN);
   cur_offset += MessageOffset::INST;
@@ -296,7 +296,7 @@ bool Node::OnNodeMissingTxns(const bytes& errorMsg, const unsigned int offset,
 }
 
 bool Node::OnCommitFailure([
-    [gnu::unused]] const std::map<unsigned int, bytes>& commitFailureMap) {
+    [gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "
@@ -898,7 +898,7 @@ void Node::PutTxnsInTempDataBase(
     const std::unordered_map<TxnHash, TransactionWithReceipt>&
         processedTransactions) {
   for (const auto& hashTxnPair : processedTransactions) {
-    bytes serializedTxn;
+    zbytes serializedTxn;
     hashTxnPair.second.Serialize(serializedTxn, 0);
     BlockStorage::GetBlockStorage().PutProcessedTxBodyTmp(hashTxnPair.first,
                                                           serializedTxn);
@@ -915,7 +915,7 @@ void Node::SaveTxnsToS3(
   ofstream txns_file(txns_filename, std::fstream::binary);
 
   for (const auto& hashTxnPair : processedTransactions) {
-    bytes serializedTxn;
+    zbytes serializedTxn;
     hashTxnPair.second.Serialize(serializedTxn, 0);
 
     // write HASH LEN and HASH
@@ -1221,13 +1221,13 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                   << " Shard Leader: "
                   << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-    auto nodeMissingTxnsFunc = [this](const bytes& errorMsg,
+    auto nodeMissingTxnsFunc = [this](const zbytes& errorMsg,
                                       const Peer& from) mutable -> bool {
       return OnNodeMissingTxns(errorMsg, 0, from);
     };
 
     auto commitFailureFunc =
-        [this](const map<unsigned int, bytes>& m) mutable -> bool {
+        [this](const map<unsigned int, zbytes>& m) mutable -> bool {
       return OnCommitFailure(m);
     };
 
@@ -1248,21 +1248,21 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
   auto preprepMBAnnouncementGeneratorFunc =
-      [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
-             const uint64_t blockNumber, const bytes& blockHash,
+      [this](zbytes& dst, unsigned int offset, const uint32_t consensusID,
+             const uint64_t blockNumber, const zbytes& blockHash,
              const uint16_t leaderID, const PairOfKey& leaderKey,
-             bytes& messageToCosign) mutable -> bool {
+             zbytes& messageToCosign) mutable -> bool {
     return Messenger::SetNodeMicroBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
         *m_prePrepMicroblock, messageToCosign);
   };
 
   auto newMBAnnouncementReadinessFunc =
-      [this](bytes& newAnnouncement, unsigned int offset,
+      [this](zbytes& newAnnouncement, unsigned int offset,
              const uint32_t consensusID, const uint64_t blockNumber,
-             const bytes& blockHash, const uint16_t leaderID,
+             const zbytes& blockHash, const uint16_t leaderID,
              const PairOfKey& leaderKey,
-             bytes& messageToCosign) mutable -> bool {
+             zbytes& messageToCosign) mutable -> bool {
     // wait for complete microblock being ready by me (leader)
     if (!WaitUntilCompleteMicroBlockIsReady()) {
       return false;
@@ -1345,20 +1345,20 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                              .asBytes();
 
   auto completeMBValidatorFunc =
-      [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
              const uint32_t consensusID, const uint64_t blockNumber,
-             const bytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, bytes& messageToCosign) mutable -> bool {
+             const zbytes& blockHash, const uint16_t leaderID,
+             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
     return MicroBlockValidator(input, offset, errorMsg, consensusID,
                                blockNumber, blockHash, leaderID, leaderKey,
                                messageToCosign);
   };
 
   auto preprepMBValidatorFunc =
-      [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
              const uint32_t consensusID, const uint64_t blockNumber,
-             const bytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, bytes& messageToCosign) mutable -> bool {
+             const zbytes& blockHash, const uint16_t leaderID,
+             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
     return PrePrepMicroBlockValidator(input, offset, errorMsg, consensusID,
                                       blockNumber, blockHash, leaderID,
                                       leaderKey, messageToCosign);
@@ -1531,7 +1531,7 @@ bool Node::CheckMicroBlockTimestamp() {
                          CONSENSUS_OBJECT_TIMEOUT);
 }
 
-unsigned char Node::CheckLegitimacyOfTxnHashes(bytes& errorMsg) {
+unsigned char Node::CheckLegitimacyOfTxnHashes(zbytes& errorMsg) {
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1631,7 +1631,7 @@ bool Node::CheckMicroBlockGasLimit(const uint64_t& microblock_gas_limit) {
   return true;
 }
 
-bool Node::CheckMicroBlockHashes(bytes& errorMsg) {
+bool Node::CheckMicroBlockHashes(zbytes& errorMsg) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockHashes not expected to be called "
@@ -1796,7 +1796,7 @@ bool Node::CheckMicroBlockTranReceiptHash() {
   return true;
 }
 
-bool Node::CheckMicroBlockValidity(bytes& errorMsg,
+bool Node::CheckMicroBlockValidity(zbytes& errorMsg,
                                    const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1826,10 +1826,10 @@ bool Node::CheckMicroBlockValidity(bytes& errorMsg,
 }
 
 bool Node::PrePrepMicroBlockValidator(
-    const bytes& message, unsigned int offset, bytes& errorMsg,
+    const zbytes& message, unsigned int offset, zbytes& errorMsg,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    bytes& messageToCosign) {
+    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
+    zbytes& messageToCosign) {
   LOG_MARKER();
   if (!MicroBlockValidator(message, offset, errorMsg, consensusID, blockNumber,
                            blockHash, leaderID, leaderKey, messageToCosign)) {
@@ -1842,12 +1842,12 @@ bool Node::PrePrepMicroBlockValidator(
   return true;
 }
 
-bool Node::MicroBlockValidator(const bytes& message, unsigned int offset,
-                               bytes& errorMsg, const uint32_t consensusID,
+bool Node::MicroBlockValidator(const zbytes& message, unsigned int offset,
+                               zbytes& errorMsg, const uint32_t consensusID,
                                const uint64_t blockNumber,
-                               const bytes& blockHash, const uint16_t leaderID,
+                               const zbytes& blockHash, const uint16_t leaderID,
                                const PubKey& leaderKey,
-                               bytes& messageToCosign) {
+                               zbytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::MicroBlockValidator not expected to be called from "

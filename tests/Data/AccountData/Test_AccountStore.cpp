@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().PrintAccountState();
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
-  bytes delta;
+  zbytes delta;
   AccountStore::GetInstance().GetSerializedDelta(delta);
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(delta, 0);
@@ -86,7 +86,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   }
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
-  bytes delta1;
+  zbytes delta1;
   AccountStore::GetInstance().GetSerializedDelta(delta1);
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(delta1, 0);
@@ -113,7 +113,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   }
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
-  bytes delta2;
+  zbytes delta2;
   AccountStore::GetInstance().GetSerializedDelta(delta2);
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(delta2, 0);

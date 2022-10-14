@@ -38,7 +38,7 @@
 
 using namespace std;
 
-bool DirectoryService::ComposeVCBlockForSender(bytes& vcblock_message) {
+bool DirectoryService::ComposeVCBlockForSender(zbytes& vcblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeVCBlockForSender not "
@@ -102,7 +102,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
     return;
   }
 
-  bytes message;
+  zbytes message;
   if (!m_pendingVCBlock->GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "VCBlockHeader serialization failed");
     return;
@@ -277,7 +277,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       latestInd, m_pendingVCBlock->GetHeader().GetViewChangeDSEpochNo(),
       BlockType::VC, m_pendingVCBlock->GetBlockHash());
 
-  bytes dst;
+  zbytes dst;
   m_pendingVCBlock->Serialize(dst, 0);
 
   if (!BlockStorage::GetBlockStorage().PutVCBlock(
@@ -324,7 +324,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   if (t_sendDataToLookupFunc) {
-    auto composeVCBlockForSender = [this](bytes& vcblock_message) -> bool {
+    auto composeVCBlockForSender = [this](zbytes& vcblock_message) -> bool {
       return ComposeVCBlockForSender(vcblock_message);
     };
 
@@ -387,7 +387,7 @@ void DirectoryService::ProcessNextConsensus(unsigned char viewChangeState) {
 }
 
 bool DirectoryService::ProcessViewChangeConsensus(
-    const bytes& message, unsigned int offset, const Peer& from,
+    const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,

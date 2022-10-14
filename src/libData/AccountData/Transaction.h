@@ -35,8 +35,8 @@ struct TransactionCoreInfo {
                       const PubKey& senderPubKeyInput,
                       const uint128_t& amountInput,
                       const uint128_t& gasPriceInput,
-                      const uint64_t& gasLimitInput, const bytes& codeInput,
-                      const bytes& dataInput)
+                      const uint64_t& gasLimitInput, const zbytes& codeInput,
+                      const zbytes& dataInput)
       : version(versionInput),
         nonce(nonceInput),
         toAddr(toAddrInput),
@@ -54,8 +54,8 @@ struct TransactionCoreInfo {
   uint128_t amount;
   uint128_t gasPrice;
   uint64_t gasLimit{};
-  bytes code;
-  bytes data;
+  zbytes code;
+  zbytes data;
 };
 
 /// Stores information on a single transaction.
@@ -65,7 +65,7 @@ class Transaction : public SerializableDataBlock {
   Signature m_signature;
 
   bool IsSignedECDSA() const;
-  bool SetHash(const bytes& txnData);
+  bool SetHash(const zbytes& txnData);
 
  public:
   /// Default constructor.
@@ -75,21 +75,22 @@ class Transaction : public SerializableDataBlock {
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PairOfKey& senderKeyPair,
               const uint128_t& amount, const uint128_t& gasPrice,
-              const uint64_t& gasLimit, const bytes& code = {},
-              const bytes& data = {});
+              const uint64_t& gasLimit, const zbytes& code = {},
+              const zbytes& data = {});
 
   /// Constructor with specified transaction fields.
   Transaction(const TxnHash& tranID, const uint32_t& version,
               const uint64_t& nonce, const Address& toAddr,
               const PubKey& senderPubKey, const uint128_t& amount,
               const uint128_t& gasPrice, const uint64_t& gasLimit,
-              const bytes& code, const bytes& data, const Signature& signature);
+              const zbytes& code, const zbytes& data,
+              const Signature& signature);
 
   /// Constructor with specified transaction fields.
   Transaction(const uint32_t& version, const uint64_t& nonce,
               const Address& toAddr, const PubKey& senderPubKey,
               const uint128_t& amount, const uint128_t& gasPrice,
-              const uint64_t& gasLimit, const bytes& code, const bytes& data,
+              const uint64_t& gasLimit, const zbytes& code, const zbytes& data,
               const Signature& signature);
 
   /// Constructor with core information.
@@ -97,15 +98,15 @@ class Transaction : public SerializableDataBlock {
               const Signature& signature);
 
   /// Constructor for loading transaction information from a byte stream.
-  Transaction(const bytes& src, unsigned int offset);
+  Transaction(const zbytes& src, unsigned int offset);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Serialize(zbytes& dst, unsigned int offset) const override;
 
-  bool SerializeCoreFields(bytes& dst, unsigned int offset) const;
+  bool SerializeCoreFields(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset) override;
+  bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset) override;
@@ -127,7 +128,7 @@ class Transaction : public SerializableDataBlock {
   /// Returns whether the current version is correct
   bool VersionCorrect() const;
 
-  bool IsSigned(bytes const& txnData) const;
+  bool IsSigned(zbytes const& txnData) const;
 
   /// Returns the transaction nonce.
   /// There is an edge case for Eth nonces,
@@ -171,10 +172,10 @@ class Transaction : public SerializableDataBlock {
   uint64_t GetGasLimitEth() const;
 
   /// Returns the code.
-  const bytes& GetCode() const;
+  const zbytes& GetCode() const;
 
   /// Returns the data.
-  const bytes& GetData() const;
+  const zbytes& GetData() const;
 
   /// Returns the EC-Schnorr signature over the transaction data.
   const Signature& GetSignature() const;

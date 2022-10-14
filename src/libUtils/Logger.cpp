@@ -227,7 +227,7 @@ void Logger::LogEpoch([[gnu::unused]] const LEVELS& level, const char* msg,
 }
 
 void Logger::LogPayload([[gnu::unused]] const LEVELS& level, const char* msg,
-                        const bytes& payload, size_t max_bytes_to_display,
+                        const zbytes& payload, size_t max_bytes_to_display,
                         const unsigned int linenum, const char* filename,
                         const char* function) {
   std::unique_ptr<char[]> payload_string;
@@ -336,7 +336,7 @@ void Logger::DisableLevel(const LEVELS& level) {
 
 pid_t Logger::GetPid() { return getCurrentPid(); }
 
-void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
+void Logger::GetPayloadS(const zbytes& payload, size_t max_bytes_to_display,
                          std::unique_ptr<char[]>& res) {
   static const char* hex_table = "0123456789ABCDEF";
   size_t payload_string_len = (payload.size() * 2) + 1;

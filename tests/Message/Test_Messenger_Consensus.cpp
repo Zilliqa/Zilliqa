@@ -36,11 +36,11 @@ BOOST_AUTO_TEST_CASE(init) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
+  zbytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
 
   PairOfKey backupKey;
@@ -85,11 +85,11 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommit) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
+  zbytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t leaderID = TestUtils::DistUint8();
   PairOfKey leaderKey;
   leaderKey.first = PrivKey();
@@ -103,7 +103,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
     si.aggregatedKey = PubKey(PrivKey());
     si.challenge =
         Challenge(si.aggregatedCommit, si.aggregatedKey,
-                  bytes(TestUtils::Dist1to99(), TestUtils::DistUint8()));
+                  zbytes(TestUtils::Dist1to99(), TestUtils::DistUint8()));
     subsetInfo.emplace_back(si);
   }
 
@@ -130,16 +130,16 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusChallenge) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommitFailure) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
+  zbytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t backupID = max((uint16_t)2, (uint16_t)TestUtils::Dist1to99());
   PairOfKey backupKey;
   backupKey.first = PrivKey();
   backupKey.second = PubKey(backupKey.first);
-  bytes errorMsg = DataConversion::StringToCharArray("Commit failture");
+  zbytes errorMsg = DataConversion::StringToCharArray("Commit failture");
 
   BOOST_CHECK(Messenger::SetConsensusCommitFailure(
       dst, offset, consensusID, blockNumber, blockHash, backupID, errorMsg,
@@ -160,11 +160,11 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusCommitFailure) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetConsensusConsensusFailure) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   uint32_t consensusID = TestUtils::DistUint32();
   uint64_t blockNumber = TestUtils::DistUint32();
-  bytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
+  zbytes blockHash(TestUtils::Dist1to99(), TestUtils::DistUint8());
   uint16_t leaderID = TestUtils::DistUint8();
   PairOfKey leaderKey;
   leaderKey.first = PrivKey();

@@ -136,7 +136,7 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
 
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
-  bytes destination;
+  zbytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchStateValue(
           m_BCInfo.getCurContrAddr(), DataConversion::StringToCharArray(query),
@@ -153,7 +153,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
                                               const string &query,
                                               string &value, bool &found,
                                               string &type) {
-  bytes destination;
+  zbytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
           m_BCInfo.getCurContrAddr(), Address(addr),

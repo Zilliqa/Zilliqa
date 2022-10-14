@@ -28,7 +28,7 @@ namespace ScillaTestUtil {
 // The constituents of a Scilla test.
 struct ScillaTest {
   // Scilla ASCII source.
-  bytes code;
+  zbytes code;
   // inititialization, message, state and expected output JSONs.
   Json::Value init, message, state, blockchain, expOutput;
 };
@@ -54,7 +54,7 @@ bool GetScillaDeployment(ScillaTest &t, const std::string &contrName,
 // Return BLOCKNUMBER in Json. Return 0 if not found.
 uint64_t GetBlockNumberFromJson(Json::Value &blockchain);
 // Return the _amount in message.json. Remove that and _sender.
-uint64_t PrepareMessageData(Json::Value &message, bytes &data);
+uint64_t PrepareMessageData(Json::Value &message, zbytes &data);
 // Remove _creation_block field from init JSON.
 bool RemoveCreationBlockFromInit(Json::Value &init);
 // Remove _this_address field from init JSON.
@@ -66,7 +66,7 @@ bool parseStateJSON(
     const Address &contrAddr, const Json::Value &state,
     const std::unordered_map<Address, std::unordered_map<std::string, int>>
         &mapdepths,
-    std::map<Address, std::map<std::string, bytes>> &state_entries,
+    std::map<Address, std::map<std::string, zbytes>> &state_entries,
     std::unordered_map<Address, uint128_t> &balances,
     std::unordered_map<Address, uint64_t> &nonces);
 

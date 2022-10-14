@@ -24,7 +24,7 @@
 
 using namespace std;
 
-void Print(const bytes& payload) {
+void Print(const zbytes& payload) {
   static const char* hex_table = "0123456789ABCDEF";
 
   size_t payload_string_len = (payload.size() * 2) + 1;
@@ -45,7 +45,7 @@ void Print(const bytes& payload) {
 int main([[gnu::unused]] int argc, [[gnu::unused]] const char* argv[]) {
   PairOfKey keypair = Schnorr::GenKeyPair();
 
-  bytes privkey, pubkey;
+  zbytes privkey, pubkey;
   keypair.first.Serialize(privkey, 0);
   keypair.second.Serialize(pubkey, 0);
 

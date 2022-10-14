@@ -32,10 +32,10 @@ BOOST_AUTO_TEST_CASE(test1) {
 
   LOG_MARKER();
 
-  bytes vec;
+  zbytes vec;
 
   for (auto& i : GENESIS_KEYS) {
-    bytes privKeyBytes;
+    zbytes privKeyBytes;
     if (!DataConversion::HexStrToUint8Vec(i, privKeyBytes)) {
       BOOST_CHECK_MESSAGE(false, "Failed");
     }

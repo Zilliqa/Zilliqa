@@ -58,7 +58,7 @@ SWInfo::SWInfo(const uint32_t& zilliqaMajorVersion,
       m_scillaCommit(scillaCommit) {}
 
 /// Implements the Serialize function inherited from Serializable.
-unsigned int SWInfo::Serialize(bytes& dst, unsigned int offset) const {
+unsigned int SWInfo::Serialize(zbytes& dst, unsigned int offset) const {
   // LOG_MARKER();
 
   if ((offset + SIZE) > dst.size()) {
@@ -92,7 +92,7 @@ unsigned int SWInfo::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 /// Implements the Deserialize function inherited from Serializable.
-int SWInfo::Deserialize(const bytes& src, unsigned int offset) {
+int SWInfo::Deserialize(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   unsigned int curOffset = offset;

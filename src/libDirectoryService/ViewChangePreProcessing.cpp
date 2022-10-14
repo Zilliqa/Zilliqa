@@ -41,10 +41,10 @@
 using namespace std;
 
 bool DirectoryService::ViewChangeValidator(
-    const bytes& message, unsigned int offset, [[gnu::unused]] bytes& errorMsg,
-    const uint32_t consensusID, const uint64_t blockNumber,
-    const bytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey,
-    bytes& messageToCosign) {
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] zbytes& errorMsg, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, zbytes& messageToCosign) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ViewChangeValidator not expected to be "
@@ -496,7 +496,7 @@ uint16_t DirectoryService::CalculateNewLeaderIndex() {
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes());
   }
 
-  bytes vcCounterBytes;
+  zbytes vcCounterBytes;
   Serializable::SetNumber<uint32_t>(vcCounterBytes, 0, m_viewChangeCounter,
                                     sizeof(uint32_t));
   sha2.Update(vcCounterBytes);
@@ -647,7 +647,7 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
 
   ConsensusLeader* cl = dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
 
-  bytes m;
+  zbytes m;
   {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     m_pendingVCBlock->Serialize(m, 0);
@@ -656,10 +656,10 @@ bool DirectoryService::RunConsensusOnViewChangeWhenCandidateLeader(
   std::this_thread::sleep_for(std::chrono::seconds(VIEWCHANGE_EXTRA_TIME));
 
   auto announcementGeneratorFunc =
-      [this](bytes& dst, unsigned int offset, const uint32_t consensusID,
-             const uint64_t blockNumber, const bytes& blockHash,
+      [this](zbytes& dst, unsigned int offset, const uint32_t consensusID,
+             const uint64_t blockNumber, const zbytes& blockHash,
              const uint16_t leaderID, const PairOfKey& leaderKey,
-             bytes& messageToCosign) mutable -> bool {
+             zbytes& messageToCosign) mutable -> bool {
     lock_guard<mutex> g(m_mutexPendingVCBlock);
     return Messenger::SetDSVCBlockAnnouncement(
         dst, offset, consensusID, blockNumber, blockHash, leaderID, leaderKey,
@@ -693,11 +693,11 @@ bool DirectoryService::RunConsensusOnViewChangeWhenNotCandidateLeader(
   m_consensusBlockHash =
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash().asBytes();
 
-  auto func = [this](const bytes& input, unsigned int offset, bytes& errorMsg,
+  auto func = [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
                      const uint32_t consensusID, const uint64_t blockNumber,
-                     const bytes& blockHash, const uint16_t leaderID,
+                     const zbytes& blockHash, const uint16_t leaderID,
                      const PubKey& leaderKey,
-                     bytes& messageToCosign) mutable -> bool {
+                     zbytes& messageToCosign) mutable -> bool {
     return ViewChangeValidator(input, offset, errorMsg, consensusID,
                                blockNumber, blockHash, leaderID, leaderKey,
                                messageToCosign);
@@ -727,10 +727,10 @@ bool DirectoryService::VCFetchLatestDSTxBlockFromSeedNodes() {
   return true;
 }
 
-bytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
+zbytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
   LOG_MARKER();
-  bytes getDSTxBlockMessage = {MessageType::LOOKUP,
-                               LookupInstructionType::VCGETLATESTDSTXBLOCK};
+  zbytes getDSTxBlockMessage = {MessageType::LOOKUP,
+                                LookupInstructionType::VCGETLATESTDSTXBLOCK};
   uint64_t dslowBlockNum =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
   uint64_t txlowBlockNum =
@@ -750,7 +750,8 @@ bytes DirectoryService::ComposeVCGetDSTxBlockMessage() {
 }
 
 bool DirectoryService::ProcessVCPushLatestDSTxBlock(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 

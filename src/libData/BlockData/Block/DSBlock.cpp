@@ -28,7 +28,7 @@ using namespace boost::multiprecision;
 DSBlock::DSBlock() {}
 
 // To-do: handle exceptions. Will be deprecated.
-DSBlock::DSBlock(const bytes& src, unsigned int offset) {
+DSBlock::DSBlock(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init DSBlock.");
   }
@@ -41,7 +41,7 @@ DSBlock::DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs)
   SetBlockHash(m_header.GetMyHash());
 }
 
-bool DSBlock::Serialize(bytes& dst, unsigned int offset) const {
+bool DSBlock::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetDSBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetDSBlock failed.");
     return false;
@@ -50,7 +50,7 @@ bool DSBlock::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool DSBlock::Deserialize(const bytes& src, unsigned int offset) {
+bool DSBlock::Deserialize(const zbytes& src, unsigned int offset) {
   if (!Messenger::GetDSBlock(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetDSBlock failed.");
     return false;

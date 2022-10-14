@@ -35,7 +35,7 @@ template <unsigned int SIZE>
 class SHA2 {
   static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
   SHA256_CTX m_context{};
-  bytes output;
+  zbytes output;
 
  public:
   /// Constructor.
@@ -52,7 +52,7 @@ class SHA2 {
   ~SHA2() {}
 
   /// Hash update function.
-  void Update(const bytes& input) {
+  void Update(const zbytes& input) {
     if (input.size() == 0) {
       LOG_GENERAL(WARNING, "Nothing to update");
       return;
@@ -62,7 +62,7 @@ class SHA2 {
   }
 
   /// Hash update function.
-  void Update(const bytes& input, unsigned int offset, unsigned int size) {
+  void Update(const zbytes& input, unsigned int offset, unsigned int size) {
     if ((offset + size) > input.size()) {
       LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
                                               << ": " << __FUNCTION__ << ")");
@@ -101,7 +101,7 @@ class SHA2 {
   void Reset() { SHA256_Init(&m_context); }
 
   /// Hash finalize function.
-  bytes Finalize() {
+  zbytes Finalize() {
     switch (SIZE) {
       case 256:
         SHA256_Final(output.data(), &m_context);
