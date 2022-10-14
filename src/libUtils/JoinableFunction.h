@@ -32,8 +32,9 @@ class JoinableFunction {
   /// Template constructor.
   template <class callable, class... arguments>
   JoinableFunction(int num_threads, callable&& f, arguments&&... args) {
-    std::function<typename std::result_of<callable(arguments...)>::type()> task(
-        std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
+    std::function<typename std::invoke_result<callable, arguments...>::type()>
+        task(std::bind(std::forward<callable>(f),
+                       std::forward<arguments>(args)...));
 
     for (int i = 0; i < num_threads; i++) {
       futures.push_back(std::async(std::launch::async, task));
