@@ -180,7 +180,6 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
     Json::FastWriter writer;
 
     newJson = nlohmann::json::parse(writer.write(oldJson));
-    LOG_GENERAL(WARNING, "ENTIRE JSON IS: " << newJson.dump());
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING,
                 "Exception JSONRPC parser to nlohmann parser " << e.what())
