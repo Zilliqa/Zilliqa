@@ -502,10 +502,9 @@ class EthRpcMethods {
    * @param response : Json array of transaction receipts from block
    */
   inline virtual void GetEthBlockReceiptsI(const Json::Value& request,
-                                                Json::Value& response) {
+                                           Json::Value& response) {
     response = this->GetEthBlockReceipts(request[0u].asString());
   }
-
 
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);

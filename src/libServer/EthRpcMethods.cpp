@@ -349,9 +349,9 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
       &EthRpcMethods::EthRecoverTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("eth_getBlockReceipts",
-                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                         "param01", jsonrpc::JSON_STRING, NULL),
+      jsonrpc::Procedure("eth_getBlockReceipts", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
       &EthRpcMethods::GetEthBlockReceiptsI);
 }
 
@@ -997,8 +997,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
                                                  includeFullTransactions);
 }
 
-Json::Value EthRpcMethods::GetEthBlockReceiptsCommon(
-    const TxBlock& txBlock) {
+Json::Value EthRpcMethods::GetEthBlockReceiptsCommon(const TxBlock& txBlock) {
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
       txBlock.GetHeader().GetDSBlockNum());
 
@@ -1036,8 +1035,7 @@ Json::Value EthRpcMethods::GetEthBlockReceiptsCommon(
   }
 
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 transactionHashes,
-                                                 false);
+                                                 transactionHashes, false);
 }
 
 Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
@@ -1464,7 +1462,7 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 
   Json::Value res = Json::arrayValue;
 
-  for(const auto &tx : txs) {
+  for (const auto& tx : txs) {
     std::cout << "txs areaa " << tx << std::endl;
     auto const receipt = GetEthTransactionReceipt(tx.asString());
     std::cout << "txs receitp " << receipt << std::endl;

@@ -380,9 +380,9 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::EthRecoverTransactionI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("eth_getBlockReceipts",
-                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
+        jsonrpc::Procedure("eth_getBlockReceipts", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthBlockReceiptsI);
   }
 }
