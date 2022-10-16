@@ -142,7 +142,9 @@ bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
   lock_guard<mutex> g(m_mutexTxBody);
 
   if (!m_txEpochDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -540,7 +542,9 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   lock_guard<mutex> g(m_mutexTxBody);
 
   if (!m_txEpochDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -573,7 +577,9 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   lock_guard<mutex> g(m_mutexTxBody);
 
   if (!m_txEpochDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -623,7 +629,9 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
   lock_guard<mutex> g(m_mutexTxBody);
 
   if (!m_txEpochDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -716,7 +724,9 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
   unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
   if (!m_extSeedPubKeysDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -753,7 +763,9 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
   unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
   if (!m_extSeedPubKeysDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -784,7 +796,9 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
   shared_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
   if (!m_extSeedPubKeysDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -1486,7 +1500,9 @@ bool BlockStorage::PutMinerInfoDSComm(const uint64_t& dsBlockNum,
   unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
 
   if (!m_minerInfoDSCommDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -1504,7 +1520,9 @@ bool BlockStorage::GetMinerInfoDSComm(const uint64_t& dsBlockNum,
   bool found = false;
 
   if (!m_minerInfoDSCommDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -1538,7 +1556,9 @@ bool BlockStorage::PutMinerInfoShards(const uint64_t& dsBlockNum,
   unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
 
   if (!m_minerInfoShardsDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
@@ -1556,7 +1576,9 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
   bool found = false;
 
   if (!m_minerInfoShardsDB) {
-    LOG_GENERAL(WARNING, "Attempt to access non initialized DB! Are you in lookup mode? ");
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 

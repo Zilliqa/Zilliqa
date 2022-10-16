@@ -44,7 +44,8 @@ class EthRpcMethods {
   };
 
   //// Helper function for adding RPC methods
-  //bool AddRPC(const jsonrpc::Procedure& proc, ScillaIPCServer::methodPointer_t pointer);
+  // bool AddRPC(const jsonrpc::Procedure& proc,
+  // ScillaIPCServer::methodPointer_t pointer);
 
   void Init(LookupServer* lookupServer);
 
