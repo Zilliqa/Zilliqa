@@ -38,7 +38,6 @@ use jsonrpc_server_utils::codecs;
 use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
 
-
 type ContinuationId = usize;
 type ContinuationSerialized = Bytes;
 
