@@ -1449,23 +1449,27 @@ std::string EthRpcMethods::EthRecoverTransaction(
 }
 
 Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
-  Json::Value res = Json::nullValue;
-
   std::cout << "We are here (!!) " << blockId << std::endl;
 
-  try {
-    const BlockHash blockHash{blockId};
-    const auto txBlock =
-        m_sharedMediator.m_txBlockChain.GetBlockByHash(blockHash);
-    const TxBlock NON_EXISTING_TX_BLOCK{};
-    if (txBlock == NON_EXISTING_TX_BLOCK) {
-      return Json::nullValue;
-    }
-    return GetEthBlockReceiptsCommon(txBlock);
+  // The easiest way to do this:
+  // Get the block + transactions
+  // Call TX receipt function
 
-  } catch (std::exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockId);
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  auto const block = GetEthBlockByHash(blockId, false);
+
+  auto const txs = block["transactions"];
+
+  std::cout << "bloc is " << block << std::endl;
+  std::cout << "txs are " << txs << std::endl;
+
+  Json::Value res = Json::arrayValue;
+
+  for(const auto &tx : txs) {
+    std::cout << "txs areaa " << tx << std::endl;
+    auto const receipt = GetEthTransactionReceipt(tx.asString());
+    std::cout << "txs receitp " << receipt << std::endl;
+    res.append(receipt);
+    res.append(receipt);
   }
 
   return res;
