@@ -33,10 +33,10 @@ BlockHeaderBase::BlockHeaderBase(const uint32_t& version,
 
 BlockHash BlockHeaderBase::GetMyHash() const {
   SHA2<HashType::HASH_VARIANT_256> sha2;
-  bytes vec;
+  zbytes vec;
   Serialize(vec, 0);
   sha2.Update(vec);
-  const bytes& resVec = sha2.Finalize();
+  const zbytes& resVec = sha2.Finalize();
   BlockHash blockHash;
   std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
   return blockHash;

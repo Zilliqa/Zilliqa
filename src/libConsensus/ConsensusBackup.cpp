@@ -59,7 +59,7 @@ bool ConsensusBackup::CheckState(Action action) {
   return true;
 }
 
-bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
+bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
                                              unsigned int offset) {
   LOG_MARKER();
 
@@ -73,7 +73,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
   // Extract and check announce message body
   // =======================================
 
-  bytes errorMsg;
+  zbytes errorMsg;
   // Following will get us m_prePrepMicroblock.
   MsgContentValidatorFunc func = m_msgContentValidator;
   if (m_prePrepMsgContentValidator) {
@@ -87,7 +87,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
     if (!errorMsg.empty()) {
       LOG_GENERAL(WARNING, "Sending commit failure to leader");
 
-      bytes commitFailureMsg = {
+      zbytes commitFailureMsg = {
           m_classByte, m_insByte,
           static_cast<uint8_t>(ConsensusMessageType::COMMITFAILURE)};
 
@@ -120,8 +120,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
   // Generate commit
   // ===============
 
-  bytes commit = {m_classByte, m_insByte,
-                  static_cast<uint8_t>(ConsensusMessageType::COMMIT)};
+  zbytes commit = {m_classByte, m_insByte,
+                   static_cast<uint8_t>(ConsensusMessageType::COMMIT)};
 
   bool result =
       GenerateCommitMessage(commit, MessageOffset::BODY + sizeof(uint8_t));
@@ -138,7 +138,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(const bytes& announcement,
   return result;
 }
 
-bool ConsensusBackup::ProcessMessageConsensusFailure(const bytes& announcement,
+bool ConsensusBackup::ProcessMessageConsensusFailure(const zbytes& announcement,
                                                      unsigned int offset) {
   LOG_MARKER();
 
@@ -154,9 +154,9 @@ bool ConsensusBackup::ProcessMessageConsensusFailure(const bytes& announcement,
   return true;
 }
 
-bool ConsensusBackup::GenerateCommitFailureMessage(bytes& commitFailure,
+bool ConsensusBackup::GenerateCommitFailureMessage(zbytes& commitFailure,
                                                    unsigned int offset,
-                                                   const bytes& errorMsg) {
+                                                   const zbytes& errorMsg) {
   LOG_MARKER();
 
   if (!Messenger::SetConsensusCommitFailure(
@@ -170,7 +170,7 @@ bool ConsensusBackup::GenerateCommitFailureMessage(bytes& commitFailure,
   return true;
 }
 
-bool ConsensusBackup::GenerateCommitMessage(bytes& commit,
+bool ConsensusBackup::GenerateCommitMessage(zbytes& commit,
                                             unsigned int offset) {
   LOG_MARKER();
 
@@ -203,7 +203,7 @@ bool ConsensusBackup::GenerateCommitMessage(bytes& commit,
 }
 
 bool ConsensusBackup::ProcessMessageChallengeCore(
-    const bytes& challenge, unsigned int offset, Action action,
+    const zbytes& challenge, unsigned int offset, Action action,
     ConsensusMessageType returnmsgtype, State nextstate) {
   LOG_MARKER();
 
@@ -268,8 +268,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   // Generate response
   // =================
 
-  bytes response = {m_classByte, m_insByte,
-                    static_cast<uint8_t>(returnmsgtype)};
+  zbytes response = {m_classByte, m_insByte,
+                     static_cast<uint8_t>(returnmsgtype)};
   if (GenerateResponseMessage(response, MessageOffset::BODY + sizeof(uint8_t),
                               responseSubsetInfo)) {
     // Update internal state
@@ -289,7 +289,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
   return false;
 }
 
-bool ConsensusBackup::ProcessMessageChallenge(const bytes& challenge,
+bool ConsensusBackup::ProcessMessageChallenge(const zbytes& challenge,
                                               unsigned int offset) {
   LOG_MARKER();
   return ProcessMessageChallengeCore(challenge, offset, PROCESS_CHALLENGE,
@@ -297,7 +297,7 @@ bool ConsensusBackup::ProcessMessageChallenge(const bytes& challenge,
 }
 
 bool ConsensusBackup::GenerateResponseMessage(
-    bytes& response, unsigned int offset,
+    zbytes& response, unsigned int offset,
     const vector<ResponseSubsetInfo>& subsetInfo) {
   LOG_MARKER();
 
@@ -316,7 +316,7 @@ bool ConsensusBackup::GenerateResponseMessage(
 }
 
 bool ConsensusBackup::ProcessMessageCollectiveSigCore(
-    const bytes& collectivesig, unsigned int offset, Action action,
+    const zbytes& collectivesig, unsigned int offset, Action action,
     State nextstate) {
   LOG_MARKER();
 
@@ -331,7 +331,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
   m_responseMap.clear();
 
-  bytes newAnnouncementMsg;
+  zbytes newAnnouncementMsg;
   if (!Messenger::GetConsensusCollectiveSig(
           collectivesig, offset, m_consensusID, m_blockNumber, m_blockHash,
           m_leaderID, m_responseMap, m_collectiveSig,
@@ -366,9 +366,9 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
       }
     }
     if (!newAnnouncementMsg.empty()) {
-      bytes errorMsg;
+      zbytes errorMsg;
       // Following will get us m_microblock.
-      bytes newMessageToCosig;
+      zbytes newMessageToCosig;
       if (!m_msgContentValidator(
               newAnnouncementMsg, offset, errorMsg, m_consensusID,
               m_blockNumber, m_blockHash, m_leaderID,
@@ -382,7 +382,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
     BitVector::SetBitVector(m_messageToCosign, m_messageToCosign.size(),
                             m_responseMap);
 
-    bytes finalcommit = {
+    zbytes finalcommit = {
         m_classByte, m_insByte,
         static_cast<uint8_t>(ConsensusMessageType::FINALCOMMIT)};
     result = GenerateCommitMessage(finalcommit,
@@ -416,7 +416,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
   return result;
 }
 
-bool ConsensusBackup::ProcessMessageCollectiveSig(const bytes& collectivesig,
+bool ConsensusBackup::ProcessMessageCollectiveSig(const zbytes& collectivesig,
                                                   unsigned int offset) {
   LOG_MARKER();
   bool collectiveSigResult = ProcessMessageCollectiveSigCore(
@@ -424,7 +424,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSig(const bytes& collectivesig,
   return collectiveSigResult;
 }
 
-bool ConsensusBackup::ProcessMessageFinalChallenge(const bytes& challenge,
+bool ConsensusBackup::ProcessMessageFinalChallenge(const zbytes& challenge,
                                                    unsigned int offset) {
   LOG_MARKER();
   return ProcessMessageChallengeCore(challenge, offset, PROCESS_FINALCHALLENGE,
@@ -432,14 +432,14 @@ bool ConsensusBackup::ProcessMessageFinalChallenge(const bytes& challenge,
 }
 
 bool ConsensusBackup::ProcessMessageFinalCollectiveSig(
-    const bytes& finalcollectivesig, unsigned int offset) {
+    const zbytes& finalcollectivesig, unsigned int offset) {
   LOG_MARKER();
   return ProcessMessageCollectiveSigCore(finalcollectivesig, offset,
                                          PROCESS_FINALCOLLECTIVESIG, DONE);
 }
 
 ConsensusBackup::ConsensusBackup(
-    uint32_t consensus_id, uint64_t block_number, const bytes& block_hash,
+    uint32_t consensus_id, uint64_t block_number, const zbytes& block_hash,
     uint16_t node_id, uint16_t leader_id, const PrivKey& privkey,
     const DequeOfNode& committee, uint8_t class_byte, uint8_t ins_byte,
     MsgContentValidatorFunc msg_validator,
@@ -463,7 +463,7 @@ ConsensusBackup::ConsensusBackup(
 
 ConsensusBackup::~ConsensusBackup() {}
 
-bool ConsensusBackup::ProcessMessage(const bytes& message, unsigned int offset,
+bool ConsensusBackup::ProcessMessage(const zbytes& message, unsigned int offset,
                                      [[gnu::unused]] const Peer& from) {
   LOG_MARKER();
 

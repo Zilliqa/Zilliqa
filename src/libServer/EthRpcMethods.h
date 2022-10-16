@@ -232,7 +232,7 @@ class EthRpcMethods {
    * Returns the client coinbase address. The coinbase address is the
    * account to pay mining rewards to.
    * @param request : params none
-   * @param response : string, 20 bytes with the current coinbase address. e.g.
+   * @param response : string, 20 zbytes with the current coinbase address. e.g.
    * 0x407d73d8a49eeb85d32cf465507dd71d507100c1
    */
   virtual void GetEthCoinbaseI(const Json::Value& /*request*/,
@@ -483,6 +483,18 @@ class EthRpcMethods {
     response = this->EthGetLogs(request[0u]);
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterLogs
+   * @param request : params: event filter params json object
+   * @param response : Json array of items applicable to the filter
+   */
+  virtual void EthRecoverTransactionI(const Json::Value& request,
+                                      Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
+    response = this->EthRecoverTransaction(request[0u].asString());
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
@@ -526,7 +538,7 @@ class EthRpcMethods {
   Json::Value GetEthGasPrice() const;
 
   std::string CreateTransactionEth(
-      Eth::EthFields const& fields, bytes const& pubKey,
+      Eth::EthFields const& fields, zbytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPriceWei,
       const CreateTransactionTargetFunc& targetFunc);
 
@@ -548,6 +560,8 @@ class EthRpcMethods {
   bool EthUninstallFilter(const std::string& filter_id);
   Json::Value EthGetFilterLogs(const std::string& filter_id);
   Json::Value EthGetLogs(const Json::Value& param);
+
+  std::string EthRecoverTransaction(const std::string& txnRpc) const;
 
   void EnsureEvmAndLookupEnabled();
 

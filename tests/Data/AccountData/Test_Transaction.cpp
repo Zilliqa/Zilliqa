@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(test1) {
       fromCheck,
       shardSize);  // Check against nothing, just to increase coverage
 
-  bytes message1;
+  zbytes message1;
   tx1.Serialize(message1, 0);
 
   LOG_PAYLOAD(INFO, "Transaction1 serialized", message1,
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(test1) {
     LOG_PAYLOAD(INFO, "SERIALZED", message1, Logger::MAX_BYTES_TO_DISPLAY);
   }
   LOG_GENERAL(INFO, "address 1" << fromCheck.hex());
-  bytes message2;
+  zbytes message2;
   tx2.Serialize(message2, 0);
 
   LOG_PAYLOAD(INFO, "Transaction2 serialized", message2,
@@ -110,11 +110,11 @@ BOOST_AUTO_TEST_CASE(test1) {
   const uint128_t& amount2 = tx2.GetAmountQa();
   const uint128_t& gasPrice2 = tx2.GetGasPriceQa();
   const uint128_t& gasLimit2 = tx2.GetGasLimitZil();
-  const bytes& code2 = tx2.GetCode();
-  const bytes& data2 = tx2.GetData();
+  const zbytes& code2 = tx2.GetCode();
+  const zbytes& data2 = tx2.GetData();
   Signature sign = TestUtils::GenerateRandomSignature();
 
-  bytes byteVec;
+  zbytes byteVec;
   byteVec.resize(TRAN_HASH_SIZE);
   copy(tranID2.begin(), tranID2.end(), byteVec.begin());
   LOG_PAYLOAD(INFO, "Transaction2 tranID", byteVec,

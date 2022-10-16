@@ -25,27 +25,27 @@
 
 class HashUtils {
  public:
-  static const bytes SerializableToHash(const Serializable& sz) {
-    bytes vec;
+  static const zbytes SerializableToHash(const Serializable& sz) {
+    zbytes vec;
     sz.Serialize(vec, 0);
     return BytesToHash(vec);
   }
   // Temporary function for use by data blocks
-  static const bytes SerializableToHash(const SerializableDataBlock& sz) {
-    bytes vec;
+  static const zbytes SerializableToHash(const SerializableDataBlock& sz) {
+    zbytes vec;
     sz.Serialize(vec, 0);
     return BytesToHash(vec);
   }
-  static const bytes BytesToHash(const bytes& vec) {
+  static const zbytes BytesToHash(const zbytes& vec) {
     SHA2<HashType::HASH_VARIANT_256> sha2;
 
     sha2.Update(vec);
-    const bytes& resVec = sha2.Finalize();
+    const zbytes& resVec = sha2.Finalize();
 
     return resVec;
   }
   static uint16_t SerializableToHash16Bits(const Serializable& sz) {
-    const bytes& vec = SerializableToHash(sz);
+    const zbytes& vec = SerializableToHash(sz);
 
     if (vec.size() == 0) {
       return 0;
@@ -57,7 +57,7 @@ class HashUtils {
   }
   // Temporary function for use by data blocks
   static uint16_t SerializableToHash16Bits(const SerializableDataBlock& sz) {
-    const bytes& vec = SerializableToHash(sz);
+    const zbytes& vec = SerializableToHash(sz);
 
     if (vec.size() == 0) {
       return 0;

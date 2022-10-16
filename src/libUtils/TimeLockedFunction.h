@@ -42,9 +42,9 @@ class TimeLockedFunction {
   TimeLockedFunction(unsigned int expiration_in_seconds, callable1&& main_func,
                      callable2&& expiration_func, bool call_expiry_always)
       : result_promise(new std::promise<int>) {
-    std::function<typename std::result_of<callable1()>::type()> task_main(
+    std::function<typename std::invoke_result<callable1>::type()> task_main(
         main_func);
-    std::function<typename std::result_of<callable2()>::type()> task_expiry(
+    std::function<typename std::invoke_result<callable2>::type()> task_expiry(
         expiration_func);
 
     result_future = result_promise->get_future();

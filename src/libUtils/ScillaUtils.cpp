@@ -41,17 +41,6 @@ bool ScillaUtils::PrepareRootPathWVersion(const uint32_t& scilla_version,
   return true;
 }
 
-Json::Value ScillaUtils::GetBlockStateJson(const uint64_t& BlockNum) {
-  Json::Value root;
-  Json::Value blockItem;
-  blockItem["vname"] = "BLOCKNUMBER";
-  blockItem["type"] = "BNum";
-  blockItem["value"] = to_string(BlockNum);
-  root.append(blockItem);
-
-  return root;
-}
-
 Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
                                                 bool is_library,
                                                 const uint64_t& available_gas) {
@@ -83,9 +72,6 @@ Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
                      INIT_JSON);
   ret["argv"].append("-ipcaddress");
   ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
-  ret["argv"].append("-iblockchain");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INPUT_BLOCKCHAIN_JSON);
   ret["argv"].append("-o");
   ret["argv"].append(boost::filesystem::current_path().string() + '/' +
                      OUTPUT_JSON);
@@ -115,9 +101,6 @@ Json::Value ScillaUtils::GetCallContractJson(const string& root_w_version,
                      INIT_JSON);
   ret["argv"].append("-ipcaddress");
   ret["argv"].append(SCILLA_IPC_SOCKET_PATH);
-  ret["argv"].append("-iblockchain");
-  ret["argv"].append(boost::filesystem::current_path().string() + '/' +
-                     INPUT_BLOCKCHAIN_JSON);
   ret["argv"].append("-imessage");
   ret["argv"].append(boost::filesystem::current_path().string() + '/' +
                      INPUT_MESSAGE_JSON);

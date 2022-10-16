@@ -22,7 +22,7 @@ use bytes::Bytes;
 use clap::Parser;
 use evm::{
     backend::{Apply, Basic},
-    executor::stack::{MemoryStackState, PrecompileFn, StackSubstateMetadata},
+    executor::stack::{MemoryStackState, StackSubstateMetadata},
     tracing,
 };
 
@@ -38,8 +38,11 @@ use jsonrpc_server_utils::codecs;
 use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
 
+
 type ContinuationId = usize;
 type ContinuationSerialized = Bytes;
+
+use crate::precompiles::get_precompiles;
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -302,11 +305,7 @@ async fn run_evm_impl(
         let metadata = StackSubstateMetadata::new(gas_limit, &config);
         let state = MemoryStackState::new(metadata, &backend);
 
-        // TODO: implement all precompiles.
-        let precompiles = BTreeMap::from([(
-            H160::from_str("0000000000000000000000000000000000000001").unwrap(),
-            precompiles::ecrecover as PrecompileFn,
-        )]);
+        let precompiles = get_precompiles();
 
         let mut executor =
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);

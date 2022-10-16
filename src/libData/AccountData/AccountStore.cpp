@@ -41,7 +41,7 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() {
+AccountStore::AccountStore() : m_externalWriters{0} {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
 
@@ -105,6 +105,8 @@ void AccountStore::InitSoft() {
 
   AccountStoreTrie<unordered_map<Address, Account>>::Init();
 
+  m_externalWriters = 0;
+
   InitRevertibles();
 
   InitTemp();
@@ -142,14 +144,14 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
-bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
+bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
   return AccountStoreTrie<std::unordered_map<Address, Account>>::Serialize(
       src, offset);
 }
 
-bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
+bool AccountStore::Deserialize(const zbytes& src, unsigned int offset) {
   LOG_MARKER();
 
   this->Init();
@@ -199,7 +201,7 @@ bool AccountStore::SerializeDelta() {
   return true;
 }
 
-void AccountStore::GetSerializedDelta(bytes& dst) {
+void AccountStore::GetSerializedDelta(zbytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
   dst.clear();
@@ -208,7 +210,7 @@ void AccountStore::GetSerializedDelta(bytes& dst) {
        back_inserter(dst));
 }
 
-bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
+bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
                                     bool revertible) {
   if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -233,7 +235,13 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
       return false;
     }
   } else {
+    if (LOOKUP_NODE_MODE) {
+      IncrementPrimaryWriteAccessCount();
+    }
     unique_lock<shared_timed_mutex> g(m_mutexPrimary);
+    if (LOOKUP_NODE_MODE) {
+      DecrementPrimaryWriteAccessCount();
+    }
 
     if (!Messenger::GetAccountStoreDelta(src, offset, *this, revertible,
                                          false)) {
@@ -247,7 +255,8 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   return true;
 }
 
-bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
+bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
+                                        unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
@@ -262,6 +271,8 @@ bool AccountStore::MoveRootToDisk(const dev::h256& root) {
 }
 
 bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
+  LOG_MARKER();
+
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
@@ -411,7 +422,7 @@ bool AccountStore::RetrieveFromDisk() {
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
-  bytes rootBytes;
+  zbytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
     // To support backward compatibilty - lookup with new binary trying to
     // recover from old database
@@ -457,7 +468,7 @@ bool AccountStore::RetrieveFromDiskOld() {
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
-  bytes rootBytes;
+  zbytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
     // To support backward compatibilty - lookup with new binary trying to
     // recover from old database
@@ -767,7 +778,7 @@ bool AccountStore::MigrateContractStates(
 
     LOG_GENERAL(INFO, "Address: " << address.hex());
     Account account;
-    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
+    if (!account.DeserializeBase(zbytes(i.second.begin(), i.second.end()), 0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
       return false;
     }
@@ -787,7 +798,7 @@ bool AccountStore::MigrateContractStates(
 
     count++;
     // adding new metadata
-    std::map<std::string, bytes> t_metadata;
+    std::map<std::string, zbytes> t_metadata;
     bool is_library;
     uint32_t scilla_version;
     std::vector<Address> extlibs;
@@ -816,11 +827,10 @@ bool AccountStore::MigrateContractStates(
     account.SetStorageRoot(dev::h256());
     // invoke scilla checker
     // prepare IPC with current blockchain info provider.
-    Address origin;  // Zero origin address is okay for the checker.
-    auto sbcip = std::make_unique<ScillaBCInfo>(
-        getCurBlockNum(), getCurDSBlockNum(), origin, address,
-        account.GetStorageRoot(), scilla_version);
-    m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+    const Address origin{};  // Zero origin address is okay for the checker.
+    m_scillaIPCServer->setBCInfoProvider(
+        ScillaBCInfo(getCurBlockNum(), getCurDSBlockNum(), origin, address,
+                     account.GetStorageRoot(), scilla_version));
 
     std::string checkerPrint;
 
@@ -857,7 +867,7 @@ bool AccountStore::MigrateContractStates(
     Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
         stateBeforeMigration, address, "", {}, true);
 
-    std::map<std::string, bytes> types;
+    std::map<std::string, zbytes> types;
     Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
         types, address, TYPE_INDICATOR, {}, true);
     for (auto const& type : types) {
@@ -875,7 +885,7 @@ bool AccountStore::MigrateContractStates(
     }
 
     // fetch all states from temp storage
-    std::map<std::string, bytes> states;
+    std::map<std::string, zbytes> states;
     Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
         states, address, "", {}, true);
 

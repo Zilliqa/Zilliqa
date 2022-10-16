@@ -22,7 +22,7 @@
 #include <iostream>
 #include "common/Serializable.h"
 
-const std::string VERSION_TAG = "v8.2.0-alpha.0";
+const std::string VERSION_TAG = "v8.3.0";
 const std::string ZILLIQA_BRAND = "Copyright (C) Zilliqa. Version " +
                                   VERSION_TAG + ".  <https://www.zilliqa.com/>";
 
@@ -56,10 +56,10 @@ class SWInfo : public Serializable {
          const uint32_t& scillaCommit);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(bytes& dst, unsigned int offset) const;
+  unsigned int Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const bytes& src, unsigned int offset);
+  int Deserialize(const zbytes& src, unsigned int offset);
 
   /// Less-than comparison operator.
   bool operator<(const SWInfo& r) const;

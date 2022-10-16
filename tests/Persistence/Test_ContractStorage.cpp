@@ -43,7 +43,7 @@ dev::h256 convertToHash(const string& input) {
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(input);
 
-  const bytes& output = sha2.Finalize();
+  const zbytes& output = sha2.Finalize();
   dev::h256 key(output);
 
   return key;
@@ -54,7 +54,7 @@ BOOST_AUTO_TEST_CASE(contract_proof_test) {
 
   LOG_MARKER();
 
-  map<string, bytes> t_states;
+  map<string, zbytes> t_states;
   PairOfKey kpair = Schnorr::GenKeyPair();
   Address addr = Account::GetAddressFromPublicKey(kpair.second);
   auto dummy_addr = addr;

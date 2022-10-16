@@ -34,7 +34,7 @@
 #include <string>
 #include <vector>
 
-using bytes = std::vector<uint8_t>;
+using zbytes = std::vector<uint8_t>;
 
 #define PUBKEYSIZE 33
 #define PUBKEY_COMPRESSED_SIZE_BYTES 33
@@ -77,7 +77,7 @@ template <unsigned int SIZE>
 class SHA2 {
   static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
   SHA256_CTX m_context{};
-  bytes output;
+  zbytes output;
 
  public:
   /// Constructor.
@@ -93,7 +93,7 @@ class SHA2 {
   ~SHA2() {}
 
   /// Hash update function.
-  void Update(const bytes& input) {
+  void Update(const zbytes& input) {
     if (input.size() == 0) {
       return;
     }
@@ -105,7 +105,7 @@ class SHA2 {
   void Reset() { SHA256_Init(&m_context); }
 
   /// Hash finalize function.
-  bytes Finalize() {
+  zbytes Finalize() {
     switch (SIZE) {
       case 256:
         SHA256_Final(output.data(), &m_context);
@@ -117,14 +117,14 @@ class SHA2 {
   }
 };
 
-void StringToBytes(const std::string& in, bytes& out) {
+void StringToBytes(const std::string& in, zbytes& out) {
   out.clear();
   boost::algorithm::unhex(in.begin(), in.end(), back_inserter(out));
 }
 
 SignatureL DeserializeSignature(const std::string& sig_s) {
   SignatureL sig;
-  bytes sig_b;
+  zbytes sig_b;
   StringToBytes(sig_s, sig_b);
 
   if (sig_b.size() != SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE) {
@@ -149,7 +149,7 @@ SignatureL DeserializeSignature(const std::string& sig_s) {
 }
 
 EC_POINT* DeserializePubKey(const std::string& pubKey_s, Curve& curve) {
-  bytes pubKey_b;
+  zbytes pubKey_b;
 
   StringToBytes(pubKey_s, pubKey_b);
   if (pubKey_b.size() == 0) {
@@ -191,7 +191,7 @@ std::shared_ptr<EC_POINT> AggregatePubKeys(
   return aggregatedPubkey;
 }
 
-bool verifySig(const bytes& message, const SignatureL& toverify,
+bool verifySig(const zbytes& message, const SignatureL& toverify,
                const EC_POINT* pubkey, const Curve& curve) {
   // Main verification procedure
 
@@ -218,7 +218,7 @@ bool verifySig(const bytes& message, const SignatureL& toverify,
   // setting the first byte to 0x11.
   sha2.Update({THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE});
 
-  bytes buf(PUBKEY_COMPRESSED_SIZE_BYTES);
+  zbytes buf(PUBKEY_COMPRESSED_SIZE_BYTES);
 
   bool err = false;
   bool err2 = false;
@@ -295,7 +295,7 @@ bool verifySig(const bytes& message, const SignatureL& toverify,
 
     // 4.3 Hash message
     sha2.Update(message);
-    bytes digest = sha2.Finalize();
+    zbytes digest = sha2.Finalize();
 
     // 5. return r' == r
     err2 = (BN_bin2bn(digest.data(), digest.size(), challenge_built.get()) ==
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
     return -1;
   }
 
-  bytes msg(message.begin(), message.end());
+  zbytes msg(message.begin(), message.end());
 
   std::vector<std::shared_ptr<EC_POINT>> pubKeys;
   std::string line;

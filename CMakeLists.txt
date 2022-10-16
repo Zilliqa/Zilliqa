@@ -16,8 +16,8 @@ message(STATUS "We are on a ${CMAKE_SYSTEM_NAME} system")
 #             This is a simple workaround against this issue.
 if (APPLE)
   file(CREATE_LINK
-    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/lib
-    ${CMAKE_BINARY_DIR}/vcpkg_installed/x64-osx-dynamic/tools/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/lib
+    ${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/lib
     SYMBOLIC)
 endif()
 
@@ -34,7 +34,18 @@ find_package(leveldb REQUIRED)
 find_package(g3log REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
-find_package(PythonLibs REQUIRED)
+
+# Temporary workarounds for Python3:
+#
+# 1. Make sure PATH points to the python3 in the vcpkg tools sub-directory; otherwise on some systems find_package 
+#    will fail (e.g. if libpython3-dev is installed on Ubuntu 20.04).
+# 2. For some reason it only finds debug library upon a second call to  find_package. Otherwise, the release
+#    library will be used and if it's a debug build linkage could fail.
+set(PREV_PATH $ENV{PATH})
+set(ENV{PATH} "${CMAKE_BINARY_DIR}/vcpkg_installed/${VCPKG_TARGET_TRIPLET}/tools/python3:$ENV{PATH}")
+find_package(Python3 COMPONENTS Development REQUIRED)
+find_package(Python3 COMPONENTS Development REQUIRED)
+set(ENV{PATH} "${PREV_PATH}")
 
 include(FindProtobuf)
 set(protobuf_MODULE_COMPATIBLE TRUE)
@@ -48,6 +59,7 @@ find_package(Boost COMPONENTS filesystem system unit_test_framework program_opti
 if(NOT TARGET jsonrpc-project)
    include(InstallJsonrpccpp)
 endif()
+include_directories(${JSONRPC_INCLUDE_DIR})
 
 find_package(Schnorr REQUIRED)
 
@@ -193,7 +205,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # customize the flags for RELWITHDEBINFO
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -273,16 +285,16 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     link_libraries(--coverage)
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
     # TODO: remove the hardcoded number in -j option
-    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure")
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "-j1;--output-on-failure;--timeout;90")
 endif()
 
 # using internal jsonrpc variant
 include_directories(${CMAKE_BINARY_DIR}/src/depends/jsonrpc/include)
 
-add_subdirectory (src)
-add_subdirectory (daemon)
+add_subdirectory(src)
+add_subdirectory(daemon)
 
-if(TESTS)
+if (TESTS)
     enable_testing()
     add_subdirectory(tests)
 endif()
@@ -292,7 +304,6 @@ endif()
 set_target_properties(buildTxBlockHashesToNums data_migrate genaccounts genkeypair genTxnBodiesFromS3 
                       getpub getaddr gentxn signmultisig verifymultisig gensigninitialds getnetworkhistory grepperf  
                       getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
-
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie CryptoUtils NAT

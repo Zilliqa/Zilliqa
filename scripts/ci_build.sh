@@ -34,15 +34,34 @@ fi
 
 # set n_parallel to fully utilize the resources
 os=$(uname)
+arch=$(uname -m)
 case $os in
     'Linux')
         n_parallel=$(nproc)
+        case $arch in
+            'x86_64')
+                triplet=x64-linux-dynamic
+                ;;
+            'arm64')
+                triplet=armx64-linux-dynamic
+                ;;
+        esac
         ;;
     'Darwin')
         n_parallel=$(sysctl -n hw.ncpu)
+        case $arch in
+            'x86_64')
+                triplet=x64-osx-dynamic
+                ;;
+            'arm64')
+                triplet=arm64-osx-dynamic
+                ;;
+        esac
         ;;
     *)
         n_parallel=2
+        # Default is x64-linux-dynamic
+        triplet=x64-linux-dynamic
         ;;
 esac
 
@@ -66,7 +85,7 @@ then
 fi
 
 # assume that it is run from project root directory
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${triplet}
 cmake --build ${dir} -- -j${n_parallel}
 
 # remember to append `|| exit` after the commands added in if-then-else

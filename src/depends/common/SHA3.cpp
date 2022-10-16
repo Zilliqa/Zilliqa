@@ -31,7 +31,7 @@ using namespace dev;
 namespace dev
 {
 
-    h256 EmptySHA3 = sha3(bytesConstRef());
+    h256 EmptySHA3 = sha3(zbytesConstRef());
     h256 EmptyListSHA3 = sha3(rlpList());
 
     namespace keccak
@@ -210,7 +210,7 @@ namespace dev
 
     }
 
-    bool sha3(bytesConstRef _input, bytesRef o_output)
+    bool sha3(zbytesConstRef _input, zbytesRef o_output)
     {
         // FIXME: What with unaligned memory?
         if (o_output.size() != 32)

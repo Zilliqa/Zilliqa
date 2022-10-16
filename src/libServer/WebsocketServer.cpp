@@ -246,6 +246,10 @@ void WebsocketServer::on_message(const connection_hdl& hdl,
           {
             shared_lock<shared_timed_mutex> lock(
                 AccountStore::GetInstance().GetPrimaryMutex());
+            AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
+                lock, [] {
+                  return AccountStore::GetInstance().GetPrimaryWriteAccess();
+                });
             for (const auto& address : j_query["addresses"]) {
               try {
                 const auto& addr_str = address.asString();

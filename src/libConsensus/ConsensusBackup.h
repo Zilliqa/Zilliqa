@@ -29,11 +29,11 @@
 #include "ConsensusCommon.h"
 #include "libUtils/TimeLockedFunction.h"
 
-typedef std::function<bool(const bytes& input, unsigned int offset,
-                           bytes& errorMsg, const uint32_t consensusID,
-                           const uint64_t blockNumber, const bytes& blockHash,
+typedef std::function<bool(const zbytes& input, unsigned int offset,
+                           zbytes& errorMsg, const uint32_t consensusID,
+                           const uint64_t blockNumber, const zbytes& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
-                           bytes& messageToCosign)>
+                           zbytes& messageToCosign)>
     MsgContentValidatorFunc;
 
 typedef std::function<bool()> CollectiveSigReadinessFunc;
@@ -62,36 +62,37 @@ class ConsensusBackup : public ConsensusCommon {
   // Internal functions
   bool CheckState(Action action);
 
-  bool ProcessMessageAnnounce(const bytes& announcement, unsigned int offset);
-  bool GenerateCommitFailureMessage(bytes& commitFailure, unsigned int offset,
-                                    const bytes& errorMsg);
-  bool ProcessMessageConsensusFailure([[gnu::unused]] const bytes& announcement,
-                                      [[gnu::unused]] unsigned int offset);
-  bool GenerateCommitMessage(bytes& commit, unsigned int offset);
-  bool ProcessMessageChallengeCore(const bytes& challenge, unsigned int offset,
+  bool ProcessMessageAnnounce(const zbytes& announcement, unsigned int offset);
+  bool GenerateCommitFailureMessage(zbytes& commitFailure, unsigned int offset,
+                                    const zbytes& errorMsg);
+  bool ProcessMessageConsensusFailure(
+      [[gnu::unused]] const zbytes& announcement,
+      [[gnu::unused]] unsigned int offset);
+  bool GenerateCommitMessage(zbytes& commit, unsigned int offset);
+  bool ProcessMessageChallengeCore(const zbytes& challenge, unsigned int offset,
                                    Action action,
                                    ConsensusMessageType returnmsgtype,
                                    State nextstate);
-  bool ProcessMessageChallenge(const bytes& challenge, unsigned int offset);
+  bool ProcessMessageChallenge(const zbytes& challenge, unsigned int offset);
   bool GenerateResponseMessage(
-      bytes& response, unsigned int offset,
+      zbytes& response, unsigned int offset,
       const std::vector<ResponseSubsetInfo>& subsetInfo);
-  bool ProcessMessageCollectiveSigCore(const bytes& collectivesig,
+  bool ProcessMessageCollectiveSigCore(const zbytes& collectivesig,
                                        unsigned int offset, Action action,
                                        State nextstate);
-  bool ProcessMessageCollectiveSig(const bytes& collectivesig,
+  bool ProcessMessageCollectiveSig(const zbytes& collectivesig,
                                    unsigned int offset);
-  bool ProcessMessageFinalChallenge(const bytes& challenge,
+  bool ProcessMessageFinalChallenge(const zbytes& challenge,
                                     unsigned int offset);
-  bool ProcessMessageFinalCollectiveSig(const bytes& finalcollectivesig,
+  bool ProcessMessageFinalCollectiveSig(const zbytes& finalcollectivesig,
                                         unsigned int offset);
 
  public:
   /// Constructor.
   ConsensusBackup(
-      uint32_t consensus_id,    // unique identifier for this consensus session
-      uint64_t block_number,    // latest final block number
-      const bytes& block_hash,  // unique identifier for this consensus session
+      uint32_t consensus_id,     // unique identifier for this consensus session
+      uint64_t block_number,     // latest final block number
+      const zbytes& block_hash,  // unique identifier for this consensus session
       uint16_t node_id,  // backup's identifier (= index in some ordered lookup
                          // table shared by all nodes)
       uint16_t leader_id,      // leader's identifier (= index in some ordered
@@ -121,7 +122,7 @@ class ConsensusBackup : public ConsensusCommon {
   ~ConsensusBackup();
 
   /// Function to process any consensus message received.
-  bool ProcessMessage(const bytes& message, unsigned int offset,
+  bool ProcessMessage(const zbytes& message, unsigned int offset,
                       const Peer& from);
 
   unsigned int GetNumForConsensusFailure() { return 0; }

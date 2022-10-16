@@ -139,7 +139,7 @@ TxBlock buildCommonEthBlockCase(
     PairOfKey& keyPair) {
   const MicroBlock microBlock =
       constructMicroBlockWithTransactions(blockNum, transactions, keyPair);
-  bytes microBlockSerialized;
+  zbytes microBlockSerialized;
   microBlock.Serialize(microBlockSerialized, 0);
   BlockStorage::GetBlockStorage().PutMicroBlock(
       microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-  bool OpenServer(bool /*force = false*/) { return true; };
+  virtual bool OpenServer(uint32_t /*force = false*/) override { return true; };
 
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
@@ -288,6 +288,74 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
+BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
+  const auto amount{4200U};
+  const std::string evmResponseString =
+      "{\"apply\":[],"
+      "\"exit_reason\":{\"Fatal\":{\"Error\":\"fatal error, unkown object "
+      "type\"}},"
+      "\"logs\":[],"
+      "\"remaining_gas\":77371,"
+      "\"return_value\":\"\""
+      "}";
+
+  const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  const auto lookupServer =
+      getLookupServer([amount, evmResponseString, address]() {  //
+        return std::make_shared<GetEthCallEvmClientMock>(
+            2 * DS_MICROBLOCK_GAS_LIMIT,  // gas limit will not exceed
+            amount, evmResponseString,
+            address);  // this max value
+      });
+
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  Json::Value values;
+  values["data"] =
+      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "014";
+  values["to"] = address;
+  values["gas"] = gasLimit;
+  values["value"] = amount;
+  paramsRequest[0u] = values;
+  paramsRequest[1u] = Json::Value("latest");
+
+  Address accountAddress{address};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  try {
+    Json::Value response;
+    lookupServer->GetEthCallEthI(paramsRequest, response);
+    BOOST_FAIL("Expect exception, but did not catch");
+  } catch (const jsonrpc::JsonRpcException& e) {
+    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+
+    Json::Value expectedExitReason;
+    expectedExitReason["Error"] = "fatal error, unkown object type";
+
+    Json::Reader reader;
+    Json::Value result;
+
+    BOOST_REQUIRE(reader.parse(e.GetMessage(), result));
+    BOOST_CHECK_EQUAL(result, expectedExitReason);
+  }
+
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+}
+
 BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
   INIT_STDOUT_LOGGER();
   LOG_MARKER();
@@ -338,6 +406,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+    LOG_GENERAL(DEBUG, e.GetMessage());
     BOOST_CHECK_EQUAL(e.GetMessage(), "Reverted");
   }
 
@@ -938,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey);
     transactions.emplace_back(twr);
 
-    bytes body;
+    zbytes body;
     transactions.back().Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         1, transactions.back().GetTransaction().GetTranID(), body);
@@ -1284,7 +1353,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   }
 
   for (const auto& transaction : transactions) {
-    bytes body;
+    zbytes body;
     transaction.Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
@@ -1484,7 +1553,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       const auto transaction = constructTxWithReceipt(nonce++, pairOfKey);
       thisBlockTransactions.push_back(transaction);
       transactions.push_back(transaction);
-      bytes body;
+      zbytes body;
       transaction.Serialize(body, 0);
       BlockStorage::GetBlockStorage().PutTxBody(
           1, transaction.GetTransaction().GetTranID(), body);
@@ -1492,7 +1561,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
     const auto blockNum = i + 1;
     const MicroBlock microBlock = constructMicroBlockWithTransactions(
         blockNum, thisBlockTransactions, pairOfKey);
-    bytes microBlockSerialized;
+    zbytes microBlockSerialized;
     microBlock.Serialize(microBlockSerialized, 0);
     BlockStorage::GetBlockStorage().PutMicroBlock(
         microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);

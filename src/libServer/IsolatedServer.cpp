@@ -372,6 +372,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            "param01", jsonrpc::JSON_STRING, "param02",
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetEthTransactionByBlockNumberAndIndexI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_recoverTransaction",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::EthRecoverTransactionI);
   }
 }
 
@@ -471,11 +477,11 @@ bool IsolatedServer::RetrieveHistory(const bool& nonisoload) {
                      // persistence.
     uint64_t lastBlockNum = txblock->GetHeader().GetBlockNum();
     unsigned int extra_txblocks = (lastBlockNum + 1) % NUM_FINAL_BLOCK_PER_POW;
-    vector<bytes> stateDeltas;
+    vector<zbytes> stateDeltas;
 
     for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
          blockNum <= lastBlockNum; blockNum++) {
-      bytes stateDelta;
+      zbytes stateDelta;
       if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum,
                                                          stateDelta)) {
         LOG_GENERAL(INFO,
@@ -517,6 +523,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     {
       shared_lock<shared_timed_mutex> lock(
           AccountStore::GetInstance().GetPrimaryMutex());
+      AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+        return AccountStore::GetInstance().GetPrimaryWriteAccess();
+      });
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
@@ -562,6 +571,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         {
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
+          AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(
+              lock, [] {
+                return AccountStore::GetInstance().GetPrimaryWriteAccess();
+              });
 
           const Account* account =
               AccountStore::GetInstance().GetAccount(tx.GetToAddr());
@@ -616,7 +629,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     TransactionWithReceipt twr(tx, txreceipt);
 
-    bytes twr_ser;
+    zbytes twr_ser;
 
     twr.Serialize(twr_ser, 0);
 
@@ -655,7 +668,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 }
 
 std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
-                                                 bytes const& pubKey) {
+                                                 zbytes const& pubKey) {
   // Always return the TX hash or the null hash
   std::string ret = ZEROES_HASH;
 
@@ -665,8 +678,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
 
     const Address toAddr{fields.toAddr};
-    bytes data;
-    bytes code;
+    zbytes data;
+    zbytes code;
     if (IsNullAddress(toAddr)) {
       code = ToEVM(fields.code);
     } else {
@@ -782,7 +795,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     TransactionWithReceipt twr(tx, txreceipt);
 
-    bytes twr_ser;
+    zbytes twr_ser;
 
     twr.Serialize(twr_ser, 0);
 
@@ -984,7 +997,7 @@ TxBlock IsolatedServer::GenerateTxBlock() {
   MicroBlockInfo mbInfo{mb.GetBlockHash(), mb.GetHeader().GetTxRootHash(),
                         mb.GetHeader().GetShardId()};
   LOG_GENERAL(INFO, "MicroBlock hash = " << mbInfo.m_microBlockHash);
-  bytes body;
+  zbytes body;
 
   mb.Serialize(body, 0);
 
@@ -1017,7 +1030,7 @@ void IsolatedServer::PostTxBlock() {
   }
   m_mediator.m_txBlockChain.AddBlock(txBlock);
 
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
                                                   serializedTxBlock)) {

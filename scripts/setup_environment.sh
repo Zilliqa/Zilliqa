@@ -26,19 +26,20 @@ apt update -y
 #
 # Build dependency
 apt install -y build-essential \
-    cmake \
     libcurl4-openssl-dev \
     libjsoncpp-dev \
     libjsonrpccpp-dev \
     libssl-dev \
     cargo \
     pkg-config \
+    python \
     wget
 
 # Development dependency
 apt install -y ccache \
-    clang-5.0 \
-    clang-tidy-5.0 \
+    clang \
+    clang-tidy \
+    clang-format-7 \
     curl \
     gawk \
     git \
@@ -50,17 +51,12 @@ apt install -y ccache \
     tar \
     bison
 
-# Special steps needed for clang-format-7 on ubuntu 18
-wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key| apt-key add -
-echo 'deb http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' | tee -a /etc/apt/sources.list
-echo 'deb-src http://apt.llvm.org/bionic/ llvm-toolchain-bionic-10 main' | tee -a /etc/apt/sources.list
-apt update
-apt install -y clang-format-7
-apt remove -y python3-dev && apt autoremove -y
+apt remove -y python3-dev cmake && apt autoremove -y
 
-wget https://github.com/Kitware/CMake/releases/download/v3.19.3/cmake-3.19.3-Linux-x86_64.sh
+wget https://github.com/Kitware/CMake/releases/download/v3.24.2/cmake-3.24.2-Linux-x86_64.sh
 mkdir -p `pwd`/.local
-bash ./cmake-3.19.3-Linux-x86_64.sh --skip-license --prefix=`pwd`/.local/
-mv /usr/bin/cmake{,.old} && ln -s `pwd`/.local/bin/cmake /usr/bin/
+bash ./cmake-3.24.2-Linux-x86_64.sh --skip-license --prefix=`pwd`/.local/
+rm cmake-3.24.2-Linux-x86_64.sh
+
+export PATH="$(pwd)/.local/bin:${PATH}"
 cmake --version
-rm cmake-3.19.3-Linux-x86_64.sh

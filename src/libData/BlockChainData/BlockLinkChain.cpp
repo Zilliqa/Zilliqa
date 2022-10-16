@@ -73,7 +73,7 @@ bool BlockLinkChain::AddBlockLink(const uint64_t& index,
       index,
       std::make_tuple(BLOCKLINK_VERSION, index, dsindex, blocktype, blockhash));
 
-  bytes dst;
+  zbytes dst;
 
   if (showLogs) {
     LOG_GENERAL(INFO, "Index      = " << index);

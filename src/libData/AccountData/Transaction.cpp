@@ -32,31 +32,31 @@ unsigned char LOW_BITS_MASK = 0x0F;
 unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
-bool Transaction::SerializeCoreFields(bytes& dst, unsigned int offset) const {
+bool Transaction::SerializeCoreFields(zbytes& dst, unsigned int offset) const {
   return Messenger::SetTransactionCoreInfo(dst, offset, m_coreInfo);
 }
 
 Transaction::Transaction() {}
 
-Transaction::Transaction(const bytes& src, unsigned int offset) {
+Transaction::Transaction(const zbytes& src, unsigned int offset) {
   Deserialize(src, offset);
 }
 
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PairOfKey& senderKeyPair,
                          const uint128_t& amount, const uint128_t& gasPrice,
-                         const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data)
+                         const uint64_t& gasLimit, const zbytes& code,
+                         const zbytes& data)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
                  gasLimit, code, data) {
-  bytes txnData;
+  zbytes txnData;
   SerializeCoreFields(txnData, 0);
 
   // Generate the signature
   if (IsEth()) {
-    bytes signature;
-    bytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
-    bytes pk_bytes;
+    zbytes signature;
+    zbytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
+    zbytes pk_bytes;
     const PrivKey& privKey{senderKeyPair.first};
     privKey.Serialize(pk_bytes, 0);
     if (!SignEcdsaSecp256k1(digest, pk_bytes, signature)) {
@@ -80,7 +80,7 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
                          const uint64_t& nonce, const Address& toAddr,
                          const PubKey& senderPubKey, const uint128_t& amount,
                          const uint128_t& gasPrice, const uint64_t& gasLimit,
-                         const bytes& code, const bytes& data,
+                         const zbytes& code, const zbytes& data,
                          const Signature& signature)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
@@ -90,12 +90,12 @@ Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
 Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
                          const Address& toAddr, const PubKey& senderPubKey,
                          const uint128_t& amount, const uint128_t& gasPrice,
-                         const uint64_t& gasLimit, const bytes& code,
-                         const bytes& data, const Signature& signature)
+                         const uint64_t& gasLimit, const zbytes& code,
+                         const zbytes& data, const Signature& signature)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {
-  bytes txnData;
+  zbytes txnData;
   SerializeCoreFields(txnData, 0);
 
   if (!SetHash(txnData)) {
@@ -115,7 +115,7 @@ Transaction::Transaction(const TxnHash& tranID,
                          const Signature& signature)
     : m_tranID(tranID), m_coreInfo(coreInfo), m_signature(signature) {}
 
-bool Transaction::Serialize(bytes& dst, unsigned int offset) const {
+bool Transaction::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransaction failed.");
     return false;
@@ -124,7 +124,7 @@ bool Transaction::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool Transaction::Deserialize(const bytes& src, unsigned int offset) {
+bool Transaction::Deserialize(const zbytes& src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
     return false;
@@ -244,9 +244,9 @@ uint64_t Transaction::GetGasLimitEth() const {
 
 uint64_t Transaction::GetGasLimitRaw() const { return m_coreInfo.gasLimit; }
 
-const bytes& Transaction::GetCode() const { return m_coreInfo.code; }
+const zbytes& Transaction::GetCode() const { return m_coreInfo.code; }
 
-const bytes& Transaction::GetData() const { return m_coreInfo.data; }
+const zbytes& Transaction::GetData() const { return m_coreInfo.data; }
 
 const Signature& Transaction::GetSignature() const { return m_signature; }
 
@@ -267,7 +267,7 @@ bool Transaction::IsSignedECDSA() const {
 }
 
 // Set what the hash of the transaction is, depending on its type
-bool Transaction::SetHash(bytes const& txnData) {
+bool Transaction::SetHash(zbytes const& txnData) {
   if (IsEth()) {
     uint64_t recid{0};
     auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID,
@@ -289,7 +289,7 @@ bool Transaction::SetHash(bytes const& txnData) {
   // Generate the transaction ID
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(txnData);
-  const bytes& output = sha2.Finalize();
+  const zbytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
     return false;
@@ -300,7 +300,7 @@ bool Transaction::SetHash(bytes const& txnData) {
 }
 
 // Function to return whether the TX is signed
-bool Transaction::IsSigned(bytes const& txnData) const {
+bool Transaction::IsSigned(zbytes const& txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
   if (IsEth()) {
