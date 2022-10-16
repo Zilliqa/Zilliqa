@@ -86,7 +86,7 @@ namespace dev
         return false;
     }
 
-    void MemoryDB::insert(h256 const& _h, bytesConstRef _v)
+    void MemoryDB::insert(h256 const& _h, zbytesConstRef _v)
     {
 // #if DEV_GUARDED_DB
         // WriteGuard l(x_this);
@@ -120,7 +120,7 @@ namespace dev
         //return false;
     }
 
-    bytes MemoryDB::lookupAux(h256 const& _h) const
+    zbytes MemoryDB::lookupAux(h256 const& _h) const
     {
 // #if DEV_GUARDED_DB
         // ReadGuard l(x_this);
@@ -129,7 +129,7 @@ namespace dev
         auto it = m_aux.find(_h);
         if (it != m_aux.end() && (!m_enforceRefs || it->second.second))
             return it->second.first;
-        return bytes();
+        return zbytes();
     }
 
     void MemoryDB::removeAux(h256 const& _h)
@@ -141,7 +141,7 @@ namespace dev
         m_aux[_h].second = false;
     }
 
-    void MemoryDB::insertAux(h256 const& _h, bytesConstRef _v)
+    void MemoryDB::insertAux(h256 const& _h, zbytesConstRef _v)
     {
 // #if DEV_GUARDED_DB
         // WriteGuard l(x_this);

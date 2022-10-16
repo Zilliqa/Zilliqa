@@ -43,7 +43,7 @@ namespace dev
 
     /// Retrieve and returns the contents of the given file.
     /// If the file doesn't exist or isn't readable, returns an empty container / bytes.
-    bytes contents(boost::filesystem::path const& _file);
+    zbytes contents(boost::filesystem::path const& _file);
     /// Secure variation.
     bytesSec contentsSec(boost::filesystem::path const& _file);
     /// Retrieve and returns the contents of the given file as a std::string.
@@ -54,13 +54,13 @@ namespace dev
     /// Throws exception on error.
     /// @param _writeDeleteRename useful not to lose any data: If set, first writes to another file in
     /// the same directory and then moves that file.
-    void writeFile(boost::filesystem::path const& _file, bytesConstRef _data, bool _writeDeleteRename = false);
+    void writeFile(boost::filesystem::path const& _file, zbytesConstRef _data, bool _writeDeleteRename = false);
     /// Write the given binary data into the given file, replacing the file if it pre-exists.
-    inline void writeFile(boost::filesystem::path const& _file, bytes const& _data, bool _writeDeleteRename = false) { writeFile(_file, bytesConstRef(&_data), _writeDeleteRename); }
+    inline void writeFile(boost::filesystem::path const& _file, zbytes const& _data, bool _writeDeleteRename = false) { writeFile(_file, zbytesConstRef(&_data), _writeDeleteRename); }
 
     /// Nicely renders the given bytes to a string, optionally as HTML.
     /// @a _bytes: bytes array to be rendered as string. @a _width of a bytes line.
-    std::string memDump(bytes const& _bytes, unsigned _width = 8, bool _html = false);
+    std::string memDump(zbytes const& _bytes, unsigned _width = 8, bool _html = false);
 
     // Stream I/O functions.
     // Provides templated stream I/O for all STL collections so they can be shifted on to any iostream-like interface.
@@ -68,7 +68,7 @@ namespace dev
     template <class T> struct StreamOut { static std::ostream& bypass(std::ostream& _out, T const& _t) { _out << _t; return _out; } };
     template <> struct StreamOut<uint8_t> { static std::ostream& bypass(std::ostream& _out, uint8_t const& _t) { _out << (int)_t; return _out; } };
 
-    inline std::ostream& operator<<(std::ostream& _out, bytes const& _e) { _out << toHexPrefixed(_e); return _out; }
+    inline std::ostream& operator<<(std::ostream& _out, zbytes const& _e) { _out << toHexPrefixed(_e); return _out; }
     template <class T> inline std::ostream& operator<<(std::ostream& _out, std::vector<T> const& _e);
     template <class T, std::size_t Z> inline std::ostream& operator<<(std::ostream& _out, std::array<T, Z> const& _e);
     template <class T, class U> inline std::ostream& operator<<(std::ostream& _out, std::map<T, U> const& _e);

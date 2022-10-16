@@ -48,7 +48,7 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace boost::multi_index;
 
-bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
+bool Node::ComposeMicroBlockMessageForSender(zbytes& microblock_message) const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMicroBlockMessageForSender not expected to be "
@@ -60,7 +60,7 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
 
   microblock_message = {MessageType::DIRECTORY,
                         DSInstructionType::MICROBLOCKSUBMISSION};
-  bytes stateDelta;
+  zbytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetDSMicroBlockSubmission(
@@ -77,7 +77,7 @@ bool Node::ComposeMicroBlockMessageForSender(bytes& microblock_message) const {
 }
 
 bool Node::ProcessMicroBlockConsensus(
-    const bytes& message, unsigned int offset, const Peer& from,
+    const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -87,7 +87,7 @@ bool Node::ProcessMicroBlockConsensus(
   }
 
   uint32_t consensus_id = 0;
-  bytes reserialized_message;
+  zbytes reserialized_message;
   PubKey senderPubKey;
 
   if (!m_consensusObject->PreProcessMessage(
@@ -145,7 +145,7 @@ void Node::CommitMicroBlockConsensusBuffer() {
 }
 
 void Node::AddToMicroBlockConsensusBuffer(uint32_t consensusId,
-                                          const bytes& message,
+                                          const zbytes& message,
                                           unsigned int offset, const Peer& peer,
                                           const PubKey& senderPubKey) {
   if (message.size() <= offset) {
@@ -185,7 +185,7 @@ void Node::CleanMicroblockConsensusBuffer() {
 }
 
 bool Node::ProcessMicroBlockConsensusCore(
-    const bytes& message, unsigned int offset, const Peer& from,
+    const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -268,17 +268,17 @@ bool Node::ProcessMicroBlockConsensusCore(
     ds_shards.emplace_back(ds_shard);
 
     auto composeMicroBlockMessageForSender =
-        [this](bytes& microblock_message) -> bool {
+        [this](zbytes& microblock_message) -> bool {
       return ComposeMicroBlockMessageForSender(microblock_message);
     };
 
     auto composeMBnForwardTxnMessageForSender =
-        [this](bytes& forwardtxn_message) -> bool {
+        [this](zbytes& forwardtxn_message) -> bool {
       return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
     };
 
     auto sendMbnFowardTxnToShardNodes =
-        []([[gnu::unused]] const bytes& message,
+        []([[gnu::unused]] const zbytes& message,
            [[gnu::unused]] const DequeOfShard& shards,
            [[gnu::unused]] const unsigned int& my_shards_lo,
            [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};

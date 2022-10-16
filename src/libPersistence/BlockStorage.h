@@ -113,7 +113,7 @@ class BlockStorage : public Singleton<BlockStorage> {
     Initialize(path, diagnostic);
   };
   ~BlockStorage() = default;
-  bool PutBlock(const uint64_t& blockNum, const bytes& body,
+  bool PutBlock(const uint64_t& blockNum, const zbytes& body,
                 const BlockType& blockType);
 
  public:
@@ -150,22 +150,22 @@ class BlockStorage : public Singleton<BlockStorage> {
   unsigned int GetTxBodyDBSize();
 
   /// Adds a DS block to storage.
-  bool PutDSBlock(const uint64_t& blockNum, const bytes& body);
-  bool PutVCBlock(const BlockHash& blockhash, const bytes& body);
-  bool PutBlockLink(const uint64_t& index, const bytes& body);
+  bool PutDSBlock(const uint64_t& blockNum, const zbytes& body);
+  bool PutVCBlock(const BlockHash& blockhash, const zbytes& body);
+  bool PutBlockLink(const uint64_t& index, const zbytes& body);
 
   /// Adds a Tx block to storage.
-  bool PutTxBlock(const TxBlockHeader& header, const bytes& body);
+  bool PutTxBlock(const TxBlockHeader& header, const zbytes& body);
 
   // /// Adds a micro block to storage.
   bool PutMicroBlock(const BlockHash& blockHash, const uint64_t& epochNum,
-                     const uint32_t& shardID, const bytes& body);
+                     const uint32_t& shardID, const zbytes& body);
 
   /// Adds a transaction body to storage.
   bool PutTxBody(const uint64_t& epochNum, const dev::h256& key,
-                 const bytes& body);
+                 const zbytes& body);
 
-  bool PutProcessedTxBodyTmp(const dev::h256& key, const bytes& body);
+  bool PutProcessedTxBodyTmp(const dev::h256& key, const zbytes& body);
 
   /// Retrieves the requested DS block.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
@@ -240,10 +240,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetAllExtSeedPubKeys(std::unordered_set<PubKey>& pubKeys);
 
   /// Save Last Transactions Trie Root Hash
-  bool PutMetadata(MetaType type, const bytes& data);
+  bool PutMetadata(MetaType type, const zbytes& data);
 
   /// Save state root
-  bool PutStateRoot(const bytes& data);
+  bool PutStateRoot(const zbytes& data);
 
   /// Save latest epoch when states were moved to disk
   bool PutLatestEpochStatesUpdated(const uint64_t& epochNum);
@@ -252,10 +252,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool PutEpochFin(const uint64_t& epochNum);
 
   /// Retrieve Last Transactions Trie Root Hash
-  bool GetMetadata(MetaType type, bytes& data, bool muteLog = false);
+  bool GetMetadata(MetaType type, zbytes& data, bool muteLog = false);
 
   // Retrieve the state root
-  bool GetStateRoot(bytes& data);
+  bool GetStateRoot(zbytes& data);
 
   /// Save latest epoch when states were moved to disk
   bool GetLatestEpochStatesUpdated(uint64_t& epochNum);
@@ -278,10 +278,10 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetShardStructure(DequeOfShard& shards);
 
   /// Save state delta
-  bool PutStateDelta(const uint64_t& finalBlockNum, const bytes& stateDelta);
+  bool PutStateDelta(const uint64_t& finalBlockNum, const zbytes& stateDelta);
 
   /// Retrieve state delta
-  bool GetStateDelta(const uint64_t& finalBlockNum, bytes& stateDelta);
+  bool GetStateDelta(const uint64_t& finalBlockNum, zbytes& stateDelta);
 
   /// Write state to tempState in batch
   bool PutTempState(const std::unordered_map<Address, Account>& states);

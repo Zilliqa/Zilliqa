@@ -134,8 +134,8 @@ BOOST_AUTO_TEST_CASE(test_sign_verif) {
 
   /// 1 MB message
   const unsigned int message_size = 1048576;
-  bytes message_rand(message_size);
-  bytes message_1(message_size, 0x01);
+  zbytes message_rand(message_size);
+  zbytes message_1(message_size, 0x01);
   generate(message_rand.begin(), message_rand.end(), std::rand);
 
   Signature signature;
@@ -186,7 +186,7 @@ BOOST_AUTO_TEST_CASE(test_performance) {
       sizeof(message_sizes) / sizeof(message_sizes[0]);
 
   for (unsigned int i = 0; i < num_messages; i++) {
-    bytes message_rand(message_sizes[i]);
+    zbytes message_rand(message_sizes[i]);
     generate(message_rand.begin(), message_rand.end(), std::rand);
 
     Signature signature;
@@ -233,7 +233,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
 
   /// 1 MB message
   const unsigned int message_size = 1048576;
-  bytes message(message_size);
+  zbytes message(message_size);
   generate(message.begin(), message.end(), std::rand);
 
   /// Generate and verify the signature
@@ -246,7 +246,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
       "Signature verification failed");
 
   /// Serialize keys and signature
-  bytes privkey_bytes, pubkey_bytes, signature_bytes;
+  zbytes privkey_bytes, pubkey_bytes, signature_bytes;
   keypair.first.Serialize(privkey_bytes, 0);
   keypair.second.Serialize(pubkey_bytes, 0);
   signature.Serialize(signature_bytes, 0);
@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
   /// Deserialize keys and signature using Deserialize functions (first,
   /// initialize the keys and sig with different values)
   PairOfKey keypair2 = schnorr.GenKeyPair();
-  bytes message_rand(message_size);
+  zbytes message_rand(message_size);
   Signature signature2;
   BOOST_CHECK_MESSAGE(schnorr.Sign(message_rand, keypair2.first,
                                    keypair2.second, signature2) == true,
@@ -310,7 +310,7 @@ BOOST_AUTO_TEST_CASE(test_serialization) {
  */
 BOOST_AUTO_TEST_CASE(test_error_deserialization_pubkey) {
   PubKey pubkey;
-  bytes pubkey_bytes_empty;
+  zbytes pubkey_bytes_empty;
   int returnValue = pubkey.Deserialize(pubkey_bytes_empty, 0);
   BOOST_CHECK_MESSAGE(returnValue == -1,
                       "Expected: -1 Obtained: " << returnValue);
@@ -323,7 +323,7 @@ BOOST_AUTO_TEST_CASE(test_error_deserialization_pubkey) {
  */
 BOOST_AUTO_TEST_CASE(test_error_deserialization_privkey) {
   PrivKey privkey;
-  bytes privkey_bytes_empty;
+  zbytes privkey_bytes_empty;
   int returnValue = privkey.Deserialize(privkey_bytes_empty, 0);
   BOOST_CHECK_MESSAGE(returnValue == -1,
                       "Expected: -1 Obtained: " << returnValue);
@@ -336,7 +336,7 @@ BOOST_AUTO_TEST_CASE(test_error_deserialization_privkey) {
  */
 BOOST_AUTO_TEST_CASE(test_error_deserialization_signature) {
   Signature signature;
-  bytes sig_bytes_empty;
+  zbytes sig_bytes_empty;
   int returnValue = signature.Deserialize(sig_bytes_empty, 0);
   BOOST_CHECK_MESSAGE(returnValue == -1,
                       "Expected: -1 Obtained: " << returnValue);

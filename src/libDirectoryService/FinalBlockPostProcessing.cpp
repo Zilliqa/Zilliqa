@@ -57,7 +57,7 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Storing DS MicroBlock" << endl
                                       << *(m_mediator.m_node->m_microblock));
-    bytes body;
+    zbytes body;
     m_mediator.m_node->m_microblock->Serialize(body, 0);
     if (!BlockStorage::GetBlockStorage().PutMicroBlock(
             m_mediator.m_node->m_microblock->GetBlockHash(),
@@ -88,7 +88,7 @@ bool DirectoryService::StoreFinalBlockToDisk() {
             "Storing Tx Block" << endl
                                << *m_finalBlock);
 
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   m_finalBlock->Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(m_finalBlock->GetHeader(),
                                                   serializedTxBlock)) {
@@ -96,7 +96,7 @@ bool DirectoryService::StoreFinalBlockToDisk() {
     return false;
   }
 
-  bytes stateDelta;
+  zbytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
   if (!BlockStorage::GetBlockStorage().PutStateDelta(
           m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum(),
@@ -108,7 +108,7 @@ bool DirectoryService::StoreFinalBlockToDisk() {
 }
 
 bool DirectoryService::ComposeFinalBlockMessageForSender(
-    bytes& finalblock_message) {
+    zbytes& finalblock_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::ComposeFinalBlockMessageForSender not "
@@ -123,7 +123,7 @@ bool DirectoryService::ComposeFinalBlockMessageForSender(
   const uint64_t dsBlockNumber =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  bytes stateDelta;
+  zbytes stateDelta;
   AccountStore::GetInstance().GetSerializedDelta(stateDelta);
 
   if (!Messenger::SetNodeFinalBlock(finalblock_message, MessageOffset::BODY,
@@ -249,7 +249,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   m_mediator.UpdateDSBlockRand();
   m_mediator.UpdateTxBlockRand();
 
-  auto composeFinalBlockMessageForSender = [this](bytes& message) -> bool {
+  auto composeFinalBlockMessageForSender = [this](zbytes& message) -> bool {
     return ComposeFinalBlockMessageForSender(message);
   };
 
@@ -388,7 +388,7 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
 }
 
 bool DirectoryService::ProcessFinalBlockConsensus(
-    const bytes& message, unsigned int offset, const Peer& from,
+    const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -400,7 +400,7 @@ bool DirectoryService::ProcessFinalBlockConsensus(
   }
 
   uint32_t consensus_id = 0;
-  bytes reserialized_message;
+  zbytes reserialized_message;
   PubKey senderPubKey;
 
   if (!m_consensusObject->PreProcessMessage(
@@ -487,7 +487,7 @@ void DirectoryService::CommitFinalBlockConsensusBuffer() {
 }
 
 void DirectoryService::AddToFinalBlockConsensusBuffer(
-    uint32_t consensusId, const bytes& message, unsigned int offset,
+    uint32_t consensusId, const zbytes& message, unsigned int offset,
     const Peer& peer, const PubKey& senderPubKey) {
   if (message.size() <= offset) {
     LOG_GENERAL(WARNING, "The message size " << message.size()
@@ -526,7 +526,7 @@ void DirectoryService::CleanFinalBlockConsensusBuffer() {
 }
 
 bool DirectoryService::ProcessFinalBlockConsensusCore(
-    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     const Peer& from, const unsigned char& startByte) {
   LOG_MARKER();
 

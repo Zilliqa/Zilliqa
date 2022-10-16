@@ -34,7 +34,7 @@ class MessengerAccountStoreTrie {
   // ============================================================================
   template <class MAP>
   static bool SetAccountStoreTrie(
-      bytes& dst, const unsigned int offset,
+      zbytes& dst, const unsigned int offset,
       const dev::GenericTrieDB<TraceableDB>& stateTrie,
       const std::shared_ptr<MAP>& addressToAccount);
 };

@@ -27,7 +27,7 @@
 using namespace std;
 
 void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
-                                  const bytes& message) {
+                                  const zbytes& message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToLookupNodesDefault not "
@@ -62,7 +62,7 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
 }
 
 void SendDataToShardNodesDefault(
-    const bytes& message, const std::deque<VectorOfPeer>& sharded_receivers,
+    const zbytes& message, const std::deque<VectorOfPeer>& sharded_receivers,
     bool forceMulticast) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -83,7 +83,7 @@ void SendDataToShardNodesDefault(
 }
 
 SendDataToLookupFunc SendDataToLookupFuncDefault =
-    [](const VectorOfNode& lookups, const bytes& message) mutable -> void {
+    [](const VectorOfNode& lookups, const zbytes& message) mutable -> void {
   SendDataToLookupNodesDefault(lookups, message);
 };
 
@@ -274,7 +274,7 @@ bool DataSender::SendDataToOthers(
   }
 
   if (inB2) {
-    bytes message;
+    zbytes message;
     if (!(composeMessageForSenderFunc &&
           composeMessageForSenderFunc(message))) {
       LOG_GENERAL(

@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(testAddrBech32Decode) {
     BOOST_CHECK_MESSAGE(retCode == AddressConversionCode::OK,
                         "Bech32 unable to decode");
 
-    bytes tmpAddr;
+    zbytes tmpAddr;
     DataConversion::HexStrToUint8Vec(pair.second, tmpAddr);
 
     Address correctAddr{tmpAddr};

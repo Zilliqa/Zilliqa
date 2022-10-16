@@ -43,7 +43,7 @@ class Retriever {
   void CleanAll();
   bool ConstructFromStateDeltas(const uint64_t& lastBlockNum,
                                 unsigned int extra_txblocks,
-                                std::vector<bytes>& extraStateDeltas,
+                                std::vector<zbytes>& extraStateDeltas,
                                 bool trimIncompletedBlocks);
 
  private:

@@ -30,7 +30,7 @@ using namespace std;
 
 std::ostream& operator<<(std::ostream& os, const PrivKey& p) {
   string output;
-  bytes tmp;
+  zbytes tmp;
   p.Serialize(tmp, 0);
   boost::algorithm::hex(tmp.begin(), tmp.end(), back_inserter(output));
   os << output;

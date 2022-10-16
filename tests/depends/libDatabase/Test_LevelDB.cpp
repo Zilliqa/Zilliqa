@@ -55,7 +55,7 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
   BOOST_CHECK_MESSAGE(m_testDB.Lookup((uint256_t)2) == "apples",
                       "ERROR: (boost_int, string)");
 
-  bytes mangoMsg = {'m', 'a', 'n', 'g', 'o'};
+  zbytes mangoMsg = {'m', 'a', 'n', 'g', 'o'};
 
   m_testDB.Insert((uint256_t)3, mangoMsg);
 

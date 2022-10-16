@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
 
   Account acc1(TestUtils::DistUint64(), 0);
 
-  bytes code, data;
+  zbytes code, data;
   uint32_t scilla_version;
   acc1.InitContract(code, data, Address(), 0, scilla_version);
 
@@ -69,19 +69,19 @@ BOOST_AUTO_TEST_CASE(testInit) {
   std::pair<Json::Value, Json::Value> roots;
   BOOST_CHECK_EQUAL(false, acc1.GetStorageJson(roots, true));
 
-  bytes code = {'h', 'e', 'l', 'l', 'o'};
+  zbytes code = {'h', 'e', 'l', 'l', 'o'};
 
   PubKey pubKey1 = Schnorr::GenKeyPair().second;
   Address addr1 = Account::GetAddressFromPublicKey(pubKey1);
 
   std::string invalidmessage = "[{\"vname\"]";
-  bytes data(invalidmessage.begin(), invalidmessage.end());
+  zbytes data(invalidmessage.begin(), invalidmessage.end());
   uint32_t scilla_version;
   BOOST_CHECK_EQUAL(false,
                     acc1.InitContract(code, data, addr1, 0, scilla_version));
 
   invalidmessage = "[{\"vname\":\"name\"}]";
-  data = bytes(invalidmessage.begin(), invalidmessage.end());
+  data = zbytes(invalidmessage.begin(), invalidmessage.end());
   BOOST_CHECK_EQUAL(false,
                     acc1.InitContract(code, data, addr1, 0, scilla_version));
 
@@ -90,7 +90,7 @@ BOOST_AUTO_TEST_CASE(testInit) {
 
   std::string message =
       "[{\"vname\":\"_scilla_version\",\"type\":\"Uint32\",\"value\":\"0\"}]";
-  data = bytes(message.begin(), message.end());
+  data = zbytes(message.begin(), message.end());
   BOOST_CHECK_EQUAL(true,
                     acc1.InitContract(code, data, addr1, 0, scilla_version));
   BOOST_CHECK_EQUAL(false,
@@ -212,9 +212,9 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
 
   Account acc1(CURRENT_BALANCE, 0);
   acc1.SetAddress(addr1);
-  bytes message1;
+  zbytes message1;
 
-  bytes code = dev::h256::random().asBytes();
+  zbytes code = dev::h256::random().asBytes();
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(code);
   dev::h256 hash = dev::h256(sha2.Finalize());
@@ -226,7 +226,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   // Account::Deserialize is deprecated for Contract Account,
   // it will fail in the half way
 
-  bytes message2;
+  zbytes message2;
   BOOST_CHECK_EQUAL(true, acc2.Serialize(message2, TestUtils::DistUint8()));
 
   const uint128_t& acc2Balance = acc2.GetBalance();

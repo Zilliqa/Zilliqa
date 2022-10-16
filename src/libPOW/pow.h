@@ -49,7 +49,7 @@ typedef struct EthashMiningResult {
 class POW {
   static std::string BytesToHexString(const uint8_t* str, const uint64_t s);
   static int FromHex(char _i);
-  static bytes HexStringToBytes(std::string const& _s);
+  static zbytes HexStringToBytes(std::string const& _s);
   std::mutex m_mutexLightClientConfigure;
   std::mutex m_mutexPoWMine;
 
@@ -92,7 +92,7 @@ class POW {
                  const ethash_hash256& headerHash, uint64_t winning_nonce,
                  const std::string& winning_result,
                  const std::string& winning_mixhash);
-  static bytes ConcatAndhash(
+  static zbytes ConcatAndhash(
       const std::array<unsigned char, UINT256_SIZE>& rand1,
       const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
       const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);

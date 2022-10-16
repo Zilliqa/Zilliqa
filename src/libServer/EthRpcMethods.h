@@ -232,7 +232,7 @@ class EthRpcMethods {
    * Returns the client coinbase address. The coinbase address is the
    * account to pay mining rewards to.
    * @param request : params none
-   * @param response : string, 20 bytes with the current coinbase address. e.g.
+   * @param response : string, 20 zbytes with the current coinbase address. e.g.
    * 0x407d73d8a49eeb85d32cf465507dd71d507100c1
    */
   virtual void GetEthCoinbaseI(const Json::Value& /*request*/,
@@ -551,7 +551,7 @@ class EthRpcMethods {
   Json::Value GetEthGasPrice() const;
 
   std::string CreateTransactionEth(
-      Eth::EthFields const& fields, bytes const& pubKey,
+      Eth::EthFields const& fields, zbytes const& pubKey,
       const unsigned int num_shards, const uint128_t& gasPriceWei,
       const CreateTransactionTargetFunc& targetFunc);
 

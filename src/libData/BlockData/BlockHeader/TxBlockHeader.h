@@ -43,7 +43,7 @@ class TxBlockHeader : public BlockHeaderBase {
   TxBlockHeader();
 
   /// Constructor for loading Tx block header information from a byte stream.
-  TxBlockHeader(const bytes& src, unsigned int offset);
+  TxBlockHeader(const zbytes& src, unsigned int offset);
 
   /// Constructor with specified Tx block header parameters.
   TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
@@ -55,10 +55,10 @@ class TxBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Serialize(zbytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset) override;
+  bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset) override;
