@@ -997,47 +997,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
                                                  includeFullTransactions);
 }
 
-Json::Value EthRpcMethods::GetEthBlockReceiptsCommon(const TxBlock& txBlock) {
-  const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
-      txBlock.GetHeader().GetDSBlockNum());
-
-  std::vector<TxBodySharedPtr> transactions;
-  std::vector<TxnHash> transactionHashes;
-
-  // Gather either transaction hashes or full transactions
-  const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
-  for (auto const& mbInfo : microBlockInfos) {
-    if (mbInfo.m_txnRootHash == TxnHash{}) {
-      continue;
-    }
-
-    MicroBlockSharedPtr microBlockPtr;
-
-    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
-                                                       microBlockPtr)) {
-      continue;
-    }
-
-    const auto& currTranHashes = microBlockPtr->GetTranHashes();
-    if (!false) {
-      transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
-                               currTranHashes.end());
-      continue;
-    }
-    for (const auto& transactionHash : currTranHashes) {
-      TxBodySharedPtr transactionBodyPtr;
-      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                     transactionBodyPtr)) {
-        continue;
-      }
-      transactions.push_back(std::move(transactionBodyPtr));
-    }
-  }
-
-  return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 transactionHashes, false);
-}
-
 Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
                                          const std::string& tag) {
   if (isSupportedTag(tag)) {

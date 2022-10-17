@@ -544,7 +544,6 @@ class EthRpcMethods {
                                 const bool includeFullTransactions);
   Json::Value GetEthBlockCommon(const TxBlock& txBlock,
                                 const bool includeFullTransactions);
-  Json::Value GetEthBlockReceiptsCommon(const TxBlock& txBlock);
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value GetEthGasPrice() const;
