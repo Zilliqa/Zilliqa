@@ -65,7 +65,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
 
   TxBlock block1 = constructDummyTxBlock(0);
 
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   block1.Serialize(serializedTxBlock, 0);
 
   TxBlock block2(serializedTxBlock, 0);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 
   TxBlock block1 = constructDummyTxBlock(0);
 
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   block1.Serialize(serializedTxBlock, 0);
 
   BlockStorage::GetBlockStorage().PutTxBlock(block1.GetHeader(),
@@ -106,7 +106,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
   TxBlock block3 = constructDummyTxBlock(3);
   TxBlock block4 = constructDummyTxBlock(4);
 
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
 
   block1.Serialize(serializedTxBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(block1.GetHeader(),
@@ -160,7 +160,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
   for (int i = 5; i < 21; i++) {
     block = constructDummyTxBlock(i);
 
-    bytes serializedTxBlock;
+    zbytes serializedTxBlock;
 
     block.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
 void writeBlock(int id) {
   TxBlock block = constructDummyTxBlock(id);
 
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
 
   block.Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
@@ -223,7 +223,7 @@ void bootstrap(int num_threads) {
     for (int j = 0; j < 100; j++) {
       TxBlock block = constructDummyTxBlock(i * 1000 + j);
 
-      bytes serializedTxBlock;
+      zbytes serializedTxBlock;
 
       block.Serialize(serializedTxBlock, 0);
       BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
@@ -276,7 +276,7 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles) {
   for (int i = 21; i < 2500; i++) {
     block = constructDummyTxBlock(i);
 
-    bytes serializedTxBlock;
+    zbytes serializedTxBlock;
 
     block.Serialize(serializedTxBlock, 0);
     BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),
@@ -306,7 +306,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheTxBlocksInDB) {
     for (int i = 0; i < 10; i++) {
       TxBlock block = constructDummyTxBlock(i);
 
-      bytes serializedTxBlock;
+      zbytes serializedTxBlock;
 
       block.Serialize(serializedTxBlock, 0);
 
@@ -354,7 +354,7 @@ BOOST_AUTO_TEST_CASE(testBuildPendingTxHashToNumMapping) {
     // Build some initial hash to block mapping
     for (uint32_t i = 0; i < INIT_SIZE; i++) {
       const TxBlock block = constructDummyTxBlock(i);
-      bytes serializedTxBlock;
+      zbytes serializedTxBlock;
       block.Serialize(serializedTxBlock, 0);
 
       const auto blockNum = block.GetHeader().GetBlockNum();
@@ -370,7 +370,7 @@ BOOST_AUTO_TEST_CASE(testBuildPendingTxHashToNumMapping) {
     // Store remaining blocks only by 'blockNum'
     for (uint32_t i = INIT_SIZE; i < REMAINING_SIZE; i++) {
       TxBlock block = constructDummyTxBlock(i);
-      bytes serializedTxBlock;
+      zbytes serializedTxBlock;
       block.Serialize(serializedTxBlock, 0);
 
       txBlockchainDB.Insert(block.GetHeader().GetBlockNum(), serializedTxBlock);
@@ -422,7 +422,7 @@ BOOST_AUTO_TEST_CASE(testSkipBuildMappingEmptyAuxData) {
   {
     LevelDB txBlockchainDB{"txBlocks"};
     const auto blockNum = block.GetHeader().GetBlockNum();
-    bytes serializedTxBlock;
+    zbytes serializedTxBlock;
     block.Serialize(serializedTxBlock, 0);
     txBlockchainDB.Insert(blockNum, serializedTxBlock);
   }
@@ -471,7 +471,7 @@ BOOST_AUTO_TEST_CASE(testNoNeedToBuildTxHashToNumMapping) {
     // Build some initial hash to block mapping
     for (uint32_t i = 0; i < NUM_BLOCKS; i++) {
       TxBlock block = constructDummyTxBlock(i);
-      bytes serializedTxBlock;
+      zbytes serializedTxBlock;
       block.Serialize(serializedTxBlock, 0);
 
       const auto blockNum = block.GetHeader().GetBlockNum();
@@ -535,7 +535,7 @@ BOOST_AUTO_TEST_CASE(testInsertTxBlockAndQuery) {
   constexpr auto BLOCK_NUM = 123;
 
   TxBlock block = constructDummyTxBlock(BLOCK_NUM);
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   block.Serialize(serializedTxBlock, 0);
 
   BlockStorage::GetBlockStorage().PutTxBlock(block.GetHeader(),

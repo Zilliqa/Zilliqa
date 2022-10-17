@@ -205,7 +205,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # customize the flags for RELWITHDEBINFO
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
@@ -301,7 +301,7 @@ endif()
 
 # installation
 
-set_target_properties(buildTxBlockHashesToNums data_migrate genaccounts genkeypair genTxnBodiesFromS3 
+set_target_properties(buildTxBlockHashesToNums genaccounts genkeypair genTxnBodiesFromS3
                       getpub getaddr gentxn signmultisig verifymultisig gensigninitialds getnetworkhistory grepperf  
                       getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

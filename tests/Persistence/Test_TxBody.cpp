@@ -62,7 +62,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
 
   TransactionWithReceipt body1 = constructDummyTxBody(0);
 
-  bytes serializedTxBody;
+  zbytes serializedTxBody;
   body1.Serialize(serializedTxBody, 0);
 
   TransactionWithReceipt body2(serializedTxBody, 0);
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 
     auto tx_hash = body1.GetTransaction().GetTranID();
 
-    bytes serializedTxBody;
+    zbytes serializedTxBody;
     body1.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash,
                                               serializedTxBody);
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(testTRDeserializationFromFile) {
   string txns_filename = oss.str();
   ofstream ofile(txns_filename, std::fstream::binary);
 
-  bytes serializedTxn;
+  zbytes serializedTxn;
   tx_body.Serialize(serializedTxn, 0);
 
   // write HASH LEN and HASH
@@ -129,7 +129,7 @@ BOOST_AUTO_TEST_CASE(testTRDeserializationFromFile) {
   // Now read back file to see if the TransactionWithReceipt is good
   ifstream infile(txns_filename, ios::in | ios::binary);
   TxnHash r_txn_hash;
-  bytes buff;
+  zbytes buff;
 
   // get the txnHash length and raw bytes of txnHash itself
   size_t len;
@@ -177,7 +177,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
     auto tx_hash3 = body3.GetTransaction().GetTranID();
     auto tx_hash4 = body4.GetTransaction().GetTranID();
 
-    bytes serializedTxBody;
+    zbytes serializedTxBody;
 
     body1.Serialize(serializedTxBody, 0);
     BlockStorage::GetBlockStorage().PutTxBody(TestUtils::DistUint64(), tx_hash1,

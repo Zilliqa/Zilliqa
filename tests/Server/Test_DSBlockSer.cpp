@@ -41,7 +41,7 @@ vector<bool> convertJsonBitmapToVector(Json::Value _json) {
 template <class Block>
 const Json::Value convertBlockSerializedtoJson(const Block& block) {
   Json::Value ret;
-  bytes raw;
+  zbytes raw;
   string rawstr;
 
   if (!block.Serialize(raw, 0)) {
@@ -148,8 +148,8 @@ DSBlock convert_to_dsblock(const Json::Value& dsblock_json) {
                               removeDSNodePubkeys, hashset, govProposalMap,
                               version, comHash, prev_blockhash);
 
-  bytes cs1_ser;
-  bytes cs2_ser;
+  zbytes cs1_ser;
+  zbytes cs2_ser;
   if (!DataConversion::HexStrToUint8Vec(dsblock_json["CS1"].asString(),
                                         cs1_ser)) {
     LOG_GENERAL(INFO, "Failed HexStrToUint8Vec");
@@ -217,8 +217,8 @@ TxBlock convert_to_txblock(const Json::Value& txblock_json) {
                               txblockhashset, numTxns, minerPubkey, dsBlockNum,
                               version, commHash, prevblockhash);
 
-  bytes cs1_ser;
-  bytes cs2_ser;
+  zbytes cs1_ser;
+  zbytes cs2_ser;
   if (!DataConversion::HexStrToUint8Vec(txblock_body["CS1"].asString(),
                                         cs1_ser)) {
     LOG_GENERAL(INFO, "Failed HexStrToUint8Vec");

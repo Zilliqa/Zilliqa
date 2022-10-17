@@ -81,8 +81,8 @@ Transaction GenerateRandomTransaction(const unsigned int version,
   const auto randomAmount = DistUint128();
   const auto randomGasPrice = DistUint128();
   const auto randomGasLimit = DistUint64();
-  bytes data{};
-  bytes code{};
+  zbytes data{};
+  zbytes code{};
   if (type == Transaction::CONTRACT_CALL) {
     data = GenerateRandomCharVector(DistUint8());
   } else if (type == Transaction::CONTRACT_CREATION) {
@@ -261,13 +261,13 @@ std::string GenerateRandomString(size_t length) {
   return str;
 }
 
-bytes GenerateRandomCharVector(size_t length) {
-  bytes cv(length, 0);
+zbytes GenerateRandomCharVector(size_t length) {
+  zbytes cv(length, 0);
   std::generate_n(cv.begin(), length, randchar);
   return cv;
 }
 
-Signature GetSignature(const bytes& data, const PairOfKey& keyPair) {
+Signature GetSignature(const zbytes& data, const PairOfKey& keyPair) {
   Signature result;
 
   Schnorr::Sign(data, keyPair.first, keyPair.second, result);

@@ -63,7 +63,7 @@ VCBlockHeader GenerateRandomVCBlockHeader();
 DSBlockHeader createDSBlockHeader(const uint64_t&);
 TxBlockHeader createTxBlockHeader(const uint64_t&);
 CoSignatures GenerateRandomCoSignatures();
-Signature GetSignature(const bytes&, const PairOfKey&);
+Signature GetSignature(const zbytes&, const PairOfKey&);
 Signature GenerateRandomSignature();
 
 Transaction GenerateRandomTransaction(const unsigned int version,
@@ -77,7 +77,7 @@ std::vector<bool> GenerateRandomBooleanVector(size_t);
 Shard GenerateRandomShard(size_t);
 DequeOfShard GenerateDequeueOfShard(size_t);
 std::string GenerateRandomString(size_t);
-bytes GenerateRandomCharVector(size_t);
+zbytes GenerateRandomCharVector(size_t);
 }  // namespace TestUtils
 
 #endif  // __TESTUTILS_H__

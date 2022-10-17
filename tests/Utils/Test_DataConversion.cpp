@@ -32,21 +32,21 @@ BOOST_AUTO_TEST_CASE(test_uint8_t) {
   LOG_GENERAL(INFO, "Test uint8_t start...");
 
   uint8_t num1 = 0x01, num2 = 0xAB;
-  bytes bytesOfNum1 =
+  zbytes bytesOfNum1 =
       DataConversion::IntegerToBytes<uint8_t, sizeof(uint8_t)>(num1);
-  BOOST_REQUIRE(bytesOfNum1 == bytes{num1});
+  BOOST_REQUIRE(bytesOfNum1 == zbytes{num1});
 
-  bytes bytesOfNum2 =
+  zbytes bytesOfNum2 =
       DataConversion::IntegerToBytes<uint8_t, sizeof(uint8_t)>(num2);
-  BOOST_REQUIRE(bytesOfNum2 == bytes{num2});
+  BOOST_REQUIRE(bytesOfNum2 == zbytes{num2});
 
   {
     LOG_GENERAL(INFO, "Test uint32_t start...");
 
     uint32_t uint32Num1 = 0x01234567;
-    bytes bytesOfUint32Num1 =
+    zbytes bytesOfUint32Num1 =
         DataConversion::IntegerToBytes<uint32_t, sizeof(uint32_t)>(uint32Num1);
-    bytes goldenResult{0x01, 0x23, 0x45, 0x67};
+    zbytes goldenResult{0x01, 0x23, 0x45, 0x67};
     BOOST_REQUIRE(bytesOfUint32Num1 == goldenResult);
   }
 
@@ -54,9 +54,9 @@ BOOST_AUTO_TEST_CASE(test_uint8_t) {
     LOG_GENERAL(INFO, "Test uint64_t start...");
 
     uint64_t uint64Num1 = 0x01234567;
-    bytes bytesOfUint64Num1 =
+    zbytes bytesOfUint64Num1 =
         DataConversion::IntegerToBytes<uint64_t, sizeof(uint64_t)>(uint64Num1);
-    bytes goldenResult{0x00, 0x00, 0x00, 0x00, 0x01, 0x23, 0x45, 0x67};
+    zbytes goldenResult{0x00, 0x00, 0x00, 0x00, 0x01, 0x23, 0x45, 0x67};
     BOOST_REQUIRE(bytesOfUint64Num1 == goldenResult);
 
     LOG_GENERAL(INFO, "Test IntegerToBytes done!");
