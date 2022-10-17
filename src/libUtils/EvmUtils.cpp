@@ -41,6 +41,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   // ["contract", "caller", "contractCode", "data", "apparent",
   // "availableGas","tag"]
 
+  LOG_GENERAL(DEBUG, "Convert evm call parameters to json array:" << params);
   Json::Value arr_ret(Json::arrayValue);
   arr_ret.append(params.m_contract);
   arr_ret.append(params.m_caller);
@@ -74,8 +75,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
-  // <Disable when evm-ds is changed to accept tag>
-  // arr_ret.append(params.m_tag);
+  arr_ret.append(params.m_tag);
 
   return arr_ret;
 }

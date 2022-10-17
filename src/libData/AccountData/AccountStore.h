@@ -215,7 +215,7 @@ class AccountStore
   /// return the hash of the raw bytes of StateDelta
   StateHash GetStateDeltaHash();
 
-  /// commit the StateDelta to update the AccountStore in an irrevertible way
+  /// commit the StateDelta to update the AccountStore in an irreversible way
   void CommitTemp();
 
   /// clean the AccountStoreTemp and the serialized StateDelta raw bytes
@@ -246,6 +246,8 @@ class AccountStore
       const std::string& contract_address_output_filename,
       const std::string& normal_address_output_filename,
       const uint64_t& updateDiskFrequency);
+  const Account* GetFirstAccountState();
+  const Account* GetLatestAccountState();
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

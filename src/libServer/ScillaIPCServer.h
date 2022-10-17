@@ -62,25 +62,43 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
 
   inline virtual void fetchStateValueI(const Json::Value& request,
                                        Json::Value& response);
+
   inline virtual void fetchExternalStateValueI(const Json::Value& request,
                                                Json::Value& response);
+
   inline virtual void updateStateValueI(const Json::Value& request,
                                         Json::Value& response);
+
   inline virtual void fetchExternalStateValueB64I(const Json::Value& request,
                                                   Json::Value& response);
+
   inline virtual void fetchBlockchainInfoI(const Json::Value& request,
                                            Json::Value& response);
+
   virtual bool fetchStateValue(const std::string& query, std::string& value,
                                bool& found);
+
   virtual bool fetchExternalStateValue(const std::string& addr,
                                        const std::string& query,
                                        std::string& value, bool& found,
                                        std::string& type);
+
+  virtual bool fetchExternalStateValueEvm(const std::string& addr,
+                                          const std::string& query,
+                                          std::string& value, bool& found,
+                                          std::string& type);
+
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
+
   virtual bool fetchBlockchainInfo(const std::string& query_name,
                                    const std::string& query_args,
                                    std::string& value);
+
+  virtual bool fetchBlockchainInfoEvm(const std::string& query_name,
+                                      const std::string& queryArgs,
+                                      std::string& value);
+
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
  private:

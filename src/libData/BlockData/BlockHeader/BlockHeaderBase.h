@@ -19,11 +19,9 @@
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_
 
 #include <array>
-
 #include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 
 // Hash for the committee that generated the block
 using CommitteeHash = dev::h256;

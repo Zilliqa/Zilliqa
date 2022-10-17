@@ -167,16 +167,23 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   bool PutProcessedTxBodyTmp(const dev::h256& key, const bytes& body);
 
-  /// Retrieves the requested DS block.
+  /// Retrieves the requested DS block by number.
   bool GetDSBlock(const uint64_t& blockNum, DSBlockSharedPtr& block);
+  /// Retrieves the requested latest DS block.
+  bool GetLatestDSBlock(DSBlockSharedPtr& block);
+  /// Retrieves the requested first DS block.
+  bool GetFirstDSBlock(DSBlockSharedPtr& block);
 
   bool GetVCBlock(const BlockHash& blockhash, VCBlockSharedPtr& block);
   bool GetBlockLink(const uint64_t& index, BlockLinkSharedPtr& block);
   /// Retrieves the requested Tx block.
   bool GetTxBlock(const uint64_t& blockNum, TxBlockSharedPtr& block) const;
   bool GetTxBlock(const BlockHash& blockhash, TxBlockSharedPtr& block) const;
-
   bool GetLatestTxBlock(TxBlockSharedPtr& block);
+  bool GetFirstTxBlock(TxBlockSharedPtr& block);
+  // get all block from first to last, each time a lambda is called with a valid
+  // tx ptr lambda should return true to continue otherwise false to stop
+  void GetTxBlockAll(const std::function<bool(const TxBlockSharedPtr&)>& fn);
 
   bool CheckTxBody(const dev::h256& key);
 
@@ -197,7 +204,12 @@ class BlockStorage : public Singleton<BlockStorage> {
                            const uint32_t hiShardId,
                            std::list<MicroBlockSharedPtr>& blocks);
 
-  /// Retrieves the requested transaction body.
+  /**
+   * @brief Get the Tx Body object
+   * @param key transaction hash
+   * @param body transaction body shared pointer
+   * @return true or false
+   */
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
   /// Deletes the requested DS block

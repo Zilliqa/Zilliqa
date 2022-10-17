@@ -18,14 +18,12 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 
+#include <Schnorr.h>
 #include <array>
 #include "common/BaseType.h"
-
-#include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "libConsensus/ConsensusCommon.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 
 struct CoSignatures {

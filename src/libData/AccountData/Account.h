@@ -106,8 +106,11 @@ class AccountBase : public SerializableDataBlock {
 
 inline std::ostream& operator<<(std::ostream& out,
                                 AccountBase const& accountbase) {
-  out << accountbase.GetBalance() << " " << accountbase.GetNonce() << " "
-      << accountbase.GetStorageRoot() << " " << accountbase.GetCodeHash();
+  out << "Balance:" << accountbase.GetBalance()                   //
+      << ", Version:" << accountbase.GetVersion()                 //
+      << ", Nonce:" << accountbase.GetNonce()                     //
+      << ", accountRootStorage:" << accountbase.GetStorageRoot()  //
+      << ", CodeHash:" << accountbase.GetCodeHash();
   return out;
 }
 

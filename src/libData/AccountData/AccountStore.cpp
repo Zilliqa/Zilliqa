@@ -940,3 +940,13 @@ bool AccountStore::MigrateContractStates(
                         << numContractUnchangedStates);
   return true;
 }
+
+const Account* AccountStore::GetFirstAccountState() {
+  return AccountStoreTrie<
+      std::unordered_map<Address, Account>>::GetFirstAccountState();
+}
+
+const Account* AccountStore::GetLatestAccountState() {
+  return AccountStoreTrie<
+      std::unordered_map<Address, Account>>::GetLatestAccountState();
+}

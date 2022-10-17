@@ -20,7 +20,6 @@
 
 #include "common/BaseType.h"
 #include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
 
 // Hashes for DSBlockHashSet
 using ShardingHash = dev::h256;

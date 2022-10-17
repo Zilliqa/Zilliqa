@@ -34,7 +34,7 @@ class TestBCInfo(test_case.EvmDsTestCase):
     def test_BlockCoinbase(self):
         self.init()
         resp = self.call_view(self.contract, "getBlockCoinbase")
-        print(resp)
+        print("getBlockCoinbase {}".format(resp))
 
     def test_BlockHash(self):
         self.init()

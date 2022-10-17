@@ -11,7 +11,7 @@ describe("Revert Contract Call", function () {
   });
 
 
-  xit("Will revert the contract when revert is called", async function () {
+  it("Will revert the contract when revert is called", async function () {
 
     function onCallViewFinished(receipt) {
       assert.fail("Failure: Should not be successful");

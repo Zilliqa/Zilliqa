@@ -22,7 +22,6 @@
 #include <vector>
 
 #include "common/Constants.h"
-#include "libData/AccountData/Transaction.h"
 #include "libUtils/Logger.h"
 
 bool VerifyTxnOrderWTolerance(const std::vector<TxnHash>& expectedTxns,

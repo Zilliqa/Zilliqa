@@ -70,6 +70,7 @@ bool isSupportedTag(const std::string& tag) {
   return tag == "latest" || tag == "earliest" || tag == "pending" ||
          isNumber(tag);
 }
+
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
 
@@ -717,16 +718,16 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
                            "Sent to a non-lookup");
   }
   try {
-    TxBodySharedPtr transactioBodyPtr;
+    TxBodySharedPtr transactionBodyPtr;
     TxnHash tranHash(transactionHash);
     bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactioBodyPtr);
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactionBodyPtr);
     if (!isPresent) {
       return Json::nullValue;
     }
 
     const TxBlock EMPTY_BLOCK;
-    const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    const auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
       return Json::nullValue;
@@ -740,7 +741,7 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
     }
 
     return JSONConversion::convertTxtoEthJson(transactionIndex,
-                                              *transactioBodyPtr, txBlock);
+                                              *transactionBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
@@ -1162,15 +1163,15 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  TxBodySharedPtr transactioBodyPtr;
+  TxBodySharedPtr transactionBodyPtr;
   const auto txHashes = microBlockPtr->GetTranHashes();
   if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
-                                                 transactioBodyPtr)) {
+                                                 transactionBodyPtr)) {
     return Json::nullValue;
   }
 
   return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
-                                            *transactioBodyPtr, txBlock);
+                                            *transactionBodyPtr, txBlock);
 }
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(

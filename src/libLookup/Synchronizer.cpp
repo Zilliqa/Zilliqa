@@ -21,7 +21,6 @@
 #include "Synchronizer.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"

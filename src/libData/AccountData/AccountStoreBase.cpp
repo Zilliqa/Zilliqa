@@ -345,6 +345,36 @@ void AccountStoreBase<MAP>::PrintAccountState() {
   }
 }
 
+template <class MAP>
+const Account* AccountStoreBase<MAP>::GetLatestAccountState() {
+  LOG_MARKER();
+
+  if (not m_addressToAccount->empty()) {
+    
+    std::size_t i{0};
+    std::size_t s{m_addressToAccount->size()};
+
+    for (const auto& kv : *m_addressToAccount) {
+      if (++i == s) {
+        const Account& account = kv.second;
+
+        return &account;
+      }
+    }
+  }
+  return nullptr;
+}
+
+template <class MAP>
+const Account* AccountStoreBase<MAP>::GetFirstAccountState() {
+  LOG_MARKER();
+
+  if (not m_addressToAccount->empty()) {
+    return &m_addressToAccount->begin()->second;
+  }
+  return nullptr;
+}
+
 // Explicit instantiations.
 template class AccountStoreBase<std::map<Address, Account>>;
 template class AccountStoreBase<std::unordered_map<Address, Account>>;

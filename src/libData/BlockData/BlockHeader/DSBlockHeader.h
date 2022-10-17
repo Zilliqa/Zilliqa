@@ -26,7 +26,6 @@
 #include "BlockHeaderBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/SWInfo.h"
 

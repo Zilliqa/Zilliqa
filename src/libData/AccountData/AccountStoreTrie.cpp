@@ -277,7 +277,8 @@ void AccountStoreTrie<MAP>::PrintTrie() {
       return;
     }
 
-    LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << ab);
+    LOG_GENERAL(INFO,
+                "Address: " << address.hex() << ", AccountBase:{" << ab << "}");
   }
 }
 

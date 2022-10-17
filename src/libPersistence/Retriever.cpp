@@ -16,14 +16,11 @@
  */
 
 #include "Retriever.h"
-
 #include <stdlib.h>
 #include <algorithm>
 #include <exception>
 #include <vector>
-
 #include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"

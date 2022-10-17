@@ -80,6 +80,7 @@ class AccountStoreBase : public SerializableDataBlock {
   uint64_t GetNonce(const Address& address);
 
   virtual void PrintAccountState();
+   const Account* GetLatestAccountState();
+   const Account* GetFirstAccountState();
 };
-
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_

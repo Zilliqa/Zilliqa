@@ -350,6 +350,51 @@ bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
   return true;
 }
 
+bool BlockStorage::GetLatestDSBlock(DSBlockSharedPtr& block) {
+  uint64_t latestDSBlockNum{};
+
+  LOG_GENERAL(INFO, "Retrieving latest DS block...");
+
+  {
+    shared_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
+    leveldb::Iterator* it =
+        m_dsBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+    for (it->SeekToFirst(); it->Valid(); it->Next()) {
+      uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
+      if (blockNum > latestDSBlockNum) {
+        latestDSBlockNum = blockNum;
+      }
+    }
+    delete it;
+  }
+
+  LOG_GENERAL(INFO, "Latest DS block = " << latestDSBlockNum);
+  return GetDSBlock(latestDSBlockNum, block);
+}
+
+bool BlockStorage::GetFirstDSBlock(DSBlockSharedPtr& block) {
+  uint64_t firstDSBlockNum{};
+
+  LOG_GENERAL(INFO, "Retrieving first DS block...");
+
+  leveldb::Iterator* it =
+      m_dsBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+
+  it->SeekToFirst();
+
+  if (it->Valid()) {
+    const uint64_t firstDSBlockNum =
+        boost::lexical_cast<uint64_t>(it->key().ToString());
+
+    delete it;
+
+    LOG_GENERAL(INFO, "First DS block = " << firstDSBlockNum);
+    return GetDSBlock(firstDSBlockNum, block);
+  }
+
+  return false;
+}
+
 bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
                               DSBlockSharedPtr& block) {
   string blockString;
@@ -362,8 +407,6 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
     return false;
   }
 
-  // LOG_GENERAL(INFO, blockString);
-  // LOG_GENERAL(INFO, blockString.length());
   block = DSBlockSharedPtr(
       new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
 
@@ -527,6 +570,48 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 
   LOG_GENERAL(INFO, "Latest Tx block = " << latestTxBlockNum);
   return GetTxBlock(latestTxBlockNum, block);
+}
+
+bool BlockStorage::GetFirstTxBlock(TxBlockSharedPtr& block) {
+  LOG_GENERAL(INFO, "Retrieving first Tx block...");
+
+  shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+
+  leveldb::Iterator* it =
+      m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  it->SeekToFirst();
+  if (it->Valid()) {
+    const uint64_t firstTxBlockNum =
+        boost::lexical_cast<uint64_t>(it->key().ToString());
+    delete it;
+
+    LOG_GENERAL(INFO, "First Tx block = " << firstTxBlockNum);
+    return GetTxBlock(firstTxBlockNum, block);
+  }
+
+  return false;
+}
+
+void BlockStorage::GetTxBlockAll(
+    const std::function<bool(const TxBlockSharedPtr&)>& fn) {
+  uint64_t latestTxBlockNum = 0;
+
+  LOG_GENERAL(INFO, "Retrieving all Tx blocks...");
+
+  shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
+  leveldb::Iterator* it =
+      m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  for (it->SeekToFirst(); it->Valid(); it->Next()) {
+    uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
+    TxBlockSharedPtr txBlockSharedPtr;
+    if (GetTxBlock(blockNum, txBlockSharedPtr) && txBlockSharedPtr) {
+      if (not fn(txBlockSharedPtr)) {
+        break;
+      }
+    }
+  }
+
+  delete it;
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
@@ -1875,8 +1960,8 @@ std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
   return ret;
 }
 
-// Don't use short-circuit logical AND (&&) here so that we attempt to reset all
-// databases
+// Don't use short-circuit logical AND (&&) here so that we attempt to reset
+// all databases
 bool BlockStorage::ResetAll() {
   std::vector<DBTYPE> dbs;
   if (!LOOKUP_NODE_MODE) {
@@ -2006,8 +2091,8 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
 
   const auto maxKnownBlockNumStr =
       m_txBlockchainAuxDB->Lookup(MAX_TX_BLOCK_NUM_KEY);
-  // buildTxBlockHashesToNums should be run first to build relevant mapping and
-  // storing last known block num in Aux DB.
+  // buildTxBlockHashesToNums should be run first to build relevant mapping
+  // and storing last known block num in Aux DB.
   if (maxKnownBlockNumStr.empty()) {
     LOG_GENERAL(WARNING,
                 "TxBlockAuxiliary databased doesn't contain max known txBlock "

@@ -24,7 +24,6 @@
 #include "BlockBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/MicroBlockHeader.h"
 #include "libNetwork/Peer.h"
 

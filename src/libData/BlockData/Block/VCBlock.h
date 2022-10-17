@@ -22,7 +22,6 @@
 #include "BlockBase.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/VCBlockHeader.h"
 
 /// Stores the VC header and signatures.

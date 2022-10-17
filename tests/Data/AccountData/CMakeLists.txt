@@ -7,6 +7,11 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 #target_link_libraries(Test_Account PUBLIC AccountData Trie Utils Persistence TestUtils)
 #add_test(NAME Test_Account COMMAND Test_Account)
 
+add_executable(Test_AccountStoreTrie Test_AccountStoreTrie.cpp ../ScillaTestUtil.cpp)
+target_include_directories(Test_AccountStoreTrie PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_AccountStoreTrie PUBLIC AccountData Trie Utils Message TestUtils)
+add_test(NAME Test_AccountStoreTrie COMMAND Test_AccountStoreTrie)
+
 add_executable(Test_AccountStore Test_AccountStore.cpp ../ScillaTestUtil.cpp)
 target_include_directories(Test_AccountStore PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_AccountStore PUBLIC AccountData Trie Utils Message TestUtils)

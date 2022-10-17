@@ -21,7 +21,6 @@
 #include <functional>
 #include <limits>
 #include <thread>
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -33,7 +32,6 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
