@@ -1447,26 +1447,18 @@ std::string EthRpcMethods::EthRecoverTransaction(
 }
 
 Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
-  std::cout << "We are here (!!) " << blockId << std::endl;
 
   // The easiest way to do this:
   // Get the block + transactions
   // Call TX receipt function
 
   auto const block = GetEthBlockByHash(blockId, false);
-
   auto const txs = block["transactions"];
-
-  std::cout << "bloc is " << block << std::endl;
-  std::cout << "txs are " << txs << std::endl;
 
   Json::Value res = Json::arrayValue;
 
   for (const auto& tx : txs) {
-    std::cout << "txs areaa " << tx << std::endl;
     auto const receipt = GetEthTransactionReceipt(tx.asString());
-    std::cout << "txs receitp " << receipt << std::endl;
-    res.append(receipt);
     res.append(receipt);
   }
 
