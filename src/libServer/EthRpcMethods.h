@@ -43,10 +43,15 @@ class EthRpcMethods {
     return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
   };
 
+  //// Helper function for adding RPC methods
+  // bool AddRPC(const jsonrpc::Procedure& proc,
+  // ScillaIPCServer::methodPointer_t pointer);
+
   void Init(LookupServer* lookupServer);
 
   virtual void GetEthCallEthI(const Json::Value& request,
                               Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->GetEthCallEth(request[0u], request[1u].asString());
     LOG_GENERAL(DEBUG, "EthCall response:" << response);
   }
@@ -65,12 +70,14 @@ class EthRpcMethods {
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
                                            Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response =
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
 
   inline virtual void GetEthBlockByHashI(const Json::Value& request,
                                          Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response =
         this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
   }
@@ -117,6 +124,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
