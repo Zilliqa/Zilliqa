@@ -22,7 +22,6 @@
 #include <leveldb/db.h>
 #include <shared_mutex>
 
-#include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
