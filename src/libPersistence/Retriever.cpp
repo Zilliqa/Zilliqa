@@ -403,13 +403,3 @@ void Retriever::CleanAll() {
     LOG_GENERAL(WARNING, "FAIL: Reset DB Failed");
   }
 }
-
-bool Retriever::MigrateContractStates(
-    bool ignore_checker, bool disambiguation,
-    const std::string& contract_address_output_filename,
-    const std::string& normal_address_output_filename,
-    const uint64_t& updateDiskFrequency) {
-  return AccountStore::GetInstance().MigrateContractStates(
-      ignore_checker, disambiguation, contract_address_output_filename,
-      normal_address_output_filename, updateDiskFrequency);
-}
