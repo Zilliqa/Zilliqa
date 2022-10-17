@@ -36,7 +36,7 @@ describe("Contract destruction with web3.js", function () {
       options = await web3_helper.getCommonOptions();
     });
 
-    it("Should be destructed and coins in the contract should be transferred to the address specified in the method xxx", async function () {
+    it("Should be destructed and coins in the contract should be transferred to the address specified in the method", async function () {
       const result = await contract.methods
         .installChild(123)
         .send({gasLimit: 1000000, from: web3_helper.getPrimaryAccountAddress()});
