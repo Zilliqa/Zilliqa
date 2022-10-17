@@ -1406,7 +1406,6 @@ std::string EthRpcMethods::EthRecoverTransaction(
 }
 
 Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
-
   // The easiest way to do this:
   // Get the block + transactions
   // Call TX receipt function
