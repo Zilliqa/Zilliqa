@@ -1,1 +1,0 @@
-curl http://localhost:5555 -X POST -H "Content-Type: application/json" -d '{"jsonrpc": "2.0", "id": 1, "method": "debug_traceTransaction", "params": [ "0x8fc90a6c3ee3001cdcbbb685b4fbe67b1fa2bec575b15b0395fea5540d0901ae", { "tracer": "callTracer" } ] }'
