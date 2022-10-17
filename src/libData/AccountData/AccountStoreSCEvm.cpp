@@ -100,7 +100,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
   auto gas = evmReturnValues.Gas();
 
-  std::map<std::string, bytes> states;
+  std::map<std::string, zbytes> states;
   std::vector<std::string> toDeletes;
   // parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.GetApplyInstructions()) {
@@ -360,7 +360,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
            contractAccount->GetStorageRoot(), scilla_version});
 
-      std::map<std::string, bytes> t_metadata;
+      std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
@@ -390,7 +390,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           transaction.GetGasLimitEth(),
           transaction.GetAmountWei()};
 
-      std::map<std::string, bytes> t_newmetadata;
+      std::map<std::string, zbytes> t_newmetadata;
 
       t_newmetadata.emplace(Contract::ContractStorage::GenerateStorageKey(
                                 contractAddress, CONTRACT_ADDR_INDICATOR, {}),

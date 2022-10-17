@@ -28,7 +28,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
 
-using bytes = std::vector<uint8_t>;
+using zbytes = std::vector<uint8_t>;
 using uint128_t = boost::multiprecision::uint128_t;
 using uint256_t = boost::multiprecision::uint256_t;
 using GovDSShardVotesMap =

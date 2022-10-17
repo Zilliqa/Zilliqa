@@ -51,7 +51,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
  public:
   AccountStoreTemp(AccountStore& parent);
 
-  bool DeserializeDelta(const bytes& src, unsigned int offset);
+  bool DeserializeDelta(const zbytes& src, unsigned int offset);
 
   /// Returns the Account associated with the specified address.
   Account* GetAccount(const Address& address) override;
@@ -86,7 +86,7 @@ class AccountStore
   /// mutex related to revertibles
   std::mutex m_mutexRevertibles;
   /// buffer for the raw bytes of state delta serialized
-  bytes m_stateDeltaSerialized;
+  zbytes m_stateDeltaSerialized;
   // for external write access prioritization
   std::atomic<int> m_externalWriters;
   std::condition_variable_any m_writeCond;
@@ -106,9 +106,9 @@ class AccountStore
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 
-  bool Serialize(bytes& src, unsigned int offset) const override;
+  bool Serialize(zbytes& src, unsigned int offset) const override;
 
-  bool Deserialize(const bytes& src, unsigned int offset) override;
+  bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   bool Deserialize(const std::string& src, unsigned int offset) override;
 
@@ -116,14 +116,14 @@ class AccountStore
   bool SerializeDelta();
 
   /// get raw bytes of StateDelta
-  void GetSerializedDelta(bytes& dst);
+  void GetSerializedDelta(zbytes& dst);
 
   /// update this account states with the raw bytes of StateDelta
-  bool DeserializeDelta(const bytes& src, unsigned int offset,
+  bool DeserializeDelta(const zbytes& src, unsigned int offset,
                         bool revertible = false);
 
   /// update account states in AccountStoreTemp with the raw bytes of StateDelta
-  bool DeserializeDeltaTemp(const bytes& src, unsigned int offset);
+  bool DeserializeDeltaTemp(const zbytes& src, unsigned int offset);
 
   /// empty everything including the persistent storage for account states
   void Init() override;
@@ -253,12 +253,6 @@ class AccountStore
   std::condition_variable_any& GetPrimaryWriteAccessCond() {
     return m_writeCond;
   }
-
-  bool MigrateContractStates(
-      bool ignoreCheckerFailure, bool disambiguation,
-      const std::string& contract_address_output_filename,
-      const std::string& normal_address_output_filename,
-      const uint64_t& updateDiskFrequency);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

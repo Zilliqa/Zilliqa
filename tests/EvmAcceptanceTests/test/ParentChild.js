@@ -28,7 +28,7 @@ describe("Parent Child Contract Functionality", function () {
       await parentContract.installChild(CHILD_CONTRACT_VALUE, {gasLimit: 25000000});
       childContractAddress = await parentContract.childAddress();
 
-      expect(childContractAddress).to.exist;
+      expect(childContractAddress).to.be.properAddress;
     });
 
     it(`Should return ${INITIAL_FUND} as the balance of the child contract`, async function () {

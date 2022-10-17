@@ -5266,7 +5266,7 @@ public:
      * Wraps clCreatePipe().
      * @param context Context in which to create the pipe.
      * @param flags Bitfield. Only CL_MEM_READ_WRITE and CL_MEM_HOST_NO_ACCESS are valid.
-     * @param packet_size Size in bytes of a single packet of the pipe.
+     * @param packet_size Size in zbytes of a single packet of the pipe.
      * @param max_packets Number of packets that may be stored in the pipe.
      *
      */
@@ -5291,7 +5291,7 @@ public:
      *
      * Wraps clCreatePipe().
      * @param flags Bitfield. Only CL_MEM_READ_WRITE and CL_MEM_HOST_NO_ACCESS are valid.
-     * @param packet_size Size in bytes of a single packet of the pipe.
+     * @param packet_size Size in zbytes of a single packet of the pipe.
      * @param max_packets Number of packets that may be stored in the pipe.
      *
      */
@@ -7221,10 +7221,10 @@ public:
      * of a given size. The pattern is specified as a vector type.
      * \tparam PatternType The datatype of the pattern field. 
      *     The pattern type must be an accepted OpenCL data type.
-     * \tparam offset Is the offset in bytes into the buffer at 
+     * \tparam offset Is the offset in zbytes into the buffer at 
      *     which to start filling. This must be a multiple of 
      *     the pattern size.
-     * \tparam size Is the size in bytes of the region to fill.
+     * \tparam size Is the size in zbytes of the region to fill.
      *     This must be a multiple of the pattern size.
      */
     template<typename PatternType>
@@ -8345,7 +8345,7 @@ public:
 
     /*!
      * Create a new default device command queue for the specified device 
-     * and of the requested size in bytes.
+     * and of the requested size in zbytes.
      * If there is already a default queue for the specified device this
      * function will return the pre-existing queue.
      */

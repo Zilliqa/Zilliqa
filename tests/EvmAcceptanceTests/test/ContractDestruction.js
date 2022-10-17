@@ -15,7 +15,7 @@ describe("Contract destruction with web3.js", function () {
       options = await web3_helper.getCommonOptions();
     });
 
-    it("should be destructed and coins in the contract should be transferred to the address specified in the method", async function () {
+    it("should be destructed and coins in the contract should be transferred to the address specified in the method [@transactional]", async function () {
       expect(await contract.methods.getPaidValue().call(options)).to.be.eq(amountPaid);
       const destAccount = await web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1)).address;
       const prevBalance = await web3.eth.getBalance(destAccount);
@@ -36,7 +36,7 @@ describe("Contract destruction with web3.js", function () {
       options = await web3_helper.getCommonOptions();
     });
 
-    it("Should be destructed and coins in the contract should be transferred to the address specified in the method", async function () {
+    it("Should be destructed and coins in the contract should be transferred to the address specified in the method [@transactional]", async function () {
       const result = await contract.methods
         .installChild(123)
         .send({gasLimit: 1000000, from: web3_helper.getPrimaryAccountAddress()});

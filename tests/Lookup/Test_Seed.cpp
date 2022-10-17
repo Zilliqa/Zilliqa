@@ -187,7 +187,7 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
   inet_pton(AF_INET, "127.0.0.1", &ip_addr);
   Peer lookup_node((uint128_t)ip_addr.s_addr, listen_port);
 
-  bytes dsblockmsg = {MessageType::DIRECTORY, DSInstructionType::DSBLOCK};
+  zbytes dsblockmsg = {MessageType::DIRECTORY, DSInstructionType::DSBLOCK};
   unsigned int curr_offset = MessageOffset::BODY;
 
   std::array<unsigned char, BLOCK_HASH_SIZE> prevHash1;

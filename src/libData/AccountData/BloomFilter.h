@@ -181,9 +181,9 @@ class BloomFilter {
 
   BloomFilter(const BloomFilter& filter) { this->operator=(filter); }
 
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(zbytes& dst, unsigned int offset) const;
 
-  bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const zbytes& src, unsigned int offset);
 
   inline bool operator==(const BloomFilter& f) const {
     if (this != &f) {

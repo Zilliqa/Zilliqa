@@ -1,3 +1,4 @@
+mod ec;
 pub mod ecrecover;
 pub mod identity;
 pub mod modexp;
@@ -12,6 +13,7 @@ use evm::executor::stack::PrecompileFn;
 use primitive_types::*;
 
 pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
+    // See https://www.evm.codes/precompiled.
     BTreeMap::from([
         (
             H160::from_str("0000000000000000000000000000000000000001").unwrap(),
@@ -32,6 +34,18 @@ pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
         (
             H160::from_str("0000000000000000000000000000000000000005").unwrap(),
             modexp::modexp as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000006").unwrap(),
+            ec::ec_add as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000007").unwrap(),
+            ec::ec_mul as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000008").unwrap(),
+            ec::ec_pairing as PrecompileFn,
         ),
     ])
 }

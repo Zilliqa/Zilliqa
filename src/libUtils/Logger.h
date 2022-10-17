@@ -114,7 +114,7 @@ class Logger {
                 const char* function);
 
   /// Outputs the specified message, function name, and payload to the main log.
-  void LogMessageAndPayload(const char* msg, const bytes& payload,
+  void LogMessageAndPayload(const char* msg, const zbytes& payload,
                             size_t max_bytes_to_display,
                             const unsigned int linenum, const char* filename,
                             const char* function);
@@ -123,7 +123,7 @@ class Logger {
                     const char* filename, const char* function,
                     const char* epoch);
 
-  void LogPayload(const LEVELS& level, const char* msg, const bytes& payload,
+  void LogPayload(const LEVELS& level, const char* msg, const zbytes& payload,
                   size_t max_bytes_to_display, const unsigned int linenum,
                   const char* filename, const char* function);
 
@@ -146,7 +146,7 @@ class Logger {
   static pid_t GetPid();
 
   /// Calculate payload string according to payload vector & length
-  static void GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
+  static void GetPayloadS(const zbytes& payload, size_t max_bytes_to_display,
                           std::unique_ptr<char[]>& res);
 };
 

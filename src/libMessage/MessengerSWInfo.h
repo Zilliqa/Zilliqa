@@ -27,10 +27,10 @@ class MessengerSWInfo {
   // Primitives
   // ============================================================================
 
-  static bool GetSWInfo(const bytes& src, const unsigned int offset,
+  static bool GetSWInfo(const zbytes& src, const unsigned int offset,
                         SWInfo& swInfo);
 
-  static bool SetSWInfo(bytes& dst, const unsigned int offset,
+  static bool SetSWInfo(zbytes& dst, const unsigned int offset,
                         const SWInfo& swInfo);
 };
 

@@ -74,7 +74,7 @@ bool InvokeFunction(string icfDataStr, string icfOutStr, int blockNum,
                     string sampleName, bool didResetCF, bool didResetICF) {
   LOG_MARKER();
 
-  bytes icfData(icfDataStr.begin(), icfDataStr.end());
+  zbytes icfData(icfDataStr.begin(), icfDataStr.end());
   Transaction icfTx(DataConversion::Pack(CHAIN_ID, 1), nonce, icfAddress,
                     sender, amount, gasPrice, gasLimit, {}, icfData);
   TransactionReceipt icfTr;
@@ -153,9 +153,9 @@ bool CreateContract(const int& blockNum, ResetType rType) {
       return false;
   }
 
-  bytes code(codeStr.begin(), codeStr.end());
+  zbytes code(codeStr.begin(), codeStr.end());
 
-  bytes initData(initStr.begin(), initStr.end());
+  zbytes initData(initStr.begin(), initStr.end());
 
   // LOG_GENERAL(INFO, "nonce: " << nonce);
 
@@ -213,7 +213,7 @@ void AutoTest(bool doResetCF, bool doResetICF,
       }
 
       if (samples[i].cfDataStr != "") {
-        bytes cfData(samples[i].cfDataStr.begin(), samples[i].cfDataStr.end());
+        zbytes cfData(samples[i].cfDataStr.begin(), samples[i].cfDataStr.end());
 
         uint128_t* t_nonce;
         if (samples[i].cfSender == sender) {

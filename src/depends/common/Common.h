@@ -31,13 +31,13 @@
 #include "vector_ref.h"
 
 // Binary data types.
-using byte = unsigned char;
+using zbyte = unsigned char;
 
 namespace dev
 {
-    using bytes = std::vector<byte>;
-    using bytesRef = vector_ref<byte>;
-    using bytesConstRef = vector_ref<byte const>;
+    using zbytes = std::vector<zbyte>;
+    using zbytesRef = vector_ref<zbyte>;
+    using zbytesConstRef = vector_ref<zbyte const>;
 
     template<class T>
     class secure_vector {
@@ -90,7 +90,7 @@ namespace dev
         std::vector<T> m_data;
     };
 
-    using bytesSec = secure_vector<byte>;
+    using bytesSec = secure_vector<zbyte>;
 
     // Numeric types.
     using bigint = boost::multiprecision::number<boost::multiprecision::cpp_int_backend<>>;
@@ -109,9 +109,9 @@ namespace dev
 
     // Map types.
     using StringMap = std::map<std::string, std::string>;
-    using BytesMap = std::map<bytes, bytes>;
+    using ZBytesMap = std::map<zbytes, zbytes>;
     using u256Map = std::map<u256, u256>;
-    using HexMap = std::map<bytes, bytes>;
+    using HexMap = std::map<zbytes, zbytes>;
 
     // Hash types.
     using StringHashMap = std::unordered_map<std::string, std::string>;
@@ -124,7 +124,7 @@ namespace dev
     using string32 = std::array<char, 32>;
 
     // Null/Invalid values for convenience.
-    extern bytes const NullBytes;
+    extern zbytes const NullBytes;
     extern u128 const Invalid128;
     extern u256 const Invalid256;
 

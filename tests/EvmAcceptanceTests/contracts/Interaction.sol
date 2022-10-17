@@ -12,8 +12,14 @@ contract WithSettersAndGetters {
     address public someAddress;
 
     event logWithoutParam();
+    event logAnonymous() anonymous;
+    event logAnonymousWithParam(string param) anonymous;
     event logWithUint256Param(uint256 value);
-    event logWithStringPram(string param); 
+    event logWithStringParam(string param); 
+    event logWithEnumParam(MyEnum param); 
+    event logWithAddressParam(address param); 
+    event logWithIndexedAddressParam(address indexed param); 
+    event logWithMultiParams(uint256 param1, string param2);
 
     /// Public Setters
     function setNumber(uint256 _number) public {
@@ -22,6 +28,14 @@ contract WithSettersAndGetters {
 
     function setName(string memory _name) public {
         name = _name;
+    }
+
+    function setAddress(address _address) public {
+        someAddress = _address;
+    }
+
+    function setEnum(MyEnum _enum) public {
+        someEnum = _enum;
     }
 
     /// External Setters
@@ -33,26 +47,29 @@ contract WithSettersAndGetters {
         name = _name;
     }
 
-    function setEnum(MyEnum _enum) public {
-        someEnum = _enum;
-    }
-
-    function setAddress(address _address) public {
+    function setAddressExternal(address _address) external {
         someAddress = _address;
     }
 
-    /// Public Views
+    function setEnumExternal(MyEnum _enum) external {
+        someEnum = _enum;
+    }
 
-    function getEnum() external view returns(MyEnum) {
+    /// Public Views
+    function getEnumPublic() public view returns(MyEnum) {
         return someEnum;
     }
 
-    function getNumberPublic() external view returns(uint256) {
+    function getNumberPublic() public view returns(uint256) {
         return number;
     }
 
-    function getNamePublic() external view returns(string memory) {
+    function getStringPublic() public view returns(string memory) {
         return name;
+    }
+
+    function getAddressPublic() public view returns(address) {
+        return someAddress;
     }
 
     // External Views
@@ -64,14 +81,46 @@ contract WithSettersAndGetters {
         return name;
     }
 
+    function getAddressExternal() external view returns(address) {
+        return someAddress;
+    }
+
+    function getEnumExternal() external view returns(MyEnum) {
+        return someEnum;
+    }
+
     // Public Pure Functions
-    function getOne() public pure returns(uint256) {
+    function getNumberPure() public pure returns(uint256) {
         return 1;
     }
 
+    function getStringPure() public pure returns(string memory) {
+        return "Zilliqa";
+    }
+
+    function getEnumPure() public pure returns(MyEnum) {
+        return MyEnum.Two;
+    }
+
+    function getTuplePure() public pure returns(uint256, string memory) {
+        return (123, "zilliqa");
+    }
+
     // External Pure Functions
-    function getTwo() external pure returns(uint256) {
-        return 2;
+    function getNumberPureExternal() external pure returns(uint256) {
+        return 1;
+    }
+
+    function getStringPureExternal() external pure returns(string memory) {
+        return "Zilliqa";
+    }
+
+    function getEnumPureExternal() external pure returns(MyEnum) {
+        return MyEnum.Two;
+    }
+
+    function getTuplePureExternal() external pure returns(uint256, string memory) {
+        return (123, "zilliqa");
     }
 
     // Log generators
@@ -81,5 +130,29 @@ contract WithSettersAndGetters {
 
     function emitLogWithUint256Param() public {
         emit logWithUint256Param(234);
+    }
+
+    function emitLogWithStringParam() public {
+        emit logWithStringParam("zilliqa");
+    }
+
+    function emitLogWithEnumParam() public {
+        emit logWithEnumParam(MyEnum.Zero);
+    }
+
+    function emitLogWithAddressParam() public {
+        emit logWithAddressParam(address(this));
+    }
+
+    function emitLogWithMultiParams() public {
+        emit logWithMultiParams(123, "zilliqa");
+    }
+
+    function emitLogAnonymous() public {
+        emit logAnonymous();
+    }
+
+    function emitLogAnonymousWithParam() public {
+        emit logAnonymousWithParam("zilliqa");
     }
 }

@@ -36,7 +36,7 @@ BOOST_AUTO_TEST_CASE(init) {
 }
 
 BOOST_AUTO_TEST_CASE(test_GetLookupSetTxBlockFromSeed) {
-  bytes dst;
+  zbytes dst;
   const unsigned int offset = 0;
   const uint64_t lowBlockNum = TestUtils::DistUint64();
   const uint64_t highBlockNum = TestUtils::DistUint64();
@@ -102,7 +102,7 @@ BOOST_AUTO_TEST_CASE(test_GetLookupSetTxBlockFromSeed) {
 }
 
 BOOST_AUTO_TEST_CASE(test_GetLookupSetDirectoryBlocksFromSeed) {
-  bytes dst;
+  zbytes dst;
   const unsigned int offset = 0;
   const uint32_t shardingStructureVersion = TestUtils::DistUint32();
   const uint64_t indexNum = TestUtils::DistUint64();

@@ -84,10 +84,10 @@ void Mediator::UpdateDSBlockRand(bool isGenesis) {
   } else {
     DSBlock lastBlock = m_dsBlockChain.GetLastBlock();
     SHA2<HashType::HASH_VARIANT_256> sha2;
-    bytes vec;
+    zbytes vec;
     lastBlock.GetHeader().Serialize(vec, 0);
     sha2.Update(vec);
-    bytes randVec;
+    zbytes randVec;
     randVec = sha2.Finalize();
     copy(randVec.begin(), randVec.end(), m_dsBlockRand.begin());
   }
@@ -104,10 +104,10 @@ void Mediator::UpdateTxBlockRand(bool isGenesis) {
   } else {
     TxBlock lastBlock = m_txBlockChain.GetLastBlock();
     SHA2<HashType::HASH_VARIANT_256> sha2;
-    bytes vec;
+    zbytes vec;
     lastBlock.GetHeader().Serialize(vec, 0);
     sha2.Update(vec);
-    bytes randVec;
+    zbytes randVec;
     randVec = sha2.Finalize();
     copy(randVec.begin(), randVec.end(), m_txBlockRand.begin());
   }

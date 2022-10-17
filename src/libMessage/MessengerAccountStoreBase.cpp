@@ -31,7 +31,7 @@ using namespace std;
 using namespace ZilliqaMessage;
 
 template <class T = ProtoAccountStore>
-bool SerializeToArray(const T& protoMessage, bytes& dst,
+bool SerializeToArray(const T& protoMessage, zbytes& dst,
                       const unsigned int offset);
 bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
@@ -39,11 +39,11 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 
 template bool
 MessengerAccountStoreBase::SetAccountStore<unordered_map<Address, Account>>(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const unordered_map<Address, Account>& addressToAccount);
 template bool
 MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     unordered_map<Address, Account>& addressToAccount);
 template bool
 MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
@@ -51,17 +51,17 @@ MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
     unordered_map<Address, Account>& addressToAccount);
 
 template bool MessengerAccountStoreBase::SetAccountStore<map<Address, Account>>(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const map<Address, Account>& addressToAccount);
 template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
-    const bytes& src, const unsigned int offset,
+    const zbytes& src, const unsigned int offset,
     map<Address, Account>& addressToAccount);
 template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
     const string& src, const unsigned int offset,
     map<Address, Account>& addressToAccount);
 
 template <class MAP>
-bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
+bool MessengerAccountStoreBase::SetAccountStore(zbytes& dst,
                                                 const unsigned int offset,
                                                 const MAP& addressToAccount) {
   ProtoAccountStore result;
@@ -91,7 +91,7 @@ bool MessengerAccountStoreBase::SetAccountStore(bytes& dst,
 }
 
 template <class MAP>
-bool MessengerAccountStoreBase::GetAccountStore(const bytes& src,
+bool MessengerAccountStoreBase::GetAccountStore(const zbytes& src,
                                                 const unsigned int offset,
                                                 MAP& addressToAccount) {
   ProtoAccountStore result;

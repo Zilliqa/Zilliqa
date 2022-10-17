@@ -1,0 +1,33 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index 1492005..2eeaf84 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -43,7 +43,7 @@ cmake_minimum_required(VERSION 3.2)
+ 
+ project(g3log CXX)
+ 
+-set(CMAKE_CXX_STANDARD 14)
++set(CMAKE_CXX_STANDARD 17)
+ set(CMAKE_CXX_STANDARD_REQUIRED ON)
+ 
+ if(NOT CMAKE_BUILD_TYPE AND NOT (MSVC_IDE OR XCODE))
+diff --git a/src/g3log/future.hpp b/src/g3log/future.hpp
+index 370f377..00aacd6 100644
+--- a/src/g3log/future.hpp
++++ b/src/g3log/future.hpp
+@@ -42,9 +42,15 @@ namespace g3 {
+    //  auto msg_call=[=](){return ("Hello from the Background");};
+    //  auto future_msg = g3::spawn_task(msg_lambda, bgWorker.get());
+    template <typename Func, class BgWorker>
++#if  __cplusplus >= 201703L
++   std::future<typename std::invoke_result<Func>::type> spawn_task(Func func, BgWorker *worker)
++   {
++      typedef typename std::invoke_result<Func>::type result_type;
++#else
+    std::future<typename std::result_of<Func()>::type> spawn_task(Func func, BgWorker *worker)
+    {
+       typedef typename std::result_of<Func()>::type result_type;
++#endif
+       typedef std::packaged_task<result_type()> task_type;
+ 
+       if (nullptr == worker) {

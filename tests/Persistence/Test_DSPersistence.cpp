@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
 
   DSBlock block1 = constructDummyDSBlock(0);
 
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
   block1.Serialize(serializedDSBlock, 0);
 
   DSBlock block2(serializedDSBlock, 0);
@@ -99,7 +99,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 
   DSBlock block1 = constructDummyDSBlock(0);
 
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
   block1.Serialize(serializedDSBlock, 0);
 
   BlockStorage::GetBlockStorage().PutDSBlock(0, serializedDSBlock);
@@ -163,7 +163,7 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
   LOG_PAYLOAD(WARNING, "serializedDSBlock", serializedDSBlock,
               serializedDSBlock.size());
 
-  bytes serializedDSBlock2;
+  zbytes serializedDSBlock2;
   (*block2).Serialize(serializedDSBlock2, 0);
   LOG_PAYLOAD(WARNING, "serializedDSBlock2", serializedDSBlock2,
               serializedDSBlock2.size());
@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
   DSBlock block3 = constructDummyDSBlock(3);
   DSBlock block4 = constructDummyDSBlock(4);
 
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
 
   block1.Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutDSBlock(1, serializedDSBlock);
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
   for (int i = 5; i < 21; i++) {
     block = constructDummyDSBlock(i);
 
-    bytes serializedDSBlock;
+    zbytes serializedDSBlock;
 
     block.Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
@@ -280,7 +280,7 @@ BOOST_AUTO_TEST_CASE(testCachedAndEvictedBlocks) {
 void writeBlock(unsigned int id) {
   DSBlock block = constructDummyDSBlock(id);
 
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
 
   block.Serialize(serializedDSBlock, 0);
   BlockStorage::GetBlockStorage().PutDSBlock(12345 + id, serializedDSBlock);
@@ -312,7 +312,7 @@ void bootstrap(int num_threads) {
     for (int j = 0; j < 100; j++) {
       DSBlock block = constructDummyDSBlock(i * 1000 + j);
 
-      bytes serializedDSBlock;
+      zbytes serializedDSBlock;
 
       block.Serialize(serializedDSBlock, 0);
       BlockStorage::GetBlockStorage().PutDSBlock(12345 + i * 1000 + j,
@@ -366,7 +366,7 @@ BOOST_AUTO_TEST_CASE(testMultipleBlocksInMultipleFiles) {
   for (int i = 21; i < 250; i++) {
     block = constructDummyDSBlock(i);
 
-    bytes serializedDSBlock;
+    zbytes serializedDSBlock;
 
     block.Serialize(serializedDSBlock, 0);
     BlockStorage::GetBlockStorage().PutDSBlock(i, serializedDSBlock);
@@ -396,7 +396,7 @@ BOOST_AUTO_TEST_CASE(testRetrieveAllTheDSBlocksInDB) {
     for (int i = 0; i < 10; i++) {
       DSBlock block = constructDummyDSBlock(i);
 
-      bytes serializedDSBlock;
+      zbytes serializedDSBlock;
 
       block.Serialize(serializedDSBlock, 0);
 

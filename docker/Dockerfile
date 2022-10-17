@@ -106,7 +106,6 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/bin/isolatedServer \
    /usr/local/bin/getrewardhistory \
 #    /usr/local/bin/zilliqa \
-   /usr/local/bin/data_migrate \
    /usr/local/lib/libSchnorr.so \
    /usr/local/lib/libCryptoUtils.so \
    /usr/local/lib/libNAT.so \

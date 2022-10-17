@@ -52,7 +52,7 @@ std::vector<KeyPairAddress> get_genesis_keypair_and_address() {
                     DS_GENESIS_KEYS.end());
 
   for (auto& privKeyHexStr : allGenesis) {
-    bytes out;
+    zbytes out;
     if (DataConversion::HexStrToUint8Vec(privKeyHexStr, out)) {
       const auto& privKeyBytes{out};
       auto privKey = PrivKey{privKeyBytes, 0};
@@ -87,7 +87,7 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   std::string txn_filename(oss.str());
   std::ofstream txn_file(txn_filename, std::fstream::binary);
 
-  bytes txnBuff;
+  zbytes txnBuff;
   std::vector<uint32_t> txnOffsets;
 
   for (auto nonce = begin; nonce < end; nonce++) {
@@ -111,13 +111,13 @@ void gen_txn_file(const std::string& prefix, const KeyPairAddress& from,
   // So it is easiler to get the transaction size when read out.
   txnOffsets.push_back(txnBuff.size());
 
-  bytes txnOffsetBuff;
+  zbytes txnOffsetBuff;
   if (!Messenger::SetTransactionFileOffset(txnOffsetBuff, 0, txnOffsets)) {
     std::cout << "Messenger::SetTransactionFileOffset failed." << std::endl;
     return;
   }
 
-  bytes buf;
+  zbytes buf;
   SerializableDataBlock::SetNumber<uint32_t>(buf, 0, txnOffsetBuff.size(),
                                              sizeof(uint32_t));
   buf.insert(buf.end(), txnOffsetBuff.begin(), txnOffsetBuff.end());

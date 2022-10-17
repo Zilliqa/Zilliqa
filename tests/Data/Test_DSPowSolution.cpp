@@ -42,10 +42,10 @@ BOOST_AUTO_TEST_CASE(testDSPowSolutionClass) {
   uint8_t difficultyLevelInput = TestUtils::DistUint8();
   Peer submitterPeerInput = Peer();
   PairOfKey keypair = TestUtils::GenerateRandomKeyPair();
-  bytes message = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
+  zbytes message = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
   PairOfKey sender = Schnorr::GenKeyPair();
   Signature signatureInput = TestUtils::GetSignature(message, keypair);
-  bytes message2 = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
+  zbytes message2 = TestUtils::GenerateRandomCharVector(TestUtils::Dist1to99());
   Signature signature2 = TestUtils::GetSignature(message, keypair);
   PubKey submitterKeyInput = keypair.second;
   uint64_t nonceInput = TestUtils::DistUint64();

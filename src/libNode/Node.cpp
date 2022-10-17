@@ -127,7 +127,7 @@ void Node::AddBalanceToGenesisAccount() {
   bool moduloCredited = false;
 
   for (auto& walletHexStr : allGenesis) {
-    bytes addrBytes;
+    zbytes addrBytes;
     if (!DataConversion::HexStrToUint8Vec(walletHexStr, addrBytes)) {
       continue;
     }
@@ -1420,7 +1420,7 @@ bool GetOneGenesisAddress(Address& oAddr) {
     return false;
   }
 
-  bytes oAddrBytes;
+  zbytes oAddrBytes;
   if (!DataConversion::HexStrToUint8Vec(GENESIS_WALLETS.front(), oAddrBytes)) {
     LOG_GENERAL(INFO, "invalid genesis key");
     return false;
@@ -1461,7 +1461,7 @@ fromPubKey, size_t n)
     return txns;
 }*/
 
-bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
+bool Node::ProcessSubmitMissingTxn(const zbytes& message, unsigned int offset,
                                    [[gnu::unused]] const Peer& from) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1547,7 +1547,8 @@ bool Node::ProcessSubmitMissingTxn(const bytes& message, unsigned int offset,
 }
 
 bool Node::ProcessSubmitTransaction(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1588,7 +1589,7 @@ bool Node::ProcessSubmitTransaction(
 }
 
 bool Node::ProcessTxnPacketFromLookup(
-    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -1655,7 +1656,7 @@ bool Node::ProcessTxnPacketFromLookup(
           0))) {
       SHA2<HashType::HASH_VARIANT_256> sha256;
       sha256.Update(message);  // message hash
-      bytes msg_hash = sha256.Finalize();
+      zbytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
       m_txnPacketBuffer.emplace(msg_hash, message);
       return true;
@@ -1710,7 +1711,7 @@ bool Node::ProcessTxnPacketFromLookup(
     }
     SHA2<HashType::HASH_VARIANT_256> sha256;
     sha256.Update(message);  // message hash
-    bytes msg_hash = sha256.Finalize();
+    zbytes msg_hash = sha256.Finalize();
     m_txnPacketBuffer.emplace(msg_hash, message);
   } else {
     // not from lookup and in proper state
@@ -1727,7 +1728,7 @@ bool Node::ProcessTxnPacketFromLookup(
   return true;
 }
 
-bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
+bool Node::ProcessTxnPacketFromLookupCore(const zbytes& message,
                                           const uint64_t& epochNum,
                                           const uint64_t& dsBlockNum,
                                           const uint32_t& shardId,
@@ -1744,7 +1745,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 
   SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);  // message hash
-  bytes msg_hash = sha256.Finalize();
+  zbytes msg_hash = sha256.Finalize();
 
   {
     lock_guard<mutex> g(m_mutexTxnPktInProcess);
@@ -1997,7 +1998,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const bytes& message,
 }
 
 bool Node::ProcessProposeGasPrice(
-    [[gnu::unused]] const bytes& message, [[gnu::unused]] unsigned int offset,
+    [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -2345,8 +2346,8 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
     LOG_GENERAL(INFO, "I am a ds guard node. So skipping sending...");
     return false;
   }
-  bytes message = {MessageType::NODE,
-                   NodeInstructionType::REMOVENODEFROMBLACKLIST};
+  zbytes message = {MessageType::NODE,
+                    NodeInstructionType::REMOVENODEFROMBLACKLIST};
 
   uint64_t curDSEpochNo =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
@@ -2408,7 +2409,7 @@ bool Node::WhitelistReqsValidator(const uint128_t& ipAddress) {
 }
 
 bool Node::ProcessRemoveNodeFromBlacklist(
-    const bytes& message, unsigned int offset, const Peer& from,
+    const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -2455,7 +2456,7 @@ bool Node::ProcessRemoveNodeFromBlacklist(
   return true;
 }
 
-bool Node::NoOp([[gnu::unused]] const bytes& message,
+bool Node::NoOp([[gnu::unused]] const zbytes& message,
                 [[gnu::unused]] unsigned int offset,
                 [[gnu::unused]] const Peer& from,
                 [[gnu::unused]] const unsigned char& startByte) {
@@ -2463,7 +2464,7 @@ bool Node::NoOp([[gnu::unused]] const bytes& message,
   return true;
 }
 
-bool Node::ProcessDoRejoin(const bytes& message, unsigned int offset,
+bool Node::ProcessDoRejoin(const zbytes& message, unsigned int offset,
                            [[gnu::unused]] const Peer& from,
                            [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
@@ -2531,7 +2532,7 @@ bool Node::UpdateShardNodeIdentity() {
               "network info.");
 
   // To provide current pubkey, new IP, new Port and current timestamp
-  bytes updateShardNodeIdentitymessage = {
+  zbytes updateShardNodeIdentitymessage = {
       MessageType::NODE, NodeInstructionType::NEWSHARDNODEIDENTITY};
 
   uint64_t curDSEpochNo =
@@ -2575,7 +2576,7 @@ bool Node::UpdateShardNodeIdentity() {
 }
 
 bool Node::ProcessNewShardNodeNetworkInfo(
-    const bytes& message, unsigned int offset, const Peer& from,
+    const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -2687,7 +2688,7 @@ bool Node::ProcessNewShardNodeNetworkInfo(
   return true;
 }
 
-bool Node::ProcessGetVersion(const bytes& message, unsigned int offset,
+bool Node::ProcessGetVersion(const zbytes& message, unsigned int offset,
                              const Peer& from,
                              [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -2698,7 +2699,7 @@ bool Node::ProcessGetVersion(const bytes& message, unsigned int offset,
       LOG_GENERAL(WARNING, "Messenger::GetNodeGetVersion failed");
       return false;
     }
-    bytes response = {MessageType::NODE, NodeInstructionType::SETVERSION};
+    zbytes response = {MessageType::NODE, NodeInstructionType::SETVERSION};
     if (!Messenger::SetNodeSetVersion(response, MessageOffset::BODY,
                                       VERSION_TAG)) {
       LOG_GENERAL(WARNING, "Messenger::SetNodeSetVersion failed");
@@ -2712,7 +2713,7 @@ bool Node::ProcessGetVersion(const bytes& message, unsigned int offset,
   return true;
 }
 
-bool Node::ProcessSetVersion(const bytes& message, unsigned int offset,
+bool Node::ProcessSetVersion(const zbytes& message, unsigned int offset,
                              const Peer& from,
                              [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -2763,7 +2764,7 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 
   LOG_MARKER();
 
-  bytes queryLookupForDSGuardNetworkInfoUpdate = {
+  zbytes queryLookupForDSGuardNetworkInfoUpdate = {
       MessageType::LOOKUP,
       LookupInstructionType::GETGUARDNODENETWORKINFOUPDATE};
   uint64_t dsEpochNum =
@@ -2788,7 +2789,8 @@ void Node::QueryLookupForDSGuardNetworkInfoUpdate() {
 }
 
 bool Node::ProcessDSGuardNetworkInfoUpdate(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(
@@ -2953,7 +2955,7 @@ void Node::GetNodesToBroadCastUsingTreeBasedClustering(
 // Tree-Based Clustering decision
 //  --  Should I broadcast the message to some-one from my shard.
 //  --  If yes, To whom-all should i broadcast the message.
-void Node::SendBlockToOtherShardNodes(const bytes& message,
+void Node::SendBlockToOtherShardNodes(const zbytes& message,
                                       uint32_t cluster_size,
                                       uint32_t num_of_child_clusters) {
   LOG_MARKER();
@@ -2962,7 +2964,7 @@ void Node::SendBlockToOtherShardNodes(const bytes& message,
 
   SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);  // raw_message hash
-  bytes this_msg_hash = sha256.Finalize();
+  zbytes this_msg_hash = sha256.Finalize();
 
   lock_guard<mutex> g(m_mutexShardMember);
 
@@ -3021,14 +3023,14 @@ bool Node::RecalculateMyShardId(bool& ipChanged) {
   return false;
 }
 
-bool Node::Execute(const bytes& message, unsigned int offset, const Peer& from,
+bool Node::Execute(const zbytes& message, unsigned int offset, const Peer& from,
                    const unsigned char& startByte) {
   // LOG_MARKER();
 
   bool result = true;
 
   typedef bool (Node::*InstructionHandler)(
-      const bytes&, unsigned int, const Peer&, const unsigned char& startByte);
+      const zbytes&, unsigned int, const Peer&, const unsigned char& startByte);
 
   InstructionHandler ins_handlers[] = {
       &Node::ProcessStartPoW,
@@ -3267,7 +3269,7 @@ bool Node ::StoreVoteUntilPow(const std::string& proposalId,
 void Node::CheckPeers(const vector<Peer>& peers) {
   LOG_MARKER();
 
-  bytes message = {MessageType::NODE, NodeInstructionType::GETVERSION};
+  zbytes message = {MessageType::NODE, NodeInstructionType::GETVERSION};
   if (!Messenger::SetNodeGetVersion(message, MessageOffset::BODY,
                                     m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");

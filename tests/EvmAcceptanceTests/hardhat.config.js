@@ -21,8 +21,8 @@ module.exports = {
       zilliqaNetwork: false,
       miningState: true
     },
-    zilliqa: {
-      url: "https://master-mod-api.dev.z7a.xyz/",
+    devnet: {
+      url: "https://evmdev-l2api.dev.z7a.xyz",
       accounts: [
         "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",

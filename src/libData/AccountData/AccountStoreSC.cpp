@@ -342,7 +342,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // 0xabc._depth.data1
       // 0xabc._type.data1
 
-      std::map<std::string, bytes> t_metadata;
+      std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               toAddr, SCILLA_VERSION_INDICATOR, {}),
@@ -962,7 +962,7 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
 template <class MAP>
 bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
     const Address& addr, const std::string& checkerPrint,
-    TransactionReceipt& receipt, std::map<std::string, bytes>& metadata,
+    TransactionReceipt& receipt, std::map<std::string, zbytes>& metadata,
     uint64_t& gasRemained, bool is_library) {
   LOG_MARKER();
 

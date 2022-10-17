@@ -239,7 +239,7 @@ bool ConsensusLeader::StartConsensusSubsets() {
 
   m_numSubsetsRunning = m_consensusSubsets.size();
 
-  bytes challenge = {m_classByte, m_insByte, static_cast<uint8_t>(type)};
+  zbytes challenge = {m_classByte, m_insByte, static_cast<uint8_t>(type)};
   if (!GenerateChallengeMessage(challenge,
                                 MessageOffset::BODY + sizeof(uint8_t))) {
     LOG_GENERAL(WARNING, "GenerateChallengeMessage failed");
@@ -338,7 +338,7 @@ void ConsensusLeader::SubsetEnded(uint16_t subsetID) {
 }
 
 bool ConsensusLeader::ProcessMessageCommitCore(
-    const bytes& commit, unsigned int offset, Action action,
+    const zbytes& commit, unsigned int offset, Action action,
     [[gnu::unused]] ConsensusMessageType returnmsgtype,
     [[gnu::unused]] State nextstate, const Peer& from) {
   LOG_MARKER();
@@ -449,16 +449,15 @@ bool ConsensusLeader::ProcessMessageCommitCore(
   return true;
 }
 
-bool ConsensusLeader::ProcessMessageCommit(const bytes& commit,
+bool ConsensusLeader::ProcessMessageCommit(const zbytes& commit,
                                            unsigned int offset,
                                            const Peer& from) {
   return ProcessMessageCommitCore(commit, offset, PROCESS_COMMIT, CHALLENGE,
                                   CHALLENGE_DONE, from);
 }
 
-bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
-                                                  unsigned int offset,
-                                                  const Peer& from) {
+bool ConsensusLeader::ProcessMessageCommitFailure(
+    const zbytes& commitFailureMsg, unsigned int offset, const Peer& from) {
   LOG_MARKER();
 
   if (!CheckState(PROCESS_COMMITFAILURE)) {
@@ -466,7 +465,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
   }
 
   uint16_t backupID = 0;
-  bytes errorMsg;
+  zbytes errorMsg;
 
   if (!Messenger::GetConsensusCommitFailure(
           commitFailureMsg, offset, m_consensusID, m_blockNumber, m_blockHash,
@@ -487,7 +486,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
   if (m_commitFailureCounter == (m_numForConsensusFailure + 1)) {
     m_state = INITIAL;
 
-    bytes consensusFailureMsg = {m_classByte, m_insByte, CONSENSUSFAILURE};
+    zbytes consensusFailureMsg = {m_classByte, m_insByte, CONSENSUSFAILURE};
 
     if (!Messenger::SetConsensusConsensusFailure(
             consensusFailureMsg, MessageOffset::BODY + sizeof(uint8_t),
@@ -516,7 +515,7 @@ bool ConsensusLeader::ProcessMessageCommitFailure(const bytes& commitFailureMsg,
   return true;
 }
 
-bool ConsensusLeader::GenerateChallengeMessage(bytes& challenge,
+bool ConsensusLeader::GenerateChallengeMessage(zbytes& challenge,
                                                unsigned int offset) {
   LOG_MARKER();
 
@@ -571,7 +570,7 @@ bool ConsensusLeader::GenerateChallengeMessage(bytes& challenge,
 }
 
 bool ConsensusLeader::ProcessMessageResponseCore(
-    const bytes& response, unsigned int offset, Action action,
+    const zbytes& response, unsigned int offset, Action action,
     ConsensusMessageType returnmsgtype, State nextstate, const Peer& from) {
   LOG_MARKER();
   // Initial checks
@@ -695,8 +694,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
     if (subset.responseCounter == m_numForConsensus) {
       LOG_GENERAL(INFO, "[Subset " << subsetID << "] Sufficient responses");
 
-      bytes collectivesig = {m_classByte, m_insByte,
-                             static_cast<uint8_t>(returnmsgtype)};
+      zbytes collectivesig = {m_classByte, m_insByte,
+                              static_cast<uint8_t>(returnmsgtype)};
       if (!GenerateCollectiveSigMessage(
               collectivesig, MessageOffset::BODY + sizeof(uint8_t), subsetID)) {
         LOG_GENERAL(WARNING, "GenerateCollectiveSigMessage failed");
@@ -803,14 +802,14 @@ bool ConsensusLeader::ProcessMessageResponseCore(
   return true;
 }
 
-bool ConsensusLeader::ProcessMessageResponse(const bytes& response,
+bool ConsensusLeader::ProcessMessageResponse(const zbytes& response,
                                              unsigned int offset,
                                              const Peer& from) {
   return ProcessMessageResponseCore(response, offset, PROCESS_RESPONSE,
                                     COLLECTIVESIG, COLLECTIVESIG_DONE, from);
 }
 
-bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
+bool ConsensusLeader::GenerateCollectiveSigMessage(zbytes& collectivesig,
                                                    unsigned int offset,
                                                    uint16_t subsetID) {
   LOG_MARKER();
@@ -842,7 +841,7 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
     return false;
   }
 
-  bytes new_announcement_message;
+  zbytes new_announcement_message;
   if (m_collSigAnnouncementGeneratorFunc) {
     // Wait and fetch new announcement message once ready
     // ==================================
@@ -883,14 +882,14 @@ bool ConsensusLeader::GenerateCollectiveSigMessage(bytes& collectivesig,
   return true;
 }
 
-bool ConsensusLeader::ProcessMessageFinalCommit(const bytes& finalcommit,
+bool ConsensusLeader::ProcessMessageFinalCommit(const zbytes& finalcommit,
                                                 unsigned int offset,
                                                 const Peer& from) {
   return ProcessMessageCommitCore(finalcommit, offset, PROCESS_FINALCOMMIT,
                                   FINALCHALLENGE, FINALCHALLENGE_DONE, from);
 }
 
-bool ConsensusLeader::ProcessMessageFinalResponse(const bytes& finalresponse,
+bool ConsensusLeader::ProcessMessageFinalResponse(const zbytes& finalresponse,
                                                   unsigned int offset,
                                                   const Peer& from) {
   return ProcessMessageResponseCore(finalresponse, offset,
@@ -899,7 +898,7 @@ bool ConsensusLeader::ProcessMessageFinalResponse(const bytes& finalresponse,
 }
 
 ConsensusLeader::ConsensusLeader(
-    uint32_t consensus_id, uint64_t block_number, const bytes& block_hash,
+    uint32_t consensus_id, uint64_t block_number, const zbytes& block_hash,
     uint16_t node_id, const PrivKey& privkey, const DequeOfNode& committee,
     unsigned char class_byte, unsigned char ins_byte,
     NodeCommitFailureHandlerFunc nodeCommitFailureHandlerFunc,
@@ -969,8 +968,8 @@ bool ConsensusLeader::StartConsensus(
 
   // Assemble announcement message body
   // ==================================
-  bytes announcement_message = {m_classByte, m_insByte,
-                                ConsensusMessageType::ANNOUNCE};
+  zbytes announcement_message = {m_classByte, m_insByte,
+                                 ConsensusMessageType::ANNOUNCE};
 
   if (!announcementGeneratorFunc(
           announcement_message, MessageOffset::BODY + sizeof(uint8_t),
@@ -1039,7 +1038,7 @@ bool ConsensusLeader::StartConsensus(
   return true;
 }
 
-bool ConsensusLeader::ProcessMessage(const bytes& message, unsigned int offset,
+bool ConsensusLeader::ProcessMessage(const zbytes& message, unsigned int offset,
                                      const Peer& from) {
   LOG_MARKER();
 

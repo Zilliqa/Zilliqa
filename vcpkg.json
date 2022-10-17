@@ -1,6 +1,6 @@
 {
   "name": "zilliqa",
-  "version-string": "9.0.0",
+  "version-string": "master",
   "dependencies": [
     "jsoncpp",
     "openssl",
@@ -49,7 +49,11 @@
     },
     {
       "name": "libmicrohttpd",
-      "version-string": "0.9.63#7"
+      "version-string": "0.9.63#8"
+    },
+    {
+      "name": "g3log",
+      "version-string": "1.3.4#4"
     },
     {
       "name": "schnorr",
