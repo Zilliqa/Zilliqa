@@ -32,8 +32,9 @@ class DetachedFunction {
   /// Template constructor.
   template <class callable, class... arguments>
   DetachedFunction(int num_threads, callable&& f, arguments&&... args) {
-    std::function<typename std::result_of<callable(arguments...)>::type()> task(
-        std::bind(std::forward<callable>(f), std::forward<arguments>(args)...));
+    std::function<typename std::invoke_result<callable, arguments...>::type()>
+        task(std::bind(std::forward<callable>(f),
+                       std::forward<arguments>(args)...));
 
     bool attempt_flag = false;
 

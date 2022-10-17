@@ -86,7 +86,7 @@ std::string dev::randomWord()
     return ret;
 }
 
-bytes dev::fromHex(std::string const& _s, WhenError _throw)
+zbytes dev::fromHex(std::string const& _s, WhenError _throw)
 {
     unsigned s = (_s.size() >= 2 && _s[0] == '0' && _s[1] == 'x') ? 2 : 0;
     std::vector<uint8_t> ret;
@@ -100,23 +100,23 @@ bytes dev::fromHex(std::string const& _s, WhenError _throw)
         else if (_throw == WhenError::Throw)
             BOOST_THROW_EXCEPTION(BadHexCharacter());
         else
-            return bytes();
+            return zbytes();
     }
     for (unsigned i = s; i < _s.size(); i += 2)
     {
         int h = fromHexChar(_s[i]);
         int l = fromHexChar(_s[i + 1]);
         if (h != -1 && l != -1)
-            ret.push_back((byte)(h * 16 + l));
+            ret.push_back((zbyte)(h * 16 + l));
         else if (_throw == WhenError::Throw)
             BOOST_THROW_EXCEPTION(BadHexCharacter());
         else
-            return bytes();
+            return zbytes();
     }
     return ret;
 }
 
-bytes dev::asNibbles(bytesConstRef const& _s)
+zbytes dev::asNibbles(zbytesConstRef const& _s)
 {
     std::vector<uint8_t> ret;
     ret.reserve(_s.size() * 2);

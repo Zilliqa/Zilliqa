@@ -79,9 +79,6 @@ int main(int argc, const char* argv[]) {
   bool loadPersistence{false};
   bool nonisoload{false};
   string uuid;
-
-  LOOKUP_NODE_MODE = true;
-
   try {
     po::options_description desc("Options");
 

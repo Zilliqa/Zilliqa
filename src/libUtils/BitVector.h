@@ -24,10 +24,10 @@ class BitVector {
  public:
   static unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
   static unsigned int GetBitVectorSerializedSize(unsigned int length_in_bits);
-  static std::vector<bool> GetBitVector(const bytes& src, unsigned int offset,
+  static std::vector<bool> GetBitVector(const zbytes& src, unsigned int offset,
                                         unsigned int expected_length);
-  static std::vector<bool> GetBitVector(const bytes& src, unsigned int offset);
-  static unsigned int SetBitVector(bytes& dst, unsigned int offset,
+  static std::vector<bool> GetBitVector(const zbytes& src, unsigned int offset);
+  static unsigned int SetBitVector(zbytes& dst, unsigned int offset,
                                    const std::vector<bool>& value);
 };
 

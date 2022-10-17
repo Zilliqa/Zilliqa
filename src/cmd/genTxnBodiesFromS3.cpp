@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
         // Now read back file to see if the TransactionWithReceipt is good
         infile.open(txns_filename, ios::in | ios::binary);
         TxnHash r_txn_hash;
-        bytes buff;
+        zbytes buff;
 
         // Get the txnHash length and raw bytes of txnHash itself
         size_t len;

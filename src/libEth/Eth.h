@@ -40,13 +40,13 @@ constexpr auto MAX_EVM_CONTRACT_SIZE_BYTES = 24576;
 struct EthFields {
   uint32_t version{};
   uint64_t nonce{};
-  bytes toAddr;
+  zbytes toAddr;
   uint128_t amount;
   uint128_t gasPrice;
   uint64_t gasLimit{};
-  bytes code;
-  bytes data;
-  bytes signature;
+  zbytes code;
+  zbytes data;
+  zbytes signature;
 };
 
 Json::Value populateReceiptHelper(

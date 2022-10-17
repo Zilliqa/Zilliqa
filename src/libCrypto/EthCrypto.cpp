@@ -55,11 +55,11 @@ auto epFree = [](EC_POINT* b) { EC_POINT_free(b); };
 auto esFree = [](ECDSA_SIG* b) { ECDSA_SIG_free(b); };
 auto ekFree = [](EC_KEY* b) { EC_KEY_free(b); };
 
-bool PubKeysSame(bytes const& pubkA, PubKey const& pubkB) {
+bool PubKeysSame(zbytes const& pubkA, PubKey const& pubkB) {
   return PubKey(pubkA, 0) == pubkB;
 }
 
-bytes DerivePubkey(bytes rs, int vSelect, const unsigned char* signingHash) {
+zbytes DerivePubkey(zbytes rs, int vSelect, const unsigned char* signingHash) {
   // Load the RS into the library
   std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
       s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
@@ -84,7 +84,7 @@ bytes DerivePubkey(bytes rs, int vSelect, const unsigned char* signingHash) {
   }
 
   // Parse the public key out of the library format
-  bytes serializedPubkey(65);
+  zbytes serializedPubkey(65);
   size_t serializedPubkeySize = serializedPubkey.size();
   secp256k1_ec_pubkey_serialize(ctx, serializedPubkey.data(),
                                 &serializedPubkeySize, &rawPubkey,
@@ -191,7 +191,7 @@ bool SetOpensslPublicKey(const char* sPubKeyString, EC_KEY* pKey) {
   }
 }
 
-bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
+bool VerifyEcdsaSecp256k1(const zbytes& sRandomNumber,
                           const std::string& sSignature,
                           const std::string& sDevicePubKeyInHex) {
   std::unique_ptr<ECDSA_SIG, decltype(esFree)> zSignature(ECDSA_SIG_new(),
@@ -213,8 +213,8 @@ bool VerifyEcdsaSecp256k1(const bytes& sRandomNumber,
   return result;
 }
 
-bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
-                        bytes& signature) {
+bool SignEcdsaSecp256k1(const zbytes& digest, const zbytes& privKey,
+                        zbytes& signature) {
   if (digest.size() != 32) {
     LOG_GENERAL(WARNING, "Singing ECDSA: wrong digest length");
     return false;
@@ -253,7 +253,7 @@ bool SignEcdsaSecp256k1(const bytes& digest, const bytes& privKey,
 // representation of the pubkey in uncompressed format.
 // The input will have the '02' prefix, and the output will have the '04' prefix
 // per the 'Standards for Efficient Cryptography' specification
-bytes ToUncompressedPubKey(std::string const& pubKey) {
+zbytes ToUncompressedPubKey(std::string const& pubKey) {
   // Create public key pointer
   std::unique_ptr<EC_KEY, decltype(ekFree)> zPublicKey(
       EC_KEY_new_by_curve_name(NID_secp256k1), ekFree);
@@ -286,7 +286,7 @@ bytes ToUncompressedPubKey(std::string const& pubKey) {
     printf("pub key to data fail\n");
   }
 
-  bytes ret{};
+  zbytes ret{};
 
   if (pubKeyOut2 - &pubKeyOut[0] != UNCOMPRESSED_SIGNATURE_SIZE) {
     LOG_GENERAL(WARNING, "Pubkey size incorrect after decompressing:"
@@ -302,7 +302,7 @@ bytes ToUncompressedPubKey(std::string const& pubKey) {
 // EIP-155 : assume the chain height is high enough that the signing scheme
 // is in line with EIP-155.
 // message shall not contain '0x'
-bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
+zbytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
   if (message.size() >= 2) {
     auto const firstByte = DataConversion::HexStrToUint8VecRet(message)[0];
     // See https://eips.ethereum.org/EIPS/eip-2718 section "Backwards
@@ -316,7 +316,7 @@ bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
 
   // First we need to parse the RSV message, then set the last three fields
   // to chain_id, 0, 0 in order to recreate what was signed
-  bytes asBytes;
+  zbytes asBytes;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes,
@@ -330,13 +330,13 @@ bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
 
   int i = 0;
   int v = 0;
-  bytes rs;
+  zbytes rs;
 
   // Iterate through the RLP message and build up what the message was before
   // it was hashed and signed. That is, same size, same fields, except
   // v = chain_id, R and S = 0
   for (const auto& item : rlpStream1) {
-    auto itemBytes = item.operator bytes();
+    auto itemBytes = item.operator zbytes();
 
     // First 5 fields stay the same
     if (i <= 5) {
@@ -351,8 +351,8 @@ bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
 
     // Fields R and S
     if (i == 7 || i == 8) {
-      rlpStreamRecreated << bytes{};
-      bytes b = dev::toBigEndian(dev::u256(item));
+      rlpStreamRecreated << zbytes{};
+      zbytes b = dev::toBigEndian(dev::u256(item));
       rs.insert(rs.end(), b.begin(), b.end());
     }
     i++;
@@ -385,13 +385,13 @@ bytes RecoverECDSAPubKey(std::string const& message, int chain_id) {
 }
 
 // nonce, gasprice, startgas, to, value, data, chainid, 0, 0
-bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
+zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   dev::RLPStream rlpStreamRecreated(9);
 
   rlpStreamRecreated << info.nonce - 1;
   rlpStreamRecreated << info.gasPrice;
   rlpStreamRecreated << info.gasLimit;
-  bytes toAddr;
+  zbytes toAddr;
   if (!IsNullAddress(info.toAddr)) {
     toAddr = info.toAddr.asBytes();
   }
@@ -406,13 +406,13 @@ bytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   }
 
   rlpStreamRecreated << chainId;
-  rlpStreamRecreated << bytes{};
-  rlpStreamRecreated << bytes{};
+  rlpStreamRecreated << zbytes{};
+  rlpStreamRecreated << zbytes{};
 
   auto const signingHash = ethash::keccak256(rlpStreamRecreated.out().data(),
                                              rlpStreamRecreated.out().size());
 
-  return bytes{&signingHash.bytes[0], &signingHash.bytes[32]};
+  return zbytes{&signingHash.bytes[0], &signingHash.bytes[32]};
 }
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
@@ -443,7 +443,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << info.nonce - 1;
     rlpStreamRecreated << info.gasPrice;
     rlpStreamRecreated << info.gasLimit;
-    bytes toAddr;
+    zbytes toAddr;
     if (!IsNullAddress(info.toAddr)) {
       toAddr = info.toAddr.asBytes();
     }
@@ -466,7 +466,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
 
     auto const* dataPtr = rlpStreamRecreated.out().data();
     auto const& asString = DataConversion::Uint8VecToHexStrRet(
-        bytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
+        zbytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
 
     auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
@@ -479,21 +479,21 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
   }
 }
 
-bytes ToEVM(bytes const& in) {
+zbytes ToEVM(zbytes const& in) {
   if (in.empty()) {
     return in;
   }
 
   std::string prefixedEvm{"EVM"};
   prefixedEvm += DataConversion::Uint8VecToHexStrRet(in);
-  bytes ret;
+  zbytes ret;
 
   std::copy(prefixedEvm.begin(), prefixedEvm.end(), std::back_inserter(ret));
 
   return ret;
 }
 
-bytes FromEVM(bytes const& in) {
+zbytes FromEVM(zbytes const& in) {
   if (in.size() < 4) {
     return in;
   }
@@ -503,37 +503,37 @@ bytes FromEVM(bytes const& in) {
   return DataConversion::HexStrToUint8VecRet(ret);
 }
 
-bytes StripEVM(bytes const& in) {
+zbytes StripEVM(zbytes const& in) {
   if (in.size() >= 3 && in[0] == 'E' && in[1] == 'V' && in[2] == 'M') {
-    return bytes(in.begin() + 3, in.end());
+    return zbytes(in.begin() + 3, in.end());
   } else {
     return in;
   }
 }
 
-bytes CreateHash(std::string const& rawTx) {
+zbytes CreateHash(std::string const& rawTx) {
   auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
 
   auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
 
-  bytes hashBytes;
+  zbytes hashBytes;
 
   hashBytes.insert(hashBytes.end(), &hash.bytes[0], &hash.bytes[32]);
 
   return hashBytes;
 }
 
-bytes CreateContractAddr(bytes const& senderAddr, int nonce) {
+zbytes CreateContractAddr(zbytes const& senderAddr, int nonce) {
   dev::RLPStream rlpStream(2);
   rlpStream << senderAddr;
   rlpStream << nonce;
 
   auto const* dataPtr = rlpStream.out().data();
-  auto const asBytes = bytes(dataPtr, dataPtr + rlpStream.out().size());
+  auto const asBytes = zbytes(dataPtr, dataPtr + rlpStream.out().size());
 
   auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
 
-  bytes hashBytes;
+  zbytes hashBytes;
 
   // Only the last 40 bytes needed
   hashBytes.insert(hashBytes.end(), &hash.bytes[12], &hash.bytes[32]);
@@ -587,7 +587,7 @@ std::string GetV(TransactionCoreInfo const& info, uint64_t chainId,
 // 2. Remove first byte (compression indicator byte)
 // 3. Keccak256 on remaining
 // 4. Last 20 bytes is result
-Address CreateAddr(bytes const& publicKey) {
+Address CreateAddr(zbytes const& publicKey) {
   Address address;
 
   // Do not hash the first byte, as it specifies the encoding

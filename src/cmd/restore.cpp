@@ -125,7 +125,7 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
 
           // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
           for (unsigned int j = firstStateDeltaIndex; j <= i; j++) {
-            bytes stateDelta;
+            zbytes stateDelta;
             LOG_GENERAL(
                 INFO,
                 "Try fetching statedelta and deserializing to state for txnBlk:"

@@ -50,7 +50,7 @@ AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
       m_storageRoot(h256()),
       m_codeHash(h256()) {}
 
-bool AccountBase::Serialize(bytes& dst, unsigned int offset) const {
+bool AccountBase::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccountBase(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
     return false;
@@ -59,7 +59,7 @@ bool AccountBase::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool AccountBase::Deserialize(const bytes& src, unsigned int offset) {
+bool AccountBase::Deserialize(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   if (!Messenger::GetAccountBase(src, offset, *this)) {
@@ -140,7 +140,7 @@ bool AccountBase::isContract() const { return m_codeHash != dev::h256(); }
 
 // =======================================
 // Account
-Account::Account(const bytes& src, unsigned int offset) {
+Account::Account(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init Account.");
   }
@@ -150,7 +150,7 @@ Account::Account(const uint128_t& balance, const uint64_t& nonce,
                  const uint32_t& version)
     : AccountBase(balance, nonce, version) {}
 
-bool Account::InitContract(const bytes& code, const bytes& initData,
+bool Account::InitContract(const zbytes& code, const zbytes& initData,
                            const Address& addr, const uint64_t& blockNum) {
   LOG_MARKER();
 
@@ -185,7 +185,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
   return true;
 }
 
-bool Account::Serialize(bytes& dst, unsigned int offset) const {
+bool Account::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccount(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
     return false;
@@ -194,7 +194,7 @@ bool Account::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool Account::Deserialize(const bytes& src, unsigned int offset) {
+bool Account::Deserialize(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
   // This function is depreciated.
   if (!Messenger::GetAccount(src, offset, *this)) {
@@ -205,11 +205,11 @@ bool Account::Deserialize(const bytes& src, unsigned int offset) {
   return true;
 }
 
-bool Account::SerializeBase(bytes& dst, unsigned int offset) const {
+bool Account::SerializeBase(zbytes& dst, unsigned int offset) const {
   return AccountBase::Serialize(dst, offset);
 }
 
-bool Account::DeserializeBase(const bytes& src, unsigned int offset) {
+bool Account::DeserializeBase(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   return AccountBase::Deserialize(src, offset);
@@ -322,7 +322,7 @@ bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
   return true;
 }
 
-bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
+bool Account::PrepareInitDataJson(const zbytes& initData, const Address& addr,
                                   const uint64_t& blockNum, Json::Value& root,
                                   uint32_t& scilla_version, bool& is_library,
                                   vector<Address>& extlibs) {
@@ -358,7 +358,7 @@ bool Account::PrepareInitDataJson(const bytes& initData, const Address& addr,
   return true;
 }
 
-bool Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
+bool Account::GetUpdatedStates(std::map<std::string, zbytes>& t_states,
                                std::set<std::string>& toDeleteIndices,
                                bool temp) const {
   ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(
@@ -368,7 +368,7 @@ bool Account::GetUpdatedStates(std::map<std::string, bytes>& t_states,
 }
 
 bool Account::UpdateStates(const Address& addr,
-                           const std::map<std::string, bytes>& t_states,
+                           const std::map<std::string, zbytes>& t_states,
                            const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
   ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
@@ -422,12 +422,12 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
 Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
   Address address;
 
-  bytes vec;
+  zbytes vec;
   pubKey.Serialize(vec, 0);
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
 
-  const bytes& output = sha2.Finalize();
+  const zbytes& output = sha2.Finalize();
 
   if (output.size() != 32) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -462,13 +462,13 @@ Address Account::GetAddressForContract(const Address& sender,
   // Zil-style TXs
   if (version == TRANSACTION_VERSION) {
     SHA2<HashType::HASH_VARIANT_256> sha2;
-    bytes conBytes;
+    zbytes conBytes;
     copy(sender.asArray().begin(), sender.asArray().end(),
          back_inserter(conBytes));
     SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
     sha2.Update(conBytes);
 
-    const bytes& output = sha2.Finalize();
+    const zbytes& output = sha2.Finalize();
 
     if (output.size() != 32) {
       LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -491,7 +491,7 @@ Address Account::GetAddressForContract(const Address& sender,
   return address;
 }
 
-bool Account::SetCode(const bytes& code) {
+bool Account::SetCode(const zbytes& code) {
   // LOG_MARKER();
 
   if (code.size() == 0) {
@@ -503,7 +503,7 @@ bool Account::SetCode(const bytes& code) {
   return true;
 }
 
-const bytes Account::GetCode() const {
+const zbytes Account::GetCode() const {
   if (!isContract()) {
     return {};
   }
@@ -551,7 +551,7 @@ bool Account::RetrieveContractAuxiliaries() {
     return false;
   }
 
-  bytes initData = GetInitData();
+  zbytes initData = GetInitData();
   if (!JSONUtils::GetInstance().convertStrtoJson(
           DataConversion::CharArrayToString(initData), m_initDataJson)) {
     LOG_GENERAL(WARNING, "Convert InitData to Json failed"
@@ -564,13 +564,13 @@ bool Account::RetrieveContractAuxiliaries() {
                        m_extlibs);
 }
 
-bool Account::SetInitData(const bytes& initData) {
+bool Account::SetInitData(const zbytes& initData) {
   // LOG_MARKER();
   m_initDataCache = initData;
   return true;
 }
 
-const bytes Account::GetInitData() const {
+const zbytes Account::GetInitData() const {
   if (!isContract()) {
     return {};
   }
@@ -581,7 +581,7 @@ const bytes Account::GetInitData() const {
   return m_initDataCache;
 }
 
-bool Account::SetImmutable(const bytes& code, const bytes& initData) {
+bool Account::SetImmutable(const zbytes& code, const zbytes& initData) {
   if (!SetCode(code) || !SetInitData(initData)) {
     return false;
   }

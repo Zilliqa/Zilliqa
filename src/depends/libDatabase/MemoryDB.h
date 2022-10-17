@@ -53,12 +53,12 @@ namespace dev
 
         std::string lookup(h256 const& _h) const;
         bool exists(h256 const& _h) const;
-        void insert(h256 const& _h, bytesConstRef _v);
+        void insert(h256 const& _h, zbytesConstRef _v);
         bool kill(h256 const& _h);
 
-        bytes lookupAux(h256 const& _h) const;
+        zbytes lookupAux(h256 const& _h) const;
         void removeAux(h256 const& _h);
-        void insertAux(h256 const& _h, bytesConstRef _v);
+        void insertAux(h256 const& _h, zbytesConstRef _v);
 
         h256Hash keys() const;
 
@@ -67,7 +67,7 @@ namespace dev
         mutable std::shared_timed_mutex x_this;
 // #endif
         std::shared_ptr<std::unordered_map<h256, std::pair<std::string, unsigned>>> m_main;
-        std::unordered_map<h256, std::pair<bytes, bool>> m_aux;
+        std::unordered_map<h256, std::pair<zbytes, bool>> m_aux;
 
         mutable bool m_enforceRefs = false;
 

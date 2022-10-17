@@ -42,7 +42,7 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
 
   void InitTrie();
 
-  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Serialize(zbytes& dst, unsigned int offset) const override;
 
   Account* GetAccount(const Address& address) override;
 

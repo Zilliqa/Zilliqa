@@ -74,7 +74,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   return arr_ret;
 }
 
-bool EvmUtils::isEvm(const bytes& code) {
+bool EvmUtils::isEvm(const zbytes& code) {
   if (not ENABLE_EVM) {
     return false;
   }

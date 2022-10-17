@@ -56,10 +56,10 @@ class SWInfo : public Serializable {
          const uint32_t& scillaCommit);
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(bytes& dst, unsigned int offset) const;
+  unsigned int Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const bytes& src, unsigned int offset);
+  int Deserialize(const zbytes& src, unsigned int offset);
 
   /// Less-than comparison operator.
   bool operator<(const SWInfo& r) const;

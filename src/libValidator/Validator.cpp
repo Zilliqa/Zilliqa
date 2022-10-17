@@ -33,7 +33,7 @@ Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 Validator::~Validator() {}
 
 bool Validator::VerifyTransaction(const Transaction& tran) {
-  bytes txnData;
+  zbytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
   auto result = tran.IsSigned(txnData);
@@ -297,7 +297,7 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   }
 
   // Verify the collective signature
-  bytes serializedHeader;
+  zbytes serializedHeader;
   block.GetHeader().Serialize(serializedHeader, 0);
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
@@ -368,7 +368,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(
           totalIndex, prevdsblocknum, BlockType::DS, dsblock.GetBlockHash());
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
-      bytes serializedDSBlock;
+      zbytes serializedDSBlock;
       dsblock.Serialize(serializedDSBlock, 0);
       prevHash = dsblock.GetBlockHash();
       if (!BlockStorage::GetBlockStorage().PutDSBlock(
@@ -424,7 +424,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,
                                                vcblock.GetBlockHash());
-      bytes vcblockserialized;
+      zbytes vcblockserialized;
       vcblock.Serialize(vcblockserialized, 0);
       if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                       vcblockserialized)) {

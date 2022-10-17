@@ -36,7 +36,7 @@ DSBlock Synchronizer::ConstructGenesisDSBlock() {
     prevHash.asArray().at(i) = i + 1;
   }
 
-  bytes tmppubkey;
+  zbytes tmppubkey;
   DataConversion::HexStrToUint8Vec(GENESIS_PUBKEY, tmppubkey);
 
   PubKey pubKey(tmppubkey, 0);
@@ -63,7 +63,7 @@ bool Synchronizer::AddGenesisDSBlockToBlockChain(DSBlockChain& dsBlockChain,
   dsBlockChain.AddBlock(dsBlock);
 
   // Store DS Block to disk
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
   dsBlock.Serialize(serializedDSBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutDSBlock(
           dsBlock.GetHeader().GetBlockNum(), serializedDSBlock)) {
@@ -80,7 +80,7 @@ bool Synchronizer::InitializeGenesisDSBlock(DSBlockChain& dsBlockChain) {
 }
 
 TxBlock Synchronizer::ConstructGenesisTxBlock() {
-  bytes tmppubkey;
+  zbytes tmppubkey;
   DataConversion::HexStrToUint8Vec(GENESIS_PUBKEY, tmppubkey);
 
   PubKey pubKey(tmppubkey, 0);
@@ -95,7 +95,7 @@ bool Synchronizer::AddGenesisTxBlockToBlockChain(TxBlockChain& txBlockChain,
   txBlockChain.AddBlock(txBlock);
 
   // Store Tx Block to disk
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
                                                   serializedTxBlock)) {

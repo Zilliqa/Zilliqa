@@ -44,7 +44,7 @@ class MicroBlockHeader : public BlockHeaderBase {
   MicroBlockHeader();
 
   /// Constructor for loading existing microblock header from a byte stream.
-  MicroBlockHeader(const bytes& src, unsigned int offset);
+  MicroBlockHeader(const zbytes& src, unsigned int offset);
 
   /// Constructor with predefined member values.
   MicroBlockHeader(const uint32_t shardId, const uint64_t& gasLimit,
@@ -56,10 +56,10 @@ class MicroBlockHeader : public BlockHeaderBase {
                    const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const zbytes& src, unsigned int offset);
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset);

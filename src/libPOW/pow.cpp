@@ -89,9 +89,9 @@ std::string POW::BytesToHexString(const uint8_t* str, const uint64_t s) {
   return ret.str();
 }
 
-bytes POW::HexStringToBytes(std::string const& _s) {
+zbytes POW::HexStringToBytes(std::string const& _s) {
   unsigned s = (_s[0] == '0' && _s[1] == 'x') ? 2 : 0;
-  bytes ret;
+  zbytes ret;
   ret.reserve((_s.size() - s + 1) / 2);
 
   if (_s.size() % 2) try {
@@ -120,7 +120,7 @@ int POW::FromHex(char _i) {
 
 ethash_hash256 POW::StringToBlockhash(std::string const& _s) {
   ethash_hash256 ret{};
-  bytes b = HexStringToBytes(_s);
+  zbytes b = HexStringToBytes(_s);
   if (b.size() != 32) {
     LOG_GENERAL(WARNING,
                 "Input to StringToBlockhash is not of size 32. Returning "
@@ -439,11 +439,11 @@ bool POW::SendWorkToProxy(const PairOfKey& pairOfKey, uint64_t blockNum,
                           ethash_hash256 const& boundary, int timeWindow) {
   LOG_MARKER();
 
-  bytes tmp;
+  zbytes tmp;
 
   Json::Value jsonValue;
 
-  bytes pubKeyData;
+  zbytes pubKeyData;
   pairOfKey.second.Serialize(pubKeyData, 0);
   jsonValue[0] = "0x" + BytesToHexString(pubKeyData.data(), pubKeyData.size());
   tmp.insert(tmp.end(), pubKeyData.begin(), pubKeyData.end());
@@ -514,8 +514,8 @@ bool POW::CheckMiningResult(const PairOfKey& pairOfKey,
                             ethash_hash256& mixHash, int timeWindow) {
   Json::Value jsonValue;
 
-  bytes tmp;
-  bytes pubKeyData;
+  zbytes tmp;
+  zbytes pubKeyData;
 
   pairOfKey.second.Serialize(pubKeyData, 0);
   jsonValue[0] = "0x" + BytesToHexString(pubKeyData.data(), pubKeyData.size());
@@ -619,8 +619,8 @@ bool POW::SendVerifyResult(const PairOfKey& pairOfKey,
                            ethash_hash256 const& boundary, bool verifyResult) {
   Json::Value jsonValue;
 
-  bytes tmp;
-  bytes pubKeyData;
+  zbytes tmp;
+  zbytes pubKeyData;
 
   pairOfKey.second.Serialize(pubKeyData, 0);
   jsonValue[0] = "0x" + BytesToHexString(pubKeyData.data(), pubKeyData.size());
@@ -729,11 +729,11 @@ void POW::MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
   return;
 }
 
-bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
-                         const std::array<unsigned char, UINT256_SIZE>& rand2,
-                         const Peer& peer, const PubKey& pubKey,
-                         uint32_t lookupId, const uint128_t& gasPrice) {
-  bytes vec;
+zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
+                          const std::array<unsigned char, UINT256_SIZE>& rand2,
+                          const Peer& peer, const PubKey& pubKey,
+                          uint32_t lookupId, const uint128_t& gasPrice) {
+  zbytes vec;
   for (const auto& s1 : rand1) {
     vec.push_back(s1);
   }
@@ -751,7 +751,7 @@ bytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
 
   SHA2<256> sha2;
   sha2.Update(vec);
-  bytes sha2_result = sha2.Finalize();
+  zbytes sha2_result = sha2.Finalize();
   return sha2_result;
 }
 
@@ -759,7 +759,7 @@ ethash_hash256 POW::GenHeaderHash(
     const std::array<unsigned char, UINT256_SIZE>& rand1,
     const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
     const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice) {
-  bytes sha2_result =
+  zbytes sha2_result =
       ConcatAndhash(rand1, rand2, peer, pubKey, lookupId, gasPrice);
 
   // Let's hash the inputs before feeding to ethash

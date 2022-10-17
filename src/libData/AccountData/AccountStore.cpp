@@ -144,14 +144,14 @@ AccountStore& AccountStore::GetInstance() {
   return accountstore;
 }
 
-bool AccountStore::Serialize(bytes& src, unsigned int offset) const {
+bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
   return AccountStoreTrie<std::unordered_map<Address, Account>>::Serialize(
       src, offset);
 }
 
-bool AccountStore::Deserialize(const bytes& src, unsigned int offset) {
+bool AccountStore::Deserialize(const zbytes& src, unsigned int offset) {
   LOG_MARKER();
 
   this->Init();
@@ -201,7 +201,7 @@ bool AccountStore::SerializeDelta() {
   return true;
 }
 
-void AccountStore::GetSerializedDelta(bytes& dst) {
+void AccountStore::GetSerializedDelta(zbytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
   dst.clear();
@@ -210,7 +210,7 @@ void AccountStore::GetSerializedDelta(bytes& dst) {
        back_inserter(dst));
 }
 
-bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
+bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
                                     bool revertible) {
   if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -255,7 +255,8 @@ bool AccountStore::DeserializeDelta(const bytes& src, unsigned int offset,
   return true;
 }
 
-bool AccountStore::DeserializeDeltaTemp(const bytes& src, unsigned int offset) {
+bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
+                                        unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
@@ -421,7 +422,7 @@ bool AccountStore::RetrieveFromDisk() {
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
-  bytes rootBytes;
+  zbytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
     // To support backward compatibilty - lookup with new binary trying to
     // recover from old database
@@ -467,7 +468,7 @@ bool AccountStore::RetrieveFromDiskOld() {
   unique_lock<mutex> g2(m_mutexDB, defer_lock);
   lock(g, g2);
 
-  bytes rootBytes;
+  zbytes rootBytes;
   if (!BlockStorage::GetBlockStorage().GetStateRoot(rootBytes)) {
     // To support backward compatibilty - lookup with new binary trying to
     // recover from old database
@@ -621,334 +622,3 @@ bool AccountStore::RevertCommitTemp() {
 }
 
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
-
-void canonicalizeStateValue(Json::Value& Value) {
-  if (Value.isObject()) {
-    // This is an ADT.
-    auto& Args = Value["arguments"];
-    for (auto& Arg : Args) {
-      canonicalizeStateValue(Arg);
-    }
-  } else if (Value.isArray() && Value.size() > 0) {
-    // This could be a Map or a List.
-    auto& FirstEl = *Value.begin();
-    if (FirstEl.isObject() && FirstEl.isMember("key")) {
-      // This is a map. Sort the keys.
-      std::vector<Json::Value> ValueArr(Value.begin(), Value.end());
-      auto KeyCmp = [](const Json::Value& A, const Json::Value& B) -> bool {
-        std::less<std::string> StrCmp;
-        return StrCmp(A["key"].asString(), B["key"].asString());
-      };
-      std::sort(ValueArr.begin(), ValueArr.end(), KeyCmp);
-      Value = Json::arrayValue;
-      for (auto& E : ValueArr) {
-        canonicalizeStateValue(E["val"]);
-        Value.append(E);
-      }
-    } else {
-      for (auto& E : Value) {
-        canonicalizeStateValue(E);
-      }
-    }
-  }
-}
-
-Json::Value canonicalizeStateVariables(const Json::Value& J) {
-  auto StateVarCmp = [](const Json::Value& A, const Json::Value& B) -> bool {
-    std::less<std::string> StrCmp;
-    return StrCmp(A["vname"].asString(), B["vname"].asString());
-  };
-
-  std::vector<Json::Value> AArr(J.begin(), J.end());
-  std::sort(AArr.begin(), AArr.end(), StateVarCmp);
-
-  Json::Value Ret = Json::arrayValue;
-  for (auto& E : AArr) {
-    canonicalizeStateValue(E["value"]);
-    Ret.append(E);
-  }
-
-  return Ret;
-}
-
-Json::Value removeParensInStrings(const Json::Value& J) {
-  Json::Value RetJ;
-  if (J.isArray()) {
-    for (const auto& K : J) {
-      RetJ.append(removeParensInStrings(K));
-    }
-  } else if (J.isObject()) {
-    for (Json::Value::const_iterator K = J.begin(); K != J.end(); K++) {
-      RetJ[K.name()] = removeParensInStrings(*K);
-    }
-  } else if (J.isString()) {
-    std::string JJ = J.asString();
-    JJ.erase(
-        std::remove_if(JJ.begin(), JJ.end(),
-                       [](const char& c) { return (c == '(' || c == ')'); }),
-        JJ.end());
-    std::transform(JJ.begin(), JJ.end(), JJ.begin(),
-                   [](const char& c) { return std::toupper(c); });
-    RetJ = JJ;
-  } else {
-    RetJ = J;
-  }
-  return RetJ;
-}
-
-Json::Value removeHexAddrAndDotInStrings(const Json::Value& J) {
-  static const std::regex e("\\b0X[0-9A-F]{40}\\.");
-  Json::Value RetJ;
-  if (J.isArray()) {
-    for (const auto& K : J) {
-      RetJ.append(removeHexAddrAndDotInStrings(K));
-    }
-  } else if (J.isObject()) {
-    for (Json::Value::const_iterator K = J.begin(); K != J.end(); K++) {
-      RetJ[K.name()] = removeHexAddrAndDotInStrings(*K);
-    }
-  } else if (J.isString()) {
-    RetJ = std::regex_replace(J.asString(), e, "");
-  } else {
-    RetJ = J;
-  }
-  return RetJ;
-}
-
-bool compareScillaInitJSONs(const Json::Value& Expected,
-                            const Json::Value& Got) {
-  if (!Expected.isArray() || !Got.isArray() || Expected.size() != Got.size()) {
-    return false;
-  }
-
-  auto ExpectedSorted =
-      removeParensInStrings(canonicalizeStateVariables(Expected));
-  auto GotSorted = removeParensInStrings(canonicalizeStateVariables(Got));
-  for (Json::Value::ArrayIndex I = 0; I < ExpectedSorted.size(); I++) {
-    const auto& ESV = ExpectedSorted[I];
-    const auto& OSV = GotSorted[I];
-    if (ESV != OSV) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool compareStateJSONs(const Json::Value& Before, const Json::Value& After) {
-  const Json::Value Before1 =
-      removeHexAddrAndDotInStrings(removeParensInStrings(Before));
-  const Json::Value After1 =
-      removeHexAddrAndDotInStrings(removeParensInStrings(After));
-
-  if (Before1 != After1) {
-    LOG_GENERAL(INFO, "State before migration: "
-                          << Before1 << "\nState after migration: " << After1);
-    return false;
-  }
-
-  return true;
-}
-
-bool AccountStore::MigrateContractStates(
-    bool ignoreCheckerFailure, bool disambiguation,
-    const string& contract_address_output_filename,
-    const string& normal_address_output_filename,
-    const uint64_t& updateDiskFrequency) {
-  LOG_MARKER();
-
-  std::ofstream os_1;
-  std::ofstream os_2;
-  (void)disambiguation;
-  if (!contract_address_output_filename.empty()) {
-    os_1.open(contract_address_output_filename);
-  }
-  if (!normal_address_output_filename.empty()) {
-    os_2.open(normal_address_output_filename);
-  }
-
-  unsigned int numContractUnchangedStates = 0;
-  unsigned int numContractChangedStates = 0;
-  unsigned int numContractNullFixedStates = 0;
-
-  unsigned int count = 0;
-  for (const auto& i : m_state) {
-    Address address(i.first);
-
-    LOG_GENERAL(INFO, "Address: " << address.hex());
-    Account account;
-    if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()), 0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      return false;
-    }
-
-    if (account.isContract()) {
-      account.SetAddress(address);
-      if (!contract_address_output_filename.empty()) {
-        os_1 << address.hex() << endl;
-      }
-    } else {
-      this->AddAccount(address, account, true);
-      if (!normal_address_output_filename.empty()) {
-        os_2 << address.hex() << endl;
-      }
-      continue;
-    }
-
-    count++;
-    // adding new metadata
-    std::map<std::string, bytes> t_metadata;
-    bool is_library;
-    uint32_t scilla_version;
-    std::vector<Address> extlibs;
-    if (!account.GetContractAuxiliaries(is_library, scilla_version, extlibs)) {
-      LOG_GENERAL(WARNING, "GetScillaVersion failed");
-      return false;
-    }
-
-    if (DISABLE_SCILLA_LIB && is_library) {
-      LOG_GENERAL(WARNING, "ScillaLib disabled");
-      return false;
-    }
-
-    std::map<Address, std::pair<std::string, std::string>> extlibs_exports;
-    if (!PopulateExtlibsExports(scilla_version, extlibs, extlibs_exports)) {
-      LOG_GENERAL(WARNING, "PopulateExtLibsExports failed");
-      return false;
-    }
-
-    if (!ExportCreateContractFiles(account, is_library, scilla_version,
-                                   extlibs_exports)) {
-      LOG_GENERAL(WARNING, "ExportCreateContractFiles failed");
-      return false;
-    }
-
-    account.SetStorageRoot(dev::h256());
-    // invoke scilla checker
-    // prepare IPC with current blockchain info provider.
-    const Address origin{};  // Zero origin address is okay for the checker.
-    m_scillaIPCServer->setBCInfoProvider(
-        ScillaBCInfo(getCurBlockNum(), getCurDSBlockNum(), origin, address,
-                     account.GetStorageRoot(), scilla_version));
-
-    std::string checkerPrint;
-
-    bool ret_checker = true;
-    TransactionReceipt receipt;
-    uint64_t gasRem = UINT64_MAX;
-
-    InvokeInterpreter(CHECKER, checkerPrint, scilla_version, is_library, gasRem,
-                      std::numeric_limits<uint128_t>::max(), ret_checker,
-                      receipt);
-
-    if (!ret_checker) {
-      LOG_GENERAL(WARNING, "InvokeScillaChecker failed");
-      return false;
-    }
-
-    // adding scilla_version metadata
-    t_metadata.emplace(
-        Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
-            address, SCILLA_VERSION_INDICATOR, {}),
-        DataConversion::StringToCharArray(std::to_string(scilla_version)));
-
-    // adding depth and type metadata
-    if (!ParseContractCheckerOutput(address, checkerPrint, receipt, t_metadata,
-                                    gasRem)) {
-      LOG_GENERAL(WARNING, "ParseContractCheckerOutput failed");
-      if (ignoreCheckerFailure) {
-        continue;
-      }
-      return false;
-    }
-
-    Json::Value stateBeforeMigration, stateAfterMigration;
-    Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
-        stateBeforeMigration, address, "", {}, true);
-
-    std::map<std::string, bytes> types;
-    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
-        types, address, TYPE_INDICATOR, {}, true);
-    for (auto const& type : types) {
-      vector<string> fragments;
-      boost::split(fragments, type.first,
-                   [](char c) { return c == SCILLA_INDEX_SEPARATOR; });
-      if (fragments.size() < 3) {
-        LOG_GENERAL(WARNING,
-                    "Error fetching (field_name, type): " << address.hex());
-      } else {
-        LOG_GENERAL(INFO,
-                    "field=" << fragments[2] << " type="
-                             << DataConversion::CharArrayToString(type.second));
-      }
-    }
-
-    // fetch all states from temp storage
-    std::map<std::string, bytes> states;
-    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
-        states, address, "", {}, true);
-
-    // put all states (overwrite) back into persistent storage
-    dev::h256 rootHash;
-    Contract::ContractStorage::GetContractStorage()
-        .UpdateStateDatasAndToDeletes(address, account.GetStorageRoot(), states,
-                                      {}, rootHash, false, false);
-
-    // update storage root hash for this account
-    account.SetStorageRoot(rootHash);
-
-    this->AddAccount(address, account, true);
-
-    Contract::ContractStorage::GetContractStorage().FetchStateJsonForContract(
-        stateAfterMigration, address, "", {}, true);
-
-    if ((stateBeforeMigration == Json::Value::null) &&
-        (stateAfterMigration != Json::Value::null)) {
-      numContractNullFixedStates++;
-    } else if (!compareStateJSONs(stateBeforeMigration, stateAfterMigration)) {
-      LOG_GENERAL(INFO, "States changed for " << address.hex());
-      numContractChangedStates++;
-    } else {
-      numContractUnchangedStates++;
-    }
-
-    if (count % updateDiskFrequency == 0) {
-      if (!UpdateStateTrieAll()) {
-        LOG_GENERAL(WARNING, "UpdateStateTrieAll failed");
-        return false;
-      }
-
-      /// repopulate trie and discard old persistence
-      if (!MoveUpdatesToDisk()) {
-        LOG_GENERAL(WARNING, "MoveUpdatesToDisk() failed");
-        return false;
-      }
-    }
-  }
-
-  if (!contract_address_output_filename.empty()) {
-    os_1.close();
-  }
-  if (!normal_address_output_filename.empty()) {
-    os_2.close();
-  }
-
-  if (!UpdateStateTrieAll()) {
-    LOG_GENERAL(WARNING, "UpdateStateTrieAll failed");
-    return false;
-  }
-
-  /// repopulate trie and discard old persistence
-  if (!MoveUpdatesToDisk()) {
-    LOG_GENERAL(WARNING, "MoveUpdatesToDisk() failed");
-    return false;
-  }
-
-  LOG_GENERAL(INFO, "Num contracts with states initialized = "
-                        << numContractNullFixedStates);
-  LOG_GENERAL(
-      INFO, "Num contracts with states changed = " << numContractChangedStates);
-  LOG_GENERAL(INFO, "Num contracts with states unchanged = "
-                        << numContractUnchangedStates);
-  return true;
-}

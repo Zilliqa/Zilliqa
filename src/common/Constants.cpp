@@ -114,7 +114,7 @@ bool SCILLA_PPLIT_FLAG = true;
 // General constants
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
-bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
+const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
@@ -631,6 +631,8 @@ const string EXTLIB_FOLDER{
 const bool ENABLE_SCILLA_MULTI_VERSION{
     ReadConstantString("ENABLE_SCILLA_MULTI_VERSION", "node.smart_contract.") ==
     "true"};
+bool ENABLE_SCILLA{ReadConstantString("ENABLE_SCILLA", "node.smart_contract.",
+                                      "true") == "true"};
 const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
                   "true"};
 const bool DISABLE_SCILLA_LIB{
@@ -743,8 +745,8 @@ const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
-const bool ENABLE_EVM{
-    ReadConstantString("ENABLE_EVM", "node.jsonrpc.", "true") == "true"};
+bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.", "true") ==
+                "true"};
 const std::string EVM_SERVER_SOCKET_PATH{ReadConstantString(
     "EVM_SERVER_SOCKET_PATH", "node.jsonrpc.", "/tmp/evm-server.sock")};
 const std::string EVM_SERVER_BINARY{ReadConstantString(

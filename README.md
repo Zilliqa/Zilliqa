@@ -12,7 +12,7 @@
 
 ## Overview
 
-Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure
+Zilliqa is a scalable smart contract platform that aims to tackle the congestion issue plaguing the blockchain industry. Zilliqa utilises a unique sharded architecture to achieve parallel processing of transactions while maintaining a large number of public nodes. Hence, Zilliqa is a blockchain capable of reaching high throughput and processing more complex computations while remaining decentralised and secure.
 
 * If you’re interested in mining Zilliqa, see here: https://dev.zilliqa.com/docs/miners/mining-getting-started/.
 * If you’d like to use the interface with Zilliqa nodes to transfer ZIL and deploy/call smart contracts, see here: https://dev.zilliqa.com/docs/apis/api-introduction.
@@ -80,11 +80,11 @@ In the coming months, we plan to have the following features:
 
 To run Zilliqa, we recommend the minimum system requirements specified in our [Mining](https://dev.zilliqa.com/docs/miners/mining-zilclient#hardware-requirements) page.
 
-## Build Dependencies
+## Build from Source Code
 
-The officially supported operating system is **Ubuntu 16.04**, until Zilliqa [v6.4.2](https://github.com/Zilliqa/Zilliqa/releases/tag/v6.4.2).
+The officially supported operating system is **Ubuntu 20.04**.
 
-Effective Zilliqa [v7.0.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v7.0.0), the officially supported operating system is **Ubuntu 18.04**. Although Zilliqa continues to be backward compatible with Ubuntu 16.04, we recommend users to upgrade to Ubuntu 18.04 moving forward.
+Effective Zilliqa [v7.0.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.3.0), the officially supported operating system is **Ubuntu 20.04**. Although Zilliqa continues to be backward compatible with Ubuntu 18.04, we recommend users to upgrade to Ubuntu 20.04 moving forward.
 
 Run the following to install the build dependencies:
 
@@ -94,7 +94,8 @@ sudo apt-get install git \
     libmicrohttpd-dev bison \
     libjsonrpccpp-dev build-essential pkg-config \
     libcurl4-openssl-dev python3-dev \
-    python3-setuptools python3-pip gawk
+    python3-setuptools python3-pip gawk clang clang-format ccache
+git submodule update --init --recursive
 ```
 Run the following to install latest version of cmake. CMake version >= 3.19 must be used:
 
@@ -107,60 +108,22 @@ cmake --version
 rm cmake-3.19.3-Linux-x86_64.sh
 ```
 
-### Additional Requirements for Contributors
+To install, clone vcpkg to a separate location (do not use brew on macos):
 
-If you intend to contribute to the code base, please perform these additional steps:
+```shell
+$ git clone https://github.com/Microsoft/vcpkg.git /path/to/vcpkg
+$ cd /path/to/vcpkg && git checkout 2022.09.27 && ./bootstrap-vcpkg.sh
+$ cd /path/to/zilliqa
+$ export VCPKG_ROOT=/path/to/vcpkg
+```
 
-1. Install `pyyaml`:
-
-    ```bash
-    pip install pyyaml
-    ```
-
-1. Create file `/etc/apt/sources.list.d/llvm-7.list` with the following contents ([reference](https://apt.llvm.org/)):
-
-    ```
-    deb http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main
-    deb-src http://apt.llvm.org/xenial/ llvm-toolchain-xenial-7 main
-    ```
-
-1. Run the following:
-
-    ```bash
-    curl https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
-    sudo apt-get update
-    sudo apt-get install clang-format-7 clang-tidy-7 -y
-    ```
-
-## Build from Source Code
 
 Build Zilliqa from the source:
 
 ```shell
-# Download the lastest stable Zilliqa source code
-$ git clone https://github.com/Zilliqa/Zilliqa.git
-$ cd Zilliqa && git checkout tags/v8.1.2
-
 # build Zilliqa binary
 $ ./build.sh
 ```
-
-If you want to build the development branch instead, do:
-
-1. Switch to the development branch:
-
-    ```shell
-    $ git checkout master
-    ```
-
-1. Clone vcpkg to a separate location:
-
-    ```shell
-    $ git clone https://github.com/Microsoft/vcpkg.git /path/to/vcpkg
-    $ cd /path/to/vcpkg && git checkout 2022.07.25 && ./bootstrap-vcpkg.sh
-    $ cd /path/to/zilliqa
-    $ export VCPKG_ROOT=/path/to/vcpkg
-    ```
 
 If you want to contribute by submitting code changes in a pull request perform the build with `clang-format` and `clang-tidy` enabled by doing:
 
@@ -196,3 +159,5 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
 | **Security bug bounty** | <a href="https://hackerone.com/zilliqa" target="_blank">HackerOne bug bounty</a> |
+
+
