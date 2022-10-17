@@ -347,6 +347,12 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &EthRpcMethods::EthRecoverTransactionI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_getBlockReceipts", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::GetEthBlockReceiptsI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1397,4 +1403,22 @@ std::string EthRpcMethods::EthRecoverTransaction(
       DataConversion::Uint8VecToHexStrRet(asAddr.asBytes()));
 
   return DataConversion::AddOXPrefix(std::move(addrChksum));
+}
+
+Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
+  // The easiest way to do this:
+  // Get the block + transactions
+  // Call TX receipt function
+
+  auto const block = GetEthBlockByHash(blockId, false);
+  auto const txs = block["transactions"];
+
+  Json::Value res = Json::arrayValue;
+
+  for (const auto& tx : txs) {
+    auto const receipt = GetEthTransactionReceipt(tx.asString());
+    res.append(receipt);
+  }
+
+  return res;
 }
