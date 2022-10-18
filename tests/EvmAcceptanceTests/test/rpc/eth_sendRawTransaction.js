@@ -15,8 +15,8 @@ describe("Calling " + METHOD, function () {
       const tx = {
         to: toAddress,
         value: amount,
-        gas: 25000,
-        gasPrice: 2000000000,
+        gas: 300000,
+        gasPrice: 2000000000000000,
         nonce: nonce,
         chainId: gHelper.getEthChainId(),
         data: ""
