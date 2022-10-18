@@ -49,6 +49,9 @@ module.exports = {
       zilliqaNetwork: true,
       miningState: false
     }
+  },
+  mocha: {
+    timeout: 300000
   }
 };
 
