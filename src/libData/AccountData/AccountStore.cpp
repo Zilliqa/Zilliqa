@@ -48,23 +48,12 @@ AccountStore::AccountStore()
   bool ipcScillaInit = false;
 
   if ((ENABLE_SC && ENABLE_EVM) || ISOLATED_SERVER) {
-    /// Scilla IPC Server
-    /// clear path
-    boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServerConnector =
-        make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServerConnector->SetWaitTime(
-        SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-
-    CreateScillaIPCServer(m_scillaIPCServerConnector);
-
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
       ipcScillaInit = true;
     }
 
-    m_accountStoreTemp->SetScillaIPCServer(GetScillaIPCServer());
-    if (GetScillaIPCServer()->StartListening()) {
+    if (ScillaIPCServer::GetInstance().StartListening()) {
       LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
     } else {
       LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start");
@@ -82,9 +71,7 @@ AccountStore::AccountStore()
 }
 
 AccountStore::~AccountStore() {
-  if (GetScillaIPCServer() != nullptr) {
-    GetScillaIPCServer()->StopListening();
-  }
+  ScillaIPCServer::GetInstance().StopListening();
 }
 
 void AccountStore::Init() {

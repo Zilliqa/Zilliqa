@@ -104,9 +104,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::condition_variable m_CallContractConditionVariable;
   std::atomic<bool> m_txnProcessTimeout;
 
-  /// Scilla IPC server
-  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
-
   /// A set of contract account address pending for storageroot updating
   std::set<Address> m_storageRootUpdateBuffer;
 
@@ -195,13 +192,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
 
   const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
-
-  const std::shared_ptr<ScillaIPCServer>& CreateScillaIPCServer(
-      const std::unique_ptr<jsonrpc::UnixDomainSocketServer>& scillaIPCServerConnector);
-
-  const std::shared_ptr<ScillaIPCServer>& GetScillaIPCServer() const {
-    return m_scillaIPCServer;
-  }
 
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(

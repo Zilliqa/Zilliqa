@@ -20,9 +20,7 @@
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/abstractserver.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
-
 #include "depends/common/FixedHash.h"
-
 #include "libData/AccountData/Account.h"
 
 class ScillaBCInfo {
@@ -63,13 +61,13 @@ class ScillaBCInfo {
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
  public:
   ScillaIPCServer(jsonrpc::AbstractServerConnector& conn);
-
   ~ScillaIPCServer() = default;
   ScillaIPCServer(const ScillaIPCServer&) = delete;
   ScillaIPCServer(ScillaIPCServer&&) = delete;
   ScillaIPCServer& operator=(const ScillaIPCServer&) = delete;
   ScillaIPCServer& operator=(ScillaIPCServer&) = delete;
 
+  static ScillaIPCServer& GetInstance();
   inline virtual void fetchStateValueI(const Json::Value& request,
                                        Json::Value& response);
   inline virtual void fetchExternalStateValueI(const Json::Value& request,
@@ -96,6 +94,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
   //                              bool& found, std::string& type);
+
  private:
   ScillaBCInfo m_BCInfo;
 };

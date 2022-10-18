@@ -319,16 +319,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-
-      if (m_scillaIPCServer) {
-        m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
-             toAccount->GetStorageRoot(), scilla_version});
-      } else {
-        LOG_GENERAL(
-            WARNING,
-            "Scilla IPC server is not setup correctly - detected null object");
-      }
+      ScillaIPCServer::GetInstance().setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
+           toAccount->GetStorageRoot(), scilla_version});
 
       // ************************************************************************
       // Undergo scilla checker
@@ -602,13 +595,9 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-      if (m_scillaIPCServer) {
-        m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-             toAccount->GetStorageRoot(), scilla_version});
-      } else {
-        LOG_GENERAL(WARNING, "m_scillaIPCServer not Initialised");
-      }
+      ScillaIPCServer::GetInstance().setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
+           toAccount->GetStorageRoot(), scilla_version});
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
@@ -1453,7 +1442,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       // prepare IPC with current blockchain info provider.
-      m_scillaIPCServer->setBCInfoProvider(
+      ScillaIPCServer::GetInstance().setBCInfoProvider(
           {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
            account->GetStorageRoot(), scilla_version});
 
@@ -1489,7 +1478,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       }
 
       // prepare IPC with current blockchain info provider.
-      m_scillaIPCServer->setBCInfoProvider(
+      ScillaIPCServer::GetInstance().setBCInfoProvider(
           {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
            account->GetStorageRoot(), scilla_version});
 
@@ -1557,7 +1546,6 @@ template <class MAP>
 bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
                                                 const Address& to,
                                                 const uint128_t& delta) {
-  // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 
@@ -1595,29 +1583,12 @@ Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
 }
 
 template <class MAP>
-void AccountStoreSC<MAP>::SetScillaIPCServer(
-    const std::shared_ptr<ScillaIPCServer>& scillaIPCServer) {
-  LOG_MARKER();
-  m_scillaIPCServer = scillaIPCServer;
-}
-
-template <class MAP>
 void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
   for (const auto& addr : m_newLibrariesCreated) {
     boost::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
     boost::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
-}
-
-template <class MAP>
-const std::shared_ptr<ScillaIPCServer>&
-AccountStoreSC<MAP>::CreateScillaIPCServer(
-    const std::unique_ptr<jsonrpc::UnixDomainSocketServer>&
-        scillaIPCServerConnector) {
-  m_scillaIPCServer =
-      std::make_shared<ScillaIPCServer>(*scillaIPCServerConnector);
-  return m_scillaIPCServer;
 }
 
 // Explicit template instantiations.

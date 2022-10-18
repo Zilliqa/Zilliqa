@@ -91,9 +91,6 @@ class AccountStore
   std::condition_variable_any m_writeCond;
   static constexpr int NUM_OF_WRITERS_IN_QUEUE = 1;
 
-  /// Scilla IPC server related
-  std::unique_ptr<jsonrpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
-
   AccountStore();
   ~AccountStore();
 

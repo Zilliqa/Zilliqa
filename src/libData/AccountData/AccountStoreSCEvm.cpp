@@ -356,7 +356,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       // prepare IPC with current blockchain info provider.
 
-      m_scillaIPCServer->setBCInfoProvider(
+      ScillaIPCServer::GetInstance().setBCInfoProvider(
           {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
            contractAccount->GetStorageRoot(), scilla_version});
 
@@ -530,7 +530,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       // prepare IPC with current blockchain info provider.
-      m_scillaIPCServer->setBCInfoProvider(
+      ScillaIPCServer::GetInstance().setBCInfoProvider(
           {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
            contractAccount->GetStorageRoot(), scilla_version});
 

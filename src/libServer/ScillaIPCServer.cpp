@@ -14,17 +14,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+#include "libServer/ScillaIPCServer.h"
 #include <jsonrpccpp/common/specification.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 #include <sstream>
 #include "common/Constants.h"
-#include "libUtils/GasConv.h"
-#include "websocketpp/base64/base64.hpp"
-
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/GasConv.h"
+#include "websocketpp/base64/base64.hpp"
 
 using namespace std;
 using namespace Contract;
@@ -32,6 +31,22 @@ using namespace jsonrpc;
 
 using websocketpp::base64_decode;
 using websocketpp::base64_encode;
+
+ScillaIPCServer &ScillaIPCServer::GetInstance() {
+  static bool isInitialized{false};
+  if (not isInitialized) {
+    boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
+    isInitialized = true;
+  }
+
+  static auto scillaIPCServerConnector =
+      jsonrpc::UnixDomainSocketServer(SCILLA_IPC_SOCKET_PATH);
+  scillaIPCServerConnector.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+
+  static ScillaIPCServer scillaIPCServer(scillaIPCServerConnector);
+
+  return scillaIPCServer;
+}
 
 ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
     : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {
