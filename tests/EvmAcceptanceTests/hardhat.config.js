@@ -31,7 +31,7 @@ module.exports = {
       ],
       chainId: 33101,
       zilliqaNetwork: true,
-      web3ClientVersion: "Zilliqa/v1.0",
+      web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,
       miningState: false
     },
