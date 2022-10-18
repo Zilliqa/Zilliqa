@@ -26,15 +26,27 @@ describe("Blockchain information for smart contracts", function () {
   });
 
   it("Should return the block hash for block '0' when getBlockHash function is called", async function () {
-    expect(await contract.getBlockHash(0)).to.be.lt(0x0);
+    let hash = await contract.getBlockHash(0);
+    hre.logDebug(hash);
+    assert.isString(hash, "is string");
+    assert.match(hash, /^0x/, "should be HEX starting with 0x");
+    assert.isNumber(+hash, "can be converted to a number");
   });
 
   it("Should return the latest block number when getBlockNumber function is called", async function () {
-    await contract.getBlockNumber();//   ??? expect(await contract.getBlockNumber()).to.be.lt(0x0);
+    let blockNumber = await contract.getBlockNumber();
+    hre.logDebug(blockNumber.value);
+    assert.isString(blockNumber.value, "is not a string");
+    //assert.match(blockNumber, /^0x/, "should be HEX starting with 0x");
+    //assert.isNumber(+blockNumber, "can be converted to a number");
   });
 
   it("Should return the latest block difficulty when getBlockDifficulty function is called", async function () {
-    await contract.getBlockDifficulty();//   ??? expect(await contract.getDifficulty()).to.be.lt(0x0);
+    let blockDifficulty = await contract.getBlockDifficulty();//   ??? expect(await contract.getDifficulty()).to.be.lt(0x0);
+    hre.logDebug(blockDifficulty);
+    assert.isString(blockDifficulty.value, "is not a string");
+    //assert.match(blockDifficulty, /^0x/, "should be HEX starting with 0x");
+    //assert.isNumber(+blockDifficulty, "can be converted to a number");
   });
 
   it("Should return the block timestamp for latest block when getBlockTimestamp function is called", async function () {

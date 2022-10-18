@@ -80,9 +80,9 @@ impl Serialize for DirtyState {
                 ref basic,
                 ref code,
                 ref storage,
-                reset_storage,
+                reset_storage
             } => {
-                let mut state = serializer.serialize_struct_variant("A", 0, "modify", 6)?;
+                let mut state = serializer.serialize_struct_variant("A", 0, "modify", 7)?;
                 state.serialize_field("address", address)?;
                 state.serialize_field("balance", &basic.balance)?;
                 state.serialize_field("nonce", &basic.nonce)?;
@@ -137,6 +137,7 @@ pub trait Rpc: Send + 'static {
         data: String,
         apparent_value: String,
         gas_limit: u64,
+        block_tag: String
     ) -> BoxFuture<Result<EvmResult>>;
 }
 
@@ -155,11 +156,12 @@ impl Rpc for EvmServer {
         data_hex: String,
         apparent_value: String,
         gas_limit: u64,
+        block_tag : String
     ) -> BoxFuture<Result<EvmResult>> {
         let origin = H160::from_str(&origin);
         match origin {
             Ok(origin) => {
-                let backend = ScillaBackend::new(self.backend_config.clone(), origin);
+                let backend = ScillaBackend::new(self.backend_config.clone(), origin, block_tag);
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
                 Box::pin(async move {
@@ -171,7 +173,7 @@ impl Rpc for EvmServer {
                         gas_limit,
                         backend,
                         tracing,
-                        gas_scaling_factor,
+                        gas_scaling_factor
                     )
                     .await
                 })
@@ -193,7 +195,7 @@ async fn run_evm_impl(
     gas_limit: u64,
     backend: ScillaBackend,
     tracing: bool,
-    gas_scaling_factor: u64,
+    gas_scaling_factor: u64
 ) -> Result<EvmResult> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
@@ -274,7 +276,7 @@ async fn run_evm_impl(
                                 basic,
                                 code,
                                 storage,
-                                reset_storage,
+                                reset_storage
                             } => DirtyState(Apply::Modify {
                                 address,
                                 basic: Basic {

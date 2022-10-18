@@ -33,6 +33,7 @@ pub struct ScillaBackendConfig {
 pub struct ScillaBackend {
     config: ScillaBackendConfig,
     pub origin: H160,
+    block_tag: String
 }
 
 // Adding some convenience to ProtoScillaVal to convert to U256 and bytes.
@@ -57,8 +58,8 @@ impl ScillaMessage::ProtoScillaVal {
 }
 
 impl ScillaBackend {
-    pub fn new(config: ScillaBackendConfig, origin: H160) -> Self {
-        Self { config, origin }
+    pub fn new(config: ScillaBackendConfig, origin: H160, block_tag : String) -> Self {
+        Self { config, origin, block_tag }
     }
 
     // Call the Scilla IPC Server API.
@@ -93,10 +94,11 @@ impl ScillaBackend {
     }
 
     fn query_jsonrpc(&self, query_name: &str, query_args: Option<&str>) -> Value {
-        info!("query_jsonrpc: {}, {:?}", query_name, query_args);
+        info!("query_jsonrpc: query_name:{}, query_args:{:?} block_tag:{}", query_name, query_args, self.block_tag);
         // Make a JSON Query for fetchBlockchaininfo
         let mut args = serde_json::Map::new();
         args.insert("query_name".into(), query_name.into());
+        //args.insert("query_args".into(), String::from("latest").into());        //args.insert("query_args".into(), self.details.into());
         args.insert("query_args".into(), query_args.unwrap_or_default().into());
         let result = self
             .call_ipc_server_api("fetchBlockchainInfo", args)
@@ -239,8 +241,8 @@ impl<'config> Backend for ScillaBackend {
         self.origin
     }
 
-    fn block_hash(&self, number: U256) -> H256 {
-        let result = self.query_jsonrpc("BLOCKHASH", Some(&number.to_string()));
+    fn block_hash(&self, _number: U256) -> H256 {
+        let result = self.query_jsonrpc("BLOCKHASH", Some(&_number.to_string()));
         H256::from_str(result.as_str().expect("blockhash")).expect("blockhash hex")
     }
 

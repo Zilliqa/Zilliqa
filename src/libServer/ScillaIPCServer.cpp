@@ -454,8 +454,8 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
     throw JsonRpcException("Fetching external state value failed");
   }
 #else
-  if (!fetchExternalStateValue(request["addr"].asString(), query, value,
-                                  found, type)) {
+  if (!fetchExternalStateValue(request["addr"].asString(), query, value, found,
+                               type)) {
     throw JsonRpcException("Fetching external state value failed");
   }
 #endif
@@ -483,9 +483,11 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
   LOG_GENERAL(DEBUG, "fetchBlockchainInfoI request:" << request);
 
   std::string value;
-  if (not fetchBlockchainInfoEvm(request["query_name"].asString(),  //
-                                 "latest",  // request["query_args"].asString(),
-                                 value)) {
+  if (not fetchBlockchainInfoEvm(
+          request["query_name"].asString(),  //
+          "latest",  // todo get the block tag from the argument via the evm-ds
+                     // //request["query_args"].asString(),  //"latest",
+          value)) {
     throw JsonRpcException("Fetching blockchain info failed");
   }
   // Prepare the result and finish.
