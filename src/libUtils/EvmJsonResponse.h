@@ -119,7 +119,7 @@ struct CallResponse {
   void SetGasRemaining(const uint64_t gas) { m_gasRemaining = gas; }
 
   const std::string& ReturnedBytes() const { return m_return; }
-  void SetReturnedBytes(const std::string& bytes) { m_return = bytes; }
+  void SetReturnedBytes(const std::string& zbytes) { m_return = zbytes; }
 
   inline bool Success() const { return m_success; }
   inline void SetSuccess(const bool _ok) { m_success = _ok; }

@@ -24,10 +24,10 @@
 class Serializable {
  public:
   /// Serializes internal state to destination byte stream.
-  virtual unsigned int Serialize(bytes& dst, unsigned int offset) const = 0;
+  virtual unsigned int Serialize(zbytes& dst, unsigned int offset) const = 0;
 
   /// Deserializes source byte stream into internal state.
-  virtual int Deserialize(const bytes& src, unsigned int offset) = 0;
+  virtual int Deserialize(const zbytes& src, unsigned int offset) = 0;
 
   /// Virtual destructor.
   virtual ~Serializable() {}
@@ -36,7 +36,7 @@ class Serializable {
   /// the specified offset. Returns 0 if there are not enough bytes to read from
   /// the stream.
   template <class numerictype>
-  static numerictype GetNumber(const bytes& src, unsigned int offset,
+  static numerictype GetNumber(const zbytes& src, unsigned int offset,
                                unsigned int numerictype_len) {
     numerictype result = 0;
 
@@ -55,7 +55,7 @@ class Serializable {
   /// Template function for placing a number into the destination byte stream at
   /// the specified offset. Destination is resized if necessary.
   template <class numerictype>
-  static void SetNumber(bytes& dst, unsigned int offset, numerictype value,
+  static void SetNumber(zbytes& dst, unsigned int offset, numerictype value,
                         unsigned int numerictype_len) {
     const unsigned int length_available = dst.size() - offset;
 
@@ -75,10 +75,10 @@ class Serializable {
 class SerializableDataBlock {
  public:
   /// Serializes internal state to destination byte stream.
-  virtual bool Serialize(bytes& dst, unsigned int offset) const = 0;
+  virtual bool Serialize(zbytes& dst, unsigned int offset) const = 0;
 
   /// Deserializes source byte stream into internal state.
-  virtual bool Deserialize(const bytes& src, unsigned int offset) = 0;
+  virtual bool Deserialize(const zbytes& src, unsigned int offset) = 0;
 
   /// Deserializes source string stream into internal state (used by
   /// libMessage).
@@ -91,7 +91,7 @@ class SerializableDataBlock {
   /// the specified offset. Returns 0 if there are not enough bytes to read from
   /// the stream.
   template <class numerictype>
-  static numerictype GetNumber(const bytes& src, unsigned int offset,
+  static numerictype GetNumber(const zbytes& src, unsigned int offset,
                                unsigned int numerictype_len) {
     numerictype result = 0;
 
@@ -110,7 +110,7 @@ class SerializableDataBlock {
   /// Template function for placing a number into the destination byte stream at
   /// the specified offset. Destination is resized if necessary.
   template <class numerictype>
-  static void SetNumber(bytes& dst, unsigned int offset, numerictype value,
+  static void SetNumber(zbytes& dst, unsigned int offset, numerictype value,
                         unsigned int numerictype_len) {
     const unsigned int length_available = dst.size() - offset;
 

@@ -15,22 +15,22 @@
 #
 ARG REGISTRY=
 
-ARG BASE=zilliqa/scilla:v0.11.0
+ARG BASE=zilliqa/scilla:456db82c
 FROM ${BASE} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM ${REGISTRY}zilliqa:v8.2.0-deps AS builder
+FROM ${REGISTRY}zilliqa:v8.3.0-deps AS builder
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
     && apt-get update && apt-get install -y --no-install-recommends \
     autoconf \
     bison \
+    cron \
     build-essential \
     ca-certificates \
-    cmake \
     gawk \
     wget \
     # curl is not a build dependency
@@ -42,7 +42,6 @@ RUN apt-get update \
     rsync \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
-    libmicrohttpd-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
@@ -54,20 +53,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.
     sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# Install cmake 3.22
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.22.2/cmake-3.22.2-Linux-x86_64.sh \
-    && echo "faaa0465b72fe467fa193954c9bb67141048a2c7acc3236975ac20fdf241582e  cmake-3.22.2-Linux-x86_64.sh" | sha256sum -c \ 
-    && mkdir -p "${HOME}"/.local \
-    && bash ./cmake-3.22.2-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/
-
-# Include path to refer to latest version of cmake
-ENV PATH="/root/.local/bin:${PATH}"
-
-RUN cmake --version \
-    && rm cmake-3.22.2-Linux-x86_64.sh
-
 # Prepare a (vcpkg) python environment separate from the system-wide one
-RUN apt-get remove -y python3 && apt-get autoremove -y
+RUN apt-get remove -y python3 cmake && apt-get autoremove -y
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
@@ -97,6 +84,7 @@ RUN ${VCPKG_PYTHON3} -m ensurepip \
   && mkdir -p ${PYTHON3_ENV_PATH}/bin \
   && mkdir -p ${PYTHON3_ENV_PATH}/lib \
   && cp ${VCPKG_PYTHON_PATH}/* ${PYTHON3_ENV_PATH}/bin/ \
+  && ldd ${VCPKG_PYTHON3} | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
   && cp -R ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
 
 # strip all exes
@@ -118,7 +106,6 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/bin/isolatedServer \
    /usr/local/bin/getrewardhistory \
 #    /usr/local/bin/zilliqa \
-   /usr/local/bin/data_migrate \
    /usr/local/lib/libSchnorr.so \
    /usr/local/lib/libCryptoUtils.so \
    /usr/local/lib/libNAT.so \
@@ -126,7 +113,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libTrie.so
 
 # start from a new ubuntu as the runner image
-FROM ${REGISTRY}zilliqa:v8.2.0-deps
+FROM ${REGISTRY}zilliqa:v8.3.0-deps
 
 # install all necessary libraries
 RUN apt-get update \
@@ -134,6 +121,7 @@ RUN apt-get update \
     && apt-get update && apt-get install -y --no-install-recommends \
     # libs
     ca-certificates \
+    cron \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
     libssl-dev \

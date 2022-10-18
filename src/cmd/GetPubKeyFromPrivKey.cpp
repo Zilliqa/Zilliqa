@@ -81,7 +81,7 @@ int main(int argc, const char* argv[]) {
 
     SHA2<HashType::HASH_VARIANT_256> sha2;
     sha2.Reset();
-    bytes message;
+    zbytes message;
 
     PrivKey privKey;
 

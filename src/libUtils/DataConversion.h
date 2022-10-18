@@ -60,9 +60,9 @@ class DataConversion {
   }
 
   /// Converts alphanumeric hex string to byte vector.
-  static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
+  static bool HexStrToUint8Vec(const std::string& hex_input, zbytes& out);
 
-  static bytes HexStrToUint8VecRet(const std::string& hex_input);
+  static zbytes HexStrToUint8VecRet(const std::string& hex_input);
 
   /// Converts alphanumeric hex string to 32-byte array.
   static bool HexStrToStdArray(const std::string& hex_input,
@@ -76,12 +76,12 @@ class DataConversion {
   static bool StringToHexStr(const std::string& hex_str, std::string& str);
 
   /// Converts byte vector to alphanumeric hex string.
-  static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
+  static bool Uint8VecToHexStr(const zbytes& hex_vec, std::string& str);
 
-  static std::string Uint8VecToHexStrRet(const bytes& hex_vec);
+  static std::string Uint8VecToHexStrRet(const zbytes& hex_vec);
 
   /// Converts byte vector to alphanumeric hex string.
-  static bool Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+  static bool Uint8VecToHexStr(const zbytes& hex_vec, unsigned int offset,
                                unsigned int len, std::string& str);
 
   /// Converts fixed-sized byte array to alphanumeric hex string.
@@ -106,16 +106,16 @@ class DataConversion {
   static bool SerializableToHexStr(const SerializableCrypto& input,
                                    std::string& str);
 
-  static inline const std::string CharArrayToString(const bytes& v) {
+  static inline const std::string CharArrayToString(const zbytes& v) {
     return std::string(v.begin(), v.end());
   }
 
   static inline const std::vector<uint8_t> StringToCharArray(
       const std::string& input) {
-    return bytes(input.begin(), input.end());
+    return zbytes(input.begin(), input.end());
   }
 
-  static uint16_t charArrTo16Bits(const bytes& hex_arr);
+  static uint16_t charArrTo16Bits(const zbytes& hex_arr);
 
   static uint32_t Pack(uint16_t a, uint16_t b) {
     return (int32_t)((((uint32_t)a) << 16) + (uint32_t)b);
@@ -142,8 +142,8 @@ class DataConversion {
   }
 
   template <typename T, size_t SIZE>
-  static bytes IntegerToBytes(T value) {
-    bytes result(SIZE);
+  static zbytes IntegerToBytes(T value) {
+    zbytes result(SIZE);
     for (size_t i = 0; i < SIZE; i++) {
       result[SIZE - i - 1] = (value >> (i * 8));
     }

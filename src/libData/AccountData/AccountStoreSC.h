@@ -222,7 +222,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool ParseContractCheckerOutput(const Address& addr,
                                   const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
-                                  std::map<std::string, bytes>& metadata,
+                                  std::map<std::string, zbytes>& metadata,
                                   uint64_t& gasRemained,
                                   bool is_library = false);
 

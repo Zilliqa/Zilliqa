@@ -35,7 +35,7 @@ void AccountStoreTrie<MAP>::InitTrie() {
 }
 
 template <class MAP>
-bool AccountStoreTrie<MAP>::Serialize(bytes& dst, unsigned int offset) const {
+bool AccountStoreTrie<MAP>::Serialize(zbytes& dst, unsigned int offset) const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   if (LOOKUP_NODE_MODE) {
     if (m_prevRoot != dev::h256()) {
@@ -104,7 +104,7 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
 
   account = new Account();
   if (!account->DeserializeBase(
-          bytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
+          zbytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
     LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
     delete account;
     return nullptr;
@@ -164,7 +164,7 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
 
   Account t_account;
   if (!t_account.DeserializeBase(
-          bytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
+          zbytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
     LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
     return false;
   }
@@ -181,7 +181,7 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
 template <class MAP>
 bool AccountStoreTrie<MAP>::UpdateStateTrie(const Address& address,
                                             const Account& account) {
-  bytes rawBytes;
+  zbytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
     return false;
@@ -229,7 +229,7 @@ bool AccountStoreTrie<MAP>::UpdateStateTrieAll() {
     }
   }
   for (auto const& entry : *(this->m_addressToAccount)) {
-    bytes rawBytes;
+    zbytes rawBytes;
     if (!entry.second.SerializeBase(rawBytes, 0)) {
       LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
       return false;
@@ -272,7 +272,7 @@ void AccountStoreTrie<MAP>::PrintTrie() {
     LOG_GENERAL(INFO, "Address: " << address.hex());
 
     AccountBase ab;
-    if (!ab.Deserialize(bytes(i.second.begin(), i.second.end()), 0)) {
+    if (!ab.Deserialize(zbytes(i.second.begin(), i.second.end()), 0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
       return;
     }

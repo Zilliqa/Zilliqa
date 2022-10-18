@@ -80,7 +80,7 @@ struct MicroBlockHashSet {
   TxnHash m_tranReceiptHash;   // Tx Receipt hash
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(bytes& dst, unsigned int offset) const {
+  unsigned int Serialize(zbytes& dst, unsigned int offset) const {
     copy(m_txRootHash.asArray().begin(), m_txRootHash.asArray().end(),
          dst.begin() + offset);
     offset += TRAN_HASH_SIZE;
@@ -95,7 +95,7 @@ struct MicroBlockHashSet {
   }
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const bytes& src, unsigned int offset) {
+  int Deserialize(const zbytes& src, unsigned int offset) {
     try {
       copy(src.begin() + offset, src.begin() + offset + TRAN_HASH_SIZE,
            m_txRootHash.asArray().begin());
@@ -168,7 +168,7 @@ struct TxBlockHashSet {
   MBInfoHash m_mbInfoHash;     // Hash concatenated from all microblock infos
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(bytes& dst, unsigned int offset) const {
+  unsigned int Serialize(zbytes& dst, unsigned int offset) const {
     copy(m_stateRootHash.asArray().begin(), m_stateRootHash.asArray().end(),
          dst.begin() + offset);
     offset += STATE_HASH_SIZE;
@@ -182,7 +182,7 @@ struct TxBlockHashSet {
   }
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const bytes& src, unsigned int offset) {
+  int Deserialize(const zbytes& src, unsigned int offset) {
     try {
       copy(src.begin() + offset, src.begin() + offset + STATE_HASH_SIZE,
            m_stateRootHash.asArray().begin());

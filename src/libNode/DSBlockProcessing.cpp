@@ -69,7 +69,7 @@ void Node::StoreDSBlockToDisk(const DSBlock& dsblock) {
   m_mediator.UpdateDSBlockRand();
 
   // Store DS Block to disk
-  bytes serializedDSBlock;
+  zbytes serializedDSBlock;
   dsblock.Serialize(serializedDSBlock, 0);
 
   if (!BlockStorage::GetBlockStorage().PutDSBlock(
@@ -150,7 +150,7 @@ bool Node::VerifyDSBlockCoSignature(const DSBlock& dsblock) {
   }
 
   // Verify the collective signature
-  bytes message;
+  zbytes message;
   if (!dsblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "DSBlockHeader serialization failed");
     return false;
@@ -362,7 +362,7 @@ void Node::ResetConsensusId() {
 }
 
 bool Node::ProcessVCDSBlocksMessage(
-    const bytes& message, unsigned int cur_offset,
+    const zbytes& message, unsigned int cur_offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -701,7 +701,7 @@ bool Node::ProcessVCDSBlocksMessage(
       if (BROADCAST_TREEBASED_CLUSTER_MODE) {
         // Avoid using the original message for broadcasting in case it contains
         // excess data beyond the VCDSBlock
-        bytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+        zbytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
 
         if (!Messenger::SetNodeVCDSBlocksMessage(
                 message2, MessageOffset::BODY, shardId, dsblock, vcBlocks,
@@ -745,7 +745,7 @@ bool Node::ProcessVCDSBlocksMessage(
     if (MULTIPLIER_SYNC_MODE) {
       // Avoid using the original message in case it contains
       // excess data beyond the VCDSBlock
-      bytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
+      zbytes message2 = {MessageType::NODE, NodeInstructionType::DSBLOCK};
 
       if (!Messenger::SetNodeVCDSBlocksMessage(
               message2, MessageOffset::BODY, shardId, dsblock, vcBlocks,
@@ -827,7 +827,7 @@ bool Node::ProcessVCDSBlocksMessage(
   return true;
 }
 
-void Node::SendDSBlockToOtherShardNodes(const bytes& dsblock_message) {
+void Node::SendDSBlockToOtherShardNodes(const zbytes& dsblock_message) {
   LOG_MARKER();
   unsigned int cluster_size = NUM_FORWARDED_BLOCK_RECEIVERS_PER_SHARD;
   if (cluster_size <= NUM_DS_ELECTION) {

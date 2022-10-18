@@ -39,8 +39,8 @@ using namespace std;
 using namespace jsonrpc;
 
 void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
-  bytes tmp1;
-  bytes tmp2;
+  zbytes tmp1;
+  zbytes tmp2;
 
   key.first.Serialize(tmp1, 0);
   key.second.Serialize(tmp2, 0);
@@ -49,10 +49,10 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
 
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Reset();
-  bytes message;
+  zbytes message;
   key.second.Serialize(message, 0);
   sha2.Update(message, 0, PUB_KEY_SIZE);
-  const bytes& tmp3 = sha2.Finalize();
+  const zbytes& tmp3 = sha2.Finalize();
   Address toAddr;
   copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
@@ -80,7 +80,7 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
 }
 
 void Zilliqa::ProcessMessage(
-    pair<bytes, pair<Peer, const unsigned char>>* message) {
+    pair<zbytes, pair<Peer, const unsigned char>>* message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
@@ -150,7 +150,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
-    pair<bytes, std::pair<Peer, const unsigned char>>* message = NULL;
+    pair<zbytes, std::pair<Peer, const unsigned char>>* message = NULL;
     while (true) {
       while (m_msgQueue.pop(message)) {
         // For now, we use a thread pool to handle this message
@@ -487,14 +487,14 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 }
 
 Zilliqa::~Zilliqa() {
-  pair<bytes, Peer>* message = NULL;
+  pair<zbytes, Peer>* message = NULL;
   while (m_msgQueue.pop(message)) {
     delete message;
   }
 }
 
 void Zilliqa::Dispatch(
-    pair<bytes, std::pair<Peer, const unsigned char>>* message) {
+    pair<zbytes, std::pair<Peer, const unsigned char>>* message) {
   // LOG_MARKER();
 
   // Queue message

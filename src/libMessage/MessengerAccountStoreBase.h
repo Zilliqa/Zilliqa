@@ -33,10 +33,10 @@ class MessengerAccountStoreBase {
   // ============================================================================
 
   template <class MAP>
-  static bool SetAccountStore(bytes& dst, const unsigned int offset,
+  static bool SetAccountStore(zbytes& dst, const unsigned int offset,
                               const MAP& addressToAccount);
   template <class MAP>
-  static bool GetAccountStore(const bytes& src, const unsigned int offset,
+  static bool GetAccountStore(const zbytes& src, const unsigned int offset,
                               MAP& addressToAccount);
   template <class MAP>
   static bool GetAccountStore(const std::string& src, const unsigned int offset,

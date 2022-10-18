@@ -50,7 +50,7 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader();  // creates a dummy invalid placeholder BlockHeader
 
   /// Constructor for loading DS block header information from a byte stream.
-  DSBlockHeader(const bytes& src, unsigned int offset);
+  DSBlockHeader(const zbytes& src, unsigned int offset);
 
   /// Constructor with specified DS block header parameters.
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
@@ -66,10 +66,10 @@ class DSBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Serialize(zbytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset) override;
+  bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset) override;

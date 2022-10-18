@@ -111,7 +111,7 @@ BOOST_AUTO_TEST_CASE(bloomfiltersize) {
     filter.insert(iter.hex());
   }
 
-  bytes serialized_bf;
+  zbytes serialized_bf;
 
   if (!filter.Serialize(serialized_bf, 0)) {
     LOG_GENERAL(INFO, "bloom_filter::Serialize failed");

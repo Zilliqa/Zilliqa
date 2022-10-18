@@ -25,7 +25,7 @@
 class Executable {
  public:
   /// Message processing function.
-  virtual bool Execute(const bytes& message, unsigned int offset,
+  virtual bool Execute(const zbytes& message, unsigned int offset,
                        const Peer& from, const unsigned char& startByte) = 0;
 
   /// Virtual destructor.

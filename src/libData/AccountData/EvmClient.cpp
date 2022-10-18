@@ -32,16 +32,25 @@ void EvmClient::Init() {
 }
 
 EvmClient::~EvmClient() {
-  std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
-  LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
-
+  std::lock_guard<std::mutex> g(m_mutexMain);
+  Json::Value _json;
+  LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
+  // call evm
   try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-    }
+    const auto oldJson = m_clients.at(0)->CallMethod("die", _json);
   } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+    LOG_GENERAL(WARNING, "Caught an exception calling die " << e.what());
+    std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
+    LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
+
+    try {
+      if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
+        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+      }
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+    }
   } catch (...) {
     LOG_GENERAL(WARNING, "Unknown error encountered");
   }
@@ -81,7 +90,7 @@ bool EvmClient::OpenServer(uint32_t version) {
   // Sleep an extra 5x because of very slow networks on Devnet
 
   std::this_thread::sleep_for(
-      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS * 2));
+      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS * 5));
 
   return true;
 }

@@ -20,9 +20,8 @@
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/abstractserver.h>
 #include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
-
+#include "EvmIPC.h"
 #include "depends/common/FixedHash.h"
-
 #include "libData/AccountData/Account.h"
 
 class ScillaBCInfo {
@@ -83,11 +82,6 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                        std::string& value, bool& found,
                                        std::string& type);
 
-  virtual bool fetchExternalStateValueEvm(const std::string& addr,
-                                          const std::string& query,
-                                          std::string& value, bool& found,
-                                          std::string& type);
-
   virtual bool updateStateValue(const std::string& query,
                                 const std::string& value);
 
@@ -95,14 +89,11 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    const std::string& query_args,
                                    std::string& value);
 
-  virtual bool fetchBlockchainInfoEvm(const std::string& query_name,
-                                      const std::string& queryArgs,
-                                      std::string& value);
-
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
  private:
   ScillaBCInfo m_BCInfo;
+  EvmIPC m_EvmIPC;
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_

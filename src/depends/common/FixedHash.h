@@ -82,7 +82,7 @@ namespace dev
         explicit FixedHash(unsigned _u) { toBigEndian(_u, m_data); }
 
         /// Explicitly construct, copying from a byte array.
-        explicit FixedHash(bytes const& _b, ConstructFromHashType _t = FailIfDifferent) 
+        explicit FixedHash(zbytes const& _b, ConstructFromHashType _t = FailIfDifferent) 
         { 
             if (_b.size() == N)
             { 
@@ -103,10 +103,10 @@ namespace dev
         }
 
         /// Explicitly construct, copying from a byte array.
-        explicit FixedHash(bytesConstRef _b, ConstructFromHashType _t = FailIfDifferent) { if (_b.size() == N) memcpy(m_data.data(), _b.data(), std::min<unsigned>(_b.size(), N)); else { m_data.fill(0); if (_t != FailIfDifferent) { auto c = std::min<unsigned>(_b.size(), N); for (unsigned i = 0; i < c; ++i) m_data[_t == AlignRight ? N - 1 - i : i] = _b[_t == AlignRight ? _b.size() - 1 - i : i]; } } }
+        explicit FixedHash(zbytesConstRef _b, ConstructFromHashType _t = FailIfDifferent) { if (_b.size() == N) memcpy(m_data.data(), _b.data(), std::min<unsigned>(_b.size(), N)); else { m_data.fill(0); if (_t != FailIfDifferent) { auto c = std::min<unsigned>(_b.size(), N); for (unsigned i = 0; i < c; ++i) m_data[_t == AlignRight ? N - 1 - i : i] = _b[_t == AlignRight ? _b.size() - 1 - i : i]; } } }
 
         /// Explicitly construct, copying from a bytes in memory with given pointer.
-        explicit FixedHash(byte const* _bs, ConstructFromPointerType) { memcpy(m_data.data(), _bs, N); }
+        explicit FixedHash(zbyte const* _bs, ConstructFromPointerType) { memcpy(m_data.data(), _bs, N); }
 
         /// Explicitly construct, copying from a  string.
         explicit FixedHash(std::string const& _s, ConstructFromStringType _t = FromHex, ConstructFromHashType _ht = FailIfDifferent): FixedHash(_t == FromHex ? fromHex(_s, WhenError::Throw) : dev::asBytes(_s), _ht) {}
@@ -115,7 +115,7 @@ namespace dev
         operator Arith() const { return fromBigEndian<Arith>(m_data); }
 
         /// @returns true iff this is the empty hash.
-        explicit operator bool() const { return std::any_of(m_data.begin(), m_data.end(), [](byte _b) { return _b != 0; }); }
+        explicit operator bool() const { return std::any_of(m_data.begin(), m_data.end(), [](zbyte _b) { return _b != 0; }); }
 
         // The obvious comparison operators.
         bool operator==(FixedHash const& _c) const { return m_data == _c.m_data; }
@@ -141,9 +141,9 @@ namespace dev
         bool contains(FixedHash const& _c) const { return (*this & _c) == _c; }
 
         /// @returns a particular byte from the hash.
-        byte& operator[](unsigned _i) { return m_data[_i]; }
+        zbyte& operator[](unsigned _i) { return m_data[_i]; }
         /// @returns a particular byte from the hash.
-        byte operator[](unsigned _i) const { return m_data[_i]; }
+        zbyte operator[](unsigned _i) const { return m_data[_i]; }
 
         /// @returns an abridged version of the hash as a user-readable hex string.
         std::string abridged() const { return toHex(ref().cropped(0, 4)) + "\342\200\246"; }
@@ -155,31 +155,31 @@ namespace dev
         std::string hex() const { return toHex(ref()); }
 
         /// @returns a mutable byte vector_ref to the object's data.
-        bytesRef ref() { return bytesRef(m_data.data(), N); }
+        zbytesRef ref() { return zbytesRef(m_data.data(), N); }
 
         /// @returns a constant byte vector_ref to the object's data.
-        bytesConstRef ref() const { return bytesConstRef(m_data.data(), N); }
+        zbytesConstRef ref() const { return zbytesConstRef(m_data.data(), N); }
 
         /// @returns a mutable byte pointer to the object's data.
-        byte* data() { return m_data.data(); }
+        zbyte* data() { return m_data.data(); }
 
         /// @returns a constant byte pointer to the object's data.
-        byte const* data() const { return m_data.data(); }
+        zbyte const* data() const { return m_data.data(); }
 
         /// @returns begin iterator.
-        auto begin() const -> typename std::array<byte, N>::const_iterator { return m_data.begin(); }
+        auto begin() const -> typename std::array<zbyte, N>::const_iterator { return m_data.begin(); }
 
         /// @returns end iterator.
-        auto end() const -> typename std::array<byte, N>::const_iterator { return m_data.end(); }
+        auto end() const -> typename std::array<zbyte, N>::const_iterator { return m_data.end(); }
 
         /// @returns a copy of the object's data as a byte vector.
-        bytes asBytes() const { return bytes(data(), data() + N); }
+        zbytes asBytes() const { return zbytes(data(), data() + N); }
 
         /// @returns a mutable reference to the object's data as an STL array.
-        std::array<byte, N>& asArray() { return m_data; }
+        std::array<zbyte, N>& asArray() { return m_data; }
 
         /// @returns a constant reference to the object's data as an STL array.
-        std::array<byte, N> const& asArray() const { return m_data; }
+        std::array<zbyte, N> const& asArray() const { return m_data; }
 
         /// Populate with random data.
         template <class Engine>
@@ -230,7 +230,7 @@ namespace dev
                                                  << __FUNCTION__ << ")" << " out of range");
             }
             FixedHash<M> ret;
-            byte const* p = data();
+            zbyte const* p = data();
             for (unsigned i = 0; i < P; ++i)
             {
                 unsigned index = 0;
@@ -266,7 +266,7 @@ namespace dev
         }
 
     private:
-        std::array<byte, N> m_data;		///< The binary data.
+        std::array<zbyte, N> m_data;		///< The binary data.
     };
 
     template <unsigned T>
@@ -278,13 +278,13 @@ namespace dev
         using ConstructFromPointerType = typename FixedHash<T>::ConstructFromPointerType;
         SecureFixedHash() = default;
         SecureFixedHash(SecureFixedHash const&) = default;
-        explicit SecureFixedHash(bytes const& _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
-        explicit SecureFixedHash(bytesConstRef _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
+        explicit SecureFixedHash(zbytes const& _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
+        explicit SecureFixedHash(zbytesConstRef _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b, _t) {}
         explicit SecureFixedHash(bytesSec const& _b, ConstructFromHashType _t = FixedHash<T>::FailIfDifferent): FixedHash<T>(_b.ref(), _t) {}
         template <unsigned M> explicit SecureFixedHash(FixedHash<M> const& _h, ConstructFromHashType _t = FixedHash<T>::AlignLeft): FixedHash<T>(_h, _t) {}
         template <unsigned M> explicit SecureFixedHash(SecureFixedHash<M> const& _h, ConstructFromHashType _t = FixedHash<T>::AlignLeft): FixedHash<T>(_h.makeInsecure(), _t) {}
         explicit SecureFixedHash(std::string const& _s, ConstructFromStringType _t = FixedHash<T>::FromHex, ConstructFromHashType _ht = FixedHash<T>::FailIfDifferent): FixedHash<T>(_s, _t, _ht) {}
-        explicit SecureFixedHash(bytes const* _d, ConstructFromPointerType _t): FixedHash<T>(_d, _t) {}
+        explicit SecureFixedHash(zbytes const* _d, ConstructFromPointerType _t): FixedHash<T>(_d, _t) {}
         ~SecureFixedHash() { ref().cleanse(); }
 
         SecureFixedHash<T>& operator=(SecureFixedHash<T> const& _c)
@@ -339,8 +339,8 @@ namespace dev
         using FixedHash<T>::abridged;
         using FixedHash<T>::abridgedMiddle;
 
-        bytesConstRef ref() const { return FixedHash<T>::ref(); }
-        byte const* data() const { return FixedHash<T>::data(); }
+        zbytesConstRef ref() const { return FixedHash<T>::ref(); }
+        zbyte const* data() const { return FixedHash<T>::data(); }
 
         static SecureFixedHash<T> random() { SecureFixedHash<T> ret; ret.randomize(s_fixedHashEngine); return ret; }
         using FixedHash<T>::firstBitSet;

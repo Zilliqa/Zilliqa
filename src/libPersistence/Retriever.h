@@ -35,15 +35,10 @@ class Retriever {
   bool RetrieveStates();
   bool RetrieveStatesOld();
   bool ValidateStates();
-  bool MigrateContractStates(
-      bool ignore_checker, bool disambiguation,
-      const std::string& contract_address_output_filename,
-      const std::string& normal_address_output_filename,
-      const uint64_t& updateDiskFrequency);
   void CleanAll();
   bool ConstructFromStateDeltas(const uint64_t& lastBlockNum,
                                 unsigned int extra_txblocks,
-                                std::vector<bytes>& extraStateDeltas,
+                                std::vector<zbytes>& extraStateDeltas,
                                 bool trimIncompletedBlocks);
 
  private:

@@ -139,7 +139,7 @@ TxBlock buildCommonEthBlockCase(
     PairOfKey& keyPair) {
   const MicroBlock microBlock =
       constructMicroBlockWithTransactions(blockNum, transactions, keyPair);
-  bytes microBlockSerialized;
+  zbytes microBlockSerialized;
   microBlock.Serialize(microBlockSerialized, 0);
   BlockStorage::GetBlockStorage().PutMicroBlock(
       microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);
@@ -157,7 +157,7 @@ BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-  bool OpenServer(bool /*force = false*/) { return true; };
+  virtual bool OpenServer(uint32_t /*force = false*/) override { return true; };
 
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
@@ -1007,7 +1007,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey);
     transactions.emplace_back(twr);
 
-    bytes body;
+    zbytes body;
     transactions.back().Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         1, transactions.back().GetTransaction().GetTranID(), body);
@@ -1353,7 +1353,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   }
 
   for (const auto& transaction : transactions) {
-    bytes body;
+    zbytes body;
     transaction.Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
@@ -1553,7 +1553,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       const auto transaction = constructTxWithReceipt(nonce++, pairOfKey);
       thisBlockTransactions.push_back(transaction);
       transactions.push_back(transaction);
-      bytes body;
+      zbytes body;
       transaction.Serialize(body, 0);
       BlockStorage::GetBlockStorage().PutTxBody(
           1, transaction.GetTransaction().GetTranID(), body);
@@ -1561,7 +1561,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
     const auto blockNum = i + 1;
     const MicroBlock microBlock = constructMicroBlockWithTransactions(
         blockNum, thisBlockTransactions, pairOfKey);
-    bytes microBlockSerialized;
+    zbytes microBlockSerialized;
     microBlock.Serialize(microBlockSerialized, 0);
     BlockStorage::GetBlockStorage().PutMicroBlock(
         microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);

@@ -70,7 +70,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    bytes message(message_.begin(), message_.end());
+    zbytes message(message_.begin(), message_.end());
 
     try {
       string line;
@@ -154,7 +154,7 @@ int main(int argc, const char* argv[]) {
     shared_ptr<Signature> signature =
         MultiSig::AggregateSign(challenge, *aggregatedResponse);
 
-    bytes result;
+    zbytes result;
     signature->Serialize(result, 0);
 
     std::string output;

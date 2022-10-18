@@ -42,6 +42,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -56,9 +57,6 @@ using namespace jsonrpc;
 using namespace std;
 
 namespace {
-const unsigned int PAGE_SIZE = 10;
-const unsigned int NUM_PAGES_CACHE = 2;
-const unsigned int TXN_PAGE_SIZE = 100;
 
 bool isNumber(const std::string& str) {
   char* endp;
@@ -92,7 +90,7 @@ Address ToBase16AddrHelper(const std::string& addr) {
 
 }  // namespace
 
-struct LookupServer::ApiKeys {
+struct EthRpcMethods::ApiKeys {
   std::string from;
   std::string to;
   std::string value;
@@ -335,10 +333,23 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
                          NULL),
       &EthRpcMethods::EthGetLogsI);
+
+  // Recover who the sender of a transaction was given only the RLP
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_recoverTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &EthRpcMethods::EthRecoverTransactionI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("eth_getBlockReceipts", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::GetEthBlockReceiptsI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
-    Eth::EthFields const& fields, bytes const& pubKey,
+    Eth::EthFields const& fields, zbytes const& pubKey,
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
@@ -354,8 +365,8 @@ std::string EthRpcMethods::CreateTransactionEth(
   }
 
   Address toAddr{fields.toAddr};
-  bytes data;
-  bytes code;
+  zbytes data;
+  zbytes code;
   if (IsNullAddress(toAddr)) {
     code = ToEVM(fields.code);
   } else {
@@ -571,7 +582,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
-  bytes contractCode{};
+  zbytes contractCode{};
   auto success{false};
   {
     shared_lock<shared_timed_mutex> lock(
@@ -650,7 +661,7 @@ std::string EthRpcMethods::GetWeb3ClientVersion() {
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-  bytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
+  zbytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
   return POW::BlockhashToHexString(
       ethash::keccak256(input.data(), input.size()));
 }
@@ -816,7 +827,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
     zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
 
     auto res = root["_evm_storage"][zeroes];
-    bytes resAsStringBytes;
+    zbytes resAsStringBytes;
 
     for (const auto& item : res.asString()) {
       resAsStringBytes.push_back(item);
@@ -1376,4 +1387,35 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
   }
 
   return WRONG_INDEX;
+}
+
+// Given a transmitted RLP, return checksum-encoded original sender address
+std::string EthRpcMethods::EthRecoverTransaction(
+    const std::string& txnRpc) const {
+  auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
+
+  auto const asAddr = CreateAddr(pubKeyBytes);
+
+  auto addrChksum = AddressChecksum::GetChecksummedAddressEth(
+      DataConversion::Uint8VecToHexStrRet(asAddr.asBytes()));
+
+  return DataConversion::AddOXPrefix(std::move(addrChksum));
+}
+
+Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
+  // The easiest way to do this:
+  // Get the block + transactions
+  // Call TX receipt function
+
+  auto const block = GetEthBlockByHash(blockId, false);
+  auto const txs = block["transactions"];
+
+  Json::Value res = Json::arrayValue;
+
+  for (const auto& tx : txs) {
+    auto const receipt = GetEthTransactionReceipt(tx.asString());
+    res.append(receipt);
+  }
+
+  return res;
 }

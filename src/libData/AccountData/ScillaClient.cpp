@@ -46,6 +46,11 @@ ScillaClient::~ScillaClient() {
 
 void ScillaClient::Init() {
   LOG_MARKER();
+
+  if (!ENABLE_SCILLA) {
+    return;
+  }
+
   if (ENABLE_SCILLA_MULTI_VERSION) {
     path scilla_root_path(SCILLA_ROOT);
     // scan existing versions
