@@ -246,9 +246,9 @@ bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
   // Get latest by setting tree to zeroes dev::h256()
   //
 
-  ScillaIPCServer::GetInstance().setBCInfoProvider({m_curBlockNum, m_curDSBlockNum, origin,
-                                        Address(params.m_contract), dev::h256(),
-                                        evm_version});
+  ScillaIPCServer::GetInstance().setBCInfoProvider(
+      {m_curBlockNum, m_curDSBlockNum, origin, Address(params.m_contract),
+       dev::h256(), evm_version});
 
   return EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
