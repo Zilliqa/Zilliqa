@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBSERVER_NEWWEBSOCKETSERVERIMPL_H_
-#define ZILLIQA_SRC_LIBSERVER_NEWWEBSOCKETSERVERIMPL_H_
+#ifndef ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVERIMPL_H_
+#define ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVERIMPL_H_
 
 #include <atomic>
 #include <unordered_map>
@@ -87,4 +87,4 @@ class WebsocketServerImpl
 }  // namespace ws
 }  // namespace evmproj
 
-#endif  // ZILLIQA_SRC_LIBSERVER_NEWWEBSOCKETSERVERIMPL_H_
+#endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVERIMPL_H_
