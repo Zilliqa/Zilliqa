@@ -196,6 +196,13 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
 
+  const std::shared_ptr<ScillaIPCServer>& CreateScillaIPCServer(
+      const std::unique_ptr<jsonrpc::UnixDomainSocketServer>& scillaIPCServerConnector);
+
+  const std::shared_ptr<ScillaIPCServer>& GetScillaIPCServer() const {
+    return m_scillaIPCServer;
+  }
+
   /// generate input files for interpreter to deploy contract
   bool ExportCreateContractFiles(
       const Account& contract, bool is_library, uint32_t scilla_version,
@@ -248,7 +255,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   void NotifyTimeout();
 
   /// public interface to setup scilla ipc server
-  void SetScillaIPCServer(std::shared_ptr<ScillaIPCServer> scillaIPCServer);
+  void SetScillaIPCServer(
+      const std::shared_ptr<ScillaIPCServer>& scillaIPCServer);
 
   /// public interface to invoke processing of the buffered storage root
   /// updating tasks

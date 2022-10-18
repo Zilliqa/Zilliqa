@@ -68,8 +68,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 
 // Singleton class for providing interface related Account System
 class AccountStore
-    : public AccountStoreTrie<std::unordered_map<Address, Account>>,
-      Singleton<AccountStore> {
+    : public AccountStoreTrie<std::unordered_map<Address, Account>> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
@@ -93,7 +92,6 @@ class AccountStore
   static constexpr int NUM_OF_WRITERS_IN_QUEUE = 1;
 
   /// Scilla IPC server related
-  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<jsonrpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
   AccountStore();

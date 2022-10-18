@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "AccountStore.h"
 #include <leveldb/db.h>
 #include <regex>
 
-#include "AccountStore.h"
 #include "EvmClient.h"
 #include "ScillaClient.h"
 
@@ -41,7 +41,9 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() : m_externalWriters{0} {
+AccountStore::AccountStore()
+    :  //
+      m_externalWriters{0} {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
 
@@ -53,25 +55,22 @@ AccountStore::AccountStore() : m_externalWriters{0} {
         make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServerConnector->SetWaitTime(
         SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-    m_scillaIPCServer =
-        make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+
+    CreateScillaIPCServer(m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
       ipcScillaInit = true;
     }
 
-    if (m_scillaIPCServer == nullptr) {
-      LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
+    m_accountStoreTemp->SetScillaIPCServer(GetScillaIPCServer());
+    if (GetScillaIPCServer()->StartListening()) {
+      LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
     } else {
-      m_accountStoreTemp->SetScillaIPCServer(m_scillaIPCServer);
-      if (m_scillaIPCServer->StartListening()) {
-        LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
-      } else {
-        LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start");
-      }
+      LOG_GENERAL(WARNING, "Scilla IPC Server couldn't start");
     }
   }
+
   // EVM required to run on Lookup nodes too for view calls
   if (ENABLE_EVM) {
     // TODO lookup nodes may also need it
@@ -83,9 +82,8 @@ AccountStore::AccountStore() : m_externalWriters{0} {
 }
 
 AccountStore::~AccountStore() {
-  // boost::filesystem::remove_all("./state");
-  if (m_scillaIPCServer != nullptr) {
-    m_scillaIPCServer->StopListening();
+  if (GetScillaIPCServer() != nullptr) {
+    GetScillaIPCServer()->StopListening();
   }
 }
 

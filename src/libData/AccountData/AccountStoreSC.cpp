@@ -1596,9 +1596,9 @@ Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
 
 template <class MAP>
 void AccountStoreSC<MAP>::SetScillaIPCServer(
-    std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
+    const std::shared_ptr<ScillaIPCServer>& scillaIPCServer) {
   LOG_MARKER();
-  m_scillaIPCServer = std::move(scillaIPCServer);
+  m_scillaIPCServer = scillaIPCServer;
 }
 
 template <class MAP>
@@ -1608,6 +1608,16 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
     boost::filesystem::remove(addr.hex() + ".json");
   }
   m_newLibrariesCreated.clear();
+}
+
+template <class MAP>
+const std::shared_ptr<ScillaIPCServer>&
+AccountStoreSC<MAP>::CreateScillaIPCServer(
+    const std::unique_ptr<jsonrpc::UnixDomainSocketServer>&
+        scillaIPCServerConnector) {
+  m_scillaIPCServer =
+      std::make_shared<ScillaIPCServer>(*scillaIPCServerConnector);
+  return m_scillaIPCServer;
 }
 
 // Explicit template instantiations.
