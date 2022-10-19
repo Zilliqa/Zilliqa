@@ -251,7 +251,8 @@ bool SendJob::SendMessageSocketCore(const Peer& peer, const bytes& message,
                                    << "). Adding "
                                    << peer.GetPrintableIPAddress()
                                    << " as strictly blacklisted");
-          Blacklist::GetInstance().Add(peer.m_ipAddress);  // strict
+          Blacklist::GetInstance().Add(peer.m_ipAddress, false,
+                                       true);  // strict
         }
       } else if (P2PComm::IsNodeNotRunning()) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
