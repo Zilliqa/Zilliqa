@@ -39,7 +39,6 @@ class WebsocketServer;
 /// websocket server backend
 class APIServer {
  public:
-
   /// Server start parameters
   struct Options {
     /// Listen port
