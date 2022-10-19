@@ -684,7 +684,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   const EvmCallParameters params{
-      toAddr.hex(), fromAddr.hex(), code, data, gas, 0, true};
+      toAddr.hex(), fromAddr.hex(), code, data, gas, 0,
+      true /* only estimate gas */};
 
   evmproj::CallResponse response;
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
@@ -746,8 +747,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
 
     const EvmCallParameters params{
         addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
-        data,       gasRemained,    amount,
-        false};
+        data,       gasRemained,    amount};
 
     if (AccountStore::GetInstance().ViewAccounts(params, response) &&
         response.Success()) {
