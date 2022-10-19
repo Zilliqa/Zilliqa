@@ -190,8 +190,9 @@ class GetEthCallEvmClientMock : public EvmClient {
         << "\"\","
         << "\"ffa1caa000000000000000000000000000000000000000000000000000000"
            "0000000014\","
-        << "\"" << m_Amount << "\"";
-    expectedRequestString << "," << std::to_string(m_GasLimit);  // gas value
+        //<< "\"" << m_Amount << "\"";
+        << "\"" << m_Amount << "\"," << std::to_string(m_GasLimit) << ","
+        << "false";
     expectedRequestString << "]";
 
     Json::Value expectedRequestJson;
@@ -206,6 +207,8 @@ class GetEthCallEvmClientMock : public EvmClient {
                                           << expectedRequestJson[i]);
       if (r.isConvertibleTo(Json::intValue)) {
         BOOST_CHECK_EQUAL(r.asInt(), expectedRequestJson[i].asInt());
+      } else if (r.isConvertibleTo(Json::booleanValue)) {
+        BOOST_CHECK_EQUAL(r.asBool(), expectedRequestJson[i].asBool());
       } else {
         BOOST_CHECK_EQUAL(r, expectedRequestJson[i]);
       }
@@ -1315,14 +1318,28 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
   AbstractServerConnectorMock abstractServerConnector;
 
   LookupServer lookupServer(mediator, abstractServerConnector);
+
+  Address accountAddress{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  Json::Value values;
+  values["from"] = accountAddress.hex();
+  paramsRequest[0u] = values;
 
   lookupServer.GetEthEstimateGasI(paramsRequest, response);
 
   if (response.asString()[0] != '0') {
     BOOST_FAIL("Failed to get gas price");
+  } else {
+    std::cerr << "Received gas: " << response.asString() << std::endl;
   }
 }
 
