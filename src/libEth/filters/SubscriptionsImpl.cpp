@@ -48,22 +48,26 @@ struct Request {
   EventFilterParams eventFilter;
   std::string subscriptionId;
   std::string error;
+  RPCError errorCode = RPCError::OK;
 };
 
 bool ParseRequest(const std::string& msg, Request& req) {
   auto json = JsonRead(msg, req.error);
 
   if (!req.error.empty()) {
+    req.errorCode = RPCError::PARSE_ERROR;
     return false;
   }
 
   if (!json.isObject()) {
+    req.errorCode = RPCError::PARSE_ERROR;
     req.error = "Object expected";
     return false;
   }
 
   req.id = json.get("id", Json::Value{});
   if (req.id.isNull()) {
+    req.errorCode = RPCError::INVALID_REQUEST;
     req.error = "Request id expected";
     return false;
   }
@@ -73,6 +77,7 @@ bool ParseRequest(const std::string& msg, Request& req) {
 
   bool isUnsubscribe = (method == "eth_unsubscribe");
   if (!isUnsubscribe && method != "eth_subscribe") {
+    req.errorCode = RPCError::METHOD_NOT_FOUND;
     req.error = "Unexpected method: ";
     req.error += method;
     return false;
@@ -80,6 +85,7 @@ bool ParseRequest(const std::string& msg, Request& req) {
 
   Json::Value params = json.get("params", Json::Value{});
   if (!params.isArray() || params.empty() || !params[0].isString()) {
+    req.errorCode = RPCError::INVALID_PARAMS;
     req.error = "Missing or invalid params";
     return false;
   }
@@ -99,10 +105,12 @@ bool ParseRequest(const std::string& msg, Request& req) {
     req.action = Request::SUBSCR_EVENTS;
     if (params.size() > 1) {
       if (!InitializeEventFilter(params[1], req.eventFilter, req.error)) {
+        req.errorCode = RPCError::INVALID_PARAMS;
         return false;
       }
     }
   } else {
+    req.errorCode = RPCError::INVALID_PARAMS;
     req.error = "Unexpected subscribe argument: ";
     req.error += what;
     return false;
@@ -191,6 +199,8 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
 
 bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
                                           WebsocketServer::InMessage msg) {
+  assert(m_websocketServer);
+
   if (msg.empty()) {
     UniqueLock lk(m_mutex);
     OnSessionDisconnected(conn_id);
@@ -199,12 +209,9 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
 
   Request req;
   if (!ParseRequest(msg, req)) {
-    // TODO How to send error json in this protocol ???
-
     LOG_GENERAL(INFO, "Request parse error: " << req.error);
-    UniqueLock lk(m_mutex);
-    OnSessionDisconnected(conn_id);
-    return false;
+    ReplyError(conn_id, std::move(req.id), req.errorCode, std::move(req.error));
+    return true;
   }
 
   UniqueLock lk(m_mutex);
@@ -236,12 +243,25 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
                                      std::move(req.eventFilter));
       break;
     default:
-      OnSessionDisconnected(conn_id);
-      return false;
+      ReplyError(conn_id, std::move(req.id), RPCError::INTERNAL_ERROR,
+                 "Should not get here");
+      return true;
   }
 
   m_websocketServer->SendMessage(conn_id, std::move(response));
   return true;
+}
+
+void SubscriptionsImpl::ReplyError(Id conn_id, Json::Value&& request_id,
+                                   RPCError errorCode, std::string&& error) {
+  Json::Value json;
+  json["jsonrpc"] = "2.0";
+  json["id"] = std::move(request_id);
+  auto& err = json["error"];
+  err["code"] = static_cast<int>(errorCode);
+  err["message"] = std::move(error);
+  m_websocketServer->SendMessage(
+      conn_id, std::make_shared<std::string>(JsonWrite(json)));
 }
 
 void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {

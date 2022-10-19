@@ -28,6 +28,15 @@
 namespace evmproj {
 namespace filters {
 
+enum class RPCError {
+  OK = 0,
+  PARSE_ERROR = -32700,
+  INVALID_REQUEST = -32600,
+  METHOD_NOT_FOUND = -32601,
+  INVALID_PARAMS = -32602,
+  INTERNAL_ERROR = -32603
+};
+
 /// Backend for eth_subscribe/eth_unsubscribe API
 class SubscriptionsImpl {
  public:
@@ -70,6 +79,10 @@ class SubscriptionsImpl {
 
   /// Connection closed
   void OnSessionDisconnected(Id conn_id);
+
+  /// Sends error reply to the connection
+  void ReplyError(Id conn_id, Json::Value&& request_id, RPCError errorCode,
+                  std::string&& error);
 
   /// eth_unsubscribe handler
   WebsocketServer::OutMessage OnUnsubscribe(const ConnectionPtr& conn,
