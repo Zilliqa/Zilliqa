@@ -3,7 +3,7 @@ const {web3} = require("hardhat");
 const web3_helper = require("../helper/Web3Helper");
 const zilliqa_helper = require("../helper/ZilliqaHelper");
 
-describe("Gas estimation with web3.js 222", function () {
+describe("Gas estimation with web3.js", function () {
   let contract;
   const tranferFundMinGas = 21000;
   const create2MinGas = 32000;
