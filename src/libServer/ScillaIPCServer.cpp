@@ -94,6 +94,9 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
+
+  std::cout << "we are here!" << std::endl;
+
   std::string value, type;
   bool found;
   string query = base64_decode(request["query"].asString());
