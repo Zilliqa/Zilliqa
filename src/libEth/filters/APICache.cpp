@@ -17,6 +17,7 @@
 
 #include "BlocksCache.h"
 #include "FiltersImpl.h"
+#include "SubscriptionsImpl.h"
 #include "FiltersUtils.h"
 #include "PendingTxnCache.h"
 #include "libUtils/Logger.h"
@@ -29,9 +30,6 @@ namespace {
 // TODO this is to be a parameter from constants.xml
 const size_t TXMETADATADEPTH = 100;
 
-// TODO stub
-class SubscriptionAPIBackendImpl : public SubscriptionAPIBackend {};
-
 }  // namespace
 
 class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
@@ -43,16 +41,13 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
 
   FilterAPIBackend& GetFilterAPI() override { return m_filterAPI; }
 
-  SubscriptionAPIBackend& GetSubscriptionAPI() override {
-    return m_subscriptionAPI;
-  }
-
   APICacheUpdate& GetUpdate() override { return *this; }
 
  private:
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
-    m_pendingTxnCache.Append(NormalizeHexString(hash), epoch);
-    // TODO realtime subscriptions to pending txns
+    auto hash_normalized = NormalizeHexString(hash);
+    m_pendingTxnCache.Append(hash_normalized, epoch);
+    m_subscriptions.OnPendingTransaction(hash_normalized);
   }
 
   void StartEpoch(uint64_t epoch, const BlockHash& block_hash,
@@ -99,7 +94,7 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
   }
 
   FilterAPIBackendImpl m_filterAPI;
-  SubscriptionAPIBackendImpl m_subscriptionAPI;
+  SubscriptionsImpl m_subscriptions;
   PendingTxnCache m_pendingTxnCache;
   BlocksCache m_blocksCache;
 };

@@ -82,15 +82,6 @@ class FilterAPIBackend {
   virtual PollResult GetLogs(const Json::Value &params) = 0;
 };
 
-class SubscriptionAPIBackend {
- public:
-  virtual ~SubscriptionAPIBackend() = default;
-
-  // TODO
-  // virtual Result subscribe(const Json::Value &params, Feedback&) = 0;
-  // virtual bool unsubscribe(const std::string& subscription_id) = 0;
-};
-
 class APICacheUpdate {
  public:
   virtual ~APICacheUpdate() = default;
@@ -112,7 +103,6 @@ class APICache {
 
   virtual ~APICache() = default;
   virtual FilterAPIBackend &GetFilterAPI() = 0;
-  virtual SubscriptionAPIBackend &GetSubscriptionAPI() = 0;
   virtual APICacheUpdate &GetUpdate() = 0;
 };
 

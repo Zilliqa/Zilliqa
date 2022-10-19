@@ -27,7 +27,7 @@ namespace evmproj {
 /// Websocket server: owner's interface
 class WebsocketServer {
  public:
-  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 4096;
+  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 1024;
 
   /// Connection ID: auto-incremented integer unique for server instance
   using ConnectionId = uint64_t;
@@ -55,6 +55,9 @@ class WebsocketServer {
 
   /// Closes connection with a given id, if exists
   virtual void CloseConnection(ConnectionId conn_id) = 0;
+
+  /// Closes all, no incoming messages via Feedback after it
+  virtual void CloseAll() = 0;
 };
 
 }  // namespace evmproj
