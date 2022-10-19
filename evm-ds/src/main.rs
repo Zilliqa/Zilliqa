@@ -44,7 +44,7 @@ struct Args {
     socket: String,
 
     /// Path of the Node Unix domain socket.
-    #[clap(short, long, default_value = "/tmp/zilliqa.sock")]
+    #[clap(short, long, default_value = "/Users/nhutton/zilliqa.sock")]
     node_socket: String,
 
     /// Path of the EVM server HTTP socket. Duplicates the `socket` above for convenience.
@@ -244,6 +244,7 @@ async fn run_evm_impl(
         // the unwind.
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             if tracing {
+                println!("starting while using tracinggggg");
                 evm::tracing::using(&mut listener, || executor.execute(&mut runtime))
             } else {
                 executor.execute(&mut runtime)
@@ -378,6 +379,9 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     // Build and start the HTTP server.
     let builder = jsonrpc_http_server::ServerBuilder::new(io);
+
+    println!("socket {}", args.http_port);
+
     let http_server = builder
         .start_http(&SocketAddr::new(
             IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1)),

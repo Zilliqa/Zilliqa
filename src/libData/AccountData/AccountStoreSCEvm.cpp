@@ -45,6 +45,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 
   const auto fut = std::async(std::launch::async, worker);
   // check the future return and when time out log error.
+  std::cout << "evm call runner start" << std::endl;
   switch (fut.wait_for(std::chrono::seconds(30))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
@@ -60,6 +61,8 @@ void AccountStoreSC<MAP>::EvmCallRunner(
       ret = false;
     }
   }
+
+  std::cout << "evm call runner end" << std::endl;
 }
 
 template <class MAP>

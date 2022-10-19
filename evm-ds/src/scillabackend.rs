@@ -80,20 +80,22 @@ impl ScillaBackend {
                 .await
                 .expect("Failed to connect to the node Unix domain socket");
             tokio::time::timeout(
-                tokio::time::Duration::from_secs(10), // Require response in 10 secs max.
+                tokio::time::Duration::from_secs(30), // Require response in 10 secs max.
                 client.call_method(method, Params::Map(args)),
             )
             .await
         });
         if let Ok(result) = call_with_timeout {
+            println!("we are here !!!!");
             result.map_err(|_| Error::internal_error())
         } else {
-            panic!("timeout calling {}", method);
+            panic!("timeout calling {} to path {}", method, self.config.path.display());
         }
     }
 
     fn query_jsonrpc(&self, query_name: &str, query_args: Option<&str>) -> Value {
         info!("query_jsonrpc: {}, {:?}", query_name, query_args);
+        println!("fetching blockchain info!");
         // Make a JSON Query for fetchBlockchaininfo
         let mut args = serde_json::Map::new();
         args.insert("query_name".into(), query_name.into());
@@ -154,8 +156,15 @@ impl ScillaBackend {
             base64::encode(query.write_to_bytes().unwrap()).into(),
         );
 
+        let result2 = self.call_ipc_server_api("updateTraceInfo", serde_json::Map::new());
+
         // If the RPC call failed, something is wrong, and it is better to crash.
+        println!("fetching external state value...");
         let result = self.call_ipc_server_api("fetchExternalStateValueB64", args);
+
+        println!("Updating trace info..");
+        //let mut trace_args = serde_json::Map::new();
+        //trace_args.insert("addr".into(), hex::encode(address.as_bytes()).into());
         // If the RPC was okay, but we didn't get a value, that's
         // normal, just return empty code.
         match result {

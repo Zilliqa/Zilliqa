@@ -55,6 +55,10 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
       &ScillaIPCServer::fetchBlockchainInfoI);
+
+  bindAndAddMethod(
+      Procedure("updateTraceInfo", PARAMS_BY_NAME, JSON_OBJECT, NULL),
+      &ScillaIPCServer::updateTraceInfoI);
 }
 
 void ScillaIPCServer::setBCInfoProvider(const ScillaBCInfo &bcInfo) {
@@ -96,6 +100,17 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
   std::string value, type;
   bool found;
+
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+  std::cout << "fetch external value! " << request.asString() << std::endl;
+
   string query = base64_decode(request["query"].asString());
   if (!fetchExternalStateValue(request["addr"].asString(), query, value, found,
                                type)) {
@@ -132,6 +147,13 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
   response.clear();
   response.append(Json::Value(true));
   response.append(Json::Value(value));
+}
+
+void ScillaIPCServer::updateTraceInfoI(const Json::Value &request,
+                                           Json::Value &response) {
+  std::string value;
+
+  std::cout << "Updating trace info! " << value << std::endl;
 }
 
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,

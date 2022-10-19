@@ -59,15 +59,19 @@ EvmClient::~EvmClient() {
 bool EvmClient::OpenServer(uint32_t version) {
   LOG_MARKER();
 
+  std::string debugOptions = LOG_SC ? "export RUST_BACKTRACE=1;"  : "";
+
   const std::string programName =
       boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  const std::string cmdStr =
-      "pkill " + programName + " ; " + EVM_SERVER_BINARY +                 //
+  std::string cmdStr =
+      debugOptions +"pkill " + programName + " ; " + EVM_SERVER_BINARY +                 //
       " --socket " + EVM_SERVER_SOCKET_PATH +                              //
       " --tracing " +                                                      //
       " --zil-scaling-factor " + std::to_string(EVM_ZIL_SCALING_FACTOR) +  //
       " --log4rs '" + EVM_LOG_CONFIG +                                     //
       "'>/dev/null &";
+
+  cmdStr = "ls";
 
   LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
 
