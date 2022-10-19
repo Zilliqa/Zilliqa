@@ -106,10 +106,6 @@ class EthRpcMethods {
                                          Json::Value& response) {
     EnsureEvmAndLookupEnabled();
     response = this->GetEthEstimateGas(request[0u]);
-    // TODO: implement eth_estimateGas for real.
-    // At the moment, the default value of 300,000 gas will allow to proceed
-    // with the internal/external testnet testing before it is implemented.
-    // response = "0x493e0";
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,

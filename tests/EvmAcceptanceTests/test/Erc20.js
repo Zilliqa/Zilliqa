@@ -45,14 +45,17 @@ describe("ERC20 functionality", function () {
     });
     // TODO: Add event related test(s), e.g. for Transfer event
 
-    // FIXME: In ZIL-4879
-    xit("Should not be possible to move more than available tokens to some address [@transactional]", async function () {
+    it("Should not be possible to move more than available tokens to some address [@transactional]", async function () {
       const [owner, receiver] = await ethers.getSigners();
       const prevBalance = await contract.balanceOf(owner.address);
 
       // Move one coin more than available coins.
-      await contract.transfer(receiver.address, prevBalance + 1);
-
+      // Workaround below since for some reason chai assertions don't handle exceptions properly,
+      // e.g. expect(cond).to.throw() doesn't work here
+      try {
+        await contract.transfer(receiver.address, prevBalance + 1);
+        expect(false).to.be(true);
+      } catch (_) {}
       expect(await contract.balanceOf(owner.address)).to.eq(prevBalance);
     });
   });
@@ -73,8 +76,7 @@ describe("ERC20 functionality", function () {
   });
 
   describe("Transfer From", function () {
-    // FIXME: In ZIL-4879
-    xit("Should be possible to transfer from one account to another [@transactional]", async function () {
+    it("Should be possible to transfer from one account to another [@transactional]", async function () {
       const [owner, _, sender, spender] = await ethers.getSigners();
 
       // Fund the 2nd account first

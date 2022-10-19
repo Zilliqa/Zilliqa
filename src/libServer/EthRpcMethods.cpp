@@ -589,108 +589,112 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
-  try {
-    if (!json.isMember("from")) {
-      LOG_GENERAL(WARNING, "Missing from account");
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
-    } else {
-      fromAddr = Address{json["from"].asString()};
-    }
+  if (!json.isMember("from")) {
+    LOG_GENERAL(WARNING, "Missing from account");
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
+  } else {
+    fromAddr = Address{json["from"].asString()};
+  }
 
-    Address toAddr;
+  Address toAddr;
 
-    if (!json.isMember("to")) {
-      toAddr = Address{json["to"].asString()};
-    }
+  if (json.isMember("to")) {
+    auto toAddrStr = json["to"].asString();
+    DataConversion::NormalizeHexString(toAddrStr);
+    toAddr = Address{toAddrStr};
+  }
 
-    zbytes code;
-    uint256_t accountFunds;
-    {
-      shared_lock<shared_timed_mutex> lock(
-          AccountStore::GetInstance().GetPrimaryMutex());
+  std::string code;
+  uint256_t accountFunds{};
+  bool contractCreation = false;
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
 
-      const Account* sender =
-          AccountStore::GetInstance().GetAccount(fromAddr, true);
-      if (sender == nullptr) {
-        LOG_GENERAL(WARNING, "Sender doesn't exist");
-        throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                               "Sender doesn't exist");
-      }
-      accountFunds = sender->GetBalance();
-
-      const Account* toAccount =
-          AccountStore::GetInstance().GetAccount(toAddr, true);
-
-      if (toAccount != nullptr && toAccount->isContract()) {
-        code = toAccount->GetCode();
-      }
-    }
-
-    std::string data;
-    if (json.isMember("data")) {
-      data = json["data"].asString();
-      if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
-        data = data.substr(2);
-      }
-    }
-
-    uint256_t gasPrice = GetEthGasPriceNum();
-
-    if (json.isMember("gasPrice")) {
-      const auto gasPriceStr = json["gasPrice"].asString();
-      const uint256_t gasPriceNum = stoull(gasPriceStr.c_str(), nullptr, 0);
-      gasPrice = max(gasPrice, gasPriceNum);
-    }
-
-    uint256_t gasDeposit = 0;
-    if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "gasPrice * MIN_ETH_GAS overflow!");
-    }
-    uint256_t balance = 0;
-    if (!SafeMath<uint256_t>::mul(accountFunds, EVM_ZIL_SCALING_FACTOR,
-                                  balance)) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "accountFunds * EVM_ZIL_SCALING_FACTOR overflow!");
-    }
-
-    if (balance < gasDeposit) {
+    const Account* sender =
+        AccountStore::GetInstance().GetAccount(fromAddr, true);
+    if (sender == nullptr) {
+      LOG_GENERAL(WARNING, "Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Insufficient funds to perform this operation");
+                             "Sender doesn't exist");
     }
+    accountFunds = sender->GetBalance();
 
-    // Typical fund transfer
-    if (code.empty() && data.empty()) {
-      return "0x" + (boost::format("0x%x") % gasDeposit).str();
+    const Account* toAccount =
+        AccountStore::GetInstance().GetAccount(toAddr, true);
+
+    if (toAccount != nullptr && toAccount->isContract()) {
+      code = DataConversion::CharArrayToString(toAccount->GetCode());
+    } else if (toAccount == nullptr) {
+      toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
+                                              TRANSACTION_VERSION_ETH);
+      contractCreation = true;
     }
+  }
 
-    uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
-
-    // Use gas specified by user
-    if (json.isMember("gas")) {
-      const auto gasLimitStr = json["gas"].asString();
-      gas = min(gas,
-                static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0)));
+  std::string data;
+  if (json.isMember("data")) {
+    data = json["data"].asString();
+    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
+      data = data.substr(2);
     }
+  }
 
-    const EvmCallParameters params{toAddr.hex(),
-                                   fromAddr.hex(),
-                                   DataConversion::CharArrayToString(code),
-                                   data,
-                                   gas,
-                                   0,
-                                   true};
+  uint256_t gasPrice = GetEthGasPriceNum();
 
-    evmproj::CallResponse response;
-    if (AccountStore::GetInstance().ViewAccounts(params, response) &&
-        response.Success()) {
-      return "0x" + (boost::format("0x%x") % response.Gas()).str();
-    } else {
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what());
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable To Process");
+  if (json.isMember("gasPrice")) {
+    const auto gasPriceStr = json["gasPrice"].asString();
+    const uint256_t gasPriceNum = stoull(gasPriceStr.c_str(), nullptr, 0);
+    gasPrice = max(gasPrice, gasPriceNum);
+  }
+
+  uint256_t gasDeposit = 0;
+  if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "gasPrice * MIN_ETH_GAS overflow!");
+  }
+  uint256_t balance = 0;
+  if (!SafeMath<uint256_t>::mul(accountFunds, EVM_ZIL_SCALING_FACTOR,
+                                balance)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "accountFunds * EVM_ZIL_SCALING_FACTOR overflow!");
+  }
+
+  if (balance < gasDeposit) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "Insufficient funds to perform this operation");
+  }
+
+  // Typical fund transfer
+  if (code.empty() && data.empty()) {
+    return (boost::format("0x%x") % MIN_ETH_GAS).str();
+  }
+
+  if (contractCreation && code.empty() && !data.empty()) {
+    std::swap(data, code);
+  }
+
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
+
+  // Use gas specified by user
+  if (json.isMember("gas")) {
+    const auto gasLimitStr = json["gas"].asString();
+    gas = min(gas,
+              static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0)));
+  }
+
+  const EvmCallParameters params{
+      toAddr.hex(), fromAddr.hex(), code, data, gas, 0, true};
+
+  evmproj::CallResponse response;
+  if (AccountStore::GetInstance().ViewAccounts(params, response) &&
+      response.Success()) {
+    const auto gasRemained = response.Gas();
+    auto retGas = (gas >= gasRemained) ? (gas - gasRemained) : gas;
+    retGas = std::max(retGas, MIN_ETH_GAS);
+    return (boost::format("0x%x") % retGas).str();
+  } else {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
 }
 
