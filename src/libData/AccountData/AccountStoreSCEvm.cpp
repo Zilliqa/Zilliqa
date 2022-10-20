@@ -234,6 +234,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   return gas;
 }
 
+//
+// Modified to set the bcInfo structure to a sensible value.
+//
+
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
                                        evmproj::CallResponse& response) {
