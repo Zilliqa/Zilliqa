@@ -354,12 +354,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      // prepare IPC with current blockchain info provider.
-
-      m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-           contractAccount->GetStorageRoot(), scilla_version});
-
       std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
@@ -536,11 +530,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         tpStart = r_timer_start();
       }
-
-      // prepare IPC with current blockchain info provider.
-      m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-           contractAccount->GetStorageRoot(), scilla_version});
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
