@@ -357,7 +357,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
-          DataConversion::StringToCharArray(std::to_string(scilla_version)));
+          DataConversion::StringToCharArray("0"));
 
       // *************************************************************************
       // Undergo a runner
