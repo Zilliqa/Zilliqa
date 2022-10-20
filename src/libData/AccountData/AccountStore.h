@@ -38,6 +38,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/ScillaIPCServer.h"
+#include "libUtils/TxnExtras.h"
 
 using StateHash = dev::h256;
 
@@ -153,7 +154,7 @@ class AccountStore
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,
-                          const Transaction& transaction,
+                          const Transaction& transaction,  const TxnExtras& txnExtras,
                           TransactionReceipt& receipt, TxnStatus& error_code);
 
   /// add account in AccountStoreTemp

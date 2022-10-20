@@ -31,6 +31,12 @@
 
 #include "../ScillaTestUtil.h"
 
+TxnExtras GetDefaultTxnExtras() {
+  TxnExtras extras{GAS_PRICE_MIN_VALUE * EVM_ZIL_SCALING_FACTOR, 1664226846,
+                   42};
+  return extras;
+}
+
 BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 BOOST_AUTO_TEST_CASE(rwtest) {
@@ -75,8 +81,8 @@ BOOST_AUTO_TEST_CASE(rwtest) {
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(0, 1, false, tx, tr,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        0, 1, false, tx, GetDefaultTxnExtras(), tr, error_code);
   }
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -107,8 +113,8 @@ BOOST_AUTO_TEST_CASE(rwtest) {
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(0, 1, false, tx, tr,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        0, 1, false, tx, GetDefaultTxnExtras(), tr, error_code);
   }
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
