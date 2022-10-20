@@ -43,6 +43,11 @@ class EthRpcMethods {
     return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
   };
 
+  //CreateTransactionTraceFunc m_createTransactionTraceTarget =
+  //    [this](const Transaction& tx, uint32_t shardId) -> bool {
+  //      return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
+  //    };
+
   //// Helper function for adding RPC methods
   // bool AddRPC(const jsonrpc::Procedure& proc,
   // ScillaIPCServer::methodPointer_t pointer);
@@ -514,6 +519,17 @@ class EthRpcMethods {
     response = this->GetEthBlockReceipts(request[0u].asString());
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method: debug_traceTransaction
+   * @param request : transaction hash
+   * @param response : transaction trace
+   */
+  inline virtual void DebugTraceTransactionI(const Json::Value& request,
+                                               Json::Value& response) {
+    response = this->DebugTraceTransaction(request[0u].asString());
+  }
+
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
@@ -583,6 +599,7 @@ class EthRpcMethods {
   std::string EthRecoverTransaction(const std::string& txnRpc) const;
 
   Json::Value GetEthBlockReceipts(const std::string& blockId);
+  Json::Value DebugTraceTransaction(const std::string& txHash);
 
   void EnsureEvmAndLookupEnabled();
 

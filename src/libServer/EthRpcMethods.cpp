@@ -353,6 +353,12 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &EthRpcMethods::GetEthBlockReceiptsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::GetEthBlockReceiptsI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1421,4 +1427,50 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
   }
 
   return res;
+}
+
+Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
+  std::cout << "RECVD trace request for " << txHash << std::endl;
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "Sent to a non-lookup");
+  }
+
+  try {
+    std::string trace;
+    TxnHash tranHash(txHash);
+
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
+
+    std::cout << "got trace retrieval: " << trace << std::endl;
+
+    if (!isPresent) {
+      return Json::nullValue;
+    }
+
+
+   // const TxBlock EMPTY_BLOCK;
+   // const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+   // if (txBlock == EMPTY_BLOCK) {
+   //   LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
+   //   return Json::nullValue;
+   // }
+
+   // constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
+   // auto transactionIndex =
+   //     GetTransactionIndexFromBlock(txBlock, transactionHash);
+   // if (transactionIndex == WRONG_INDEX) {
+   //   return Json::nullValue;
+   // }
+
+   // return JSONConversion::convertTxtoEthJson(transactionIndex,
+                                              //*transactioBodyPtr, txBlock);
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+
+  return "";
 }

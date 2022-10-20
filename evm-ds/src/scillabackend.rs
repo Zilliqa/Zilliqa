@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use evm::backend::{Backend, Basic};
+use evm::tracing;
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
 use jsonrpc_core::{Error, Result, Value};
@@ -53,6 +54,14 @@ impl ScillaMessage::ProtoScillaVal {
 
     fn as_bytes(&self) -> Vec<u8> {
         Vec::from(self.get_bval())
+    }
+}
+
+impl tracing::EventListener for ScillaBackend {
+    fn event(&mut self, event: tracing::Event) {
+        println!("EVM Event {:?}", event);
+        info!(" *** TRACING HAPPENING *** ");
+        info!(" *** TRACING HAPPENING *** {:?} ", event);
     }
 }
 

@@ -238,6 +238,11 @@ int LevelDB::Insert(const dev::h256 & key, dev::zbytesConstRef value)
     return Insert(key, value.toString());
 }
 
+//int LevelDB::Insert(const dev::h256 & key, std::string const &value)
+//{
+//  return Insert(key, value);
+//}
+
 int LevelDB::Insert(const vector<unsigned char>& key, const vector<unsigned char>& body)
 {
     leveldb::Status s = m_db->Put(leveldb::WriteOptions(),

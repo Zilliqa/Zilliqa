@@ -69,6 +69,7 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   if (LOOKUP_NODE_MODE) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
+    m_txTraceDB = std::make_shared<LevelDB>("txTraces");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -571,31 +572,52 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   return true;
 }
 
-bool BlockStorage::CheckTxBody(const dev::h256& key) {
+bool BlockStorage::GetTxTrace(const dev::h256& key, std::string &trace) {
   const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
 
-  if (!m_txEpochDB) {
+  if (!m_txTraceDB) {
     LOG_GENERAL(
         WARNING,
         "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
-  string epochString = m_txEpochDB->Lookup(keyBytes);
-  if (epochString.empty()) {
+  trace = m_txTraceDB->Lookup(keyBytes);
+
+  if (trace.empty()) {
+    return false;
+  }
+  return true;
+}
+
+bool BlockStorage::PutTxTrace(const dev::h256& key,
+                             const std::string& trace) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
     return false;
   }
 
-  zbytes epochBytes(epochString.begin(), epochString.end());
-  uint64_t epochNum = 0;
-  if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
-    LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
     return false;
   }
 
-  return GetTxBodyDB(epochNum)->Exists(keyBytes);
+  // Store txn hash and epoch inside txEpochs DB
+  if (m_txTraceDB->Insert(key, trace) != 0) {
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
+        << " key=" << key);
+    return false;
+  }
+
+  return true;
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
