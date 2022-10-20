@@ -20,9 +20,7 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
-#include "common/BaseType.h"
 #include "common/Constants.h"
-#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
@@ -255,7 +253,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, const TxnExtras& txnExtras,
+    const Transaction& transaction,
     TransactionReceipt& receipt, TxnStatus& error_code) {
   LOG_MARKER();
 
@@ -390,6 +388,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
+
+      TxnExtras txnExtras{
+        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        get_time_as_int() / 1000000,  // Microseconds to seconds.
+        40                            // Common value.
+      };
 
       EvmCallExtras extras;
       if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
@@ -564,6 +568,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
+
+      TxnExtras txnExtras{
+        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        get_time_as_int() / 1000000,  // Microseconds to seconds.
+        40                            // Common value.
+      };
 
       EvmCallExtras extras;
       if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
