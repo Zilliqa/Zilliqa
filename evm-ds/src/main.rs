@@ -8,7 +8,6 @@ mod precompiles;
 mod protos;
 mod scillabackend;
 
-use std::collections::BTreeMap;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::panic::{self, AssertUnwindSafe};
 use std::path::PathBuf;
@@ -19,7 +18,7 @@ use anyhow::Context;
 use clap::Parser;
 use evm::{
     backend::{Apply, Basic},
-    executor::stack::{MemoryStackState, PrecompileFn, StackSubstateMetadata},
+    executor::stack::{MemoryStackState, StackSubstateMetadata},
     tracing,
 };
 
@@ -33,6 +32,8 @@ use jsonrpc_derive::rpc;
 use jsonrpc_server_utils::codecs;
 use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
+
+use crate::precompiles::get_precompiles;
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -111,11 +112,28 @@ pub struct EvmEvalExtras {
 }
 
 #[derive(serde::Serialize)]
+struct EvmLog {
+    pub address: H160,
+    pub topics: Vec<H256>,
+    pub data: String,
+}
+
+impl EvmLog {
+    fn from_internal(log: &ethereum::Log) -> EvmLog {
+        EvmLog {
+            address: log.address,
+            topics: log.topics.to_owned(),
+            data: "0x".to_string() + &hex::encode(&log.data),
+        }
+    }
+}
+
+#[derive(serde::Serialize)]
 pub struct EvmResult {
     exit_reason: evm::ExitReason,
     return_value: String,
     apply: Vec<DirtyState>,
-    logs: Vec<ethereum::Log>,
+    logs: Vec<EvmLog>,
     remaining_gas: u64,
 }
 
@@ -220,11 +238,7 @@ async fn run_evm_impl(
         let metadata = StackSubstateMetadata::new(gas_limit, &config);
         let state = MemoryStackState::new(metadata, &backend);
 
-        // TODO: implement all precompiles.
-        let precompiles = BTreeMap::from([(
-            H160::from_str("0000000000000000000000000000000000000001").unwrap(),
-            precompiles::ecrecover as PrecompileFn,
-        )]);
+        let precompiles = get_precompiles();
 
         let mut executor =
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
@@ -286,7 +300,7 @@ async fn run_evm_impl(
                             }),
                         })
                         .collect(),
-                    logs: logs.into_iter().collect(),
+                    logs: logs.into_iter().map(|log| EvmLog::from_internal(&log)).collect(),
                     remaining_gas,
                 })
             }

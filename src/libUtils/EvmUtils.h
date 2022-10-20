@@ -39,9 +39,9 @@ class EvmUtils {
   /// get the command for invoking the evm_runner while calling
   static Json::Value GetEvmCallJson(const EvmCallParameters& params);
 
-  using bytes = std::vector<uint8_t>;
+  using zbytes = std::vector<uint8_t>;
 
-  static bool isEvm(const bytes& code);
+  static bool isEvm(const zbytes& code);
 };
 
 bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,

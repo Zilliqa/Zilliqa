@@ -175,7 +175,7 @@ int main(int argc, const char* argv[]) {
     INIT_STATE_LOGGER("state", logpath.c_str());
     INIT_EPOCHINFO_LOGGER("epochinfo", logpath.c_str());
 
-    LOG_GENERAL(INFO, ZILLIQA_BRAND << " EVM Internal Edition");
+    LOG_GENERAL(INFO, ZILLIQA_BRAND);
 
     if (SyncType::NEW_SYNC == syncType && CHAIN_ID == MAINNET_CHAIN_ID) {
       SWInfo::IsLatestVersion();
@@ -232,7 +232,7 @@ int main(int argc, const char* argv[]) {
                     make_pair(extSeedPrivKey, extSeedPubKey));
     auto dispatcher =
         [&zilliqa](
-            pair<bytes, std::pair<Peer, const unsigned char>>* message) mutable
+            pair<zbytes, std::pair<Peer, const unsigned char>>* message) mutable
         -> void { zilliqa.Dispatch(message); };
     // Only start the incoming message queue
     P2PComm::GetInstance().StartMessagePump(dispatcher);

@@ -45,7 +45,10 @@ ExternalProject_Add(jsonrpc-project
     URL https://github.com/Zilliqa/libjson-rpc-cpp/archive/refs/tags/v1.3.0-time-patch-fix.tar.gz
     URL_HASH SHA256=3315c508e6b8154e3c3f489f7f8826a9c4d697045ee101d80e443d759ac6e218
     # On Windows it tries to install this dir. Create it to prevent failure.
-    PATCH_COMMAND cp ${CMAKE_SOURCE_DIR}/vcpkg.json <SOURCE_DIR> && cmake -E make_directory <SOURCE_DIR>/win32-deps/include
+    PATCH_COMMAND cp ${CMAKE_SOURCE_DIR}/vcpkg.json <SOURCE_DIR>/vcpkg.json &&
+      cp ${CMAKE_SOURCE_DIR}/vcpkg-configuration.json <SOURCE_DIR>/vcpkg-configuration.json &&
+      cp -R ${CMAKE_SOURCE_DIR}/vcpkg-registry <SOURCE_DIR>/vcpkg-registry &&
+      cmake -E make_directory <SOURCE_DIR>/win32-deps/include
     CMAKE_ARGS ${CMAKE_ARGS}
     # overwrite build and install commands to force Release build on MSVC.
     BUILD_COMMAND cmake --build <BINARY_DIR> --config Release

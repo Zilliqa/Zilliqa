@@ -27,7 +27,8 @@
 
 using namespace boost::multiprecision;
 
-bool ScillaTestUtil::ParseJsonFile(Json::Value &j, std::string filename) {
+bool ScillaTestUtil::ParseJsonFile(Json::Value &j,
+                                   const std::string &filename) {
   if (!boost::filesystem::is_regular_file(filename)) {
     return false;
   }
@@ -178,7 +179,8 @@ uint64_t ScillaTestUtil::GetBlockNumberFromJson(Json::Value &blockchain) {
 }
 
 // Return the _amount in message.json. Remove _amount, _sender and _origin.
-uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, bytes &data) {
+uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message,
+                                            zbytes &data) {
   LOG_GENERAL(INFO, JSONUtils::GetInstance().convertJsontoStr(message));
   uint64_t amount;
   try {
@@ -192,7 +194,7 @@ uint64_t ScillaTestUtil::PrepareMessageData(Json::Value &message, bytes &data) {
   message.removeMember("_origin");
 
   std::string msgStr = JSONUtils::GetInstance().convertJsontoStr(message);
-  data = bytes(msgStr.begin(), msgStr.end());
+  data = zbytes(msgStr.begin(), msgStr.end());
 
   return amount;
 }
@@ -247,7 +249,7 @@ bool ScillaTestUtil::parseStateJSON(
     const Address &contrAddr, const Json::Value &state,
     const std::unordered_map<Address, std::unordered_map<std::string, int>>
         &mapdepths,
-    std::map<Address, std::map<std::string, bytes>> &state_entries,
+    std::map<Address, std::map<std::string, zbytes>> &state_entries,
     std::unordered_map<Address, uint128_t> &balances,
     std::unordered_map<Address, uint64_t> &nonces) {
   if (!state.isArray()) {
@@ -256,9 +258,9 @@ bool ScillaTestUtil::parseStateJSON(
   }
 
   std::function<bool(const std::string &index, const Json::Value &s,
-                     std::map<std::string, bytes> &state_entries)>
+                     std::map<std::string, zbytes> &state_entries)>
       mapHandler = [&mapHandler](const std::string &index, const Json::Value &s,
-                                 std::map<std::string, bytes> &state_entries) {
+                                 std::map<std::string, zbytes> &state_entries) {
         if (!s.isArray()) {
           return false;
         }

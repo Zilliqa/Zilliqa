@@ -92,7 +92,7 @@ else
     fi
 
     echo "Starting isolated server"
-    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
+    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
 
     sleep 15
 
@@ -108,6 +108,9 @@ else
     fi
 
     cat out.txt
+
+    echo "Killing iso server"
+    pkill -9 isolatedServer
 
     # Make constants.xml as it was
     mv constants_backup.xml constants.xml

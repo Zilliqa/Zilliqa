@@ -64,9 +64,11 @@ using namespace boost::multiprecision;
 bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_MARKER();
 
-  m_mediator.m_filtersAPICache->GetUpdate().StartEpoch(
-      txBlock.GetHeader().GetBlockNum(), txBlock.GetBlockHash().hex(),
-      txBlock.GetMicroBlockInfos().size(), txBlock.GetHeader().GetNumTxs());
+  if (LOOKUP_NODE_MODE) {
+    m_mediator.m_filtersAPICache->GetUpdate().StartEpoch(
+        txBlock.GetHeader().GetBlockNum(), txBlock.GetBlockHash().hex(),
+        txBlock.GetMicroBlockInfos().size(), txBlock.GetHeader().GetNumTxs());
+  }
 
   AddBlock(txBlock);
 
@@ -76,7 +78,7 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_GENERAL(INFO, "Storing TxBlock:" << endl << txBlock);
 
   // Store Tx Block to disk
-  bytes serializedTxBlock;
+  zbytes serializedTxBlock;
   txBlock.Serialize(serializedTxBlock, 0);
   if (!BlockStorage::GetBlockStorage().PutTxBlock(txBlock.GetHeader(),
                                                   serializedTxBlock)) {
@@ -294,7 +296,7 @@ bool Node::VerifyFinalBlockCoSignature(const TxBlock& txblock) {
   }
 
   // Verify the collective signature
-  bytes message;
+  zbytes message;
   if (!txblock.GetHeader().Serialize(message, 0)) {
     LOG_GENERAL(WARNING, "TxBlockHeader serialization failed");
     return false;
@@ -471,12 +473,12 @@ void Node::CallActOnFinalblock() {
   LOG_MARKER();
 
   auto composeMBnForwardTxnMessageForSender =
-      [this](bytes& forwardtxn_message) -> bool {
+      [this](zbytes& forwardtxn_message) -> bool {
     return ComposeMBnForwardTxnMessageForSender(forwardtxn_message);
   };
 
   auto sendMbnFowardTxnToShardNodes =
-      []([[gnu::unused]] const bytes& message,
+      []([[gnu::unused]] const zbytes& message,
          [[gnu::unused]] const DequeOfShard& shards,
          [[gnu::unused]] const unsigned int& my_shards_lo,
          [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
@@ -491,7 +493,7 @@ void Node::CallActOnFinalblock() {
       sendMbnFowardTxnToShardNodes);
 }
 
-bool Node::ComposeMBnForwardTxnMessageForSender(bytes& mb_txns_message) {
+bool Node::ComposeMBnForwardTxnMessageForSender(zbytes& mb_txns_message) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ComposeMBnForwardTxnMessageForSender not expected to be "
@@ -577,7 +579,7 @@ void Node::PrepareGoodStateForFinalBlock() {
   }
 }
 
-bool Node::ProcessVCFinalBlock(const bytes& message, unsigned int offset,
+bool Node::ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                const unsigned char& startByte) {
   LOG_MARKER();
@@ -592,13 +594,14 @@ bool Node::ProcessVCFinalBlock(const bytes& message, unsigned int offset,
 }
 
 bool Node::ProcessVCFinalBlockCore(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
   TxBlock txBlock;
-  bytes stateDelta;
+  zbytes stateDelta;
   std::vector<VCBlock> vcBlocks;
 
   if (!Messenger::GetNodeVCFinalBlock(message, offset, dsBlockNumber,
@@ -633,7 +636,7 @@ bool Node::ProcessVCFinalBlockCore(
   return false;
 }
 
-bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
+bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
                              [[gnu::unused]] const Peer& from,
                              [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
@@ -641,7 +644,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
   uint64_t dsBlockNumber = 0;
   uint32_t consensusID = 0;
   TxBlock txBlock;
-  bytes stateDelta;
+  zbytes stateDelta;
 
   if (LOOKUP_NODE_MODE) {
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
@@ -688,8 +691,8 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
       // Reached here. Final block was processed successfully.
       // Avoid using the original message in case it contains
       // excess data beyond the FINALBLOCK
-      bytes vc_fb_message = {MessageType::NODE,
-                             NodeInstructionType::VCFINALBLOCK};
+      zbytes vc_fb_message = {MessageType::NODE,
+                              NodeInstructionType::VCFINALBLOCK};
       /*
         Check if the VCBlock exist in local store for key:
         txBlock.GetHeader().GetBlockNum()
@@ -718,7 +721,7 @@ bool Node::ProcessFinalBlock(const bytes& message, unsigned int offset,
 
 bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
-                                 TxBlock& txBlock, bytes& stateDelta,
+                                 TxBlock& txBlock, zbytes& stateDelta,
                                  const uint64_t& messageSize) {
   LOG_MARKER();
 
@@ -1143,7 +1146,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 }
 
 bool Node::ProcessStateDeltaFromFinalBlock(
-    const bytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash) {
+    const zbytes& stateDeltaBytes, const StateHash& finalBlockStateDeltaHash) {
   LOG_MARKER();
 
   // Init local AccountStoreTemp first
@@ -1238,7 +1241,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
       }
 
       // Store TxBody to disk
-      bytes serializedTxBody;
+      zbytes serializedTxBody;
       twr.Serialize(serializedTxBody, 0);
       if (!BlockStorage::GetBlockStorage().PutTxBody(
               epochNum, twr.GetTransaction().GetTranID(), serializedTxBody)) {
@@ -1364,7 +1367,7 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 }
 
 bool Node::ProcessMBnForwardTransaction(
-    const bytes& message, unsigned int cur_offset, const Peer& from,
+    const zbytes& message, unsigned int cur_offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -1510,7 +1513,7 @@ bool Node::ProcessMBnForwardTransaction(
 }
 
 bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
-                         uint32_t shardId, const bytes& txnListHash) {
+                         uint32_t shardId, const zbytes& txnListHash) {
   uint size;
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
@@ -1558,7 +1561,9 @@ bool Node::AddPendingTxn(const HashCodeMap& pendingTxns, const PubKey& pubkey,
       continue;
     }
 
-    cacheUpdate.AddPendingTransaction(entry.first.hex(), currentEpochNum);
+    if (LOOKUP_NODE_MODE) {
+      cacheUpdate.AddPendingTransaction(entry.first.hex(), currentEpochNum);
+    }
 
     if (IsTxnDropped(entry.second)) {
       LOG_GENERAL(INFO, "[DTXN]" << entry.first << " " << currentEpochNum);
@@ -1590,8 +1595,8 @@ bool Node::SendPendingTxnToLookup() {
   const auto& blocknum =
       m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  bytes pend_txns_message = {MessageType::NODE,
-                             NodeInstructionType::PENDINGTXN};
+  zbytes pend_txns_message = {MessageType::NODE,
+                              NodeInstructionType::PENDINGTXN};
   if (!Messenger::SetNodePendingTxn(pend_txns_message, MessageOffset::BODY,
                                     blocknum, pendingTxns, m_myshardId,
                                     m_mediator.m_selfKey)) {
@@ -1605,7 +1610,7 @@ bool Node::SendPendingTxnToLookup() {
   return true;
 }
 
-bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
+bool Node::ProcessPendingTxn(const zbytes& message, unsigned int cur_offset,
                              [[gnu::unused]] const Peer& from,
                              [[gnu::unused]] const unsigned char& startByte) {
   if (!LOOKUP_NODE_MODE) {
@@ -1616,7 +1621,7 @@ bool Node::ProcessPendingTxn(const bytes& message, unsigned int cur_offset,
   unordered_map<TxnHash, TxnStatus> hashCodeMap;
   uint32_t shardId;
   PubKey pubkey;
-  bytes txnListHash;
+  zbytes txnListHash;
 
   if (!Messenger::GetNodePendingTxn(message, cur_offset, epochNum, hashCodeMap,
                                     shardId, pubkey, txnListHash)) {
@@ -1669,8 +1674,8 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
     CommitForwardedTransactions(entry);
 
     // Microblock and Transaction body sharing
-    bytes mb_txns_message = {MessageType::NODE,
-                             NodeInstructionType::MBNFORWARDTRANSACTION};
+    zbytes mb_txns_message = {MessageType::NODE,
+                              NodeInstructionType::MBNFORWARDTRANSACTION};
 
     if (!Messenger::SetNodeMBnForwardTransaction(
             mb_txns_message, MessageOffset::BODY, entry.m_microBlock,

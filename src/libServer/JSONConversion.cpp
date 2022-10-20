@@ -155,8 +155,11 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
       (boost::format("0x%x") %
        static_cast<int>(dsBlock.GetHeader().GetDifficulty()))
           .str();
-
-  bytes serializedTxBlock;
+  retJson["totalDifficulty"] =
+      (boost::format("0x%x") %
+       static_cast<int>(dsBlock.GetHeader().GetTotalDifficulty()))
+          .str();
+  zbytes serializedTxBlock;
   txblock.Serialize(serializedTxBlock, 0);
   auto timestamp = microsec_to_sec(txblock.GetTimestamp());
 
@@ -167,6 +170,9 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["version"] = (boost::format("0x%x") % txheader.GetVersion()).str();
   // Required by ethers
   retJson["extraData"] = "0x";
+  retJson["nonce"] = "0x0";
+  retJson["receiptsRoot"] = "0x0";
+  retJson["transactionsRoot"] = "0x0";
 
   auto transactionsJson = Json::Value{Json::arrayValue};
   if (!includeFullTransactions) {
@@ -186,7 +192,7 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
 const Json::Value JSONConversion::convertRawTxBlocktoJson(
     const TxBlock& txblock) {
   Json::Value ret;
-  bytes raw;
+  zbytes raw;
   string rawstr;
 
   if (!txblock.Serialize(raw, 0)) {
@@ -323,7 +329,7 @@ const Json::Value JSONConversion::convertSWInfotoJson(const SWInfo& swInfo) {
 const Json::Value JSONConversion::convertRawDSBlocktoJson(
     const DSBlock& dsblock) {
   Json::Value ret;
-  bytes raw;
+  zbytes raw;
   string rawstr;
 
   if (!dsblock.Serialize(raw, 0)) {
@@ -357,7 +363,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
     }
   }
 
-  bytes toAddr_ser;
+  zbytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json containing invalid hex str for toAddr");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
@@ -375,7 +381,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   uint64_t gasLimit = strtoull(gasLimit_str.c_str(), NULL, 0);
 
   string pubKey_str = _json["pubKey"].asString();
-  bytes pubKey_ser;
+  zbytes pubKey_ser;
   if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubKey_ser)) {
     LOG_GENERAL(WARNING, "json cointaining invalid hex str for pubkey");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
@@ -384,14 +390,14 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   PubKey pubKey(pubKey_ser, 0);
 
   string sign_str = _json["signature"].asString();
-  bytes sign;
+  zbytes sign;
   if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
     LOG_GENERAL(WARNING, "***** Json cointaining invalid hex str for sign");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "Invalid Hex Str for Signature");
   }
 
-  bytes code, data;
+  zbytes code, data;
 
   code = DataConversion::StringToCharArray(_json["code"].asString());
   data = DataConversion::StringToCharArray(_json["data"].asString());
@@ -504,7 +510,7 @@ Address JSONConversion::checkJsonGetEthCall(const Json::Value& _json,
 
   DataConversion::NormalizeHexString(lower_case_addr);
 
-  bytes toAddr_ser;
+  zbytes toAddr_ser;
   if (!DataConversion::HexStrToUint8Vec(lower_case_addr, toAddr_ser)) {
     LOG_GENERAL(WARNING, "json containing invalid hex str for " << toKey);
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
@@ -661,8 +667,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["from"] = "0x" + tx.GetSenderAddr().hex();
   retJson["gas"] =
       (boost::format("0x%x") %
-       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas() *
-                                      EVM_ZIL_SCALING_FACTOR))
+       GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
           .str();
   // ethers also expectes gasLimit and ChainId
   retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitRaw()).str();

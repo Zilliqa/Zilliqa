@@ -16,18 +16,19 @@
  */
 
 #include "Eth.h"
+#include <boost/format.hpp>
+#include <boost/range.hpp>
+#include <ethash/keccak.hpp>
 #include "common/Constants.h"
 #include "depends/common/RLP.h"
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
-
-#include <boost/range.hpp>
-#include <ethash/keccak.hpp>
 
 using namespace jsonrpc;
 
@@ -38,7 +39,8 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex) {
+    const Json::Value &logsBloom, const Json::Value &transactionIndex,
+    const Transaction &tx) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -58,7 +60,12 @@ Json::Value populateReceiptHelper(
   } else {
     ret["to"] = to;
   }
-  ret["transactionIndex"] = transactionIndex;
+  ret["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
+
+  std::string sig{tx.GetSignature()};
+  ret["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  ret["r"] = GetR(sig);
+  ret["s"] = GetS(sig);
 
   return ret;
 }
@@ -67,7 +74,7 @@ Json::Value populateReceiptHelper(
 EthFields parseRawTxFields(std::string const &message) {
   EthFields ret;
 
-  bytes asBytes;
+  zbytes asBytes;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes,
@@ -85,7 +92,7 @@ EthFields parseRawTxFields(std::string const &message) {
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
-    auto byteIt = (*it).operator bytes();
+    auto byteIt = (*it).operator zbytes();
 
     switch (i) {
       case 0:
@@ -110,12 +117,12 @@ EthFields parseRawTxFields(std::string const &message) {
         break;
       case 7:  // R
       {
-        bytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(*it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       case 8:  // S
       {
-        bytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(*it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       default:
@@ -220,13 +227,16 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,
                          const std::string &blockNum,
-                         const Json::Value &transactionIndex) {
+                         const Json::Value &transactionIndex,
+                         uint32_t logIndex) {
   for (auto &logEntry : logsArrayFromEvm) {
     logEntry["removed"] = false;
     logEntry["transactionIndex"] = transactionIndex;
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
+    logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
+    ++logIndex;
   }
 }
 
@@ -264,8 +274,8 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
 
   const auto addressHash =
       ethash::keccak256(address.ref().data(), address.ref().size());
-  dev::h256 addressBloom{dev::bytesConstRef{boost::begin(addressHash.bytes),
-                                            boost::size(addressHash.bytes)}};
+  dev::h256 addressBloom{dev::zbytesConstRef{boost::begin(addressHash.bytes),
+                                             boost::size(addressHash.bytes)}};
 
   LogBloom bloom;
   bloom.shiftBloom<3>(addressBloom);
@@ -273,8 +283,8 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
   for (const auto &topic : topics) {
     const auto topicHash =
         ethash::keccak256(topic.ref().data(), topic.ref().size());
-    dev::h256 topicBloom{dev::bytesConstRef{boost::begin(topicHash.bytes),
-                                            boost::size(topicHash.bytes)}};
+    dev::h256 topicBloom{dev::zbytesConstRef{boost::begin(topicHash.bytes),
+                                             boost::size(topicHash.bytes)}};
     bloom.shiftBloom<3>(topicBloom);
   }
 
@@ -288,6 +298,43 @@ LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
     bloom |= single;
   }
   return bloom;
+}
+
+uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
+                                          const TxBlock &block) {
+  uint32_t logIndex = 0;
+  MicroBlockSharedPtr microBlockPtr;
+
+  const auto &microBlockInfos = block.GetMicroBlockInfos();
+  for (auto const &mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto &tranHashes = microBlockPtr->GetTranHashes();
+    for (const auto &transactionHash : tranHashes) {
+      TxBodySharedPtr transactionBodyPtr;
+      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                     transactionBodyPtr)) {
+        continue;
+      }
+
+      if (transactionBodyPtr->GetTransaction().GetTranID() == txnHash) {
+        return logIndex;
+      }
+
+      const auto &receipt = transactionBodyPtr->GetTransactionReceipt();
+      const auto currLogs = GetLogsFromReceipt(receipt);
+
+      logIndex += currLogs.size();
+    }
+  }
+
+  return logIndex;
 }
 
 }  // namespace Eth

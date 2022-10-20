@@ -45,7 +45,7 @@ class VCBlockHeader : public BlockHeaderBase {
                     // blocknum is maxsize of uint256
 
   /// Constructor for loading VC block header information from a byte stream.
-  VCBlockHeader(const bytes& src, unsigned int offset);
+  VCBlockHeader(const zbytes& src, unsigned int offset);
 
   /// Constructor with specified VC block header parameters.
   VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
@@ -58,10 +58,10 @@ class VCBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const zbytes& src, unsigned int offset);
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset);

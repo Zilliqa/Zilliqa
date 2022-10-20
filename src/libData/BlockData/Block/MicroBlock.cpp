@@ -25,7 +25,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-bool MicroBlock::Serialize(bytes& dst, unsigned int offset) const {
+bool MicroBlock::Serialize(zbytes& dst, unsigned int offset) const {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
     LOG_GENERAL(WARNING, "Header txn count (" << m_header.GetNumTxs()
                                               << ") != txn hash count ("
@@ -41,7 +41,7 @@ bool MicroBlock::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool MicroBlock::Deserialize(const bytes& src, unsigned int offset) {
+bool MicroBlock::Deserialize(const zbytes& src, unsigned int offset) {
   if (!Messenger::GetMicroBlock(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetMicroBlock failed.");
     return false;
@@ -76,7 +76,7 @@ bool MicroBlock::Deserialize(const string& src, unsigned int offset) {
 // creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
 MicroBlock::MicroBlock() {}
 
-MicroBlock::MicroBlock(const bytes& src, unsigned int offset) {
+MicroBlock::MicroBlock(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init MicroBlock.");
   }

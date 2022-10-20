@@ -2,43 +2,40 @@ const {ethers, web3} = require("hardhat");
 const hre = require("hardhat");
 const general_helper = require("../helper/GeneralHelper");
 
-class ZilliqaHelper {
-  constructor() {
-    this.primaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0));
-    this.auxiliaryAccount = web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1));
-  }
+var zilliqa_helper = {
+  primaryAccount: web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0)),
+  auxiliaryAccount: web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1)),
 
-  getPrimaryAccount() {
-    return this.primaryAccount;
-  }
+  getPrimaryAccountAddress() {
+    return this.primaryAccount.address;
+  },
 
-  getSecondaryAccount() {
-    return this.auxiliaryAccount;
-  }
+  getSecondaryAccountAddress() {
+    return this.auxiliaryAccount.address;
+  },
 
-  async getState(address, index) {
+  getState: async function (address, index) {
     return web3.eth.getStorageAt(address, index);
-  }
+  },
 
-  async getStateAsNumber(address, index) {
+  getStateAsNumber: async function (address, index) {
     const state = await web3.eth.getStorageAt(address, index);
     return web3.utils.hexToNumber(state);
-  }
+  },
 
-  async getStateAsString(address, index) {
+  getStateAsString: async function (address, index) {
     const state = await web3.eth.getStorageAt(address, index);
     return web3.utils.hexToUtf8(state.slice(0, -2));
-  }
+  },
 
-  async deployContract(contractName, options = {}) {
+  deployContract: async function (contractName, options = {}) {
     const Contract = await ethers.getContractFactory(contractName);
 
-    const senderAccount = options.senderAccount || this.auxiliaryAccount;
+    const senderAccount = options.senderAccount || this.primaryAccount;
     const constructorArgs = options.constructorArgs || [];
     const gasLimit = options.gasLimit || 250000;
     const gasPrice = options.gasPrice || (await web3.eth.getGasPrice());
 
-    // Deploy a SC using web3 API ONLY
     const nonce = await web3.eth.getTransactionCount(senderAccount.address, "latest"); // nonce starts counting from 0
 
     const transaction = {
@@ -54,17 +51,17 @@ class ZilliqaHelper {
     const receipt = await this.sendTransaction(transaction, senderAccount);
 
     const contract = new web3.eth.Contract(hre.artifacts.readArtifactSync(contractName).abi, receipt.contractAddress, {
-      from: this.auxiliaryAccount.address
+      from: senderAccount.address
     });
 
     return contract;
-  }
+  },
 
-  async callContract(contract, func_name, ...params) {
-    return this.callContractBy(this.auxiliaryAccount, contract, func_name, ...params);
-  }
+  callContract: async function (contract, func_name, ...params) {
+    return this.callContractBy(this.primaryAccount, contract, func_name, ...params);
+  },
 
-  async callContractBy(senderAccount, contract, func_name, ...params) {
+  callContractBy: async function (senderAccount, contract, func_name, ...params) {
     const abi = contract.methods[func_name](...params).encodeABI();
     const nonce = await web3.eth.getTransactionCount(senderAccount.address, "latest"); // nonce starts counting from 0
 
@@ -79,15 +76,15 @@ class ZilliqaHelper {
       nonce: nonce
     };
 
-    const receipt = await this.sendTransaction(transaction, this.auxiliaryAccount);
+    const receipt = await this.sendTransaction(transaction, senderAccount);
     await web3.eth.getTransaction(receipt.transactionHash);
-  }
+  },
 
-  async callView(contract, func_name, ...params) {
-    return this.callViewBy(this.auxiliaryAccount, contract, func_name, ...params);
-  }
+  callView: async function (contract, func_name, ...params) {
+    return this.callViewBy(this.primaryAccount, contract, func_name, ...params);
+  },
 
-  async callViewBy(senderAccount, contract, func_name, ...params) {
+  callViewBy: async function (senderAccount, contract, func_name, ...params) {
     const abi = contract.methods[func_name](...params).encodeABI();
 
     const transaction = {
@@ -98,17 +95,17 @@ class ZilliqaHelper {
     };
 
     return web3.eth.call(transaction);
-  }
+  },
 
-  async sendTransaction(tx, senderAccount) {
+  sendTransaction: async function (tx, senderAccount) {
     const signedTx = await senderAccount.signTransaction(tx);
 
-    console.log("Send transaction from sender:", senderAccount.address, " to:", tx.to);
+    hre.logDebug("Send transaction from sender:", senderAccount.address, " to:", tx.to);
 
     return web3.eth.sendSignedTransaction(signedTx.rawTransaction);
-  }
+  },
 
-  async moveFundsBy(amount, toAddr, senderAccount) {
+  async moveFunds(amount, toAddr, senderAccount) {
     try {
       const nonce = await web3.eth.getTransactionCount(senderAccount.address); // nonce starts counting from 0
       const tx = {
@@ -125,13 +122,11 @@ class ZilliqaHelper {
     } catch (err) {
       console.log("theres an error...", err);
     }
-  }
+  },
 
-  async moveFunds(amount, toAddr) {
-    return this.moveFundsBy(amount, toAddr, this.primaryAccount);
+  async moveFundsTo(amount, toAddr) {
+    return this.moveFunds(amount, toAddr, this.primaryAccount);
   }
-}
-
-module.exports = {
-  ZilliqaHelper
 };
+
+module.exports = zilliqa_helper;

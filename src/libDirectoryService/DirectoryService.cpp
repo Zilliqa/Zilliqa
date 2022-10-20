@@ -158,7 +158,8 @@ uint32_t DirectoryService::GetNumShards() const {
 }
 
 bool DirectoryService::ProcessSetPrimary(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -212,7 +213,7 @@ bool DirectoryService::ProcessSetPrimary(
   if (primary == m_mediator.m_selfPeer) {
     m_mediator.m_lookup->SetDSCommitteInfo();
 
-    bytes setDSBootstrapNodeMessage = {
+    zbytes setDSBootstrapNodeMessage = {
         MessageType::LOOKUP, LookupInstructionType::SETDSINFOFROMSEED};
 
     if (!Messenger::SetLookupSetDSInfoFromSeed(
@@ -855,8 +856,8 @@ bool DirectoryService::UpdateDSGuardIdentity() {
   }
 
   // To provide current pubkey, new IP, new Port and current timestamp
-  bytes updatedsguardidentitymessage = {MessageType::DIRECTORY,
-                                        DSInstructionType::NEWDSGUARDIDENTITY};
+  zbytes updatedsguardidentitymessage = {MessageType::DIRECTORY,
+                                         DSInstructionType::NEWDSGUARDIDENTITY};
 
   uint64_t curDSEpochNo =
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() + 1;
@@ -895,7 +896,8 @@ bool DirectoryService::UpdateDSGuardIdentity() {
 }
 
 bool DirectoryService::ProcessNewDSGuardNetworkInfo(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -1017,7 +1019,8 @@ bool DirectoryService::ProcessNewDSGuardNetworkInfo(
 }
 
 bool DirectoryService::ProcessCosigsRewardsFromSeed(
-    const bytes& message, unsigned int offset, [[gnu::unused]] const Peer& from,
+    const zbytes& message, unsigned int offset,
+    [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
@@ -1067,7 +1070,7 @@ void DirectoryService::GetCoinbaseRewardees(
   coinbase_rewardees = m_coinbaseRewardees;
 }
 
-bool DirectoryService::Execute(const bytes& message, unsigned int offset,
+bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                const unsigned char& startByte) {
   // LOG_MARKER();
@@ -1075,7 +1078,7 @@ bool DirectoryService::Execute(const bytes& message, unsigned int offset,
   bool result = false;
 
   typedef bool (DirectoryService::*InstructionHandler)(
-      const bytes&, unsigned int, const Peer&, const unsigned char&);
+      const zbytes&, unsigned int, const Peer&, const unsigned char&);
 
   std::vector<InstructionHandler> ins_handlers;
 

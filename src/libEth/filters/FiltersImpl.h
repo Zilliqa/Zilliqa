@@ -58,10 +58,15 @@ class FilterAPIBackendImpl : public FilterAPIBackend {
 
   PollResult GetFilterChanges(const std::string &filter_id) override;
 
+  PollResult GetFilterLogs(const FilterId &filter_id) override;
+
+  PollResult GetLogs(const Json::Value &params) override;
+
   explicit FilterAPIBackendImpl(TxCache &cache) : m_cache(cache) {}
 
  private:
-  void GetEventFilterChanges(const std::string &filter_id, PollResult &result);
+  void GetEventFilterChanges(const std::string &filter_id, PollResult &result,
+                             bool ignore_last_seen_cursor = false);
   void GetBlockFilterChanges(const std::string &filter_id, PollResult &result);
   void GetPendingTxnFilterChanges(const std::string &filter_id,
                                   PollResult &result);

@@ -18,7 +18,7 @@
 #include "BloomFilter.h"
 #include "libMessage/Messenger.h"
 
-bool BloomFilter::Serialize(bytes& dst, unsigned int offset) const {
+bool BloomFilter::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetBloomFilter(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetBloomFilter failed.");
     return false;
@@ -26,7 +26,7 @@ bool BloomFilter::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool BloomFilter::Deserialize(const bytes& src, unsigned int offset) {
+bool BloomFilter::Deserialize(const zbytes& src, unsigned int offset) {
   if (!Messenger::GetBloomFilter(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
     return false;

@@ -223,7 +223,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool ParseContractCheckerOutput(const Address& addr,
                                   const std::string& checkerPrint,
                                   TransactionReceipt& receipt,
-                                  std::map<std::string, bytes>& metadata,
+                                  std::map<std::string, zbytes>& metadata,
                                   uint64_t& gasRemained,
                                   bool is_library = false);
 
@@ -268,7 +268,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Adds an Account to the atomic AccountStore.
   bool AddAccountAtomic(const Address& address, const Account& account);
 
-  bool ViewAccounts(EvmCallParameters& params, bool& ret, std::string& result);
+  bool ViewAccounts(const EvmCallParameters& params,
+                    evmproj::CallResponse& response);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

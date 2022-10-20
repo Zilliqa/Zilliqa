@@ -34,7 +34,8 @@
 class DSBlockHeader : public BlockHeaderBase {
   uint8_t m_dsDifficulty{};  // Number of PoW leading zeros
   uint8_t m_difficulty{};    // Number of PoW leading zeros
-  PubKey m_leaderPubKey;     // The one who proposed this DS block
+  uint8_t m_totalDifficulty{};
+  PubKey m_leaderPubKey;  // The one who proposed this DS block
   uint64_t m_blockNum{};  // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum{};  // Tx Epoch Num when the DS block was generated
   uint128_t m_gasPrice;
@@ -50,7 +51,7 @@ class DSBlockHeader : public BlockHeaderBase {
   DSBlockHeader();  // creates a dummy invalid placeholder BlockHeader
 
   /// Constructor for loading DS block header information from a byte stream.
-  DSBlockHeader(const bytes& src, unsigned int offset);
+  DSBlockHeader(const zbytes& src, unsigned int offset);
 
   /// Constructor with specified DS block header parameters.
   DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
@@ -66,10 +67,10 @@ class DSBlockHeader : public BlockHeaderBase {
                 const BlockHash& prevHash = BlockHash());
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const override;
+  bool Serialize(zbytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset) override;
+  bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset) override;
@@ -84,6 +85,10 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the difficulty of the PoW puzzle.
   const uint8_t& GetDifficulty() const;
 
+  /// Returns the total difficulty of the chain until this block. (not
+  /// supported)
+  const uint8_t& GetTotalDifficulty() const;
+
   /// Returns the public key of the leader of the DS committee that composed
   /// this block.
   const PubKey& GetLeaderPubKey() const;
@@ -94,7 +99,7 @@ class DSBlockHeader : public BlockHeaderBase {
   /// Returns the number of tx epoch when block is mined
   const uint64_t& GetEpochNum() const;
 
-  /// Returns the number of global minimum gas price accepteable for the coming
+  /// Returns the number of global minimum gas price acceptable for the coming
   /// epoch
   const uint128_t& GetGasPrice() const;
 
@@ -137,19 +142,21 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
 
   os << blockHeaderBase << std::endl
      << "<DSBlockHeader>" << std::endl
-     << " m_dsDifficulty = " << t.m_dsDifficulty << std::endl
-     << " m_difficulty   = " << t.m_difficulty << std::endl
-     << " m_leaderPubKey = " << t.m_leaderPubKey << std::endl
-     << " m_blockNum     = " << t.m_blockNum << std::endl
-     << " m_epochNum     = " << t.m_epochNum << std::endl
-     << " m_gasPrice     = " << t.m_gasPrice << std::endl
+     << " m_dsDifficulty    = " << t.m_dsDifficulty << std::endl
+     << " m_difficulty      = " << t.m_difficulty << std::endl
+     << " m_totalDifficulty = " << t.m_totalDifficulty << std::endl
+     << " m_leaderPubKey    = " << t.m_leaderPubKey << std::endl
+     << " m_blockNum        = " << t.m_blockNum << std::endl
+     << " m_epochNum        = " << t.m_epochNum << std::endl
+     << " m_gasPrice        = " << t.m_gasPrice << std::endl
      << t.m_hashset << std::endl
      << t.m_swInfo << std::endl;
   for (const auto& node : t.m_PoWDSWinners) {
-    os << " PoWDSWinner    = " << node.first << " " << node.second << std::endl;
+    os << " PoWDSWinner     = " << node.first << " " << node.second
+       << std::endl;
   }
   for (const auto& pubkey : t.m_removeDSNodePubkeys) {
-    os << " DSRemoved      = " << pubkey << std::endl;
+    os << " DSRemoved       = " << pubkey << std::endl;
   }
 
   return os;

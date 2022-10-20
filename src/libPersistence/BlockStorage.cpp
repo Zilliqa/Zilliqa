@@ -76,7 +76,7 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   m_microBlockDBs.emplace_back(std::make_shared<LevelDB>("microBlocks"));
 }
 
-bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
+bool BlockStorage::PutBlock(const uint64_t& blockNum, const zbytes& body,
                             const BlockType& blockType) {
   int ret = -1;  // according to LevelDB::Insert return value
   if (blockType == BlockType::DS) {
@@ -91,18 +91,19 @@ bool BlockStorage::PutBlock(const uint64_t& blockNum, const bytes& body,
   return (ret == 0);
 }
 
-bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const bytes& body) {
+bool BlockStorage::PutDSBlock(const uint64_t& blockNum, const zbytes& body) {
+  LOG_GENERAL(INFO, "Stored Block " << blockNum);
   return PutBlock(blockNum, body, BlockType::DS);
 }
 
-bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const bytes& body) {
+bool BlockStorage::PutVCBlock(const BlockHash& blockhash, const zbytes& body) {
   int ret = -1;
   unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
   ret = m_VCBlockDB->Insert(blockhash, body);
   return (ret == 0);
 }
 
-bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
+bool BlockStorage::PutBlockLink(const uint64_t& index, const zbytes& body) {
   int ret = -1;
   unique_lock<shared_timed_mutex> g(m_mutexBlockLink);
   ret = m_blockLinkDB->Insert(index, body);
@@ -110,7 +111,7 @@ bool BlockStorage::PutBlockLink(const uint64_t& index, const bytes& body) {
 }
 
 bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
-                              const bytes& body) {
+                              const zbytes& body) {
   const auto status = PutBlock(blockHeader.GetBlockNum(), body, BlockType::Tx);
   if (status) {
     unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -124,21 +125,28 @@ bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
 }
 
 bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
-                             const bytes& body) {
+                             const zbytes& body) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
     return false;
   }
 
-  bytes epoch;
+  zbytes epoch;
   if (!Messenger::SetTxEpoch(epoch, 0, epochNum)) {
     LOG_GENERAL(WARNING, "Messenger::SetTxEpoch failed.");
     return false;
   }
 
-  const bytes& keyBytes = key.asBytes();
+  const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   // Store txn hash and epoch inside txEpochs DB
   if (m_txEpochDB->Insert(keyBytes, epoch) != 0) {
@@ -159,7 +167,7 @@ bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
 }
 
 bool BlockStorage::PutProcessedTxBodyTmp(const dev::h256& key,
-                                         const bytes& body) {
+                                         const zbytes& body) {
   int ret;
   {
     unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
@@ -170,8 +178,8 @@ bool BlockStorage::PutProcessedTxBodyTmp(const dev::h256& key,
 
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const uint64_t& epochNum,
-                                 const uint32_t& shardID, const bytes& body) {
-  bytes key;
+                                 const uint32_t& shardID, const zbytes& body) {
+  zbytes key;
   if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
     return false;
@@ -210,7 +218,7 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
       return false;
     }
 
-    bytes keyBytes(keyString.begin(), keyString.end());
+    zbytes keyBytes(keyString.begin(), keyString.end());
     uint64_t epochNum = 0;
     uint32_t shardID = 0;
     if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
@@ -225,8 +233,8 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   if (blockString.empty()) {
     return false;
   }
-  microblock =
-      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>(
+      zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -234,7 +242,7 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
 bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
                                  const uint32_t& shardID,
                                  MicroBlockSharedPtr& microblock) {
-  bytes key;
+  zbytes key;
   if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
     return false;
@@ -250,8 +258,8 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
   if (blockString.empty()) {
     return false;
   }
-  microblock =
-      make_shared<MicroBlock>(bytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>(
+      zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -263,7 +271,7 @@ bool BlockStorage::CheckMicroBlock(const BlockHash& blockHash) {
   if (keyString.empty()) {
     return false;
   }
-  bytes keyBytes(keyString.begin(), keyString.end());
+  zbytes keyBytes(keyString.begin(), keyString.end());
   uint64_t epochNum = 0;
   uint32_t shardID = 0;
   if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
@@ -304,7 +312,7 @@ bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
 
   unordered_map<string, string> states_str;
   for (const auto& state : states) {
-    bytes rawBytes;
+    zbytes rawBytes;
     if (!state.second.SerializeBase(rawBytes, 0)) {
       LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
       continue;
@@ -335,7 +343,7 @@ bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
     string acct_string = iter->value().ToString();
     Address addr{addr_str};
     Account acct;
-    if (!acct.DeserializeBase(bytes(acct_string.begin(), acct_string.end()),
+    if (!acct.DeserializeBase(zbytes(acct_string.begin(), acct_string.end()),
                               0)) {
       LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
       continue;
@@ -364,7 +372,7 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
   // LOG_GENERAL(INFO, blockString);
   // LOG_GENERAL(INFO, blockString.length());
   block = DSBlockSharedPtr(
-      new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
+      new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
@@ -384,7 +392,7 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
   // LOG_GENERAL(INFO, blockString);
   // LOG_GENERAL(INFO, blockString.length());
   block = VCBlockSharedPtr(
-      new VCBlock(bytes(blockString.begin(), blockString.end()), 0));
+      new VCBlock(zbytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
@@ -457,8 +465,8 @@ bool BlockStorage::GetBlockLink(const uint64_t& index,
   // LOG_GENERAL(INFO, blockString);
   // LOG_GENERAL(INFO, blockString.length());
   BlockLink blnk;
-  if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()), 0,
-                               blnk)) {
+  if (!Messenger::GetBlockLink(zbytes(blockString.begin(), blockString.end()),
+                               0, blnk)) {
     LOG_GENERAL(WARNING, "Serialization of blockLink failed");
     return false;
   }
@@ -485,14 +493,14 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
   }
 
   block = TxBlockSharedPtr(
-      new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
+      new TxBlock(zbytes(blockString.begin(), blockString.end()), 0));
 
   return true;
 }
 
 bool BlockStorage::GetTxBlock(const BlockHash& blockhash,
                               TxBlockSharedPtr& block) const {
-  const bytes& keyBytes = blockhash.asBytes();
+  const zbytes& keyBytes = blockhash.asBytes();
   std::string blockNumStr;
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
@@ -529,16 +537,23 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 }
 
 bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
-  const bytes& keyBytes = key.asBytes();
+  const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
     return false;
   }
 
-  bytes epochBytes(epochString.begin(), epochString.end());
+  zbytes epochBytes(epochString.begin(), epochString.end());
   uint64_t epochNum = 0;
   if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
     LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
@@ -551,22 +566,29 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
     return false;
   }
   body = TxBodySharedPtr(new TransactionWithReceipt(
-      bytes(bodyString.begin(), bodyString.end()), 0));
+      zbytes(bodyString.begin(), bodyString.end()), 0));
 
   return true;
 }
 
 bool BlockStorage::CheckTxBody(const dev::h256& key) {
-  const bytes& keyBytes = key.asBytes();
+  const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
     return false;
   }
 
-  bytes epochBytes(epochString.begin(), epochString.end());
+  zbytes epochBytes(epochString.begin(), epochString.end());
   uint64_t epochNum = 0;
   if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
     LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
@@ -602,16 +624,23 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
     return false;
   }
 
-  const bytes& keyBytes = key.asBytes();
+  const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
     return false;
   }
 
-  bytes epochBytes(epochString.begin(), epochString.end());
+  zbytes epochBytes(epochString.begin(), epochString.end());
   uint64_t epochNum = 0;
   if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
     LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
@@ -636,7 +665,7 @@ bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
 
   // Delete body
   if (ret == 0) {
-    bytes keyBytes(keyString.begin(), keyString.end());
+    zbytes keyBytes(keyString.begin(), keyString.end());
     uint64_t epochNum = 0;
     uint32_t shardID = 0;
     if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
@@ -674,7 +703,7 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
     }
 
     DSBlockSharedPtr block = DSBlockSharedPtr(
-        new DSBlock(bytes(blockString.begin(), blockString.end()), 0));
+        new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
   }
@@ -693,6 +722,13 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+
+  if (!m_extSeedPubKeysDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string keyStr = "0000000001";
   uint32_t key;
@@ -714,7 +750,7 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
   }
   delete it;
 
-  bytes data;
+  zbytes data;
   pubK.Serialize(data, 0);
   LOG_GENERAL(INFO, "Inserting with key:" << keyStr << ", Pubkey:" << pubK);
   int ret = m_extSeedPubKeysDB->Insert(keyStr, data);
@@ -726,9 +762,16 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
 
   unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
+  if (!m_extSeedPubKeysDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   leveldb::Iterator* it =
       m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
-  bytes data;
+  zbytes data;
   pubK.Serialize(data, 0);
   string pubKStrI = DataConversion::CharArrayToString(data);
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -752,6 +795,13 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
 
   shared_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
+  if (!m_extSeedPubKeysDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   leveldb::Iterator* it =
       m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
   uint64_t count = 0;
@@ -762,7 +812,7 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
       delete it;
       return false;
     }
-    PubKey pubK(bytes(pubkString.begin(), pubkString.end()), 0);
+    PubKey pubK(zbytes(pubkString.begin(), pubkString.end()), 0);
     pubKeys.emplace(pubK);
     count++;
   }
@@ -795,7 +845,7 @@ bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
       return false;
     }
     TxBlockSharedPtr block = TxBlockSharedPtr(
-        new TxBlock(bytes(blockString.begin(), blockString.end()), 0));
+        new TxBlock(zbytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
     count++;
   }
@@ -828,7 +878,7 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
       return false;
     }
     VCBlockSharedPtr block = VCBlockSharedPtr(
-        new VCBlock(bytes(blockString.begin(), blockString.end()), 0));
+        new VCBlock(zbytes(blockString.begin(), blockString.end()), 0));
     blocks.emplace_back(block);
     count++;
   }
@@ -861,7 +911,7 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
       return false;
     }
     BlockLink blcklink;
-    if (!Messenger::GetBlockLink(bytes(blockString.begin(), blockString.end()),
+    if (!Messenger::GetBlockLink(zbytes(blockString.begin(), blockString.end()),
                                  0, blcklink)) {
       LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
       delete it;
@@ -884,14 +934,14 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
   return true;
 }
 
-bool BlockStorage::PutMetadata(MetaType type, const bytes& data) {
+bool BlockStorage::PutMetadata(MetaType type, const zbytes& data) {
   LOG_MARKER();
   unique_lock<shared_timed_mutex> g(m_mutexMetadata);
   int ret = m_metadataDB->Insert(std::to_string((int)type), data);
   return (ret == 0);
 }
 
-bool BlockStorage::PutStateRoot(const bytes& data) {
+bool BlockStorage::PutStateRoot(const zbytes& data) {
   unique_lock<shared_timed_mutex> g(m_mutexStateRoot);
   int ret = m_stateRootDB->Insert(std::to_string((int)STATEROOT), data);
   return (ret == 0);
@@ -911,7 +961,7 @@ bool BlockStorage::PutEpochFin(const uint64_t& epochNum) {
       DataConversion::StringToCharArray(to_string(epochNum)));
 }
 
-bool BlockStorage::GetMetadata(MetaType type, bytes& data, bool muteLog) {
+bool BlockStorage::GetMetadata(MetaType type, zbytes& data, bool muteLog) {
   if (!muteLog) {
     LOG_MARKER();
   }
@@ -927,12 +977,12 @@ bool BlockStorage::GetMetadata(MetaType type, bytes& data, bool muteLog) {
     return false;
   }
 
-  data = bytes(metaString.begin(), metaString.end());
+  data = zbytes(metaString.begin(), metaString.end());
 
   return true;
 }
 
-bool BlockStorage::GetStateRoot(bytes& data) {
+bool BlockStorage::GetStateRoot(zbytes& data) {
   LOG_MARKER();
 
   string stateRoot;
@@ -946,7 +996,7 @@ bool BlockStorage::GetStateRoot(bytes& data) {
     return false;
   }
 
-  data = bytes(stateRoot.begin(), stateRoot.end());
+  data = zbytes(stateRoot.begin(), stateRoot.end());
 
   return true;
 }
@@ -975,7 +1025,7 @@ bool BlockStorage::GetLatestEpochStatesUpdated(uint64_t& epochNum) {
 }
 
 bool BlockStorage::GetEpochFin(uint64_t& epochNum) {
-  bytes epochFinBytes;
+  zbytes epochFinBytes;
   if (BlockStorage::GetBlockStorage().GetMetadata(MetaType::EPOCHFIN,
                                                   epochFinBytes, true)) {
     try {
@@ -1004,14 +1054,14 @@ bool BlockStorage::PutDSCommittee(const shared_ptr<DequeOfNode>& dsCommittee,
   string leaderId = to_string(consensusLeaderID);
 
   if (0 != m_dsCommitteeDB->Insert(index++,
-                                   bytes(leaderId.begin(), leaderId.end()))) {
+                                   zbytes(leaderId.begin(), leaderId.end()))) {
     LOG_GENERAL(WARNING, "Failed to store DS leader ID:" << consensusLeaderID);
     return false;
   }
 
   LOG_GENERAL(INFO, "DS leader: " << consensusLeaderID);
 
-  bytes data;
+  zbytes data;
 
   unsigned int ds_index = 0;
   for (const auto& ds : *dsCommittee) {
@@ -1065,8 +1115,8 @@ bool BlockStorage::GetDSCommittee(shared_ptr<DequeOfNode>& dsCommittee,
     }
 
     dsCommittee->emplace_back(
-        PubKey(bytes(dataStr.begin(), dataStr.begin() + PUB_KEY_SIZE), 0),
-        Peer(bytes(dataStr.begin() + PUB_KEY_SIZE, dataStr.end()), 0));
+        PubKey(zbytes(dataStr.begin(), dataStr.begin() + PUB_KEY_SIZE), 0),
+        Peer(zbytes(dataStr.begin() + PUB_KEY_SIZE, dataStr.end()), 0));
     LOG_GENERAL(INFO, "Retrieved DS committee: " << dsCommittee->back().first
                                                  << ", "
                                                  << dsCommittee->back().second);
@@ -1085,14 +1135,14 @@ bool BlockStorage::PutShardStructure(const DequeOfShard& shards,
   string shardId = to_string(myshardId);
 
   if (0 != m_shardStructureDB->Insert(index++,
-                                      bytes(shardId.begin(), shardId.end()))) {
+                                      zbytes(shardId.begin(), shardId.end()))) {
     LOG_GENERAL(WARNING, "Failed to store shard ID:" << myshardId);
     return false;
   }
 
   LOG_GENERAL(INFO, "Stored shard ID:" << myshardId);
 
-  bytes shardStructure;
+  zbytes shardStructure;
 
   if (!Messenger::ShardStructureToArray(shardStructure, 0,
                                         SHARDINGSTRUCTURE_VERSION, shards)) {
@@ -1121,7 +1171,7 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
   }
 
   uint32_t version = 0;
-  Messenger::ArrayToShardStructure(bytes(dataStr.begin(), dataStr.end()), 0,
+  Messenger::ArrayToShardStructure(zbytes(dataStr.begin(), dataStr.end()), 0,
                                    version, shards);
 
   if (version != SHARDINGSTRUCTURE_VERSION) {
@@ -1135,7 +1185,7 @@ bool BlockStorage::GetShardStructure(DequeOfShard& shards) {
 }
 
 bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
-                                 const bytes& stateDelta) {
+                                 const zbytes& stateDelta) {
   LOG_MARKER();
 
   unique_lock<shared_timed_mutex> g(m_mutexStateDelta);
@@ -1153,7 +1203,7 @@ bool BlockStorage::PutStateDelta(const uint64_t& finalBlockNum,
 }
 
 bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
-                                 bytes& stateDelta) {
+                                 zbytes& stateDelta) {
   LOG_MARKER();
   bool found = false;
 
@@ -1163,7 +1213,7 @@ bool BlockStorage::GetStateDelta(const uint64_t& finalBlockNum,
     dataStr = m_stateDeltaDB->Lookup(finalBlockNum, found);
   }
   if (found) {
-    stateDelta = bytes(dataStr.begin(), dataStr.end());
+    stateDelta = zbytes(dataStr.begin(), dataStr.end());
     LOG_PAYLOAD(INFO, "Retrieved state delta of final block " << finalBlockNum,
                 stateDelta, Logger::MAX_BYTES_TO_DISPLAY);
   } else {
@@ -1179,7 +1229,7 @@ bool BlockStorage::PutDiagnosticDataNodes(const uint64_t& dsBlockNum,
                                           const DequeOfNode& dsCommittee) {
   LOG_MARKER();
 
-  bytes data;
+  zbytes data;
 
   if (!Messenger::SetDiagnosticDataNodes(data, 0, SHARDINGSTRUCTURE_VERSION,
                                          shards, DSCOMMITTEE_VERSION,
@@ -1204,7 +1254,7 @@ bool BlockStorage::PutDiagnosticDataCoinbase(
     const uint64_t& dsBlockNum, const DiagnosticDataCoinbase& entry) {
   LOG_MARKER();
 
-  bytes data;
+  zbytes data;
 
   if (!Messenger::SetDiagnosticDataCoinbase(data, 0, entry)) {
     LOG_GENERAL(WARNING, "Messenger::SetDiagnosticDataCoinbase failed");
@@ -1242,7 +1292,7 @@ bool BlockStorage::GetDiagnosticDataNodes(const uint64_t& dsBlockNum,
     return false;
   }
 
-  bytes data(dataStr.begin(), dataStr.end());
+  zbytes data(dataStr.begin(), dataStr.end());
 
   uint32_t shardingStructureVersion = 0;
   uint32_t dsCommitteeVersion = 0;
@@ -1286,7 +1336,7 @@ bool BlockStorage::GetDiagnosticDataCoinbase(const uint64_t& dsBlockNum,
     return false;
   }
 
-  bytes data(dataStr.begin(), dataStr.end());
+  zbytes data(dataStr.begin(), dataStr.end());
 
   if (!Messenger::GetDiagnosticDataCoinbase(data, 0, entry)) {
     LOG_GENERAL(WARNING, "Messenger::GetDiagnosticDataCoinbase failed");
@@ -1325,7 +1375,7 @@ void BlockStorage::GetDiagnosticDataNodes(
       continue;
     }
 
-    bytes data(dataStr.begin(), dataStr.end());
+    zbytes data(dataStr.begin(), dataStr.end());
 
     DiagnosticDataNodes entry;
     uint32_t shardingStructureVersion = 0;
@@ -1389,7 +1439,7 @@ void BlockStorage::GetDiagnosticDataCoinbase(
       continue;
     }
 
-    bytes data(dataStr.begin(), dataStr.end());
+    zbytes data(dataStr.begin(), dataStr.end());
 
     DiagnosticDataCoinbase entry;
 
@@ -1440,7 +1490,7 @@ bool BlockStorage::PutMinerInfoDSComm(const uint64_t& dsBlockNum,
                                       const MinerInfoDSComm& entry) {
   LOG_MARKER();
 
-  bytes data;
+  zbytes data;
 
   if (!Messenger::SetMinerInfoDSComm(data, 0, entry)) {
     LOG_GENERAL(WARNING, "Messenger::SetMinerInfoDSComm failed");
@@ -1448,6 +1498,13 @@ bool BlockStorage::PutMinerInfoDSComm(const uint64_t& dsBlockNum,
   }
 
   unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
+
+  if (!m_minerInfoDSCommDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   if (0 != m_minerInfoDSCommDB->Insert(dsBlockNum, data)) {
     LOG_GENERAL(WARNING, "Failed to store miner info");
@@ -1462,14 +1519,21 @@ bool BlockStorage::GetMinerInfoDSComm(const uint64_t& dsBlockNum,
   LOG_MARKER();
   bool found = false;
 
+  if (!m_minerInfoDSCommDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   string dataStr;
   {
     shared_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
     dataStr = m_minerInfoDSCommDB->Lookup(dsBlockNum, found);
   }
   if (found) {
-    if (!Messenger::GetMinerInfoDSComm(bytes(dataStr.begin(), dataStr.end()), 0,
-                                       entry)) {
+    if (!Messenger::GetMinerInfoDSComm(zbytes(dataStr.begin(), dataStr.end()),
+                                       0, entry)) {
       LOG_GENERAL(WARNING, "Messenger::GetMinerInfoDSComm failed");
       found = false;
     }
@@ -1482,7 +1546,7 @@ bool BlockStorage::PutMinerInfoShards(const uint64_t& dsBlockNum,
                                       const MinerInfoShards& entry) {
   LOG_MARKER();
 
-  bytes data;
+  zbytes data;
 
   if (!Messenger::SetMinerInfoShards(data, 0, entry)) {
     LOG_GENERAL(WARNING, "Messenger::SetMinerInfoShards failed");
@@ -1490,6 +1554,13 @@ bool BlockStorage::PutMinerInfoShards(const uint64_t& dsBlockNum,
   }
 
   unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
+
+  if (!m_minerInfoShardsDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   if (0 != m_minerInfoShardsDB->Insert(dsBlockNum, data)) {
     LOG_GENERAL(WARNING, "Failed to store miner info");
@@ -1504,14 +1575,21 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
   LOG_MARKER();
   bool found = false;
 
+  if (!m_minerInfoShardsDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   string dataStr;
   {
     shared_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
     dataStr = m_minerInfoShardsDB->Lookup(dsBlockNum, found);
   }
   if (found) {
-    if (!Messenger::GetMinerInfoShards(bytes(dataStr.begin(), dataStr.end()), 0,
-                                       entry)) {
+    if (!Messenger::GetMinerInfoShards(zbytes(dataStr.begin(), dataStr.end()),
+                                       0, entry)) {
       LOG_GENERAL(WARNING, "Messenger::GetMinerInfoShards failed");
       found = false;
     }

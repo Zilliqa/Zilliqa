@@ -50,6 +50,8 @@ class IsolatedServer : public LookupServer,
     response = this->CreateTransaction(request[0u]);
   }
 
+  void BindAllEvmMethods();
+
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
     auto rawTx = request[0u].asString();
@@ -115,7 +117,7 @@ class IsolatedServer : public LookupServer,
   std::string SetMinimumGasPrice(const std::string& gasPrice);
   Json::Value CreateTransaction(const Json::Value& _json);
   std::string CreateTransactionEth(Eth::EthFields const& fields,
-                                   bytes const& pubKey);
+                                   zbytes const& pubKey);
   Json::Value GetEthStorageAt(std::string const& address,
                               std::string const& position,
                               std::string const& blockNum);

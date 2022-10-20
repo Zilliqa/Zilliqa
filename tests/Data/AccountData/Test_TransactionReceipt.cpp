@@ -72,7 +72,7 @@ BOOST_AUTO_TEST_CASE(transactionreceipt) {
 
   tr.InstallError();
 
-  bytes src;
+  zbytes src;
 
   BOOST_CHECK_EQUAL(true, tr.Serialize(src, 0));
 

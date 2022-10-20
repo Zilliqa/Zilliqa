@@ -78,7 +78,7 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
 
   DSBlockHeader dsBlockHeader = TestUtils::GenerateRandomDSBlockHeader();
@@ -94,7 +94,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
 
   DSBlock dsBlock(TestUtils::GenerateRandomDSBlockHeader(),
@@ -110,7 +110,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   MicroBlockHeader microBlockHeader =
       TestUtils::GenerateRandomMicroBlockHeader();
@@ -126,7 +126,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
 
   MicroBlockHeader microBlockHeader =
@@ -150,7 +150,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
 
@@ -165,7 +165,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
 
   TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
@@ -184,7 +184,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   VCBlockHeader vcBlockHeader = TestUtils::GenerateRandomVCBlockHeader();
 
@@ -199,7 +199,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
 }
 
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
-  bytes dst;
+  zbytes dst;
   unsigned int offset = 0;
   VCBlock vcBlock(TestUtils::GenerateRandomVCBlockHeader(),
                   TestUtils::GenerateRandomCoSignatures());
@@ -214,7 +214,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
 }
 
 BOOST_AUTO_TEST_CASE(test_CopyWithSizeCheck) {
-  bytes arr;
+  zbytes arr;
   dev::h256 result;
 
   generate(result.asArray().begin(), result.asArray().end(),

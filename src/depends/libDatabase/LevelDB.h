@@ -85,10 +85,10 @@ public:
     std::string Lookup(const dev::h256 & key) const;
 
     /// Returns the value at the specified key.
-    std::string Lookup(const dev::bytesConstRef & key) const;
+    std::string Lookup(const dev::zbytesConstRef & key) const;
 
     /// Sets the value at the specified key.
-    int Insert(const dev::h256 & key, dev::bytesConstRef value);
+    int Insert(const dev::h256 & key, dev::zbytesConstRef value);
 
     /// Sets the value at the specified key.
     int Insert(const std::vector<unsigned char>& key,
@@ -106,7 +106,7 @@ public:
     int Insert(const std::string & key, const std::vector<unsigned char> & body);
 
     /// Sets the value at the specified key.
-    int Insert(const leveldb::Slice & key, dev::bytesConstRef value);
+    int Insert(const leveldb::Slice & key, dev::zbytesConstRef value);
 
     /// Sets the value at the specified key.
     int Insert(const dev::h256 & key, const std::string & value);
@@ -119,7 +119,7 @@ public:
 
     /// Sets the value at the specified key for multiple such pairs.
     bool BatchInsert(const std::unordered_map<dev::h256, std::pair<std::string, unsigned>> & m_main,
-                     const std::unordered_map<dev::h256, std::pair<dev::bytes, bool>> & m_aux, std::unordered_set<dev::h256>& inserted);
+                     const std::unordered_map<dev::h256, std::pair<dev::zbytes, bool>> & m_aux, std::unordered_set<dev::h256>& inserted);
     bool BatchInsert(const std::unordered_map<std::string, std::string>& kv_map);
 
     /// Remove the kv pair for multiple specified key.

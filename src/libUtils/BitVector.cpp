@@ -29,7 +29,8 @@ unsigned int BitVector::GetBitVectorSerializedSize(
   return 2 + GetBitVectorLengthInBytes(length_in_bits);
 }
 
-std::vector<bool> BitVector::GetBitVector(const bytes& src, unsigned int offset,
+std::vector<bool> BitVector::GetBitVector(const zbytes& src,
+                                          unsigned int offset,
                                           unsigned int expected_length) {
   std::vector<bool> result;
   unsigned int actual_length = 0;
@@ -52,7 +53,7 @@ std::vector<bool> BitVector::GetBitVector(const bytes& src, unsigned int offset,
   return result;
 }
 
-std::vector<bool> BitVector::GetBitVector(const bytes& src,
+std::vector<bool> BitVector::GetBitVector(const zbytes& src,
                                           unsigned int offset) {
   std::vector<bool> result;
   unsigned int actual_length = 0;
@@ -74,7 +75,7 @@ std::vector<bool> BitVector::GetBitVector(const bytes& src,
   return result;
 }
 
-unsigned int BitVector::SetBitVector(bytes& dst, unsigned int offset,
+unsigned int BitVector::SetBitVector(zbytes& dst, unsigned int offset,
                                      const std::vector<bool>& value) {
   const unsigned int length_needed = GetBitVectorSerializedSize(value.size());
 

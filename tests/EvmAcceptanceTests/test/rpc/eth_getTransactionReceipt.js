@@ -1,6 +1,5 @@
-const {ZilliqaHelper} = require("../../helper/ZilliqaHelper");
+const zilliqa_helper = require("../../helper/ZilliqaHelper");
 const helper = require("../../helper/GeneralHelper");
-const {ethers, web3} = require("hardhat");
 assert = require("chai").assert;
 
 const METHOD = "eth_getTransactionReceipt";
@@ -13,26 +12,26 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return the raw transaction response", async function () {
-    var zHelper = new ZilliqaHelper();
     var transactionHash;
 
     function onMoveFundsFinished(receipt) {
+      hre.logDebug("Moved funds successfully, receipt:", receipt);
       transactionHash = receipt.transactionHash;
     }
 
     function onMoveFundsError(error) {
-      console.log("Then with Error:", error);
+      hre.logDebug("Then with Error:", error);
       assert.fail("Failure: Unexpected return ", error);
     }
 
     let amount = 10_000;
     // send amount from primary to secondary account
-    await zHelper
-      .moveFundsBy(amount, zHelper.getSecondaryAccount().address, zHelper.getPrimaryAccount())
+    await zilliqa_helper
+      .moveFundsTo(amount, zilliqa_helper.getSecondaryAccountAddress(), zilliqa_helper.primaryAccount)
       .then(onMoveFundsFinished, onMoveFundsError);
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
-      console.log(result);
+      hre.logDebug(result);
 
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
@@ -73,8 +72,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.to, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.to.toUpperCase(),
-        zHelper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase()
+        zilliqa_helper.getSecondaryAccountAddress().toUpperCase(),
+        "Is not equal to " + zilliqa_helper.getSecondaryAccountAddress().toUpperCase()
       );
 
       // from
@@ -82,8 +81,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.from, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.from.toUpperCase(),
-        zHelper.getSecondaryAccount().address.toUpperCase(),
-        "Is not equal to " + zHelper.getSecondaryAccount().address.toUpperCase()
+        zilliqa_helper.getPrimaryAccountAddress().toUpperCase(),
+        "Is not equal to " + zilliqa_helper.getPrimaryAccountAddress().toUpperCase()
       );
 
       // blockHash

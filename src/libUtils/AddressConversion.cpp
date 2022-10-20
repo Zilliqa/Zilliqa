@@ -37,7 +37,7 @@ AddressConversionCode ToAddressStructure(const string& input_addr,
     return AddressConversionCode::WRONG_ADDR_SIZE;
   }
 
-  bytes tmpaddr;
+  zbytes tmpaddr;
   if (!DataConversion::HexStrToUint8Vec(addr, tmpaddr)) {
     return AddressConversionCode::INVALID_ADDR;
   }
@@ -50,7 +50,7 @@ AddressConversionCode ToBase16Addr(const string& addr, Address& retAddr) {
   // Accept both bech32 or base16 string, and convert to our structure
 
   if (HasZilHrp(addr)) {
-    bytes tmpaddr(ACC_ADDR_SIZE);
+    zbytes tmpaddr(ACC_ADDR_SIZE);
     size_t tmpaddrSize = 0;
 
     if (bech32_addr_decode(tmpaddr.data(), &tmpaddrSize, "zil", addr.c_str()) ==

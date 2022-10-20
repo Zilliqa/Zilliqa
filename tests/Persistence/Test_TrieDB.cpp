@@ -46,7 +46,7 @@ using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
 dev::h256 root1, root2;
-// bytesConstRef k, k1;
+// zbytesConstRef k, k1;
 string k1, k2;
 h256 h;
 
@@ -58,7 +58,7 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB) {
   dev::OverlayDB m_db("trieDB");
   m_db.ResetDB();
 
-  SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie1(&m_db);
+  SecureTrieDB<zbytesConstRef, dev::OverlayDB> m_trie1(&m_db);
   m_trie1.init();
 
   k1 = "TestA";
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB) {
 
 BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie) {
   dev::OverlayDB m_db("trieDB");
-  SecureTrieDB<bytesConstRef, dev::OverlayDB> m_trie3(&m_db);
+  SecureTrieDB<zbytesConstRef, dev::OverlayDB> m_trie3(&m_db);
   SecureTrieDB<h256, dev::OverlayDB> m_trie4(&m_db);
   m_trie3.setRoot(root1);
   m_trie4.setRoot(root2);

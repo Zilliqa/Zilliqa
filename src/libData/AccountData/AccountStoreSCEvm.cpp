@@ -101,16 +101,17 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
   auto gas = evmReturnValues.Gas();
 
-  std::map<std::string, bytes> states;
+  std::map<std::string, zbytes> states;
   std::vector<std::string> toDeletes;
   // parse the return values from the call to evm.
   for (const auto& it : evmReturnValues.GetApplyInstructions()) {
     if (it->OperationType() == "delete") {
-      // be careful with this call needs further testing.
-      // TODO: likely needs fixing, test case: remove an account and then revert
-      // a transaction. this will likely remove the account anyways, despite the
-      // revert.
-      this->RemoveAccount(Address(it->Address()));
+      // Set account balance to 0 to avoid any leakage of funds in case
+      // selfdestruct is called multiple times
+      Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
+      targetAccount->SetBalance(uint128_t(0));
+      m_storageRootUpdateBufferAtomic.emplace(it->Address());
+
     } else {
       // Get the account that this apply instruction applies to
       Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
@@ -235,19 +236,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(EvmCallParameters& params, bool& ret,
-                                       std::string& result) {
+bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
+                                       evmproj::CallResponse& response) {
   uint32_t evm_version{0};
-  evmproj::CallResponse response{};
 
-  ret = EvmClient::GetInstance().CallRunner(
+  return EvmClient::GetInstance().CallRunner(
       evm_version, EvmUtils::GetEvmCallJson(params), response);
-  result = response.ReturnedBytes();
-
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Called Evm, response:" << response);
-  }
-  return ret;
 }
 
 template <class MAP>
@@ -361,13 +355,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       // prepare IPC with current blockchain info provider.
-      auto sbcip = std::make_unique<ScillaBCInfo>(
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-          contractAccount->GetStorageRoot(), scilla_version);
 
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      m_scillaIPCServer->setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
+           contractAccount->GetStorageRoot(), scilla_version});
 
-      std::map<std::string, bytes> t_metadata;
+      std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
@@ -405,7 +398,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           std::move(extras),
       };
 
-      std::map<std::string, bytes> t_newmetadata;
+      std::map<std::string, zbytes> t_newmetadata;
 
       t_newmetadata.emplace(Contract::ContractStorage::GenerateStorageKey(
                                 contractAddress, CONTRACT_ADDR_INDICATOR, {}),
@@ -545,11 +538,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       // prepare IPC with current blockchain info provider.
-      auto sbcip = std::make_unique<ScillaBCInfo>(
-          m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-          contractAccount->GetStorageRoot(), scilla_version);
-
-      m_scillaIPCServer->setBCInfoProvider(std::move(sbcip));
+      m_scillaIPCServer->setBCInfoProvider(
+          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
+           contractAccount->GetStorageRoot(), scilla_version});
 
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
