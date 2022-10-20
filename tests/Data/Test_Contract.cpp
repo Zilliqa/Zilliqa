@@ -346,8 +346,8 @@ BOOST_AUTO_TEST_CASE(timestamp) {
                   dataTimestamp);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnumTimestamp, 1, true, tx0,
-                                                 tr0, error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumTimestamp, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
   Account* accountTimestamp =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
@@ -363,8 +363,8 @@ BOOST_AUTO_TEST_CASE(timestamp) {
                   500000, {}, dataTransfer);
   TransactionReceipt tr1;
 
-  AccountStore::GetInstance().UpdateAccountsTemp(bnumTimestamp, 1, true, tx1,
-                                                 tr1, error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumTimestamp, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
 
   Json::Value timestampState;
   BOOST_CHECK_MESSAGE(
@@ -431,8 +431,8 @@ BOOST_AUTO_TEST_CASE(chainid) {
                   0, PRECISION_MIN_VALUE, 50000, chainidTest.code, dataChainid);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnumChainid, 1, true, tx0, tr0,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumChainid, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
   Account* accountChainid =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
@@ -448,8 +448,8 @@ BOOST_AUTO_TEST_CASE(chainid) {
                   500000, {}, dataTransfer);
   TransactionReceipt tr1;
 
-  AccountStore::GetInstance().UpdateAccountsTemp(bnumChainid, 1, true, tx1, tr1,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumChainid, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
 
   Json::Value chainidState;
   BOOST_CHECK_MESSAGE(
@@ -626,6 +626,7 @@ BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
     TransactionReceipt tr0;
     TxnStatus error_code;
     AccountStore::GetInstance().UpdateAccountsTemp(bnumDummyLib, 1, true, tx0,
+        GetDefaultTxnExtras(),                                                    
                                                    tr0, error_code);
     accountDummyLib = AccountStore::GetInstance().GetAccountTemp(dummyLibAddr);
     // We should now have a new account.
@@ -654,6 +655,7 @@ BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
   TransactionReceipt tr0;
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+        GetDefaultTxnExtras(),                                                  
                                                  tr0, error_code);
   Account* accountCodehash =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
@@ -669,6 +671,7 @@ BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
                   500000, {}, dataTransfer);
   TransactionReceipt tr1;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+        GetDefaultTxnExtras(),                                                  
                                                  tr1, error_code);
 
   Json::Value codehashState;
@@ -737,6 +740,7 @@ BOOST_AUTO_TEST_CASE(codehashOnAccount) {
   TransactionReceipt tr0;
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+        GetDefaultTxnExtras(),                                                  
                                                  tr0, error_code);
   Account* accountCodehash =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
@@ -754,6 +758,7 @@ BOOST_AUTO_TEST_CASE(codehashOnAccount) {
   TransactionReceipt tr1;
 
   AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+        GetDefaultTxnExtras(),                                                  
                                                  tr1, error_code);
 
   Json::Value codehashState;
@@ -811,6 +816,7 @@ BOOST_AUTO_TEST_CASE(codehashOnNonExistenceAddr) {
   TransactionReceipt tr0;
   TxnStatus error_code;
   AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                         GetDefaultTxnExtras(), 
                                                  tr0, error_code);
   Account* accountCodehash =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
@@ -828,6 +834,7 @@ BOOST_AUTO_TEST_CASE(codehashOnNonExistenceAddr) {
   TransactionReceipt tr1;
 
   AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                         GetDefaultTxnExtras(), 
                                                  tr1, error_code);
 
   Json::Value codehashState;

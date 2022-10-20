@@ -320,7 +320,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
 
   try {
     Json::Value response;
-    lookupServer->GetEthCallEthI(paramsRequest, response);
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
 
   try {
     Json::Value response;
-    lookupServer->GetEthCallEthI(paramsRequest, response);
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
@@ -447,7 +447,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
 
   try {
     Json::Value response;
-    lookupServer->GetEthCallEthI(paramsRequest, response);
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
