@@ -334,7 +334,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      uint32_t scilla_version{0};
       uint32_t evm_version{0};
 
       try {
@@ -508,7 +507,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       m_curBlockNum = blockNum;
-      uint32_t scilla_version{0};
       uint32_t evm_version{0};
 
       DiscardAtomics();
