@@ -50,32 +50,56 @@ contract = """
 
 pragma solidity >=0.7.0 <0.9.0;
 
-/**
- * @title Storage
- * @dev Store & retrieve value in a variable
- */
-contract Storage {
+contract ChildContract {
+    uint256 data;
+    uint256 public value;
+    address payable public sender;
 
-    uint256 number = 1234;
-    uint256 numberSecond = 1025;
-    /**
-     * @dev Store value in variable
-     * @param num value to store
-     */
-    function store(uint256 num) public {
-        number = num;
+    constructor(uint256 _data) payable {
+       data = _data;
+       value = msg.value;
+       sender = payable(msg.sender);
     }
 
-    /**
-     * @dev Return value
-     * @return value of 'number'
-     */
-    function retrieve() public view returns (uint256){
-        return number;
+    function read() public view returns (uint256) {
+       return data;
     }
 
-   function wtf() public {
-        selfdestruct(payable(address(0)));
+    function returnToSender() public {
+       uint amount = address(this).balance;
+       (bool success, ) = sender.call{value: amount}("");
+       require(success, "Failed to send Ether");
+       selfdestruct(sender);
+    }
+}
+
+contract ParentContract {
+
+    ChildContract public child;
+    uint256 public value;
+
+    constructor () payable {
+      value = msg.value;
+    }
+
+    function installChild(uint256 initial_data) public returns (address payable) {
+      child = new ChildContract{value: value}(initial_data);
+      return payable(address(child));
+    }
+
+    function childAddress() public view returns (address payable) {
+      return payable(address(child));
+    }
+
+    function getPaidValue() public view returns (uint256) {
+      return value;
+    }
+
+    function returnToSenderAndDestruct(address account) public payable {
+      selfdestruct(payable(account));
+    }
+
+    receive() external payable {
     }
 }
 """

@@ -159,6 +159,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
     StartBlocknumIncrement();
   }
   BindAllEvmMethods();
+  PostTxBlock();
 }
 
 void IsolatedServer::BindAllEvmMethods() {
@@ -666,9 +667,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
   // This will make sure the block height advances, the
   // TX can be found in a block etc.
-  if (m_timeDelta == 0) {
-    PostTxBlock();
-  }
+  PostTxBlock();
 
   return ret;
 }

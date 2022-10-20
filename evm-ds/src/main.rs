@@ -244,6 +244,8 @@ async fn run_evm_impl(
         // the unwind.
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             if tracing {
+                println!("STarting with tracing....");
+                info!("tracing!?");
                 evm::tracing::using(&mut listener, || executor.execute(&mut runtime))
             } else {
                 executor.execute(&mut runtime)
@@ -316,7 +318,9 @@ struct LoggingEventListener;
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        debug!("EVM Event {:?}", event);
+        println!("EVM Event {:?}", event);
+        info!(" *** tracing happening *** ");
+        info!(" *** tracing happening *** {:?} ", event);
     }
 }
 
@@ -335,7 +339,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    info!("Starting evm-ds");
+    info!("Starting evm-ds!");
 
     let evm_sever = EvmServer {
         tracing: args.tracing,
