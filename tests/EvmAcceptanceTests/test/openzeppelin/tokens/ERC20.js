@@ -73,7 +73,7 @@ describe("Openzeppelin ERC20 functionality", function () {
       const transferPromise = contract.transfer(sender.address, 5_000);
       const approvePromise = contract.connect(sender).approve(owner.address, 2000);
 
-      // Let's wait for them in parallel
+      // Let's wait for them in parallel to reduce execution time.
       await Promise.all([transferPromise, approvePromise]);
 
       expect(await contract.transferFrom(sender.address, spender.address, 1_999))
