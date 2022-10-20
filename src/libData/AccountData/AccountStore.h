@@ -158,7 +158,8 @@ class AccountStore
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,
-                          const Transaction& transaction,  const TxnExtras& txnExtras,
+                          const Transaction& transaction,
+                          const TxnExtras& txnExtras,
                           TransactionReceipt& receipt, TxnStatus& error_code);
 
   /// add account in AccountStoreTemp

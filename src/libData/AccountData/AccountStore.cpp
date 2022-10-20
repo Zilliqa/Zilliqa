@@ -535,8 +535,8 @@ bool AccountStore::UpdateAccountsTemp(
     return m_accountStoreTemp->UpdateAccountsEvm(
         blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
   } else {
-    return m_accountStoreTemp->UpdateAccounts(
-        blockNum, numShards, isDS, transaction, receipt, error_code);
+    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
+                                              transaction, receipt, error_code);
   }
 }
 

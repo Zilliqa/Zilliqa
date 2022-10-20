@@ -113,16 +113,14 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   const auto dsBlock = m_mediator.m_dsBlockChain.GetLastBlock();
 
   TxnExtras txnExtras{
-    dsBlock.GetHeader().GetGasPrice(),
-    txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
-    dsBlock.GetHeader().GetDifficulty()};
+      dsBlock.GetHeader().GetGasPrice(),
+      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+      dsBlock.GetHeader().GetDifficulty()};
 
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx,
-      txnExtras,
-      receipt,
-      error_code);
+      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, txnExtras,
+      receipt, error_code);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
