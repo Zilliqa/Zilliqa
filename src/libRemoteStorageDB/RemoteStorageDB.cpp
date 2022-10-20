@@ -21,9 +21,7 @@
 #include <bsoncxx/builder/stream/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/stdx/make_unique.hpp>
-#include "libData/AccountData/TransactionReceipt.h"
 #include "libServer/JSONConversion.h"
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 
 using namespace std;

@@ -16,7 +16,6 @@
  */
 
 #include "TestUtils.h"
-#include "libData/AccountData/Account.h"
 
 using namespace std;
 using namespace boost::multiprecision;

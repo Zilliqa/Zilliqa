@@ -20,13 +20,11 @@
 
 #include <boost/variant.hpp>
 #include <string>
-#include "common/TxnStatus.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
 #include "libNetwork/Peer.h"
-#include "libUtils/TxnExtras.h"
 
 class Mediator;
 
@@ -40,7 +38,6 @@ class Validator {
   static bool VerifyTransaction(const Transaction& tran);
 
   bool CheckCreatedTransaction(const Transaction& tx,
-                               const TxnExtras& txnExtras,
                                TransactionReceipt& receipt,
                                TxnStatus& error_code) const;
 

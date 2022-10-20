@@ -35,7 +35,6 @@
 #include "libUtils/EvmUtils.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
-#include "libUtils/TxnExtras.h"
 
 using namespace std;
 using namespace dev;
@@ -496,10 +495,12 @@ Account* AccountStore::GetAccountTempAtomic(const Address& address) {
   return m_accountStoreTemp->GetAccountAtomic(address);
 }
 
-bool AccountStore::UpdateAccountsTemp(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code) {
+bool AccountStore::UpdateAccountsTemp(const uint64_t& blockNum,
+                                      const unsigned int& numShards,
+                                      const bool& isDS,
+                                      const Transaction& transaction,
+                                      TransactionReceipt& receipt,
+                                      TxnStatus& error_code) {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
@@ -523,7 +524,7 @@ bool AccountStore::UpdateAccountsTemp(
   }
   if (isEvm) {
     return m_accountStoreTemp->UpdateAccountsEvm(
-        blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
+        blockNum, numShards, isDS, transaction, receipt, error_code);
   } else {
     return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                               transaction, receipt, error_code);

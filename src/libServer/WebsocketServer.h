@@ -27,7 +27,6 @@
 #include "websocketpp/server.hpp"
 
 #include "common/Constants.h"
-#include "common/Singleton.h"
 #include "depends/common/FixedHash.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/TransactionReceipt.h"

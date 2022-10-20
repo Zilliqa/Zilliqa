@@ -36,7 +36,6 @@
 #include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimestampVerifier.h"
-#include "libUtils/TxnExtras.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -360,13 +359,7 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   SetState(FINALBLOCK_CONSENSUS);
 
   if (m_mediator.ToProcessTransaction()) {
-    TxnExtras txnExtras{
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice(),
-        m_finalBlock->GetTimestamp(),
-        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetDifficulty(),
-    };
-    m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit,
-                                                         txnExtras);
+    m_mediator.m_node->ProcessTransactionWhenShardLeader(m_microBlockGasLimit);
     if (!AccountStore::GetInstance().SerializeDelta()) {
       LOG_GENERAL(WARNING, "AccountStore::SerializeDelta failed");
       return false;

@@ -20,8 +20,6 @@
 #include <common/Constants.h>
 #include <libData/BlockData/Block/TxBlock.h>
 
-#include "depends/libDatabase/LevelDB.h"
-
 int main(int argc, char* argv[]) {
   if (argc != 2) {
     std::cerr << "Usage: " << argv[0] << " PERSISTENCE_PATH" << std::endl;

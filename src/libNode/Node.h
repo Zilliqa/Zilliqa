@@ -40,7 +40,6 @@
 #include "libNetwork/DataSender.h"
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
-#include "libUtils/TxnExtras.h"
 
 class Mediator;
 class Retriever;
@@ -633,10 +632,8 @@ class Node : public Executable {
   bool WaitUntilTxnProcessingDone();
 
   void StartTxnProcessingThread();
-  void ProcessTransactionWhenShardLeader(const uint64_t& microblock_gas_limit,
-                                         const TxnExtras& txnExtras);
-  void ProcessTransactionWhenShardBackup(const uint64_t& microblock_gas_limit,
-                                         const TxnExtras& txnExtras);
+  void ProcessTransactionWhenShardLeader(const uint64_t& microblock_gas_limit);
+  void ProcessTransactionWhenShardBackup(const uint64_t& microblock_gas_limit);
   bool ComposePrePrepMicroBlock(const uint64_t& microblock_gas_limit);
   bool ComposeMicroBlock(const uint64_t& microblock_gas_limit);
   bool CheckMicroBlockValidity(bytes& errorMsg,

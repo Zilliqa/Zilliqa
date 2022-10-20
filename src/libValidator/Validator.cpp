@@ -47,7 +47,6 @@ bool Validator::VerifyTransaction(const Transaction& tran) {
 }
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
-                                        const TxnExtras& txnExtras,
                                         TransactionReceipt& receipt,
                                         TxnStatus& error_code) const {
   if (LOOKUP_NODE_MODE) {
@@ -109,8 +108,8 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
 
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, txnExtras,
-      receipt, error_code);
+      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt,
+      error_code);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,

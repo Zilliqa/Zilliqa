@@ -29,7 +29,6 @@
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
-#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -235,7 +234,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool UpdateAccountsEvm(const uint64_t& blockNum,
                          const unsigned int& numShards, const bool& isDS,
                          const Transaction& transaction,
-                         const TxnExtras& txnExtras,
                          TransactionReceipt& receipt, TxnStatus& error_code);
 
   bool PopulateExtlibsExports(
