@@ -46,7 +46,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 
   const auto fut = std::async(std::launch::async, worker);
   // check the future return and when time out log error.
-  switch (fut.wait_for(std::chrono::seconds(30))) {
+  switch (fut.wait_for(std::chrono::seconds(60))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
     } break;

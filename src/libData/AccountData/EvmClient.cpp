@@ -139,11 +139,6 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     const auto oldJson = m_client->CallMethod("run", _json);
     try {
       const auto reply = evmproj::GetReturn(oldJson, result);
-      if (reply.Success() && LOG_SC) {
-        LOG_GENERAL(INFO, "Parsed Json response correctly");
-      } else {
-        LOG_GENERAL(INFO, "Not a happy response at evm level");
-      }
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
