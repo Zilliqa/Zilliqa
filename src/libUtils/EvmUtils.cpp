@@ -73,7 +73,6 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
-  arr_ret.append(params.m_onlyEstimateGas);
 
   Json::Value extras;
   extras["chain_id"] = ETH_CHAINID;
@@ -85,6 +84,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   extras["gas_price"] = params.m_extras.gas_price;
 
   arr_ret.append(extras);
+  arr_ret.append(params.m_onlyEstimateGas);
 
   return arr_ret;
 }
