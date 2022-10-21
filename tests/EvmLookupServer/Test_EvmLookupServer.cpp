@@ -207,8 +207,8 @@ class GetEthCallEvmClientMock : public EvmClient {
   };
 
  private:
-  [[gnu::unused]]const uint m_GasLimit{};
-  [[gnu::unused]]const uint m_Amount{};
+  const uint m_GasLimit{};
+  const uint m_Amount{};
   const std::string m_ExpectedResponse{};
   const std::string m_AccountAddress{};
   const std::chrono::seconds m_DefaultWaitTime{0};

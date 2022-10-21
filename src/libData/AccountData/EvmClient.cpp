@@ -32,11 +32,9 @@ void EvmClient::Init() {
   CleanupPreviousInstances();
 }
 
-EvmClient::~EvmClient() {
-  LOG_GENERAL(INFO, "Destructor called");
-}
+EvmClient::~EvmClient() { LOG_MARKER(); }
 
-bool EvmClient::Terminate(){
+bool EvmClient::Terminate() {
   LOG_MARKER();
   Json::Value _json;
   LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
@@ -97,8 +95,7 @@ bool EvmClient::OpenServer() {
   }
   // child should be running
   // but we will give it a couple of seconds ...
-  std::this_thread::sleep_for(
-      std::chrono::milliseconds(2000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   try {
     m_connector = std::make_unique<evmdsrpc::EvmDsDomainSocketClient>(
         EVM_SERVER_SOCKET_PATH);
@@ -114,11 +111,7 @@ bool EvmClient::OpenServer() {
 
 bool EvmClient::CleanupPreviousInstances() {
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
-  if (std::system(s.c_str())) {
-    LOG_GENERAL(INFO, "kill failed");
-  } else {
-    LOG_GENERAL(INFO, "Cleaned up previous processes");
-  }
+  std::system(s.c_str());
   return true;
 }
 
@@ -126,14 +119,16 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                            evmproj::CallResponse& result,
                            const uint32_t counter) {
   LOG_MARKER();
+#ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
+#endif
   if (counter == 0 && LOG_SC) {
     LOG_GENERAL(INFO, "tried to resend three times and failed");
     return false;
   }
 
   if (not m_child.running()) {
-    if (not EvmClient::OpenServer()){
+    if (not EvmClient::OpenServer()) {
       LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
       return false;
     }

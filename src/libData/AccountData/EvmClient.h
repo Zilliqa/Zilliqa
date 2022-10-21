@@ -48,31 +48,55 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
     try {
       using boost::asio::local::stream_protocol;
       boost::asio::io_context io_context;
-
-      stream_protocol::socket s(io_context);
-      s.connect(stream_protocol::endpoint(m_path));
-
+      stream_protocol::socket unixDomainSocket(io_context);
+      boost::asio::streambuf streamBuffer;
+      //
+      // Connect to the stream
+      try {
+        unixDomainSocket.connect(stream_protocol::endpoint(m_path));
+      } catch (std::exception& e) {
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "Exception calling connect " << e.what());
+        }
+        throw e;
+      }
       std::string toSend = message + DEFAULT_DELIMITER_CHAR;
       if (LOG_SC) {
         LOG_GENERAL(INFO, "Writing to socket " << toSend);
       }
-      boost::asio::write(s, boost::asio::buffer(toSend, toSend.length()));
-
-      boost::asio::streambuf b;
-
-      size_t reply_length =
-          boost::asio::read_until(s, b, DEFAULT_DELIMITER_CHAR);
-      std::istream is(&b);
+      //
+      // Write the JsonRpc
+      try {
+        boost::asio::write(unixDomainSocket,
+                           boost::asio::buffer(toSend, toSend.length()));
+      } catch (std::exception& e) {
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "Exception calling write " << e.what());
+        }
+        throw e;
+      }
+      //
+      // Read the Response
+      try {
+        boost::asio::read_until(unixDomainSocket, streamBuffer,
+                                DEFAULT_DELIMITER_CHAR);
+      } catch (std::exception& e) {
+        if (LOG_SC) {
+          LOG_GENERAL(INFO, "Exception calling read " << e.what());
+        }
+        throw e;
+      }
+      std::istream is(&streamBuffer);
+      // transfer it into the users object
       std::getline(is, result);
       if (LOG_SC) {
-        LOG_GENERAL(INFO, "reading from socket " << reply_length
-                                                 << " bytes : " << result);
+        LOG_GENERAL(INFO, "reading from socket " << result);
       }
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception caught in custom SendRPCMessage " << e.what());
     }
-  };
+  }
 
  private:
   std::string m_path;
@@ -91,7 +115,7 @@ class EvmClient : public Singleton<EvmClient> {
 
   void Init();
 
-  bool Terminate();
+  virtual bool Terminate();
 
   virtual bool CallRunner(uint32_t version, const Json::Value& _json,
                           evmproj::CallResponse& result,
