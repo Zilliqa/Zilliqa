@@ -23,7 +23,7 @@
 
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/SysCommand.h"
+
 
 void EvmClient::Init() {
   LOG_MARKER();
