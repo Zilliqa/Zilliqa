@@ -111,7 +111,10 @@ bool EvmClient::OpenServer() {
 
 bool EvmClient::CleanupPreviousInstances() {
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
-  std::system(s.c_str());
+  int sysRep = std::system(s.c_str());
+  if (sysRep != 0){
+    LOG_GENERAL(INFO, "system call return value " << sysRep);
+  }
   return true;
 }
 
