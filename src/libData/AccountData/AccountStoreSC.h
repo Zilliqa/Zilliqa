@@ -154,6 +154,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       std::ofstream& os, const Account& contract,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
+  void CreateScillaCodeFiles(
+      Account& contract,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports,
+      const std::string& scillaCodeExtension);
 
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
