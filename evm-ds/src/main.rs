@@ -149,6 +149,7 @@ pub trait Rpc: Send + 'static {
         apparent_value: String,
         gas_limit: u64,
         extras: EvmEvalExtras,
+        estimate: bool,
     ) -> BoxFuture<Result<EvmResult>>;
 }
 
@@ -168,6 +169,7 @@ impl Rpc for EvmServer {
         apparent_value: String,
         gas_limit: u64,
         extras: EvmEvalExtras,
+        estimate: bool,
     ) -> BoxFuture<Result<EvmResult>> {
         let origin = H160::from_str(&origin);
         match origin {
@@ -185,6 +187,7 @@ impl Rpc for EvmServer {
                         backend,
                         tracing,
                         gas_scaling_factor,
+                        estimate,
                     )
                     .await
                 })
@@ -207,6 +210,7 @@ async fn run_evm_impl(
     backend: ScillaBackend,
     tracing: bool,
     gas_scaling_factor: u64,
+    estimate: bool,
 ) -> Result<EvmResult> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
@@ -223,7 +227,7 @@ async fn run_evm_impl(
                 Error::invalid_params(format!("data: '{}...' {}", &data_hex[..10], e))
             })?);
 
-        let config = evm::Config::london();
+        let config = evm::Config{ estimate, ..evm::Config::london()};
         let apparent_value = U256::from_dec_str(&apparent_value)
             .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?;
         let context = evm::Context {
@@ -244,10 +248,9 @@ async fn run_evm_impl(
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
 
         info!(
-            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}",
+            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
-            backend.extras,
-        );
+            backend.extras, estimate);
         let mut listener = LoggingEventListener;
 
         // We have to catch panics, as error handling in the Backend interface of

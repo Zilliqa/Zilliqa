@@ -1300,14 +1300,28 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
   AbstractServerConnectorMock abstractServerConnector;
 
   LookupServer lookupServer(mediator, abstractServerConnector);
+
+  Address accountAddress{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  Json::Value values;
+  values["from"] = accountAddress.hex();
+  paramsRequest[0u] = values;
 
   lookupServer.GetEthEstimateGasI(paramsRequest, response);
 
   if (response.asString()[0] != '0') {
     BOOST_FAIL("Failed to get gas price");
+  } else {
+    std::cerr << "Received gas: " << response.asString() << std::endl;
   }
 }
 
