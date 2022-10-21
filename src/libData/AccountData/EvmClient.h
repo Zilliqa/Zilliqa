@@ -103,6 +103,9 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
 };
 
 }  // namespace evmdsrpc
+
+// The original interface
+
 class EvmClient : public Singleton<EvmClient> {
  public:
   EvmClient() {
