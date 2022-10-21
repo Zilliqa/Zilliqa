@@ -18,43 +18,94 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 
-#include <map>
-#include <memory>
-
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
+#include <jsonrpccpp/common/sharedconstants.h>
+#include <boost/asio.hpp>
+#include <boost/process.hpp>
+#include <boost/process/child.hpp>
+#include <map>
+#include <memory>
 #include "common/Constants.h"
 #include "common/Singleton.h"
 
 namespace evmproj {
-
 struct CallResponse;
-
 }
 
+// Custom socket handler using asio
+// for evmclient connection to evm-ds
+
+namespace evmdsrpc {
+class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
+ public:
+  EvmDsDomainSocketClient(const std::string& path) : m_path(path){};
+
+  virtual ~EvmDsDomainSocketClient(){};
+
+  virtual void SendRPCMessage(const std::string& message, std::string& result) {
+    LOG_MARKER();
+    try {
+      using boost::asio::local::stream_protocol;
+      boost::asio::io_context io_context;
+
+      stream_protocol::socket s(io_context);
+      s.connect(stream_protocol::endpoint(m_path));
+
+      std::string toSend = message + DEFAULT_DELIMITER_CHAR;
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "Writing to socket " << toSend);
+      }
+      boost::asio::write(s, boost::asio::buffer(toSend, toSend.length()));
+
+      boost::asio::streambuf b;
+
+      size_t reply_length =
+          boost::asio::read_until(s, b, DEFAULT_DELIMITER_CHAR);
+      std::istream is(&b);
+      std::getline(is, result);
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "reading from socket " << reply_length
+                                                 << " bytes : " << result);
+      }
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING,
+                  "Exception caught in custom SendRPCMessage " << e.what());
+    }
+  };
+
+ private:
+  std::string m_path;
+};
+
+}  // namespace evmdsrpc
 class EvmClient : public Singleton<EvmClient> {
  public:
-  EvmClient(){};
+  EvmClient() {
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Evm Client Created");
+    }
+  };
 
   virtual ~EvmClient();
 
   void Init();
 
-  bool CheckClient(uint32_t version,
-                   __attribute__((unused)) bool enforce = false);
+  bool Terminate();
 
   virtual bool CallRunner(uint32_t version, const Json::Value& _json,
                           evmproj::CallResponse& result,
                           const uint32_t counter = MAXRETRYCONN);
 
  protected:
-  virtual bool OpenServer(uint32_t version);
+  virtual bool OpenServer();
+
+  virtual bool CleanupPreviousInstances();
 
  private:
-  std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
-  std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
-      m_connectors;
-
+  std::unique_ptr<jsonrpc::Client> m_client;
+  std::unique_ptr<evmdsrpc::EvmDsDomainSocketClient> m_connector;
+  boost::process::child m_child;
   std::mutex m_mutexMain;
 };
 

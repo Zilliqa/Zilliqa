@@ -17,154 +17,160 @@
 
 #include "EvmClient.h"
 #include <boost/filesystem.hpp>
-#include <boost/range/iterator_range.hpp>
+#include <boost/process/args.hpp>
+#include <boost/process/child.hpp>
 #include <thread>
-#include "libUtils/DetachedFunction.h"
+
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/SysCommand.h"
 
-/* EvmClient Init */
 void EvmClient::Init() {
   LOG_MARKER();
-
-  CheckClient(0, false);
+  LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
+                                        << " for communication");
+  CleanupPreviousInstances();
 }
 
 EvmClient::~EvmClient() {
-  std::lock_guard<std::mutex> g(m_mutexMain);
+  LOG_GENERAL(INFO, "Destructor called");
+}
+
+bool EvmClient::Terminate(){
+  LOG_MARKER();
   Json::Value _json;
   LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
   // call evm
   try {
-    const auto oldJson = m_clients.at(0)->CallMethod("die", _json);
+    const auto oldJson = m_client->CallMethod("die", _json);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Caught an exception calling die " << e.what());
-    std::string cmdStr = "pkill " + EVM_SERVER_BINARY + " >/dev/null &";
-    LOG_GENERAL(INFO, "cmdStr: " << cmdStr);
-
     try {
-      if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-        LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
+      if (m_child.running()) {
+        m_child.terminate();
       }
     } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING,
-                  "Exception caught in SysCommand::ExecuteCmd: " << e.what());
+      LOG_GENERAL(WARNING, "Exception caught terminating child " << e.what());
     }
   } catch (...) {
     LOG_GENERAL(WARNING, "Unknown error encountered");
   }
-}
-
-bool EvmClient::OpenServer(uint32_t version) {
-  LOG_MARKER();
-
-  const std::string programName =
-      boost::filesystem::path(EVM_SERVER_BINARY).filename().string();
-  const std::string cmdStr =
-      "pkill " + programName + " ; " + EVM_SERVER_BINARY +                 //
-      " --socket " + EVM_SERVER_SOCKET_PATH +                              //
-      " --tracing " +                                                      //
-      " --zil-scaling-factor " + std::to_string(EVM_ZIL_SCALING_FACTOR) +  //
-      " --log4rs '" + EVM_LOG_CONFIG +                                     //
-      "'>/dev/null &";
-
-  LOG_GENERAL(INFO, "running cmdStr: " << cmdStr);
-
-  try {
-    if (!SysCommand::ExecuteCmd(SysCommand::WITHOUT_OUTPUT, cmdStr)) {
-      LOG_GENERAL(WARNING, "ExecuteCmd failed: " << cmdStr);
-      return false;
-    }
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING,
-                "Exception caught in SysCommand::ExecuteCmd: " << e.what());
-    return false;
-  } catch (...) {
-    LOG_GENERAL(WARNING, "Unknown error encountered");
-    return false;
-  }
-
-  LOG_GENERAL(WARNING, "Executed: " << cmdStr << "on " << version);
-
-  // Sleep an extra 5x because of very slow networks on Devnet
-
-  std::this_thread::sleep_for(
-      std::chrono::milliseconds(SCILLA_SERVER_PENDING_IN_MS * 5));
-
   return true;
 }
 
-bool EvmClient::CheckClient(uint32_t version, bool enforce) {
-  std::lock_guard<std::mutex> g(m_mutexMain);
+bool EvmClient::OpenServer() {
+  LOG_MARKER();
+  boost::filesystem::path p(EVM_SERVER_BINARY);
 
-  if (m_clients.find(version) != m_clients.end() && !enforce) {
-    return true;
-  }
+  LOG_GENERAL(INFO, "OpenServer for EVM ");
 
-  if (!OpenServer(enforce)) {
-    LOG_GENERAL(WARNING, "OpenServer for version " << version << "failed");
+  if (not boost::filesystem::exists(p)) {
+    LOG_GENERAL(INFO, "Cannot create a subprocess that does not exist " +
+                          EVM_SERVER_BINARY);
     return false;
   }
 
-  m_connectors[version] =
-      std::make_shared<jsonrpc::UnixDomainSocketClient>(EVM_SERVER_SOCKET_PATH);
+  const std::vector<std::string> args = {"--socket",
+                                         EVM_SERVER_SOCKET_PATH,
+                                         "--tracing",
+                                         "--zil-scaling-factor",
+                                         std::to_string(EVM_ZIL_SCALING_FACTOR),
+                                         "--log4rs",
+                                         EVM_LOG_CONFIG};
 
-  m_clients[version] = std::make_shared<jsonrpc::Client>(
-      *m_connectors.at(version), jsonrpc::JSONRPC_CLIENT_V2);
+  try {
+    boost::process::child c(p, boost::process::args(args));
+    LOG_GENERAL(INFO, "child created ");
+    m_child = std::move(c);
+    pid_t thread_id = m_child.id();
+    if (thread_id > 0 && m_child.valid()) {
+      LOG_GENERAL(WARNING, "Valid child created at " << thread_id);
+    } else {
+      LOG_GENERAL(WARNING, "Valid child is not valid " << thread_id);
+    }
+  } catch (std::exception& e) {
+    LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
+    return false;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
+    return false;
+  }
+  // child should be running
+  // but we will give it a couple of seconds ...
+  std::this_thread::sleep_for(
+      std::chrono::milliseconds(2000));
+  try {
+    m_connector = std::make_unique<evmdsrpc::EvmDsDomainSocketClient>(
+        EVM_SERVER_SOCKET_PATH);
+    m_client = std::make_unique<jsonrpc::Client>(*m_connector,
+                                                 jsonrpc::JSONRPC_CLIENT_V2);
+  } catch (...) {
+    // these methods do not throw ...
+    LOG_GENERAL(WARNING, "Unhandled Exception creating connector");
+    return false;
+  }
+  return true;
+}
 
+bool EvmClient::CleanupPreviousInstances() {
+  std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
+  if (std::system(s.c_str())) {
+    LOG_GENERAL(INFO, "kill failed");
+  } else {
+    LOG_GENERAL(INFO, "Cleaned up previous processes");
+  }
   return true;
 }
 
 bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                            evmproj::CallResponse& result,
                            const uint32_t counter) {
-  //
-  // Fail the call if counter is zero
-  //
+  LOG_MARKER();
+  std::lock_guard<std::mutex> g(m_mutexMain);
   if (counter == 0 && LOG_SC) {
-    LOG_GENERAL(INFO, "Call counter was zero returning");
+    LOG_GENERAL(INFO, "tried to resend three times and failed");
     return false;
   }
 
-  version = 0;
-
-  if (!CheckClient(version)) {
-    LOG_GENERAL(WARNING, "CheckClient failed");
-    return false;
+  if (not m_child.running()) {
+    if (not EvmClient::OpenServer()){
+      LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
+      return false;
+    }
   }
 
   try {
-    std::lock_guard<std::mutex> g(m_mutexMain);
-    LOG_GENERAL(DEBUG, "Call evm with request:" << _json);
-    // call evm
-    const auto oldJson = m_clients.at(version)->CallMethod("run", _json);
-
-    // Populate the C++ struct with the return values
+    const auto oldJson = m_client->CallMethod("run", _json);
     try {
       const auto reply = evmproj::GetReturn(oldJson, result);
       if (reply.Success() && LOG_SC) {
         LOG_GENERAL(INFO, "Parsed Json response correctly");
+      } else {
+        LOG_GENERAL(INFO, "Not a happy response at evm level");
       }
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
-                  "detected an Error in decoding json response " << e.what());
+                  "Exception out of parsing json response " << e.what());
       result.SetSuccess(false);
+      return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
-    LOG_GENERAL(WARNING,
-                "RPC Exception calling EVM-DS : attempting server "
-                "restart "
-                    << e.what());
-
-    if (!CheckClient(version, true)) {
-      LOG_GENERAL(WARNING, "CheckClient for version " << version << "failed");
+    while (true) {
+      LOG_GENERAL(WARNING,
+                  "RPC Exception calling EVM-DS : attempting server "
+                  "resend in 2 seconds "
+                      << e.what());
+      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
       return CallRunner(version, _json, result, counter - 1);
-    } else {
-      result.SetSuccess(false);
     }
+    LOG_GENERAL(WARNING, "Too many retry attempts not sending " << e.what());
+    result.SetSuccess(false);
+    return false;
+  } catch (...) {
+    LOG_GENERAL(WARNING, "Exception caught executing run ");
     return false;
   }
+  result.SetSuccess(true);
   return true;
 }
