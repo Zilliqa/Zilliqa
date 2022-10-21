@@ -76,7 +76,7 @@ describe("ERC20 functionality", function () {
   });
 
   describe("Transfer From", function () {
-    it("Should be possible to transfer from one account to another [@transactional]", async function () {
+    xit("Should be possible to transfer from one account to another [@transactional]", async function () {
       const [owner, _, sender, spender] = await ethers.getSigners();
 
       // Fund the 2nd account first
