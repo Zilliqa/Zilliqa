@@ -167,6 +167,8 @@ TxBlock buildCommonEthBlockCase(
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
+#pragma GCC diagnostic ignored "-Wunused-private-field"
+
 /**
  * @brief EvmClient mock implementation te be able to inject test responses
  * from the Evm-ds server.
@@ -207,8 +209,8 @@ class GetEthCallEvmClientMock : public EvmClient {
   };
 
  private:
-  [[maybe_unused]] const uint m_GasLimit{};
-  [[maybe_unused]] const uint m_Amount{};
+  const uint m_GasLimit{};
+  const uint m_Amount{};
   const std::string m_ExpectedResponse{};
   const std::string m_AccountAddress{};
   const std::chrono::seconds m_DefaultWaitTime{0};
