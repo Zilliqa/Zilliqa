@@ -20,10 +20,8 @@
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <thread>
-
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
-
 
 void EvmClient::Init() {
   LOG_MARKER();
