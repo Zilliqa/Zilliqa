@@ -46,6 +46,7 @@
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
@@ -745,9 +746,29 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       data = data.substr(2);
     }
 
-    const EvmCallParameters params{
-        addr.hex(), fromAddr.hex(), DataConversion::CharArrayToString(code),
-        data,       gasRemained,    amount};
+    const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+    const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
+    // TODO: adapt to any block, not just latest.
+    TxnExtras txnExtras{
+        dsBlock.GetHeader().GetGasPrice(),
+        txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+        dsBlock.GetHeader().GetDifficulty()};
+    uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
+                            .GetHeader()
+                            .GetBlockNum();
+    EvmCallExtras extras;
+    if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+      throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                             "Failed to get EVM call extras");
+    }
+
+    const EvmCallParameters params{addr.hex(),
+                                   fromAddr.hex(),
+                                   DataConversion::CharArrayToString(code),
+                                   data,
+                                   gasRemained,
+                                   amount,
+                                   std::move(extras)};
 
     if (AccountStore::GetInstance().ViewAccounts(params, response) &&
         response.Success()) {

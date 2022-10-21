@@ -50,7 +50,6 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
-
   bindAndAddMethod(
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -180,7 +179,7 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo.getCurBlockNum());
     return true;
-  } else if (query_name == "TIMESTAMP") {
+  } else if (query_name == "TIMESTAMP" || query_name == "BLOCKHASH") {
     uint64_t blockNum = 0;
     try {
       blockNum = stoull(query_args);
@@ -196,82 +195,17 @@ bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
       return false;
     }
 
-    value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    if (query_name == "TIMESTAMP") {
+      value = std::to_string(txBlockSharedPtr->GetTimestamp());
+    } else {
+      value = txBlockSharedPtr->GetBlockHash().hex();
+    }
     return true;
   } else if (query_name == "CHAINID") {
     value = std::to_string(CHAIN_ID);
     return true;
   }
 
-  // For queries that include the block number.
-  uint64_t blockNum = 0;
-  if (query_name == "BLOCKHASH" || query_name == "TIMESTAMP") {
-    try {
-      blockNum = stoull(query_args);
-    } catch (...) {
-      LOG_GENERAL(WARNING, "Unable to convert to uint64: " << query_args);
-      return false;
-    }
-  } else {
-    blockNum = m_BCInfo.getCurBlockNum();
-    if (blockNum > 0) {
-      // We need to look at the previous block,
-      // as the current block is incomplete at the moment
-      // of transaction execution. It is complete at eth_call time,
-      // but still look at previous block to keep behavior consistent.
-      blockNum -= 1;
-    }
-  }
-
-  TxBlockSharedPtr txBlockSharedPtr;
-  if (query_name == "BLOCKHASH" || query_name == "BLOCKCOINBASE" ||
-      query_name == "BLOCKTIMESTAMP" || query_name == "BLOCKDIFFICULTY" ||
-      query_name == "BLOCKGASLIMIT") {
-    if ((not BlockStorage::GetBlockStorage().GetTxBlock(blockNum,
-                                                        txBlockSharedPtr)) ||
-        (not txBlockSharedPtr)) {
-      LOG_GENERAL(WARNING, "Could not get blockNum tx block " << blockNum);
-      return false;
-    }
-  }
-
-  // TODO: this will always return the value 0 so far, as we need the real DS
-  // block.
-  blockNum = m_BCInfo.getCurDSBlockNum();
-  DSBlockSharedPtr dsBlockSharedPtr;
-  if (query_name == "BLOCKCOINBASE" || query_name == "BLOCKDIFFICULTY" ||
-      query_name == "BLOCKGASPRICE") {
-    if ((not BlockStorage::GetBlockStorage().GetDSBlock(blockNum,
-                                                        dsBlockSharedPtr)) ||
-        (not dsBlockSharedPtr)) {
-      LOG_GENERAL(WARNING, "Could not get blockNum DS block " << blockNum);
-      return false;
-    }
-  }
-
-  if (query_name == "BLOCKHASH") {
-    value = txBlockSharedPtr->GetBlockHash().hex();
-  } else if (query_name == "BLOCKNUMBER") {
-    value = std::to_string(blockNum);
-  } else if (query_name == "BLOCKTIMESTAMP") {
-    value = std::to_string(txBlockSharedPtr->GetTimestamp() /
-                           1000000);  // in seconds
-  } else if (query_name == "BLOCKDIFFICULTY") {
-    value = std::to_string(dsBlockSharedPtr->GetHeader().GetDifficulty());
-  } else if (query_name == "BLOCKGASLIMIT") {
-    value = std::to_string(GasConv::GasUnitsFromCoreToEth(
-        txBlockSharedPtr->GetHeader().GetGasLimit()));
-  } else if (query_name == "BLOCKGASPRICE") {
-    uint256_t gasPrice =
-        (dsBlockSharedPtr->GetHeader().GetGasPrice() * EVM_ZIL_SCALING_FACTOR) /
-            GasConv::GetScalingFactor() +
-        EVM_ZIL_SCALING_FACTOR;
-    std::ostringstream s;
-    s << gasPrice;
-    value = s.str();
-  } else {
-    LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
-    return false;
-  }
+  LOG_GENERAL(WARNING, "Invalid query_name: " << query_name);
   return true;
 }

@@ -101,6 +101,16 @@ impl Serialize for DirtyState {
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub struct EvmEvalExtras {
+    chain_id: u32,
+    block_timestamp: u64,
+    block_gas_limit: u64,
+    block_difficulty: u64,
+    block_number: u64,
+    gas_price: String, // a 128-bit number to be handled nicely by JSON.
+}
+
 #[derive(serde::Serialize)]
 struct EvmLog {
     pub address: H160,
@@ -138,6 +148,7 @@ pub trait Rpc: Send + 'static {
         data: String,
         apparent_value: String,
         gas_limit: u64,
+        extras: EvmEvalExtras,
         estimate: bool,
     ) -> BoxFuture<Result<EvmResult>>;
 }
@@ -157,12 +168,13 @@ impl Rpc for EvmServer {
         data_hex: String,
         apparent_value: String,
         gas_limit: u64,
+        extras: EvmEvalExtras,
         estimate: bool,
     ) -> BoxFuture<Result<EvmResult>> {
         let origin = H160::from_str(&origin);
         match origin {
             Ok(origin) => {
-                let backend = ScillaBackend::new(self.backend_config.clone(), origin);
+                let backend = ScillaBackend::new(self.backend_config.clone(), origin, extras);
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
                 Box::pin(async move {
@@ -236,9 +248,9 @@ async fn run_evm_impl(
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
 
         info!(
-            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?} estimate: {:?}",
-            backend.origin, address, gas_limit, apparent_value, code_hex, data_hex, estimate
-        );
+            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
+            backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
+            backend.extras, estimate);
         let mut listener = LoggingEventListener;
 
         // We have to catch panics, as error handling in the Backend interface of

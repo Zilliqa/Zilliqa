@@ -29,9 +29,12 @@
 #include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
+#include "libUtils/GasConv.h"
+#include "libUtils/TxnExtras.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -46,7 +49,7 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
     // take off the EVM prefix
     if ((not params.m_code.empty()) && params.m_code.size() >= 3 &&
         params.m_code[0] == 'E' && params.m_code[1] == 'V' &&
-        params.m_code[2]) {
+        params.m_code[2] == 'M') {
       std::copy(params.m_code.begin() + 3, params.m_code.end(),
                 std::back_inserter(code));
       arr_ret.append(code);
@@ -70,6 +73,17 @@ Json::Value EvmUtils::GetEvmCallJson(const EvmCallParameters& params) {
   arr_ret.append(params.m_data);
   arr_ret.append(params.m_apparent_value.str());
   arr_ret.append(Json::Value::UInt64(params.m_available_gas));
+
+  Json::Value extras;
+  extras["chain_id"] = ETH_CHAINID;
+  extras["block_timestamp"] =
+      params.m_extras.block_timestamp.convert_to<uint64_t>();
+  extras["block_gas_limit"] = params.m_extras.block_gas_limit;
+  extras["block_difficulty"] = params.m_extras.block_difficulty;
+  extras["block_number"] = params.m_extras.block_number;
+  extras["gas_price"] = params.m_extras.gas_price;
+
+  arr_ret.append(extras);
   arr_ret.append(params.m_onlyEstimateGas);
 
   return arr_ret;
@@ -93,4 +107,22 @@ bool EvmUtils::isEvm(const zbytes& code) {
   auto const hasEvm = (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 
   return hasEvm;
+}
+
+bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
+                      EvmCallExtras& extras_out) {
+  extras_out.block_timestamp = extras_in.block_timestamp;
+  extras_out.block_gas_limit =
+      DS_MICROBLOCK_GAS_LIMIT * GasConv::GetScalingFactor();
+  extras_out.block_difficulty = extras_in.block_difficulty;
+  extras_out.block_number = blockNum;
+  uint256_t gasPrice = (extras_in.gas_price * EVM_ZIL_SCALING_FACTOR) /
+                       GasConv::GetScalingFactor();
+  // The following ensures we get 'at least' that high price as it was before
+  // dividing by GasScalingFactor
+  gasPrice += EVM_ZIL_SCALING_FACTOR;
+  std::stringstream gas_price_str;
+  gas_price_str << gasPrice;
+  extras_out.gas_price = gas_price_str.str();
+  return true;
 }

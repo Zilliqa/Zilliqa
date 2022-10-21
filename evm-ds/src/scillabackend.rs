@@ -15,11 +15,8 @@ use protobuf::Message;
 
 use crate::ipc_connect;
 use crate::protos::ScillaMessage;
+use crate::EvmEvalExtras;
 
-/// Chain ID base for all Zilliqa-based EVM chains. Needed to avoid
-/// having same chain IDs for Zilliqa EVMs as for other Eth-based chains.
-/// See https://zilliqa-jira.atlassian.net/browse/ZIL-4668
-const BASE_CHAIN_ID: u64 = 33000;
 
 #[derive(Clone)]
 pub struct ScillaBackendConfig {
@@ -33,6 +30,7 @@ pub struct ScillaBackendConfig {
 pub struct ScillaBackend {
     config: ScillaBackendConfig,
     pub origin: H160,
+    pub extras: EvmEvalExtras,
 }
 
 // Adding some convenience to ProtoScillaVal to convert to U256 and bytes.
@@ -57,8 +55,12 @@ impl ScillaMessage::ProtoScillaVal {
 }
 
 impl ScillaBackend {
-    pub fn new(config: ScillaBackendConfig, origin: H160) -> Self {
-        Self { config, origin }
+    pub fn new(config: ScillaBackendConfig, origin: H160, extras: EvmEvalExtras) -> Self {
+        Self {
+            config,
+            origin,
+            extras,
+        }
     }
 
     // Call the Scilla IPC Server API.
@@ -112,20 +114,7 @@ impl ScillaBackend {
             null
         }
     }
-
-    fn query_jsonrpc_u256(&self, query_name: &str) -> U256 {
-        self.query_jsonrpc(query_name, None)
-            .as_str()
-            .and_then(|s| {
-                let s = s.replace("\"", "");
-                if s.starts_with("0x") {
-                    U256::from_str(&s[2..]).ok()
-                } else {
-                    U256::from_dec_str(&s).ok()
-                }
-            })
-            .unwrap_or_default()
-    }
+    
 
     fn query_state_value(
         &self,
@@ -232,7 +221,7 @@ impl ScillaBackend {
 
 impl<'config> Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        self.query_jsonrpc_u256("BLOCKGASPRICE")
+        U256::from_dec_str(&self.extras.gas_price).expect("parsing gas_price")
     }
 
     fn origin(&self) -> H160 {
@@ -245,7 +234,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_number(&self) -> U256 {
-        self.query_jsonrpc_u256("BLOCKNUMBER")
+        self.extras.block_number.into()
     }
 
     fn block_coinbase(&self) -> H160 {
@@ -254,25 +243,25 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_timestamp(&self) -> U256 {
-        self.query_jsonrpc_u256("BLOCKTIMESTAMP")
+        self.extras.block_timestamp.into()
     }
 
     fn block_difficulty(&self) -> U256 {
-        self.query_jsonrpc_u256("BLOCKDIFFICULTY")
+        self.extras.block_difficulty.into()
     }
 
     fn block_gas_limit(&self) -> U256 {
-        self.query_jsonrpc_u256("BLOCKGASLIMIT")
+        self.extras.block_gas_limit.into()
     }
 
     fn block_base_fee_per_gas(&self) -> U256 {
+        // TODO: Implement EIP-1559
+        // For now just return the gas price.
         self.gas_price()
     }
 
     fn chain_id(&self) -> U256 {
-        // TODO: A hack to avoid mixing CHAIN IDs with Ethereum based Chain IDs
-        // See https://zilliqa-jira.atlassian.net/browse/ZIL-4668
-        self.query_jsonrpc_u256("CHAINID") + BASE_CHAIN_ID
+        self.extras.chain_id.into()
     }
 
     fn exists(&self, address: H160) -> bool {
