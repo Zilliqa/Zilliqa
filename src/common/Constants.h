@@ -483,6 +483,7 @@ extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
+extern const uint64_t  EVM_RPC_TIMEOUT_SECONDS;
 
 // TxBlockAux constants
 constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";
