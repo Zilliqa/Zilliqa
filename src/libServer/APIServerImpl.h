@@ -38,11 +38,11 @@ class APIServerImpl : public APIServer,
   using ConnectionId = uint64_t;
 
   /// Ctor
-  APIServerImpl(std::shared_ptr<AsioCtx> asio);
+  APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options);
 
   /// Called from server's owner. Cannot put everything into the ctor because of
   /// shared_from_this() usage
-  bool Start(Options options);
+  bool Start();
 
   /// Called from a connection on websocket upgrade
   void OnWebsocketUpgrade(ConnectionId id, Socket&& socket,

@@ -262,29 +262,40 @@ class APIServerImpl::Connection
 };
 
 std::shared_ptr<APIServer> APIServer::CreateAndStart(
-    std::shared_ptr<boost::asio::io_context> asio, APIServer::Options options) {
-  auto server = std::make_shared<APIServerImpl>(std::move(asio));
-  if (!server->Start(std::move(options))) {
+    std::shared_ptr<boost::asio::io_context> asio, APIServer::Options options,
+    bool startImmediately) {
+  auto server =
+      std::make_shared<APIServerImpl>(std::move(asio), std::move(options));
+  if (startImmediately && !server->Start()) {
     return {};
   }
   return server;
 }
 
-APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio)
-    : m_asio(std::move(asio)) {
+APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
+    : m_asio(std::move(asio)), m_options(std::move(options)) {
   assert(m_asio);
+
+  if (m_options.numThreads == 0) {
+    m_options.numThreads = 1;
+  }
+  if (m_options.maxQueueSize == 0) {
+    m_options.maxQueueSize = std::numeric_limits<size_t>::max();
+  }
+
+  m_websocket = std::make_shared<ws::WebsocketServerImpl>(*m_asio);
 }
 
-bool APIServerImpl::Start(Options options) {
+bool APIServerImpl::Start() {
   if (m_started) {
-    // LOG
+    LOG_GENERAL(WARNING, "Double start ignored");
     return false;
   }
 
-  auto address = options.bindToLocalhost
+  auto address = m_options.bindToLocalhost
                      ? boost::asio::ip::address_v4::loopback()
                      : boost::asio::ip::address_v4::any();
-  tcp::endpoint endpoint(address, options.port);
+  tcp::endpoint endpoint(address, m_options.port);
 
   m_acceptor.emplace(*m_asio);
 
@@ -306,16 +317,6 @@ bool APIServerImpl::Start(Options options) {
   CHECK_EC();
 
 #undef CHECK_EC
-
-  m_options = std::move(options);
-  if (m_options.numThreads == 0) {
-    m_options.numThreads = 1;
-  }
-  if (m_options.maxQueueSize == 0) {
-    m_options.maxQueueSize = std::numeric_limits<size_t>::max();
-  }
-
-  m_websocket = std::make_shared<ws::WebsocketServerImpl>(*m_asio);
 
   m_threadPool = std::make_shared<APIThreadPool>(
       *m_asio, m_options.numThreads, m_options.maxQueueSize,
@@ -372,7 +373,12 @@ void APIServerImpl::Close() {
   }
 }
 
-bool APIServerImpl::StartListening() { return m_started; }
+bool APIServerImpl::StartListening() {
+  if (!m_started) {
+    return Start();
+  }
+  return true;
+}
 
 bool APIServerImpl::StopListening() {
   Close();

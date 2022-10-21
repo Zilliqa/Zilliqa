@@ -39,11 +39,15 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
         m_pendingTxnCache(TXMETADATADEPTH),
         m_blocksCache(TXMETADATADEPTH) {}
 
+ private:
   FilterAPIBackend& GetFilterAPI() override { return m_filterAPI; }
 
   APICacheUpdate& GetUpdate() override { return *this; }
 
- private:
+  void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws) override {
+    m_subscriptions.Start(std::move(ws));
+  }
+
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
     auto hash_normalized = NormalizeHexString(hash);
     m_pendingTxnCache.Append(hash_normalized, epoch);

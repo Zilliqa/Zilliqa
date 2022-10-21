@@ -48,7 +48,7 @@ class APIServer {
     bool bindToLocalhost = false;
 
     /// Limit in bytes for POST bodies of incoming requests (security)
-    size_t inputBodyLimit = 2048;
+    size_t inputBodyLimit = 50000;
 
     /// Number of threads in thread pool
     size_t numThreads = 4;
@@ -64,9 +64,11 @@ class APIServer {
   /// Creates and starts API server instance
   /// \param asio Boost.asio context
   /// \param options Server options
+  /// \param startListening Start listening immediately
   /// \return APIServer instance on success, empty shared_ptr on failure
   static std::shared_ptr<APIServer> CreateAndStart(
-      std::shared_ptr<boost::asio::io_context> asio, Options options);
+      std::shared_ptr<boost::asio::io_context> asio, Options options,
+      bool startListening = true);
 
   virtual ~APIServer() = default;
 

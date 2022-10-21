@@ -18,7 +18,6 @@
 #include "SubscriptionsImpl.h"
 
 #include <cassert>
-#include <mutex>
 
 #include "FiltersUtils.h"
 #include "libUtils/Logger.h"
@@ -26,10 +25,9 @@
 namespace evmproj {
 namespace filters {
 
-using UniqueLock = std::unique_lock<std::shared_timed_mutex>;
-using SharedLock = std::shared_lock<std::shared_timed_mutex>;
-
 namespace {
+
+using Lock = std::lock_guard<std::mutex>;
 
 static const std::string SUBSCR_ID_FOR_NEW_HEADS = "0xe";
 static const std::string SUBSCR_ID_FOR_PENDING_TXNS = "0xf";
@@ -139,29 +137,26 @@ void SubscriptionsImpl::Start(
       },
       WebsocketServer::DEF_MAX_INCOMING_MSG_SIZE);
 
-  m_pendingTxnMessage["jsonrpc"] = "2.0";
-  m_pendingTxnMessage["method"] = "eth_subscription";
-  m_pendingTxnMessage["params"]["result"] = "";
-  m_pendingTxnMessage["params"]["subscription"] = SUBSCR_ID_FOR_PENDING_TXNS;
+  m_pendingTxnTemplate["jsonrpc"] = "2.0";
+  m_pendingTxnTemplate["method"] = "eth_subscription";
+  m_pendingTxnTemplate["params"]["result"] = "";
+  m_pendingTxnTemplate["params"]["subscription"] = SUBSCR_ID_FOR_PENDING_TXNS;
 
-  m_newHeadMessage = m_pendingTxnMessage;
-  m_pendingTxnMessage["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
+  m_newHeadTemplate = m_pendingTxnTemplate;
+  m_newHeadTemplate["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
 
-  m_eventMessage = m_newHeadMessage;
+  m_eventTemplate = m_newHeadTemplate;
 }
 
 void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {
-  SharedLock lk(m_mutex);
+  Lock lk(m_mutex);
 
   if (m_subscribedToPendingTxns.empty()) {
     return;
   }
 
-  // make a copy to use shared lock here
-  auto json = m_pendingTxnMessage;
-  json["params"]["result"] = hash;
-
-  auto msg = std::make_shared<std::string>(JsonWrite(json));
+  m_pendingTxnTemplate["params"]["result"] = hash;
+  auto msg = std::make_shared<std::string>(JsonWrite(m_pendingTxnTemplate));
 
   assert(m_websocketServer);
 
@@ -173,20 +168,19 @@ void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {
 void SubscriptionsImpl::OnEventLog(const Address& address,
                                    const std::vector<Quantity>& topics,
                                    const Json::Value& log_response) {
-  SharedLock lk(m_mutex);
+  Lock lk(m_mutex);
 
-  Json::Value json;
+  Json::Value& json = m_eventTemplate["params"];
   bool prepared = false;
 
   for (const auto& conn : m_subscribedToLogs) {
     for (const auto& pair : conn->eventFilters) {
       if (Match(pair.second, address, topics)) {
         if (!prepared) {
-          json = m_eventMessage;
-          json["params"]["result"] = log_response;
+          json["result"] = log_response;
           prepared = true;
         }
-        json["params"]["subscription"] = pair.first;
+        json["subscription"] = pair.first;
         m_websocketServer->SendMessage(
             conn->id, std::make_shared<std::string>(JsonWrite(json)));
 
@@ -202,7 +196,7 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
   assert(m_websocketServer);
 
   if (msg.empty()) {
-    UniqueLock lk(m_mutex);
+    Lock lk(m_mutex);
     OnSessionDisconnected(conn_id);
     return false;
   }
@@ -214,7 +208,7 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
     return true;
   }
 
-  UniqueLock lk(m_mutex);
+  Lock lk(m_mutex);
 
   auto it = m_connections.find(conn_id);
   if (it == m_connections.end()) {

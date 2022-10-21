@@ -23,6 +23,9 @@
 #include <json/json.h>
 
 namespace evmproj {
+
+class WebsocketServer;
+
 namespace filters {
 
 using TxnHash = std::string;
@@ -104,6 +107,7 @@ class APICache {
   virtual ~APICache() = default;
   virtual FilterAPIBackend &GetFilterAPI() = 0;
   virtual APICacheUpdate &GetUpdate() = 0;
+  virtual void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws) = 0;
 };
 
 }  // namespace filters

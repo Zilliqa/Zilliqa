@@ -18,7 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBETH_FILTERS_SUBSCRIPTIONSIMPL_H_
 #define ZILLIQA_SRC_LIBETH_FILTERS_SUBSCRIPTIONSIMPL_H_
 
-#include <shared_mutex>
+#include <mutex>
 #include <unordered_map>
 #include <unordered_set>
 
@@ -115,20 +115,20 @@ class SubscriptionsImpl {
   std::unordered_set<ConnectionPtr> m_subscribedToLogs;
 
   /// Template for pending txn message
-  Json::Value m_pendingTxnMessage;
+  Json::Value m_pendingTxnTemplate;
 
   /// Template for new head message
-  Json::Value m_newHeadMessage;
+  Json::Value m_newHeadTemplate;
 
   /// Template for event log message
-  Json::Value m_eventMessage;
+  Json::Value m_eventTemplate;
 
   /// Incremental counter for event logs subscriptions (not starting from 1
-  /// because there are pecial values for other types of subscriptions)
+  /// because there are special values for other types of subscriptions)
   uint64_t m_eventSubscriptionCounter = 100;
 
   /// Mutex
-  std::shared_timed_mutex m_mutex;
+  std::mutex m_mutex;
 };
 
 }  // namespace filters
