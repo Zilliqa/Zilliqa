@@ -45,8 +45,6 @@ class EvmClientMock : public EvmClient {
  public:
   EvmClientMock() = default;
 
-//  virtual bool OpenServer(uint32_t /*version*/) override { return true; }
-
   bool CallRunner(uint32_t /*version*/,                 //
                   const Json::Value& request,           //
                   evmproj::CallResponse& /*response*/,  //
@@ -173,11 +171,12 @@ BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-//  virtual bool OpenServer(uint32_t /*force = false*/) override { return true; };
+  //  virtual bool OpenServer(uint32_t /*force = false*/) override { return
+  //  true; };
 
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
-      const uint amount,    //
+      const uint amount,    // FOpenS
       const std::string& response, const std::string& address,
       const std::chrono::seconds& defaultWaitTime = std::chrono::seconds(0))
       : m_GasLimit(gasLimit),               // gas limit
