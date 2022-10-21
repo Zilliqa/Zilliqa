@@ -6,12 +6,11 @@ describe("ERC20 functionality", function () {
   let contract;
   before(async function () {
     // The first three address needs to have funded with some zils
-    const [account1, account2, account3] = await ethers.getSigners();
+    const [account1, account2] = await ethers.getSigners();
     const firstBalance = await ethers.provider.getBalance(account1.address);
     const secondBalance = await ethers.provider.getBalance(account2.address);
-    const thirdBalance = await ethers.provider.getBalance(account3.address);
-    if (firstBalance == 0 || secondBalance == 0 || thirdBalance == 0) {
-      throw new Error("The first three accounts need to have some zils to run these tests.");
+    if (firstBalance == 0 || secondBalance == 0) {
+      throw new Error("The first two accounts need to have some zils to run these tests.");
     }
 
     const Contract = await ethers.getContractFactory("ZEVMToken");
@@ -76,20 +75,22 @@ describe("ERC20 functionality", function () {
   });
 
   describe("Transfer From", function () {
-    xit("Should be possible to transfer from one account to another [@transactional]", async function () {
-      const [owner, _, sender, spender] = await ethers.getSigners();
+    it("Should be possible to transfer from one account to another [@transactional]", async function () {
+      const [owner, sender, spender] = await ethers.getSigners();
 
       // Fund the 2nd account first
       await contract.transfer(sender.address, 5_000);
 
-      // Approve 30_000 for withdrawal by Acc #3
-      await contract.connect(sender).approve(spender.address, 3_000);
+      // Approve 3_000 for withdrawal by Acc #3
+      await contract.connect(sender).approve(owner.address, 3_000);
 
       // Try transferring allowed amount
-      await contract.transferFrom(sender.address, spender.address, 2_999);
+      expect(await contract.transferFrom(sender.address, spender.address, 2_999))
+        .to.changeTokenBalances(contract, [sender.address, spender.address], [-2_999, +2_999])
+        .emit(contract, "Transfer")
+        .withArgs(sender.address, spender.address, 1_999);
 
-      expect(await contract.balanceOf(sender.address)).to.be.eq(2_001);
-      expect(await contract.allowance(sender.address, spender.address)).to.be.eq(1);
+      expect(await contract.allowance(sender.address, owner.address)).to.be.eq(1);
     });
   });
 });
