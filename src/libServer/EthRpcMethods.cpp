@@ -693,12 +693,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
   // TODO: adapt to any block, not just latest.
   TxnExtras txnExtras{
-    dsBlock.GetHeader().GetGasPrice(),
-    txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
-    dsBlock.GetHeader().GetDifficulty()};
-  uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
-    .GetHeader()
-    .GetBlockNum();
+      dsBlock.GetHeader().GetGasPrice(),
+      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+      dsBlock.GetHeader().GetDifficulty()};
+  uint64_t blockNum =
+      m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
   EvmCallExtras extras;
   if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
@@ -707,9 +706,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   const EvmCallParameters params{
-      toAddr.hex(), fromAddr.hex(), code, data, gas, value,
-      std::move(extras),
-      true /* only estimate gas */
+      toAddr.hex(), fromAddr.hex(),    code, data, gas,
+      value,        std::move(extras), true /* only estimate gas */
   };
 
   evmproj::CallResponse response;
