@@ -708,7 +708,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   const EvmCallParameters params{
 
       toAddr.hex(), fromAddr.hex(),    code,  data, gas,
-      value,        std::move(extras), {true} /* only estimate gas */
+      value,        std::move(extras), true /* only estimate gas */
   };
 
   evmproj::CallResponse response;
