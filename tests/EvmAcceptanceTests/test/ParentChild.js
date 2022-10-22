@@ -7,7 +7,6 @@ describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 1_000_000;
   let parentContract;
   before(async function () {
-    console.log("Installing parent contract...");
     const Contract = await ethers.getContractFactory("ParentContract");
     parentContract = await Contract.deploy({value: INITIAL_FUND});
   });

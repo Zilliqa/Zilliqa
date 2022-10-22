@@ -238,7 +238,6 @@ async fn run_evm_impl(
             backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
         );
         let mut listener = LoggingEventListener{traces : Default::default()};
-        //let mut_me = &mut listener;
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -247,8 +246,6 @@ async fn run_evm_impl(
         // the unwind.
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             if tracing {
-                println!("STarting with tracing....");
-                info!("tracing!?");
                 evm::tracing::using(&mut listener, || executor.execute(&mut runtime))
             } else {
                 executor.execute(&mut runtime)
@@ -258,11 +255,6 @@ async fn run_evm_impl(
         let remaining_gas = executor.gas() / gas_scaling_factor;
         match result {
             Ok(exit_reason) => {
-                info!("Now give the result...");
-
-                info!("answ: {:?}", listener.traces);
-
-                info!("Exit: {:?}", exit_reason);
                 let (state_apply, logs) = executor.into_state().deconstruct();
                 info!(
                     "Return value: {:?}",
@@ -313,7 +305,7 @@ async fn run_evm_impl(
                     return_value: "".to_string(),
                     apply: vec![],
                     logs: vec![], // TODO: shouldn't we get the logs here too?
-                    trace: listener.traces, // TODO: shouldn't we get the logs here too?
+                    trace: listener.traces,
                     remaining_gas,
                 })
             }
@@ -329,10 +321,6 @@ struct LoggingEventListener {
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        println!("EVM Event {:?}", event);
-        info!(" *** tracing happening *** ");
-        info!(" *** tracing happening *** {:?} ", event);
-        //let mut arg = String::new();
         self.traces.push(format!("{:?}", event));
     }
 }
@@ -352,7 +340,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         }
     }
 
-    info!("Starting evm-ds!");
+    info!("Starting evm-ds");
 
     let evm_sever = EvmServer {
         tracing: args.tracing,

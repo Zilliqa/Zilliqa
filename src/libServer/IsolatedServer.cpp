@@ -673,7 +673,9 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
   // This will make sure the block height advances, the
   // TX can be found in a block etc.
-  PostTxBlock();
+  if (m_timeDelta == 0) {
+    PostTxBlock();
+  }
 
   return ret;
 }
@@ -779,10 +781,6 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     TxnStatus error_code;
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
-
-    //auto fn = [&] (std::string const &traceOut) {
-    //  std::cout << "******* The trace is " << traceOut << std::endl;
-    //};
 
     if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
                                                         3,  // Arbitrary values

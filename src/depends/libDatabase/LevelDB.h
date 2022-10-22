@@ -90,8 +90,6 @@ public:
     /// Sets the value at the specified key.
     int Insert(const dev::h256 & key, dev::zbytesConstRef value);
 
-    //int Insert(const dev::h256 & key, std::string const &value);
-
     /// Sets the value at the specified key.
     int Insert(const std::vector<unsigned char>& key,
                const std::vector<unsigned char>& body);

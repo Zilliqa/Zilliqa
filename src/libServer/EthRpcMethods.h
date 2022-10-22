@@ -43,15 +43,6 @@ class EthRpcMethods {
     return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
   };
 
-  //CreateTransactionTraceFunc m_createTransactionTraceTarget =
-  //    [this](const Transaction& tx, uint32_t shardId) -> bool {
-  //      return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
-  //    };
-
-  //// Helper function for adding RPC methods
-  // bool AddRPC(const jsonrpc::Procedure& proc,
-  // ScillaIPCServer::methodPointer_t pointer);
-
   void Init(LookupServer* lookupServer);
 
   virtual void GetEthCallEthI(const Json::Value& request,

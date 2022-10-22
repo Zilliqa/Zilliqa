@@ -61,10 +61,6 @@ void AccountStoreSC<MAP>::EvmCallRunner(
       ret = false;
     }
   }
-
-  for (auto const &i : evmReturnValues.Trace() ) {
-    std::cerr << "ISSSS "  << i << std::endl;
-  }
 }
 
 template <class MAP>
@@ -74,15 +70,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
   EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
-
-  for (auto const&i : evmReturnValues.Trace()) {
-    std::cerr << "sigh RESP is : " << i << std::endl;
-  }
-  //std::cerr << "hash is : " << transaction.GetTranID() << std::endl;
-
-  //if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(), "wheee")) {
-  //  LOG_GENERAL(INFO, "FAIL: Put TX trace failed " << transaction.GetTranID());
-  //}
 
   if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
@@ -244,10 +231,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     contractAccount->SetImmutable(DataConversion::StringToCharArray(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
-  }
-
-  for (auto const&i : evmReturnValues.Trace()) {
-    std::cerr << "???? sigh RESP is : " << i << std::endl;
   }
 
   return gas;
@@ -426,17 +409,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           evm_call_run_succeeded, receipt, response);
 
 
-      for (auto const&i : response.Trace()) {
-        std::cout << "RESP is : " << i << std::endl;
-      }
-
       if(response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(), response.Trace()[0])) {
           LOG_GENERAL(INFO, "FAIL: Put TX trace failed " << transaction.GetTranID());
         }
       }
-
-      std::cerr << "hash is : " << transaction.GetTranID() << std::endl;
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
@@ -594,11 +571,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);
 
-
-      for (auto const&i : response.Trace()) {
-        std::cout << "KLJLKJLKJLKJ **** RESP is : " << i << std::endl;
-      }
-      std::cerr << "hash is : " << transaction.GetTranID() << std::endl;
 
       if(response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(), response.Trace()[0])) {

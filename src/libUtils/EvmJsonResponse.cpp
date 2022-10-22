@@ -186,9 +186,9 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
     throw e;
   }
 
-  //if (LOG_SC) {
+  if (LOG_SC) {
     LOG_GENERAL(WARNING, "Response from EVM-DS " << std::endl << newJson);
-  //}
+  }
 
   try {
     for (const auto& node : newJson.items()) {
@@ -230,7 +230,6 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
         for (const auto& lg : node.value().items()) {
           try {
             fo.AddTrace(to_string(lg.value()));
-            std::cout << "*************** adding trace " << to_string(lg.value()) << std::endl;
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING, "Exception reading trace : " << e.what());
             throw e;

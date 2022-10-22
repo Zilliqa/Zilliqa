@@ -50,56 +50,32 @@ contract = """
 
 pragma solidity >=0.7.0 <0.9.0;
 
-contract ChildContract {
-    uint256 data;
-    uint256 public value;
-    address payable public sender;
+/**
+ * @title Storage
+ * @dev Store & retrieve value in a variable
+ */
+contract Storage {
 
-    constructor(uint256 _data) payable {
-       data = _data;
-       value = msg.value;
-       sender = payable(msg.sender);
+    uint256 number = 1234;
+    uint256 numberSecond = 1025;
+    /**
+     * @dev Store value in variable
+     * @param num value to store
+     */
+    function store(uint256 num) public {
+        number = num;
     }
 
-    function read() public view returns (uint256) {
-       return data;
+    /**
+     * @dev Return value
+     * @return value of 'number'
+     */
+    function retrieve() public view returns (uint256){
+        return number;
     }
 
-    function returnToSender() public {
-       uint amount = address(this).balance;
-       (bool success, ) = sender.call{value: amount}("");
-       require(success, "Failed to send Ether");
-       selfdestruct(sender);
-    }
-}
-
-contract ParentContract {
-
-    ChildContract public child;
-    uint256 public value;
-
-    constructor () payable {
-      value = msg.value;
-    }
-
-    function installChild(uint256 initial_data) public returns (address payable) {
-      child = new ChildContract{value: value}(initial_data);
-      return payable(address(child));
-    }
-
-    function childAddress() public view returns (address payable) {
-      return payable(address(child));
-    }
-
-    function getPaidValue() public view returns (uint256) {
-      return value;
-    }
-
-    function returnToSenderAndDestruct(address account) public payable {
-      selfdestruct(payable(account));
-    }
-
-    receive() external payable {
+   function wtf() public {
+        selfdestruct(payable(address(0)));
     }
 }
 """
@@ -1596,7 +1572,56 @@ def main():
     ret = True
 
     ret &= test_move_funds(args.api, genesis_privkey, account, api)
+    ret &= test_eth_chainId(args.api)
+    ret &= test_eth_feeHistory(args.api) # todo: implement fully or decide it is a no-op
     ret &= test_eth_getStorageAt(args.api, account, w3)
+    ret &= test_eth_getCode(args.api, account, w3)
+    ret &= test_eth_getBalance(args.api, account, w3) # Not properly tested
+    #ret &= test_eth_getProof(args.api) # TODO(HUT): implement
+    ret &= test_web3_clientVersion(args.api)
+    ret &= test_web3_sha3(args.api)
+    ret &= test_net_version(args.api)
+    ret &= test_net_listening(args.api)
+    ret &= test_net_peerCount(args.api)
+    ret &= test_eth_protocolVersion(args.api)
+    ret &= test_eth_syncing(args.api)
+    ret &= test_eth_coinbase(args.api)
+    ret &= test_eth_mining(args.api)
+    ret &= test_eth_accounts(args.api)
+    #ret &= test_eth_blockNumber(args.api)
+    ret &= test_eth_getBlockTransactionCountByHash(args.api, account, w3)
+    ret &= test_eth_getBlockTransactionCountByNumber(args.api, account, w3)
+    ret &= test_eth_getUncleCountByBlockNumber(args.api)
+    ret &= test_eth_getUncleCountByBlockHash(args.api)
+    ret &= test_eth_getBlockByHash(args.api, account, w3)
+    ret &= test_eth_getBlockByNumber(args.api, account, w3)
+    ret &= test_eth_getUncleByBlockHashAndIndex(args.api)
+    ret &= test_eth_getUncleByBlockNumberAndIndex(args.api)
+    ret &= test_eth_gasPrice(args.api)
+    #ret &= test_eth_newFilter(args.api) # Only on isolated server?
+    #ret &= test_eth_newBlockFilter(args.api)
+    #ret &= test_eth_newPendingTransactionFilter(args.api)
+    #ret &= test_eth_uninstallFilter(args.api)
+    #ret &= test_eth_getFilterChanges(args.api)
+    #ret &= test_eth_getFilterLogs(args.api)
+    #ret &= test_eth_getLogs(args.api)
+    #ret &= test_eth_subscribe(args.api)
+    ret &= test_eth_unsubscribe(args.api)
+    #ret &= test_eth_call(args.api)
+    #ret &= test_eth_estimateGas(args.api)
+    ret &= test_eth_getTransactionCount(args.api, account, w3)
+    ret &= test_eth_getTransactionByHash(args.api, account, w3)
+    ret &= test_eth_getTransactionByBlockHashAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionByBlockNumberAndIndex(args.api, account, w3)
+    ret &= test_eth_getTransactionReceipt(args.api, account, w3)
+    ret &= test_eth_sendRawTransaction(args.api, account, w3)
+    #ret &= test_eth_sign(args.api)
+    #ret &= test_eth_signTransaction(args.api)
+    #ret &= test_eth_sendTransaction(args.api)
+
+    # Non-standard (for fireblocks)
+    ret &= test_eth_recoverTransaction(args.api, account, w3)
+    ret &= eth_getBlockReceipts(args.api, account, w3)
 
     if not ret:
         print(f"Test failed")

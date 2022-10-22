@@ -57,14 +57,6 @@ impl ScillaMessage::ProtoScillaVal {
     }
 }
 
-impl tracing::EventListener for ScillaBackend {
-    fn event(&mut self, event: tracing::Event) {
-        println!("EVM Event {:?}", event);
-        info!(" *** TRACING HAPPENING *** ");
-        info!(" *** TRACING HAPPENING *** {:?} ", event);
-    }
-}
-
 impl ScillaBackend {
     pub fn new(config: ScillaBackendConfig, origin: H160) -> Self {
         Self { config, origin }

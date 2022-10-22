@@ -1430,7 +1430,6 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
-  std::cout << "RECVD trace request for " << txHash << std::endl;
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -1443,8 +1442,6 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
 
     bool isPresent =
         BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
-
-    std::cout << "got trace retrieval: " << trace << std::endl;
 
     if (!isPresent) {
       return Json::nullValue;

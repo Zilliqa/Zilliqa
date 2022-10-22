@@ -4,7 +4,7 @@
     <general>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
         <ENABLE_DO_REJOIN>false</ENABLE_DO_REJOIN>
-        <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
+        <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>1</CHAIN_ID>
         <NETWORK_ID>3</NETWORK_ID>
@@ -196,6 +196,7 @@
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
         <EVM_ZIL_SCALING_FACTOR>1000000</EVM_ZIL_SCALING_FACTOR>
+        <EVM_RPC_TIMEOUT_SECONDS>60</EVM_RPC_TIMEOUT_SECONDS>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -288,7 +289,7 @@
     </recovery>
     <smart_contract>
         <ENABLE_SC>true</ENABLE_SC>
-        <SCILLA_ROOT>/tmp</SCILLA_ROOT>
+        <SCILLA_ROOT>/scilla</SCILLA_ROOT>
         <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
         <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
