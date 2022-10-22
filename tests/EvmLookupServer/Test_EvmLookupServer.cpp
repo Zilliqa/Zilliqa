@@ -171,8 +171,6 @@ BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-  //  virtual bool OpenServer(uint32_t /*force = false*/) override { return
-  //  true; };
 
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
