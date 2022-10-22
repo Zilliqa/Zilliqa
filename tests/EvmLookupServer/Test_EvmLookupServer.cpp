@@ -31,7 +31,6 @@
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
 #include "libUtils/EvmJsonResponse.h"
-#pragma GCC diagnostic ignored "-Wunused-private-field"
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
@@ -166,15 +165,16 @@ TxBlock buildCommonEthBlockCase(
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
 /**
  * @brief EvmClient mock implementation te be able to inject test responses
  * from the Evm-ds server.
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-  //  virtual bool OpenServer(uint32_t /*force = false*/) override { return
-  //  true; };
-
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
       const uint amount,    //

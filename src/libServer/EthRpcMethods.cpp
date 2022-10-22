@@ -641,8 +641,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  uint256_t gasPrice = GetEthGasPriceNum();
+  uint256_t value = 0;
+  if (json.isMember("value")) {
+    const auto valueStr = json["value"].asString();
+    value = stoull(valueStr.c_str(), nullptr, 0);
+  }
 
+  uint256_t gasPrice = GetEthGasPriceNum();
   if (json.isMember("gasPrice")) {
     const auto gasPriceStr = json["gasPrice"].asString();
     const uint256_t gasPriceNum = stoull(gasPriceStr.c_str(), nullptr, 0);
@@ -684,9 +689,27 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
               static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0)));
   }
 
+  const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+  const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
+  // TODO: adapt to any block, not just latest.
+  TxnExtras txnExtras{
+      dsBlock.GetHeader().GetGasPrice(),
+      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+      dsBlock.GetHeader().GetDifficulty()};
+  uint64_t blockNum =
+      m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  EvmCallExtras extras;
+  if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                           "Failed to get EVM call extras");
+  }
+
   const EvmCallParameters params{
-      toAddr.hex(), fromAddr.hex(), code, data, gas, 0,
-      {true} /* only estimate gas */};
+
+      toAddr.hex(), fromAddr.hex(),    code, data, gas,
+      value,        std::move(extras), true /* only estimate gas */
+  };
 
   evmproj::CallResponse response;
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&

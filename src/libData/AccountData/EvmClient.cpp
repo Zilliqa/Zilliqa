@@ -126,7 +126,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                            evmproj::CallResponse& result,
                            const uint32_t counter) {
   LOG_MARKER();
-#ifdef true
+#ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
   if (counter == 0 && LOG_SC) {
@@ -134,7 +134,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     return false;
   }
 
-  if ( not m_child.running()) {
+  if (not m_child.running()) {
     if (not EvmClient::OpenServer()) {
       LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
       return false;
