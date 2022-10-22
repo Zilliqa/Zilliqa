@@ -758,3 +758,5 @@ const uint64_t EVM_ZIL_SCALING_FACTOR{
     ReadConstantUInt64("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.", 1)};
 const uint64_t EVM_BLOCK_LOOKUP_LIMIT{
     ReadConstantUInt64("EVM_BLOCK_LOOKUP_LIMIT", "node.jsonrpc.", 50)};
+const uint64_t EVM_RPC_TIMEOUT_SECONDS{
+    ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};

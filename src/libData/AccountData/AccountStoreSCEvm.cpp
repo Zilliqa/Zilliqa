@@ -46,13 +46,13 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 
   const auto fut = std::async(std::launch::async, worker);
   // check the future return and when time out log error.
-  switch (fut.wait_for(std::chrono::seconds(30))) {
+  switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
-      EvmClient::GetInstance().CheckClient(0, true);
+
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
