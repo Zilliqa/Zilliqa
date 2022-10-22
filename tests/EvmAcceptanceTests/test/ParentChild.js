@@ -37,9 +37,9 @@ describe("Parent Child Contract Functionality", function () {
       expect(childContractAddress).to.be.properAddress;
     });
 
-    //it(`Should return ${INITIAL_FUND} as the balance of the child contract`, async function () {
-    //  expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(INITIAL_FUND);
-    //});
+    it(`Should return ${INITIAL_FUND} as the balance of the child contract`, async function () {
+      expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(INITIAL_FUND);
+    });
 
     it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
       const [owner] = await ethers.getSigners();
@@ -50,36 +50,25 @@ describe("Parent Child Contract Functionality", function () {
     });
 
     it("Should create a transaction trace after child creation", async function () {
-      console.log("Checking TX trace...");
-      expect("hss").to.be.eq("hss");
-
-      //if (!helper.isZilliqaNetworkSelected()) {
-      //  this.skip();
-      //}
-
-      console.log(childContract.deployTransaction);
-
       const METHOD = "debug_traceTransaction";
 
       await helper.callEthMethod(METHOD, 1, [installedChild.hash], (result, status) => {
-        //hre.logDebug(result);
-
-        console.log("CAlled eth method!", result);
+        hre.logDebug(result);
 
         assert.equal(status, 200, "has status code");
-        assert.equal(result.result, null, "Expected to be equal to null");
+        assert.isString(result.result, "Expected to be populated");
       });
     });
 
-    //it("Should return parent address if sender function of child is called", async function () {
-    //  expect(await childContract.methods.sender().call()).to.be.eq(parentContract.address);
-    //});
+    it("Should return parent address if sender function of child is called", async function () {
+      expect(await childContract.methods.sender().call()).to.be.eq(parentContract.address);
+    });
 
-    //it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
-    //  const [owner] = await ethers.getSigners();
-    //  expect(
-    //    await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address})
-    //  ).to.changeEtherBalances([childContractAddress, parentContract.address], [-INITIAL_FUND, +INITIAL_FUND]);
-    //});
+    it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
+      const [owner] = await ethers.getSigners();
+      expect(
+        await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address})
+      ).to.changeEtherBalances([childContractAddress, parentContract.address], [-INITIAL_FUND, +INITIAL_FUND]);
+    });
   });
 });
