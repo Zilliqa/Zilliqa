@@ -31,6 +31,7 @@
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
 #include "libUtils/EvmJsonResponse.h"
+#pragma GCC diagnostic ignored "-Wunused-private-field"
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:

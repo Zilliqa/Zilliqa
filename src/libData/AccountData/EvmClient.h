@@ -77,18 +77,21 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
       }
       //
       // Read the Response
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "Blocking read " );
+      }
       try {
         boost::asio::read_until(unixDomainSocket, streamBuffer,
                                 DEFAULT_DELIMITER_CHAR);
+        std::istream is(&streamBuffer);
+        // transfer it into the users object
+        std::getline(is, result);
       } catch (std::exception& e) {
         if (LOG_SC) {
           LOG_GENERAL(INFO, "Exception calling read " << e.what());
         }
         throw e;
       }
-      std::istream is(&streamBuffer);
-      // transfer it into the users object
-      std::getline(is, result);
       if (LOG_SC) {
         LOG_GENERAL(INFO, "reading from socket " << result);
       }

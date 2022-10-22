@@ -27,7 +27,11 @@ void EvmClient::Init() {
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
-  CleanupPreviousInstances();
+  if (LAUNCH_EVM_DAEMON){
+    CleanupPreviousInstances();
+  } else {
+    LOG_GENERAL(INFO, "EVM Client not launching daemon - debug mode ");
+  }
 }
 
 EvmClient::~EvmClient() { LOG_MARKER(); }
@@ -75,14 +79,16 @@ bool EvmClient::OpenServer() {
                                          EVM_LOG_CONFIG};
 
   try {
-    boost::process::child c(p, boost::process::args(args));
-    LOG_GENERAL(INFO, "child created ");
-    m_child = std::move(c);
-    pid_t thread_id = m_child.id();
-    if (thread_id > 0 && m_child.valid()) {
-      LOG_GENERAL(WARNING, "Valid child created at " << thread_id);
-    } else {
-      LOG_GENERAL(WARNING, "Valid child is not valid " << thread_id);
+    if (LAUNCH_EVM_DAEMON) {
+      boost::process::child c(p, boost::process::args(args));
+      LOG_GENERAL(INFO, "child created ");
+      m_child = std::move(c);
+      pid_t thread_id = m_child.id();
+      if (thread_id > 0 && m_child.valid()) {
+        LOG_GENERAL(WARNING, "Valid child created at " << thread_id);
+      } else {
+        LOG_GENERAL(WARNING, "Valid child is not valid " << thread_id);
+      }
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
@@ -120,7 +126,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
                            evmproj::CallResponse& result,
                            const uint32_t counter) {
   LOG_MARKER();
-#ifdef USE_LOCKING_EVM
+#ifdef true
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
   if (counter == 0 && LOG_SC) {
@@ -128,7 +134,7 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     return false;
   }
 
-  if (not m_child.running()) {
+  if ( not m_child.running()) {
     if (not EvmClient::OpenServer()) {
       LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
       return false;
