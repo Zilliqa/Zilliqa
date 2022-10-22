@@ -572,6 +572,33 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
   return true;
 }
 
+bool BlockStorage::CheckTxBody(const dev::h256& key) {
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  string epochString = m_txEpochDB->Lookup(keyBytes);
+  if (epochString.empty()) {
+    return false;
+  }
+
+  zbytes epochBytes(epochString.begin(), epochString.end());
+  uint64_t epochNum = 0;
+  if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
+    LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
+    return false;
+  }
+
+  return GetTxBodyDB(epochNum)->Exists(keyBytes);
+}
+
 bool BlockStorage::GetTxTrace(const dev::h256& key, std::string &trace) {
   const zbytes& keyBytes = key.asBytes();
 

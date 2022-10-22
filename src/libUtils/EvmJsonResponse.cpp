@@ -230,6 +230,7 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
         for (const auto& lg : node.value().items()) {
           try {
             fo.AddTrace(to_string(lg.value()));
+            std::cout << "*************** adding trace " << to_string(lg.value()) << std::endl;
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING, "Exception reading trace : " << e.what());
             throw e;

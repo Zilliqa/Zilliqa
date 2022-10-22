@@ -1436,9 +1436,9 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
   }
+  std::string trace;
 
   try {
-    std::string trace;
     TxnHash tranHash(txHash);
 
     bool isPresent =
@@ -1450,27 +1450,10 @@ Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
       return Json::nullValue;
     }
 
-
-   // const TxBlock EMPTY_BLOCK;
-   // const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
-   // if (txBlock == EMPTY_BLOCK) {
-   //   LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
-   //   return Json::nullValue;
-   // }
-
-   // constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
-   // auto transactionIndex =
-   //     GetTransactionIndexFromBlock(txBlock, transactionHash);
-   // if (transactionIndex == WRONG_INDEX) {
-   //   return Json::nullValue;
-   // }
-
-   // return JSONConversion::convertTxtoEthJson(transactionIndex,
-                                              //*transactioBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 
-  return "";
+  return trace;
 }

@@ -1,5 +1,7 @@
 const {expect} = require("chai");
-const {ethers} = require("hardhat");
+const {ethers, web3} = require("hardhat");
+const hre = require("hardhat");
+const helper = require("../helper/GeneralHelper");
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 1_000_000;
@@ -23,10 +25,11 @@ describe("Parent Child Contract Functionality", function () {
   describe("Install Child", function () {
     let childContract;
     let childContractAddress;
+    let installedChild;
     const CHILD_CONTRACT_VALUE = 12345;
     before(async function () {
       // Because childContractAddress is used in almost all of the following tests, it should be done in `before` block.
-      await parentContract.installChild(CHILD_CONTRACT_VALUE, {gasLimit: 25000000});
+      installedChild = await parentContract.installChild(CHILD_CONTRACT_VALUE, {gasLimit: 25000000});
       childContractAddress = await parentContract.childAddress();
     });
 
@@ -38,14 +41,35 @@ describe("Parent Child Contract Functionality", function () {
     //  expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(INITIAL_FUND);
     //});
 
-    //it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
-    //  const [owner] = await ethers.getSigners();
-    //  childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
-    //    from: owner.address
-    //  });
+    it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
+      const [owner] = await ethers.getSigners();
+      childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
+        from: owner.address
+      });
+      expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
+    });
 
-    //  expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
-    //});
+    it("Should create a transaction trace after child creation", async function () {
+      console.log("Checking TX trace...");
+      expect("hss").to.be.eq("hss");
+
+      //if (!helper.isZilliqaNetworkSelected()) {
+      //  this.skip();
+      //}
+
+      console.log(childContract.deployTransaction);
+
+      const METHOD = "debug_traceTransaction";
+
+      await helper.callEthMethod(METHOD, 1, [installedChild.hash], (result, status) => {
+        //hre.logDebug(result);
+
+        console.log("CAlled eth method!", result);
+
+        assert.equal(status, 200, "has status code");
+        assert.equal(result.result, null, "Expected to be equal to null");
+      });
+    });
 
     //it("Should return parent address if sender function of child is called", async function () {
     //  expect(await childContract.methods.sender().call()).to.be.eq(parentContract.address);

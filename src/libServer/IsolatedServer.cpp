@@ -780,6 +780,10 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
+    //auto fn = [&] (std::string const &traceOut) {
+    //  std::cout << "******* The trace is " << traceOut << std::endl;
+    //};
+
     if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
                                                         3,  // Arbitrary values
                                                         true, tx, txreceipt,
