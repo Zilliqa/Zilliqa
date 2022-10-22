@@ -167,8 +167,9 @@ TxBlock buildCommonEthBlockCase(
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
-// Ignored in GCC, which also doesn't support this warning.
+#ifdef __clang__
 #pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
 
 /**
  * @brief EvmClient mock implementation te be able to inject test responses
