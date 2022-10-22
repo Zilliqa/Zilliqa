@@ -17,11 +17,13 @@
 
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
+#include "common/Constants.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+#include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -617,11 +619,16 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     TxnStatus error_code;
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3  // Arbitrary values
-                                                        ,
-                                                        true, tx, txreceipt,
-                                                        error_code)) {
+    TxnExtras extras{
+        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        get_time_as_int() / 1000000,  // Microseconds to seconds.
+        40                            // Common value.
+    };
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+            m_blocknum,
+            3  // Arbitrary values
+            ,
+            true, tx, extras, txreceipt, error_code)) {
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server");
@@ -782,10 +789,15 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3,  // Arbitrary values
-                                                        true, tx, txreceipt,
-                                                        error_code)) {
+    TxnExtras extras{
+        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        get_time_as_int() / 1000000,  // Microseconds to seconds.
+        40                            // Common value.
+    };
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+            m_blocknum,
+            3,  // Arbitrary values
+            true, tx, extras, txreceipt, error_code)) {
       LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }

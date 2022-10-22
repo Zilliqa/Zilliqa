@@ -28,6 +28,7 @@
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
@@ -46,13 +47,13 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 
   const auto fut = std::async(std::launch::async, worker);
   // check the future return and when time out log error.
-  switch (fut.wait_for(std::chrono::seconds(30))) {
+  switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
-      EvmClient::GetInstance().CheckClient(0, true);
+
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
@@ -246,12 +247,10 @@ bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
-                                            const unsigned int& numShards,
-                                            const bool& isDS,
-                                            const Transaction& transaction,
-                                            TransactionReceipt& receipt,
-                                            TxnStatus& error_code) {
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(
+    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
+    const Transaction& transaction, const TxnExtras& txnExtras,
+    TransactionReceipt& receipt, TxnStatus& error_code) {
   LOG_MARKER();
 
   if (LOG_SC) {
@@ -311,6 +310,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce(),
                                          transaction.GetVersionIdentifier());
+      LOG_GENERAL(INFO, "Contract creation address is " << contractAddress);
       // instantiate the object for contract account
       // ** Remember to call RemoveAccount if deployment failed halfway
       Account* contractAccount;
@@ -336,7 +336,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      uint32_t scilla_version{0};
       uint32_t evm_version{0};
 
       try {
@@ -356,17 +355,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      // prepare IPC with current blockchain info provider.
-
-      m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-           contractAccount->GetStorageRoot(), scilla_version});
-
       std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
-          DataConversion::StringToCharArray(std::to_string(scilla_version)));
+          DataConversion::StringToCharArray("0"));
 
       // *************************************************************************
       // Undergo a runner
@@ -384,13 +377,21 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
+      EvmCallExtras extras;
+      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       EvmCallParameters params = {
           contractAddress.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(transaction.GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          std::move(extras),
+      };
 
       std::map<std::string, zbytes> t_newmetadata;
 
@@ -515,7 +516,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       m_curBlockNum = blockNum;
-      uint32_t scilla_version{0};
       uint32_t evm_version{0};
 
       DiscardAtomics();
@@ -538,11 +538,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         tpStart = r_timer_start();
       }
 
-      // prepare IPC with current blockchain info provider.
-      m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-           contractAccount->GetStorageRoot(), scilla_version});
-
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
       std::string runnerPrint;
@@ -555,13 +550,20 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
+      EvmCallExtras extras;
+      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       EvmCallParameters params = {
           m_curContractAddr.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          std::move(extras)};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "
