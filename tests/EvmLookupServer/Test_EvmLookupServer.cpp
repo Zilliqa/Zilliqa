@@ -175,7 +175,6 @@ BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
       const uint amount,    //
