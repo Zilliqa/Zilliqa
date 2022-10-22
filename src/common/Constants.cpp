@@ -760,3 +760,5 @@ const uint64_t EVM_BLOCK_LOOKUP_LIMIT{
     ReadConstantUInt64("EVM_BLOCK_LOOKUP_LIMIT", "node.jsonrpc.", 50)};
 const uint64_t EVM_RPC_TIMEOUT_SECONDS{
     ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
+const bool LAUNCH_EVM_DAEMON{ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") ==
+                "true"};

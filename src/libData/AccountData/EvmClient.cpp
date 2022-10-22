@@ -27,7 +27,9 @@ void EvmClient::Init() {
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
-  CleanupPreviousInstances();
+  if (LAUNCH_EVM_DAEMON) {
+    CleanupPreviousInstances();
+  }
 }
 
 EvmClient::~EvmClient() { LOG_MARKER(); }
@@ -75,14 +77,16 @@ bool EvmClient::OpenServer() {
                                          EVM_LOG_CONFIG};
 
   try {
-    boost::process::child c(p, boost::process::args(args));
-    LOG_GENERAL(INFO, "child created ");
-    m_child = std::move(c);
-    pid_t thread_id = m_child.id();
-    if (thread_id > 0 && m_child.valid()) {
-      LOG_GENERAL(WARNING, "Valid child created at " << thread_id);
-    } else {
-      LOG_GENERAL(WARNING, "Valid child is not valid " << thread_id);
+    if (LAUNCH_EVM_DAEMON) {
+      boost::process::child c(p, boost::process::args(args));
+      LOG_GENERAL(INFO, "child created ");
+      m_child = std::move(c);
+      pid_t thread_id = m_child.id();
+      if (thread_id > 0 && m_child.valid()) {
+        LOG_GENERAL(WARNING, "Valid child created at " << thread_id);
+      } else {
+        LOG_GENERAL(WARNING, "Valid child is not valid " << thread_id);
+      }
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
