@@ -389,9 +389,9 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthBlockReceiptsI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
-        jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
-                           jsonrpc::JSON_STRING, "param01",
-                           jsonrpc::JSON_STRING, NULL),
+        jsonrpc::Procedure("debug_traceTransaction",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
         &LookupServer::DebugTraceTransactionI);
   }
 }

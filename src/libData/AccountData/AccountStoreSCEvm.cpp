@@ -21,8 +21,8 @@
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "common/Constants.h"
-#include "libPersistence/ContractStorage.h"
 #include "libPersistence/BlockStorage.h"
+#include "libPersistence/ContractStorage.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
@@ -409,10 +409,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           contractAccount, RUNNER_CREATE, params, evm_version,
           evm_call_run_succeeded, receipt, response);
 
-
-      if(response.Trace().size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(), response.Trace()[0])) {
-          LOG_GENERAL(INFO, "FAIL: Put TX trace failed " << transaction.GetTranID());
+      if (response.Trace().size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        response.Trace()[0])) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
         }
       }
 
@@ -573,10 +574,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);
 
-
-      if(response.Trace().size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(), response.Trace()[0])) {
-          LOG_GENERAL(INFO, "FAIL: Put TX trace failed " << transaction.GetTranID());
+      if (response.Trace().size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        response.Trace()[0])) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
         }
       }
 

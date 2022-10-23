@@ -202,8 +202,8 @@ class BlockStorage : public Singleton<BlockStorage> {
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
   /// Retrieves the requested transaction trace.
-  bool PutTxTrace(const dev::h256& key, const std::string &trace);
-  bool GetTxTrace(const dev::h256& key, std::string &trace);
+  bool PutTxTrace(const dev::h256& key, const std::string& trace);
+  bool GetTxTrace(const dev::h256& key, std::string& trace);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);

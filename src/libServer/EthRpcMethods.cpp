@@ -1589,7 +1589,6 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");

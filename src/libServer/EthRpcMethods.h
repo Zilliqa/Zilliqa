@@ -514,10 +514,9 @@ class EthRpcMethods {
    * @param response : transaction trace
    */
   inline virtual void DebugTraceTransactionI(const Json::Value& request,
-                                               Json::Value& response) {
+                                             Json::Value& response) {
     response = this->DebugTraceTransaction(request[0u].asString());
   }
-
 
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);

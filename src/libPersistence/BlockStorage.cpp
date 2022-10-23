@@ -599,7 +599,7 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   return GetTxBodyDB(epochNum)->Exists(keyBytes);
 }
 
-bool BlockStorage::GetTxTrace(const dev::h256& key, std::string &trace) {
+bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
   const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
@@ -619,8 +619,7 @@ bool BlockStorage::GetTxTrace(const dev::h256& key, std::string &trace) {
   return true;
 }
 
-bool BlockStorage::PutTxTrace(const dev::h256& key,
-                             const std::string& trace) {
+bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
     return false;
@@ -640,7 +639,7 @@ bool BlockStorage::PutTxTrace(const dev::h256& key,
   // Store txn hash and epoch inside txEpochs DB
   if (m_txTraceDB->Insert(key, trace) != 0) {
     LOG_GENERAL(WARNING, "Tx trace insertion failed. "
-        << " key=" << key);
+                             << " key=" << key);
     return false;
   }
 
