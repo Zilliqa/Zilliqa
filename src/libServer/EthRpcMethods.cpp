@@ -33,6 +33,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libEth/Eth.h"
 #include "libEth/Filters.h"
+#include "libEth/utils/EthUtils.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
@@ -409,13 +410,22 @@ std::string EthRpcMethods::CreateTransactionEth(
       const Account* toAccount =
           AccountStore::GetInstance().GetAccount(tx.GetToAddr(), true);
 
-      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice)) {
+      toAccountExist = (toAccount != nullptr);
+      toAccountIsContract = toAccountExist && toAccount->isContract();
+
+      uint64_t minGasLimit = 0;
+      if (Transaction::GetTransactionType(tx) ==
+          Transaction::ContractType::CONTRACT_CREATION) {
+        minGasLimit = Eth::getGasUnitsForContractDeployment(
+            DataConversion::CharArrayToString(tx.GetCode()),
+            DataConversion::CharArrayToString(tx.GetData()));
+      } else {
+        minGasLimit = MIN_ETH_GAS;
+      }
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice, minGasLimit)) {
         LOG_GENERAL(WARNING, "failed to validate TX!");
         return ret;
       }
-
-      toAccountExist = (toAccount != nullptr);
-      toAccountIsContract = toAccountExist && toAccount->isContract();
     }
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
@@ -705,6 +715,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            "Failed to get EVM call extras");
   }
 
+  const auto valStr = value.convert_to<std::string>();
   const EvmCallParameters params{
 
       toAddr.hex(), fromAddr.hex(),    code, data, gas,
@@ -715,8 +726,20 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
       response.Success()) {
     const auto gasRemained = response.Gas();
-    auto retGas = (gas >= gasRemained) ? (gas - gasRemained) : gas;
-    retGas = std::max(retGas, MIN_ETH_GAS);
+    const auto consumedEvmGas =
+        (gas >= gasRemained) ? (gas - gasRemained) : gas;
+    const auto baseFee = contractCreation
+                             ? Eth::getGasUnitsForContractDeployment(code, data)
+                             : 0;
+
+    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
+
+    // We can't go beyond gas provided by user (or taken from last block)
+    if (retGas >= gas) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                             "Base fee exceeds gas limit");
+    }
+
     return (boost::format("0x%x") % retGas).str();
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
