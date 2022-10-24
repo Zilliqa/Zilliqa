@@ -169,12 +169,10 @@ bool EvmClient::CallRunner(const Json::Value& _json,
     const auto oldJson = m_client->CallMethod("run", _json);
     try {
       const auto reply = evmproj::GetReturn(oldJson, result);
-      result.SetSuccess(true);
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception out of parsing json response " << e.what());
-      result.SetSuccess(false);
       return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
