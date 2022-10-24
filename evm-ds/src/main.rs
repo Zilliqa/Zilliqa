@@ -25,6 +25,7 @@ use evm::{
 use serde::ser::{Serialize, SerializeStructVariant, Serializer};
 
 use core::str::FromStr;
+use std::fmt::Debug;
 use log::{debug, error, info};
 
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
@@ -134,6 +135,7 @@ pub struct EvmResult {
     return_value: String,
     apply: Vec<DirtyState>,
     logs: Vec<EvmLog>,
+    trace: Vec<String>,
     remaining_gas: u64,
 }
 
@@ -251,7 +253,7 @@ async fn run_evm_impl(
             "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
             backend.extras, estimate);
-        let mut listener = LoggingEventListener;
+        let mut listener = LoggingEventListener{traces : Default::default()};
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -269,7 +271,6 @@ async fn run_evm_impl(
         let remaining_gas = executor.gas() / gas_scaling_factor;
         match result {
             Ok(exit_reason) => {
-                info!("Exit: {:?}", exit_reason);
                 let (state_apply, logs) = executor.into_state().deconstruct();
                 info!(
                     "Return value: {:?}",
@@ -278,6 +279,7 @@ async fn run_evm_impl(
                 Ok(EvmResult {
                     exit_reason,
                     return_value: hex::encode(runtime.machine().return_value()),
+                    trace: listener.traces,
                     apply: state_apply
                         .into_iter()
                         .map(|apply| match apply {
@@ -319,6 +321,7 @@ async fn run_evm_impl(
                     return_value: "".to_string(),
                     apply: vec![],
                     logs: vec![], // TODO: shouldn't we get the logs here too?
+                    trace: listener.traces,
                     remaining_gas,
                 })
             }
@@ -328,11 +331,13 @@ async fn run_evm_impl(
     .unwrap()
 }
 
-struct LoggingEventListener;
+struct LoggingEventListener {
+    pub traces: Vec<String>,
+}
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        debug!("EVM Event {:?}", event);
+        self.traces.push(format!("{:?}", event));
     }
 }
 

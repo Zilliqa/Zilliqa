@@ -354,6 +354,12 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &EthRpcMethods::GetEthBlockReceiptsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         NULL),
+      &EthRpcMethods::GetEthBlockReceiptsI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1580,4 +1586,29 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
   }
 
   return res;
+}
+
+Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "Sent to a non-lookup");
+  }
+  std::string trace;
+
+  try {
+    TxnHash tranHash(txHash);
+
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
+
+    if (!isPresent) {
+      return Json::nullValue;
+    }
+
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+
+  return trace;
 }
