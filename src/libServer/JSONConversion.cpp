@@ -134,9 +134,9 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
   retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
-  // sha3Uncles is calculated as keccak("")
+  // sha3Uncles is calculated as Keccak256(RLP([]))
   retJson["sha3Uncles"] =
-      "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470";
+      "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
   // Todo: research and possibly implement logs bloom filter
   retJson["logsBloom"] =
       "0x0000000000000000000000000000000000000000000000000000000000000000000000"

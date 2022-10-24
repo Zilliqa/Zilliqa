@@ -4,8 +4,14 @@ const general_helper = require("./GeneralHelper");
 var web3_helper = {
   primaryAccount: web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(0)),
 
+  secondaryAccount: web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1)),
+
   getPrimaryAccountAddress: function () {
     return this.primaryAccount.address;
+  },
+
+  getSecondaryAccountAddress: function () {
+    return this.secondaryAccount.address;
   },
 
   deploy: async function (contractName, options = {}, ...args) {

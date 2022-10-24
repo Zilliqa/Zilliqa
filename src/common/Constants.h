@@ -313,6 +313,7 @@ extern const std::string EVM_SERVER_BINARY;
 extern const std::string EVM_LOG_CONFIG;
 extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
+extern const bool LAUNCH_EVM_DAEMON;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
@@ -483,6 +484,7 @@ extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
+extern const uint64_t EVM_RPC_TIMEOUT_SECONDS;
 
 // TxBlockAux constants
 constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";

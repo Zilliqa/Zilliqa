@@ -226,6 +226,15 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             throw e;
           }
         }
+      } else if (node.key() == "trace") {
+        for (const auto& lg : node.value().items()) {
+          try {
+            fo.AddTrace(to_string(lg.value()));
+          } catch (const std::exception& e) {
+            LOG_GENERAL(WARNING, "Exception reading trace : " << e.what());
+            throw e;
+          }
+        }
       } else if (node.key() == "return_value") {
         if (node.value().is_string()) {
           const std::string node_value{node.value().get<std::string>()};

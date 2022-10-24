@@ -1,5 +1,7 @@
 const {expect} = require("chai");
-const {ethers} = require("hardhat");
+const {ethers, web3} = require("hardhat");
+const hre = require("hardhat");
+const helper = require("../helper/GeneralHelper");
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 1_000_000;
@@ -22,12 +24,15 @@ describe("Parent Child Contract Functionality", function () {
   describe("Install Child", function () {
     let childContract;
     let childContractAddress;
+    let installedChild;
     const CHILD_CONTRACT_VALUE = 12345;
+    before(async function () {
+      // Because childContractAddress is used in almost all of the following tests, it should be done in `before` block.
+      installedChild = await parentContract.installChild(CHILD_CONTRACT_VALUE, {gasLimit: 25000000});
+      childContractAddress = await parentContract.childAddress();
+    });
 
     it("Should instantiate a new child if installChild is called", async function () {
-      await parentContract.installChild(CHILD_CONTRACT_VALUE, {gasLimit: 25000000});
-      childContractAddress = await parentContract.childAddress();
-
       expect(childContractAddress).to.be.properAddress;
     });
 
@@ -40,8 +45,18 @@ describe("Parent Child Contract Functionality", function () {
       childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
         from: owner.address
       });
-
       expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
+    });
+
+    it("Should create a transaction trace after child creation", async function () {
+      const METHOD = "debug_traceTransaction";
+
+      await helper.callEthMethod(METHOD, 1, [installedChild.hash], (result, status) => {
+        hre.logDebug(result);
+
+        assert.equal(status, 200, "has status code");
+        assert.isString(result.result, "Expected to be populated");
+      });
     });
 
     it("Should return parent address if sender function of child is called", async function () {
@@ -50,10 +65,9 @@ describe("Parent Child Contract Functionality", function () {
 
     it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
       const [owner] = await ethers.getSigners();
-      await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address});
-
-      expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(0);
-      expect(await ethers.provider.getBalance(parentContract.address)).to.be.eq(INITIAL_FUND);
+      expect(
+        await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address})
+      ).to.changeEtherBalances([childContractAddress, parentContract.address], [-INITIAL_FUND, +INITIAL_FUND]);
     });
   });
 });
