@@ -45,10 +45,7 @@ class EvmClientMock : public EvmClient {
  public:
   EvmClientMock() = default;
 
-  bool CallRunner(uint32_t /*version*/,                 //
-                  const Json::Value& request,           //
-                  evmproj::CallResponse& /*response*/,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) override {
+  bool CallRunner(const Json::Value& request, evmproj::CallResponse&) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
     return true;
   };
@@ -185,15 +182,10 @@ class GetEthCallEvmClientMock : public EvmClient {
         m_ExpectedResponse(response),       // expected response
         m_AccountAddress(address),          // expected response
         m_DefaultWaitTime(defaultWaitTime)  // default waittime
-        {
-            //
-        };
+        {};
 
-  bool CallRunner(uint32_t /*version*/,             //
-                  const Json::Value& request,       //
-                  evmproj::CallResponse& response,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) override {
-    //
+  bool CallRunner(const Json::Value& request,
+                  evmproj::CallResponse& response) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
     Json::Reader _reader;
