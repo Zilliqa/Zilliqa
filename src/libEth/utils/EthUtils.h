@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBETH_ETHUTILS_H_
-#define ZILLIQA_SRC_LIBETH_ETHUTILS_H_
+#ifndef ZILLIQA_SRC_LIBETH_UTILS_ETHUTILS_H_
+#define ZILLIQA_SRC_LIBETH_UTILS_ETHUTILS_H_
 
 #include <cstdint>
 #include "common/BaseType.h"
@@ -28,4 +28,4 @@ uint64_t getGasUnitsForContractDeployment(const std::string& code,
 
 }  // namespace Eth
 
-#endif  // ZILLIQA_SRC_LIBETH_ETHUTILS_H_
+#endif  // ZILLIQA_SRC_LIBETH_UTILS_ETHUTILS_H_
