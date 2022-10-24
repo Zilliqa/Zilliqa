@@ -22,6 +22,7 @@
 #include "EvmClient.h"
 #include "common/Constants.h"
 #include "libEth/utils/EthUtils.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/EthRpcMethods.h"
 #include "libUtils/EvmCallParameters.h"
@@ -42,8 +43,14 @@ void AccountStoreSC<MAP>::EvmCallRunner(
   //
   // create a worker to be executed in the async method
   const auto worker = [&params, &ret, &version, &evmReturnValues]() -> void {
-    ret = EvmClient::GetInstance().CallRunner(
-        version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
+    try {
+      ret = EvmClient::GetInstance().CallRunner(
+          EvmUtils::GetEvmCallJson(params), evmReturnValues);
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
+    } catch (...) {
+      LOG_GENERAL(WARNING, "UnHandled Exception from underlying RPC call ");
+    }
   };
 
   const auto fut = std::async(std::launch::async, worker);
@@ -54,7 +61,9 @@ void AccountStoreSC<MAP>::EvmCallRunner(
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
-
+      if (LAUNCH_EVM_DAEMON) {
+        EvmClient::GetInstance().Reset();
+      }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
@@ -234,16 +243,15 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
   }
+
   return gas;
 }
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
                                        evmproj::CallResponse& response) {
-  uint32_t evm_version{0};
-
-  return EvmClient::GetInstance().CallRunner(
-      evm_version, EvmUtils::GetEvmCallJson(params), response);
+  return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(params),
+                                             response);
 }
 
 template <class MAP>
@@ -415,6 +423,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
+      if (response.Trace().size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        response.Trace()[0])) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+        }
+      }
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
@@ -572,6 +587,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       const uint64_t gasRemained = InvokeEvmInterpreter(
           contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
           receipt, response);
+
+      if (response.Trace().size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        response.Trace()[0])) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+        }
+      }
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
