@@ -23,29 +23,79 @@
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 
-void EvmClient::Init() {
+namespace {
+
+bool LaunchEvmDaemon(boost::process::child& child,
+                     const std::string& binaryPath,
+                     const std::string& socketPath) {
   LOG_MARKER();
-  LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
-                                        << " for communication");
-  if (LAUNCH_EVM_DAEMON) {
-    CleanupPreviousInstances();
+
+  const std::vector<std::string> args = {"--socket",
+                                         EVM_SERVER_SOCKET_PATH,
+                                         "--tracing",
+                                         "--zil-scaling-factor",
+                                         std::to_string(EVM_ZIL_SCALING_FACTOR),
+                                         "--log4rs",
+                                         EVM_LOG_CONFIG};
+
+  boost::filesystem::path bin_path(binaryPath);
+  boost::filesystem::path socket_path(socketPath);
+  boost::system::error_code ec;
+
+  if (boost::filesystem::exists(socket_path)) {
+    boost::filesystem::remove(socket_path, ec);
+    if (ec.failed()) {
+      LOG_GENERAL(WARNING, "Problem removing filesystem entry for socket ");
+    }
   }
+  if (not boost::filesystem::exists(bin_path)) {
+    LOG_GENERAL(WARNING, "Cannot create a subprocess that does not exist " +
+                             EVM_SERVER_BINARY);
+    return false;
+  }
+  boost::process::child c =
+      boost::process::child(bin_path, boost::process::args(args));
+  child = std::move(c);
+  pid_t thread_id = child.id();
+  if (thread_id > 0 && child.valid()) {
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "Valid child created at " << thread_id);
+    }
+  } else {
+    LOG_GENERAL(WARNING, "child is not valid " << thread_id);
+    return false;
+  }
+  int counter{0};
+  while (not boost::filesystem::exists(socket_path)) {
+    if ((counter++ % 10) == 0)
+      LOG_GENERAL(WARNING, "Awaiting Launch of the evm-ds daemon ");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
+  return true;
 }
 
-EvmClient::~EvmClient() { LOG_MARKER(); }
+bool CleanupPreviousInstances() {
+  std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
+  int sysRep = std::system(s.c_str());
+  if (sysRep != -1) {
+    LOG_GENERAL(INFO, "system call return value " << sysRep);
+  }
+  return true;
+}
 
-bool EvmClient::Terminate() {
+bool Terminate(boost::process::child& child,
+               const std::unique_ptr<jsonrpc::Client>& client) {
   LOG_MARKER();
   Json::Value _json;
   LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
   // call evm
   try {
-    const auto oldJson = m_client->CallMethod("die", _json);
+    const auto oldJson = client->CallMethod("die", _json);
   } catch (const std::exception& e) {
     LOG_GENERAL(WARNING, "Caught an exception calling die " << e.what());
     try {
-      if (m_child.running()) {
-        m_child.terminate();
+      if (child.running()) {
+        child.terminate();
       }
     } catch (const std::exception& e) {
       LOG_GENERAL(WARNING, "Exception caught terminating child " << e.what());
@@ -56,37 +106,33 @@ bool EvmClient::Terminate() {
   return true;
 }
 
-bool EvmClient::OpenServer() {
+}  // namespace
+
+void EvmClient::Init() {
   LOG_MARKER();
-  boost::filesystem::path p(EVM_SERVER_BINARY);
-
-  LOG_GENERAL(INFO, "OpenServer for EVM ");
-
-  if (not boost::filesystem::exists(p)) {
-    LOG_GENERAL(INFO, "Cannot create a subprocess that does not exist " +
-                          EVM_SERVER_BINARY);
-    return false;
+  LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
+                                        << " for communication");
+  if (LAUNCH_EVM_DAEMON) {
+    CleanupPreviousInstances();
   }
+}
 
-  const std::vector<std::string> args = {"--socket",
-                                         EVM_SERVER_SOCKET_PATH,
-                                         "--tracing",
-                                         "--zil-scaling-factor",
-                                         std::to_string(EVM_ZIL_SCALING_FACTOR),
-                                         "--log4rs",
-                                         EVM_LOG_CONFIG};
+void EvmClient::Reset() {
+  Terminate(m_child, m_client);
+  CleanupPreviousInstances();
+}
+
+EvmClient::~EvmClient() { LOG_MARKER(); }
+
+bool EvmClient::OpenServer() {
+  bool status{true};
+  LOG_MARKER();
+  LOG_GENERAL(INFO, "OpenServer for EVM ");
 
   try {
     if (LAUNCH_EVM_DAEMON) {
-      boost::process::child c(p, boost::process::args(args));
-      LOG_GENERAL(INFO, "child created ");
-      m_child = std::move(c);
-      pid_t thread_id = m_child.id();
-      if (thread_id > 0 && m_child.valid()) {
-        LOG_GENERAL(WARNING, "Valid child created at " << thread_id);
-      } else {
-        LOG_GENERAL(WARNING, "Valid child is not valid " << thread_id);
-      }
+      status =
+          LaunchEvmDaemon(m_child, EVM_SERVER_BINARY, EVM_SERVER_SOCKET_PATH);
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
@@ -95,50 +141,30 @@ bool EvmClient::OpenServer() {
     LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
     return false;
   }
-  // child should be running
-  // but we will give it a couple of seconds ...
-  std::this_thread::sleep_for(std::chrono::milliseconds(2000));
   try {
     m_connector = std::make_unique<evmdsrpc::EvmDsDomainSocketClient>(
         EVM_SERVER_SOCKET_PATH);
     m_client = std::make_unique<jsonrpc::Client>(*m_connector,
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {
-    // these methods do not throw ...
-    LOG_GENERAL(WARNING, "Unhandled Exception creating connector");
+    LOG_GENERAL(WARNING, "Unhandled Exception initialising client");
     return false;
   }
-  return true;
+  return status;
 }
 
-bool EvmClient::CleanupPreviousInstances() {
-  std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
-  int sysRep = std::system(s.c_str());
-  if (sysRep != 0) {
-    LOG_GENERAL(INFO, "system call return value " << sysRep);
-  }
-  return true;
-}
-
-bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
-                           evmproj::CallResponse& result,
-                           const uint32_t counter) {
+bool EvmClient::CallRunner(const Json::Value& _json,
+                           evmproj::CallResponse& result) {
   LOG_MARKER();
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
-  if (counter == 0 && LOG_SC) {
-    LOG_GENERAL(INFO, "tried to resend three times and failed");
-    return false;
-  }
-
   if (not m_child.running()) {
     if (not EvmClient::OpenServer()) {
       LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
       return false;
     }
   }
-
   try {
     const auto oldJson = m_client->CallMethod("run", _json);
     try {
@@ -147,25 +173,12 @@ bool EvmClient::CallRunner(uint32_t version, const Json::Value& _json,
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception out of parsing json response " << e.what());
-      result.SetSuccess(false);
       return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
-    while (true) {
-      LOG_GENERAL(WARNING,
-                  "RPC Exception calling EVM-DS : attempting server "
-                  "resend in 2 seconds "
-                      << e.what());
-      std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-      return CallRunner(version, _json, result, counter - 1);
-    }
-    LOG_GENERAL(WARNING, "Too many retry attempts not sending " << e.what());
-    result.SetSuccess(false);
-    return false;
+    throw e;
   } catch (...) {
     LOG_GENERAL(WARNING, "Exception caught executing run ");
     return false;
   }
-  result.SetSuccess(true);
-  return true;
 }

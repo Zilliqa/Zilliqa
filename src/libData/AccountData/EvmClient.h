@@ -33,8 +33,10 @@ namespace evmproj {
 struct CallResponse;
 }
 
-// Custom socket handler using asio
-// for evmclient connection to evm-ds
+// EvmDsDomainSocketClient
+//
+// This is a Custom socket handler using asio
+// for the evmclient connection to evm-ds
 
 namespace evmdsrpc {
 class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
@@ -104,7 +106,11 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
 
 }  // namespace evmdsrpc
 
-// The original interface
+/*
+ * EvmClient
+ * The Client interface to the EVM-daemon via jsonRpc
+ * uses jsoncpprpc but with our own custom client
+ */
 
 class EvmClient : public Singleton<EvmClient> {
  public:
@@ -116,23 +122,35 @@ class EvmClient : public Singleton<EvmClient> {
 
   virtual ~EvmClient();
 
+  // Init Routine Called once on System Startup as the EvmClient is accessed as
+  // a singleton.
+
   void Init();
 
-  virtual bool Terminate();
+  // Reset
+  // Use this method with care as it terminates the current instance of the
+  // evm-ds, first it does it politely, then it goes for the kill -9 approach
 
-  virtual bool CallRunner(uint32_t version, const Json::Value& _json,
-                          evmproj::CallResponse& result,
-                          const uint32_t counter = MAXRETRYCONN);
+  void Reset();
+
+  // CallRunner
+  // Invoked the RPC method contained within the _json parameter
+  // Returns a C++ object populated with the results.
+
+  virtual bool CallRunner(const Json::Value& _json,
+                          evmproj::CallResponse& result);
 
  protected:
+  // OpenServer
+  //
+  // Used by the custom network handler.
   virtual bool OpenServer();
-
-  virtual bool CleanupPreviousInstances();
 
  private:
   std::unique_ptr<jsonrpc::Client> m_client;
   std::unique_ptr<evmdsrpc::EvmDsDomainSocketClient> m_connector;
   boost::process::child m_child;
+  // In case we need to protect unsafe code in future.
   std::mutex m_mutexMain;
 };
 
