@@ -106,7 +106,7 @@ bool Terminate(boost::process::child& child,
   return true;
 }
 
-};  // namespace
+}  // namespace
 
 void EvmClient::Init() {
   LOG_MARKER();
