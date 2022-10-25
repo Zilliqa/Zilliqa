@@ -629,7 +629,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account* sender =
-        AccountStore::GetInstance().GetAccount(fromAddr, true);
+        !IsNullAddress(fromAddr)
+            ? AccountStore::GetInstance().GetAccount(fromAddr, true)
+            : nullptr;
     if (sender == nullptr) {
       LOG_GENERAL(WARNING, "Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -638,7 +640,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     accountFunds = sender->GetBalance();
 
     const Account* toAccount =
-        AccountStore::GetInstance().GetAccount(toAddr, true);
+        !IsNullAddress(toAddr)
+            ? AccountStore::GetInstance().GetAccount(toAddr, true)
+            : nullptr;
 
     if (toAccount != nullptr && toAccount->isContract()) {
       code = DataConversion::CharArrayToString(toAccount->GetCode());
