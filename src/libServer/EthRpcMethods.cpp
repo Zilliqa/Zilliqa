@@ -689,6 +689,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   // Typical fund transfer
   if (code.empty() && data.empty()) {
+    LOG_GENERAL(WARNING, "GetEthEstimateGas: regular transfer, replying with: "
+                             << MIN_ETH_GAS);
     return (boost::format("0x%x") % MIN_ETH_GAS).str();
   }
 
@@ -696,6 +698,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
+  LOG_GENERAL(WARNING, "GetEthEstimateGas: ContractCreation: "
+                           << contractCreation << ", codeSize: " << code.size()
+                           << ", dataSize: " << data.size());
   uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
 
   // Use gas specified by user
@@ -736,7 +741,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : 0;
-
+    LOG_GENERAL(WARNING, "GetEthEstimateGas: BaseFee: "
+                             << baseFee << ", evmFee: " << consumedEvmGas);
     const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
 
     // We can't go beyond gas provided by user (or taken from last block)
@@ -744,7 +750,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Base fee exceeds gas limit");
     }
-
+    LOG_GENERAL(WARNING, "GetEthEstimateGas: Return total (contractCreation: "
+                             << contractCreation << "), gas: " << retGas);
     return (boost::format("0x%x") % retGas).str();
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
