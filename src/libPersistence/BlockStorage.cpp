@@ -69,6 +69,7 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   if (LOOKUP_NODE_MODE) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
+    m_txTraceDB = std::make_shared<LevelDB>("txTraces");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -140,6 +141,13 @@ bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
   const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   // Store txn hash and epoch inside txEpochs DB
   if (m_txEpochDB->Insert(keyBytes, epoch) != 0) {
@@ -534,6 +542,13 @@ bool BlockStorage::GetTxBody(const dev::h256& key, TxBodySharedPtr& body) {
 
   lock_guard<mutex> g(m_mutexTxBody);
 
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
     return false;
@@ -562,6 +577,13 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
 
   lock_guard<mutex> g(m_mutexTxBody);
 
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
     return false;
@@ -575,6 +597,53 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   }
 
   return GetTxBodyDB(epochNum)->Exists(keyBytes);
+}
+
+bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  trace = m_txTraceDB->Lookup(keyBytes);
+
+  if (trace.empty()) {
+    return false;
+  }
+  return true;
+}
+
+bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  // Store txn hash and epoch inside txEpochs DB
+  if (m_txTraceDB->Insert(key, trace) != 0) {
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
+                             << " key=" << key);
+    return false;
+  }
+
+  return true;
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
@@ -606,6 +675,13 @@ bool BlockStorage::DeleteTxBody(const dev::h256& key) {
   const zbytes& keyBytes = key.asBytes();
 
   lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txEpochDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string epochString = m_txEpochDB->Lookup(keyBytes);
   if (epochString.empty()) {
@@ -695,6 +771,13 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
 
   unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
+  if (!m_extSeedPubKeysDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   string keyStr = "0000000001";
   uint32_t key;
   leveldb::Iterator* it =
@@ -727,6 +810,13 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
 
   unique_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
 
+  if (!m_extSeedPubKeysDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   leveldb::Iterator* it =
       m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
   zbytes data;
@@ -752,6 +842,13 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
   LOG_MARKER();
 
   shared_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
+
+  if (!m_extSeedPubKeysDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   leveldb::Iterator* it =
       m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
@@ -1450,6 +1547,13 @@ bool BlockStorage::PutMinerInfoDSComm(const uint64_t& dsBlockNum,
 
   unique_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
 
+  if (!m_minerInfoDSCommDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   if (0 != m_minerInfoDSCommDB->Insert(dsBlockNum, data)) {
     LOG_GENERAL(WARNING, "Failed to store miner info");
     return false;
@@ -1462,6 +1566,13 @@ bool BlockStorage::GetMinerInfoDSComm(const uint64_t& dsBlockNum,
                                       MinerInfoDSComm& entry) {
   LOG_MARKER();
   bool found = false;
+
+  if (!m_minerInfoDSCommDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string dataStr;
   {
@@ -1492,6 +1603,13 @@ bool BlockStorage::PutMinerInfoShards(const uint64_t& dsBlockNum,
 
   unique_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
 
+  if (!m_minerInfoShardsDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
   if (0 != m_minerInfoShardsDB->Insert(dsBlockNum, data)) {
     LOG_GENERAL(WARNING, "Failed to store miner info");
     return false;
@@ -1504,6 +1622,13 @@ bool BlockStorage::GetMinerInfoShards(const uint64_t& dsBlockNum,
                                       MinerInfoShards& entry) {
   LOG_MARKER();
   bool found = false;
+
+  if (!m_minerInfoShardsDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
 
   string dataStr;
   {

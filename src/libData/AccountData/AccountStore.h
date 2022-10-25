@@ -38,6 +38,7 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/ScillaIPCServer.h"
+#include "libUtils/TxnExtras.h"
 
 using StateHash = dev::h256;
 
@@ -158,6 +159,7 @@ class AccountStore
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,
                           const Transaction& transaction,
+                          const TxnExtras& txnExtras,
                           TransactionReceipt& receipt, TxnStatus& error_code);
 
   /// add account in AccountStoreTemp
@@ -253,12 +255,6 @@ class AccountStore
   std::condition_variable_any& GetPrimaryWriteAccessCond() {
     return m_writeCond;
   }
-
-  bool MigrateContractStates(
-      bool ignoreCheckerFailure, bool disambiguation,
-      const std::string& contract_address_output_filename,
-      const std::string& normal_address_output_filename,
-      const uint64_t& updateDiskFrequency);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

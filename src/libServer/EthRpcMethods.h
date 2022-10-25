@@ -47,6 +47,7 @@ class EthRpcMethods {
 
   virtual void GetEthCallEthI(const Json::Value& request,
                               Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->GetEthCallEth(request[0u], request[1u].asString());
     LOG_GENERAL(DEBUG, "EthCall response:" << response);
   }
@@ -65,12 +66,14 @@ class EthRpcMethods {
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
                                            Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response =
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
   }
 
   inline virtual void GetEthBlockByHashI(const Json::Value& request,
                                          Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response =
         this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
   }
@@ -95,12 +98,10 @@ class EthRpcMethods {
    * @param request none
    * @param response Hex string with the estimated gasprice
    */
-  inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
+  inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                          Json::Value& response) {
-    // TODO: implement eth_estimateGas for real.
-    // At the moment, the default value of 300,000 gas will allow to proceed
-    // with the internal/external testnet testing before it is implemented.
-    response = "0x493e0";
+    EnsureEvmAndLookupEnabled();
+    response = this->GetEthEstimateGas(request[0u]);
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
@@ -117,6 +118,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
+    EnsureEvmAndLookupEnabled();
     response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
@@ -486,8 +488,8 @@ class EthRpcMethods {
   /**
    * @brief Handles json rpc 2.0 request on method:
    * eth_getFilterLogs
-   * @param request : params: event filter params json object
-   * @param response : Json array of items applicable to the filter
+   * @param request : params: Transaction rlp as string
+   * @param response : Address of the sender of the RLP
    */
   virtual void EthRecoverTransactionI(const Json::Value& request,
                                       Json::Value& response) {
@@ -495,10 +497,32 @@ class EthRpcMethods {
     response = this->EthRecoverTransaction(request[0u].asString());
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method:
+   * eth_getFilterLogs
+   * @param request : params: Bloc number, hash or identifier as string
+   * @param response : Json array of transaction receipts from block
+   */
+  inline virtual void GetEthBlockReceiptsI(const Json::Value& request,
+                                           Json::Value& response) {
+    response = this->GetEthBlockReceipts(request[0u].asString());
+  }
+
+  /**
+   * @brief Handles json rpc 2.0 request on method: debug_traceTransaction
+   * @param request : transaction hash
+   * @param response : transaction trace
+   */
+  inline virtual void DebugTraceTransactionI(const Json::Value& request,
+                                             Json::Value& response) {
+    response = this->DebugTraceTransaction(request[0u].asString());
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
                             const std::string& block_or_tag);
+  std::string GetEthEstimateGas(const Json::Value& _json);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
   Json::Value GetBalanceAndNonce(const std::string& address);
   std::string GetWeb3ClientVersion();
@@ -536,6 +560,7 @@ class EthRpcMethods {
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value GetEthGasPrice() const;
+  uint256_t GetEthGasPriceNum() const;
 
   std::string CreateTransactionEth(
       Eth::EthFields const& fields, zbytes const& pubKey,
@@ -562,6 +587,9 @@ class EthRpcMethods {
   Json::Value EthGetLogs(const Json::Value& param);
 
   std::string EthRecoverTransaction(const std::string& txnRpc) const;
+
+  Json::Value GetEthBlockReceipts(const std::string& blockId);
+  Json::Value DebugTraceTransaction(const std::string& txHash);
 
   void EnsureEvmAndLookupEnabled();
 

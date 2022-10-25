@@ -1479,6 +1479,63 @@ def test_eth_recoverTransaction(url: str, account: eth_account.signers.local.Loc
 
     return True
 
+def eth_getBlockReceipts(url: str, account: eth_account.signers.local.LocalAccount, w3: Web3) -> bool:
+    """
+        Returns the receipt of a transaction by transaction hash.
+    """
+    try:
+        # Submit a normal transaction to self
+        nonce = w3.eth.getTransactionCount(account.address)
+
+        transaction = {
+            'to': account.address,
+            'from':account.address,
+            'value':int(0),
+            'data':"",
+            'gas':GAS_LIMIT,
+            'gasPrice':int(GAS_PRICE*(10**9)),
+            'chainId':CHAIN_ID,
+            'nonce':int(nonce)
+        }
+
+        signed_transaction = account.signTransaction(transaction)
+
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_sendRawTransaction",
+                                            "params": [signed_transaction.rawTransaction.hex()]})
+
+        res = get_result(response)
+
+        # Here rely on another api call to find the block the TX was in.
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getTransactionReceipt", "params": [res] })
+
+        res = get_result(response)
+
+        if "blockHash" not in res:
+            raise Exception(f"Did not find block hash from TX receipt")
+
+        if res == "" or res is None:
+            raise Exception(f"Did not get TX receipt for eth_sendRawTransaction. Got: {res}")
+
+        # First path: Full TX formats
+        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_getBlockReceipts", "params": [res["blockHash"]] })
+
+        res = get_result(response)
+
+        if not isinstance(res, list):
+            raise Exception(f"Did not get a list response: {res}")
+
+        if len(res) <= 0:
+            raise Exception(f"Did not get anything in the list response: {res}")
+
+        checkIsTransactionReceipt(res[0])
+
+    except Exception as e:
+        print(f"********* Failed test eth_getBlockReceipts with error: '{e}'")
+        print(f"\n\nTraceback: {traceback.format_exc()}")
+        return False
+
+    return True
+
 def parse_commandline():
     parser = argparse.ArgumentParser()
     parser.add_argument('--api', type=str, required=True, help='API to test against')
@@ -1564,6 +1621,7 @@ def main():
 
     # Non-standard (for fireblocks)
     ret &= test_eth_recoverTransaction(args.api, account, w3)
+    ret &= eth_getBlockReceipts(args.api, account, w3)
 
     if not ret:
         print(f"Test failed")

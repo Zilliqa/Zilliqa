@@ -8,12 +8,13 @@ describe("Contract destruction with web3.js", function () {
   const gasLimit = "750000";
   const amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
   let options;
-  before(async function () {
-    contract = await web3_helper.deploy("ParentContract", {gasLimit, value: amountPaid});
-    options = await web3_helper.getCommonOptions();
-  });
 
   describe("When a user method call", function () {
+    before(async function () {
+      contract = await web3_helper.deploy("ParentContract", {gasLimit, value: amountPaid});
+      options = await web3_helper.getCommonOptions();
+    });
+
     it("should be destructed and coins in the contract should be transferred to the address specified in the method [@transactional]", async function () {
       expect(await contract.methods.getPaidValue().call(options)).to.be.eq(amountPaid);
       const destAccount = await web3.eth.accounts.privateKeyToAccount(general_helper.getPrivateAddressAt(1)).address;
@@ -30,6 +31,11 @@ describe("Contract destruction with web3.js", function () {
   });
 
   describe("When a method call happens through another contract", function () {
+    before(async function () {
+      contract = await web3_helper.deploy("ParentContract", {gasLimit, value: amountPaid});
+      options = await web3_helper.getCommonOptions();
+    });
+
     it("Should be destructed and coins in the contract should be transferred to the address specified in the method [@transactional]", async function () {
       const result = await contract.methods
         .installChild(123)

@@ -114,7 +114,7 @@ bool SCILLA_PPLIT_FLAG = true;
 // General constants
 const unsigned int DEBUG_LEVEL{ReadConstantNumeric("DEBUG_LEVEL")};
 const bool ENABLE_DO_REJOIN{ReadConstantString("ENABLE_DO_REJOIN") == "true"};
-const bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
+bool LOOKUP_NODE_MODE{ReadConstantString("LOOKUP_NODE_MODE") == "true"};
 const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA{
     ReadConstantNumeric("MAX_ENTRIES_FOR_DIAGNOSTIC_DATA")};
 const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
@@ -758,3 +758,7 @@ const uint64_t EVM_ZIL_SCALING_FACTOR{
     ReadConstantUInt64("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.", 1)};
 const uint64_t EVM_BLOCK_LOOKUP_LIMIT{
     ReadConstantUInt64("EVM_BLOCK_LOOKUP_LIMIT", "node.jsonrpc.", 50)};
+const uint64_t EVM_RPC_TIMEOUT_SECONDS{
+    ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
+const bool LAUNCH_EVM_DAEMON{
+    ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};

@@ -23,6 +23,7 @@
 #include <boost/multiprecision/cpp_int.hpp>
 #include "libData/AccountData/InvokeType.h"
 #include "libUtils/EvmCallParameters.h"
+#include "libUtils/TxnExtras.h"
 
 // fwd decls
 
@@ -42,5 +43,8 @@ class EvmUtils {
 
   static bool isEvm(const zbytes& code);
 };
+
+bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
+                      EvmCallExtras& extras_out);
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_

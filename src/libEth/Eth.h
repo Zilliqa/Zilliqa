@@ -60,7 +60,8 @@ Json::Value populateReceiptHelper(
 EthFields parseRawTxFields(std::string const &message);
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
-                    const Account *sender, const uint128_t &gasPrice);
+                    const Account *sender, const uint128_t &gasPrice,
+                    uint64_t minGasLimit);
 void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,

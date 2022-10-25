@@ -16,17 +16,17 @@ describe("Transfer functionality", function () {
   });
 
   it(`Should move ${ethers.utils.formatEther(FUND)} ethers to the contract if deposit is called`, async function () {
-    await contract.deposit({value: FUND});
-    expect(await ethers.provider.getBalance(contract.address)).to.be.eq(FUND);
+    expect(await contract.deposit({value: FUND})).changeEtherBalance(contract.address, FUND);
   });
 
   // TODO: Add notPayable contract function test.
 
-  // FIXME: In ZIL-4890
-  xit("Should move 1 ether to the owner if withdraw function is called so 1 ether is left for the contract itself [@transactional]", async function () {
+  it("Should move 1 ether to the owner if withdraw function is called so 1 ether is left for the contract itself [@transactional]", async function () {
     const [owner] = await ethers.getSigners();
-    await expect(contract.withdraw())
-      .to.changeEtherBalance(contract.address, ethers.utils.parseEther("-1.0"))
-      .to.changeEtherBalance(owner.address, ethers.utils.parseEther("1.0"));
+    expect(await contract.withdraw()).to.changeEtherBalances(
+      [contract.address, owner.address],
+      [ethers.utils.parseEther("-1.0"), ethers.utils.parseEther("1.0")],
+      {includeFee: true}
+    );
   });
 });

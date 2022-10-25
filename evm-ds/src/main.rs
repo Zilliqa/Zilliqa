@@ -30,6 +30,7 @@ use serde::ser::{Serialize, SerializeStructVariant, Serializer};
 
 use core::str::FromStr;
 use log::{debug, error, info};
+use std::fmt::Debug;
 
 use continuation::Continuation;
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
@@ -109,6 +110,16 @@ impl Serialize for DirtyState {
     }
 }
 
+#[derive(Debug, serde::Deserialize)]
+pub struct EvmEvalExtras {
+    chain_id: u32,
+    block_timestamp: u64,
+    block_gas_limit: u64,
+    block_difficulty: u64,
+    block_number: u64,
+    gas_price: String, // a 128-bit number to be handled nicely by JSON.
+}
+
 #[derive(serde::Serialize)]
 struct EvmLog {
     pub address: H160,
@@ -132,6 +143,7 @@ pub struct EvmResult {
     return_value: String,
     apply: Vec<DirtyState>,
     logs: Vec<EvmLog>,
+    trace: Vec<String>,
     remaining_gas: u64,
 }
 
@@ -152,6 +164,8 @@ pub trait Rpc: Send + 'static {
         data: String,
         apparent_value: String,
         gas_limit: u64,
+        extras: EvmEvalExtras,
+        estimate: bool,
     ) -> BoxFuture<Result<EvmResult>>;
 
     #[rpc(name = "run_cont")]
@@ -215,11 +229,13 @@ impl Rpc for EvmServer {
         data_hex: String,
         apparent_value: String,
         gas_limit: u64,
+        extras: EvmEvalExtras,
+        estimate: bool,
     ) -> BoxFuture<Result<EvmResult>> {
         let origin = H160::from_str(&origin);
         match origin {
             Ok(origin) => {
-                let backend = ScillaBackend::new(self.backend_config.clone(), origin);
+                let backend = ScillaBackend::new(self.backend_config.clone(), origin, extras);
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
                 Box::pin(run_evm_impl(
@@ -231,6 +247,7 @@ impl Rpc for EvmServer {
                     backend,
                     tracing,
                     gas_scaling_factor,
+                    estimate,
                 ))
             }
             Err(e) => Box::pin(futures::future::err(Error::invalid_params(format!(
@@ -273,6 +290,7 @@ async fn run_evm_impl(
     backend: ScillaBackend,
     tracing: bool,
     gas_scaling_factor: u64,
+    estimate: bool,
 ) -> Result<EvmResult> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
@@ -289,7 +307,7 @@ async fn run_evm_impl(
                 Error::invalid_params(format!("data: '{}...' {}", &data_hex[..10], e))
             })?);
 
-        let config = evm::Config::london();
+        let config = evm::Config{ estimate, ..evm::Config::london()};
         let apparent_value = U256::from_dec_str(&apparent_value)
             .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?;
         let context = evm::Context {
@@ -310,10 +328,10 @@ async fn run_evm_impl(
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
 
         info!(
-            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}",
+            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
-        );
-        let mut listener = LoggingEventListener;
+            backend.extras, estimate);
+        let mut listener = LoggingEventListener{traces : Default::default()};
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -331,7 +349,6 @@ async fn run_evm_impl(
         let remaining_gas = executor.gas() / gas_scaling_factor;
         match result {
             Ok(exit_reason) => {
-                info!("Exit: {:?}", exit_reason);
                 let (state_apply, logs) = executor.into_state().deconstruct();
                 info!(
                     "Return value: {:?}",
@@ -340,6 +357,7 @@ async fn run_evm_impl(
                 Ok(EvmResult {
                     exit_reason,
                     return_value: hex::encode(runtime.machine().return_value()),
+                    trace: listener.traces,
                     apply: state_apply
                         .into_iter()
                         .map(|apply| match apply {
@@ -381,6 +399,7 @@ async fn run_evm_impl(
                     return_value: "".to_string(),
                     apply: vec![],
                     logs: vec![], // TODO: shouldn't we get the logs here too?
+                    trace: listener.traces,
                     remaining_gas,
                 })
             }
@@ -390,11 +409,13 @@ async fn run_evm_impl(
     .unwrap()
 }
 
-struct LoggingEventListener;
+struct LoggingEventListener {
+    pub traces: Vec<String>,
+}
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        debug!("EVM Event {:?}", event);
+        self.traces.push(format!("{:?}", event));
     }
 }
 
