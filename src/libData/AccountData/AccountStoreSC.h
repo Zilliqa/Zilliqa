@@ -212,8 +212,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   uint64_t InvokeEvmInterpreter(Account* contractAccount,
                                 INVOKE_TYPE invoke_type,
-                                EvmCallParameters& params,
-                                const uint32_t& version, bool& ret,
+                                EvmCallParameters& params, bool& ret,
                                 TransactionReceipt& receipt,
                                 evmproj::CallResponse& evmReturnValues);
 

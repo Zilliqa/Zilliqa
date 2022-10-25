@@ -76,8 +76,8 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, const uint32_t& version, bool& ret,
-    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+    EvmCallParameters& params, bool& ret, TransactionReceipt& receipt,
+    evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
   EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
 
@@ -346,8 +346,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      uint32_t evm_version{0};
-
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
@@ -416,7 +414,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
       evmproj::CallResponse response;
       auto gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CREATE, params, evm_version,
+          contractAccount, RUNNER_CREATE, params,
           evm_call_run_succeeded, receipt, response);
 
       // Decrease remained gas by baseFee (which is not taken into account by
@@ -530,7 +528,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       m_curBlockNum = blockNum;
-      uint32_t evm_version{0};
 
       DiscardAtomics();
       const uint128_t amountToDecrease =
@@ -584,7 +581,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
                                                   << params.m_caller);
       evmproj::CallResponse response;
       const uint64_t gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
+          contractAccount, RUNNER_CALL, params, evm_call_succeeded,
           receipt, response);
 
       if (response.Trace().size() > 0) {
