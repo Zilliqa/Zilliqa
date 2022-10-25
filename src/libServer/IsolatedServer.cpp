@@ -18,6 +18,7 @@
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
 #include "common/Constants.h"
+#include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
@@ -736,7 +737,18 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei)) {
+      uint64_t minGasLimit = 0;
+      if (Transaction::GetTransactionType(tx) ==
+          Transaction::ContractType::CONTRACT_CREATION) {
+        minGasLimit = Eth::getGasUnitsForContractDeployment(
+            DataConversion::CharArrayToString(tx.GetCode()),
+            DataConversion::CharArrayToString(tx.GetData()));
+      } else {
+        minGasLimit = MIN_ETH_GAS;
+      }
+      LOG_GENERAL(WARNING, "Minium gas units required: " << minGasLimit);
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei,
+                               minGasLimit)) {
         return ret;
       }
 

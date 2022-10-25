@@ -21,8 +21,10 @@
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "common/Constants.h"
+#include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+#include "libServer/EthRpcMethods.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
@@ -293,11 +295,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
+      const auto baseFee = Eth::getGasUnitsForContractDeployment(
+          DataConversion::CharArrayToString(transaction.GetCode()),
+          DataConversion::CharArrayToString(transaction.GetData()));
 
       // Check if gaslimit meets the minimum requirement for contract deployment
-      if (transaction.GetGasLimitEth() < MIN_ETH_GAS) {
+      if (transaction.GetGasLimitEth() < baseFee) {
         LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitEth()
-                                          << " less than " << MIN_ETH_GAS);
+                                          << " less than " << baseFee);
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         return false;
       }
@@ -411,10 +416,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
       evmproj::CallResponse response;
-      const auto gasRemained = InvokeEvmInterpreter(
+      auto gasRemained = InvokeEvmInterpreter(
           contractAccount, RUNNER_CREATE, params, evm_version,
           evm_call_run_succeeded, receipt, response);
 
+      // Decrease remained gas by baseFee (which is not taken into account by
+      // EVM)
+      gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
                                                         response.Trace()[0])) {
@@ -605,10 +613,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      if (!this->IncreaseBalance(
-              fromAddr,
+      if (!this->IncreaseBalance(fromAddr,
 
-              gasRefund / EVM_ZIL_SCALING_FACTOR / EVM_ZIL_SCALING_FACTOR)) {
+                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 
