@@ -18,7 +18,6 @@ use crate::ipc_connect;
 use crate::protos::ScillaMessage;
 use crate::EvmEvalExtras;
 
-
 #[derive(Clone)]
 pub struct ScillaBackendConfig {
     // Path to the Unix domain socket over which we talk to the Node.
@@ -115,7 +114,6 @@ impl ScillaBackend {
             null
         }
     }
-    
 
     fn query_state_value(
         &self,

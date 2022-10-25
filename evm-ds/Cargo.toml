@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = { version = "1.0.56", default-features = false }
+async-scoped = { version = "0.7", features = ["use-tokio"] }
 base64 = "0.13.0"
 witnet-bn = "0.4.5"
 bytes = "1.1.0"
