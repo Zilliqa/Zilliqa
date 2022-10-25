@@ -162,7 +162,6 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
 
   bool isScilla = !EvmUtils::isEvm(code);
 
-  if (isContract()) {
   if (isContract() || IsLibrary()) {
     LOG_GENERAL(WARNING, "Already Initialized");
     return false;
