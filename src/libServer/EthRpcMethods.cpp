@@ -721,7 +721,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            "Failed to get EVM call extras");
   }
 
-  const auto valStr = value.convert_to<std::string>();
   const EvmCallParameters params{
 
       toAddr.hex(), fromAddr.hex(),    code, data, gas,
