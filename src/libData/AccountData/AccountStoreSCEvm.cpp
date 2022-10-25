@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+//
 #include <chrono>
 #include <future>
 #include <vector>
@@ -36,13 +36,12 @@ template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
     EvmCallParameters& params,          //
-    const uint32_t version,             //
     bool& ret,                          //
     TransactionReceipt& receipt,        //
     evmproj::CallResponse& evmReturnValues) {
   //
   // create a worker to be executed in the async method
-  const auto worker = [&params, &ret, &version, &evmReturnValues]() -> void {
+  const auto worker = [&params, &ret, &evmReturnValues]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(
           EvmUtils::GetEvmCallJson(params), evmReturnValues);
@@ -77,10 +76,10 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, const uint32_t& version, bool& ret,
-    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+    EvmCallParameters& params, bool& ret, TransactionReceipt& receipt,
+    evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
-  EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
+  EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
 
   if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
@@ -347,8 +346,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      uint32_t evm_version{0};
-
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
@@ -416,9 +413,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
       evmproj::CallResponse response;
-      auto gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CREATE, params, evm_version,
-          evm_call_run_succeeded, receipt, response);
+      auto gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
+                               evm_call_run_succeeded, receipt, response);
 
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
@@ -531,7 +528,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       m_curBlockNum = blockNum;
-      uint32_t evm_version{0};
 
       DiscardAtomics();
       const uint128_t amountToDecrease =
@@ -584,9 +580,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
                                                   << " caller account is "
                                                   << params.m_caller);
       evmproj::CallResponse response;
-      const uint64_t gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
-          receipt, response);
+      const uint64_t gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
+                               evm_call_succeeded, receipt, response);
 
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
