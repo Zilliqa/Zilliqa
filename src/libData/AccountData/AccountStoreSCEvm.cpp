@@ -413,9 +413,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
       evmproj::CallResponse response;
-      auto gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CREATE, params,
-          evm_call_run_succeeded, receipt, response);
+      auto gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
+                               evm_call_run_succeeded, receipt, response);
 
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
@@ -580,9 +580,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
                                                   << " caller account is "
                                                   << params.m_caller);
       evmproj::CallResponse response;
-      const uint64_t gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CALL, params, evm_call_succeeded,
-          receipt, response);
+      const uint64_t gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
+                               evm_call_succeeded, receipt, response);
 
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),

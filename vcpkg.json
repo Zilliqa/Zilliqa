@@ -29,7 +29,7 @@
     "g3log",
     "schnorr"
   ],
-  "builtin-baseline": "6ca56aeb457f033d344a7106cb3f9f1abf8f4e98",
+  "builtin-baseline": "7ad236f60f5f7197e93c4d7f0807622f4899076d",
   "overrides": [
     {
       "name": "nlohmann-json",
