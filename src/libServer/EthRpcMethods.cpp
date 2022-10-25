@@ -647,6 +647,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                                               TRANSACTION_VERSION_ETH);
       contractCreation = true;
     }
+
+    LOG_GENERAL(WARNING,
+                "GetEthEstimateGas: toAccount is: "
+                    << (toAccount == nullptr ? "nullptr" : "existing"));
   }
 
   std::string data;
@@ -736,6 +740,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
       response.Success()) {
     const auto gasRemained = response.Gas();
+    LOG_GENERAL(WARNING, "GetEthEstimateGas: Remained gas: "
+                             << gasRemained << ", input: " << gas);
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
