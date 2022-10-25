@@ -176,8 +176,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
   void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
-                     const uint32_t version, bool& ret,
-                     TransactionReceipt& receipt,
+                     bool& ret, TransactionReceipt& receipt,
                      evmproj::CallResponse& evmReturnValues);
 
   /// Amount Transfer

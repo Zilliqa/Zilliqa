@@ -36,13 +36,12 @@ template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
     EvmCallParameters& params,          //
-    const uint32_t version,             //
     bool& ret,                          //
     TransactionReceipt& receipt,        //
     evmproj::CallResponse& evmReturnValues) {
   //
   // create a worker to be executed in the async method
-  const auto worker = [&params, &ret, &version, &evmReturnValues]() -> void {
+  const auto worker = [&params, &ret, &evmReturnValues]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(
           EvmUtils::GetEvmCallJson(params), evmReturnValues);
@@ -80,7 +79,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     EvmCallParameters& params, const uint32_t& version, bool& ret,
     TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
-  EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
+  EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
 
   if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
