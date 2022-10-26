@@ -136,7 +136,13 @@ void AccountBase::SetCodeHash(const dev::h256& codeHash) {
 
 const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
 
-bool AccountBase::isContract() const { return m_codeHash != dev::h256(); }
+bool Account::isContract() const {
+  return (!m_is_library && m_codeHash != dev::h256());
+}
+
+bool Account::IsLibrary() const {
+  return (m_is_library && m_codeHash != dev::h256());
+}
 
 // =======================================
 // Account
@@ -156,7 +162,7 @@ bool Account::InitContract(const bytes& code, const bytes& initData,
 
   bool isScilla = !EvmUtils::isEvm(code);
 
-  if (isContract()) {
+  if (isContract() || IsLibrary()) {
     LOG_GENERAL(WARNING, "Already Initialized");
     return false;
   }
@@ -504,7 +510,7 @@ bool Account::SetCode(const bytes& code) {
 }
 
 const bytes Account::GetCode() const {
-  if (!isContract()) {
+  if (!isContract() && !IsLibrary()) {
     return {};
   }
 
@@ -529,7 +535,8 @@ bool Account::GetContractCodeHash(dev::h256& contractCodeHash) const {
 
 bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
                                      std::vector<Address>& extlibs) {
-  if (!isContract()) {
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(INFO, "Not a contract or library");
     return false;
   }
 
@@ -546,8 +553,8 @@ bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
 }
 
 bool Account::RetrieveContractAuxiliaries() {
-  if (!isContract()) {
-    LOG_GENERAL(WARNING, "Not a contract");
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(WARNING, "Not a contract or library");
     return false;
   }
 
@@ -571,7 +578,8 @@ bool Account::SetInitData(const bytes& initData) {
 }
 
 const bytes Account::GetInitData() const {
-  if (!isContract()) {
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(INFO, "Not a contract or library");
     return {};
   }
 
