@@ -700,9 +700,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
-  LOG_GENERAL(WARNING, "GetEthEstimateGas: ContractCreation: "
-                           << contractCreation << ", codeSize: " << code.size()
-                           << ", dataSize: " << data.size());
   uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
 
   // Use gas specified by user
