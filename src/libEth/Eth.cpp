@@ -155,7 +155,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
             std::to_string(DataConversion::UnpackB(tx.GetVersion())));
   }
 
-  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+  // While checking the contract size, account for Hex representation
+  // with the 'EVM' prefix.
+  if (tx.GetCode().size() > 2 * MAX_EVM_CONTRACT_SIZE_BYTES + 3) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Code size is too large");
   }
