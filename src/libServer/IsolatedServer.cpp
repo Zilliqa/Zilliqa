@@ -1069,23 +1069,6 @@ void IsolatedServer::PostTxBlock() {
   lock_guard<mutex> g(m_blockMutex);
   TxBlock txBlock = GenerateTxBlock();
 
-  Json::Value j_txnhashes;
-  if (ENABLE_WEBSOCKET || ENABLE_EVM) {
-    try {
-      j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
-    } catch (const exception& e) {
-      j_txnhashes = Json::arrayValue;
-    }
-  }
-
-  if (ENABLE_WEBSOCKET) {
-    // send tx block and attach txhashes
-    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
-        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
-
-    // send event logs
-    WebsocketServer::GetInstance().SendOutMessages();
-  }
   m_mediator.m_txBlockChain.AddBlock(txBlock);
 
   zbytes serializedTxBlock;
@@ -1096,6 +1079,22 @@ void IsolatedServer::PostTxBlock() {
   }
   AccountStore::GetInstance().MoveUpdatesToDisk();
   AccountStore::GetInstance().InitTemp();
+
+  if (ENABLE_WEBSOCKET) {
+    Json::Value j_txnhashes;
+    try {
+      j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
+    } catch (const exception& e) {
+      j_txnhashes = Json::arrayValue;
+    }
+
+    // send tx block and attach txhashes
+    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+
+    // send event logs
+    WebsocketServer::GetInstance().SendOutMessages();
+  }
 
   m_blocknum++;
   m_currEpochGas = 0;

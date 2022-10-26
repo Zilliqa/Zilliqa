@@ -77,13 +77,12 @@ void help(const char* argv[]) {
 }
 
 Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
-  Json::Value value;
   try {
-    server.GetEthBlockByHash(hash, false);
+    return server.GetEthBlockByHash(hash, false);
   } catch (...) {
     LOG_GENERAL(WARNING, "BlockByHash failed with hash=" << hash);
   }
-  return value;
+  return Json::Value{};
 }
 
 }  // namespace

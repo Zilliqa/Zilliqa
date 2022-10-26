@@ -435,14 +435,13 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
           m_mediator.m_filtersAPICache->EnableWebsocketAPI(
               apiRPC->GetWebsocketServer(),
               [this](const std::string& blockHash) -> Json::Value {
-                Json::Value value;
                 try {
-                  m_lookupServer->GetEthBlockByHash(blockHash, false);
+                  return m_lookupServer->GetEthBlockByHash(blockHash, false);
                 } catch (...) {
                   LOG_GENERAL(WARNING,
                               "BlockByHash failed with hash=" << blockHash);
                 }
-                return value;
+                return Json::Value{};
               });
         }
       }
