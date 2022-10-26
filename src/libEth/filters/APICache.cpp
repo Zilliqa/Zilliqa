@@ -37,15 +37,19 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
   APICacheImpl()
       : m_filterAPI(*this),
         m_pendingTxnCache(TXMETADATADEPTH),
-        m_blocksCache(TXMETADATADEPTH) {}
+        m_blocksCache(TXMETADATADEPTH,
+                      [this](const BlocksCache::EpochMetadata& meta) {
+                        EpochFinalized(meta);
+                      }) {}
 
  private:
   FilterAPIBackend& GetFilterAPI() override { return m_filterAPI; }
 
   APICacheUpdate& GetUpdate() override { return *this; }
 
-  void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws) override {
-    m_subscriptions.Start(std::move(ws));
+  void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws,
+                          BlockByHash blockByHash) override {
+    m_subscriptions.Start(std::move(ws), std::move(blockByHash));
   }
 
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
@@ -56,20 +60,16 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
 
   void StartEpoch(uint64_t epoch, const BlockHash& block_hash,
                   uint32_t num_shards, uint32_t num_txns) override {
-    if (m_blocksCache.StartEpoch(epoch, NormalizeHexString(block_hash),
-                                 num_shards, num_txns)) {
-      EpochFinalized(epoch);
-    }
+    m_blocksCache.StartEpoch(epoch, NormalizeHexString(block_hash), num_shards,
+                             num_txns);
   }
 
   void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
                                const TxnHash& hash,
                                const Json::Value& receipt) override {
     auto hash_normalized = NormalizeHexString(hash);
-    if (m_blocksCache.AddCommittedTransaction(epoch, shard, hash_normalized,
-                                              receipt)) {
-      EpochFinalized(epoch);
-    }
+    m_blocksCache.AddCommittedTransaction(epoch, shard, hash_normalized,
+                                          receipt);
     m_pendingTxnCache.TransactionCommitted(std::move(hash_normalized));
   }
 
@@ -89,9 +89,15 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
     return m_pendingTxnCache.GetPendingTxnsFilterChanges(after_counter, result);
   }
 
-  void EpochFinalized(uint64_t epoch) {
+  void EpochFinalized(const BlocksCache::EpochMetadata& meta) {
+    uint64_t epoch = meta.epoch;
     LOG_GENERAL(INFO, "Finalized epoch " << epoch);
-    // TODO realtime subscriptions to new head filters
+
+    m_subscriptions.OnNewHead(meta.blockHash);
+
+    for (const auto& event : meta.meta) {
+      m_subscriptions.OnEventLog(event.address, event.topics, event.response);
+    }
 
     auto earliest = epoch <= TXMETADATADEPTH ? 0 : epoch - TXMETADATADEPTH;
     m_filterAPI.SetEpochRange(earliest, epoch);

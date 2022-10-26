@@ -17,6 +17,7 @@
 
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
+#include "libEth/Filters.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
@@ -854,6 +855,10 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
 
     const auto& txHash = tx.GetTranID();
+
+    m_mediator.m_filtersAPICache->GetUpdate().AddPendingTransaction(
+        txHash.hex(), m_blocknum);
+
     LookupServer::AddToRecentTransactions(txHash);
     {
       lock_guard<mutex> g(m_txnBlockNumMapMutex);
@@ -1060,15 +1065,19 @@ TxBlock IsolatedServer::GenerateTxBlock() {
 
 void IsolatedServer::PostTxBlock() {
   lock_guard<mutex> g(m_blockMutex);
-  const TxBlock& txBlock = GenerateTxBlock();
-  if (ENABLE_WEBSOCKET) {
-    // send tx block and attach txhashes
-    Json::Value j_txnhashes;
+  TxBlock txBlock = GenerateTxBlock();
+
+  Json::Value j_txnhashes;
+  if (ENABLE_WEBSOCKET || ENABLE_EVM) {
     try {
       j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
     } catch (const exception& e) {
       j_txnhashes = Json::arrayValue;
     }
+  }
+
+  if (ENABLE_WEBSOCKET) {
+    // send tx block and attach txhashes
     WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
         JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
 
@@ -1088,4 +1097,60 @@ void IsolatedServer::PostTxBlock() {
 
   m_blocknum++;
   m_currEpochGas = 0;
+
+  if (ENABLE_EVM) {
+    auto& cacheUpdate = m_mediator.m_filtersAPICache->GetUpdate();
+    const auto& header = txBlock.GetHeader();
+    uint64_t epoch = header.GetBlockNum();
+    uint32_t numTxns = header.GetNumTxs();
+    auto blockHash = header.GetMyHash().hex();
+
+    if (numTxns == 0) {
+      cacheUpdate.StartEpoch(epoch, blockHash, 0, 0);
+    } else {
+      std::vector<std::string> txnHashes;
+      ExtractTxnHashes(txBlock, txnHashes);
+      if (txnHashes.size() != numTxns) {
+        LOG_GENERAL(WARNING, "Extract txn hashes failed, expected "
+                                 << numTxns << ", got " << txnHashes.size());
+      }
+      cacheUpdate.StartEpoch(epoch, blockHash, 0, txnHashes.size());
+      Json::Value receipt;
+      for (const auto& tx : txnHashes) {
+        if (!ExtractTxnReceipt(tx, receipt)) {
+          LOG_GENERAL(WARNING, "Extract txn receipt failed for " << tx);
+        }
+        cacheUpdate.AddCommittedTransaction(epoch, 0, tx, receipt);
+      }
+    }
+  }
+}
+
+void IsolatedServer::ExtractTxnHashes(const TxBlock& txBlock,
+                                      std::vector<std::string>& out) {
+  out.reserve(txBlock.GetHeader().GetNumTxs());
+  auto microBlockInfos = txBlock.GetMicroBlockInfos();
+  MicroBlockSharedPtr mbptr;
+  for (auto const& mbInfo : microBlockInfos) {
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      LOG_GENERAL(WARNING, "Failed to get Microblock");
+      continue;
+    }
+    const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
+    for (const auto& h : tranHashes) {
+      out.emplace_back(h.hex());
+    }
+  }
+}
+
+bool IsolatedServer::ExtractTxnReceipt(const std::string& txHash,
+                                       Json::Value& receipt) {
+  try {
+    receipt = GetEthTransactionReceipt(txHash);
+    return true;
+  } catch (...) {
+    receipt = Json::objectValue;
+  }
+  return false;
 }
