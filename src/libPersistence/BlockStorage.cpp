@@ -511,8 +511,13 @@ bool BlockStorage::GetTxBlock(const BlockHash& blockhash,
   if (blockNumStr.empty()) {
     return false;
   }
-
-  return GetTxBlock(std::stoull(blockNumStr), block);
+  uint64_t blockNum = 0;
+  try {
+    blockNum = DataConversion::ConvertStrToInt<uint64_t>(blockNumStr);
+  } catch (...) {
+    return false;
+  }
+  return GetTxBlock(blockNum, block);
 }
 
 bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {

@@ -21,6 +21,7 @@
 #include <array>
 #include <boost/algorithm/hex.hpp>
 #include <exception>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -175,6 +176,63 @@ class DataConversion {
     }
 
     return stream.str();
+  }
+
+  template <typename T, typename std::enable_if<
+                            std::is_integral<T>::value>::type* = nullptr>
+  static T ConvertStrToInt(const std::string& input,
+                           std::optional<T> fallback = std::nullopt) {
+    unsigned long long retVal{};
+    try {
+      // TODO: consinder replacing with std::from_chars once we abandon gcc_ver
+      // < 8
+      retVal = std::stoull(input, nullptr, 0);
+    } catch (const std::invalid_argument& e) {
+      LOG_GENERAL(WARNING, "Convert failed, invalid input: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw e;
+    } catch (const std::out_of_range& e) {
+      LOG_GENERAL(WARNING, "Convert failed, out of range: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw e;
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Convert failed, unknown failure: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw;
+    }
+
+    return static_cast<T>(retVal);
+  }
+
+  template <typename T, typename std::enable_if<
+                            std::is_same<T, uint128_t>::value ||
+                            std::is_same<T, uint256_t>::value>::type* = nullptr>
+  static T ConvertStrToInt(const std::string& input,
+                           std::optional<T> fallback = std::nullopt) {
+    T retVal{0};
+    try {
+      retVal = T{input};
+    } catch (const std::runtime_error& e) {
+      LOG_GENERAL(WARNING, "Convert failed, runtime error: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw e;
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Convert failed, unknown failure: " << input);
+      if (fallback) {
+        return fallback.value();
+      };
+      throw;
+    }
+
+    return retVal;
   }
 };
 

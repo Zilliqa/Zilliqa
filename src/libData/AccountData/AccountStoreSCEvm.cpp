@@ -221,7 +221,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasNonce() && it->Nonce().size()) {
-            targetAccount->SetNonce(std::stoull(it->Nonce(), nullptr, 0));
+            targetAccount->SetNonce(
+                DataConversion::ConvertStrToInt<uint64_t>(it->Nonce(), 0));
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
