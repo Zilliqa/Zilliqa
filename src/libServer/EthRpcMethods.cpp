@@ -664,13 +664,26 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint256_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = uint256_t{valueStr};
+    try {
+      value = uint256_t{valueStr};
+    } catch (...) {
+      LOG_GENERAL(
+          WARNING,
+          "Unable to apply strToInt conversion for value with: " << valueStr);
+    }
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
   if (json.isMember("gasPrice")) {
     const auto gasPriceStr = json["gasPrice"].asString();
-    uint256_t inputGasPrice{gasPriceStr};
+    uint256_t inputGasPrice{0};
+    try {
+      inputGasPrice = uint256_t{gasPriceStr};
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "Unable to apply strToInt conversion for gasPrice with: "
+                      << gasPriceStr);
+    }
     gasPrice = max(gasPrice, inputGasPrice);
   }
 
