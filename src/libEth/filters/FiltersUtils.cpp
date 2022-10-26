@@ -20,7 +20,6 @@
 
 #include "FiltersUtils.h"
 
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 namespace evmproj {
@@ -164,7 +163,7 @@ uint64_t ExtractNumber(std::string str, std::string &error) {
   }
 
   try {
-    uint64_t number = DataConversion::ConvertStrToInt<uint64_t>(str);
+    uint64_t number = std::stoull(str, nullptr, 16);
     error.clear();
     return number;
   } catch (const std::exception &e) {
