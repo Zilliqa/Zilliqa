@@ -263,7 +263,7 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
       &EthRpcMethods::GetNetListeningI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("protocol_version", jsonrpc::PARAMS_BY_POSITION,
+      jsonrpc::Procedure("eth_protocolVersion", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
       &EthRpcMethods::GetProtocolVersionI);
 
