@@ -32,6 +32,8 @@
 using namespace std;
 namespace po = boost::program_options;
 
+namespace {
+
 int readAccountJsonFromFile(const string& path) {
   ifstream in(path.c_str());
 
@@ -73,6 +75,18 @@ void help(const char* argv[]) {
           "RPC] --blocknum [Initial blocknum]"
        << endl;
 }
+
+Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
+  Json::Value value;
+  try {
+    server.GetEthBlockByHash(hash, false);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "BlockByHash failed with hash=" << hash);
+  }
+  return value;
+}
+
+}  // namespace
 
 int main(int argc, const char* argv[]) {
   using namespace evmproj;
@@ -207,7 +221,10 @@ int main(int argc, const char* argv[]) {
 
     if (ENABLE_EVM) {
       mediator.m_filtersAPICache->EnableWebsocketAPI(
-          apiServer->GetWebsocketServer());
+          apiServer->GetWebsocketServer(),
+          [&](const std::string& blockHash) -> Json::Value {
+            return BlockByHash(*isolatedServer, blockHash);
+          });
     }
 
     isolatedServer->m_uuid = std::move(uuid);

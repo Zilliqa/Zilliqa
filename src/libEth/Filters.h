@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBETH_FILTERS_H_
 #define ZILLIQA_SRC_LIBETH_FILTERS_H_
 
+#include <functional>
 #include <memory>
 
 #include <json/json.h>
@@ -101,13 +102,17 @@ class APICacheUpdate {
 
 class APICache {
  public:
+  /// Injected function that creates block json response by hash
+  using BlockByHash = std::function<Json::Value(const BlockHash &)>;
+
   /// Creates an instance of default TxMetadata implementation
   static std::shared_ptr<APICache> Create();
 
   virtual ~APICache() = default;
   virtual FilterAPIBackend &GetFilterAPI() = 0;
   virtual APICacheUpdate &GetUpdate() = 0;
-  virtual void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws) = 0;
+  virtual void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws,
+                                  BlockByHash blockByHash) = 0;
 };
 
 }  // namespace filters

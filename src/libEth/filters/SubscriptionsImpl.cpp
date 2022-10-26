@@ -126,10 +126,13 @@ SubscriptionsImpl::~SubscriptionsImpl() {
 }
 
 void SubscriptionsImpl::Start(
-    std::shared_ptr<WebsocketServer> websocketServer) {
+    std::shared_ptr<WebsocketServer> websocketServer,
+    APICache::BlockByHash blockByHash) {
   assert(websocketServer);
+  assert(blockByHash);
 
-  m_websocketServer = websocketServer;
+  m_websocketServer = std::move(websocketServer);
+  m_blockByHash = std::move(blockByHash);
 
   m_websocketServer->SetOptions(
       [this](Id conn_id, WebsocketServer::InMessage msg) {
@@ -146,6 +149,23 @@ void SubscriptionsImpl::Start(
   m_newHeadTemplate["params"]["subscription"] = SUBSCR_ID_FOR_NEW_HEADS;
 
   m_eventTemplate = m_newHeadTemplate;
+}
+
+void SubscriptionsImpl::OnNewHead(const std::string& blockHash) {
+  Lock lk(m_mutex);
+
+  if (m_subscribedToNewHeads.empty()) {
+    return;
+  }
+
+  m_newHeadTemplate["params"]["result"] = m_blockByHash(blockHash);
+  auto msg = std::make_shared<std::string>(JsonWrite(m_newHeadTemplate));
+
+  assert(m_websocketServer);
+
+  for (auto& conn : m_subscribedToNewHeads) {
+    m_websocketServer->SendMessage(conn->id, msg);
+  }
 }
 
 void SubscriptionsImpl::OnPendingTransaction(const std::string& hash) {

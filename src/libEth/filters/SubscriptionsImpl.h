@@ -43,7 +43,11 @@ class SubscriptionsImpl {
   ~SubscriptionsImpl();
 
   /// Attaches websocket server
-  void Start(std::shared_ptr<WebsocketServer> websocketServer);
+  void Start(std::shared_ptr<WebsocketServer> websocketServer,
+             APICache::BlockByHash blockByHash);
+
+  /// Broadcasts new head
+  void OnNewHead(const std::string& blockHash);
 
   /// Broadcasts pending tx to subscriptions
   void OnPendingTransaction(const std::string& hash);
@@ -55,6 +59,10 @@ class SubscriptionsImpl {
  private:
   /// Websocket backend
   std::shared_ptr<WebsocketServer> m_websocketServer;
+
+  /// Callback which gets JSON message for newHeads subscription out of block
+  /// hash
+  APICache::BlockByHash m_blockByHash;
 
   using Id = WebsocketServer::ConnectionId;
 
