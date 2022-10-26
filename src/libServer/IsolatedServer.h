@@ -128,6 +128,9 @@ class IsolatedServer : public LookupServer,
   bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
                    const Account* sender, const uint128_t& gasPrice);
   bool RetrieveHistory(const bool& nonisoload);
+
+  void ExtractTxnHashes(const TxBlock& txBlock, std::vector<std::string>& out);
+  bool ExtractTxnReceipt(const std::string& txHash, Json::Value& receipt);
 };
 
 #endif  // ZILLIQA_SRC_LIBSERVER_ISOLATEDSERVER_H_
