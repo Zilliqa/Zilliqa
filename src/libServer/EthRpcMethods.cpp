@@ -664,26 +664,14 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint256_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    try {
-      value = uint256_t{valueStr};
-    } catch (...) {
-      LOG_GENERAL(
-          WARNING,
-          "Unable to apply strToInt conversion for value with: " << valueStr);
-    }
+    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
   if (json.isMember("gasPrice")) {
     const auto gasPriceStr = json["gasPrice"].asString();
-    uint256_t inputGasPrice{0};
-    try {
-      inputGasPrice = uint256_t{gasPriceStr};
-    } catch (...) {
-      LOG_GENERAL(WARNING,
-                  "Unable to apply strToInt conversion for gasPrice with: "
-                      << gasPriceStr);
-    }
+    uint256_t inputGasPrice =
+        DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
     gasPrice = max(gasPrice, inputGasPrice);
   }
 
@@ -718,13 +706,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   // Use gas specified by user
   if (json.isMember("gas")) {
     const auto gasLimitStr = json["gas"].asString();
-    uint64_t userGas{0};
-    try {
-      userGas = static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0));
-    } catch (...) {
-      LOG_GENERAL(WARNING, "Unable to apply strToInt conversion for gas with: "
-                               << gasLimitStr);
-    }
+    const uint64_t userGas =
+        DataConversion::ConvertStrToInt<uint64_t>(gasLimitStr, 0);
     gas = min(gas, userGas);
   }
 
@@ -802,7 +785,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     uint64_t amount{0};
     if (_json.isMember(apiKeys.value)) {
       const auto amount_str = _json[apiKeys.value].asString();
-      amount = strtoull(amount_str.c_str(), NULL, 0);
+      amount = DataConversion::ConvertStrToInt<uint64_t>(amount_str, 0);
     }
 
     // for now set total gas as twice the ds gas limit
@@ -810,14 +793,8 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
         GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
-      uint64_t userGas{0};
-      try {
-        userGas = (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0);
-      } catch (...) {
-        LOG_GENERAL(WARNING,
-                    "Unable to perform StrToInt conversion for gas with value: "
-                        << gasLimit_str);
-      }
+      const uint64_t userGas =
+          DataConversion::ConvertStrToInt<uint64_t>(gasLimit_str, 0);
       gasRemained = min(gasRemained, userGas);
     }
 
