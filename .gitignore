@@ -104,3 +104,5 @@ scilla_files/
 config.xml
 isolated-server-accounts.json
 isolated-server.logs
+
+*.pyc

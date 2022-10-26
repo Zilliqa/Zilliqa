@@ -41,7 +41,7 @@ class BlocksCache {
     std::vector<EventLog> meta;
   };
 
-  using OnEpochFinalized = std::function<void(const EpochMetadata&)>;
+  using OnEpochFinalized = std::function<void(const EpochMetadata &)>;
 
   BlocksCache(size_t depth, OnEpochFinalized epochFinalizedCallback);
 

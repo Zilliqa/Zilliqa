@@ -125,9 +125,8 @@ SubscriptionsImpl::~SubscriptionsImpl() {
   }
 }
 
-void SubscriptionsImpl::Start(
-    std::shared_ptr<WebsocketServer> websocketServer,
-    APICache::BlockByHash blockByHash) {
+void SubscriptionsImpl::Start(std::shared_ptr<WebsocketServer> websocketServer,
+                              APICache::BlockByHash blockByHash) {
   assert(websocketServer);
   assert(blockByHash);
 
