@@ -142,11 +142,11 @@ struct EvmLog {
 }
 
 impl EvmLog {
-    fn from_internal(log: &ethereum::Log) -> EvmLog {
-        EvmLog {
+    fn from_internal(log: &ethereum::Log) -> Self {
+        Self {
             address: log.address,
             topics: log.topics.to_owned(),
-            data: "0x".to_string() + &hex::encode(&log.data),
+            data: format!("0x{}", hex::encode(&log.data)),
         }
     }
 }
