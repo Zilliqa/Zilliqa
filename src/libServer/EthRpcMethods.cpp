@@ -651,10 +651,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                                               TRANSACTION_VERSION_ETH);
       contractCreation = true;
     }
-
-    LOG_GENERAL(WARNING,
-                "GetEthEstimateGas: toAccount is: "
-                    << (toAccount == nullptr ? "nullptr" : "existing"));
   }
 
   std::string data;
@@ -697,8 +693,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   // Typical fund transfer
   if (code.empty() && data.empty()) {
-    LOG_GENERAL(WARNING, "GetEthEstimateGas: regular transfer, replying with: "
-                             << MIN_ETH_GAS);
     return (boost::format("0x%x") % MIN_ETH_GAS).str();
   }
 
@@ -744,15 +738,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
       response.Success()) {
     const auto gasRemained = response.Gas();
-    LOG_GENERAL(WARNING, "GetEthEstimateGas: Remained gas: "
-                             << gasRemained << ", input: " << gas);
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : 0;
-    LOG_GENERAL(WARNING, "GetEthEstimateGas: BaseFee: "
-                             << baseFee << ", evmFee: " << consumedEvmGas);
     const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
 
     // We can't go beyond gas provided by user (or taken from last block)
@@ -760,8 +750,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Base fee exceeds gas limit");
     }
-    LOG_GENERAL(WARNING, "GetEthEstimateGas: Return total (contractCreation: "
-                             << contractCreation << "), gas: " << retGas);
+    LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
     return (boost::format("0x%x") % retGas).str();
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
