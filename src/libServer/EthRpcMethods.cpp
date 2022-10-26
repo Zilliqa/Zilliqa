@@ -664,14 +664,27 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint256_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = stoull(valueStr.c_str(), nullptr, 0);
+    try {
+      value = uint256_t{valueStr};
+    } catch (...) {
+      LOG_GENERAL(
+          WARNING,
+          "Unable to apply strToInt conversion for value with: " << valueStr);
+    }
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
   if (json.isMember("gasPrice")) {
     const auto gasPriceStr = json["gasPrice"].asString();
-    const uint256_t gasPriceNum = stoull(gasPriceStr.c_str(), nullptr, 0);
-    gasPrice = max(gasPrice, gasPriceNum);
+    uint256_t inputGasPrice{0};
+    try {
+      inputGasPrice = uint256_t{gasPriceStr};
+    } catch (...) {
+      LOG_GENERAL(WARNING,
+                  "Unable to apply strToInt conversion for gasPrice with: "
+                      << gasPriceStr);
+    }
+    gasPrice = max(gasPrice, inputGasPrice);
   }
 
   uint256_t gasDeposit = 0;
@@ -705,8 +718,14 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   // Use gas specified by user
   if (json.isMember("gas")) {
     const auto gasLimitStr = json["gas"].asString();
-    gas = min(gas,
-              static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0)));
+    uint64_t userGas{0};
+    try {
+      userGas = static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0));
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Unable to apply strToInt conversion for gas with: "
+                               << gasLimitStr);
+    }
+    gas = min(gas, userGas);
   }
 
   const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
@@ -791,8 +810,15 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
         GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
-      gasRemained =
-          min(gasRemained, (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0));
+      uint64_t userGas{0};
+      try {
+        userGas = (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0);
+      } catch (...) {
+        LOG_GENERAL(WARNING,
+                    "Unable to perform StrToInt conversion for gas with value: "
+                        << gasLimit_str);
+      }
+      gasRemained = min(gasRemained, userGas);
     }
 
     string data = _json[apiKeys.data].asString();
