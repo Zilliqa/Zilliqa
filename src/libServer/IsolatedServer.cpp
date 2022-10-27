@@ -17,8 +17,8 @@
 
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
-#include "libEth/Filters.h"
 #include "common/Constants.h"
+#include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
@@ -430,7 +430,7 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::JSON_STRING, "param01",
                            jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::EthGetLogsI);
-    
+
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_traceTransaction",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
