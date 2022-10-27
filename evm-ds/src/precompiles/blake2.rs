@@ -10,6 +10,7 @@ mod consts {
     /// The precomputed SIGMA.
     ///
     /// See [RFC 7693](https://datatracker.ietf.org/doc/html/rfc7693#section-2.7) specification for more details.
+    /// Borrowed from https://github.com/aurora-is-near/aurora-engine/blob/master/engine-precompiles/src/blake2.rs#L23
     pub(super) const SIGMA: [[usize; 16]; 10] = [
         [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
         [14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3],
@@ -26,6 +27,7 @@ mod consts {
     /// The initialization vector.
     ///
     /// See [RFC 7693](https://tools.ietf.org/html/rfc7693#section-2.6) specification for more details.
+    /// Borrowed from https://github.com/aurora-is-near/aurora-engine/blob/master/engine-precompiles/src/blake2.rs#L39
     pub(super) const IV: [u64; 8] = [
         0x6a09e667f3bcc908,
         0xbb67ae8584caa73b,
@@ -190,8 +192,8 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
 
 #[cfg(test)]
 mod tests {
-    type PrecompileResult = Result<PrecompileOutput, PrecompileFailure>;
     use super::*;
+    type PrecompileResult = Result<PrecompileOutput, PrecompileFailure>;
 
     // [4 bytes for rounds]
     // [64 bytes for h]
