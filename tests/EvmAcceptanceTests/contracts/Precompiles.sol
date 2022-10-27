@@ -97,4 +97,18 @@ contract Precompiles {
     }
     return pairs[0];
   }
+
+  function testBlake2(uint32 rounds, bytes32[2] memory h, bytes32[4] memory m, bytes8[2] memory t, bool f) public returns (bytes32[2] memory) {
+    bytes32[2] memory output;
+
+    bytes memory args = abi.encodePacked(rounds, h[0], h[1], m[0], m[1], m[2], m[3], t[0], t[1], f);
+
+    assembly {
+      if iszero(call(gas(), 0x09, 0, add(args, 32), 0xd5, output, 0x40)) {
+        revert(0, 0)
+      }
+    }
+
+    return output;
+  }
 }

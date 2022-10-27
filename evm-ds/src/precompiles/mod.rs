@@ -4,6 +4,7 @@ pub mod identity;
 pub mod modexp;
 pub mod ripemd160;
 pub mod sha2_256;
+pub mod blake2;
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -46,6 +47,10 @@ pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
         (
             H160::from_str("0000000000000000000000000000000000000008").unwrap(),
             ec::ec_pairing as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000009").unwrap(),
+            blake2::blake2 as PrecompileFn,
         ),
     ])
 }
