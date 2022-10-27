@@ -103,4 +103,29 @@ describe("Precompile tests with web3.js", function () {
     const result = await contract.methods.testEcPairing(input).call();
     expect(web3.utils.toBN(result)).to.be.eq(1);
   });
+
+  it("should return correct result when blake2 function is used", async function () {
+    const expected = [
+      "0xba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d1",
+      "0x7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923"
+    ];
+    const ROUNDS = 12;
+    const H = [
+      "0x48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5",
+      "0xd182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b"
+    ];
+
+    const M = [
+      "0x6162630000000000000000000000000000000000000000000000000000000000",
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "0x0000000000000000000000000000000000000000000000000000000000000000"
+    ];
+
+    const T = ["0x0300000000000000", "0x0000000000000000"];
+
+    const F = true;
+
+    expect(await contract.methods.testBlake2(ROUNDS, H, M, T, F).call()).to.be.deep.eq(expected);
+  });
 });
