@@ -391,7 +391,6 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthBlockReceiptsI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
-<<<<<<< HEAD
         jsonrpc::Procedure("eth_newFilter", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, "param01",
                            jsonrpc::JSON_OBJECT, NULL),
@@ -431,12 +430,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::JSON_STRING, "param01",
                            jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::EthGetLogsI);
-=======
+    
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_traceTransaction",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, NULL),
         &LookupServer::DebugTraceTransactionI);
->>>>>>> master
   }
 }
 
