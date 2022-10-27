@@ -14,44 +14,55 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
+//
 #include <chrono>
 #include <future>
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "common/Constants.h"
+#include "libEth/utils/EthUtils.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+#include "libServer/EthRpcMethods.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
     EvmCallParameters& params,          //
-    const uint32_t version,             //
     bool& ret,                          //
     TransactionReceipt& receipt,        //
     evmproj::CallResponse& evmReturnValues) {
   //
   // create a worker to be executed in the async method
-  const auto worker = [&params, &ret, &version, &evmReturnValues]() -> void {
-    ret = EvmClient::GetInstance().CallRunner(
-        version, EvmUtils::GetEvmCallJson(params), evmReturnValues);
+  const auto worker = [&params, &ret, &evmReturnValues]() -> void {
+    try {
+      ret = EvmClient::GetInstance().CallRunner(
+          EvmUtils::GetEvmCallJson(params), evmReturnValues);
+    } catch (std::exception& e) {
+      LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
+    } catch (...) {
+      LOG_GENERAL(WARNING, "UnHandled Exception from underlying RPC call ");
+    }
   };
 
   const auto fut = std::async(std::launch::async, worker);
   // check the future return and when time out log error.
-  switch (fut.wait_for(std::chrono::seconds(30))) {
+  switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
-      EvmClient::GetInstance().CheckClient(0, true);
+      if (LAUNCH_EVM_DAEMON) {
+        EvmClient::GetInstance().Reset();
+      }
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
@@ -65,10 +76,10 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, const uint32_t& version, bool& ret,
-    TransactionReceipt& receipt, evmproj::CallResponse& evmReturnValues) {
+    EvmCallParameters& params, bool& ret, TransactionReceipt& receipt,
+    evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
-  EvmCallRunner(invoke_type, params, version, ret, receipt, evmReturnValues);
+  EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
 
   if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
@@ -210,7 +221,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 
         try {
           if (it->hasNonce() && it->Nonce().size()) {
-            targetAccount->SetNonce(std::stoull(it->Nonce(), nullptr, 0));
+            targetAccount->SetNonce(
+                DataConversion::ConvertStrToInt<uint64_t>(it->Nonce(), 0));
           }
         } catch (std::exception& e) {
           // for now catch any generic exceptions and report them
@@ -231,25 +243,22 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
                                       "EVM" + evmReturnValues.ReturnedBytes()),
                                   contractAccount->GetInitData());
   }
+
   return gas;
 }
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
                                        evmproj::CallResponse& response) {
-  uint32_t evm_version{0};
-
-  return EvmClient::GetInstance().CallRunner(
-      evm_version, EvmUtils::GetEvmCallJson(params), response);
+  return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(params),
+                                             response);
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
-                                            const unsigned int& numShards,
-                                            const bool& isDS,
-                                            const Transaction& transaction,
-                                            TransactionReceipt& receipt,
-                                            TxnStatus& error_code) {
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(
+    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
+    const Transaction& transaction, const TxnExtras& txnExtras,
+    TransactionReceipt& receipt, TxnStatus& error_code) {
   LOG_MARKER();
 
   if (LOG_SC) {
@@ -286,11 +295,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
+      const auto baseFee = Eth::getGasUnitsForContractDeployment(
+          DataConversion::CharArrayToString(transaction.GetCode()),
+          DataConversion::CharArrayToString(transaction.GetData()));
 
       // Check if gaslimit meets the minimum requirement for contract deployment
-      if (transaction.GetGasLimitEth() < MIN_ETH_GAS) {
+      if (transaction.GetGasLimitEth() < baseFee) {
         LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitEth()
-                                          << " less than " << MIN_ETH_GAS);
+                                          << " less than " << baseFee);
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         return false;
       }
@@ -309,6 +321,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce(),
                                          transaction.GetVersionIdentifier());
+      LOG_GENERAL(INFO, "Contract creation address is " << contractAddress);
       // instantiate the object for contract account
       // ** Remember to call RemoveAccount if deployment failed halfway
       Account* contractAccount;
@@ -334,9 +347,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      uint32_t scilla_version{0};
-      uint32_t evm_version{0};
-
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
@@ -354,17 +364,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      // prepare IPC with current blockchain info provider.
-
-      m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, contractAddress,
-           contractAccount->GetStorageRoot(), scilla_version});
-
       std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
-          DataConversion::StringToCharArray(std::to_string(scilla_version)));
+          DataConversion::StringToCharArray("0"));
 
       // *************************************************************************
       // Undergo a runner
@@ -382,13 +386,21 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
+      EvmCallExtras extras;
+      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       EvmCallParameters params = {
           contractAddress.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(transaction.GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          std::move(extras),
+      };
 
       std::map<std::string, zbytes> t_newmetadata;
 
@@ -402,9 +414,20 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
       evmproj::CallResponse response;
-      const auto gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CREATE, params, evm_version,
-          evm_call_run_succeeded, receipt, response);
+      auto gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
+                               evm_call_run_succeeded, receipt, response);
+
+      // Decrease remained gas by baseFee (which is not taken into account by
+      // EVM)
+      gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
+      if (response.Trace().size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        response.Trace()[0])) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+        }
+      }
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
@@ -506,8 +529,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
 
       m_curBlockNum = blockNum;
-      uint32_t scilla_version{0};
-      uint32_t evm_version{0};
 
       DiscardAtomics();
       const uint128_t amountToDecrease =
@@ -529,11 +550,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         tpStart = r_timer_start();
       }
 
-      // prepare IPC with current blockchain info provider.
-      m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-           contractAccount->GetStorageRoot(), scilla_version});
-
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
 
       std::string runnerPrint;
@@ -546,21 +562,36 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
+      EvmCallExtras extras;
+      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       EvmCallParameters params = {
           m_curContractAddr.hex(),
           fromAddr.hex(),
           DataConversion::CharArrayToString(contractAccount->GetCode()),
           DataConversion::CharArrayToString(transaction.GetData()),
           transaction.GetGasLimitEth(),
-          transaction.GetAmountWei()};
+          transaction.GetAmountWei(),
+          std::move(extras)};
 
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "
                                                   << params.m_caller);
       evmproj::CallResponse response;
-      const uint64_t gasRemained = InvokeEvmInterpreter(
-          contractAccount, RUNNER_CALL, params, evm_version, evm_call_succeeded,
-          receipt, response);
+      const uint64_t gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
+                               evm_call_succeeded, receipt, response);
+
+      if (response.Trace().size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        response.Trace()[0])) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+        }
+      }
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
@@ -579,10 +610,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
 
-      if (!this->IncreaseBalance(
-              fromAddr,
+      if (!this->IncreaseBalance(fromAddr,
 
-              gasRefund / EVM_ZIL_SCALING_FACTOR / EVM_ZIL_SCALING_FACTOR)) {
+                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 

@@ -43,10 +43,6 @@ class EthRpcMethods {
     return m_sharedMediator.m_lookup->AddToTxnShardMap(tx, shardId);
   };
 
-  //// Helper function for adding RPC methods
-  // bool AddRPC(const jsonrpc::Procedure& proc,
-  // ScillaIPCServer::methodPointer_t pointer);
-
   void Init(LookupServer* lookupServer);
 
   virtual void GetEthCallEthI(const Json::Value& request,
@@ -102,12 +98,10 @@ class EthRpcMethods {
    * @param request none
    * @param response Hex string with the estimated gasprice
    */
-  inline virtual void GetEthEstimateGasI(const Json::Value& /*request*/,
+  inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                          Json::Value& response) {
-    // TODO: implement eth_estimateGas for real.
-    // At the moment, the default value of 300,000 gas will allow to proceed
-    // with the internal/external testnet testing before it is implemented.
-    response = "0x493e0";
+    EnsureEvmAndLookupEnabled();
+    response = this->GetEthEstimateGas(request[0u]);
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
@@ -514,10 +508,21 @@ class EthRpcMethods {
     response = this->GetEthBlockReceipts(request[0u].asString());
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method: debug_traceTransaction
+   * @param request : transaction hash
+   * @param response : transaction trace
+   */
+  inline virtual void DebugTraceTransactionI(const Json::Value& request,
+                                             Json::Value& response) {
+    response = this->DebugTraceTransaction(request[0u].asString());
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
                             const std::string& block_or_tag);
+  std::string GetEthEstimateGas(const Json::Value& _json);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
   Json::Value GetBalanceAndNonce(const std::string& address);
   std::string GetWeb3ClientVersion();
@@ -555,6 +560,7 @@ class EthRpcMethods {
   Json::Value GetEthBalance(const std::string& address, const std::string& tag);
 
   Json::Value GetEthGasPrice() const;
+  uint256_t GetEthGasPriceNum() const;
 
   std::string CreateTransactionEth(
       Eth::EthFields const& fields, zbytes const& pubKey,
@@ -583,6 +589,7 @@ class EthRpcMethods {
   std::string EthRecoverTransaction(const std::string& txnRpc) const;
 
   Json::Value GetEthBlockReceipts(const std::string& blockId);
+  Json::Value DebugTraceTransaction(const std::string& txHash);
 
   void EnsureEvmAndLookupEnabled();
 

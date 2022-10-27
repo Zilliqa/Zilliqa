@@ -1,4 +1,5 @@
 const axios = require("axios");
+const hre = require("hardhat");
 
 var general_helper = {
   isZilliqaNetworkSelected: function () {

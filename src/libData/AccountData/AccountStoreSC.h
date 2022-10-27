@@ -29,6 +29,7 @@
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
+#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -175,8 +176,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
   void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
-                     const uint32_t version, bool& ret,
-                     TransactionReceipt& receipt,
+                     bool& ret, TransactionReceipt& receipt,
                      evmproj::CallResponse& evmReturnValues);
 
   /// Amount Transfer
@@ -212,8 +212,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   uint64_t InvokeEvmInterpreter(Account* contractAccount,
                                 INVOKE_TYPE invoke_type,
-                                EvmCallParameters& params,
-                                const uint32_t& version, bool& ret,
+                                EvmCallParameters& params, bool& ret,
                                 TransactionReceipt& receipt,
                                 evmproj::CallResponse& evmReturnValues);
 
@@ -234,6 +233,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool UpdateAccountsEvm(const uint64_t& blockNum,
                          const unsigned int& numShards, const bool& isDS,
                          const Transaction& transaction,
+                         const TxnExtras& txnExtras,
                          TransactionReceipt& receipt, TxnStatus& error_code);
 
   bool PopulateExtlibsExports(

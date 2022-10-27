@@ -140,7 +140,8 @@ EthFields parseRawTxFields(std::string const &message) {
 }
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
-                    const Account *sender, const uint128_t &gasPriceWei) {
+                    const Account *sender, const uint128_t &gasPriceWei,
+                    uint64_t minGasLimit) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -154,7 +155,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
             std::to_string(DataConversion::UnpackB(tx.GetVersion())));
   }
 
-  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+  // While checking the contract size, account for Hex representation
+  // with the 'EVM' prefix.
+  if (tx.GetCode().size() > 2 * MAX_EVM_CONTRACT_SIZE_BYTES + 3) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Code size is too large");
   }
@@ -167,11 +170,11 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                gasPriceWei.convert_to<std::string>());
   }
 
-  if (tx.GetGasLimitEth() < MIN_ETH_GAS) {
+  if (tx.GetGasLimitEth() < minGasLimit) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasLimit " + std::to_string(tx.GetGasLimitEth()) +
                                " lower than minimum allowable " +
-                               std::to_string(MIN_ETH_GAS));
+                               std::to_string(minGasLimit));
   }
 
   if (!Validator::VerifyTransaction(tx)) {

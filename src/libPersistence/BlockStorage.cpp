@@ -69,6 +69,7 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   if (LOOKUP_NODE_MODE) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
+    m_txTraceDB = std::make_shared<LevelDB>("txTraces");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -510,8 +511,13 @@ bool BlockStorage::GetTxBlock(const BlockHash& blockhash,
   if (blockNumStr.empty()) {
     return false;
   }
-
-  return GetTxBlock(std::stoull(blockNumStr), block);
+  uint64_t blockNum = 0;
+  try {
+    blockNum = DataConversion::ConvertStrToInt<uint64_t>(blockNumStr);
+  } catch (...) {
+    return false;
+  }
+  return GetTxBlock(blockNum, block);
 }
 
 bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
@@ -596,6 +602,53 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   }
 
   return GetTxBodyDB(epochNum)->Exists(keyBytes);
+}
+
+bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  trace = m_txTraceDB->Lookup(keyBytes);
+
+  if (trace.empty()) {
+    return false;
+  }
+  return true;
+}
+
+bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
+    return false;
+  }
+
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  // Store txn hash and epoch inside txEpochs DB
+  if (m_txTraceDB->Insert(key, trace) != 0) {
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
+                             << " key=" << key);
+    return false;
+  }
+
+  return true;
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {

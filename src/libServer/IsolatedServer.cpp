@@ -18,11 +18,14 @@
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
 #include "libEth/Filters.h"
+#include "common/Constants.h"
+#include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+#include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -160,6 +163,7 @@ IsolatedServer::IsolatedServer(Mediator& mediator,
     StartBlocknumIncrement();
   }
   BindAllEvmMethods();
+  PostTxBlock();
 }
 
 void IsolatedServer::BindAllEvmMethods() {
@@ -387,6 +391,7 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthBlockReceiptsI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+<<<<<<< HEAD
         jsonrpc::Procedure("eth_newFilter", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, "param01",
                            jsonrpc::JSON_OBJECT, NULL),
@@ -426,6 +431,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::JSON_STRING, "param01",
                            jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::EthGetLogsI);
+=======
+        jsonrpc::Procedure("debug_traceTransaction",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, NULL),
+        &LookupServer::DebugTraceTransactionI);
+>>>>>>> master
   }
 }
 
@@ -652,11 +663,16 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     TxnStatus error_code;
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3  // Arbitrary values
-                                                        ,
-                                                        true, tx, txreceipt,
-                                                        error_code)) {
+    TxnExtras extras{
+        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        get_time_as_int() / 1000000,  // Microseconds to seconds.
+        40                            // Common value.
+    };
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+            m_blocknum,
+            3  // Arbitrary values
+            ,
+            true, tx, extras, txreceipt, error_code)) {
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server");
@@ -764,7 +780,18 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei)) {
+      uint64_t minGasLimit = 0;
+      if (Transaction::GetTransactionType(tx) ==
+          Transaction::ContractType::CONTRACT_CREATION) {
+        minGasLimit = Eth::getGasUnitsForContractDeployment(
+            DataConversion::CharArrayToString(tx.GetCode()),
+            DataConversion::CharArrayToString(tx.GetData()));
+      } else {
+        minGasLimit = MIN_ETH_GAS;
+      }
+      LOG_GENERAL(WARNING, "Minium gas units required: " << minGasLimit);
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei,
+                               minGasLimit)) {
         return ret;
       }
 
@@ -817,10 +844,15 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(m_blocknum,
-                                                        3,  // Arbitrary values
-                                                        true, tx, txreceipt,
-                                                        error_code)) {
+    TxnExtras extras{
+        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        get_time_as_int() / 1000000,  // Microseconds to seconds.
+        40                            // Common value.
+    };
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+            m_blocknum,
+            3,  // Arbitrary values
+            true, tx, extras, txreceipt, error_code)) {
       LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }
