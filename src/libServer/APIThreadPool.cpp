@@ -47,8 +47,9 @@ APIThreadPool::~APIThreadPool() {
   }
 }
 
-bool APIThreadPool::PushRequest(JobId id, std::string body) {
-  if (!m_requestQueue.bounded_push(Request{id, std::move(body)})) {
+bool APIThreadPool::PushRequest(JobId id, std::string from, std::string body) {
+  if (!m_requestQueue.bounded_push(
+          Request{id, std::move(from), std::move(body)})) {
     Response response;
     response.id = id;
     response.code = 503;
@@ -68,8 +69,10 @@ void APIThreadPool::WorkerThread(size_t threadNo) {
   pthread_setname_np(pthread_self(), threadName.c_str());
 
   Request request;
-  while (m_requestQueue.pop(request)) {
-    LOG_GENERAL(INFO, threadName << " processes request " << request.id);
+  size_t queueSize = 0;
+  while (m_requestQueue.pop(request, queueSize)) {
+    LOG_GENERAL(INFO, threadName << " processes job #" << request.id
+                                 << ", Q=" << queueSize);
     PushResponse(m_processRequest(request));
   }
 }

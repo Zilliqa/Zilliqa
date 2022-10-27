@@ -49,7 +49,7 @@ class APIServerImpl : public APIServer,
                           HttpRequest&& request);
 
   /// Called from a connection to put the request into thread pool
-  void OnRequest(ConnectionId id, HttpRequest&& request);
+  void OnRequest(ConnectionId id, std::string from, HttpRequest&& request);
 
   /// Called from a connection when it's closed
   void OnClosed(ConnectionId id);

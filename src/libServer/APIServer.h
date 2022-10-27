@@ -51,10 +51,10 @@ class APIServer {
     size_t inputBodyLimit = 50000;
 
     /// Number of threads in thread pool
-    size_t numThreads = 4;
+    size_t numThreads = 6;
 
     /// Max size of unhandled requests queue
-    size_t maxQueueSize = 128;
+    size_t maxQueueSize = 256;
 
     // TODO enable TLS later
     // std::string tlsCertificateFileName;

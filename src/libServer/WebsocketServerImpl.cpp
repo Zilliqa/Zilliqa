@@ -36,8 +36,13 @@ class Connection : public std::enable_shared_from_this<Connection> {
       : m_owner(std::move(owner)), m_id(id), m_stream(std::move(socket)) {}
 
   void WebsocketAccept(HttpRequest&& req) {
-    m_stream.set_option(
-        websocket::stream_base::timeout::suggested(beast::role_type::server));
+    websocket::stream_base::timeout opt{
+        std::chrono::seconds(30),   // handshake timeout
+        std::chrono::seconds(10),   // idle timeout
+        true //pings
+    };
+    m_stream.set_option(opt);
+
     m_stream.set_option(
         websocket::stream_base::decorator([](websocket::response_type& res) {
           res.set(http::field::server, ".");  // TODO server string for http

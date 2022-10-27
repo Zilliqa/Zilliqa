@@ -56,9 +56,10 @@ class Queue {
     return true;
   }
 
-  bool pop(T &item) {
+  bool pop(T &item, size_t &queue_size) {
     std::unique_lock<Mutex> lk(m_mutex);
     m_condition.wait(lk, [this] { return !m_queue.empty() || m_stopped; });
+    queue_size = m_queue.size();
     if (m_stopped) return false;
     item = std::move(m_queue.front());
     m_queue.pop_front();

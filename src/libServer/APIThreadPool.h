@@ -36,6 +36,7 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
 
   struct Request {
     JobId id = 0;
+    std::string from;
     std::string body;
   };
 
@@ -60,7 +61,7 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   ~APIThreadPool();
 
   /// Owner pushes a new request
-  bool PushRequest(JobId id, std::string body);
+  bool PushRequest(JobId id, std::string from, std::string body);
 
   /// Explicit close due to shared_ptr usage
   void Close();

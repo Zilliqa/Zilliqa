@@ -33,15 +33,16 @@ class APIServerImpl::Connection
 
   /// Ctor, called from the owner on socket accept
   Connection(std::weak_ptr<APIServerImpl> owner, ConnectionId id,
-             Socket&& socket, size_t inputBodyLimit)
+             std::string from, Socket&& socket, size_t inputBodyLimit)
       : m_owner(std::move(owner)),
         m_id(id),
+        m_from(std::move(from)),
         m_stream(std::move(socket)),
         m_inputBodyLimit(inputBodyLimit) {}
 
   /// Initiates async msg read
   void StartReading() {
-    m_stream.expires_after(std::chrono::seconds(60));  // TODO option?
+    m_stream.expires_after(std::chrono::seconds(120));  // TODO option?
     m_parser.emplace();
     if (m_inputBodyLimit > 0) {
       m_parser->body_limit(m_inputBodyLimit);
@@ -89,13 +90,14 @@ class APIServerImpl::Connection
     auto owner = m_owner.lock();
     if (!owner) {
       // server is closed
+      m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       return;
     }
 
     if (ec || n == 0) {
       if (ec != http::error::end_of_stream) {
-        // TODO store remote address as well
-        LOG_GENERAL(INFO, "Read error: " << ec.message());
+        LOG_GENERAL(DEBUG, "Read error: " << ec.message());
+        m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       }
       OnClosed();
       return;
@@ -149,7 +151,7 @@ class APIServerImpl::Connection
       m_clientHttpVersion = request.version();
 
       // post this to thread pool
-      owner->OnRequest(m_id, std::move(request));
+      owner->OnRequest(m_id, m_from, std::move(request));
     } else {
       ReplyError(request.keep_alive(), request.version(),
                  http::status::internal_server_error, "API closed");
@@ -198,7 +200,7 @@ class APIServerImpl::Connection
 
     if (sz == 0 && m_owner.expired()) {
       beast::error_code ec;
-      m_stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+      m_stream.socket().shutdown(tcp::socket::shutdown_both, ec);
       return;
     }
 
@@ -238,6 +240,9 @@ class APIServerImpl::Connection
 
   /// Id of connection, for dispatching
   const ConnectionId m_id;
+
+  /// Peer address
+  const std::string m_from;
 
   /// Internal http stream with socket inside
   beast::tcp_stream m_stream;
@@ -339,8 +344,12 @@ void APIServerImpl::OnWebsocketUpgrade(ConnectionId id, Socket&& socket,
   m_websocket->NewConnection(std::move(socket), std::move(request));
 }
 
-void APIServerImpl::OnRequest(ConnectionId id, HttpRequest&& request) {
-  m_threadPool->PushRequest(id, std::move(request.body()));
+void APIServerImpl::OnRequest(ConnectionId id, std::string from,
+                              HttpRequest&& request) {
+  if (!m_threadPool->PushRequest(id, std::move(from),
+                                 std::move(request.body()))) {
+    LOG_GENERAL(WARNING, "Request queue is full");
+  }
 }
 
 void APIServerImpl::OnClosed(ConnectionId id) { m_connections.erase(id); }
@@ -398,15 +407,20 @@ void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
     return;
   }
 
+  socket.set_option(asio::socket_base::keep_alive(true));
+
   auto ep = socket.remote_endpoint();
-  LOG_GENERAL(
-      INFO, "Connection from " << ep.address().to_string() << ":" << ep.port());
+  auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
 
   ++m_counter;
-  auto conn = std::make_shared<Connection>(
-      weak_from_this(), m_counter, std::move(socket), m_options.inputBodyLimit);
+  auto conn =
+      std::make_shared<Connection>(weak_from_this(), m_counter, from,
+                                   std::move(socket), m_options.inputBodyLimit);
   conn->StartReading();
   m_connections[m_counter] = std::move(conn);
+
+  LOG_GENERAL(INFO, "Connection #" << m_counter << "from " << from
+                                   << ", total=" << m_connections.size());
 
   AcceptNext();
 }
