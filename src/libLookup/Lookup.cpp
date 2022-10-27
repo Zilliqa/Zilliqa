@@ -5648,6 +5648,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
     LOG_GENERAL(WARNING, "Failed to Messenger::GetForwardTxnBlockFromSeed");
     return false;
   }
+  LOG_GENERAL(INFO," txnsShard = "<<txnsShard.size()<<" txnDS = "<< txnsDS.size());
 
   LOG_GENERAL(INFO, "Recvd from " << from);
 
@@ -5657,11 +5658,14 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
     if (!(m_sendSCCallsToDS || m_sendAllToDS)) {
       for (const auto& txn : txnsShard) {
         unsigned int shard = txn.GetShardIndex(shard_size);
+        LOG_GENERAL(INFO, "test shard id"<<shard);
+        
         AddToTxnShardMap(txn, shard);
       }
     } else if (m_sendAllToDS) {
       for (const auto& txn : txnsShard) {
         AddToTxnShardMap(txn, shard_size);
+        LOG_GENERAL(INFO, "test1");
       }
     } else {
       LOG_GENERAL(INFO, "Sending all contract calls to DS committee");
@@ -5670,9 +5674,11 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
             Transaction::GetTransactionType(txn);
         if (txnType == Transaction::ContractType::CONTRACT_CALL) {
           AddToTxnShardMap(txn, shard_size);
+          LOG_GENERAL(INFO, "test2");
         } else {
           unsigned int shard = txn.GetShardIndex(shard_size);
           AddToTxnShardMap(txn, shard);
+          LOG_GENERAL(INFO, "test3");
         }
       }
     }
@@ -5681,6 +5687,7 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
 
     for (const auto& txn : txnsDS) {
       AddToTxnShardMap(txn, shard_size);
+      LOG_GENERAL(INFO, "test4");
     }
     if (REMOTESTORAGE_DB_ENABLE) {
       RemoteStorageDB::GetInstance().ExecuteWriteDetached();
@@ -5688,9 +5695,13 @@ bool Lookup::ProcessForwardTxn(const bytes& message, unsigned int offset,
   } else {
     for (const auto& txn : txnsShard) {
       AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_SHARD);
+      LOG_GENERAL(INFO, "test5");
+    }
     }
     for (const auto& txn : txnsDS) {
       AddToTxnShardMap(txn, SEND_TYPE::ARCHIVAL_SEND_DS);
+      LOG_GENERAL(INFO, "test6");
+    }
     }
   }
 
