@@ -188,191 +188,196 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
     Ok(num_rounds as u64 * F_ROUND)
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::super::utils::new_context;
-//     use crate::prelude::Vec;
+#[cfg(test)]
+mod tests {
+    type PrecompileResult = Result<PrecompileOutput, PrecompileFailure>;
+    use super::*;
 
-//     use super::*;
+    // [4 bytes for rounds]
+    // [64 bytes for h]
+    // [128 bytes for m]
+    // [8 bytes for t_0]
+    // [8 bytes for t_1]
+    // [1 byte for f]
+    const INPUT: &str = "\
+            0000000c\
+            48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
+            d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
+            6162630000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0300000000000000\
+            0000000000000000\
+            01";
 
-//     // [4 bytes for rounds]
-//     // [64 bytes for h]
-//     // [128 bytes for m]
-//     // [8 bytes for t_0]
-//     // [8 bytes for t_1]
-//     // [1 byte for f]
-//     const INPUT: &str = "\
-//             0000000c\
-//             48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
-//             d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
-//             6162630000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0300000000000000\
-//             0000000000000000\
-//             01";
+    fn new_context() -> Context {
+        Context {
+            address: Default::default(),
+            caller: Default::default(),
+            apparent_value: Default::default(),
+        }
+    }
 
-//     fn test_blake2f_out_of_gas() -> EvmPrecompileResult {
-//         let input = hex::decode(INPUT).unwrap();
-//         Blake2F.run(&input, Some(EthGas::new(11)), &new_context(), false)
-//     }
+    fn test_blake2f_out_of_gas() -> PrecompileResult {
+        let input = hex::decode(INPUT).unwrap();
+        blake2(&input, Some(11), &new_context(), false)
+    }
 
-//     fn test_blake2f_empty() -> EvmPrecompileResult {
-//         let input = [0u8; 0];
-//         Blake2F.run(&input, Some(EthGas::new(0)), &new_context(), false)
-//     }
+    fn test_blake2f_empty() -> PrecompileResult {
+        let input = [0u8; 0];
+        blake2(&input, Some(0), &new_context(), false)
+    }
 
-//     fn test_blake2f_invalid_len_1() -> EvmPrecompileResult {
-//         let input = hex::decode(
-//             "\
-//             00000c\
-//             48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
-//             d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
-//             6162630000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0300000000000000\
-//             0000000000000000\
-//             01",
-//         )
-//         .unwrap();
-//         Blake2F.run(&input, Some(EthGas::new(12)), &new_context(), false)
-//     }
+    fn test_blake2f_invalid_len_1() -> PrecompileResult {
+        let input = hex::decode(
+            "\
+            00000c\
+            48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
+            d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
+            6162630000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0300000000000000\
+            0000000000000000\
+            01",
+        )
+        .unwrap();
+        blake2(&input, Some(12), &new_context(), false)
+    }
 
-//     fn test_blake2f_invalid_len_2() -> EvmPrecompileResult {
-//         let input = hex::decode(
-//             "\
-//             000000000c\
-//             48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
-//             d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
-//             6162630000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0300000000000000\
-//             0000000000000000\
-//             01",
-//         )
-//         .unwrap();
-//         Blake2F.run(&input, Some(EthGas::new(12)), &new_context(), false)
-//     }
+    fn test_blake2f_invalid_len_2() -> PrecompileResult {
+        let input = hex::decode(
+            "\
+            000000000c\
+            48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
+            d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
+            6162630000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0300000000000000\
+            0000000000000000\
+            01",
+        )
+        .unwrap();
+        blake2(&input, Some(12), &new_context(), false)
+    }
 
-//     fn test_blake2f_invalid_flag() -> EvmPrecompileResult {
-//         let input = hex::decode(
-//             "\
-//             0000000c\
-//             48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
-//             d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
-//             6162630000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0300000000000000\
-//             0000000000000000\
-//             02",
-//         )
-//         .unwrap();
-//         Blake2F.run(&input, Some(EthGas::new(12)), &new_context(), false)
-//     }
+    fn test_blake2f_invalid_flag() -> PrecompileResult {
+        let input = hex::decode(
+            "\
+            0000000c\
+            48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
+            d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
+            6162630000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0300000000000000\
+            0000000000000000\
+            02",
+        )
+        .unwrap();
+        blake2(&input, Some(12), &new_context(), false)
+    }
 
-//     fn test_blake2f_r_0() -> Vec<u8> {
-//         let input = hex::decode(
-//             "\
-//             00000000\
-//             48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
-//             d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
-//             6162630000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0300000000000000\
-//             0000000000000000\
-//             01",
-//         )
-//         .unwrap();
-//         Blake2F
-//             .run(&input, Some(EthGas::new(12)), &new_context(), false)
-//             .unwrap()
-//             .output
-//     }
+    fn test_blake2f_r_0() -> Vec<u8> {
+        let input = hex::decode(
+            "\
+            00000000\
+            48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
+            d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
+            6162630000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0300000000000000\
+            0000000000000000\
+            01",
+        )
+        .unwrap();
+        
+        blake2(&input, Some(12), &new_context(), false)
+            .unwrap()
+            .output
+    }
 
-//     fn test_blake2f_r_12() -> Vec<u8> {
-//         let input = hex::decode(INPUT).unwrap();
-//         Blake2F
-//             .run(&input, Some(EthGas::new(12)), &new_context(), false)
-//             .unwrap()
-//             .output
-//     }
+    fn test_blake2f_r_12() -> Vec<u8> {
+        let input = hex::decode(INPUT).unwrap();
+        
+        blake2(&input, Some(12), &new_context(), false)
+            .unwrap()
+            .output
+    }
 
-//     fn test_blake2f_final_block_false() -> Vec<u8> {
-//         let input = hex::decode(
-//             "\
-//             0000000c\
-//             48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
-//             d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
-//             6162630000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0000000000000000000000000000000000000000000000000000000000000000\
-//             0300000000000000\
-//             0000000000000000\
-//             00",
-//         )
-//         .unwrap();
-//         Blake2F
-//             .run(&input, Some(EthGas::new(12)), &new_context(), false)
-//             .unwrap()
-//             .output
-//     }
+    fn test_blake2f_final_block_false() -> Vec<u8> {
+        let input = hex::decode(
+            "\
+            0000000c\
+            48c9bdf267e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5\
+            d182e6ad7f520e511f6c3e2b8c68059b6bbd41fbabd9831f79217e1319cde05b\
+            6162630000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0000000000000000000000000000000000000000000000000000000000000000\
+            0300000000000000\
+            0000000000000000\
+            00",
+        )
+        .unwrap();
+        blake2(&input, Some(12), &new_context(), false)
+            .unwrap()
+            .output
+    }
 
-//     #[test]
-//     fn test_blake2f() {
-//         assert!(matches!(
-//             test_blake2f_out_of_gas(),
-//             Err(ExitError::OutOfGas)
-//         ));
+    #[test]
+    fn test_blake2f() {
+        assert!(matches!(
+            test_blake2f_out_of_gas(),
+            Err(PrecompileFailure::Error { exit_status: ExitError::OutOfGas }) 
+        ));
 
-//         assert!(matches!(
-//             test_blake2f_empty(),
-//             Err(ExitError::Other(Borrowed("ERR_BLAKE2F_INVALID_LEN")))
-//         ));
+        assert!(matches!(
+            test_blake2f_empty(),
+            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) })
+        ));
 
-//         assert!(matches!(
-//             test_blake2f_invalid_len_1(),
-//             Err(ExitError::Other(Borrowed("ERR_BLAKE2F_INVALID_LEN")))
-//         ));
+        assert!(matches!(
+            test_blake2f_invalid_len_1(),
+            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) })
+        ));
 
-//         assert!(matches!(
-//             test_blake2f_invalid_len_2(),
-//             Err(ExitError::Other(Borrowed("ERR_BLAKE2F_INVALID_LEN")))
-//         ));
+        assert!(matches!(
+            test_blake2f_invalid_len_2(),
+            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) })
+        ));
 
-//         assert!(matches!(
-//             test_blake2f_invalid_flag(),
-//             Err(ExitError::Other(Borrowed("ERR_BLAKE2F_FINAL_FLAG",)))
-//         ));
+        assert!(matches!(
+            test_blake2f_invalid_flag(),
+            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_FINAL_FLAG")) })
+        ));
 
-//         let expected = hex::decode(
-//             "08c9bcf367e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5d\
-//             282e6ad7f520e511f6c3e2b8c68059b9442be0454267ce079217e1319cde05b",
-//         )
-//         .unwrap();
-//         assert_eq!(test_blake2f_r_0(), expected);
+        let expected = hex::decode(
+            "08c9bcf367e6096a3ba7ca8485ae67bb2bf894fe72f36e3cf1361d5f3af54fa5d\
+            282e6ad7f520e511f6c3e2b8c68059b9442be0454267ce079217e1319cde05b",
+        )
+        .unwrap();
+        assert_eq!(test_blake2f_r_0(), expected);
 
-//         let expected = hex::decode(
-//             "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d1\
-//                 7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923",
-//         )
-//         .unwrap();
-//         assert_eq!(test_blake2f_r_12(), expected);
+        let expected = hex::decode(
+            "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d1\
+                7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923",
+        )
+        .unwrap();
+        assert_eq!(test_blake2f_r_12(), expected);
 
-//         let expected = hex::decode(
-//             "75ab69d3190a562c51aef8d88f1c2775876944407270c42c9844252c26d28752\
-//             98743e7f6d5ea2f2d3e8d226039cd31b4e426ac4f2d3d666a610c2116fde4735",
-//         )
-//         .unwrap();
-//         assert_eq!(test_blake2f_final_block_false(), expected);
-//     }
-// }
+        let expected = hex::decode(
+            "75ab69d3190a562c51aef8d88f1c2775876944407270c42c9844252c26d28752\
+            98743e7f6d5ea2f2d3e8d226039cd31b4e426ac4f2d3d666a610c2116fde4735",
+        )
+        .unwrap();
+        assert_eq!(test_blake2f_final_block_false(), expected);
+    }
+}
