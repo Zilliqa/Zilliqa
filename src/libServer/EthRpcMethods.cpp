@@ -1151,7 +1151,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
       txBlock.GetHeader().GetDSBlockNum());
 
   std::vector<TxBodySharedPtr> transactions;
-  std::vector<TxnHash> transactionHashes;
 
   // Gather either transaction hashes or full transactions
   const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
@@ -1168,11 +1167,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
     }
 
     const auto& currTranHashes = microBlockPtr->GetTranHashes();
-    if (!includeFullTransactions) {
-      transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
-                               currTranHashes.end());
-      continue;
-    }
+
     for (const auto& transactionHash : currTranHashes) {
       TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
@@ -1184,7 +1179,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
   }
 
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 transactionHashes,
                                                  includeFullTransactions);
 }
 
