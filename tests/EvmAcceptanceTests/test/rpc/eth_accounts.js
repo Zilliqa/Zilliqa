@@ -12,10 +12,6 @@ describe("Calling " + METHOD, function () {
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
       assert.isArray(result.result, "is array");
-
-      // we should have at least one account here (coinbase)
-      // FIXME: In https://zilliqa-jira.atlassian.net/browse/ZIL-4952
-      // expect(result.result[0], "should have at least one account here (coinbase)").to.be.properAddress;
     });
   });
 });
