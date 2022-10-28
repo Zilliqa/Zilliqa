@@ -42,8 +42,7 @@
     "web3": "^1.7.5"
   },
   "dependencies": {
-    "@zilliqa-js/zilliqa": "^3.3.4",
-    "node": "^19.0.0"
+    "@zilliqa-js/zilliqa": "^3.3.4"
   },
   "lint-staged": {
     "*.js": [
