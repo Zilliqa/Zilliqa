@@ -106,7 +106,7 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   std::string error;
   bool found = false;
 
-  auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
+  auto logs = ExtractArrayFromJsonObj(receipt, "logs", error);
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
@@ -137,8 +137,8 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
       log.topics.emplace_back(t.asString());
     }
 
-    auto data = ExtractArrayFromJsonObj(event, DATA_STR, error);
-    if (!error.empty()) {
+    auto data = ExtractStringFromJsonObj(event, DATA_STR, error, found);
+    if (data.empty()) {
       LOG_GENERAL(WARNING, "Error extracting event log data: " << error);
     }
 
