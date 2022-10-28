@@ -31,9 +31,16 @@
 
 #include "../ScillaTestUtil.h"
 
+TxnExtras GetDefaultTxnExtras() {
+  TxnExtras extras{GAS_PRICE_MIN_VALUE * EVM_ZIL_SCALING_FACTOR, 1664226846,
+                   42};
+  return extras;
+}
+
 BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 BOOST_AUTO_TEST_CASE(rwtest) {
+  ENABLE_SCILLA = false;
   AccountStore::GetInstance().Init();
 
   std::vector<PairOfKey> kps;
@@ -63,7 +70,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   AccountStore::GetInstance().PrintAccountState();
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
-  bytes delta;
+  zbytes delta;
   AccountStore::GetInstance().GetSerializedDelta(delta);
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(delta, 0);
@@ -75,8 +82,8 @@ BOOST_AUTO_TEST_CASE(rwtest) {
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(0, 1, false, tx, tr,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        0, 1, false, tx, GetDefaultTxnExtras(), tr, error_code);
   }
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -85,7 +92,7 @@ BOOST_AUTO_TEST_CASE(rwtest) {
   }
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
-  bytes delta1;
+  zbytes delta1;
   AccountStore::GetInstance().GetSerializedDelta(delta1);
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(delta1, 0);
@@ -107,12 +114,12 @@ BOOST_AUTO_TEST_CASE(rwtest) {
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(0, 1, false, tx, tr,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        0, 1, false, tx, GetDefaultTxnExtras(), tr, error_code);
   }
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());
-  bytes delta2;
+  zbytes delta2;
   AccountStore::GetInstance().GetSerializedDelta(delta2);
   AccountStore::GetInstance().InitTemp();
   AccountStore::GetInstance().DeserializeDeltaTemp(delta2, 0);

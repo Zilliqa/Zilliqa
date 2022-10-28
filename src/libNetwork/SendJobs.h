@@ -31,7 +31,7 @@ class SendJobs {
 
   static std::shared_ptr<SendJobs> Create();
 
-  static RawMessage CreateMessage(const bytes& message, const bytes& msg_hash,
+  static RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
                                   uint8_t start_byte);
 
   virtual ~SendJobs() = default;
@@ -39,9 +39,9 @@ class SendJobs {
   virtual void SendMessageToPeer(const Peer& peer, RawMessage message,
                                  bool allow_relaxed_blacklist) = 0;
 
-  void SendMessageToPeer(const Peer& peer, const bytes& message,
+  void SendMessageToPeer(const Peer& peer, const zbytes& message,
                          uint8_t start_byte) {
-    static const bytes no_hash;
+    static const zbytes no_hash;
     SendMessageToPeer(peer, CreateMessage(message, no_hash, start_byte), false);
   }
 };

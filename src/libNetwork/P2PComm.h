@@ -41,21 +41,21 @@ extern const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE;
 
 /// Provides network layer functionality.
 class P2PComm {
-  std::set<bytes> m_broadcastHashes;
+  std::set<zbytes> m_broadcastHashes;
   std::mutex m_broadcastHashesMutex;
   std::deque<
-      std::pair<bytes, std::chrono::time_point<std::chrono::system_clock>>>
+      std::pair<zbytes, std::chrono::time_point<std::chrono::system_clock>>>
       m_broadcastToRemove;
   std::mutex m_broadcastToRemoveMutex;
   RumorManager m_rumorManager;
 
   struct event_base* m_base{};
 
-  void ClearBroadcastHashAsync(const bytes& message_hash);
+  void ClearBroadcastHashAsync(const zbytes& message_hash);
   void SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
-                               const bytes& message,
+                               const zbytes& message,
                                const unsigned char& startByteType);
-  void WriteMsgOnBufferEvent(struct bufferevent* bev, const bytes& message,
+  void WriteMsgOnBufferEvent(struct bufferevent* bev, const zbytes& message,
                              const unsigned char& startByteType);
 
   P2PComm();
@@ -65,8 +65,8 @@ class P2PComm {
   P2PComm(P2PComm const&) = delete;
   void operator=(P2PComm const&) = delete;
 
-  using ShaMessage = bytes;
-  static ShaMessage shaMessage(const bytes& message);
+  using ShaMessage = zbytes;
+  static ShaMessage shaMessage(const zbytes& message);
 
   Peer m_selfPeer;
   PairOfKey m_selfKey;
@@ -76,8 +76,8 @@ class P2PComm {
 
   std::shared_ptr<SendJobs> m_sendJobs;
 
-  static void ProcessBroadCastMsg(bytes& message, const Peer& from);
-  static void ProcessGossipMsg(bytes& message, Peer& from);
+  static void ProcessBroadCastMsg(zbytes& message, const Peer& from);
+  static void ProcessGossipMsg(zbytes& message, Peer& from);
 
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
   static void EventCbServerSeed(struct bufferevent* bev, short events,
@@ -108,7 +108,7 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Msg = std::pair<bytes, std::pair<Peer, const unsigned char>>;
+  using Msg = std::pair<zbytes, std::pair<Peer, const unsigned char>>;
   using Dispatcher = std::function<void(std::shared_ptr<Msg> msg)>;
 
   using BroadcastListFunc = std::function<VectorOfPeer(
@@ -144,56 +144,56 @@ class P2PComm {
   void EnableConnect();
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(const VectorOfPeer& peers, const bytes& message,
+  void SendMessage(const VectorOfPeer& peers, const zbytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(const std::deque<Peer>& peers, const bytes& message,
+  void SendMessage(const std::deque<Peer>& peers, const zbytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL,
                    const bool bAllowSendToRelaxedBlacklist = false);
 
   /// Sends normal message to specified peer.
-  void SendMessage(const Peer& peer, const bytes& message,
+  void SendMessage(const Peer& peer, const zbytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   // Overloadeded version of SendMessage for p2pseed comm.
   void SendMessage(const Peer& msgPeer, const Peer& fromPeer,
-                   const bytes& message,
+                   const zbytes& message,
                    const unsigned char& startByteType = START_BYTE_NORMAL);
 
   /// Multicasts message of type=broadcast to specified list of peers.
-  void SendBroadcastMessage(const VectorOfPeer& peers, const bytes& message);
+  void SendBroadcastMessage(const VectorOfPeer& peers, const zbytes& message);
 
   /// Multicasts message of type=broadcast to specified list of peers.
   void SendBroadcastMessage(const std::deque<Peer>& peers,
-                            const bytes& message);
+                            const zbytes& message);
 
-  void RebroadcastMessage(const VectorOfPeer& peers, const bytes& message,
-                          const bytes& msg_hash);
+  void RebroadcastMessage(const VectorOfPeer& peers, const zbytes& message,
+                          const zbytes& msg_hash);
 
   void SendMessageNoQueue(
-      const Peer& peer, const bytes& message,
+      const Peer& peer, const zbytes& message,
       const unsigned char& startByteType = START_BYTE_NORMAL);
 
   void SetSelfPeer(const Peer& self);
 
   void SetSelfKey(const PairOfKey& self);
 
-  bool SpreadRumor(const bytes& message);
+  bool SpreadRumor(const zbytes& message);
 
-  bool SpreadForeignRumor(const bytes& message);
+  bool SpreadForeignRumor(const zbytes& message);
 
-  void SendRumorToForeignPeer(const Peer& foreignPeer, const bytes& message);
+  void SendRumorToForeignPeer(const Peer& foreignPeer, const zbytes& message);
 
   void SendRumorToForeignPeers(const VectorOfPeer& foreignPeers,
-                               const bytes& message);
+                               const zbytes& message);
 
   void SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
-                               const bytes& message);
+                               const zbytes& message);
 
-  Signature SignMessage(const bytes& message);
+  Signature SignMessage(const zbytes& message);
 
-  bool VerifyMessage(const bytes& message, const Signature& toverify,
+  bool VerifyMessage(const zbytes& message, const Signature& toverify,
                      const PubKey& pubKey);
 };
 

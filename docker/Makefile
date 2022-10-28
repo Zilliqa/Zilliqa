@@ -32,7 +32,8 @@ dev: check-commit
 
 # build the dependencies docker image for public usage
 deps:
-	docker build -f Dockerfile.deps -t zilliqa:v$(major).$(minor).$(fix)-deps .
+	docker build -t zilliqa:v$(major).$(minor).$(fix)-deps --build-arg REGISTRY=$(registry) \
+		--build-arg COMMIT_OR_TAG=$(commit_or_tag) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile.deps .
 
 # build release version docker image for public usage
 release:

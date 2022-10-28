@@ -112,6 +112,9 @@ struct CallResponse {
   const std::vector<std::string>& Logs() const { return m_logs; }
   void AddLog(const std::string& log) { m_logs.push_back(log); }
 
+  const std::vector<std::string>& Trace() const { return m_trace; }
+  void AddTrace(const std::string& trace) { m_trace.push_back(trace); }
+
   const std::string& ExitReason() const { return m_exitReason; }
   void SetExitReason(const std::string& reason) { m_exitReason = reason; }
 
@@ -119,7 +122,7 @@ struct CallResponse {
   void SetGasRemaining(const uint64_t gas) { m_gasRemaining = gas; }
 
   const std::string& ReturnedBytes() const { return m_return; }
-  void SetReturnedBytes(const std::string& bytes) { m_return = bytes; }
+  void SetReturnedBytes(const std::string& zbytes) { m_return = zbytes; }
 
   inline bool Success() const { return m_success; }
   inline void SetSuccess(const bool _ok) { m_success = _ok; }
@@ -128,6 +131,7 @@ struct CallResponse {
   bool m_success{false};
   std::vector<std::shared_ptr<ApplyInstructions>> m_apply;
   std::vector<std::string> m_logs;
+  std::vector<std::string> m_trace;
 
   std::string m_exitReason;
   std::string m_return;

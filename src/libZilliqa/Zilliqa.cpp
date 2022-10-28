@@ -17,20 +17,23 @@
 
 #include <chrono>
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/signal_set.hpp>
+
 #include <Schnorr.h>
 #include "Zilliqa.h"
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "depends/safeserver/safehttpserver.h"
 #include "jsonrpccpp/server/connectors/tcpsocketserver.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
+#include "libEth/Filters.h"
 #include "libNetwork/Guard.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/APIServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/WebsocketServer.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
@@ -39,8 +42,8 @@ using namespace std;
 using namespace jsonrpc;
 
 void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
-  bytes tmp1;
-  bytes tmp2;
+  zbytes tmp1;
+  zbytes tmp2;
 
   key.first.Serialize(tmp1, 0);
   key.second.Serialize(tmp2, 0);
@@ -49,10 +52,10 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
 
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Reset();
-  bytes message;
+  zbytes message;
   key.second.Serialize(message, 0);
   sha2.Update(message, 0, PUB_KEY_SIZE);
-  const bytes& tmp3 = sha2.Finalize();
+  const zbytes& tmp3 = sha2.Finalize();
   Address toAddr;
   copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
@@ -147,7 +150,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     Msg message;
-    while (m_msgQueue.pop(message)) {
+    size_t queueSize;
+    while (m_msgQueue.pop(message, queueSize)) {
       // For now, we use a thread pool to handle this message
       // Eventually processing will be single-threaded
       m_queuePool.AddJob([this, m = std::move(message)]() mutable -> void {
@@ -404,10 +408,38 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
+    std::shared_ptr<boost::asio::io_context> asioCtx;
+    std::shared_ptr<evmproj::APIServer> apiRPC;
+    std::shared_ptr<evmproj::APIServer> stakingRPC;
+
+    if (LOOKUP_NODE_MODE || ENABLE_STAKING_RPC) {
+      asioCtx = std::make_shared<boost::asio::io_context>(1);
+    }
+
     if (LOOKUP_NODE_MODE) {
-      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
-      m_lookupServer =
-          make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
+      evmproj::APIServer::Options options;
+      options.port = static_cast<uint16_t>(LOOKUP_RPC_PORT);
+
+      apiRPC = evmproj::APIServer::CreateAndStart(asioCtx, std::move(options),
+                                                  false);
+      if (apiRPC) {
+        m_lookupServer = make_shared<LookupServer>(
+            m_mediator, apiRPC->GetRPCServerBackend());
+
+        if (ENABLE_EVM) {
+          m_mediator.m_filtersAPICache->EnableWebsocketAPI(
+              apiRPC->GetWebsocketServer(),
+              [this](const std::string& blockHash) -> Json::Value {
+                try {
+                  return m_lookupServer->GetEthBlockByHash(blockHash, false);
+                } catch (...) {
+                  LOG_GENERAL(WARNING,
+                              "BlockByHash failed with hash=" << blockHash);
+                }
+                return Json::Value{};
+              });
+        }
+      }
 
       if (ENABLE_WEBSOCKET) {
         (void)WebsocketServer::GetInstance();
@@ -456,10 +488,15 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (ENABLE_STAKING_RPC) {
-      m_stakingServerConnector = make_unique<SafeHttpServer>(STAKING_RPC_PORT);
-      m_stakingServer =
-          make_shared<StakingServer>(m_mediator, *m_stakingServerConnector);
+      evmproj::APIServer::Options options;
+      options.port = static_cast<uint16_t>(STAKING_RPC_PORT);
 
+      stakingRPC = evmproj::APIServer::CreateAndStart(
+          asioCtx, std::move(options), false);
+      if (stakingRPC) {
+        m_stakingServer = make_shared<StakingServer>(
+            m_mediator, stakingRPC->GetRPCServerBackend());
+      }
       if (m_stakingServer == nullptr) {
         LOG_GENERAL(WARNING, "m_stakingServer NULL");
       } else {
@@ -475,6 +512,24 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
                       "This lookup node not sync yet, don't start listen");
         }
       }
+    }
+
+    if (asioCtx) {
+      pthread_setname_np(pthread_self(), "RPCAPI");
+
+      boost::asio::signal_set sig(*asioCtx, SIGINT, SIGTERM);
+      sig.async_wait([&](const boost::system::error_code&, int) {
+        if (apiRPC) {
+          apiRPC->Close();
+        }
+        if (stakingRPC) {
+          stakingRPC->Close();
+        }
+      });
+
+      LOG_GENERAL(INFO, "Starting API event loop");
+      asioCtx->run();
+      LOG_GENERAL(INFO, "API event loop stopped");
     }
   };
   DetachedFunction(1, func);

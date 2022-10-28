@@ -50,7 +50,7 @@ namespace dev
 		bool exists(h256 const& _h) const;
 		void kill(h256 const& _h);
 
-		bytes lookupAux(h256 const& _h) const;
+		zbytes lookupAux(h256 const& _h) const;
 
 	protected:
 		// using MemoryDB::clear;

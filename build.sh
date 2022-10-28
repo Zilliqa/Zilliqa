@@ -21,6 +21,26 @@ if [ -z ${VCPKG_ROOT} ]; then
   exit 1
 fi
 
+# Determine vcpkg os and arch triplet
+OS="unknown"
+ARCH="$(uname -m)"
+
+unameOut="$(uname -s)"
+case "${unameOut}" in
+    Linux*)     OS=linux;;
+    Darwin*)    OS=osx;;
+    *)          echo "Unknown machine ${unameOut}"
+esac
+
+unameOut="$(uname -m)"
+case "${unameOut}" in
+    arm*)       ARCH=arm64;;
+    x86_64*)    ARCH=x64;;
+    *)          echo "Unknown machine ${unameOut}"
+esac
+
+VCPKG_TRIPLET=${ARCH}-${OS}-dynamic
+
 # set n_parallel to fully utilize the resources
 os=$(uname)
 case $os in
@@ -178,9 +198,9 @@ do
     esac
 done
 
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
 cmake --build ${dir} -- -j${n_parallel}
 ./scripts/license_checker.sh
-./scripts/depends/check_guard.sh
-[ ${run_clang_tidy_fix} -ne 0 ] && cmake --build ${dir} --target clang-tidy-fix
-[ ${run_clang_format_fix} -ne 0 ] && cmake --build ${dir} --target clang-format-fix
+if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
+if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build ${dir} --target clang-tidy-fix; fi
+if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build ${dir} --target clang-format-fix; fi

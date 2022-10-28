@@ -9,6 +9,12 @@ pragma solidity >=0.7.0 <0.9.0;
 contract Storage {
 
     uint256 number = 1024;
+    mapping(address => uint256) balances;
+
+    constructor() {
+        balances[address(0x10)] = 2048;
+    }
+
     /**
      * @dev Store value in variable
      * @param num value to store

@@ -54,6 +54,7 @@ scope=$(find . -type f \( \
             ! -path "./scilla/deps/*" \
             ! -path "./scilla/_build/*" \
             ! -path "./.local/*" \
+            ! -path "./.husky/*" \
             ! -path "./scripts/depends/*")
 
 lc_license=$(wc -l $banner_file | egrep "[0-9]+" -o | head -n1)

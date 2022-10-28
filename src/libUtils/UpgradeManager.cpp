@@ -228,7 +228,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (const auto& ds_string : tempDsComm_string) {
-        bytes pubkeyBytes;
+        zbytes pubkeyBytes;
         if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
           LOG_GENERAL(WARNING,
                       "error loading "
@@ -239,7 +239,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
         initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
       }
 
-      bytes message;
+      zbytes message;
       unsigned int curr_offset = 0;
       for (auto& dsKey : initialDSCommittee) {
         dsKey.Serialize(message, curr_offset);
@@ -249,13 +249,13 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       string sig_str = ReadDSCommFile(signatureProp);
       string pubKey_str = ReadDSCommFile(publicKeyProp);
 
-      bytes pubkeyBytes;
+      zbytes pubkeyBytes;
       if (!DataConversion::HexStrToUint8Vec(pubKey_str, pubkeyBytes)) {
         return false;
       }
       PubKey pubKey(pubkeyBytes, 0);
 
-      bytes sigBytes;
+      zbytes sigBytes;
       if (!DataConversion::HexStrToUint8Vec(sig_str, sigBytes)) {
         return false;
       }
@@ -271,7 +271,7 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
       vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
       initialDSCommittee.clear();
       for (const auto& ds_string : tempDsComm_string) {
-        bytes pubkeyBytes;
+        zbytes pubkeyBytes;
         if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
           return false;
         }

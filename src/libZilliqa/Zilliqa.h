@@ -37,7 +37,7 @@ class Zilliqa {
  public:
   // TODO shared instead of unique due to lambda move capture limitations
   using Msg =
-      std::shared_ptr<std::pair<bytes, std::pair<Peer, const unsigned char>>>;
+      std::shared_ptr<std::pair<zbytes, std::pair<Peer, const unsigned char>>>;
 
  private:
   Mediator m_mediator;

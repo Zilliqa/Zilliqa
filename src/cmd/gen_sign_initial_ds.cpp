@@ -60,7 +60,7 @@ int main(int argc, char** argv) {
     string pubKey_string;
     string pubk_fn;
     string privk_fn;
-    bytes message;
+    zbytes message;
     vector<PubKey> dsComm;
 
     po::options_description desc("Options");
@@ -92,7 +92,7 @@ int main(int argc, char** argv) {
       return ERROR_IN_COMMAND_LINE;
     }
     try {
-      bytes key_v;
+      zbytes key_v;
       fstream privFile(privk_fn, ios::in);
       while (getline(privFile, line)) {
         try {
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
     }
 
     try {
-      bytes key_v;
+      zbytes key_v;
       fstream pubFile(pubk_fn, ios::in);
       while (getline(pubFile, line)) {
         try {
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
 
     Signature sig;
     Schnorr::Sign(message, privKeys.at(0), pubKeys.at(0), sig);
-    bytes result;
+    zbytes result;
     sig.Serialize(result, 0);
 
     if (DataConversion::Uint8VecToHexStr(result, sig_str)) {

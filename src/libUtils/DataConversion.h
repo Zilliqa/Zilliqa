@@ -21,6 +21,7 @@
 #include <array>
 #include <boost/algorithm/hex.hpp>
 #include <exception>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -60,9 +61,9 @@ class DataConversion {
   }
 
   /// Converts alphanumeric hex string to byte vector.
-  static bool HexStrToUint8Vec(const std::string& hex_input, bytes& out);
+  static bool HexStrToUint8Vec(const std::string& hex_input, zbytes& out);
 
-  static bytes HexStrToUint8VecRet(const std::string& hex_input);
+  static zbytes HexStrToUint8VecRet(const std::string& hex_input);
 
   /// Converts alphanumeric hex string to 32-byte array.
   static bool HexStrToStdArray(const std::string& hex_input,
@@ -76,12 +77,12 @@ class DataConversion {
   static bool StringToHexStr(const std::string& hex_str, std::string& str);
 
   /// Converts byte vector to alphanumeric hex string.
-  static bool Uint8VecToHexStr(const bytes& hex_vec, std::string& str);
+  static bool Uint8VecToHexStr(const zbytes& hex_vec, std::string& str);
 
-  static std::string Uint8VecToHexStrRet(const bytes& hex_vec);
+  static std::string Uint8VecToHexStrRet(const zbytes& hex_vec);
 
   /// Converts byte vector to alphanumeric hex string.
-  static bool Uint8VecToHexStr(const bytes& hex_vec, unsigned int offset,
+  static bool Uint8VecToHexStr(const zbytes& hex_vec, unsigned int offset,
                                unsigned int len, std::string& str);
 
   /// Converts fixed-sized byte array to alphanumeric hex string.
@@ -106,16 +107,16 @@ class DataConversion {
   static bool SerializableToHexStr(const SerializableCrypto& input,
                                    std::string& str);
 
-  static inline const std::string CharArrayToString(const bytes& v) {
+  static inline const std::string CharArrayToString(const zbytes& v) {
     return std::string(v.begin(), v.end());
   }
 
   static inline const std::vector<uint8_t> StringToCharArray(
       const std::string& input) {
-    return bytes(input.begin(), input.end());
+    return zbytes(input.begin(), input.end());
   }
 
-  static uint16_t charArrTo16Bits(const bytes& hex_arr);
+  static uint16_t charArrTo16Bits(const zbytes& hex_arr);
 
   static uint32_t Pack(uint16_t a, uint16_t b) {
     return (int32_t)((((uint32_t)a) << 16) + (uint32_t)b);
@@ -142,8 +143,8 @@ class DataConversion {
   }
 
   template <typename T, size_t SIZE>
-  static bytes IntegerToBytes(T value) {
-    bytes result(SIZE);
+  static zbytes IntegerToBytes(T value) {
+    zbytes result(SIZE);
     for (size_t i = 0; i < SIZE; i++) {
       result[SIZE - i - 1] = (value >> (i * 8));
     }
@@ -175,6 +176,63 @@ class DataConversion {
     }
 
     return stream.str();
+  }
+
+  template <typename T, typename std::enable_if<
+                            std::is_integral<T>::value>::type* = nullptr>
+  static T ConvertStrToInt(const std::string& input,
+                           std::optional<T> fallback = std::nullopt) {
+    unsigned long long retVal{};
+    try {
+      // TODO: consinder replacing with std::from_chars once we abandon gcc_ver
+      // < 8
+      retVal = std::stoull(input, nullptr, 0);
+    } catch (const std::invalid_argument& e) {
+      LOG_GENERAL(WARNING, "Convert failed, invalid input: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw e;
+    } catch (const std::out_of_range& e) {
+      LOG_GENERAL(WARNING, "Convert failed, out of range: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw e;
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Convert failed, unknown failure: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw;
+    }
+
+    return static_cast<T>(retVal);
+  }
+
+  template <typename T, typename std::enable_if<
+                            std::is_same<T, uint128_t>::value ||
+                            std::is_same<T, uint256_t>::value>::type* = nullptr>
+  static T ConvertStrToInt(const std::string& input,
+                           std::optional<T> fallback = std::nullopt) {
+    T retVal{0};
+    try {
+      retVal = T{input};
+    } catch (const std::runtime_error& e) {
+      LOG_GENERAL(WARNING, "Convert failed, runtime error: " << input);
+      if (fallback) {
+        return fallback.value();
+      }
+      throw e;
+    } catch (...) {
+      LOG_GENERAL(WARNING, "Convert failed, unknown failure: " << input);
+      if (fallback) {
+        return fallback.value();
+      };
+      throw;
+    }
+
+    return retVal;
   }
 };
 

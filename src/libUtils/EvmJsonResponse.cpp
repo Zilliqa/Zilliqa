@@ -24,6 +24,144 @@ using websocketpp::base64_decode;
 
 namespace evmproj {
 
+// Expects: [ {op1 : {}},
+//            {op2 : {}},
+//          ...]
+void parseApply(const nlohmann::json& jsonChunk,
+                evmproj::CallResponse& response) {
+  for (const auto& ap : jsonChunk) {
+    for (const auto& map : ap.items()) {
+      const nlohmann::json arr = map.value();
+      auto apply = std::make_shared<ApplyInstructions>();
+      // Read the apply type one of modify or delete
+      try {
+        apply->SetOperationType(map.key());
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading Address : " << e.what());
+        throw e;
+      }
+      // Read the address this is the address of the account we wish to
+      // operate on.
+      try {
+        apply->SetAddress(arr["address"]);
+        apply->SetHasAddress(true);
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading Address : " << e.what());
+        throw e;
+      }
+      // The new balance for this account
+      try {
+        if (arr.contains("balance")) {
+          apply->SetBalance(arr["balance"]);
+          apply->SetHasBalance(true);
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading Balance : " << e.what());
+        throw e;
+      }
+      // The new binary code that should be associated with the account
+      nlohmann::json cobj;
+      try {
+        if (arr.contains("code")) {
+          cobj = arr["code"];
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading Code : " << e.what());
+        throw e;
+      }
+      // check the type, we only support strings in this version
+      // we expect it t have been encoded into ascii hex, other
+      // components are not happy with nulls in the contents.
+      if (not cobj.is_null()) {
+        if (cobj.is_binary()) {
+          LOG_GENERAL(WARNING, "Code sent as Binary type ignored");
+          throw std::runtime_error(
+              "unhandled DataType Binary used in "
+              "Code ");
+        } else if (cobj.is_string()) {
+          apply->SetCode(cobj.get<std::string>());
+          apply->SetHasCode(true);
+        } else {
+          LOG_GENERAL(WARNING, "Code sent as Unexpected type ignored");
+          throw std::runtime_error(
+              "unhandled DataType used in Code "
+              "value");
+        }
+      }
+      // get the nonce for the account specified in the address
+      try {
+        if (arr.contains("nonce")) {
+          apply->SetNonce(arr["nonce"]);
+          apply->SetHasNonce(true);
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading Nonce : " << e.what());
+        throw e;
+      }
+      // whether the storage values for this account should be reset
+      try {
+        if (arr.contains("reset_storage")) {
+          apply->SetResetStorage(arr["reset_storage"]);
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading reset_storage : " << e.what());
+        throw e;
+      }
+      // The storage object associated with this address
+      // the storage object contains an array of key value pairs.
+      nlohmann::json storageObj;
+      try {
+        if (arr.contains("storage")) {
+          storageObj = arr["storage"];
+        }
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "Exception reading storage : " << e.what());
+        throw e;
+      }
+      if (not storageObj.is_null()) {
+        evmproj::KeyValue kvs;
+        for (const auto& kv : storageObj.items()) {
+          try {
+            kvs.SetKey(base64_decode(kv.value()[0]));
+            kvs.SetHasKey(true);
+          } catch (const std::exception& e) {
+            LOG_GENERAL(WARNING,
+                        "Exception reading storage key : " << e.what());
+            throw e;
+          }
+
+          try {
+            kvs.SetValue(base64_decode(kv.value()[1]));
+            kvs.SetHasValue(true);
+          } catch (const std::exception& e) {
+            LOG_GENERAL(WARNING,
+                        "Exception reading storage value : " << e.what());
+            throw e;
+          }
+
+          // store the keys and values within the storage
+          try {
+            apply->AddStorage(kvs);
+          } catch (const std::exception& e) {
+            LOG_GENERAL(WARNING, "Exception adding key/value pair to storage : "
+                                     << e.what());
+            throw e;
+          }
+        }
+      }
+      // store the apply instruction within the response.
+      //
+      try {
+        response.AddApplyInstruction(apply);
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING,
+                    "Exception adding apply to response : " << e.what());
+        throw e;
+      }
+    }
+  }
+}
+
 /* GetReturn
  * This method converts a Json message into a C++ response tree
  * the objective of this layer is to separate the concern of JSON from the
@@ -55,139 +193,23 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
   try {
     for (const auto& node : newJson.items()) {
       if (node.key() == "apply" && node.value().is_array()) {
-        for (const auto& ap : node.value()) {
-          for (const auto& map : ap.items()) {
-            const nlohmann::json arr = map.value();
-            auto apply = std::make_shared<ApplyInstructions>();
-            // Read the apply type one of modify or delete
-            try {
-              apply->SetOperationType(map.key());
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING, "Exception reading Address : " << e.what());
-              throw e;
-            }
-            // Read the address this is the address of the account we wish to
-            // operate on.
-            try {
-              apply->SetAddress(arr["address"]);
-              apply->SetHasAddress(true);
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING, "Exception reading Address : " << e.what());
-              throw e;
-            }
-            // The new balance for this account
-            try {
-              apply->SetBalance(arr["balance"]);
-              apply->SetHasBalance(true);
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING, "Exception reading Balance : " << e.what());
-              throw e;
-            }
-            // The new binary code that should be associated with the account
-            nlohmann::json cobj;
-            try {
-              cobj = arr["code"];
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING, "Exception reading Code : " << e.what());
-              throw e;
-            }
-            // check the type, we only support strings in this version
-            // we expect it t have been encoded into ascii hex, other
-            // components are not happy with nulls in the contents.
-            if (not cobj.is_null()) {
-              if (cobj.is_binary()) {
-                LOG_GENERAL(WARNING, "Code sent as Binary type ignored");
-                throw std::runtime_error(
-                    "unhandled DataType Binary used in "
-                    "Code ");
-              } else if (cobj.is_string()) {
-                apply->SetCode(cobj.get<std::string>());
-                apply->SetHasCode(true);
-              } else {
-                LOG_GENERAL(WARNING, "Code sent as Unexpected type ignored");
-                throw std::runtime_error(
-                    "unhandled DataType used in Code "
-                    "value");
-              }
-            }
-            // get the nonce for the account specified in the address
-            try {
-              apply->SetNonce(arr["nonce"]);
-              apply->SetHasNonce(true);
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING, "Exception reading Nonce : " << e.what());
-              throw e;
-            }
-            // whether the storage values for this account should be reset
-            try {
-              apply->SetResetStorage(arr["reset_storage"]);
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING,
-                          "Exception reading reset_storage : " << e.what());
-              throw e;
-            }
-            // The storage object associated with this address
-            // the storage object contains an array of key value pairs.
-            nlohmann::json storageObj;
-            try {
-              storageObj = arr["storage"];
-            } catch (const std::exception& e) {
-              LOG_GENERAL(WARNING, "Exception reading storage : " << e.what());
-              throw e;
-            }
-            if (not storageObj.is_null()) {
-              evmproj::KeyValue kvs;
-              for (const auto& kv : storageObj.items()) {
-                try {
-                  kvs.SetKey(base64_decode(kv.value()[0]));
-                  kvs.SetHasKey(true);
-                } catch (const std::exception& e) {
-                  LOG_GENERAL(WARNING,
-                              "Exception reading storage key : " << e.what());
-                  throw e;
-                }
-
-                try {
-                  kvs.SetValue(base64_decode(kv.value()[1]));
-                  kvs.SetHasValue(true);
-                } catch (const std::exception& e) {
-                  LOG_GENERAL(WARNING,
-                              "Exception reading storage value : " << e.what());
-                  throw e;
-                }
-
-                // store the keys and values within the storage
-                try {
-                  apply->AddStorage(kvs);
-                } catch (const std::exception& e) {
-                  LOG_GENERAL(WARNING,
-                              "Exception adding key/value pair to storage : "
-                                  << e.what());
-                  throw e;
-                }
-              }
-              //
-              // store the apply instruction within the response.
-              //
-              try {
-                fo.AddApplyInstruction(apply);
-              } catch (const std::exception& e) {
-                LOG_GENERAL(WARNING, "Exception adding apply to response : "
-                                         << e.what());
-                throw e;
-              }
-            }
-          }
-        }
+        parseApply(node.value(), fo);
       } else if (node.key() == "exit_reason") {
         for (const auto& er : node.value().items()) {
           try {
             if (er.key() == "Succeed") {
               fo.SetSuccess(true);
-              fo.SetExitReason(er.value());
-            } else if (er.key() == "Fatal") {
+            } else if ((er.key() == "Fatal") || (er.key() == "Revert")) {
               fo.SetSuccess(false);
+            } else {
+              throw std::runtime_error("Unexpected exit reason:" + er.key());
+            }
+            // exit reason value can be any type  and is converted 'as is' to a
+            // string
+            if (er.value().is_string()) {
               fo.SetExitReason(er.value());
+            } else {
+              fo.SetExitReason(to_string(er.value()));
             }
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING,
@@ -201,6 +223,15 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
             fo.AddLog(to_string(lg.value()));
           } catch (const std::exception& e) {
             LOG_GENERAL(WARNING, "Exception reading logs : " << e.what());
+            throw e;
+          }
+        }
+      } else if (node.key() == "trace") {
+        for (const auto& lg : node.value().items()) {
+          try {
+            fo.AddTrace(to_string(lg.value()));
+          } catch (const std::exception& e) {
+            LOG_GENERAL(WARNING, "Exception reading trace : " << e.what());
             throw e;
           }
         }

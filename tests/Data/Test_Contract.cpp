@@ -36,6 +36,7 @@
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
@@ -43,6 +44,7 @@
 #include "libUtils/TimeUtils.h"
 
 #include "ScillaTestUtil.h"
+#include "libUtils/TxnExtras.h"
 
 #define BOOST_TEST_MODULE contracttest
 #define BOOST_TEST_DYN_LINK
@@ -51,10 +53,16 @@
 using namespace boost::multiprecision;
 using namespace std;
 
+TxnExtras GetDefaultTxnExtras() {
+  TxnExtras extras{GAS_PRICE_MIN_VALUE * EVM_ZIL_SCALING_FACTOR, 1664226846,
+                   42};
+  return extras;
+}
+
 PrivKey priv1, priv2, priv3, priv4;
 
 void setup() {
-  bytes priv1bytes, priv2bytes, priv3bytes;
+  zbytes priv1bytes, priv2bytes, priv3bytes;
   DataConversion::HexStrToUint8Vec(
       "1658F915F3F9AE35E6B471B7670F53AD1A5BE15D7331EC7FD5E503F21D3450C8",
       priv1bytes);
@@ -67,6 +75,17 @@ void setup() {
   priv1.Deserialize(priv1bytes, 0);
   priv2.Deserialize(priv2bytes, 0);
   priv3.Deserialize(priv3bytes, 0);
+}
+
+TxBlock constructDummyTxBlock(int instanceNum) {
+  // array<unsigned char, BLOCK_HASH_SIZE> emptyHash = { 0 };
+
+  PairOfKey pubKey1 = Schnorr::GenKeyPair();
+
+  return TxBlock(
+      TxBlockHeader(1, 1, 1, instanceNum, TxBlockHashSet(), 5, pubKey1.second,
+                    instanceNum, TXBLOCK_VERSION, CommitteeHash(), BlockHash()),
+      vector<MicroBlockInfo>(1), CoSignatures());
 }
 
 BOOST_AUTO_TEST_SUITE(contracttest)
@@ -132,7 +151,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
 
   // deploy contracts
   std::string initStr = JSONUtils::GetInstance().convertJsontoStr(test.init);
-  bytes data = bytes(initStr.begin(), initStr.end());
+  zbytes data = zbytes(initStr.begin(), initStr.end());
 
   for (unsigned int i = 0; i < 1; i++) {
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, Address(), owner,
@@ -141,13 +160,13 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
     TxnStatus error_code;
     AccountStore::GetInstance().UpdateAccountsTemp(
         ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
-        tr, error_code);
+        GetDefaultTxnExtras(), tr, error_code);
     nonce++;
   }
 
   // call contract 0
   {
-    bytes data;
+    zbytes data;
     uint64_t amount = ScillaTestUtil::PrepareMessageData(test.message, data);
 
     Transaction tx(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr0, owner,
@@ -156,7 +175,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
     TxnStatus error_code;
     AccountStore::GetInstance().UpdateAccountsTemp(
         ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
-        tr, error_code);
+        GetDefaultTxnExtras(), tr, error_code);
 
     LOG_GENERAL(INFO, "tr: " << tr.GetString());
 
@@ -235,12 +254,12 @@ BOOST_AUTO_TEST_CASE(salarybot) {
     uint64_t bnum = ScillaTestUtil::GetBlockNumberFromJson(tests[i].blockchain);
     std::string initStr =
         JSONUtils::GetInstance().convertJsontoStr(tests[i].init);
-    bytes data;
+    zbytes data;
     uint64_t amount = 0;
     Address recipient;
-    bytes code;
+    zbytes code;
     if (deploy) {
-      data = bytes(initStr.begin(), initStr.end());
+      data = zbytes(initStr.begin(), initStr.end());
       recipient = Address();
       code = tests[i].code;
       deployed = true;
@@ -254,7 +273,8 @@ BOOST_AUTO_TEST_CASE(salarybot) {
                    amount, PRECISION_MIN_VALUE, 20000, code, data);
     TransactionReceipt tr;
     TxnStatus ets;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx, tr, ets);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx, GetDefaultTxnExtras(), tr, ets);
     nonce++;
   }
 
@@ -273,6 +293,564 @@ BOOST_AUTO_TEST_CASE(salarybot) {
                       "multi message failed");
 #endif
 }
+
+BOOST_AUTO_TEST_CASE(timestamp) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  uint64_t dummyTimestampVal = 123456789;
+  uint64_t blkNum = 100;
+  std::shared_ptr<TxBlock> dummyBlock =
+      std::make_shared<TxBlock>(constructDummyTxBlock(blkNum));
+  dummyBlock->SetTimestamp(dummyTimestampVal);
+
+  zbytes serializedTxBlock;
+  dummyBlock->Serialize(serializedTxBlock, 0);
+  BlockStorage::GetBlockStorage().PutTxBlock(dummyBlock->GetHeader(),
+                                             serializedTxBlock);
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  LOG_GENERAL(INFO, "Timestamp Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest timestampTest;
+  if (!ScillaTestUtil::GetScillaTest(timestampTest, "timestamp", 1)) {
+    BOOST_FAIL("Unable to fetch test timestamp.");
+  }
+
+  uint64_t bnumTimestamp =
+      ScillaTestUtil::GetBlockNumberFromJson(timestampTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(timestampTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(timestampTest.init);
+
+  // Transaction to deploy timestamp.
+  std::string initStrTimestamp =
+      JSONUtils::GetInstance().convertJsontoStr(timestampTest.init);
+  zbytes dataTimestamp(initStrTimestamp.begin(), initStrTimestamp.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, timestampTest.code,
+                  dataTimestamp);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumTimestamp, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+  Account* accountTimestamp =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountTimestamp != nullptr,
+                      "Error with creation of timestamp account");
+
+  // Call transaction
+  zbytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(timestampTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumTimestamp, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+
+  Json::Value timestampState;
+  BOOST_CHECK_MESSAGE(
+      accountTimestamp->FetchStateJson(timestampState, "", {}, true),
+      "Fetch timestampState failed");
+  uint64_t timestampCount = 0;
+
+  auto result = tr1.GetJsonValue();
+
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value") &&
+      resultParam["value"].isMember("arguments") &&
+      resultParam["value"]["arguments"].isArray() &&
+      resultParam["value"]["arguments"].size() > 0) {
+    LOG_GENERAL(INFO, "Value found");
+    try {
+      timestampCount = stoull(resultParam["value"]["arguments"][0].asCString());
+    } catch (...) {
+      BOOST_FAIL("Unable to convert timestamp to uint64");
+    }
+  }
+
+  BOOST_CHECK_MESSAGE(dummyTimestampVal == timestampCount,
+                      "Error with timestamp, expect"
+                          << dummyTimestampVal
+                          << ", received: " << timestampCount);
+}
+
+BOOST_AUTO_TEST_CASE(chainid) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  LOG_GENERAL(INFO, "Chainid Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest chainidTest;
+  if (!ScillaTestUtil::GetScillaTest(chainidTest, "chainid", 1)) {
+    BOOST_FAIL("Unable to fetch test chainid.");
+  }
+
+  uint64_t bnumChainid =
+      ScillaTestUtil::GetBlockNumberFromJson(chainidTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(chainidTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(chainidTest.init);
+
+  // Transaction to deploy Chainid.
+  std::string initStrChainid =
+      JSONUtils::GetInstance().convertJsontoStr(chainidTest.init);
+
+  zbytes dataChainid(initStrChainid.begin(), initStrChainid.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, chainidTest.code, dataChainid);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumChainid, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+  Account* accountChainid =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountChainid != nullptr,
+                      "Error with creation of chainid account");
+
+  // Call transaction
+  zbytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(chainidTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumChainid, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+
+  Json::Value chainidState;
+  BOOST_CHECK_MESSAGE(
+      accountChainid->FetchStateJson(chainidState, "", {}, true),
+      "Fetch chainidState failed");
+
+  uint32_t chainId = 0;
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+
+  if (resultParam.isMember("value")) {
+    try {
+      chainId = std::stoul(resultParam["value"].asCString());
+    } catch (...) {
+      BOOST_FAIL("Unable to convert chain id to uint32_t");
+    }
+  }
+
+  BOOST_CHECK_MESSAGE(
+      static_cast<uint16_t>(chainId) == CHAIN_ID,
+      "Error with chain id, expect" << CHAIN_ID << ", received: " << chainId);
+}
+
+#if 0
+/*
+  codehashOnContract - Have codehash
+  codehashOnLibrary - Have codehash
+  codehashOnAccount - No codehash
+  codehashOnNonExistenceAddr - No codehash
+*/
+BOOST_AUTO_TEST_CASE(codehashOnContract) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+
+  // Set query to this contract address.
+  codehashTest.message["params"][0]["value"] = "0x" + contrAddr.hex();
+
+  zbytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  zbytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value")) {
+    dev::h256 codeHash;
+    if (!accountCodehash->GetContractCodeHash(codeHash)) {
+      BOOST_FAIL("Unable to get contract code hash");
+    }
+    auto codeHashStr = "0x" + codeHash.hex();
+    BOOST_CHECK_MESSAGE(resultParam["value"] == codeHashStr,
+                        "Code hash expected: " << codeHashStr << ", result: "
+                                               << resultParam["value"]);
+  } else {
+    BOOST_FAIL("Unable to get result for contract code hash");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr, dummyLibAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  dummyLibAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce + 1, 1);
+
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+  LOG_GENERAL(INFO, "dummyLibAddr Address: " << dummyLibAddr);
+
+  // Preparing dummyLib
+  ScillaTestUtil::ScillaTest dummyLibTest;
+  if (!ScillaTestUtil::GetScillaTest(dummyLibTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+  uint64_t bnumDummyLib =
+      ScillaTestUtil::GetBlockNumberFromJson(dummyLibTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(dummyLibTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(dummyLibTest.init);
+
+  Json::Value libPartValue;
+  libPartValue["constructor"] = "True";
+  libPartValue["argtypes"] = Json::arrayValue;
+  libPartValue["arguments"] = Json::arrayValue;
+  Json::Value libPart;
+  libPart["vname"] = "_library";
+  libPart["type"] = "Bool";
+  libPart["value"] = libPartValue;
+
+  dummyLibTest.init.append(libPart);
+  string dummyLibCode =
+      "scilla_version 0\nimport IntUtils\n\nlibrary AdditionLib\n\nlet "
+      "add_if_equal =\n  fun (a: Uint128) =>\n  fun (b: Uint128) =>\n  let eq "
+      "= uint128_eq a b in\n  match eq with\n  | True => builtin add a b\n  | "
+      "False => Uint128 0\n  end";
+  dummyLibTest.code = zbytes(dummyLibCode.begin(), dummyLibCode.end());
+
+  Account* accountDummyLib = nullptr;  // For verification later
+
+  // Transaction to deploy dummyLib.
+  {
+    std::string initStrDummyLib =
+        JSONUtils::GetInstance().convertJsontoStr(dummyLibTest.init);
+
+    zbytes dataCodehash(initStrDummyLib.begin(), initStrDummyLib.end());
+    Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress,
+                    owner, 0, PRECISION_MIN_VALUE, 50000, dummyLibTest.code,
+                    dataCodehash);
+    TransactionReceipt tr0;
+    TxnStatus error_code;
+    AccountStore::GetInstance().UpdateAccountsTemp(bnumDummyLib, 1, true, tx0,
+        GetDefaultTxnExtras(),                                                    
+                                                   tr0, error_code);
+    accountDummyLib = AccountStore::GetInstance().GetAccountTemp(dummyLibAddr);
+    // We should now have a new account.
+    BOOST_CHECK_MESSAGE(accountDummyLib != nullptr,
+                        "Error with creation of codehash account");
+  }
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+  // Set query to this contract address.
+  codehashTest.message["params"][0]["value"] = "0x" + dummyLibAddr.hex();
+  zbytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce + 1, NullAddress,
+                  owner, 0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+        GetDefaultTxnExtras(),                                                  
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  zbytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+        GetDefaultTxnExtras(),                                                  
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+  auto resultParam = result["event_logs"][0]["params"][0];
+  if (resultParam.isMember("value")) {
+    dev::h256 codeHash;
+    if (!accountDummyLib->GetContractCodeHash(codeHash)) {
+      BOOST_FAIL("Unable to get contract code hash");
+    }
+    auto codeHashStr = "0x" + codeHash.hex();
+    BOOST_CHECK_MESSAGE(resultParam["value"] == codeHashStr,
+                        "Code hash expected: " << codeHashStr << ", result: "
+                                               << resultParam["value"]);
+  } else {
+    BOOST_FAIL("Unable to get result for contract code hash");
+  }
+}
+
+BOOST_AUTO_TEST_CASE(codehashOnAccount) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  // Add account from test
+  AccountStore::GetInstance().AddAccountTemp(
+      Address("0x12345678901234567890123456789012345678ff"),
+      {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+
+  zbytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+        GetDefaultTxnExtras(),                                                  
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  zbytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+        GetDefaultTxnExtras(),                                                  
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+
+  if (result.isMember("success")) {
+    BOOST_CHECK_MESSAGE(result["success"] == false,
+                        "Expecting to be a failure call");
+  } else {
+    BOOST_FAIL("Unexpected result: " << result);
+  }
+}
+
+BOOST_AUTO_TEST_CASE(codehashOnNonExistenceAddr) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  PairOfKey owner = Schnorr::GenKeyPair();
+  Address ownerAddr, contrAddr;
+  uint64_t nonce = 0;
+
+  if (SCILLA_ROOT.empty()) {
+    BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");
+  }
+
+  AccountStore::GetInstance().Init();
+  ownerAddr = Account::GetAddressFromPublicKey(owner.second);
+  AccountStore::GetInstance().AddAccountTemp(ownerAddr, {2000000000000, nonce});
+
+  contrAddr = Account::GetAddressForContract(ownerAddr, nonce, 1);
+  LOG_GENERAL(INFO, "Codehash Address: " << contrAddr);
+
+  ScillaTestUtil::ScillaTest codehashTest;
+  if (!ScillaTestUtil::GetScillaTest(codehashTest, "codehash", 1)) {
+    BOOST_FAIL("Unable to fetch test codehash.");
+  }
+
+  uint64_t bnumCodehash =
+      ScillaTestUtil::GetBlockNumberFromJson(codehashTest.blockchain);
+  ScillaTestUtil::RemoveCreationBlockFromInit(codehashTest.init);
+  ScillaTestUtil::RemoveThisAddressFromInit(codehashTest.init);
+
+  // Transaction to deploy codehash.
+  std::string initStrCodehash =
+      JSONUtils::GetInstance().convertJsontoStr(codehashTest.init);
+
+  zbytes dataCodehash(initStrCodehash.begin(), initStrCodehash.end());
+  Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
+                  0, PRECISION_MIN_VALUE, 50000, codehashTest.code,
+                  dataCodehash);
+  TransactionReceipt tr0;
+  TxnStatus error_code;
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx0,
+                                                         GetDefaultTxnExtras(), 
+                                                 tr0, error_code);
+  Account* accountCodehash =
+      AccountStore::GetInstance().GetAccountTemp(contrAddr);
+  // We should now have a new account.
+  BOOST_CHECK_MESSAGE(accountCodehash != nullptr,
+                      "Error with creation of codehash account");
+
+  // Call transaction
+  zbytes dataTransfer;
+  uint64_t amount =
+      ScillaTestUtil::PrepareMessageData(codehashTest.message, dataTransfer);
+
+  Transaction tx1(1, nonce, contrAddr, owner, amount, PRECISION_MIN_VALUE,
+                  500000, {}, dataTransfer);
+  TransactionReceipt tr1;
+
+  AccountStore::GetInstance().UpdateAccountsTemp(bnumCodehash, 1, true, tx1,
+                                                         GetDefaultTxnExtras(), 
+                                                 tr1, error_code);
+
+  Json::Value codehashState;
+  BOOST_CHECK_MESSAGE(
+      accountCodehash->FetchStateJson(codehashState, "", {}, true),
+      "Fetch codehashState failed");
+
+  auto result = tr1.GetJsonValue();
+  if (result.isMember("success")) {
+    BOOST_CHECK_MESSAGE(result["success"] == false,
+                        "Expecting to be a failure call");
+  } else {
+    BOOST_FAIL("Unexpected result: " << result);
+  }
+}
+#endif
 
 // Scilla Library
 BOOST_AUTO_TEST_CASE(testScillaLibrary) {
@@ -314,13 +892,13 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   // Transaction to deploy library contract
   std::string initStr1 = JSONUtils::GetInstance().convertJsontoStr(t1.init);
-  bytes data1(initStr1.begin(), initStr1.end());
+  zbytes data1(initStr1.begin(), initStr1.end());
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t1.code, data1);
   TransactionReceipt tr1;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
   Account* account1 = AccountStore::GetInstance().GetAccountTemp(libAddr1);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account1 != nullptr,
@@ -361,12 +939,12 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   // Transaction to deploy library contract
   std::string initStr2 = JSONUtils::GetInstance().convertJsontoStr(t2.init);
   LOG_GENERAL(INFO, "initStr2: " << initStr2);
-  bytes data2(initStr2.begin(), initStr2.end());
+  zbytes data2(initStr2.begin(), initStr2.end());
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t2.code, data2);
   TransactionReceipt tr2;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2, tr2,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum2, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code);
   Account* account2 = AccountStore::GetInstance().GetAccountTemp(libAddr2);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account2 != nullptr,
@@ -416,12 +994,12 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   // Transaction to deploy contract
   std::string initStr3 = JSONUtils::GetInstance().convertJsontoStr(t3.init);
-  bytes data3(initStr3.begin(), initStr3.end());
+  zbytes data3(initStr3.begin(), initStr3.end());
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t3.code, data3);
   TransactionReceipt tr3;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum3, 1, true, tx3, tr3,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum3, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code);
   Account* account3 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account3 != nullptr,
@@ -438,14 +1016,14 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
   /* ------------------------------------------------------------------- */
   // Execute message_1.
-  bytes dataHi;
+  zbytes dataHi;
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t3.message, dataHi);
 
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataHi);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx4, tr4,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum, 1, true, tx4, GetDefaultTxnExtras(), tr4, error_code)) {
     nonce++;
   }
 
@@ -505,13 +1083,13 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   // Transaction to deploy contract.
   std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t1.init);
-  bytes data(initStr.begin(), initStr.end());
+  zbytes data(initStr.begin(), initStr.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t1.code, data);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
   Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account != nullptr,
@@ -521,14 +1099,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   /* ------------------------------------------------------------------- */
 
   // Execute message_1, the Donate transaction.
-  bytes dataDonate;
+  zbytes dataDonate;
   uint64_t amount = ScillaTestUtil::PrepareMessageData(t1.message, dataDonate);
 
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataDonate);
   TransactionReceipt tr1;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code)) {
     nonce++;
   }
 
@@ -559,15 +1137,15 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint64_t bnum2 = ScillaTestUtil::GetBlockNumberFromJson(t2.blockchain);
   // Execute message_2, the Donate transaction.
-  bytes dataDonate2;
+  zbytes dataDonate2;
   uint64_t amount2 =
       ScillaTestUtil::PrepareMessageData(t2.message, dataDonate2);
 
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor2,
                   amount2, PRECISION_MIN_VALUE, 50000, {}, dataDonate2);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum2, 1, true, tx2, tr2,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum2, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code)) {
     nonce++;
   }
 
@@ -596,8 +1174,8 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataDonate);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code)) {
     nonce++;
   }
   uint128_t contrBal3 =
@@ -628,14 +1206,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint64_t bnum4 = ScillaTestUtil::GetBlockNumberFromJson(t4.blockchain);
   // Execute message_4, the Donate transaction.
-  bytes data4;
+  zbytes data4;
   uint64_t amount4 = ScillaTestUtil::PrepareMessageData(t4.message, data4);
 
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, owner,
                   amount4, PRECISION_MIN_VALUE, 50000, {}, data4);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum4, 1, true, tx4, tr4,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum4, 1, true, tx4, GetDefaultTxnExtras(), tr4, error_code)) {
     nonce++;
   }
 
@@ -667,14 +1245,14 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 
   uint64_t bnum5 = ScillaTestUtil::GetBlockNumberFromJson(t5.blockchain);
   // Execute message_5, the Donate transaction.
-  bytes data5;
+  zbytes data5;
   uint64_t amount5 = ScillaTestUtil::PrepareMessageData(t5.message, data5);
 
   Transaction tx5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount5, PRECISION_MIN_VALUE, 50000, {}, data5);
   TransactionReceipt tr5;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum5, 1, true, tx5, tr5,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum5, 1, true, tx5, GetDefaultTxnExtras(), tr5, error_code)) {
     nonce++;
   }
 
@@ -740,13 +1318,13 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Transaction to deploy ping.
   std::string initStrPing =
       JSONUtils::GetInstance().convertJsontoStr(t0ping.init);
-  bytes dataPing(initStrPing.begin(), initStrPing.end());
+  zbytes dataPing(initStrPing.begin(), initStrPing.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t0ping.code, dataPing);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx0, tr0,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumPing, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
   Account* accountPing = AccountStore::GetInstance().GetAccountTemp(pingAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountPing != nullptr,
@@ -766,12 +1344,12 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   // Transaction to deploy pong.
   std::string initStrPong =
       JSONUtils::GetInstance().convertJsontoStr(t0pong.init);
-  bytes dataPong(initStrPong.begin(), initStrPong.end());
+  zbytes dataPong(initStrPong.begin(), initStrPong.end());
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t0pong.code, dataPong);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx1, tr1,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnumPong, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
   Account* accountPong = AccountStore::GetInstance().GetAccountTemp(pongAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountPong != nullptr,
@@ -783,7 +1361,7 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   /* ------------------------------------------------------------------- */
 
   // Set addresses of ping and pong in pong and ping respectively.
-  bytes data;
+  zbytes data;
   // Replace pong address in parameter of message.
   for (auto it = t0ping.message["params"].begin();
        it != t0ping.message["params"].end(); it++) {
@@ -795,8 +1373,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx2,
-                                                     tr2, error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnumPing, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code)) {
     nonce++;
   }
 
@@ -811,8 +1389,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, pongAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPong, 1, true, tx3,
-                                                     tr3, error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnumPong, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code)) {
     nonce++;
   }
 
@@ -830,8 +1408,8 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnumPing, 1, true, tx4,
-                                                     tr4, error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnumPing, 1, true, tx4, GetDefaultTxnExtras(), tr4, error_code)) {
     nonce++;
   }
 
@@ -902,13 +1480,13 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   // Transaction to deploy contrA
   std::string initStrA =
       JSONUtils::GetInstance().convertJsontoStr(tContrA.init);
-  bytes dataA(initStrA.begin(), initStrA.end());
+  zbytes dataA(initStrA.begin(), initStrA.end());
   Transaction tx0(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, tContrA.code, dataA);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
   Account* accountA = AccountStore::GetInstance().GetAccountTemp(aAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountA != nullptr, "Error with creation of contract A");
@@ -925,12 +1503,12 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   // Transaction to deploy contrB
   std::string initStrB =
       JSONUtils::GetInstance().convertJsontoStr(tContrB.init);
-  bytes dataB(initStrB.begin(), initStrB.end());
+  zbytes dataB(initStrB.begin(), initStrB.end());
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, tContrB.code, dataB);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
   Account* accountB = AccountStore::GetInstance().GetAccountTemp(bAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountB != nullptr, "Error with creation of contract B");
@@ -947,12 +1525,12 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   // Transaction to deploy contrC
   std::string initStrC =
       JSONUtils::GetInstance().convertJsontoStr(tContrC.init);
-  bytes dataC(initStrC.begin(), initStrC.end());
+  zbytes dataC(initStrC.begin(), initStrC.end());
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, tContrC.code, dataC);
   TransactionReceipt tr2;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code);
   Account* accountC = AccountStore::GetInstance().GetAccountTemp(cAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountC != nullptr, "Error with creation of contract C");
@@ -969,7 +1547,7 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
     m["_tag"] = "simply_accept";
     m["params"].resize(0);
 
-    bytes m_data;
+    zbytes m_data;
     ScillaTestUtil::PrepareMessageData(m, m_data);
 
     // Fund contrA
@@ -977,26 +1555,26 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
                         100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundA;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA,
-                                                   trFundA, error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txFundA, GetDefaultTxnExtras(), trFundA, error_code);
     nonce++;
     // Fund contrB
     Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
                         100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundB;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundB,
-                                                   trFundB, error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txFundB, GetDefaultTxnExtras(), trFundB, error_code);
     nonce++;
     // Fund contrC
     Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
                         100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundC;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundC,
-                                                   trFundC, error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txFundC, GetDefaultTxnExtras(), trFundC, error_code);
     nonce++;
   }
 
-  bytes data;
+  zbytes data;
   // Replace addrB and addrC in parameter of message to contrA.
   for (auto it = tContrA.message["params"].begin();
        it != tContrA.message["params"].end(); it++) {
@@ -1010,8 +1588,8 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx3, tr3,
-                                                     error_code)) {
+  if (AccountStore::GetInstance().UpdateAccountsTemp(
+          bnum, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code)) {
     nonce++;
   }
 
@@ -1075,13 +1653,13 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
 
   // Transaction to deploy impl
   std::string initImpl = JSONUtils::GetInstance().convertJsontoStr(tImpl1.init);
-  bytes dataImpl(initImpl.begin(), initImpl.end());
+  zbytes dataImpl(initImpl.begin(), initImpl.end());
   Transaction txCreateImpl(DataConversion::Pack(CHAIN_ID, 1), nonce,
                            NullAddress, owner, 0, PRECISION_MIN_VALUE, 50000,
                            tImpl1.code, dataImpl);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txCreateImpl,
-                                                 tr1, error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, txCreateImpl, GetDefaultTxnExtras(), tr1, error_code);
   Account* accountImpl = AccountStore::GetInstance().GetAccountTemp(implAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountImpl != nullptr,
@@ -1114,13 +1692,13 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
   // Transaction to deploy the proxy
   std::string initProxy =
       JSONUtils::GetInstance().convertJsontoStr(tProxy1.init);
-  bytes dataProxy(initProxy.begin(), initProxy.end());
+  zbytes dataProxy(initProxy.begin(), initProxy.end());
   Transaction txCreateProxy(DataConversion::Pack(CHAIN_ID, 1), nonce,
                             NullAddress, owner, 0, PRECISION_MIN_VALUE, 50000,
                             tProxy1.code, dataProxy);
   TransactionReceipt tr0;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txCreateProxy,
-                                                 tr0, error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, txCreateProxy, GetDefaultTxnExtras(), tr0, error_code);
   Account* accountProxy = AccountStore::GetInstance().GetAccountTemp(proxyAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountProxy != nullptr, "Error with creation of proxy");
@@ -1137,7 +1715,7 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
     m["_tag"] = "AddFunds";
     m["params"].resize(0);
 
-    bytes m_data;
+    zbytes m_data;
     ScillaTestUtil::PrepareMessageData(m, m_data);
 
     // Fund contrA
@@ -1145,8 +1723,8 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
                         owner, 100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundA;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, txFundA,
-                                                   trFundA, error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, txFundA, GetDefaultTxnExtras(), trFundA, error_code);
     nonce++;
   }
 
@@ -1212,14 +1790,14 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 
     // Transaction to deploy contract.
     std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t2.init);
-    bytes data(initStr.begin(), initStr.end());
+    zbytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, nonce, NullAddress, ownerKeyPair, 0, PRECISION_MIN_VALUE,
                     500000, t2.code, data);
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     nonce++;
 
@@ -1232,7 +1810,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     report << timeElapsedDeployment << "," << tr0.GetCumGas() << ",";
 
     for (unsigned int i = 0; i < numMapEntries; i++) {
-      bytes hodler(ACC_ADDR_SIZE);
+      zbytes hodler(ACC_ADDR_SIZE);
       std::string hodler_str;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       DataConversion::Uint8VecToHexStr(hodler, hodler_str);
@@ -1260,7 +1838,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 
     LOG_GENERAL(INFO, "marker1");
 
-    std::map<Address, std::map<std::string, bytes>> state_entries;
+    std::map<Address, std::map<std::string, zbytes>> state_entries;
     std::unordered_map<Address, uint128_t> balances;
     std::unordered_map<Address, uint64_t> nonces;
     std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
@@ -1274,7 +1852,7 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     LOG_GENERAL(INFO, "marker2");
     account->UpdateStates(contractAddr, state_entries[contractAddr], {}, true);
 
-    bytes dataTransfer;
+    zbytes dataTransfer;
     uint64_t amount =
         ScillaTestUtil::PrepareMessageData(t2.message, dataTransfer);
 
@@ -1283,8 +1861,8 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
     nonce++;
 
@@ -1341,14 +1919,14 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 
     // Transaction to deploy contract.
     std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t2.init);
-    bytes data(initStr.begin(), initStr.end());
+    zbytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, nonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     500000, t2.code, data);
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
@@ -1365,7 +1943,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 
     // 2. Pre-generate and save a large map and save it to LDB
     for (unsigned int i = 0; i < hodlers; i++) {
-      bytes hodler(ACC_ADDR_SIZE);
+      zbytes hodler(ACC_ADDR_SIZE);
       std::string hodler_str;
       RAND_bytes(hodler.data(), ACC_ADDR_SIZE);
       DataConversion::Uint8VecToHexStr(hodler, hodler_str);
@@ -1391,7 +1969,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
       }
     }
 
-    std::map<Address, std::map<std::string, bytes>> state_entries;
+    std::map<Address, std::map<std::string, zbytes>> state_entries;
     std::unordered_map<Address, uint128_t> balances;
     std::unordered_map<Address, uint64_t> nonces;
     std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
@@ -1405,7 +1983,7 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     account->UpdateStates(contrAddr, state_entries[contrAddr], {}, true);
 
     // 3. Create a call to Transfer from one account to another
-    bytes dataTransfer;
+    zbytes dataTransfer;
     uint64_t amount =
         ScillaTestUtil::PrepareMessageData(t2.message, dataTransfer);
 
@@ -1414,8 +1992,8 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
     LOG_GENERAL(
@@ -1496,14 +2074,14 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 
     // Transaction to deploy contract.
     std::string initStr = JSONUtils::GetInstance().convertJsontoStr(t10.init);
-    bytes data(initStr.begin(), initStr.end());
+    zbytes data(initStr.begin(), initStr.end());
     Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     500000, t10.code, data);
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
@@ -1584,7 +2162,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       }
     }
 
-    std::map<Address, std::map<std::string, bytes>> state_entries;
+    std::map<Address, std::map<std::string, zbytes>> state_entries;
     std::unordered_map<Address, uint128_t> balances;
     std::unordered_map<Address, uint64_t> nonces;
     std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
@@ -1622,7 +2200,7 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
       }
     }
 
-    bytes dataTransfer;
+    zbytes dataTransfer;
     uint64_t amount =
         ScillaTestUtil::PrepareMessageData(t10.message, dataTransfer);
 
@@ -1631,8 +2209,8 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx1, tr1,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
     Json::Value outputState;
@@ -1698,7 +2276,7 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
         ->SetCodeHash(dev::h256(i + 1));
   }
 
-  std::map<Address, std::map<std::string, bytes>> state_entries;
+  std::map<Address, std::map<std::string, zbytes>> state_entries;
   std::unordered_map<Address, uint128_t> balances;
   std::unordered_map<Address, uint64_t> nonces;
   std::unordered_map<Address, std::unordered_map<std::string, int>> mapdepths;
@@ -1820,13 +2398,13 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
   // Transaction to deploy contract.
   std::string initStr =
       JSONUtils::GetInstance().convertJsontoStr(rsr_dep1.init);
-  bytes data(initStr.begin(), initStr.end());
+  zbytes data(initStr.begin(), initStr.end());
   Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                   500000, rsr_dep1.code, data);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx0, tr0,
-                                                 error_code);
+  AccountStore::GetInstance().UpdateAccountsTemp(
+      bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
 
   // ------------- execute transitions ------------------------------------//
 
@@ -1866,8 +2444,8 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
     Transaction tx_i(DataConversion::Pack(CHAIN_ID, 1), ownerNonce, contrAddr,
                      owner, amount, PRECISION_MIN_VALUE, 500, {}, data);
     TransactionReceipt tr4;
-    if (AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx_i, tr4,
-                                                       error_code)) {
+    if (AccountStore::GetInstance().UpdateAccountsTemp(
+            bnum, 1, true, tx_i, GetDefaultTxnExtras(), tr4, error_code)) {
       ownerNonce++;
     }
 
@@ -1947,12 +2525,12 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
 
     // Transaction to deploy contract.
     initStr = JSONUtils::GetInstance().convertJsontoStr(rsr_dep2.init);
-    bytes data2(initStr.begin(), initStr.end());
+    zbytes data2(initStr.begin(), initStr.end());
     Transaction tx2(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     10000, rsr_dep2.code, data2);
     TransactionReceipt tr2;
-    AccountStore::GetInstance().UpdateAccountsTemp(bnum, 1, true, tx2, tr2,
-                                                   error_code);
+    AccountStore::GetInstance().UpdateAccountsTemp(
+        bnum, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code);
     ownerNonce++;
     LOG_GENERAL(
         INFO, "remote_state_reads: " << testName << " : deployment successful");

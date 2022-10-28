@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "libData/BlockData/Block/DSBlock.h"
+#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
@@ -43,12 +45,7 @@ class EvmClientMock : public EvmClient {
  public:
   EvmClientMock() = default;
 
-  virtual bool OpenServer(uint32_t /*version*/) override { return true; }
-
-  bool CallRunner(uint32_t /*version*/,                 //
-                  const Json::Value& request,           //
-                  evmproj::CallResponse& /*response*/,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) override {
+  bool CallRunner(const Json::Value& request, evmproj::CallResponse&) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
     return true;
   };
@@ -56,7 +53,13 @@ class EvmClientMock : public EvmClient {
 
 static PairOfKey getTestKeyPair() { return Schnorr::GenKeyPair(); }
 
-std::unique_ptr<LookupServer> getLookupServer(
+struct LookupServerBundle {
+  std::unique_ptr<AbstractServerConnectorMock> abstractServerConnector;
+  std::unique_ptr<Mediator> mediator;
+  std::unique_ptr<LookupServer> lookupServer;
+};
+
+LookupServerBundle getLookupServer(
     const std::function<std::shared_ptr<EvmClient>()>& _allocator = []() {
       return std::make_shared<EvmClientMock>();
     }) {
@@ -64,12 +67,20 @@ std::unique_ptr<LookupServer> getLookupServer(
 
   const PairOfKey pairOfKey = getTestKeyPair();
   Peer peer;
-  Mediator mediator(pairOfKey, peer);
-  AbstractServerConnectorMock abstractServerConnector;
 
+  auto mediator = std::make_unique<Mediator>(pairOfKey, peer);
+  // We need some blocks, even if dummy
+  mediator->m_txBlockChain.AddBlock(TxBlock{});
+  mediator->m_dsBlockChain.AddBlock(DSBlock{});
+  auto abstractServerConnector =
+      std::make_unique<AbstractServerConnectorMock>();
   auto lookupServer =
-      std::make_unique<LookupServer>(mediator, abstractServerConnector);
-  return lookupServer;
+      std::make_unique<LookupServer>(*mediator, *abstractServerConnector);
+  return LookupServerBundle{
+      std::move(abstractServerConnector),
+      std::move(mediator),
+      std::move(lookupServer),
+  };
 }
 
 // Convenience fn only used to test Eth TXs.
@@ -139,7 +150,7 @@ TxBlock buildCommonEthBlockCase(
     PairOfKey& keyPair) {
   const MicroBlock microBlock =
       constructMicroBlockWithTransactions(blockNum, transactions, keyPair);
-  bytes microBlockSerialized;
+  zbytes microBlockSerialized;
   microBlock.Serialize(microBlockSerialized, 0);
   BlockStorage::GetBlockStorage().PutMicroBlock(
       microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);
@@ -151,14 +162,16 @@ TxBlock buildCommonEthBlockCase(
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-private-field"
+#endif
+
 /**
  * @brief EvmClient mock implementation te be able to inject test responses
  * from the Evm-ds server.
  */
 class GetEthCallEvmClientMock : public EvmClient {
  public:
-  bool OpenServer(bool /*force = false*/) { return true; };
-
   GetEthCallEvmClientMock(
       const uint gasLimit,  //
       const uint amount,    //
@@ -169,49 +182,13 @@ class GetEthCallEvmClientMock : public EvmClient {
         m_ExpectedResponse(response),       // expected response
         m_AccountAddress(address),          // expected response
         m_DefaultWaitTime(defaultWaitTime)  // default waittime
-        {
-            //
-        };
+        {};
 
-  bool CallRunner(uint32_t /*version*/,             //
-                  const Json::Value& request,       //
-                  evmproj::CallResponse& response,  //
-                  uint32_t /*counter = MAXRETRYCONN*/) override {
-    //
+  bool CallRunner(const Json::Value& request,
+                  evmproj::CallResponse& response) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
     Json::Reader _reader;
-
-    std::stringstream expectedRequestString;
-    expectedRequestString
-        << "["
-        << "\"" << m_AccountAddress << "\","
-        << "\"0000000000000000000000000000000000000000\","
-        << "\"\","
-        << "\"ffa1caa000000000000000000000000000000000000000000000000000000"
-           "0000000014\","
-        << "\"" << m_Amount << "\"";
-    expectedRequestString << "," << std::to_string(m_GasLimit);  // gas value
-    expectedRequestString << "]";
-
-    Json::Value expectedRequestJson;
-    LOG_GENERAL(DEBUG, "expectedRequestString:" << expectedRequestString.str());
-    BOOST_CHECK(
-        _reader.parse(expectedRequestString.str(), expectedRequestJson));
-
-    BOOST_CHECK_EQUAL(request.size(), expectedRequestJson.size());
-    auto i{0U};
-    for (const auto& r : request) {
-      LOG_GENERAL(DEBUG, "test requests(" << i << "):" << r << ","
-                                          << expectedRequestJson[i]);
-      if (r.isConvertibleTo(Json::intValue)) {
-        BOOST_CHECK_EQUAL(r.asInt(), expectedRequestJson[i].asInt());
-      } else {
-        BOOST_CHECK_EQUAL(r, expectedRequestJson[i]);
-      }
-      i++;
-    }
-
     Json::Value responseJson;
 
     BOOST_CHECK(_reader.parse(m_ExpectedResponse, responseJson));
@@ -267,14 +244,207 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
 
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
-  Json::Value response;
-  lookupServer->GetEthCallEthI(paramsRequest, response);
+  try {
+    Json::Value response;
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
+    BOOST_FAIL("Expect exception, but did not catch");
+  } catch (const jsonrpc::JsonRpcException& e) {
+    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+    BOOST_CHECK_EQUAL(e.GetMessage(), "Returned");
+  }
 
-  LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
-  BOOST_CHECK_EQUAL(response.asString(), "0x");
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
+  const auto amount{4200U};
+  const std::string evmResponseString =
+      "{\"apply\":[],"
+      "\"exit_reason\":{\"Fatal\":{\"Error\":\"fatal error, unkown object "
+      "type\"}},"
+      "\"logs\":[],"
+      "\"remaining_gas\":77371,"
+      "\"return_value\":\"\""
+      "}";
+
+  const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  const auto lookupServer =
+      getLookupServer([amount, evmResponseString, address]() {  //
+        return std::make_shared<GetEthCallEvmClientMock>(
+            2 * DS_MICROBLOCK_GAS_LIMIT,  // gas limit will not exceed
+            amount, evmResponseString,
+            address);  // this max value
+      });
+
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  Json::Value values;
+  values["data"] =
+      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "014";
+  values["to"] = address;
+  values["gas"] = gasLimit;
+  values["value"] = amount;
+  paramsRequest[0u] = values;
+  paramsRequest[1u] = Json::Value("latest");
+
+  Address accountAddress{address};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  try {
+    Json::Value response;
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
+    BOOST_FAIL("Expect exception, but did not catch");
+  } catch (const jsonrpc::JsonRpcException& e) {
+    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+
+    Json::Value expectedExitReason;
+    expectedExitReason["Error"] = "fatal error, unkown object type";
+
+    Json::Reader reader;
+    Json::Value result;
+
+    BOOST_REQUIRE(reader.parse(e.GetMessage(), result));
+    BOOST_CHECK_EQUAL(result, expectedExitReason);
+  }
+
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
+  const auto amount{4200U};
+  const std::string evmResponseString =
+      "{\"apply\":[],"
+      "\"exit_reason\":{\"Revert\":\"Reverted\"},"
+      "\"logs\":[],"
+      "\"remaining_gas\":77371,"
+      "\"return_value\":\"\""
+      "}";
+
+  const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  const auto lookupServer =
+      getLookupServer([amount, evmResponseString, address]() {  //
+        return std::make_shared<GetEthCallEvmClientMock>(
+            2 * DS_MICROBLOCK_GAS_LIMIT,  // gas limit will not exceed
+            amount, evmResponseString,
+            address);  // this max value
+      });
+
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  Json::Value values;
+  values["data"] =
+      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "014";
+  values["to"] = address;
+  values["gas"] = gasLimit;
+  values["value"] = amount;
+  paramsRequest[0u] = values;
+  paramsRequest[1u] = Json::Value("latest");
+
+  Address accountAddress{address};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  try {
+    Json::Value response;
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
+    BOOST_FAIL("Expect exception, but did not catch");
+  } catch (const jsonrpc::JsonRpcException& e) {
+    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+    LOG_GENERAL(DEBUG, e.GetMessage());
+    BOOST_CHECK_EQUAL(e.GetMessage(), "Reverted");
+  }
+
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+}
+
+BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
+  INIT_STDOUT_LOGGER();
+  LOG_MARKER();
+
+  const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
+  const auto amount{4200U};
+  const std::string evmResponseString =
+      "{\"apply\":[],"
+      "\"exit_reason\":{\"Unknown\":\"???\"},"
+      "\"logs\":[],"
+      "\"remaining_gas\":77371,"
+      "\"return_value\":\"\""
+      "}";
+
+  const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  const auto lookupServer =
+      getLookupServer([amount, evmResponseString, address]() {  //
+        return std::make_shared<GetEthCallEvmClientMock>(
+            2 * DS_MICROBLOCK_GAS_LIMIT,  // gas limit will not exceed
+            amount, evmResponseString,
+            address);  // this max value
+      });
+
+  Json::Value paramsRequest = Json::Value(Json::arrayValue);
+  Json::Value values;
+  values["data"] =
+      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "014";
+  values["to"] = address;
+  values["gas"] = gasLimit;
+  values["value"] = amount;
+  paramsRequest[0u] = values;
+  paramsRequest[1u] = Json::Value("latest");
+
+  Address accountAddress{address};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
+  try {
+    Json::Value response;
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
+    BOOST_FAIL("Expect exception, but did not catch");
+  } catch (const jsonrpc::JsonRpcException& e) {
+    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+    BOOST_CHECK_EQUAL(e.GetMessage(), "Unable to process");
+  }
 
   const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
   LOG_GENERAL(DEBUG, "Balance:" << balance);
@@ -321,25 +491,24 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
   Account account;
   AccountStore::GetInstance().AddAccount(accountAddress, account);
 
+  const auto startBalance =
+      AccountStore::GetInstance().GetBalance(accountAddress);
+  AccountStore::GetInstance().DecreaseBalance(accountAddress, startBalance);
   const uint128_t initialBalance{1'000'000};
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   Json::Value response;
   try {
-    lookupServer->GetEthCallEthI(paramsRequest, response);
+    lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (...) {
     // success
   }
 
-  // LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
-  // BOOST_CHECK_EQUAL(response.asString(), "0x");
-  //
-  // const auto balance =
-  // AccountStore::GetInstance().GetBalance(accountAddress); LOG_GENERAL(DEBUG,
-  // "Balance:" << balance);
-  //// the balance should be unchanged
-  // BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
+  const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
+  LOG_GENERAL(DEBUG, "Balance:" << balance);
+  // the balance should be unchanged
+  BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_success) {
@@ -426,7 +595,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_success) {
   AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
 
   Json::Value response;
-  lookupServer->GetEthCallEthI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetEthCall response:" << response);
   BOOST_CHECK_EQUAL(response.asString(),
@@ -467,7 +636,7 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
   const Json::Value paramsRequest = Json::Value(Json::arrayValue);
   // call the method on the lookup server with params
   const auto lookupServer = getLookupServer();
-  lookupServer->GetWeb3ClientVersionI(paramsRequest, response);
+  lookupServer.lookupServer->GetWeb3ClientVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, "GetWeb3ClientVersion response:" << response.asString());
 
@@ -484,7 +653,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   paramsRequest[0u] = "0x68656c6c6f20776f726c64";
-  lookupServer->GetWeb3Sha3I(paramsRequest, response);
+  lookupServer.lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -494,7 +663,7 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 
   // test with empty string
   paramsRequest[0u] = "";
-  lookupServer->GetWeb3Sha3I(paramsRequest, response);
+  lookupServer.lookupServer->GetWeb3Sha3I(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -512,7 +681,7 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetEthMiningI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthMiningI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -537,7 +706,7 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetEthCoinbaseI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthCoinbaseI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -554,7 +723,7 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetNetVersionI(paramsRequest, response);
+  lookupServer.lookupServer->GetNetVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -570,7 +739,7 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer->GetNetListeningI(paramsRequest, response);
+  lookupServer.lookupServer->GetNetListeningI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -587,7 +756,7 @@ BOOST_AUTO_TEST_CASE(test_net_peer_count) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetNetPeerCountI(paramsRequest, response);
+  lookupServer.lookupServer->GetNetPeerCountI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -604,7 +773,7 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetProtocolVersionI(paramsRequest, response);
+  lookupServer.lookupServer->GetProtocolVersionI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -621,7 +790,7 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetEthChainIdI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthChainIdI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
 
@@ -638,7 +807,7 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetEthSyncingI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthSyncingI(paramsRequest, response);
 
   LOG_GENERAL(DEBUG, response.asString());
   const Json::Value expectedResponse{false};
@@ -655,7 +824,7 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
 
-  lookupServer->GetEthAccountsI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthAccountsI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::arrayValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -674,7 +843,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
   paramsRequest[0u] = "0x68656c6c6f20776f726c64";
   paramsRequest[1u] = "0x1";
 
-  lookupServer->GetEthUncleBlockI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleBlockI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::nullValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -693,7 +862,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
   paramsRequest[0u] = "0x666";
   paramsRequest[1u] = "0x1";
 
-  lookupServer->GetEthUncleBlockI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleBlockI(paramsRequest, response);
 
   const Json::Value expectedResponse = Json::nullValue;
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -711,7 +880,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
 
   paramsRequest[0u] = "0x68656c6c6f20776f726c64";
 
-  lookupServer->GetEthUncleCountI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleCountI(paramsRequest, response);
 
   const Json::Value expectedResponse = "0x0";
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -729,7 +898,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
 
   paramsRequest[0u] = "0x10";
 
-  lookupServer->GetEthUncleCountI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthUncleCountI(paramsRequest, response);
 
   const Json::Value expectedResponse = "0x0";
   BOOST_CHECK_EQUAL(response, expectedResponse);
@@ -784,7 +953,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
                                                ->GetBalance());
 
   const auto lookupServer = getLookupServer();
-  lookupServer->GetEthBalanceI(paramsRequest, response);
+  lookupServer.lookupServer->GetEthBalanceI(paramsRequest, response);
   LOG_GENERAL(INFO, "Got balance: " << response);
   // expected return value should be 1.000.000 times greater
   BOOST_CHECK_EQUAL(boost::algorithm::to_lower_copy(response.asString()),
@@ -815,7 +984,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
     TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey);
     transactions.emplace_back(twr);
 
-    bytes body;
+    zbytes body;
     transactions.back().Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         1, transactions.back().GetTransaction().GetTranID(), body);
@@ -1123,14 +1292,28 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
   AbstractServerConnectorMock abstractServerConnector;
 
   LookupServer lookupServer(mediator, abstractServerConnector);
+
+  Address accountAddress{"b744160c3de133495ab9f9d77ea54b325b045670"};
+  Account account;
+  AccountStore::GetInstance().AddAccount(accountAddress, account);
+
+  const uint128_t initialBalance{1'000'000};
+  AccountStore::GetInstance().IncreaseBalance(accountAddress, initialBalance);
+
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
+
+  Json::Value values;
+  values["from"] = accountAddress.hex();
+  paramsRequest[0u] = values;
 
   lookupServer.GetEthEstimateGasI(paramsRequest, response);
 
   if (response.asString()[0] != '0') {
     BOOST_FAIL("Failed to get gas price");
+  } else {
+    std::cerr << "Received gas: " << response.asString() << std::endl;
   }
 }
 
@@ -1161,7 +1344,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
   }
 
   for (const auto& transaction : transactions) {
-    bytes body;
+    zbytes body;
     transaction.Serialize(body, 0);
     BlockStorage::GetBlockStorage().PutTxBody(
         EPOCH_NUM, transaction.GetTransaction().GetTranID(), body);
@@ -1361,7 +1544,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
       const auto transaction = constructTxWithReceipt(nonce++, pairOfKey);
       thisBlockTransactions.push_back(transaction);
       transactions.push_back(transaction);
-      bytes body;
+      zbytes body;
       transaction.Serialize(body, 0);
       BlockStorage::GetBlockStorage().PutTxBody(
           1, transaction.GetTransaction().GetTranID(), body);
@@ -1369,7 +1552,7 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
     const auto blockNum = i + 1;
     const MicroBlock microBlock = constructMicroBlockWithTransactions(
         blockNum, thisBlockTransactions, pairOfKey);
-    bytes microBlockSerialized;
+    zbytes microBlockSerialized;
     microBlock.Serialize(microBlockSerialized, 0);
     BlockStorage::GetBlockStorage().PutMicroBlock(
         microBlock.GetBlockHash(), blockNum, blockNum, microBlockSerialized);

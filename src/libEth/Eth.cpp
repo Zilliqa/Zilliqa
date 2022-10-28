@@ -23,6 +23,7 @@
 #include "depends/common/RLP.h"
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Transaction.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
@@ -38,7 +39,8 @@ Json::Value populateReceiptHelper(
     const std::string &to, const std::string &gasUsed,
     const std::string &blockHash, const std::string &blockNumber,
     const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex) {
+    const Json::Value &logsBloom, const Json::Value &transactionIndex,
+    const Transaction &tx) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -60,6 +62,11 @@ Json::Value populateReceiptHelper(
   }
   ret["transactionIndex"] = (boost::format("0x%x") % transactionIndex).str();
 
+  std::string sig{tx.GetSignature()};
+  ret["v"] = GetV(tx.GetCoreInfo(), ETH_CHAINID, sig);
+  ret["r"] = GetR(sig);
+  ret["s"] = GetS(sig);
+
   return ret;
 }
 
@@ -67,7 +74,7 @@ Json::Value populateReceiptHelper(
 EthFields parseRawTxFields(std::string const &message) {
   EthFields ret;
 
-  bytes asBytes;
+  zbytes asBytes;
   DataConversion::HexStrToUint8Vec(message, asBytes);
 
   dev::RLP rlpStream1(asBytes,
@@ -85,7 +92,7 @@ EthFields parseRawTxFields(std::string const &message) {
 
   // RLP TX contains: nonce, gasPrice, gasLimit, to, value, data, v,r,s
   for (auto it = rlpStream1.begin(); it != rlpStream1.end();) {
-    auto byteIt = (*it).operator bytes();
+    auto byteIt = (*it).operator zbytes();
 
     switch (i) {
       case 0:
@@ -110,12 +117,12 @@ EthFields parseRawTxFields(std::string const &message) {
         break;
       case 7:  // R
       {
-        bytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(*it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       case 8:  // S
       {
-        bytes b = dev::toBigEndian(dev::u256(*it));
+        zbytes b = dev::toBigEndian(dev::u256(*it));
         ret.signature.insert(ret.signature.end(), b.begin(), b.end());
       } break;
       default:
@@ -133,7 +140,8 @@ EthFields parseRawTxFields(std::string const &message) {
 }
 
 bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
-                    const Account *sender, const uint128_t &gasPriceWei) {
+                    const Account *sender, const uint128_t &gasPriceWei,
+                    uint64_t minGasLimit) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
@@ -147,7 +155,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
             std::to_string(DataConversion::UnpackB(tx.GetVersion())));
   }
 
-  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+  // While checking the contract size, account for Hex representation
+  // with the 'EVM' prefix.
+  if (tx.GetCode().size() > 2 * MAX_EVM_CONTRACT_SIZE_BYTES + 3) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Code size is too large");
   }
@@ -160,11 +170,11 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                gasPriceWei.convert_to<std::string>());
   }
 
-  if (tx.GetGasLimitEth() < MIN_ETH_GAS) {
+  if (tx.GetGasLimitEth() < minGasLimit) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasLimit " + std::to_string(tx.GetGasLimitEth()) +
                                " lower than minimum allowable " +
-                               std::to_string(MIN_ETH_GAS));
+                               std::to_string(minGasLimit));
   }
 
   if (!Validator::VerifyTransaction(tx)) {
@@ -220,14 +230,16 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
                          const std::string &txHash,
                          const std::string &blockHash,
                          const std::string &blockNum,
-                         const Json::Value &transactionIndex) {
+                         const Json::Value &transactionIndex,
+                         uint32_t logIndex) {
   for (auto &logEntry : logsArrayFromEvm) {
     logEntry["removed"] = false;
     logEntry["transactionIndex"] = transactionIndex;
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
-    logEntry["logIndex"] = "0x0";
+    logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
+    ++logIndex;
   }
 }
 
@@ -265,8 +277,8 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
 
   const auto addressHash =
       ethash::keccak256(address.ref().data(), address.ref().size());
-  dev::h256 addressBloom{dev::bytesConstRef{boost::begin(addressHash.bytes),
-                                            boost::size(addressHash.bytes)}};
+  dev::h256 addressBloom{dev::zbytesConstRef{boost::begin(addressHash.bytes),
+                                             boost::size(addressHash.bytes)}};
 
   LogBloom bloom;
   bloom.shiftBloom<3>(addressBloom);
@@ -274,8 +286,8 @@ LogBloom BuildBloomForLogObject(const Json::Value &logObject) {
   for (const auto &topic : topics) {
     const auto topicHash =
         ethash::keccak256(topic.ref().data(), topic.ref().size());
-    dev::h256 topicBloom{dev::bytesConstRef{boost::begin(topicHash.bytes),
-                                            boost::size(topicHash.bytes)}};
+    dev::h256 topicBloom{dev::zbytesConstRef{boost::begin(topicHash.bytes),
+                                             boost::size(topicHash.bytes)}};
     bloom.shiftBloom<3>(topicBloom);
   }
 
@@ -289,6 +301,43 @@ LogBloom BuildBloomForLogs(const Json::Value &logsArray) {
     bloom |= single;
   }
   return bloom;
+}
+
+uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
+                                          const TxBlock &block) {
+  uint32_t logIndex = 0;
+  MicroBlockSharedPtr microBlockPtr;
+
+  const auto &microBlockInfos = block.GetMicroBlockInfos();
+  for (auto const &mbInfo : microBlockInfos) {
+    if (mbInfo.m_txnRootHash == TxnHash{}) {
+      continue;
+    }
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       microBlockPtr)) {
+      continue;
+    }
+
+    const auto &tranHashes = microBlockPtr->GetTranHashes();
+    for (const auto &transactionHash : tranHashes) {
+      TxBodySharedPtr transactionBodyPtr;
+      if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                     transactionBodyPtr)) {
+        continue;
+      }
+
+      if (transactionBodyPtr->GetTransaction().GetTranID() == txnHash) {
+        return logIndex;
+      }
+
+      const auto &receipt = transactionBodyPtr->GetTransactionReceipt();
+      const auto currLogs = GetLogsFromReceipt(receipt);
+
+      logIndex += currLogs.size();
+    }
+  }
+
+  return logIndex;
 }
 
 }  // namespace Eth

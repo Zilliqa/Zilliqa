@@ -4,10 +4,15 @@ target_link_libraries(Eth EthCrypto AccountData)
 
 add_library(Filters
         filters/FiltersImpl.cpp
+        filters/SubscriptionsImpl.cpp
         filters/FiltersUtils.cpp
         filters/PendingTxnCache.cpp
         filters/BlocksCache.cpp
         filters/APICache.cpp
         )
+add_library(EthUtils
+        utils/EthUtils.cpp
+        )
+target_include_directories(EthUtils PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
 target_link_libraries(Filters Utils)

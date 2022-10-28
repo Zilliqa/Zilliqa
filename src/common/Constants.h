@@ -147,7 +147,7 @@ constexpr uint16_t MAX_REPUTATION =
 // General constants
 extern const unsigned int DEBUG_LEVEL;
 extern const bool ENABLE_DO_REJOIN;
-extern const bool LOOKUP_NODE_MODE;
+extern bool LOOKUP_NODE_MODE;
 extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 extern const uint16_t NETWORK_ID;
@@ -307,12 +307,13 @@ extern const unsigned int STAKING_RPC_PORT;
 extern const unsigned int STATUS_RPC_PORT;
 // EVM
 
-extern const bool ENABLE_EVM;
+extern bool ENABLE_EVM;
 extern const std::string EVM_SERVER_SOCKET_PATH;
 extern const std::string EVM_SERVER_BINARY;
 extern const std::string EVM_LOG_CONFIG;
 extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
+extern const bool LAUNCH_EVM_DAEMON;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
@@ -426,6 +427,7 @@ extern const std::string CONTRACT_FILE_EXTENSION;
 extern const std::string LIBRARY_CODE_EXTENSION;
 extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
+extern bool ENABLE_SCILLA;
 
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
@@ -482,6 +484,7 @@ extern const bool ENABLE_TXNS_BACKUP;
 extern const bool SHARDLDR_SAVE_TXN_LOCALLY;
 extern const double BLOOM_FILTER_FALSE_RATE;
 extern const unsigned int TXN_DISPATCH_ATTEMPT_LIMIT;
+extern const uint64_t EVM_RPC_TIMEOUT_SECONDS;
 
 // TxBlockAux constants
 constexpr auto MAX_TX_BLOCK_NUM_KEY = "MaxTxBlockNumber";

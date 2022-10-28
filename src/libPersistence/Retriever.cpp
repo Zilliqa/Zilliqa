@@ -34,7 +34,7 @@ Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}
 bool Retriever::RetrieveTxBlocks() {
   LOG_MARKER();
 
-  std::vector<bytes> extraStateDeltas;
+  std::vector<zbytes> extraStateDeltas;
   TxBlockSharedPtr latestTxBlock;
   bool trimIncompletedBlocks = false;
 
@@ -49,7 +49,7 @@ bool Retriever::RetrieveTxBlocks() {
 
   for (uint64_t blockNum = lastBlockNum + 1 - extra_txblocks;
        blockNum <= lastBlockNum; blockNum++) {
-    bytes stateDelta;
+    zbytes stateDelta;
     if (!BlockStorage::GetBlockStorage().GetStateDelta(blockNum, stateDelta)) {
       LOG_GENERAL(INFO, "Didn't find the state-delta for txBlkNum: "
                             << blockNum << ". Try fetching it from seeds");
@@ -101,7 +101,7 @@ bool Retriever::RetrieveTxBlocks() {
 
 bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
                                          unsigned int extra_txblocks,
-                                         std::vector<bytes>& extraStateDeltas,
+                                         std::vector<zbytes>& extraStateDeltas,
                                          bool trimIncompletedBlocks) {
   if ((lastBlockNum - extra_txblocks + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
@@ -155,7 +155,7 @@ bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
 
           // generate state now for NUM_FINAL_BLOCK_PER_POW statedeltas
           for (uint64_t j = firstStateDeltaIndex; j <= i; j++) {
-            bytes stateDelta;
+            zbytes stateDelta;
             LOG_GENERAL(
                 INFO,
                 "Try fetching statedelta and deserializing to state for txnBlk:"
@@ -266,7 +266,7 @@ bool Retriever::RetrieveBlockLink() {
 
   if (!blocklinks.empty()) {
     if (m_mediator.m_ds->m_latestActiveDSBlockNum == 0) {
-      bytes latestActiveDSBlockNumVec;
+      zbytes latestActiveDSBlockNumVec;
       if (!BlockStorage::GetBlockStorage().GetMetadata(
               MetaType::LATESTACTIVEDSBLOCKNUM, latestActiveDSBlockNumVec)) {
         LOG_GENERAL(WARNING, "Get LatestActiveDSBlockNum failed");
@@ -402,14 +402,4 @@ void Retriever::CleanAll() {
   } else {
     LOG_GENERAL(WARNING, "FAIL: Reset DB Failed");
   }
-}
-
-bool Retriever::MigrateContractStates(
-    bool ignore_checker, bool disambiguation,
-    const std::string& contract_address_output_filename,
-    const std::string& normal_address_output_filename,
-    const uint64_t& updateDiskFrequency) {
-  return AccountStore::GetInstance().MigrateContractStates(
-      ignore_checker, disambiguation, contract_address_output_filename,
-      normal_address_output_filename, updateDiskFrequency);
 }

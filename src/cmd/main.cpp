@@ -15,14 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <execinfo.h>  // for backtrace
 #include <signal.h>
 
-#include <arpa/inet.h>
 #include <algorithm>
 #include <iostream>
 
-#include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"

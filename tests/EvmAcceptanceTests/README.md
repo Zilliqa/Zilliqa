@@ -3,21 +3,12 @@
 ```bash
     npm install
     npx hardhat test    # to run tests
+    npx hardhat test --network devnet    # to run tests against the devnet
     npx hardhat test --debug    # to run tests and print log messages
     npx hardhat test --grep something    # to run tests containing `something` in the description
-    npx hardhat test --network net1    # to run tests with `net1` network
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
 ```
-
-# Setup github pre-commit hook
-
-You may want to set up pre-commit hook to fix your code before commit by:
-`npm run prepare`
-
-Alternatively, you can always fix your code manually before uploading to remote:
-
-`npm run lint`
 
 # Start Testing
 
@@ -43,6 +34,18 @@ expect(undefined).to.be.undefined;
 expect(contract.address).exist;
 expect("foobar").to.have.string("bar");
 expect(badFn).to.throw();
+```
+
+It's also useful to use [hardhat chai matchers](https://hardhat.org/hardhat-chai-matchers/docs/overview) if possible:
+
+```javascript
+await expect(contract.call()).to.emit(contract, "Uint").withArgs(3); // For events
+await expect(contract.call()).to.be.reverted;
+await expect(contract.call()).to.be.revertedWith("Some revert message");
+expect("0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266").to.be.a.properAddress;
+await expect(contract.withdraw())
+  .to.changeEtherBalance(contract.address, ethers.utils.parseEther("-1.0"))
+  .to.changeEtherBalance(owner.address, ethers.utils.parseEther("1.0"));
 ```
 
 ## Run the tests
@@ -92,14 +95,16 @@ npx hardhat test --network ganache
 
 # How to debug
 
-* Use `hre.logDebug` :smile:
-* Use vscode debugger
-* Use `--verbose` option to enable hardhat verbose logging.
+- Use `hre.logDebug` :smile:
+- Use vscode debugger
+- Use `--verbose` option to enable hardhat verbose logging.
 
 ```bash
 npx hardhat --verbose test
 ```
-* Use `--debug` to print out log messages. 
+
+- Use `--debug` to print out log messages.
+
 ```bash
 npx hardhat --debug test
 ```
@@ -108,9 +113,11 @@ npx hardhat --debug test
 
 - File names tries to tell us the scenario we're testing.
 - We don't pollute test results with logs. So if you want to add them for debugging, please consider using `--debug` flag and use `hre.logDebug` function:
+
 ```javascript
 hre.logDebug(result);
 ```
+
 - Every `it` block should have one assertion, readable and easy to understand.
 - Follow `GIVEN`, `WHEN` and, `THEN` BDD style
   - Top level `describe` for `GIVEN`
@@ -139,3 +146,45 @@ describe("Contract with payable constructor", function () {
   });
 });
 ```
+
+- It's acceptable to disable tests as long as the following rules are fulfilled:
+  1. A useless test should be removed from code, not disabled.
+  2. A disabled test should be in `xit` instead of `it` block. `xit` blocks are for skipping tests. Commented tests are FORBIDDEN.
+  3. A disabled test should have a `FIXME` comment containing an issue number to track it. Disabled tests must be addressed ASAP.
+
+```javascript
+    // FIXME: In ZIL-4879
+    xit("Should not be possible to move more than available tokens to some address", async function () {
+```
+
+- We use `[@tag1, @tag2, @tag3, ...]` in test descriptions to add tags to tests. This is based on [Mocha's tagging convention](https://github.com/mochajs/mocha/wiki/Tagging). In order to run `tag1` tests, you can use `--grep @tag1`.
+
+```javascript
+it("Should return correct value for string [@transactional, @ethers_js]", async function () {
+  await contract.setName(STRING);
+  expect(await contract.getStringPublic()).to.be.eq(STRING);
+});
+```
+
+- `@transactional` tag is used for those tests which generate ethereum transactions. Calling pure functions or view functions doesn't generate a transaction for example. Transactional tests may use for populating an empty testnet with some transactions.
+
+# miscellaneous
+
+## Setup github pre-commit hook
+
+You may want to set up pre-commit hook to fix your code before commit by:
+`npm run prepare`
+
+Alternatively, you can always fix your code manually before uploading to remote:
+
+`npm run lint`
+
+## Feed devnet with transactions
+
+It's possible to use [FeedDevnet.js](scripts/FeedDevnet.js) to send transactions to devnet continuously:
+
+```bash
+npx hardhat run scripts/FeedDevnet.js --network devnet
+```
+
+Instead of `devnet` we can pass any other networks in the [config file](hardhat.config.js).

@@ -22,7 +22,6 @@
 #include <leveldb/db.h>
 #include <shared_mutex>
 
-#include "ContractStorageOldData.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
@@ -53,17 +52,17 @@ class ContractStorage : public Singleton<ContractStorage> {
   dev::GenericTrieDB<TraceableDB> m_stateTrie;
 
   // Used by AccountStore
-  std::map<std::string, bytes> m_stateDataMap;
+  std::map<std::string, zbytes> m_stateDataMap;
 
   // Used by AccountStoreTemp for StateDelta
-  std::map<std::string, bytes> t_stateDataMap;
+  std::map<std::string, zbytes> t_stateDataMap;
 
   // Used for revert state due to failure in chain call
-  std::map<std::string, bytes> p_stateDataMap;
+  std::map<std::string, zbytes> p_stateDataMap;
   std::set<std::string> p_indexToBeDeleted;
 
   // Used for RevertCommitTemp
-  std::unordered_map<dev::h256, std::unordered_map<std::string, bytes>>
+  std::unordered_map<dev::h256, std::unordered_map<std::string, zbytes>>
       r_stateDataMap;
   // value being true for newly added, false for newly deleted
   std::unordered_map<std::string, bool> r_indexToBeDeleted;
@@ -80,7 +79,7 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   void DeleteByIndex(const std::string& index);
 
-  void UpdateStateData(const std::string& key, const bytes& value,
+  void UpdateStateData(const std::string& key, const zbytes& value,
                        bool cleanEmpty = false);
 
   bool CleanEmptyMapPlaceholders(const std::string& key);
@@ -104,25 +103,25 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool PutContractCode(const dev::h160& address, const bytes& code);
+  bool PutContractCode(const dev::h160& address, const zbytes& code);
 
   /// Adds contract codes to persistence in batch
   bool PutContractCodeBatch(
       const std::unordered_map<std::string, std::string>& batch);
 
   /// Get the desired code from persistence
-  bytes GetContractCode(const dev::h160& address);
+  zbytes GetContractCode(const dev::h160& address);
 
   /// Delete the contract code in persistence
   bool DeleteContractCode(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
-  bool PutInitData(const dev::h160& address, const bytes& initData);
+  bool PutInitData(const dev::h160& address, const zbytes& initData);
 
   bool PutInitDataBatch(
       const std::unordered_map<std::string, std::string>& batch);
 
-  bytes GetInitData(const dev::h160& address);
+  zbytes GetInitData(const dev::h160& address);
 
   bool DeleteInitData(const dev::h160& address);
 
@@ -135,19 +134,20 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   bool IsReservedVName(const std::string& name);
 
-  bool FetchStateValue(const dev::h160& addr, const bytes& src,
-                       unsigned int s_offset, bytes& dst, unsigned int d_offset,
-                       bool& foundVal, bool getType = false,
+  bool FetchStateValue(const dev::h160& addr, const zbytes& src,
+                       unsigned int s_offset, zbytes& dst,
+                       unsigned int d_offset, bool& foundVal,
+                       bool getType = false,
                        std::string& type = type_placeholder);
 
   bool FetchStateValue(const dev::h160& addr, const ProtoScillaQuery& query,
-                       bytes& dst, unsigned int d_offset, bool& foundVal,
+                       zbytes& dst, unsigned int d_offset, bool& foundVal,
                        bool getType = false,
                        std::string& type = type_placeholder);
 
   bool FetchExternalStateValue(
-      const dev::h160& caller, const dev::h160& target, const bytes& src,
-      unsigned int s_offset, bytes& dst, unsigned int d_offset, bool& foundVal,
+      const dev::h160& caller, const dev::h160& target, const zbytes& src,
+      unsigned int s_offset, zbytes& dst, unsigned int d_offset, bool& foundVal,
       std::string& type,
       uint32_t caller_version = std::numeric_limits<uint32_t>::max());
 
@@ -160,31 +160,31 @@ class ContractStorage : public Singleton<ContractStorage> {
                                  const std::vector<std::string>& indices = {},
                                  bool temp = false);
 
-  void FetchStateDataForKey(std::map<std::string, bytes>& states,
+  void FetchStateDataForKey(std::map<std::string, zbytes>& states,
                             const std::string& key, bool temp);
 
-  void FetchStateDataForContract(std::map<std::string, bytes>& states,
+  void FetchStateDataForContract(std::map<std::string, zbytes>& states,
                                  const dev::h160& address,
                                  const std::string& vname = "",
                                  const std::vector<std::string>& indices = {},
                                  bool temp = true);
 
   void FetchUpdatedStateValuesForAddress(
-      const dev::h160& address, std::map<std::string, bytes>& states,
+      const dev::h160& address, std::map<std::string, zbytes>& states,
       std::set<std::string>& toDeletedIndices, bool temp = false);
   bool FetchStateProofForContract(std::set<std::string>& proof,
                                   const dev::h256& rootHash,
                                   const dev::h256& key);
 
-  bool UpdateStateValue(const dev::h160& addr, const bytes& q,
-                        unsigned int q_offset, const bytes& v,
+  bool UpdateStateValue(const dev::h160& addr, const zbytes& q,
+                        unsigned int q_offset, const zbytes& v,
                         unsigned int v_offset);
 
   bool CheckIfKeyIsEmpty(const std::string& key, bool temp);
 
   void UpdateStateDatasAndToDeletes(
       const dev::h160& addr, const dev::h256& rootHash,
-      const std::map<std::string, bytes>& states,
+      const std::map<std::string, zbytes>& states,
       const std::vector<std::string>& toDeleteIndices, dev::h256& stateHash,
       bool temp, bool revertible);
 

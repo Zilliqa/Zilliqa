@@ -27,7 +27,7 @@ TransactionReceipt::TransactionReceipt() {
   m_errorObj[to_string(m_edge)] = Json::arrayValue;
 }
 
-bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
+bool TransactionReceipt::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransactionReceipt(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransactionReceipt failed.");
     return false;
@@ -36,7 +36,7 @@ bool TransactionReceipt::Serialize(bytes& dst, unsigned int offset) const {
   return true;
 }
 
-bool TransactionReceipt::Deserialize(const bytes& src, unsigned int offset) {
+bool TransactionReceipt::Deserialize(const zbytes& src, unsigned int offset) {
   if (!Messenger::GetTransactionReceipt(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransactionReceipt failed.");
     return false;
@@ -197,7 +197,7 @@ void TransactionReceipt::update() {
 }
 
 /// Implements the Serialize function inherited from Serializable.
-bool TransactionWithReceipt::Serialize(bytes& dst, unsigned int offset) const {
+bool TransactionWithReceipt::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetTransactionWithReceipt(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransactionWithReceipt failed.");
     return false;
@@ -206,7 +206,7 @@ bool TransactionWithReceipt::Serialize(bytes& dst, unsigned int offset) const {
 }
 
 /// Implements the Deserialize function inherited from Serializable.
-bool TransactionWithReceipt::Deserialize(const bytes& src,
+bool TransactionWithReceipt::Deserialize(const zbytes& src,
                                          unsigned int offset) {
   if (!Messenger::GetTransactionWithReceipt(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransactionWithReceipt failed.");

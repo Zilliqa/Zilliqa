@@ -451,8 +451,8 @@ std::shared_ptr<SendJobs> SendJobs::Create() {
   return std::make_shared<send_jobs::SendJobsImpl>();
 }
 
-SendJobs::RawMessage SendJobs::CreateMessage(const bytes& message,
-                                             const bytes& msg_hash,
+SendJobs::RawMessage SendJobs::CreateMessage(const zbytes& message,
+                                             const zbytes& msg_hash,
                                              uint8_t start_byte) {
   // Transmission format:
   // 0x01 ~ 0xFF - version, defined in constant file

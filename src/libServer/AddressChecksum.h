@@ -43,12 +43,12 @@ class AddressChecksum {
 
     std::string lower_case_address = boost::to_lower_copy(origAddress);
 
-    bytes tmpaddr;
+    zbytes tmpaddr;
     if (!DataConversion::HexStrToUint8Vec(lower_case_address, tmpaddr)) {
       LOG_GENERAL(WARNING, "DataConversion::HexStrToUint8Vec Failed");
       return "";
     }
-    bytes hash_s = HashUtils::BytesToHash(tmpaddr);
+    zbytes hash_s = HashUtils::BytesToHash(tmpaddr);
 
     uint256_t temp_1 = 1;
     std::string ret = "";

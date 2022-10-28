@@ -44,10 +44,31 @@ class Queue {
     return true;
   }
 
-  bool pop(T &item) {
+  bool bounded_push(T &&item, size_t &queue_size) {
+    {
+      std::lock_guard<Mutex> lk(m_mutex);
+      queue_size = m_queue.size();
+      if (m_stopped || queue_size >= m_maxSize) return false;
+      m_queue.push_back(std::move(item));
+      ++queue_size;
+    }
+    m_condition.notify_one();
+    return true;
+  }
+
+  bool pop(T &item, size_t &queue_size) {
     std::unique_lock<Mutex> lk(m_mutex);
     m_condition.wait(lk, [this] { return !m_queue.empty() || m_stopped; });
+    queue_size = m_queue.size();
     if (m_stopped) return false;
+    item = std::move(m_queue.front());
+    m_queue.pop_front();
+    return true;
+  }
+
+  bool try_pop(T &item) {
+    std::unique_lock<Mutex> lk(m_mutex);
+    if (m_stopped || m_queue.empty()) return false;
     item = std::move(m_queue.front());
     m_queue.pop_front();
     return true;
@@ -59,7 +80,7 @@ class Queue {
       m_stopped = true;
       m_queue.clear();
     }
-    m_condition.notify_one();
+    m_condition.notify_all();
   }
 
  private:

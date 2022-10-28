@@ -41,7 +41,7 @@ namespace dev
      * [1,2,3,4,T]       0x201234
      */
 
-    std::string hexPrefixEncode(bytes const& _hexVector, bool _leaf, int _begin, int _end)
+    std::string hexPrefixEncode(zbytes const& _hexVector, bool _leaf, int _begin, int _end)
     {
         unsigned begin = _begin;
         unsigned end = _end < 0 ? _hexVector.size() + 1 + _end : _end;
@@ -58,7 +58,7 @@ namespace dev
         return ret;
     }
 
-    std::string hexPrefixEncode(bytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset)
+    std::string hexPrefixEncode(zbytesConstRef _data, bool _leaf, int _beginNibble, int _endNibble, unsigned _offset)
     {
 
         unsigned begin = _beginNibble + _offset;
@@ -71,7 +71,7 @@ namespace dev
         unsigned d = odd ? 1 : 2;
         for (auto i = begin; i < end; ++i, ++d)
         {
-            byte n = nibble(_data, i);
+            zbyte n = nibble(_data, i);
             if (d & 1)	// odd
                 ret.back() |= n;		// or the nibble onto the back
             else
@@ -80,7 +80,7 @@ namespace dev
         return ret;
     }
 
-    std::string hexPrefixEncode(bytesConstRef _d1, unsigned _o1, bytesConstRef _d2, unsigned _o2, bool _leaf)
+    std::string hexPrefixEncode(zbytesConstRef _d1, unsigned _o1, zbytesConstRef _d2, unsigned _o2, bool _leaf)
     {
         unsigned begin1 = _o1;
         unsigned end1 = _d1.size() * 2;
@@ -95,7 +95,7 @@ namespace dev
         unsigned d = odd ? 1 : 2;
         for (auto i = begin1; i < end1; ++i, ++d)
         {
-            byte n = nibble(_d1, i);
+            zbyte n = nibble(_d1, i);
             if (d & 1)	// odd
                 ret.back() |= n;		// or the nibble onto the back
             else
@@ -103,7 +103,7 @@ namespace dev
         }
         for (auto i = begin2; i < end2; ++i, ++d)
         {
-            byte n = nibble(_d2, i);
+            zbyte n = nibble(_d2, i);
             if (d & 1)	// odd
                 ret.back() |= n;		// or the nibble onto the back
             else
@@ -112,14 +112,14 @@ namespace dev
         return ret;
     }
 
-    byte uniqueInUse(RLP const& _orig, byte except)
+    zbyte uniqueInUse(RLP const& _orig, zbyte except)
     {
-        byte used = 255;
+        zbyte used = 255;
         for (unsigned i = 0; i < 17; ++i)
             if (i != except && !_orig[i].isEmpty())
             {
                 if (used == 255)
-                    used = (byte)i;
+                    used = (zbyte)i;
                 else
                     return 255;
             }

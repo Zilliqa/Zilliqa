@@ -39,17 +39,17 @@ class MicroBlock : public BlockBase {
                  // maxsize of uint256
 
   /// Constructor for loading existing microblock from a byte stream.
-  MicroBlock(const bytes& src, unsigned int offset);
+  MicroBlock(const zbytes& src, unsigned int offset);
 
   /// Constructor with predefined member values
   MicroBlock(const MicroBlockHeader& header,
              const std::vector<TxnHash>& tranHashes, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(bytes& dst, unsigned int offset) const;
+  bool Serialize(zbytes& dst, unsigned int offset) const;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const bytes& src, unsigned int offset);
+  bool Deserialize(const zbytes& src, unsigned int offset);
 
   /// Implements the Deserialize function inherited from Serializable.
   bool Deserialize(const std::string& src, unsigned int offset);

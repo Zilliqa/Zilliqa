@@ -145,7 +145,7 @@ class DirectoryService : public Executable {
 
   // Consensus variables
   std::shared_ptr<ConsensusCommon> m_consensusObject;
-  bytes m_consensusBlockHash;
+  zbytes m_consensusBlockHash;
   std::mutex m_mutexCommitFailure;
 
   // PoW (DS block) consensus variables
@@ -159,9 +159,9 @@ class DirectoryService : public Executable {
 
   struct MBSubmissionBufferEntry {
     MicroBlock m_microBlock;
-    bytes m_stateDelta;
+    zbytes m_stateDelta;
     MBSubmissionBufferEntry(const MicroBlock& microBlock,
-                            const bytes& stateDelta)
+                            const zbytes& stateDelta)
         : m_microBlock(microBlock), m_stateDelta(stateDelta) {}
   };
   std::mutex m_mutexMBSubmissionBuffer;
@@ -229,48 +229,48 @@ class DirectoryService : public Executable {
   const uint32_t RESHUFFLE_INTERVAL = 500;
 
   // Message handlers
-  bool ProcessSetPrimary(const bytes& message, unsigned int offset,
+  bool ProcessSetPrimary(const zbytes& message, unsigned int offset,
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessPoWSubmission(const bytes& message, unsigned int offset,
+  bool ProcessPoWSubmission(const zbytes& message, unsigned int offset,
                             const Peer& from,
                             [[gnu::unused]] const unsigned char& startByte);
   bool ProcessPoWPacketSubmission(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
   bool VerifyPoWSubmission(const DSPowSolution& sol);
 
-  bool ProcessDSBlockConsensus(const bytes& message, unsigned int offset,
+  bool ProcessDSBlockConsensus(const zbytes& message, unsigned int offset,
                                const Peer& from,
                                [[gnu::unused]] const unsigned char& startByte);
   bool ProcessMicroblockSubmission(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessFinalBlockConsensus(const bytes& message, unsigned int offset,
+  bool ProcessFinalBlockConsensus(const zbytes& message, unsigned int offset,
                                   const Peer& from,
                                   const unsigned char& startByte);
   bool ProcessFinalBlockConsensusCore(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessViewChangeConsensus(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessPushLatestDSBlock(const bytes& message, unsigned int offset,
+  bool ProcessPushLatestDSBlock(const zbytes& message, unsigned int offset,
                                 const Peer& from,
                                 [[gnu::unused]] const unsigned char& startByte);
-  bool ProcessPushLatestTxBlock(const bytes& message, unsigned int offset,
+  bool ProcessPushLatestTxBlock(const zbytes& message, unsigned int offset,
                                 const Peer& from,
                                 [[gnu::unused]] const unsigned char& startByte);
   bool ProcessVCPushLatestDSTxBlock(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessNewDSGuardNetworkInfo(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
 
   // Get cosig and rewards for given epoch
   bool ProcessCosigsRewardsFromSeed(
-      const bytes& message, unsigned int offset, const Peer& from,
+      const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
 
   // To block certain types of incoming message for certain states
@@ -339,9 +339,9 @@ class DirectoryService : public Executable {
 
   // internal calls from ProcessDSBlockConsensus
   bool StoreDSBlockToStorage();  // To further refactor
-  bool ComposeDSBlockMessageForSender(bytes& dsblock_message);
-  void SendDSBlockToLookupNodesAndNewDSMembers(const bytes& dsblock_message);
-  void SendDSBlockToShardNodes(const bytes& dsblock_message,
+  bool ComposeDSBlockMessageForSender(zbytes& dsblock_message);
+  void SendDSBlockToLookupNodesAndNewDSMembers(const zbytes& dsblock_message);
+  void SendDSBlockToShardNodes(const zbytes& dsblock_message,
                                const DequeOfShard& shards,
                                const unsigned int& my_shards_lo,
                                const unsigned int& my_shards_hi);
@@ -351,7 +351,7 @@ class DirectoryService : public Executable {
   void ProcessDSBlockConsensusWhenDone();
 
   // internal calls from ProcessFinalBlockConsensus
-  bool ComposeFinalBlockMessageForSender(bytes& finalblock_message);
+  bool ComposeFinalBlockMessageForSender(zbytes& finalblock_message);
   void ProcessFinalBlockConsensusWhenDone();
   void CommitFinalBlockConsensusBuffer();
 
@@ -362,16 +362,16 @@ class DirectoryService : public Executable {
   void CommitMBSubmissionMsgBuffer();
   bool ProcessMicroblockSubmissionFromShard(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<bytes>& stateDelta);
+      const std::vector<zbytes>& stateDelta);
   bool ProcessMicroblockSubmissionFromShardCore(const MicroBlock& microBlocks,
-                                                const bytes& stateDelta);
+                                                const zbytes& stateDelta);
   bool ProcessMissingMicroblockSubmission(
       const uint64_t epochNumber, const std::vector<MicroBlock>& microBlocks,
-      const std::vector<bytes>& stateDeltas);
+      const std::vector<zbytes>& stateDeltas);
   void ExtractDataFromMicroblocks(std::vector<MicroBlockInfo>& mbInfos,
                                   uint64_t& allGasLimit, uint64_t& allGasUsed,
                                   uint128_t& allRewards, uint32_t& numTxs);
-  bool ProcessStateDelta(const bytes& stateDelta,
+  bool ProcessStateDelta(const zbytes& stateDelta,
                          const StateHash& microBlockStateDeltaHash,
                          const BlockHash& microBlockHash);
   void SkipDSMicroBlock();
@@ -379,13 +379,13 @@ class DirectoryService : public Executable {
 
   // FinalBlockValidator functions
   bool CheckBlockHash();
-  bool CheckFinalBlockValidity(bytes& errorMsg);
-  bool CheckMicroBlockValidity(bytes& errorMsg);
+  bool CheckFinalBlockValidity(zbytes& errorMsg);
+  bool CheckMicroBlockValidity(zbytes& errorMsg);
   bool CheckFinalBlockVersion();
   bool CheckPreviousFinalBlockHash();
   bool CheckFinalBlockNumber();
   bool CheckFinalBlockTimestamp();
-  bool CheckMicroBlocks(bytes& errorMsg, bool fromShards,
+  bool CheckMicroBlocks(zbytes& errorMsg, bool fromShards,
                         bool generateErrorMsg);
   bool CheckLegitimacyOfMicroBlocks();
   bool CheckMicroBlockInfo();
@@ -394,41 +394,41 @@ class DirectoryService : public Executable {
   void LoadUnavailableMicroBlocks();
 
   // DS block consensus validator function
-  bool DSBlockValidator(const bytes& message, unsigned int offset,
-                        bytes& errorMsg, const uint32_t consensusID,
-                        const uint64_t blockNumber, const bytes& blockHash,
+  bool DSBlockValidator(const zbytes& message, unsigned int offset,
+                        zbytes& errorMsg, const uint32_t consensusID,
+                        const uint64_t blockNumber, const zbytes& blockHash,
                         const uint16_t leaderID, const PubKey& leaderKey,
-                        bytes& messageToCosign);
+                        zbytes& messageToCosign);
 
   // Sharding consensus validator function
-  bool ShardingValidator(const bytes& sharding_structure, bytes& errorMsg);
+  bool ShardingValidator(const zbytes& sharding_structure, zbytes& errorMsg);
 
   // PrePrep Final block consensus validator function
-  bool PrePrepFinalBlockValidator(const bytes& message, unsigned int offset,
-                                  bytes& errorMsg, const uint32_t consensusID,
+  bool PrePrepFinalBlockValidator(const zbytes& message, unsigned int offset,
+                                  zbytes& errorMsg, const uint32_t consensusID,
                                   const uint64_t blockNumber,
-                                  const bytes& blockHash,
+                                  const zbytes& blockHash,
                                   const uint16_t leaderID,
                                   const PubKey& leaderKey,
-                                  bytes& messageToCosign);
+                                  zbytes& messageToCosign);
 
   // Final block consensus validator function
-  bool FinalBlockValidator(const bytes& message, unsigned int offset,
-                           bytes& errorMsg, const uint32_t consensusID,
-                           const uint64_t blockNumber, const bytes& blockHash,
+  bool FinalBlockValidator(const zbytes& message, unsigned int offset,
+                           zbytes& errorMsg, const uint32_t consensusID,
+                           const uint64_t blockNumber, const zbytes& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
-                           bytes& messageToCosign);
+                           zbytes& messageToCosign);
 
   // View change consensus validator function
-  bool ViewChangeValidator(const bytes& message, unsigned int offset,
-                           bytes& errorMsg, const uint32_t consensusID,
-                           const uint64_t blockNumber, const bytes& blockHash,
+  bool ViewChangeValidator(const zbytes& message, unsigned int offset,
+                           zbytes& errorMsg, const uint32_t consensusID,
+                           const uint64_t blockNumber, const zbytes& blockHash,
                            const uint16_t leaderID, const PubKey& leaderKey,
-                           bytes& messageToCosign);
+                           zbytes& messageToCosign);
   bool StoreFinalBlockToDisk();
 
-  bool OnNodeFinalConsensusError(const bytes& errorMsg, const Peer& from);
-  bool OnNodeMissingMicroBlocks(const bytes& errorMsg,
+  bool OnNodeFinalConsensusError(const zbytes& errorMsg, const Peer& from);
+  bool OnNodeMissingMicroBlocks(const zbytes& errorMsg,
                                 const unsigned int offset, const Peer& from);
 
   // void StoreMicroBlocksToDisk();
@@ -436,9 +436,9 @@ class DirectoryService : public Executable {
   // Used to reconsile view of m_AllPowConn is different.
   void LastDSBlockRequest();
 
-  bool ProcessLastDSBlockRequest(const bytes& message, unsigned int offset,
+  bool ProcessLastDSBlockRequest(const zbytes& message, unsigned int offset,
                                  const Peer& from);
-  bool ProcessLastDSBlockResponse(const bytes& message, unsigned int offset,
+  bool ProcessLastDSBlockResponse(const zbytes& message, unsigned int offset,
                                   const Peer& from);
 
   // View change
@@ -456,13 +456,13 @@ class DirectoryService : public Executable {
   void ProcessNextConsensus(unsigned char viewChangeState);
 
   bool VCFetchLatestDSTxBlockFromSeedNodes();
-  bytes ComposeVCGetDSTxBlockMessage();
-  bool ComposeVCBlockForSender(bytes& vcblock_message);
+  zbytes ComposeVCGetDSTxBlockMessage();
+  bool ComposeVCBlockForSender(zbytes& vcblock_message);
   void CleanUpViewChange(bool isPrecheckFail);
 
   void AddToFinalBlockConsensusBuffer(uint32_t consensusId,
-                                      const bytes& message, unsigned int offset,
-                                      const Peer& peer,
+                                      const zbytes& message,
+                                      unsigned int offset, const Peer& peer,
                                       const PubKey& senderPubKey);
   void CleanFinalBlockConsensusBuffer();
 
@@ -539,7 +539,7 @@ class DirectoryService : public Executable {
 
   /// Serialized account store temp to revert to if ds microblock consensus
   /// failed
-  bytes m_stateDeltaFromShards;
+  zbytes m_stateDeltaFromShards;
 
   /// Whether ds started microblock consensus
   std::atomic<bool> m_stopRecvNewMBSubmission{};
@@ -550,7 +550,7 @@ class DirectoryService : public Executable {
   std::mutex m_mutexMicroBlocks;
   std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
-  std::unordered_map<uint64_t, std::unordered_map<BlockHash, bytes>>
+  std::unordered_map<uint64_t, std::unordered_map<BlockHash, zbytes>>
       m_microBlockStateDeltas;
   uint128_t m_totalTxnFees;
 
@@ -647,7 +647,7 @@ class DirectoryService : public Executable {
           coinbase_rewardees);
 
   /// Implements the Execute function inherited from Executable.
-  bool Execute(const bytes& message, unsigned int offset, const Peer& from,
+  bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
                const unsigned char& startByte);
 
   /// Used by PoW winner to configure sharding variables as the next DS leader

@@ -33,7 +33,7 @@ Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 Validator::~Validator() {}
 
 bool Validator::VerifyTransaction(const Transaction& tran) {
-  bytes txnData;
+  zbytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
   auto result = tran.IsSigned(txnData);
@@ -83,6 +83,9 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
     Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
@@ -91,25 +94,33 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
       return false;
     }
-  }
 
-  // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Insufficient funds in source account!"
-                  << " From Account  = 0x" << fromAddr << " Balance = "
-                  << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmountQa());
-    error_code = TxnStatus::INSUFFICIENT_BALANCE;
-    return false;
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Insufficient funds in source account!"
+                    << " From Account  = 0x" << fromAddr << " Balance = "
+                    << AccountStore::GetInstance().GetBalance(fromAddr)
+                    << " Debit Amount = " << tx.GetAmountQa());
+      error_code = TxnStatus::INSUFFICIENT_BALANCE;
+      return false;
+    }
   }
 
   receipt.SetEpochNum(m_mediator.m_currentEpochNum);
 
+  const auto txBlock = m_mediator.m_txBlockChain.GetLastBlock();
+  const auto dsBlock = m_mediator.m_dsBlockChain.GetLastBlock();
+
+  TxnExtras txnExtras{
+      dsBlock.GetHeader().GetGasPrice(),
+      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+      dsBlock.GetHeader().GetDifficulty()};
+
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, receipt,
-      error_code);
+      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, txnExtras,
+      receipt, error_code);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
@@ -226,6 +237,9 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
     Account* account = AccountStore::GetInstance().GetAccount(fromAddr);
     if (account == nullptr) {
       LOG_GENERAL(WARNING, "fromAddr not found: " << fromAddr
@@ -234,17 +248,17 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
       error_code = TxnStatus::INVALID_FROM_ACCOUNT;
       return false;
     }
-  }
 
-  // Check if transaction amount is valid
-  if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
-    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
-              "Insufficient funds in source account!"
-                  << " From Account  = 0x" << fromAddr << " Balance = "
-                  << AccountStore::GetInstance().GetBalance(fromAddr)
-                  << " Debit Amount = " << tx.GetAmountQa());
-    error_code = TxnStatus::INSUFFICIENT_BALANCE;
-    return false;
+    // Check if transaction amount is valid
+    if (AccountStore::GetInstance().GetBalance(fromAddr) < tx.GetAmountQa()) {
+      LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+                "Insufficient funds in source account!"
+                    << " From Account  = 0x" << fromAddr << " Balance = "
+                    << AccountStore::GetInstance().GetBalance(fromAddr)
+                    << " Debit Amount = " << tx.GetAmountQa());
+      error_code = TxnStatus::INSUFFICIENT_BALANCE;
+      return false;
+    }
   }
 
   return true;
@@ -291,7 +305,7 @@ bool Validator::CheckBlockCosignature(const DirectoryBlock& block,
   }
 
   // Verify the collective signature
-  bytes serializedHeader;
+  zbytes serializedHeader;
   block.GetHeader().Serialize(serializedHeader, 0);
   block.GetCS1().Serialize(serializedHeader, serializedHeader.size());
   BitVector::SetBitVector(serializedHeader, serializedHeader.size(),
@@ -362,7 +376,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(
           totalIndex, prevdsblocknum, BlockType::DS, dsblock.GetBlockHash());
       m_mediator.m_dsBlockChain.AddBlock(dsblock);
-      bytes serializedDSBlock;
+      zbytes serializedDSBlock;
       dsblock.Serialize(serializedDSBlock, 0);
       prevHash = dsblock.GetBlockHash();
       if (!BlockStorage::GetBlockStorage().PutDSBlock(
@@ -418,7 +432,7 @@ bool Validator::CheckDirBlocks(
       m_mediator.m_blocklinkchain.AddBlockLink(totalIndex, prevdsblocknum + 1,
                                                BlockType::VC,
                                                vcblock.GetBlockHash());
-      bytes vcblockserialized;
+      zbytes vcblockserialized;
       vcblock.Serialize(vcblockserialized, 0);
       if (!BlockStorage::GetBlockStorage().PutVCBlock(vcblock.GetBlockHash(),
                                                       vcblockserialized)) {

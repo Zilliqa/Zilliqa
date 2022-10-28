@@ -42,16 +42,16 @@ BOOST_AUTO_TEST_CASE(SHA256_001_check_896bitsx3) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
   unsigned int inputSize = strlen((const char*)input);
-  bytes vec;
+  zbytes vec;
   copy(input, input + inputSize, back_inserter(vec));
 
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
   sha2.Update(vec);
   sha2.Update(vec);
-  bytes output = sha2.Finalize();
+  zbytes output = sha2.Finalize();
 
-  bytes expected;
+  zbytes expected;
   DataConversion::HexStrToUint8Vec(
       "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C",
       expected);
@@ -79,16 +79,16 @@ BOOST_AUTO_TEST_CASE(SHA256_002_check_896bitsx3_updatewithoffset) {
   const unsigned char input[] =
       "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq";
   unsigned int inputSize = strlen((const char*)input);
-  bytes vec;
+  zbytes vec;
   copy(input, input + inputSize, back_inserter(vec));
 
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec, 0, inputSize);
   sha2.Update(vec, 0, inputSize);
   sha2.Update(vec, 0, inputSize);
-  bytes output = sha2.Finalize();
+  zbytes output = sha2.Finalize();
 
-  bytes expected;
+  zbytes expected;
   DataConversion::HexStrToUint8Vec(
       "50EA825D9684F4229CA29F1FEC511593E281E46A140D81E0005F8F688669A06C",
       expected);

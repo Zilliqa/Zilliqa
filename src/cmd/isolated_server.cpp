@@ -15,9 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
 #include <iostream>
-#include "depends/safeserver/safehttpserver.h"
+#include "libEth/Filters.h"
+#include "libServer/APIServer.h"
 #include "libServer/IsolatedServer.h"
 #include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
@@ -28,6 +31,8 @@
 
 using namespace std;
 namespace po = boost::program_options;
+
+namespace {
 
 int readAccountJsonFromFile(const string& path) {
   ifstream in(path.c_str());
@@ -71,14 +76,32 @@ void help(const char* argv[]) {
        << endl;
 }
 
+Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
+  try {
+    return server.GetEthBlockByHash(hash, false);
+  } catch (...) {
+    LOG_GENERAL(WARNING, "BlockByHash failed with hash=" << hash);
+  }
+  return Json::Value{};
+}
+
+}  // namespace
+
 int main(int argc, const char* argv[]) {
+  using namespace evmproj;
+
+  pthread_setname_np(pthread_self(), "main");
+
   string accountJsonFilePath;
   uint port{5555};
-  string blocknum_str{"0"};
+  string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
   bool nonisoload{false};
   string uuid;
+
+  LOOKUP_NODE_MODE = true;
+
   try {
     po::options_description desc("Options");
 
@@ -180,11 +203,32 @@ int main(int argc, const char* argv[]) {
         return ERROR_IN_COMMAND_LINE;
       }
     }
-    auto isolatedServerConnector = make_unique<jsonrpc::SafeHttpServer>(port);
-    auto isolatedServer = make_shared<IsolatedServer>(
-        mediator, *isolatedServerConnector, blocknum, timeDelta);
 
-    isolatedServer->m_uuid = move(uuid);
+    auto ctx = std::make_shared<boost::asio::io_context>(1);
+
+    APIServer::Options options;
+    options.port = static_cast<uint16_t>(port);
+
+    auto apiServer = APIServer::CreateAndStart(ctx, std::move(options));
+    if (!apiServer) {
+      cerr << "Server failed to listen" << endl;
+      return ERROR_UNHANDLED_EXCEPTION;
+    } else {
+      cout << "Server listening on " << port << endl;
+    }
+
+    auto isolatedServer = make_shared<IsolatedServer>(
+        mediator, apiServer->GetRPCServerBackend(), blocknum, timeDelta);
+
+    if (ENABLE_EVM) {
+      mediator.m_filtersAPICache->EnableWebsocketAPI(
+          apiServer->GetWebsocketServer(),
+          [&](const std::string& blockHash) -> Json::Value {
+            return BlockByHash(*isolatedServer, blockHash);
+          });
+    }
+
+    isolatedServer->m_uuid = std::move(uuid);
 
     if (loadPersistence) {
       LOG_GENERAL(INFO, "Trying to load persistence.. ");
@@ -192,14 +236,6 @@ int main(int argc, const char* argv[]) {
         LOG_GENERAL(WARNING, "RetrieveHistory Failed");
         return ERROR_UNHANDLED_EXCEPTION;
       }
-    }
-
-    if (!isolatedServer
-             ->jsonrpc::AbstractServer<IsolatedServer>::StartListening()) {
-      cerr << "Server failed to listen" << endl;
-      return ERROR_UNHANDLED_EXCEPTION;
-    } else {
-      cout << "Server listening on " << port << endl;
     }
 
     if (ENABLE_WEBSOCKET) {
@@ -211,10 +247,12 @@ int main(int argc, const char* argv[]) {
       }
     }
 
-    while (true) {
-      // Sleeping is better than working.
-      std::this_thread::sleep_for(chrono::seconds(1));
-    }
+    boost::asio::signal_set sig(*ctx, SIGINT, SIGTERM);
+    sig.async_wait(
+        [&](const boost::system::error_code&, int) { apiServer->Close(); });
+
+    ctx->run();
+    LOG_GENERAL(INFO, "Event loop stopped");
 
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()

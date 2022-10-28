@@ -24,7 +24,7 @@ using namespace std;
 using namespace ZilliqaMessage;
 
 template <class T = ProtoAccountStore>
-bool SerializeToArray(const T& protoMessage, bytes& dst,
+bool SerializeToArray(const T& protoMessage, zbytes& dst,
                       const unsigned int offset);
 bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount);
 bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
@@ -32,7 +32,7 @@ bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
 
 template <class MAP>
 bool MessengerAccountStoreTrie::SetAccountStoreTrie(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const dev::GenericTrieDB<TraceableDB>& stateTrie,
     const shared_ptr<MAP>& addressToAccount) {
   ProtoAccountStore result;
@@ -52,7 +52,7 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
       }
     } else {
       Account account;
-      if (!account.DeserializeBase(bytes(i.second.begin(), i.second.end()),
+      if (!account.DeserializeBase(zbytes(i.second.begin(), i.second.end()),
                                    0)) {
         LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
         continue;
@@ -83,12 +83,12 @@ bool MessengerAccountStoreTrie::SetAccountStoreTrie(
 // Explicit specializations
 template bool
 MessengerAccountStoreTrie::SetAccountStoreTrie<std::map<Address, Account>>(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const dev::GenericTrieDB<TraceableDB>& stateTrie,
     const std::shared_ptr<std::map<Address, Account>>& addressToAccount);
 
 template bool MessengerAccountStoreTrie::SetAccountStoreTrie<
     std::unordered_map<Address, Account>>(
-    bytes& dst, const unsigned int offset,
+    zbytes& dst, const unsigned int offset,
     const dev::GenericTrieDB<TraceableDB>& stateTrie,
     const shared_ptr<unordered_map<Address, Account>>& addressToAccount);
