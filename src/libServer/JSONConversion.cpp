@@ -392,7 +392,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   string sign_str = _json["signature"].asString();
   zbytes sign;
   if (!DataConversion::HexStrToUint8Vec(sign_str, sign)) {
-    LOG_GENERAL(WARNING, "***** Json cointaining invalid hex str for sign");
+    LOG_GENERAL(WARNING, "***** Json containing invalid hex str for sign");
     throw jsonrpc::JsonRpcException(Server::RPC_INVALID_PARAMETER,
                                     "Invalid Hex Str for Signature");
   }
@@ -402,7 +402,7 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   code = DataConversion::StringToCharArray(_json["code"].asString());
   data = DataConversion::StringToCharArray(_json["data"].asString());
 
-  Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
+  const Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
                   code, data, Signature(sign, 0));
   LOG_GENERAL(INFO, "Tx converted");
 

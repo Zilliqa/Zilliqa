@@ -29,6 +29,7 @@
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
 #include "Address.h"
+#include "TransactionContainer.h"
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -37,6 +38,7 @@
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
+#include "libNetwork/P2PComm.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/TxnExtras.h"
 
@@ -95,6 +97,9 @@ class AccountStore
 
   /// Scilla IPC server related
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
+
+  std::queue<std::shared_ptr<TransactionEnvelope>> m_txQ;
+
   std::unique_ptr<jsonrpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
   AccountStore();
@@ -161,6 +166,12 @@ class AccountStore
                           const Transaction& transaction,
                           const TxnExtras& txnExtras,
                           TransactionReceipt& receipt, TxnStatus& error_code);
+
+  /// update Queued account states in AccountStoreTemp
+  bool UpdateAccountsTempQueued(const uint64_t& blockNum,
+                                const unsigned int& numShards, const bool& isDS,
+                                std::shared_ptr<TransactionEnvelope> txne,
+                                TxnStatus& error_code);
 
   /// add account in AccountStoreTemp
   void AddAccountTemp(const Address& address, const Account& account) {
