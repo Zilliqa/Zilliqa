@@ -203,7 +203,6 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
         }
         json["subscription"] = pair.first;
         json["method"] = "eth_subscription";
-        const auto retStr = JsonWrite(m_eventTemplate);
         m_websocketServer->SendMessage(
             conn->id, std::make_shared<std::string>(JsonWrite(json)));
 
