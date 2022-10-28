@@ -17,23 +17,20 @@
 
 #include <chrono>
 
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/signal_set.hpp>
-
 #include <Schnorr.h>
 #include "Zilliqa.h"
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
+#include "depends/safeserver/safehttpserver.h"
 #include "jsonrpccpp/server/connectors/tcpsocketserver.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
-#include "libEth/Filters.h"
 #include "libNetwork/Guard.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
-#include "libServer/APIServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/WebsocketServer.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
@@ -413,38 +410,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_lookup.SetServerTrue();
     }
 
-    std::shared_ptr<boost::asio::io_context> asioCtx;
-    std::shared_ptr<evmproj::APIServer> apiRPC;
-    std::shared_ptr<evmproj::APIServer> stakingRPC;
-
-    if (LOOKUP_NODE_MODE || ENABLE_STAKING_RPC) {
-      asioCtx = std::make_shared<boost::asio::io_context>(1);
-    }
-
     if (LOOKUP_NODE_MODE) {
-      evmproj::APIServer::Options options;
-      options.port = static_cast<uint16_t>(LOOKUP_RPC_PORT);
-
-      apiRPC = evmproj::APIServer::CreateAndStart(asioCtx, std::move(options),
-                                                  false);
-      if (apiRPC) {
-        m_lookupServer = make_shared<LookupServer>(
-            m_mediator, apiRPC->GetRPCServerBackend());
-
-        if (ENABLE_EVM) {
-          m_mediator.m_filtersAPICache->EnableWebsocketAPI(
-              apiRPC->GetWebsocketServer(),
-              [this](const std::string& blockHash) -> Json::Value {
-                try {
-                  return m_lookupServer->GetEthBlockByHash(blockHash, false);
-                } catch (...) {
-                  LOG_GENERAL(WARNING,
-                              "BlockByHash failed with hash=" << blockHash);
-                }
-                return Json::Value{};
-              });
-        }
-      }
+      m_lookupServerConnector = make_unique<SafeHttpServer>(LOOKUP_RPC_PORT);
+      m_lookupServer =
+          make_shared<LookupServer>(m_mediator, *m_lookupServerConnector);
 
       if (ENABLE_WEBSOCKET) {
         (void)WebsocketServer::GetInstance();
@@ -493,15 +462,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (ENABLE_STAKING_RPC) {
-      evmproj::APIServer::Options options;
-      options.port = static_cast<uint16_t>(STAKING_RPC_PORT);
+      m_stakingServerConnector = make_unique<SafeHttpServer>(STAKING_RPC_PORT);
+      m_stakingServer =
+          make_shared<StakingServer>(m_mediator, *m_stakingServerConnector);
 
-      stakingRPC = evmproj::APIServer::CreateAndStart(
-          asioCtx, std::move(options), false);
-      if (stakingRPC) {
-        m_stakingServer = make_shared<StakingServer>(
-            m_mediator, stakingRPC->GetRPCServerBackend());
-      }
       if (m_stakingServer == nullptr) {
         LOG_GENERAL(WARNING, "m_stakingServer NULL");
       } else {
@@ -517,24 +481,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
                       "This lookup node not sync yet, don't start listen");
         }
       }
-    }
-
-    if (asioCtx) {
-      pthread_setname_np(pthread_self(), "RPCAPI");
-
-      boost::asio::signal_set sig(*asioCtx, SIGINT, SIGTERM);
-      sig.async_wait([&](const boost::system::error_code&, int) {
-        if (apiRPC) {
-          apiRPC->Close();
-        }
-        if (stakingRPC) {
-          stakingRPC->Close();
-        }
-      });
-
-      LOG_GENERAL(INFO, "Starting API event loop");
-      asioCtx->run();
-      LOG_GENERAL(INFO, "API event loop stopped");
     }
   };
   DetachedFunction(1, func);
