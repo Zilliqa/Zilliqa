@@ -131,6 +131,7 @@ If you want to contribute by submitting code changes in a pull request perform t
 $ ./build.sh style
 ```
 
+
 ## Build Scilla for Smart Contract Execution
 
 The Zilliqa client works together with Scilla for executing smart contracts. Please refer to the [Scilla repository](https://github.com/Zilliqa/scilla) for build and installation instructions.
