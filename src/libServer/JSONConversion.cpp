@@ -402,8 +402,8 @@ const Transaction JSONConversion::convertJsontoTx(const Json::Value& _json) {
   code = DataConversion::StringToCharArray(_json["code"].asString());
   data = DataConversion::StringToCharArray(_json["data"].asString());
 
-  const Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice, gasLimit,
-                  code, data, Signature(sign, 0));
+  const Transaction tx1(version, nonce, toAddr, pubKey, amount, gasPrice,
+                        gasLimit, code, data, Signature(sign, 0));
   LOG_GENERAL(INFO, "Tx converted");
 
   return tx1;

@@ -552,10 +552,9 @@ bool AccountStore::UpdateAccountsTemp(
   }
 }
 
-bool AccountStore::UpdateAccountsTempQueued(const uint64_t& blockNum,
-                              const unsigned int& numShards, const bool& isDS,
-                              std::shared_ptr<TransactionEnvelope> orig,
-                              TxnStatus& error_code){
+bool AccountStore::UpdateAccountsTempQueued(
+    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
+    std::shared_ptr<TransactionEnvelope> orig, TxnStatus& error_code) {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
@@ -567,10 +566,8 @@ bool AccountStore::UpdateAccountsTempQueued(const uint64_t& blockNum,
 
   this->m_txQ.push(orig);
 
-
-  while( not this->m_txQ.empty() ) {
-
-    auto tx  = this->m_txQ.front();
+  while (not this->m_txQ.empty()) {
+    auto tx = this->m_txQ.front();
     this->m_txQ.pop();
 
     if (Transaction::GetTransactionType(tx->GetTransaction()) ==

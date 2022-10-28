@@ -29,8 +29,8 @@
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
-#include "libUtils/TxnExtras.h"
 #include "libUtils/Queue.h"
+#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 class AccountStoreSC;
@@ -109,7 +109,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// Scilla IPC server
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
-
 
   /// A set of contract account address pending for storageroot updating
   std::set<Address> m_storageRootUpdateBuffer;

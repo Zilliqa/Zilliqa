@@ -641,8 +641,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                 return AccountStore::GetInstance().GetPrimaryWriteAccess();
               });
 
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(th->GetTransaction().GetToAddr());
+          const Account* account = AccountStore::GetInstance().GetAccount(
+              th->GetTransaction().GetToAddr());
 
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -702,8 +702,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
     m_currEpochGas += th->GetReceipt().GetCumGas();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, th->GetTransaction().GetTranID(),
-                                                   twr_ser)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBody(
+            m_blocknum, th->GetTransaction().GetTranID(), twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
     const auto& txHash = th->GetTransaction().GetTranID();
@@ -770,16 +770,12 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         std::make_shared<TransactionEnvelope>();
     // Create a transaction as normal but hold a copy of the transaction in the
     // envelope
-    th->CopyTransaction({fields.version,
-                             fields.nonce,
-                             toAddr,
-                             PubKey(pubKey, 0),
-                             fields.amount,
-                             fields.gasPrice,
-                             fields.gasLimit,
-                             code,  // either empty or stripped EVM-less code
-                             data,  // either empty or un-hexed byte-stream
-                             Signature(fields.signature, 0)});
+    th->CopyTransaction({fields.version, fields.nonce, toAddr,
+                         PubKey(pubKey, 0), fields.amount, fields.gasPrice,
+                         fields.gasLimit,
+                         code,  // either empty or stripped EVM-less code
+                         data,  // either empty or un-hexed byte-stream
+                         Signature(fields.signature, 0)});
 
     ret = DataConversion::AddOXPrefix(th->GetTransaction().GetTranID().hex());
 
@@ -810,8 +806,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         minGasLimit = MIN_ETH_GAS;
       }
       LOG_GENERAL(WARNING, "Minium gas units required: " << minGasLimit);
-      if (!Eth::ValidateEthTxn(th->GetTransaction(), fromAddr, sender, gasPriceWei,
-                               minGasLimit)) {
+      if (!Eth::ValidateEthTxn(th->GetTransaction(), fromAddr, sender,
+                               gasPriceWei, minGasLimit)) {
         return ret;
       }
 
@@ -835,8 +831,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
 
-          const Account* account =
-              AccountStore::GetInstance().GetAccount(th->GetTransaction().GetToAddr());
+          const Account* account = AccountStore::GetInstance().GetAccount(
+              th->GetTransaction().GetToAddr());
 
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -899,8 +895,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     m_currEpochGas += th->GetReceipt().GetCumGas();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, th->GetTransaction().GetTranID(),
-                                                   twr_ser)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBody(
+            m_blocknum, th->GetTransaction().GetTranID(), twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
 
