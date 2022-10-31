@@ -87,7 +87,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
  private:
   void OnAccept(beast::error_code ec) {
     if (ec) {
-      // LOG
+      LOG_GENERAL(INFO, "Websocket accept failed, " << m_from);
       OnClosed();
       return;
     }
@@ -118,7 +118,8 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
     if (ec) {
       if (ec != websocket::error::closed) {
-        // LOG
+        LOG_GENERAL(INFO, "Websocket connection from " << m_from << " closed, "
+                                                       << ec.message());
       }
       OnClosed();
       return;
@@ -154,7 +155,8 @@ class Connection : public std::enable_shared_from_this<Connection> {
   void OnWrite(beast::error_code ec, size_t n) {
     if (ec) {
       if (ec != websocket::error::closed) {
-        // LOG
+        LOG_GENERAL(INFO, "Websocket connection from " << m_from << " closed, "
+                                                       << ec.message());
       }
       OnClosed();
       return;
@@ -162,7 +164,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
     if (m_writeQueue.empty() || n != m_writeQueue.front()->size()) {
       // Something corrupted
-      // XXX LOG
+      LOG_GENERAL(WARNING, "Inconsistency in websocket server");
       OnClosed();
       return;
     }
@@ -183,11 +185,22 @@ class Connection : public std::enable_shared_from_this<Connection> {
     }
   }
 
+  /// WS server owns and keeps track of connections
   std::weak_ptr<WebsocketServerImpl> m_owner;
+
+  /// Unique id within the owner
   const ConnectionId m_id;
+
+  /// Peer string for logging
   std::string m_from;
+
+  /// Asio stream
   websocket::stream<beast::tcp_stream> m_stream;
+
+  /// Read buffer for incoming messages
   beast::flat_buffer m_readBuffer;
+
+  /// Write queue
   std::deque<OutMessage> m_writeQueue;
 };
 
@@ -206,6 +219,9 @@ void WebsocketServerImpl::NewConnection(std::string&& from, Socket&& socket,
                                            std::move(from), std::move(socket));
   conn->WebsocketAccept(std::move(req));
   m_connections[m_counter] = std::move(conn);
+
+  LOG_GENERAL(INFO, "WS connection #" << m_counter << " from " << from
+                                      << ", total=" << m_connections.size());
 }
 
 bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
@@ -213,7 +229,8 @@ bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
                                                 InMessage msg) {
   auto it = m_connections.find(id);
   if (it == m_connections.end()) {
-    // XXX log
+    LOG_GENERAL(WARNING, "Websocket connection #" << id << " from " << from
+                                                  << " not found");
     return false;
   }
 
@@ -224,17 +241,19 @@ bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
   }
 
   if (msg.size() > m_maxMsgSize) {
-    // XXX warning
+    LOG_GENERAL(WARNING, "Too big message from connection #"
+                             << id << " from " << from
+                             << " size=" << msg.size());
     it->second->Close(CloseReason::too_big);
     m_connections.erase(it);
     return false;
   }
 
   if (!m_feedback) {
-    // XXX warning
+    LOG_GENERAL(WARNING, "Websocket server not initialized");
     it->second->Close(CloseReason::internal_error);
     m_connections.erase(it);
-    return false;  // ???????
+    return false;
   }
 
   bool unknownMethodFound = false;
@@ -258,8 +277,8 @@ bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
 
 void WebsocketServerImpl::SetOptions(Feedback feedback,
                                      size_t max_in_msg_size) {
-  if (max_in_msg_size < 32 || !feedback) {
-    // XXX warning
+  if (max_in_msg_size == 0 || !feedback) {
+    LOG_GENERAL(WARNING, "Ignoring insane websocket server options");
     return;
   }
 
