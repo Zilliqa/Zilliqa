@@ -75,56 +75,56 @@ message EvmLog {
 }
 
 message ExitReason {
-  enum ExitSucceed {
+  enum Succeed {
     STOPPED = 0;
     RETURNED = 1;
     SUICIDED = 2;
   }
 
-  message ExitError {
-    enum ExitErrorKind {
-      EXIT_ERROR_STACK_UNDERFLOW = 0;
-      EXIT_ERROR_STACK_OVERFLOW = 1;
-      EXIT_ERROR_INVALID_JUMP = 2;
-      EXIT_ERROR_INVALID_RANGE = 3 ;
-      EXIT_ERROR_DESIGNATED_INVALID = 4;
-      EXIT_ERROR_CALL_TOO_DEEP = 5;
-      EXIT_ERROR_CREATE_COLLISION = 6;
-      EXIT_ERROR_CREATE_CONTRACT_LIMIT = 7;
-      EXIT_ERROR_INVALID_CODE = 8;
-      EXIT_ERROR_OUT_OF_OFFSET = 9;
-      EXIT_ERROR_OUT_OF_GAS = 10;
-      EXIT_ERROR_OUT_OF_FUND = 11;
-      EXIT_ERROR_PC_UNDERFLOW = 12;
-      EXIT_ERROR_CREATE_EMPTY = 13;
-      EXIT_ERROR_OTHER = 14;
+  message Error {
+    enum Kind {
+      STACK_UNDERFLOW = 0;
+      STACK_OVERFLOW = 1;
+      INVALID_JUMP = 2;
+      INVALID_RANGE = 3 ;
+      DESIGNATED_INVALID = 4;
+      CALL_TOO_DEEP = 5;
+      CREATE_COLLISION = 6;
+      CREATE_CONTRACT_LIMIT = 7;
+      INVALID_CODE = 8;
+      OUT_OF_OFFSET = 9;
+      OUT_OF_GAS = 10;
+      OUT_OF_FUND = 11;
+      PC_UNDERFLOW = 12;
+      CREATE_EMPTY = 13;
+      OTHER = 14;
     }
 
-    ExitErrorKind kind = 1;
+    Kind kind = 1;
     optional string error_string = 2;
   }
 
-  enum ExitRevert {
-    EXIT_REVERTED = 0;
+  enum Revert {
+    REVERTED = 0;
   }
 
-  message ExitFatal {
-    enum ExitFatalKind {
-      EXIT_FATAL_NOT_SUPPORTED = 0;
-      EXIT_FATAL_UNHANDLED_INTERRUPT = 1;
-      EXIT_FATAL_CALL_ERROR_AS_FATAL = 2;
-      EXIT_FATAL_OTHER = 3;
+  message Fatal {
+    enum Kind {
+      NOT_SUPPORTED = 0;
+      UNHANDLED_INTERRUPT = 1;
+      CALL_ERROR_AS_FATAL = 2;
+      OTHER = 3;
     }
-    ExitFatalKind kind = 1;
-    optional ExitError error = 2;  // set when kind == CALL_ERROR_AS_FATAL
+    Kind kind = 1;
+    optional Error error = 2;  // set when kind == CALL_ERROR_AS_FATAL
     optional string error_string = 3;
   }
 
   oneof exit_reason {
-    ExitSucceed succeed = 1;
-    ExitError error = 2;
-    ExitRevert revert = 3;
-    ExitFatal fatal = 4;
+    Succeed succeed = 1;
+    Error error = 2;
+    Revert revert = 3;
+    Fatal fatal = 4;
   }
 }
 

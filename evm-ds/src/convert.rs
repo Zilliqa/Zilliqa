@@ -47,64 +47,64 @@ impl From<ethereum::Log> for Evm::EvmLog {
     }
 }
 
-impl From<evm::ExitSucceed> for Evm::ExitSucceed {
+impl From<evm::ExitSucceed> for Evm::ExitReason_Succeed {
     fn from(arg: evm::ExitSucceed) -> Self {
         match arg {
-            evm::ExitSucceed::Stopped => Evm::ExitSucceed::STOPPED,
-            evm::ExitSucceed::Returned => Evm::ExitSucceed::RETURNED,
-            evm::ExitSucceed::Suicided => Evm::ExitSucceed::SUICIDED,
+            evm::ExitSucceed::Stopped => Evm::ExitReason_Succeed::STOPPED,
+            evm::ExitSucceed::Returned => Evm::ExitReason_Succeed::RETURNED,
+            evm::ExitSucceed::Suicided => Evm::ExitReason_Succeed::SUICIDED,
         }
     }
 }
 
-impl From<evm::ExitError> for Evm::ExitError {
+impl From<evm::ExitError> for Evm::ExitReason_Error {
     fn from(arg: evm::ExitError) -> Self {
         let mut result = Self::new();
         match arg {
             evm::ExitError::StackUnderflow => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_STACK_UNDERFLOW);
+                result.set_kind(Evm::ExitReason_Error_Kind::STACK_UNDERFLOW);
             }
             evm::ExitError::StackOverflow => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_STACK_OVERFLOW);
+                result.set_kind(Evm::ExitReason_Error_Kind::STACK_OVERFLOW);
             }
             evm::ExitError::InvalidJump => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_INVALID_JUMP);
+                result.set_kind(Evm::ExitReason_Error_Kind::INVALID_JUMP);
             }
             evm::ExitError::InvalidRange => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_INVALID_RANGE);
+                result.set_kind(Evm::ExitReason_Error_Kind::INVALID_RANGE);
             }
             evm::ExitError::DesignatedInvalid => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_DESIGNATED_INVALID);
+                result.set_kind(Evm::ExitReason_Error_Kind::DESIGNATED_INVALID);
             }
             evm::ExitError::CallTooDeep => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_CALL_TOO_DEEP);
+                result.set_kind(Evm::ExitReason_Error_Kind::CALL_TOO_DEEP);
             }
             evm::ExitError::CreateCollision => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_CREATE_COLLISION);
+                result.set_kind(Evm::ExitReason_Error_Kind::CREATE_COLLISION);
             }
             evm::ExitError::CreateContractLimit => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_CREATE_CONTRACT_LIMIT);
+                result.set_kind(Evm::ExitReason_Error_Kind::CREATE_CONTRACT_LIMIT);
             }
             evm::ExitError::InvalidCode => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_INVALID_CODE);
+                result.set_kind(Evm::ExitReason_Error_Kind::INVALID_CODE);
             }
             evm::ExitError::OutOfOffset => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_OUT_OF_OFFSET);
+                result.set_kind(Evm::ExitReason_Error_Kind::OUT_OF_OFFSET);
             }
             evm::ExitError::OutOfGas => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_OUT_OF_GAS);
+                result.set_kind(Evm::ExitReason_Error_Kind::OUT_OF_GAS);
             }
             evm::ExitError::OutOfFund => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_OUT_OF_FUND);
+                result.set_kind(Evm::ExitReason_Error_Kind::OUT_OF_FUND);
             }
             evm::ExitError::PCUnderflow => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_PC_UNDERFLOW);
+                result.set_kind(Evm::ExitReason_Error_Kind::PC_UNDERFLOW);
             }
             evm::ExitError::CreateEmpty => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_CREATE_EMPTY);
+                result.set_kind(Evm::ExitReason_Error_Kind::CREATE_EMPTY);
             }
             evm::ExitError::Other(error_string) => {
-                result.set_kind(Evm::ExitErrorKind::EXIT_ERROR_PC_UNDERFLOW);
+                result.set_kind(Evm::ExitReason_Error_Kind::PC_UNDERFLOW);
                 result.set_error_string(error_string.into_owned().into());
             }
         }
@@ -112,22 +112,22 @@ impl From<evm::ExitError> for Evm::ExitError {
     }
 }
 
-impl From<evm::ExitFatal> for Evm::ExitFatal {
+impl From<evm::ExitFatal> for Evm::ExitReason_Fatal {
     fn from(arg: evm::ExitFatal) -> Self {
         let mut result = Self::new();
         match arg {
             evm::ExitFatal::NotSupported => {
-                result.set_kind(Evm::ExitFatalKind::EXIT_FATAL_NOT_SUPPORTED);
+                result.set_kind(Evm::ExitReason_Fatal_Kind::NOT_SUPPORTED);
             }
             evm::ExitFatal::UnhandledInterrupt => {
-                result.set_kind(Evm::ExitFatalKind::EXIT_FATAL_UNHANDLED_INTERRUPT);
+                result.set_kind(Evm::ExitReason_Fatal_Kind::UNHANDLED_INTERRUPT);
             }
             evm::ExitFatal::CallErrorAsFatal(error) => {
-                result.set_kind(Evm::ExitFatalKind::EXIT_FATAL_CALL_ERROR_AS_FATAL);
+                result.set_kind(Evm::ExitReason_Fatal_Kind::CALL_ERROR_AS_FATAL);
                 result.set_error(error.into());
             }
             evm::ExitFatal::Other(error_string) => {
-                result.set_kind(Evm::ExitFatalKind::EXIT_FATAL_OTHER);
+                result.set_kind(Evm::ExitReason_Fatal_Kind::OTHER);
                 result.set_error_string(error_string.into_owned().into());
             }
         }
@@ -141,7 +141,7 @@ impl From<evm::ExitReason> for Evm::ExitReason {
         match exit_reason {
             evm::ExitReason::Succeed(arg) => result.set_succeed(arg.into()),
             evm::ExitReason::Error(arg) => result.set_error(arg.into()),
-            evm::ExitReason::Revert(_) => result.set_revert(Evm::ExitRevert::EXIT_REVERTED),
+            evm::ExitReason::Revert(_) => result.set_revert(Evm::ExitReason_Revert::REVERTED),
             evm::ExitReason::Fatal(arg) => result.set_fatal(arg.into()),
         }
         result

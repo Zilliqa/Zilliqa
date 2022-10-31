@@ -226,7 +226,7 @@ async fn run_evm_impl(
                                      let mut result = Evm::Apply::new();
                                      match apply {
                                          Apply::Delete { address } => {
-                                             let mut delete = Evm::Delete::new();
+                                             let mut delete = Evm::Apply_Delete::new();
                                              delete.set_address(address.into());
                                              result.set_delete(delete);
                                          }
@@ -237,7 +237,7 @@ async fn run_evm_impl(
                                              storage,
                                              reset_storage,
                                          } => {
-                                             let mut modify = Evm::Modify::new();
+                                             let mut modify = Evm::Apply_Modify::new();
                                              modify.set_address(address.into());
                                              modify.set_balance(basic.balance.into());
                                              modify.set_nonce(basic.nonce.into());
@@ -262,8 +262,8 @@ async fn run_evm_impl(
                     .unwrap_or(Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
                 let mut result = Evm::EvmResult::new();
-                let mut fatal = Evm::ExitFatal::new();
-                fatal.set_kind(Evm::ExitFatalKind::EXIT_FATAL_OTHER);
+                let mut fatal = Evm::ExitReason_Fatal::new();
+                fatal.set_kind(Evm::ExitReason_Fatal_Kind::OTHER);
                 let mut exit_reason = Evm::ExitReason::new();
                 exit_reason.set_fatal(fatal);
                 result.set_exit_reason(exit_reason);

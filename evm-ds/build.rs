@@ -24,4 +24,7 @@ fn main() {
         })
         .run()
         .expect("Running protoc faile for EVM.proto");
+
+    println!("cargo:rerun-if-changed=../src/libPersistence/ScillaMessage.proto");
+    println!("cargo:rerun-if-changed=../src/libUtils/Evm.proto");
 }
