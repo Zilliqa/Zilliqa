@@ -3,6 +3,7 @@
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
 
+mod convert;
 mod ipc_connect;
 mod precompiles;
 mod protos;
@@ -17,16 +18,14 @@ use std::sync::{Arc, Mutex};
 use anyhow::Context;
 use clap::Parser;
 use evm::{
-    backend::{Apply, Basic},
+    backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
     tracing,
 };
 
-use serde::ser::{Serialize, SerializeStructVariant, Serializer};
-
 use core::str::FromStr;
+use log::{error, info};
 use std::fmt::Debug;
-use log::{debug, error, info};
 
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
 use jsonrpc_derive::rpc;
@@ -35,6 +34,8 @@ use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
 
 use crate::precompiles::get_precompiles;
+use crate::protos::Evm;
+use protobuf::Message;
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -69,39 +70,6 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
-struct DirtyState(Apply<Vec<(String, String)>>);
-
-impl Serialize for DirtyState {
-    fn serialize<S>(&self, serializer: S) -> std::result::Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match &self.0 {
-            Apply::Modify {
-                ref address,
-                ref basic,
-                ref code,
-                ref storage,
-                reset_storage,
-            } => {
-                let mut state = serializer.serialize_struct_variant("A", 0, "modify", 6)?;
-                state.serialize_field("address", address)?;
-                state.serialize_field("balance", &basic.balance)?;
-                state.serialize_field("nonce", &basic.nonce)?;
-                state.serialize_field("code", &code.as_ref().map(hex::encode))?;
-                state.serialize_field("storage", storage)?;
-                state.serialize_field("reset_storage", &reset_storage)?;
-                Ok(state.end()?)
-            }
-            Apply::Delete { address } => {
-                let mut state = serializer.serialize_struct_variant("A", 0, "delete", 1)?;
-                state.serialize_field("address", address)?;
-                Ok(state.end()?)
-            }
-        }
-    }
-}
-
 #[derive(Debug, serde::Deserialize)]
 pub struct EvmEvalExtras {
     chain_id: u32,
@@ -110,33 +78,6 @@ pub struct EvmEvalExtras {
     block_difficulty: u64,
     block_number: u64,
     gas_price: String, // a 128-bit number to be handled nicely by JSON.
-}
-
-#[derive(serde::Serialize)]
-struct EvmLog {
-    pub address: H160,
-    pub topics: Vec<H256>,
-    pub data: String,
-}
-
-impl EvmLog {
-    fn from_internal(log: &ethereum::Log) -> EvmLog {
-        EvmLog {
-            address: log.address,
-            topics: log.topics.to_owned(),
-            data: "0x".to_string() + &hex::encode(&log.data),
-        }
-    }
-}
-
-#[derive(serde::Serialize)]
-pub struct EvmResult {
-    exit_reason: evm::ExitReason,
-    return_value: String,
-    apply: Vec<DirtyState>,
-    logs: Vec<EvmLog>,
-    trace: Vec<String>,
-    remaining_gas: u64,
 }
 
 #[rpc(server)]
@@ -152,7 +93,7 @@ pub trait Rpc: Send + 'static {
         gas_limit: u64,
         extras: EvmEvalExtras,
         estimate: bool,
-    ) -> BoxFuture<Result<EvmResult>>;
+    ) -> BoxFuture<Result<String>>;
 }
 
 struct EvmServer {
@@ -172,7 +113,7 @@ impl Rpc for EvmServer {
         gas_limit: u64,
         extras: EvmEvalExtras,
         estimate: bool,
-    ) -> BoxFuture<Result<EvmResult>> {
+    ) -> BoxFuture<Result<String>> {
         let origin = H160::from_str(&origin);
         match origin {
             Ok(origin) => {
@@ -213,7 +154,7 @@ async fn run_evm_impl(
     tracing: bool,
     gas_scaling_factor: u64,
     estimate: bool,
-) -> Result<EvmResult> {
+) -> Result<String> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
@@ -269,63 +210,69 @@ async fn run_evm_impl(
         }));
         // Scale back remaining gas to Scilla units (no rounding!).
         let remaining_gas = executor.gas() / gas_scaling_factor;
-        match result {
+        let result = match result {
             Ok(exit_reason) => {
                 let (state_apply, logs) = executor.into_state().deconstruct();
                 info!(
                     "Return value: {:?}",
                     hex::encode(runtime.machine().return_value())
                 );
-                Ok(EvmResult {
-                    exit_reason,
-                    return_value: hex::encode(runtime.machine().return_value()),
-                    trace: listener.traces,
-                    apply: state_apply
+                let mut result = Evm::EvmResult::new();
+                result.set_exit_reason(exit_reason.into());
+                result.set_return_value(runtime.machine().return_value().into());
+                result.set_apply(state_apply
                         .into_iter()
-                        .map(|apply| match apply {
-                            Apply::Delete { address } => DirtyState(Apply::Delete { address }),
-                            Apply::Modify {
-                                address,
-                                basic,
-                                code,
-                                storage,
-                                reset_storage,
-                            } => DirtyState(Apply::Modify {
-                                address,
-                                basic: Basic {
-                                    balance: backend.scale_eth_to_zil(basic.balance),
-                                    nonce: basic.nonce,
-                                },
-                                code,
-                                storage: storage
-                                    .into_iter()
-                                    .map(|(k, v)| backend.encode_storage(k, v))
-                                    .collect(),
-                                reset_storage,
-                            }),
-                        })
-                        .collect(),
-                    logs: logs.into_iter().map(|log| EvmLog::from_internal(&log)).collect(),
-                    remaining_gas,
-                })
-            }
+                                 .map(|apply| {
+                                     let mut result = Evm::Apply::new();
+                                     match apply {
+                                         Apply::Delete { address } => {
+                                             let mut delete = Evm::Delete::new();
+                                             delete.set_address(address.into());
+                                             result.set_delete(delete);
+                                         }
+                                         Apply::Modify {
+                                             address,
+                                             basic,
+                                             code,
+                                             storage,
+                                             reset_storage,
+                                         } => {
+                                             let mut modify = Evm::Modify::new();
+                                             modify.set_address(address.into());
+                                             modify.set_balance(basic.balance.into());
+                                             modify.set_nonce(basic.nonce.into());
+                                             if let Some(code) = code {
+                                                 modify.set_code(code.into());
+                                             }
+                                             modify.set_reset_storage(reset_storage);
+                                             modify.set_storage(storage.into_iter().map(Into::into).collect());
+                                         }
+                                     };
+                                   result
+                                 })
+                                 .collect());
+                result.set_trace(listener.traces.into_iter().map(Into::into).collect());
+                result.set_logs(logs.into_iter().map(Into::into).collect());
+                result.set_remaining_gas(remaining_gas);
+                result
+            },
             Err(panic) => {
                 let panic_message = panic
                     .downcast::<String>()
                     .unwrap_or(Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
-                Ok(EvmResult {
-                    exit_reason: evm::ExitReason::Fatal(evm::ExitFatal::Other(
-                        format!("EVM execution failed: '{:?}'", panic_message).into(),
-                    )),
-                    return_value: "".to_string(),
-                    apply: vec![],
-                    logs: vec![], // TODO: shouldn't we get the logs here too?
-                    trace: listener.traces,
-                    remaining_gas,
-                })
+                let mut result = Evm::EvmResult::new();
+                let mut fatal = Evm::ExitFatal::new();
+                fatal.set_kind(Evm::ExitFatalKind::EXIT_FATAL_OTHER);
+                let mut exit_reason = Evm::ExitReason::new();
+                exit_reason.set_fatal(fatal);
+                result.set_exit_reason(exit_reason);
+                result.set_trace(listener.traces.into_iter().map(Into::into).collect());
+                result.set_remaining_gas(remaining_gas);
+                result
             }
-        }
+        };
+        Ok(base64::encode(result.write_to_bytes().unwrap()))
     })
     .await
     .unwrap()

@@ -1,10 +1,10 @@
+pub mod blake2;
 mod ec;
 pub mod ecrecover;
 pub mod identity;
 pub mod modexp;
 pub mod ripemd160;
 pub mod sha2_256;
-pub mod blake2;
 
 use std::collections::BTreeMap;
 use std::str::FromStr;

@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use evm::backend::{Backend, Basic};
-use evm::tracing;
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
 use jsonrpc_core::{Error, Result, Value};
@@ -17,7 +16,6 @@ use protobuf::Message;
 use crate::ipc_connect;
 use crate::protos::ScillaMessage;
 use crate::EvmEvalExtras;
-
 
 #[derive(Clone)]
 pub struct ScillaBackendConfig {
@@ -115,7 +113,6 @@ impl ScillaBackend {
             null
         }
     }
-    
 
     fn query_state_value(
         &self,
@@ -193,26 +190,6 @@ impl ScillaBackend {
             }
             Err(_) => Ok(None),
         }
-    }
-
-    // Encode key/value pairs for storage in such a way that the Zilliqa node
-    // could interpret it without much modification.
-    pub(crate) fn encode_storage(&self, key: H256, value: H256) -> (String, String) {
-        let mut query = ScillaMessage::ProtoScillaQuery::new();
-        query.set_name("_evm_storage".into());
-        query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
-        query.set_mapdepth(1);
-        let mut val = ScillaMessage::ProtoScillaVal::new();
-        let bval = value.as_bytes().to_vec();
-        val.set_bval(bval.into());
-        (
-            base64::encode(query.write_to_bytes().unwrap()),
-            base64::encode(val.write_to_bytes().unwrap()),
-        )
-    }
-
-    pub(crate) fn scale_eth_to_zil(&self, eth: U256) -> U256 {
-        eth / self.config.zil_scaling_factor
     }
 
     pub(crate) fn scale_zil_to_eth(&self, zil: U256) -> U256 {

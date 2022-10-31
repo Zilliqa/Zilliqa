@@ -1,0 +1,142 @@
+syntax = "proto3";
+
+message UInt128 {
+  uint64 x0 = 1;
+  uint64 x1 = 2;
+}
+
+message UInt256 {
+  uint64 x0 = 1;
+  uint64 x1 = 2;
+  uint64 x2 = 3;
+  uint64 x3 = 4;
+}
+
+message Address {
+  fixed32 x0 = 1;
+  fixed64 x1 = 2;
+  fixed64 x2 = 3;
+}
+
+message H256 {
+  fixed64 x0 = 1;
+  fixed64 x1 = 2;
+  fixed64 x2 = 3;
+  fixed64 x3 = 4;
+}
+
+message EvmEvalExtras {
+  uint32 chain_id = 1;
+  uint64 block_timestamp = 2;
+  uint64 block_gas_limit = 3;
+  uint64 block_difficulty = 4;
+  uint64 block_number = 5;
+  UInt128 gas_price = 6;
+}
+
+message Storage {
+  H256 key = 1;
+  H256 value = 2;
+}
+
+message Modify {
+  Address address = 1;
+  UInt256 balance = 2;
+  UInt256 nonce = 3;
+  optional bytes code = 4;
+  repeated Storage storage = 5;
+  bool reset_storage = 6;
+}
+
+message Delete {
+  Address address = 1;
+}
+
+message Apply {
+  oneof apply {
+    Modify modify = 1;
+    Delete delete = 2;
+  }
+}
+
+message EvmArgs {
+  Address address = 1;
+  Address origin = 2;
+  bytes code = 3;
+  bytes data = 4;
+  UInt256 apparent_value = 5;
+  uint64 gas_limit = 6;
+  EvmEvalExtras extras = 7;
+  bool estimate = 8;
+}
+
+message EvmLog {
+  Address address = 1;
+  repeated H256 topics = 2;
+  bytes data = 3;
+}
+
+enum ExitSucceed {
+  STOPPED = 0;
+  RETURNED = 1;
+  SUICIDED = 2;
+}
+
+enum ExitErrorKind {
+  EXIT_ERROR_STACK_UNDERFLOW = 0;
+  EXIT_ERROR_STACK_OVERFLOW = 1;
+  EXIT_ERROR_INVALID_JUMP = 2;
+  EXIT_ERROR_INVALID_RANGE = 3 ;
+  EXIT_ERROR_DESIGNATED_INVALID = 4;
+  EXIT_ERROR_CALL_TOO_DEEP = 5;
+  EXIT_ERROR_CREATE_COLLISION = 6;
+  EXIT_ERROR_CREATE_CONTRACT_LIMIT = 7;
+  EXIT_ERROR_INVALID_CODE = 8;
+  EXIT_ERROR_OUT_OF_OFFSET = 9;
+  EXIT_ERROR_OUT_OF_GAS = 10;
+  EXIT_ERROR_OUT_OF_FUND = 11;
+  EXIT_ERROR_PC_UNDERFLOW = 12;
+  EXIT_ERROR_CREATE_EMPTY = 13;
+  EXIT_ERROR_OTHER = 14;
+}
+
+
+message ExitError {
+  ExitErrorKind kind = 1;
+  optional string error_string = 2;
+}
+
+enum ExitRevert {
+  EXIT_REVERTED = 0;
+}
+
+enum ExitFatalKind {
+  EXIT_FATAL_NOT_SUPPORTED = 0;
+  EXIT_FATAL_UNHANDLED_INTERRUPT = 1;
+  EXIT_FATAL_CALL_ERROR_AS_FATAL = 2;
+  EXIT_FATAL_OTHER = 3;
+}
+
+message ExitFatal {
+  ExitFatalKind kind = 1;
+  optional ExitError error = 2;  // set when kind == CALL_ERROR_AS_FATAL
+  optional string error_string = 3;
+}
+
+message ExitReason {
+  oneof exit_reason {
+    ExitSucceed succeed = 1;
+    ExitError error = 2;
+    ExitRevert revert = 3;
+    ExitFatal fatal = 4;
+  }
+}
+
+message EvmResult {
+  ExitReason exit_reason = 1;
+  bytes return_value = 2;
+  repeated Apply apply = 3;
+  repeated EvmLog logs = 4;
+  repeated string trace = 5;
+  uint64 remaining_gas = 6;
+}
