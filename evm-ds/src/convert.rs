@@ -19,7 +19,7 @@ impl From<&EvmProto::Address> for H160 {
         let mut buf = [0u8; 20];
         BigEndian::write_u32(&mut buf[0..4], address.x0);
         BigEndian::write_u64(&mut buf[4..12], address.x1);
-        BigEndian::write_u64(&mut buf[12..420], address.x2);
+        BigEndian::write_u64(&mut buf[12..20], address.x2);
         H160::from_slice(&buf)
     }
 }

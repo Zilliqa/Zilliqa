@@ -39,9 +39,9 @@ impl ScillaMessage::ProtoScillaVal {
         String::from_utf8(self.get_bval().to_vec())
             .ok()
             .and_then(|s| {
-                let s = s.replace("\"", "");
-                if s.starts_with("0x") {
-                    U256::from_str(&s[2..]).ok()
+                let s = s.replace('\"', "");
+                if let Some(stripped) = s.strip_prefix("0x") {
+                    U256::from_str(stripped).ok()
                 } else {
                     U256::from_dec_str(&s).ok()
                 }
@@ -184,7 +184,7 @@ impl ScillaBackend {
                                     ScillaMessage::ProtoScillaVal::parse_from_bytes(&buffer).ok()
                                 })
                             })
-                            .ok_or(Error::internal_error())
+                            .ok_or_else(Error::internal_error)
                     },
                 )
             }
@@ -197,7 +197,7 @@ impl ScillaBackend {
     }
 }
 
-impl<'config> Backend for ScillaBackend {
+impl Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
         self.extras.get_gas_price().into()
     }

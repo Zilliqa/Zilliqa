@@ -222,7 +222,7 @@ async fn run_evm_impl(
             Err(panic) => {
                 let panic_message = panic
                     .downcast::<String>()
-                    .unwrap_or(Box::new("unknown panic".to_string()));
+                    .unwrap_or_else(|_| Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
                 let mut result = EvmProto::EvmResult::new();
                 let mut fatal = EvmProto::ExitReason_Fatal::new();
@@ -255,7 +255,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let args = Args::parse();
 
     match args.log4rs {
-        Some(log_config) if log_config != "" => {
+        Some(log_config) if !log_config.is_empty() => {
             log4rs::init_file(&log_config, Default::default())
                 .with_context(|| format!("cannot open file {}", log_config))?;
         }
@@ -299,7 +299,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     // Mutex because the methods require all captured values to be Sync.
     // Set up a channel to shut down the servers
     io.add_method("die", move |_param| {
-        let _ = shutdown_sender.lock().unwrap().send(()).unwrap();
+        shutdown_sender.lock().unwrap().send(()).unwrap();
         futures::future::ready(Ok(jsonrpc_core::Value::Null))
     });
 
