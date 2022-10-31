@@ -18,11 +18,15 @@
 #ifndef ZILLIQA_SRC_LIBETH_FILTERS_H_
 #define ZILLIQA_SRC_LIBETH_FILTERS_H_
 
+#include <functional>
 #include <memory>
 
 #include <json/json.h>
 
 namespace evmproj {
+
+class WebsocketServer;
+
 namespace filters {
 
 using TxnHash = std::string;
@@ -82,15 +86,6 @@ class FilterAPIBackend {
   virtual PollResult GetLogs(const Json::Value &params) = 0;
 };
 
-class SubscriptionAPIBackend {
- public:
-  virtual ~SubscriptionAPIBackend() = default;
-
-  // TODO
-  // virtual Result subscribe(const Json::Value &params, Feedback&) = 0;
-  // virtual bool unsubscribe(const std::string& subscription_id) = 0;
-};
-
 class APICacheUpdate {
  public:
   virtual ~APICacheUpdate() = default;
@@ -107,13 +102,17 @@ class APICacheUpdate {
 
 class APICache {
  public:
+  /// Injected function that creates block json response by hash
+  using BlockByHash = std::function<Json::Value(const BlockHash &)>;
+
   /// Creates an instance of default TxMetadata implementation
   static std::shared_ptr<APICache> Create();
 
   virtual ~APICache() = default;
   virtual FilterAPIBackend &GetFilterAPI() = 0;
-  virtual SubscriptionAPIBackend &GetSubscriptionAPI() = 0;
   virtual APICacheUpdate &GetUpdate() = 0;
+  virtual void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws,
+                                  BlockByHash blockByHash) = 0;
 };
 
 }  // namespace filters

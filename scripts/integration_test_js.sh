@@ -42,9 +42,6 @@ else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
 
-#    echo "NOT starting isolated server - it should be running already"
-#    ps -e | grep isolated
-
     # install dependencies
     apt update
     apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates

@@ -1219,15 +1219,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
       const auto& txhash = tran.GetTranID();
 
       LOG_GENERAL(INFO, "Commit txn " << txhash.hex());
-      if (LOOKUP_NODE_MODE) {
-        LookupServer::AddToRecentTransactions(txhash);
-
-        const auto& receipt = twr.GetTransactionReceipt();
-        cache_upd.AddCommittedTransaction(epochNum, shardId, txhash.hex(),
-                                          receipt.GetJsonValue());
-
-        LOG_GENERAL(INFO, entry << " receipt=" << receipt.GetString());
-      }
 
       // feed the event log holder
       if (ENABLE_WEBSOCKET) {
@@ -1247,6 +1238,16 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
               epochNum, twr.GetTransaction().GetTranID(), serializedTxBody)) {
         LOG_GENERAL(WARNING, "BlockStorage::PutTxBody failed " << txhash);
         return;
+      }
+
+      if (LOOKUP_NODE_MODE) {
+        LookupServer::AddToRecentTransactions(txhash);
+
+        const auto& receipt = twr.GetTransactionReceipt();
+        cache_upd.AddCommittedTransaction(epochNum, shardId, txhash.hex(),
+                                          receipt.GetJsonValue());
+
+        LOG_GENERAL(INFO, entry << " receipt=" << receipt.GetString());
       }
     }
   }
