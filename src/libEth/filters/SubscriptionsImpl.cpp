@@ -196,10 +196,13 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
     for (const auto& pair : conn->eventFilters) {
       if (Match(pair.second, address, topics)) {
         if (!prepared) {
-          json["result"] = log_response;
+          json["params"] = Json::Value{};
+          json["params"]["result"] = log_response;
+          json["params"]["subscription"] = pair.first;
           prepared = true;
         }
         json["subscription"] = pair.first;
+        json["method"] = "eth_subscription";
         m_websocketServer->SendMessage(
             conn->id, std::make_shared<std::string>(JsonWrite(json)));
 
