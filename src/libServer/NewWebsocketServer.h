@@ -43,11 +43,11 @@ class WebsocketServer {
 
   /// Callback from server to its owner. Receives incoming messages or EOF.
   /// Empty msg means EOF.
-  /// methodAccepted is set to true if owner is going to handle this request,
-  /// otherwise it may be dispatched by other handlers The owner returns true to
-  /// proceed with connection, false to close it.
+  /// unknownMethodFound is set to true if owner is not going to handle this
+  /// request, but the request is valid The owner returns true to proceed with
+  /// connection, false to close it.
   using Feedback = std::function<bool(ConnectionId id, const InMessage& msg,
-                                      bool& methodAccepted)>;
+                                      bool& unknownMethodFound)>;
 
   /// Dtor
   virtual ~WebsocketServer() = default;

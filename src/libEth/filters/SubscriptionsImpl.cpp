@@ -49,7 +49,10 @@ struct Request {
   RPCError errorCode = RPCError::OK;
 };
 
-bool ParseRequest(const std::string& msg, Request& req, bool& methodAccepted) {
+bool ParseRequest(const std::string& msg, Request& req,
+                  bool& unknownMethodFound) {
+  unknownMethodFound = false;
+
   auto json = JsonRead(msg, req.error);
 
   if (!req.error.empty()) {
@@ -81,12 +84,10 @@ bool ParseRequest(const std::string& msg, Request& req, bool& methodAccepted) {
       req.error += method;
       return false;
     } else {
-      methodAccepted = false;
+      unknownMethodFound = true;
       return true;
     }
   }
-
-  methodAccepted = true;
 
   Json::Value params = json.get("params", Json::Value{});
   if (!params.isArray() || params.empty() || !params[0].isString()) {
@@ -223,7 +224,7 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
 
 bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
                                           const WebsocketServer::InMessage& msg,
-                                          bool& methodAccepted) {
+                                          bool& unknownMethodFound) {
   assert(m_websocketServer);
 
   if (msg.empty()) {
@@ -233,13 +234,13 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
   }
 
   Request req;
-  if (!ParseRequest(msg, req, methodAccepted)) {
+  if (!ParseRequest(msg, req, unknownMethodFound)) {
     LOG_GENERAL(INFO, "Request parse error: " << req.error);
     ReplyError(conn_id, std::move(req.id), req.errorCode, std::move(req.error));
     return true;
   }
 
-  if (!methodAccepted) {
+  if (unknownMethodFound) {
     return true;
   }
 

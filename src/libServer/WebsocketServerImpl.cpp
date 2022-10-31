@@ -110,7 +110,13 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   void OnRead(beast::error_code ec, size_t n) {
-    if (ec || n == 0) {
+    if (n == 0) {
+      // ignore, e.g. press Enter on wscat session, don't disconnect
+      StartReading();
+      return;
+    }
+
+    if (ec) {
       if (ec != websocket::error::closed) {
         // LOG
       }
@@ -231,15 +237,15 @@ bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
     return false;  // ???????
   }
 
-  bool methodAccepted = false;
+  bool unknownMethodFound = false;
 
-  if (!m_feedback(id, msg, methodAccepted)) {
+  if (!m_feedback(id, msg, unknownMethodFound)) {
     it->second->Close(CloseReason::protocol_error);
     m_connections.erase(it);
     return false;
   }
 
-  if (!methodAccepted) {
+  if (unknownMethodFound) {
     // forward msg to the thread pool
     // TODO double json parsing: to be fixed after project dependencies change
     if (!m_threadPool->PushRequest(id, true, from, std::move(msg))) {
