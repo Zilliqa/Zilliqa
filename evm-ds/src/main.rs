@@ -34,7 +34,7 @@ use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
 
 use crate::precompiles::get_precompiles;
-use crate::protos::Evm;
+use crate::protos::Evm as EvmProto;
 use protobuf::Message;
 
 /// EVM JSON-RPC server
@@ -217,16 +217,16 @@ async fn run_evm_impl(
                     "Return value: {:?}",
                     hex::encode(runtime.machine().return_value())
                 );
-                let mut result = Evm::EvmResult::new();
+                let mut result = EvmProto::EvmResult::new();
                 result.set_exit_reason(exit_reason.into());
                 result.set_return_value(runtime.machine().return_value().into());
                 result.set_apply(state_apply
                         .into_iter()
                                  .map(|apply| {
-                                     let mut result = Evm::Apply::new();
+                                     let mut result = EvmProto::Apply::new();
                                      match apply {
                                          Apply::Delete { address } => {
-                                             let mut delete = Evm::Apply_Delete::new();
+                                             let mut delete = EvmProto::Apply_Delete::new();
                                              delete.set_address(address.into());
                                              result.set_delete(delete);
                                          }
@@ -237,7 +237,7 @@ async fn run_evm_impl(
                                              storage,
                                              reset_storage,
                                          } => {
-                                             let mut modify = Evm::Apply_Modify::new();
+                                             let mut modify = EvmProto::Apply_Modify::new();
                                              modify.set_address(address.into());
                                              modify.set_balance(basic.balance.into());
                                              modify.set_nonce(basic.nonce.into());
@@ -261,10 +261,10 @@ async fn run_evm_impl(
                     .downcast::<String>()
                     .unwrap_or(Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
-                let mut result = Evm::EvmResult::new();
-                let mut fatal = Evm::ExitReason_Fatal::new();
-                fatal.set_kind(Evm::ExitReason_Fatal_Kind::OTHER);
-                let mut exit_reason = Evm::ExitReason::new();
+                let mut result = EvmProto::EvmResult::new();
+                let mut fatal = EvmProto::ExitReason_Fatal::new();
+                fatal.set_kind(EvmProto::ExitReason_Fatal_Kind::OTHER);
+                let mut exit_reason = EvmProto::ExitReason::new();
                 exit_reason.set_fatal(fatal);
                 result.set_exit_reason(exit_reason);
                 result.set_trace(listener.traces.into_iter().map(Into::into).collect());

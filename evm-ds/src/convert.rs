@@ -1,12 +1,12 @@
-use crate::protos::Evm;
+use crate::protos::Evm as EvmProto;
 use byteorder::{BigEndian, ByteOrder};
 use primitive_types::*;
 use std::ops::Shr;
 
-impl From<H160> for Evm::Address {
+impl From<H160> for EvmProto::Address {
     fn from(address: H160) -> Self {
         let address = address.as_fixed_bytes();
-        let mut addr = Evm::Address::new();
+        let mut addr = EvmProto::Address::new();
         addr.set_x0(BigEndian::read_u32(&address[0..4]));
         addr.set_x1(BigEndian::read_u64(&address[4..12]));
         addr.set_x2(BigEndian::read_u64(&address[12..20]));
@@ -14,7 +14,7 @@ impl From<H160> for Evm::Address {
     }
 }
 
-impl From<U256> for Evm::UInt256 {
+impl From<U256> for EvmProto::UInt256 {
     fn from(num: U256) -> Self {
         let mut result = Self::new();
         result.set_x3(num.low_u64());
@@ -25,7 +25,7 @@ impl From<U256> for Evm::UInt256 {
     }
 }
 
-impl From<H256> for Evm::H256 {
+impl From<H256> for EvmProto::H256 {
     fn from(h: H256) -> Self {
         let mut result = Self::new();
         let buf = h.as_fixed_bytes();
@@ -37,9 +37,9 @@ impl From<H256> for Evm::H256 {
     }
 }
 
-impl From<ethereum::Log> for Evm::EvmLog {
+impl From<ethereum::Log> for EvmProto::EvmLog {
     fn from(log: ethereum::Log) -> Self {
-        let mut evm_log = Evm::EvmLog::new();
+        let mut evm_log = EvmProto::EvmLog::new();
         evm_log.set_address(log.address.into());
         evm_log.set_topics(log.topics.into_iter().map(Into::into).collect());
         evm_log.set_data(log.data.into());
@@ -47,64 +47,64 @@ impl From<ethereum::Log> for Evm::EvmLog {
     }
 }
 
-impl From<evm::ExitSucceed> for Evm::ExitReason_Succeed {
+impl From<evm::ExitSucceed> for EvmProto::ExitReason_Succeed {
     fn from(arg: evm::ExitSucceed) -> Self {
         match arg {
-            evm::ExitSucceed::Stopped => Evm::ExitReason_Succeed::STOPPED,
-            evm::ExitSucceed::Returned => Evm::ExitReason_Succeed::RETURNED,
-            evm::ExitSucceed::Suicided => Evm::ExitReason_Succeed::SUICIDED,
+            evm::ExitSucceed::Stopped => EvmProto::ExitReason_Succeed::STOPPED,
+            evm::ExitSucceed::Returned => EvmProto::ExitReason_Succeed::RETURNED,
+            evm::ExitSucceed::Suicided => EvmProto::ExitReason_Succeed::SUICIDED,
         }
     }
 }
 
-impl From<evm::ExitError> for Evm::ExitReason_Error {
+impl From<evm::ExitError> for EvmProto::ExitReason_Error {
     fn from(arg: evm::ExitError) -> Self {
         let mut result = Self::new();
         match arg {
             evm::ExitError::StackUnderflow => {
-                result.set_kind(Evm::ExitReason_Error_Kind::STACK_UNDERFLOW);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::STACK_UNDERFLOW);
             }
             evm::ExitError::StackOverflow => {
-                result.set_kind(Evm::ExitReason_Error_Kind::STACK_OVERFLOW);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::STACK_OVERFLOW);
             }
             evm::ExitError::InvalidJump => {
-                result.set_kind(Evm::ExitReason_Error_Kind::INVALID_JUMP);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::INVALID_JUMP);
             }
             evm::ExitError::InvalidRange => {
-                result.set_kind(Evm::ExitReason_Error_Kind::INVALID_RANGE);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::INVALID_RANGE);
             }
             evm::ExitError::DesignatedInvalid => {
-                result.set_kind(Evm::ExitReason_Error_Kind::DESIGNATED_INVALID);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::DESIGNATED_INVALID);
             }
             evm::ExitError::CallTooDeep => {
-                result.set_kind(Evm::ExitReason_Error_Kind::CALL_TOO_DEEP);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::CALL_TOO_DEEP);
             }
             evm::ExitError::CreateCollision => {
-                result.set_kind(Evm::ExitReason_Error_Kind::CREATE_COLLISION);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::CREATE_COLLISION);
             }
             evm::ExitError::CreateContractLimit => {
-                result.set_kind(Evm::ExitReason_Error_Kind::CREATE_CONTRACT_LIMIT);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::CREATE_CONTRACT_LIMIT);
             }
             evm::ExitError::InvalidCode => {
-                result.set_kind(Evm::ExitReason_Error_Kind::INVALID_CODE);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::INVALID_CODE);
             }
             evm::ExitError::OutOfOffset => {
-                result.set_kind(Evm::ExitReason_Error_Kind::OUT_OF_OFFSET);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::OUT_OF_OFFSET);
             }
             evm::ExitError::OutOfGas => {
-                result.set_kind(Evm::ExitReason_Error_Kind::OUT_OF_GAS);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::OUT_OF_GAS);
             }
             evm::ExitError::OutOfFund => {
-                result.set_kind(Evm::ExitReason_Error_Kind::OUT_OF_FUND);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::OUT_OF_FUND);
             }
             evm::ExitError::PCUnderflow => {
-                result.set_kind(Evm::ExitReason_Error_Kind::PC_UNDERFLOW);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::PC_UNDERFLOW);
             }
             evm::ExitError::CreateEmpty => {
-                result.set_kind(Evm::ExitReason_Error_Kind::CREATE_EMPTY);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::CREATE_EMPTY);
             }
             evm::ExitError::Other(error_string) => {
-                result.set_kind(Evm::ExitReason_Error_Kind::PC_UNDERFLOW);
+                result.set_kind(EvmProto::ExitReason_Error_Kind::PC_UNDERFLOW);
                 result.set_error_string(error_string.into_owned().into());
             }
         }
@@ -112,22 +112,22 @@ impl From<evm::ExitError> for Evm::ExitReason_Error {
     }
 }
 
-impl From<evm::ExitFatal> for Evm::ExitReason_Fatal {
+impl From<evm::ExitFatal> for EvmProto::ExitReason_Fatal {
     fn from(arg: evm::ExitFatal) -> Self {
         let mut result = Self::new();
         match arg {
             evm::ExitFatal::NotSupported => {
-                result.set_kind(Evm::ExitReason_Fatal_Kind::NOT_SUPPORTED);
+                result.set_kind(EvmProto::ExitReason_Fatal_Kind::NOT_SUPPORTED);
             }
             evm::ExitFatal::UnhandledInterrupt => {
-                result.set_kind(Evm::ExitReason_Fatal_Kind::UNHANDLED_INTERRUPT);
+                result.set_kind(EvmProto::ExitReason_Fatal_Kind::UNHANDLED_INTERRUPT);
             }
             evm::ExitFatal::CallErrorAsFatal(error) => {
-                result.set_kind(Evm::ExitReason_Fatal_Kind::CALL_ERROR_AS_FATAL);
+                result.set_kind(EvmProto::ExitReason_Fatal_Kind::CALL_ERROR_AS_FATAL);
                 result.set_error(error.into());
             }
             evm::ExitFatal::Other(error_string) => {
-                result.set_kind(Evm::ExitReason_Fatal_Kind::OTHER);
+                result.set_kind(EvmProto::ExitReason_Fatal_Kind::OTHER);
                 result.set_error_string(error_string.into_owned().into());
             }
         }
@@ -135,22 +135,22 @@ impl From<evm::ExitFatal> for Evm::ExitReason_Fatal {
     }
 }
 
-impl From<evm::ExitReason> for Evm::ExitReason {
+impl From<evm::ExitReason> for EvmProto::ExitReason {
     fn from(exit_reason: evm::ExitReason) -> Self {
         let mut result = Self::new();
         match exit_reason {
             evm::ExitReason::Succeed(arg) => result.set_succeed(arg.into()),
             evm::ExitReason::Error(arg) => result.set_error(arg.into()),
-            evm::ExitReason::Revert(_) => result.set_revert(Evm::ExitReason_Revert::REVERTED),
+            evm::ExitReason::Revert(_) => result.set_revert(EvmProto::ExitReason_Revert::REVERTED),
             evm::ExitReason::Fatal(arg) => result.set_fatal(arg.into()),
         }
         result
     }
 }
 
-impl From<(H256, H256)> for Evm::Storage {
+impl From<(H256, H256)> for EvmProto::Storage {
     fn from(storage: (H256, H256)) -> Self {
-        let mut result = Evm::Storage::new();
+        let mut result = EvmProto::Storage::new();
         result.set_key(storage.0.into());
         result.set_value(storage.1.into());
         result
