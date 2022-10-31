@@ -72,6 +72,8 @@ void help(const char* argv[]) {
 }
 
 int main(int argc, const char* argv[]) {
+  using namespace evmproj;
+
   string accountJsonFilePath;
   uint port{5555};
   string blocknum_str{"1"};
