@@ -19,12 +19,6 @@
 
 # Firstly determine if the user is running this locally, or is this in the CI
 
-echo "sleeping loooong time"
-
-sleep 8000
-
-echo "sleeping finished"
-
 RUNNING_LOCALLY=1
 
 if [[ $# -ne 1 ]];
