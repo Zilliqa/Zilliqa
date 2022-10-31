@@ -54,9 +54,7 @@ struct MessageHandler2 {
 
 void process_cmd(const char* progname, const char* cmdname, vector<string> args,
                  const uint32_t listen_port) {
-  const int num_args_required = 1;
-  int numargs = args.size();
-  if (numargs != num_args_required) {
+  if (args.size() != 1) {
     cout << "[USAGE] " << progname << " <local node listen_port> " << cmdname
          << " <hex string message>" << endl;
   } else {
@@ -74,9 +72,7 @@ void process_cmd(const char* progname, const char* cmdname, vector<string> args,
 void process_remote_cmd(const char* progname, const char* cmdname,
                         vector<string> args, const uint128_t& remote_ip,
                         const uint32_t listen_port) {
-  const int num_args_required = 1;
-  int numargs = args.size();
-  if (numargs != num_args_required) {
+  if (args.size() != 1) {
     cout << "[USAGE] " << progname
          << " <remote node ip_address> <remote node listen_port> " << cmdname
          << " <hex string message>" << endl;
