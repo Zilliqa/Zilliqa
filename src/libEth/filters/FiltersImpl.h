@@ -19,7 +19,9 @@
 #define ZILLIQA_SRC_LIBETH_FILTERS_FILTERSIMPL_H_
 
 #include <cassert>
+#include <chrono>
 #include <mutex>
+#include <set>
 #include <shared_mutex>
 #include <unordered_map>
 
@@ -34,6 +36,9 @@ struct InstalledFilterBase {
   /// The epoch (or, for pending TXNs, internal counter) last seen by this
   /// filter's owner
   EpochNumber lastSeen = SEEN_NOTHING;
+
+  /// Expire time in seconds since steady timer's epoch
+  std::chrono::seconds expireTime;
 };
 
 struct EventFilter : InstalledFilterBase {
@@ -66,10 +71,15 @@ class FilterAPIBackendImpl : public FilterAPIBackend {
 
  private:
   void GetEventFilterChanges(const std::string &filter_id, PollResult &result,
+                             std::chrono::seconds &expireTime,
                              bool ignore_last_seen_cursor = false);
-  void GetBlockFilterChanges(const std::string &filter_id, PollResult &result);
+  void GetBlockFilterChanges(const std::string &filter_id, PollResult &result,
+                             std::chrono::seconds &expireTime);
   void GetPendingTxnFilterChanges(const std::string &filter_id,
-                                  PollResult &result);
+                                  PollResult &result,
+                                  std::chrono::seconds &expireTime);
+
+  bool UninstallFilter(const std::string &filter_id, FilterType type);
 
   /// Metadata cache
   TxCache &m_cache;
@@ -90,6 +100,9 @@ class FilterAPIBackendImpl : public FilterAPIBackend {
 
   /// Installed block filters
   std::unordered_map<FilterId, std::unique_ptr<BlockFilter>> m_blockFilters;
+
+  /// Filters timely expiration
+  std::set<std::pair<std::chrono::seconds, FilterId>> m_expiration;
 
   /// Parallel polling of different filters is allowed
   std::shared_timed_mutex m_installMutex;
