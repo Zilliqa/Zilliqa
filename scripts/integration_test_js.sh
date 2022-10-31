@@ -42,8 +42,8 @@ else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
 
-    echo "NOT starting isolated server - it should be running already"
-    ps -e | grep isolated
+#    echo "NOT starting isolated server - it should be running already"
+#    ps -e | grep isolated
 
     # install dependencies
     apt update
@@ -53,10 +53,13 @@ else
     node --version
     pwd
 
+    pkill -9 isolatedServer
+    pkill -9 evm-ds
+
     # remove persistence
     rm -rf persistence/*
 
-    # ??
+    # maybe it's there
     rm -rf ./build/bin/persistence
 
     # Just to check evm-ds has been built
@@ -79,6 +82,8 @@ else
 
     echo "Starting isolated server..."
     ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
+
+    sleep 10
 
     cd tests/EvmAcceptanceTests/
     npm install
