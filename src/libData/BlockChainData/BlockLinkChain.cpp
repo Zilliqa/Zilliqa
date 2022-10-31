@@ -42,6 +42,8 @@ BlockLink BlockLinkChain::GetBlockLink(const uint64_t& index) {
                 "Unable to find blocklink, returning dummy link " << index);
     return BlockLink();
   } else if (index + m_blockLinkChain.capacity() < m_blockLinkChain.size()) {
+    // We're trying to look up a block link that is too old and is no longer
+    // in-memory. Therefore, we need to get it from our persistent storage.
     return GetFromPersistentStorage(index);
   }
   if (std::get<BlockLinkIndex::INDEX>(m_blockLinkChain[index]) != index) {
