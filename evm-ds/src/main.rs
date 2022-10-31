@@ -25,8 +25,8 @@ use evm::{
 use serde::ser::{Serialize, SerializeStructVariant, Serializer};
 
 use core::str::FromStr;
+use log::{error, info};
 use std::fmt::Debug;
-use log::{debug, error, info};
 
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
 use jsonrpc_derive::rpc;
