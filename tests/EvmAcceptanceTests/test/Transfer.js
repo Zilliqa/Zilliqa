@@ -3,7 +3,7 @@ const {ethers} = require("hardhat");
 
 const FUND = ethers.utils.parseUnits("2", "ether");
 
-describe("Transfer functionality", function () {
+describe("ForwardZil contract functionality", function () {
   let contract;
 
   before(async function () {
@@ -28,5 +28,30 @@ describe("Transfer functionality", function () {
       [ethers.utils.parseEther("-1.0"), ethers.utils.parseEther("1.0")],
       {includeFee: true}
     );
+  });
+
+  // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-4954
+  xit("should be possible to transfer ethers to the contract", async function () {
+    const [payer] = await ethers.getSigners();
+    expect(
+      await payer.sendTransaction({
+        to: contract.address,
+        value: FUND
+      })
+    ).to.changeEtherBalance(contract.address, FUND);
+  });
+});
+
+describe("Transfer ethers", function () {
+  it("should be possible to transfer ethers to a user account", async function () {
+    const payee = ethers.Wallet.createRandom();
+    const [payer] = await ethers.getSigners();
+
+    expect(
+      await payer.sendTransaction({
+        to: payee.address,
+        value: FUND
+      })
+    ).to.changeEtherBalance(payee.address, FUND);
   });
 });
