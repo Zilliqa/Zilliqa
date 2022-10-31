@@ -25,13 +25,13 @@ Some database names in the table below end in `_*`.
 These are sharded by time to ensure that no more than `NUM_EPOCHS_PER_PERSISTENT_DB` epochs worth of data exist in each instance.
 The most recent instance is named without a `_n` suffix.
 
-> NOTE: I haven't found where in the code we move the current instance to a suffixed one.
+> Note: I haven't found where in the code we move the current instance to a suffixed one.
 
 ### Tries
 
 Two databases store a trie - `contractTrie` and `state`.
 
-The code makes it look like there are two key spaces per database (a 'main' and an 'aux'), but it turns out that the 'aux' store is always empty.
+> Note: The code makes it look like there are two key spaces per database (a 'main' and an 'aux'), but it turns out that the 'aux' store is always empty.
 
 Therefore, all keys are `h256`s encoded as hexadecimal strings.
 All values are byte strings.
