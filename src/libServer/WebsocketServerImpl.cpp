@@ -15,9 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "WebsocketServerImpl.h"
+
 #include <deque>
 
-#include "WebsocketServerImpl.h"
+#include "APIThreadPool.h"
+#include "libUtils/Logger.h"
 
 namespace evmproj {
 namespace ws {
@@ -32,8 +35,11 @@ class Connection : public std::enable_shared_from_this<Connection> {
   using OutMessage = WebsocketServer::OutMessage;
 
   Connection(std::weak_ptr<WebsocketServerImpl> owner, ConnectionId id,
-             Socket&& socket)
-      : m_owner(std::move(owner)), m_id(id), m_stream(std::move(socket)) {}
+             std::string&& from, Socket&& socket)
+      : m_owner(std::move(owner)),
+        m_id(id),
+        m_from(std::move(from)),
+        m_stream(std::move(socket)) {}
 
   void WebsocketAccept(HttpRequest&& req) {
     websocket::stream_base::timeout opt{
@@ -91,7 +97,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
   void OnClosed() {
     auto owner = m_owner.lock();
     if (owner) {
-      std::ignore = owner->MessageFromConnection(m_id, {});
+      std::ignore = owner->MessageFromConnection(m_id, m_from, {});
       m_owner.reset();
     }
   }
@@ -115,7 +121,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
     auto owner = m_owner.lock();
     if (owner) {
       bool proceed = owner->MessageFromConnection(
-          m_id, beast::buffers_to_string(m_readBuffer.data()));
+          m_id, m_from, beast::buffers_to_string(m_readBuffer.data()));
       if (proceed) {
         StartReading();
       } else {
@@ -173,6 +179,7 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   std::weak_ptr<WebsocketServerImpl> m_owner;
   const ConnectionId m_id;
+  std::string m_from;
   websocket::stream<beast::tcp_stream> m_stream;
   beast::flat_buffer m_readBuffer;
   std::deque<OutMessage> m_writeQueue;
@@ -187,14 +194,16 @@ void WebsocketServerImpl::CloseAll() {
   });
 }
 
-void WebsocketServerImpl::NewConnection(Socket&& socket, HttpRequest&& req) {
+void WebsocketServerImpl::NewConnection(std::string&& from, Socket&& socket,
+                                        HttpRequest&& req) {
   auto conn = std::make_shared<Connection>(weak_from_this(), ++m_counter,
-                                           std::move(socket));
+                                           std::move(from), std::move(socket));
   conn->WebsocketAccept(std::move(req));
   m_connections[m_counter] = std::move(conn);
 }
 
 bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
+                                                const std::string& from,
                                                 InMessage msg) {
   auto it = m_connections.find(id);
   if (it == m_connections.end()) {
@@ -208,13 +217,6 @@ bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
     return false;
   }
 
-  if (!m_feedback) {
-    // XXX warning
-    it->second->Close(CloseReason::internal_error);
-    m_connections.erase(it);
-    return false;  // ???????
-  }
-
   if (msg.size() > m_maxMsgSize) {
     // XXX warning
     it->second->Close(CloseReason::too_big);
@@ -222,11 +224,27 @@ bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
     return false;
   }
 
-  // TODO atomic about abandoned by the owner ???
+  if (!m_feedback) {
+    // XXX warning
+    it->second->Close(CloseReason::internal_error);
+    m_connections.erase(it);
+    return false;  // ???????
+  }
 
-  if (!m_feedback(id, std::move(msg))) {
+  bool methodAccepted = false;
+
+  if (!m_feedback(id, msg, methodAccepted)) {
+    it->second->Close(CloseReason::protocol_error);
     m_connections.erase(it);
     return false;
+  }
+
+  if (!methodAccepted) {
+    // forward msg to the thread pool
+    // TODO double json parsing: to be fixed after project dependencies change
+    if (!m_threadPool->PushRequest(id, true, from, std::move(msg))) {
+      LOG_GENERAL(WARNING, "Request queue is full");
+    }
   }
 
   return true;
@@ -253,8 +271,10 @@ void WebsocketServerImpl::SendMessage(ConnectionId conn_id, OutMessage msg) {
     auto it = self->m_connections.find(id);
     if (it == self->m_connections.end()) {
       // closed
+      bool dummy{};
       if (self->m_feedback) {
-        self->m_feedback(id, {});
+        // send EOF
+        self->m_feedback(id, {}, dummy);
       }
       return;
     }

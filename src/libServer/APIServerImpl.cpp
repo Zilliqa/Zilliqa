@@ -127,8 +127,8 @@ class APIServerImpl::Connection
   void OnWebsocketUpgrade(HttpRequest&& request) {
     auto owner = m_owner.lock();
     if (owner) {
-      owner->OnWebsocketUpgrade(m_id, m_stream.release_socket(),
-                                std::move(request));
+      owner->OnWebsocketUpgrade(m_id, std::move(m_from),
+                                m_stream.release_socket(), std::move(request));
       m_owner.reset();
     }
   }
@@ -242,7 +242,7 @@ class APIServerImpl::Connection
   const ConnectionId m_id;
 
   /// Peer address
-  const std::string m_from;
+  std::string m_from;
 
   /// Internal http stream with socket inside
   beast::tcp_stream m_stream;
@@ -287,8 +287,6 @@ APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
   if (m_options.maxQueueSize == 0) {
     m_options.maxQueueSize = std::numeric_limits<size_t>::max();
   }
-
-  m_websocket = std::make_shared<ws::WebsocketServerImpl>(*m_asio);
 }
 
 bool APIServerImpl::Start() {
@@ -332,21 +330,25 @@ bool APIServerImpl::Start() {
         OnResponseFromThreadPool(std::move(res));
       });
 
+  m_websocket =
+      std::make_shared<ws::WebsocketServerImpl>(*m_asio, m_threadPool);
+
   AcceptNext();
 
   m_started = true;
   return true;
 }
 
-void APIServerImpl::OnWebsocketUpgrade(ConnectionId id, Socket&& socket,
-                                       HttpRequest&& request) {
+void APIServerImpl::OnWebsocketUpgrade(ConnectionId id, std::string&& from,
+                                       Socket&& socket, HttpRequest&& request) {
   m_connections.erase(id);
-  m_websocket->NewConnection(std::move(socket), std::move(request));
+  m_websocket->NewConnection(std::move(from), std::move(socket),
+                             std::move(request));
 }
 
 void APIServerImpl::OnRequest(ConnectionId id, std::string from,
                               HttpRequest&& request) {
-  if (!m_threadPool->PushRequest(id, std::move(from),
+  if (!m_threadPool->PushRequest(id, false, std::move(from),
                                  std::move(request.body()))) {
     LOG_GENERAL(WARNING, "Request queue is full");
   }
@@ -450,11 +452,23 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
   }
 
   response.id = request.id;
+  response.isWebsocket = request.isWebsocket;
   return response;
 }
 
 void APIServerImpl::OnResponseFromThreadPool(
     APIThreadPool::Response&& response) {
+  if (response.isWebsocket) {
+    // API response to be dispatched to websocket connection
+    if (m_websocket) {
+      m_websocket->SendMessage(
+          response.id, std::make_shared<std::string>(std::move(response.body)));
+    } else {
+      LOG_GENERAL(WARNING, "Websocket server expected");
+    }
+    return;
+  }
+
   auto it = m_connections.find(response.id);
   if (it == m_connections.end()) {
     // ignoring closed connection

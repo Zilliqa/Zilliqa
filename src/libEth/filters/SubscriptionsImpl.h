@@ -83,7 +83,8 @@ class SubscriptionsImpl {
   using ConnectionPtr = std::shared_ptr<Connection>;
 
   /// Incoming message from websocket server
-  bool OnIncomingMessage(Id conn_id, WebsocketServer::InMessage msg);
+  bool OnIncomingMessage(Id conn_id, const WebsocketServer::InMessage& msg,
+                         bool& methodAccepted);
 
   /// Connection closed
   void OnSessionDisconnected(Id conn_id);

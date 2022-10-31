@@ -27,7 +27,9 @@ namespace evmproj {
 /// Websocket server: owner's interface
 class WebsocketServer {
  public:
-  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 1024;
+  /// Default max inbound raw message size. That big because it can handle EVM
+  /// contract bytes
+  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 50000;
 
   /// Connection ID: auto-incremented integer unique for server instance
   using ConnectionId = uint64_t;
@@ -41,8 +43,11 @@ class WebsocketServer {
 
   /// Callback from server to its owner. Receives incoming messages or EOF.
   /// Empty msg means EOF.
-  /// The owner returns true to proceed with connection, false to close it.
-  using Feedback = std::function<bool(ConnectionId conn_id, InMessage msg)>;
+  /// methodAccepted is set to true if owner is going to handle this request,
+  /// otherwise it may be dispatched by other handlers The owner returns true to
+  /// proceed with connection, false to close it.
+  using Feedback = std::function<bool(ConnectionId id, const InMessage& msg,
+                                      bool& methodAccepted)>;
 
   /// Dtor
   virtual ~WebsocketServer() = default;

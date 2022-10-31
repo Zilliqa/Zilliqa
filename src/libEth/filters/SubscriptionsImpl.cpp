@@ -49,7 +49,7 @@ struct Request {
   RPCError errorCode = RPCError::OK;
 };
 
-bool ParseRequest(const std::string& msg, Request& req) {
+bool ParseRequest(const std::string& msg, Request& req, bool& methodAccepted) {
   auto json = JsonRead(msg, req.error);
 
   if (!req.error.empty()) {
@@ -75,11 +75,18 @@ bool ParseRequest(const std::string& msg, Request& req) {
 
   bool isUnsubscribe = (method == "eth_unsubscribe");
   if (!isUnsubscribe && method != "eth_subscribe") {
-    req.errorCode = RPCError::METHOD_NOT_FOUND;
-    req.error = "Unexpected method: ";
-    req.error += method;
-    return false;
+    if (!found) {
+      req.errorCode = RPCError::METHOD_NOT_FOUND;
+      req.error = "Unexpected method: ";
+      req.error += method;
+      return false;
+    } else {
+      methodAccepted = false;
+      return true;
+    }
   }
+
+  methodAccepted = true;
 
   Json::Value params = json.get("params", Json::Value{});
   if (!params.isArray() || params.empty() || !params[0].isString()) {
@@ -134,8 +141,9 @@ void SubscriptionsImpl::Start(std::shared_ptr<WebsocketServer> websocketServer,
   m_blockByHash = std::move(blockByHash);
 
   m_websocketServer->SetOptions(
-      [this](Id conn_id, WebsocketServer::InMessage msg) {
-        return OnIncomingMessage(conn_id, std::move(msg));
+      [this](Id conn_id, const WebsocketServer::InMessage& msg,
+             bool& methodAccepted) {
+        return OnIncomingMessage(conn_id, msg, methodAccepted);
       },
       WebsocketServer::DEF_MAX_INCOMING_MSG_SIZE);
 
@@ -214,7 +222,8 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
 }
 
 bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
-                                          WebsocketServer::InMessage msg) {
+                                          const WebsocketServer::InMessage& msg,
+                                          bool& methodAccepted) {
   assert(m_websocketServer);
 
   if (msg.empty()) {
@@ -224,9 +233,13 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
   }
 
   Request req;
-  if (!ParseRequest(msg, req)) {
+  if (!ParseRequest(msg, req, methodAccepted)) {
     LOG_GENERAL(INFO, "Request parse error: " << req.error);
     ReplyError(conn_id, std::move(req.id), req.errorCode, std::move(req.error));
+    return true;
+  }
+
+  if (!methodAccepted) {
     return true;
   }
 
