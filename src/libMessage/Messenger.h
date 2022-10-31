@@ -23,7 +23,6 @@
 #include "common/BaseType.h"
 #include "common/Serializable.h"
 #include "common/TxnStatus.h"
-#include "libData/AccountData/BloomFilter.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
 #include "libData/CoinbaseData/CoinbaseStruct.h"
@@ -250,11 +249,6 @@ class Messenger {
   static bool GetDiagnosticDataCoinbase(const bytes& src,
                                         const unsigned int offset,
                                         DiagnosticDataCoinbase& entry);
-
-  static bool SetBloomFilter(bytes& dst, const unsigned int offset,
-                             const BloomFilter& filter);
-  static bool GetBloomFilter(const bytes& src, const unsigned int offset,
-                             BloomFilter& filter);
 
   // ============================================================================
   // Peer Manager messages
