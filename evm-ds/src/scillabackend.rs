@@ -14,8 +14,8 @@ use log::{debug, info};
 use protobuf::Message;
 
 use crate::ipc_connect;
+use crate::protos::Evm as EvmProto;
 use crate::protos::ScillaMessage;
-use crate::EvmEvalExtras;
 
 #[derive(Clone)]
 pub struct ScillaBackendConfig {
@@ -29,7 +29,7 @@ pub struct ScillaBackendConfig {
 pub struct ScillaBackend {
     config: ScillaBackendConfig,
     pub origin: H160,
-    pub extras: EvmEvalExtras,
+    pub extras: EvmProto::EvmEvalExtras,
 }
 
 // Adding some convenience to ProtoScillaVal to convert to U256 and bytes.
@@ -54,7 +54,7 @@ impl ScillaMessage::ProtoScillaVal {
 }
 
 impl ScillaBackend {
-    pub fn new(config: ScillaBackendConfig, origin: H160, extras: EvmEvalExtras) -> Self {
+    pub fn new(config: ScillaBackendConfig, origin: H160, extras: EvmProto::EvmEvalExtras) -> Self {
         Self {
             config,
             origin,
@@ -199,7 +199,7 @@ impl ScillaBackend {
 
 impl<'config> Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        U256::from_dec_str(&self.extras.gas_price).expect("parsing gas_price")
+        self.extras.get_gas_price().into()
     }
 
     fn origin(&self) -> H160 {
@@ -212,7 +212,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_number(&self) -> U256 {
-        self.extras.block_number.into()
+        self.extras.get_block_number().into()
     }
 
     fn block_coinbase(&self) -> H160 {
@@ -221,15 +221,15 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_timestamp(&self) -> U256 {
-        self.extras.block_timestamp.into()
+        self.extras.get_block_timestamp().into()
     }
 
     fn block_difficulty(&self) -> U256 {
-        self.extras.block_difficulty.into()
+        self.extras.get_block_difficulty().into()
     }
 
     fn block_gas_limit(&self) -> U256 {
-        self.extras.block_gas_limit.into()
+        self.extras.get_block_gas_limit().into()
     }
 
     fn block_base_fee_per_gas(&self) -> U256 {
@@ -239,7 +239,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn chain_id(&self) -> U256 {
-        self.extras.chain_id.into()
+        self.extras.get_chain_id().into()
     }
 
     fn exists(&self, address: H160) -> bool {

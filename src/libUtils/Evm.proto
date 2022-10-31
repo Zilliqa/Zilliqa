@@ -31,7 +31,7 @@ message EvmEvalExtras {
   uint64 block_gas_limit = 3;
   uint64 block_difficulty = 4;
   uint64 block_number = 5;
-  UInt128 gas_price = 6;
+  UInt256 gas_price = 6;
 }
 
 message Storage {

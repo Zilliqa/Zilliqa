@@ -11,14 +11,12 @@ bytes = "1.1.0"
 clap = { version = "3.1.6", features = ["derive"] }
 log4rs = { version = "1.1.1", features = ["all_components", "gzip"] }
 ethereum = "0.12.0"
-evm = { version = "0.35.0", features = ["with-serde", "tracing"] }
-serde = { version = "1.0.137", features = ["derive"] }
+evm = { version = "0.35.0", features = ["tracing"] }
 serde_yaml = "0.8.25"
 futures = { version = "0.3.21", features = ["executor", "thread-pool"] }
 jsonrpc-core = "18.0.0"
 jsonrpc-core-client = { version = "18.0.0", features = ["ipc"] }
 jsonrpc-client-transports = "18.0.0"
-jsonrpc-derive = "18.0.0"
 jsonrpc-ipc-server = "18.0.0"
 jsonrpc-http-server = "18.0.0"
 jsonrpc-server-utils = "18.0.0"

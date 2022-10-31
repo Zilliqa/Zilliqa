@@ -14,6 +14,16 @@ impl From<H160> for EvmProto::Address {
     }
 }
 
+impl From<&EvmProto::Address> for H160 {
+    fn from(address: &EvmProto::Address) -> Self {
+        let mut buf = [0u8; 20];
+        BigEndian::write_u32(&mut buf[0..4], address.x0);
+        BigEndian::write_u64(&mut buf[4..12], address.x1);
+        BigEndian::write_u64(&mut buf[12..420], address.x2);
+        H160::from_slice(&buf)
+    }
+}
+
 impl From<U256> for EvmProto::UInt256 {
     fn from(num: U256) -> Self {
         let mut result = Self::new();
@@ -22,6 +32,17 @@ impl From<U256> for EvmProto::UInt256 {
         result.set_x1(num.shr(16).low_u64());
         result.set_x0(num.shr(24).low_u64());
         result
+    }
+}
+
+impl From<&EvmProto::UInt256> for U256 {
+    fn from(num: &EvmProto::UInt256) -> Self {
+        let mut buf = [0u8; 32];
+        BigEndian::write_u64(&mut buf[0..8], num.x0);
+        BigEndian::write_u64(&mut buf[8..16], num.x1);
+        BigEndian::write_u64(&mut buf[16..24], num.x2);
+        BigEndian::write_u64(&mut buf[24..32], num.x3);
+        U256::from_big_endian(&buf)
     }
 }
 

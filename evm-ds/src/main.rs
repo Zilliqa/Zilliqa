@@ -22,13 +22,12 @@ use evm::{
     executor::stack::{MemoryStackState, StackSubstateMetadata},
     tracing,
 };
+use futures::FutureExt;
 
-use core::str::FromStr;
 use log::{error, info};
 use std::fmt::Debug;
 
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
-use jsonrpc_derive::rpc;
 use jsonrpc_server_utils::codecs;
 use primitive_types::*;
 use scillabackend::{ScillaBackend, ScillaBackendConfig};
@@ -70,85 +69,59 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct EvmEvalExtras {
-    chain_id: u32,
-    block_timestamp: u64,
-    block_gas_limit: u64,
-    block_difficulty: u64,
-    block_number: u64,
-    gas_price: String, // a 128-bit number to be handled nicely by JSON.
-}
-
-#[rpc(server)]
-pub trait Rpc: Send + 'static {
-    #[rpc(name = "run")]
-    fn run(
-        &self,
-        address: String,
-        origin: String,
-        code: String,
-        data: String,
-        apparent_value: String,
-        gas_limit: u64,
-        extras: EvmEvalExtras,
-        estimate: bool,
-    ) -> BoxFuture<Result<String>>;
-}
-
 struct EvmServer {
     tracing: bool,
     backend_config: ScillaBackendConfig,
     gas_scaling_factor: u64,
 }
 
-impl Rpc for EvmServer {
-    fn run(
-        &self,
-        address: String,
-        origin: String,
-        code_hex: String,
-        data_hex: String,
-        apparent_value: String,
-        gas_limit: u64,
-        extras: EvmEvalExtras,
-        estimate: bool,
-    ) -> BoxFuture<Result<String>> {
-        let origin = H160::from_str(&origin);
-        match origin {
-            Ok(origin) => {
-                let backend = ScillaBackend::new(self.backend_config.clone(), origin, extras);
+impl EvmServer {
+    fn run(&self, args_str: String) -> BoxFuture<Result<String>> {
+        let args_parsed = base64::decode(args_str)
+            .map_err(|_| Error::invalid_params("cannot decode base64"))
+            .and_then(|buffer| {
+                EvmProto::EvmArgs::parse_from_bytes(&buffer)
+                    .map_err(|e| Error::invalid_params(format!("{}", e)))
+            });
+
+        match args_parsed {
+            Ok(mut args) => {
+                let origin = H160::from(args.get_origin());
+                let address = H160::from(args.get_address());
+                let code = Vec::from(args.get_code());
+                let data = Vec::from(args.get_data());
+                let apparent_value = U256::from(args.get_apparent_value());
+                let gas_limit = args.get_gas_limit();
+                let estimate = args.get_estimate();
+                let backend =
+                    ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
-                Box::pin(async move {
-                    run_evm_impl(
-                        address,
-                        code_hex,
-                        data_hex,
-                        apparent_value,
-                        gas_limit,
-                        backend,
-                        tracing,
-                        gas_scaling_factor,
-                        estimate,
-                    )
-                    .await
-                })
+
+                run_evm_impl(
+                    address,
+                    code,
+                    data,
+                    apparent_value,
+                    gas_limit,
+                    backend,
+                    tracing,
+                    gas_scaling_factor,
+                    estimate,
+                )
+                .boxed()
             }
-            Err(e) => Box::pin(futures::future::err(Error::invalid_params(format!(
-                "origin: {}",
-                e
-            )))),
+            Err(e) => futures::future::err(e).boxed(),
         }
     }
 }
 
 #[allow(clippy::too_many_arguments)]
 async fn run_evm_impl(
-    address: String,
-    code_hex: String,
-    data_hex: String,
-    apparent_value: String,
+    address: H160,
+    code: Vec<u8>,
+    data: Vec<u8>,
+    apparent_value: U256,
     gas_limit: u64,
     backend: ScillaBackend,
     tracing: bool,
@@ -161,21 +134,15 @@ async fn run_evm_impl(
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent
     // runtime).
     tokio::task::spawn_blocking(move || {
-        let code =
-            Rc::new(hex::decode(&code_hex).map_err(|e| {
-                Error::invalid_params(format!("code: '{}...' {}", &code_hex[..10], e))
-            })?);
-        let data =
-            Rc::new(hex::decode(&data_hex).map_err(|e| {
-                Error::invalid_params(format!("data: '{}...' {}", &data_hex[..10], e))
-            })?);
-
-        let config = evm::Config{ estimate, ..evm::Config::london()};
-        let apparent_value = U256::from_dec_str(&apparent_value)
-            .map_err(|e| Error::invalid_params(format!("apparent_value: {}", e)))?;
+        info!(
+            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
+            backend.origin, address, gas_limit, apparent_value, hex::encode(&code), hex::encode(&data),
+            backend.extras, estimate);
+        let code = Rc::new(code);
+        let data = Rc::new(data);
+        let config = evm::Config { estimate, ..evm::Config::london()};
         let context = evm::Context {
-            address: H160::from_str(&address)
-                .map_err(|e| Error::invalid_params(format!("address: {}", e)))?,
+            address,
             caller: backend.origin,
             apparent_value,
         };
@@ -190,10 +157,6 @@ async fn run_evm_impl(
         let mut executor =
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
 
-        info!(
-            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
-            backend.origin, address, gas_limit, apparent_value, code_hex, data_hex,
-            backend.extras, estimate);
         let mut listener = LoggingEventListener{traces : Default::default()};
 
         // We have to catch panics, as error handling in the Backend interface of
@@ -305,7 +268,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     info!("Starting evm-ds");
 
-    let evm_sever = EvmServer {
+    let evm_server = EvmServer {
         tracing: args.tracing,
         backend_config: ScillaBackendConfig {
             path: PathBuf::from(args.node_socket),
@@ -318,7 +281,19 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let (shutdown_sender, shutdown_receiver) = std::sync::mpsc::channel();
 
     let mut io = IoHandler::new();
-    io.extend_with(evm_sever.to_delegate());
+    io.add_method("run", move |params| {
+        let args = jsonrpc_core::Value::from(params);
+        match args.get(0) {
+            Some(arg) => evm_server
+                .run(arg.to_string())
+                .map(|result| result.map(jsonrpc_core::Value::from))
+                .boxed(),
+            None => {
+                futures::future::err(jsonrpc_core::Error::invalid_params("No parameter")).boxed()
+            }
+        }
+    });
+
     let shutdown_sender = std::sync::Mutex::new(shutdown_sender);
     // Have the "die" method send a signal to shut it down.
     // Mutex because the methods require all captured values to be Sync.
