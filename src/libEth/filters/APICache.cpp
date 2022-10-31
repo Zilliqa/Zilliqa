@@ -19,7 +19,6 @@
 #include "FiltersImpl.h"
 #include "FiltersUtils.h"
 #include "PendingTxnCache.h"
-#include "SubscriptionsImpl.h"
 #include "libUtils/Logger.h"
 
 namespace evmproj {
@@ -30,6 +29,9 @@ namespace {
 // TODO this is to be a parameter from constants.xml
 const size_t TXMETADATADEPTH = 100;
 
+// TODO stub
+class SubscriptionAPIBackendImpl : public SubscriptionAPIBackend {};
+
 }  // namespace
 
 class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
@@ -37,39 +39,38 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
   APICacheImpl()
       : m_filterAPI(*this),
         m_pendingTxnCache(TXMETADATADEPTH),
-        m_blocksCache(TXMETADATADEPTH,
-                      [this](const BlocksCache::EpochMetadata& meta) {
-                        EpochFinalized(meta);
-                      }) {}
+        m_blocksCache(TXMETADATADEPTH) {}
 
- private:
   FilterAPIBackend& GetFilterAPI() override { return m_filterAPI; }
+
+  SubscriptionAPIBackend& GetSubscriptionAPI() override {
+    return m_subscriptionAPI;
+  }
 
   APICacheUpdate& GetUpdate() override { return *this; }
 
-  void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws,
-                          BlockByHash blockByHash) override {
-    m_subscriptions.Start(std::move(ws), std::move(blockByHash));
-  }
-
+ private:
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
-    auto hash_normalized = NormalizeHexString(hash);
-    m_pendingTxnCache.Append(hash_normalized, epoch);
-    m_subscriptions.OnPendingTransaction(hash_normalized);
+    m_pendingTxnCache.Append(NormalizeHexString(hash), epoch);
+    // TODO realtime subscriptions to pending txns
   }
 
   void StartEpoch(uint64_t epoch, const BlockHash& block_hash,
                   uint32_t num_shards, uint32_t num_txns) override {
-    m_blocksCache.StartEpoch(epoch, NormalizeHexString(block_hash), num_shards,
-                             num_txns);
+    if (m_blocksCache.StartEpoch(epoch, NormalizeHexString(block_hash),
+                                 num_shards, num_txns)) {
+      EpochFinalized(epoch);
+    }
   }
 
   void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
                                const TxnHash& hash,
                                const Json::Value& receipt) override {
     auto hash_normalized = NormalizeHexString(hash);
-    m_blocksCache.AddCommittedTransaction(epoch, shard, hash_normalized,
-                                          receipt);
+    if (m_blocksCache.AddCommittedTransaction(epoch, shard, hash_normalized,
+                                              receipt)) {
+      EpochFinalized(epoch);
+    }
     m_pendingTxnCache.TransactionCommitted(std::move(hash_normalized));
   }
 
@@ -89,22 +90,16 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
     return m_pendingTxnCache.GetPendingTxnsFilterChanges(after_counter, result);
   }
 
-  void EpochFinalized(const BlocksCache::EpochMetadata& meta) {
-    uint64_t epoch = meta.epoch;
+  void EpochFinalized(uint64_t epoch) {
     LOG_GENERAL(INFO, "Finalized epoch " << epoch);
-
-    m_subscriptions.OnNewHead(meta.blockHash);
-
-    for (const auto& event : meta.meta) {
-      m_subscriptions.OnEventLog(event.address, event.topics, event.response);
-    }
+    // TODO realtime subscriptions to new head filters
 
     auto earliest = epoch <= TXMETADATADEPTH ? 0 : epoch - TXMETADATADEPTH;
     m_filterAPI.SetEpochRange(earliest, epoch);
   }
 
   FilterAPIBackendImpl m_filterAPI;
-  SubscriptionsImpl m_subscriptions;
+  SubscriptionAPIBackendImpl m_subscriptionAPI;
   PendingTxnCache m_pendingTxnCache;
   BlocksCache m_blocksCache;
 };

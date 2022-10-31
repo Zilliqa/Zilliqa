@@ -1,18 +1,4 @@
-add_library(Server
-    Server.cpp
-    ScillaIPCServer.cpp
-    JSONConversion.cpp
-    GetWorkServer.cpp
-    LookupServer.cpp
-    StakingServer.cpp
-    StatusServer.cpp
-    WebsocketServer.cpp
-    IsolatedServer.cpp
-    EthRpcMethods.h
-    EthRpcMethods.cpp
-    APIServerImpl.cpp
-    APIThreadPool.cpp
-    WebsocketServerImpl.cpp)
+add_library(Server Server.cpp ScillaIPCServer.cpp JSONConversion.cpp GetWorkServer.cpp LookupServer.cpp StakingServer.cpp StatusServer.cpp WebsocketServer.cpp IsolatedServer.cpp EthRpcMethods.h EthRpcMethods.cpp)
 
 add_dependencies(Server jsonrpc-project)
 

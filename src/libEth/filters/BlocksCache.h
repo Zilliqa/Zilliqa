@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBETH_FILTERS_BLOCKSCACHE_H_
 #define ZILLIQA_SRC_LIBETH_FILTERS_BLOCKSCACHE_H_
 
-#include <functional>
 #include <mutex>
 #include <shared_mutex>
 
@@ -29,6 +28,28 @@ namespace filters {
 
 class BlocksCache {
  public:
+  explicit BlocksCache(size_t depth);
+
+  ///
+  /// \param epoch
+  /// \param block_hash
+  /// \param num_shards
+  /// \param num_txns
+  /// \return true if the meta for this epoch is finalized
+  bool StartEpoch(uint64_t epoch, BlockHash block_hash, uint32_t num_shards,
+                  uint32_t num_txns);
+
+  bool AddCommittedTransaction(uint64_t epoch, uint32_t shard,
+                               const TxnHash &hash, const Json::Value &receipt);
+
+  EpochNumber GetEventFilterChanges(EpochNumber after_epoch,
+                                    const EventFilterParams &filter,
+                                    PollResult &result);
+
+  EpochNumber GetBlockFilterChanges(EpochNumber after_epoch,
+                                    PollResult &result);
+
+ private:
   struct EventLog {
     Address address;
     std::vector<Quantity> topics;
@@ -41,30 +62,6 @@ class BlocksCache {
     std::vector<EventLog> meta;
   };
 
-  using OnEpochFinalized = std::function<void(const EpochMetadata &)>;
-
-  BlocksCache(size_t depth, OnEpochFinalized epochFinalizedCallback);
-
-  ///
-  /// \param epoch
-  /// \param block_hash
-  /// \param num_shards
-  /// \param num_txns
-  /// \return true if the meta for this epoch is finalized
-  void StartEpoch(uint64_t epoch, BlockHash block_hash, uint32_t num_shards,
-                  uint32_t num_txns);
-
-  void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
-                               const TxnHash &hash, const Json::Value &receipt);
-
-  EpochNumber GetEventFilterChanges(EpochNumber after_epoch,
-                                    const EventFilterParams &filter,
-                                    PollResult &result);
-
-  EpochNumber GetBlockFilterChanges(EpochNumber after_epoch,
-                                    PollResult &result);
-
- private:
   struct TransactionAndEvents {
     TxnHash hash;
     std::vector<EventLog> events;
@@ -92,14 +89,13 @@ class BlocksCache {
   FinalizedEpochs::iterator FindNext(EpochNumber after_epoch);
 
   /// Tries to finalize unfinished meta, returns true if current epoch advanced
-  void TryFinalizeEpochs();
+  bool TryFinalizeEpochs();
 
   void FinalizeOneEpoch(EpochNumber n, EpochInProcess &data);
 
   EpochNumber GetLastEpoch();
 
   const size_t m_depth;
-  OnEpochFinalized m_epochFinalizedCallback;
   std::map<EpochNumber, EpochInProcess> m_epochsInProcess;
   FinalizedEpochs m_finalizedEpochs;
   std::shared_timed_mutex m_mutex;

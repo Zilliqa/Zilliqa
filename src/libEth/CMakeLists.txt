@@ -4,7 +4,6 @@ target_link_libraries(Eth EthCrypto AccountData)
 
 add_library(Filters
         filters/FiltersImpl.cpp
-        filters/SubscriptionsImpl.cpp
         filters/FiltersUtils.cpp
         filters/PendingTxnCache.cpp
         filters/BlocksCache.cpp
