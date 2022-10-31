@@ -18,8 +18,6 @@
 #include <cassert>
 #include <sstream>
 
-#include <boost/algorithm/string.hpp>
-
 #include "FiltersUtils.h"
 
 #include "libUtils/Logger.h"
@@ -113,8 +111,8 @@ std::string NormalizeHexString(const std::string &str) {
 
 std::string NormalizeEventData(const Json::Value &data) {
   std::stringstream result;
+  result << "0x";
   if (data.isArray()) {
-    result << "0x";
     for (const auto &v : data) {
       if (!v.isUInt()) {
         LOG_GENERAL(WARNING, "Expected array of uints in " << JsonWrite(data));
@@ -122,8 +120,6 @@ std::string NormalizeEventData(const Json::Value &data) {
       }
       result << std::hex << v.asUInt();
     }
-  } else if (data.isString()) {
-    result << data.asString();
   }
   return result.str();
 }
@@ -243,9 +239,7 @@ std::string ExtractStringFromJsonObj(const Json::Value &obj, const char *key,
   }
 
   found = true;
-  auto foundValue = value.asString();
-  boost::algorithm::to_lower(foundValue);
-  return foundValue;
+  return value.asString();
 }
 
 Json::Value ExtractArrayFromJsonObj(const Json::Value &obj, const char *key,
@@ -272,9 +266,7 @@ bool ExtractTopicFilter(const Json::Value &topic, EventFilterParams &filter,
       return false;
     }
     filter.topicMatches.emplace_back();
-    auto topicStr = topic.asString();
-    boost::algorithm::to_lower(topicStr);
-    filter.topicMatches.back().emplace_back(topicStr);
+    filter.topicMatches.back().emplace_back(topic.asString());
     return true;
   }
 
@@ -295,9 +287,7 @@ bool ExtractTopicFilter(const Json::Value &topic, EventFilterParams &filter,
       error = "Invalid topic filter: parse error";
       return false;
     }
-    auto valueStr = value.asString();
-    boost::algorithm::to_lower(valueStr);
-    variants.emplace_back(valueStr);
+    variants.emplace_back(value.asString());
   }
 
   return true;
@@ -377,8 +367,7 @@ bool InitializeEventFilter(const Json::Value &params, EventFilterParams &filter,
 
 bool Match(const EventFilterParams &filter, const Address &address,
            const std::vector<Quantity> &topics) {
-  if (!filter.address.empty() &&
-      boost::to_lower_copy(address) != filter.address) {
+  if (!filter.address.empty() && address != filter.address) {
     return false;
   }
 
@@ -393,7 +382,7 @@ bool Match(const EventFilterParams &filter, const Address &address,
       break;
     }
 
-    const auto topic = boost::to_lower_copy(topics[i++]);
+    const auto &topic = topics[i++];
 
     if (topicMatch.empty()) {
       continue;

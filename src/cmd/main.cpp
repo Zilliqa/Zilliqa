@@ -237,6 +237,8 @@ int main(int argc, const char* argv[]) {
     // Only start the incoming message queue
     P2PComm::GetInstance().StartMessagePump(dispatcher);
 
+    pthread_setname_np(pthread_self(), "P2P");
+
     if (ENABLE_SEED_TO_SEED_COMMUNICATION && !MULTIPLIER_SYNC_MODE) {
       LOG_GENERAL(DEBUG, "P2PSeed Do not open listener");
       // Do not open listener

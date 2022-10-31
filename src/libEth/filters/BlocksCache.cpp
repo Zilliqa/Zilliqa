@@ -28,7 +28,12 @@ namespace filters {
 using UniqueLock = std::unique_lock<std::shared_timed_mutex>;
 using SharedLock = std::shared_lock<std::shared_timed_mutex>;
 
-BlocksCache::BlocksCache(size_t depth) : m_depth(depth) {}
+BlocksCache::BlocksCache(size_t depth, OnEpochFinalized epochFinalizedCallback)
+    : m_depth(depth),
+      m_epochFinalizedCallback(std::move(epochFinalizedCallback)) {
+  assert(m_depth > 0);
+  assert(m_epochFinalizedCallback);
+}
 
 EpochNumber BlocksCache::GetLastEpoch() {
   if (m_finalizedEpochs.empty()) {
@@ -37,7 +42,7 @@ EpochNumber BlocksCache::GetLastEpoch() {
   return m_finalizedEpochs.back().epoch;
 }
 
-bool BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
+void BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
                              uint32_t num_shards, uint32_t num_txns) {
   EpochNumber n = static_cast<EpochNumber>(epoch);
 
@@ -45,12 +50,12 @@ bool BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
 
   if (n <= GetLastEpoch()) {
     LOG_GENERAL(WARNING, "Ignoring unexpected epoch number " << n);
-    return false;
+    return;
   }
 
   if (m_epochsInProcess.count(epoch) != 0) {
     LOG_GENERAL(WARNING, "Ignoring existing epoch number " << n);
-    return false;
+    return;
   }
 
   if (num_txns == 0) {
@@ -61,17 +66,17 @@ bool BlocksCache::StartEpoch(uint64_t epoch, BlockHash block_hash,
     auto &ctx = m_finalizedEpochs.back();
     ctx.epoch = n;
     ctx.blockHash = std::move(block_hash);
+
+    m_epochFinalizedCallback(ctx);
   } else {
     auto &ctx = m_epochsInProcess[n];
     ctx.blockHash = std::move(block_hash);
     ctx.totalTxns = num_txns;
     ctx.shardsInProcess.resize(num_shards + 1);
   }
-
-  return (num_txns == 0);
 }
 
-bool BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
+void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
                                           const TxnHash &hash,
                                           const Json::Value &receipt) {
   EpochNumber n = static_cast<EpochNumber>(epoch);
@@ -81,13 +86,13 @@ bool BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   auto it = m_epochsInProcess.find(n);
   if (it == m_epochsInProcess.end()) {
     LOG_GENERAL(WARNING, "Unexpected epoch number " << n);
-    return false;
+    return;
   }
 
   auto &ctx = it->second;
   if (shard >= ctx.shardsInProcess.size()) {
     LOG_GENERAL(WARNING, "Unexpected shard number " << shard);
-    return false;
+    return;
   }
 
   auto &txn_list = ctx.shardsInProcess[shard];
@@ -101,7 +106,7 @@ bool BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   std::string error;
   bool found = false;
 
-  auto logs = ExtractArrayFromJsonObj(receipt, "logs", error);
+  auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
@@ -132,8 +137,8 @@ bool BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
       log.topics.emplace_back(t.asString());
     }
 
-    auto data = ExtractStringFromJsonObj(event, DATA_STR, error, found);
-    if (data.empty()) {
+    auto data = ExtractArrayFromJsonObj(event, DATA_STR, error);
+    if (!error.empty()) {
       LOG_GENERAL(WARNING, "Error extracting event log data: " << error);
     }
 
@@ -142,14 +147,11 @@ bool BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   }
 
   if (ctx.currentTxns >= ctx.totalTxns) {
-    return TryFinalizeEpochs();
+    TryFinalizeEpochs();
   }
-
-  return false;
 }
 
-bool BlocksCache::TryFinalizeEpochs() {
-  bool finalized = false;
+void BlocksCache::TryFinalizeEpochs() {
   while (!m_epochsInProcess.empty()) {
     auto it = m_epochsInProcess.begin();
     auto &ctx = it->second;
@@ -157,10 +159,8 @@ bool BlocksCache::TryFinalizeEpochs() {
       break;
     }
     FinalizeOneEpoch(it->first, ctx);
-    finalized = true;
     m_epochsInProcess.erase(it);
   }
-  return finalized;
 }
 
 void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
@@ -192,6 +192,8 @@ void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
       }
     }
   }
+
+  m_epochFinalizedCallback(item);
 }
 
 BlocksCache::FinalizedEpochs::iterator BlocksCache::FindNext(
