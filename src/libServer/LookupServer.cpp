@@ -613,8 +613,9 @@ Json::Value LookupServer::CreateTransaction(
             CheckContractTxnShards(priority, shard, tx, num_shards,
                                    toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
+        auto const nonce = tx.IsEth() ? tx.GetNonce() : tx.GetNonce() - 1;
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce(),
+            Account::GetAddressForContract(fromAddr, nonce,
                                            tx.GetVersionIdentifier())
                 .hex();
         mapIndex = check.second;
