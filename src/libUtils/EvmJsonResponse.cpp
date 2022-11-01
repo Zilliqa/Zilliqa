@@ -199,7 +199,8 @@ evmproj::CallResponse& GetReturn(const Json::Value& oldJson,
           try {
             if (er.key() == "Succeed") {
               fo.SetSuccess(true);
-            } else if ((er.key() == "Fatal") || (er.key() == "Revert") || (er.key() == "Error")) {
+            } else if ((er.key() == "Fatal") || (er.key() == "Revert") ||
+                       (er.key() == "Error")) {
               fo.SetSuccess(false);
             } else {
               throw std::runtime_error("Unexpected exit reason:" + er.key());

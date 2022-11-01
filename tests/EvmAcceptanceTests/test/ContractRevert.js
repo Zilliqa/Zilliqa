@@ -12,14 +12,12 @@ describe("Revert Contract Call", function () {
     await expect(contract.revertCall()).to.be.reverted;
   });
 
-  // FIXME: In ZIL-4899
-  xit("Should return revert error message if the called function reverts with custom message", async function () {
+  it("Should return revert error message if the called function reverts with custom message", async function () {
     const REVERT_MESSAGE = "reverted!!";
     await expect(contract.revertCallWithMessage(REVERT_MESSAGE)).to.be.revertedWith(REVERT_MESSAGE);
   });
 
-  // FIXME: In ZIL-4899
-  xit("Should return revert error object if the called function reverts with custom error", async function () {
+  it("Should return revert error object if the called function reverts with custom error", async function () {
     const [owner] = await ethers.getSigners();
     await expect(contract.revertCallWithCustomError({value: 1000}))
       .to.be.revertedWithCustomError(contract, "FakeError")

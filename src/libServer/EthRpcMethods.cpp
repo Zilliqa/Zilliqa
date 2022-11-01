@@ -752,9 +752,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
     return (boost::format("0x%x") % retGas).str();
   } else if (response.Revert()) {
-    // Error code 3 is a special case. It is practially documented only in geth and its clones,
-    // e.g. here: https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
-    throw JsonRpcException(3, "execution reverted", "0x" + response.ReturnedBytes());
+    // Error code 3 is a special case. It is practially documented only in geth
+    // and its clones, e.g. here:
+    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
+    throw JsonRpcException(3, "execution reverted",
+                           "0x" + response.ReturnedBytes());
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
@@ -848,9 +850,11 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   if (success) {
     return "0x" + response.ReturnedBytes();
   } else if (response.Revert()) {
-    // Error code 3 is a special case. It is practially documented only in geth and its clones,
-    // e.g. here: https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
-    throw JsonRpcException(3, "execution reverted", "0x" + response.ReturnedBytes());
+    // Error code 3 is a special case. It is practially documented only in geth
+    // and its clones, e.g. here:
+    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
+    throw JsonRpcException(3, "execution reverted",
+                           "0x" + response.ReturnedBytes());
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
