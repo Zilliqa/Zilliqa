@@ -217,8 +217,7 @@ async fn run_evm_impl(
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
-    // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent
-    // runtime).
+    // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
         let code =
             Rc::new(hex::decode(&code_hex).map_err(|e| {
