@@ -3,7 +3,6 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use evm::backend::{Backend, Basic};
-use evm::tracing;
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
 use jsonrpc_core::{Error, Result, Value};
@@ -17,7 +16,6 @@ use protobuf::Message;
 use crate::ipc_connect;
 use crate::protos::ScillaMessage;
 use crate::EvmEvalExtras;
-
 
 #[derive(Clone)]
 pub struct ScillaBackendConfig {
@@ -115,7 +113,6 @@ impl ScillaBackend {
             null
         }
     }
-    
 
     fn query_state_value(
         &self,
