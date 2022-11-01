@@ -1799,8 +1799,10 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
   uint32_t transactionCur = 0;
 
   for (auto const& mbInfo : microBlockInfos) {
+    LOG_GENERAL(WARNING, "mbInfo " << mbInfo);
     MicroBlockSharedPtr mbptr;
     _json[mbInfo.m_shardId] = Json::arrayValue;
+    LOG_GENERAL(WARNING, "json " << _json);
 
     if (mbInfo.m_txnRootHash == TxnHash()) {
       continue;
@@ -1813,23 +1815,29 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
 
     const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
     if (tranHashes.size() > 0) {
+      LOG_GENERAL(WARNING, "transactionCur " << transactionCur << " transactionBeg " << transactionBeg << " transactionEnd " << transactionEnd);
       // Skip this microblock's transactions since it is before transactionBeg
       if ((transactionCur + tranHashes.size() + 1) < transactionBeg) {
+        LOG_MARKER();
         transactionCur += tranHashes.size();
         continue;
       }
       // Skip this microblock's transactions since we've reached
       // transactionEnd
       if (transactionCur >= transactionEnd) {
+        LOG_MARKER();
         continue;
       }
       for (const auto& tranHash : tranHashes) {
+        LOG_GENERAL(WARNING, "tranHash " << tranHash);
+        LOG_GENERAL(WARNING, "tranHash.hex() " << tranHash.hex());
         // Skip the first transactions until we reach transactionBeg
         if (transactionCur < transactionBeg) {
           transactionCur++;
           continue;
         }
         _json[mbInfo.m_shardId].append(tranHash.hex());
+        LOG_GENERAL(WARNING, "new _json " << _json);
         hasTransactions = true;
         // Stop fetching remaining transactions since we've reached
         // transactionEnd
