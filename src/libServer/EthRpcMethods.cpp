@@ -923,16 +923,16 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
                            "Sent to a non-lookup");
   }
   try {
-    TxBodySharedPtr transactioBodyPtr;
+    TxBodySharedPtr transactionBodyPtr;
     TxnHash tranHash(transactionHash);
     bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactioBodyPtr);
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactionBodyPtr);
     if (!isPresent) {
       return Json::nullValue;
     }
 
     const TxBlock EMPTY_BLOCK;
-    const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    const auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
       return Json::nullValue;
@@ -946,7 +946,7 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
     }
 
     return JSONConversion::convertTxtoEthJson(transactionIndex,
-                                              *transactioBodyPtr, txBlock);
+                                              *transactionBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
@@ -1370,31 +1370,36 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  TxBodySharedPtr transactioBodyPtr;
+  TxBodySharedPtr transactionBodyPtr;
   const auto txHashes = microBlockPtr->GetTranHashes();
   if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
-                                                 transactioBodyPtr)) {
+                                                 transactionBodyPtr)) {
     return Json::nullValue;
   }
 
   return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
-                                            *transactioBodyPtr, txBlock);
+                                            *transactionBodyPtr, txBlock);
 }
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const std::string& txnhash) {
   try {
     TxnHash argHash{txnhash};
-    TxBodySharedPtr transactioBodyPtr;
+    TxBodySharedPtr transactionBodyPtr;
     bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
+        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactionBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
       return Json::nullValue;
     }
 
+    if (transactionBodyPtr->GetTransaction().IsEth()) {
+      LOG_GENERAL(WARNING, "Requested a TX receipt for a non-Eth Tx");
+      return Json::nullValue;
+    }
+
     const TxBlock EMPTY_BLOCK;
-    auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks. "
                                << txnhash);
@@ -1410,8 +1415,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     }
 
     auto const ethResult = JSONConversion::convertTxtoEthJson(
-        transactionIndex, *transactioBodyPtr, txBlock);
-    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
+        transactionIndex, *transactionBodyPtr, txBlock);
+    auto const zilResult = JSONConversion::convertTxtoJson(*transactionBodyPtr);
 
     auto receipt = zilResult["receipt"];
 
@@ -1422,7 +1427,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     std::string cumGas =
         (boost::format("0x%x") %
          GasConv::GasUnitsFromCoreToEth(
-             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
+             transactionBodyPtr->GetTransactionReceipt().GetCumGas()))
             .str();
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
@@ -1435,7 +1440,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         ethResult.get("contractAddress", Json::nullValue);
 
     auto logs =
-        Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+        Eth::GetLogsFromReceipt(transactionBodyPtr->GetTransactionReceipt());
 
     const auto baselogIndex =
         Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
@@ -1443,11 +1448,11 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
                              transactionIndex, baselogIndex);
     const auto bloomLogs =
-        Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
+        Eth::GetBloomFromReceiptHex(transactionBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
         contractAddress, logs, bloomLogs, transactionIndex,
-        transactioBodyPtr->GetTransaction());
+        transactionBodyPtr->GetTransaction());
 
     return res;
   } catch (const JsonRpcException& je) {
