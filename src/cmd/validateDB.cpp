@@ -31,8 +31,7 @@ int main() {
 
   Mediator mediator(key, peer);
   Node node(mediator, 0, false);
-  shared_ptr<Validator> vd;
-  vd = make_shared<Validator>(mediator);
+  auto vd = make_unique<Validator>(mediator);
   Synchronizer sync;
 
   mediator.m_dsBlockChain.Reset();
