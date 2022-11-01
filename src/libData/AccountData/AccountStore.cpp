@@ -74,8 +74,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
   }
   // EVM required to run on Lookup nodes too for view calls
   if (ENABLE_EVM) {
-    // TODO lookup nodes may also need it
-    if (not ipcScillaInit /*&& !LOOKUP_NODE_MODE*/) {
+    if (not ipcScillaInit && !LOOKUP_NODE_MODE) {
       ScillaClient::GetInstance().Init();
     }
     EvmClient::GetInstance().Init();
