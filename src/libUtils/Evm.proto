@@ -1,5 +1,7 @@
 syntax = "proto3";
 
+package evm;
+
 message UInt128 {
   uint64 x0 = 1;
   uint64 x1 = 2;
