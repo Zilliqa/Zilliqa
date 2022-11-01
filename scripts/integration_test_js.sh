@@ -42,9 +42,6 @@ else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
 
-    echo "NOT starting isolated server - it should be running already"
-    ps -e | grep isolated
-
     # install dependencies
     apt update
     apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
@@ -53,15 +50,23 @@ else
     node --version
     pwd
 
+    pkill -9 isolatedServer
+    pkill -9 evm-ds
+
     # remove persistence
     rm -rf persistence/*
 
+    # maybe it's there
+    rm -rf ./build/bin/persistence
+
     # Just to check evm-ds has been built
     if [[ -d /home/jenkins ]]; then
-        ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
+        #ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
+
+        ls -l /home/jenkins/agent/workspace/
 
         # For convenience move the required files to tmp directory
-        cp /home/jenkins/agent/workspace/*/evm-ds/target/release/evm-ds
+        cp /home/jenkins/agent/workspace/*/evm-ds/target/release/evm-ds /tmp || exit 1
         cp /home/jenkins/agent/workspace/*/evm-ds/log4rs.yml /tmp
 
         # Modify constants.xml for use by isolated server
@@ -74,6 +79,8 @@ else
 
     echo "Starting isolated server..."
     ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
+
+    sleep 10
 
     cd tests/EvmAcceptanceTests/
     npm install
