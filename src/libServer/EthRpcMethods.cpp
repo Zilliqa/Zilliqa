@@ -446,8 +446,8 @@ std::string EthRpcMethods::CreateTransactionEth(
           // A simple transfer to an account that is a contract
           // is processed like a CONTRACT_CALL.
           auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
+              CheckContractTxnShards(priority, shard, tx, num_shards,
+                                     toAccountExist, toAccountIsContract);
           mapIndex = check.second;
         }
         break;
