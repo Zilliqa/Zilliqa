@@ -1400,11 +1400,6 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
       return Json::nullValue;
     }
 
-    if (transactionBodyPtr->GetTransaction().IsEth()) {
-      LOG_GENERAL(WARNING, "Requested a TX receipt for a non-Eth Tx");
-      return Json::nullValue;
-    }
-
     const TxBlock EMPTY_BLOCK;
     auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
