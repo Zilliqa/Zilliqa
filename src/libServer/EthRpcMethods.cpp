@@ -1020,6 +1020,9 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
 
     zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
 
+    // Must be uppercase
+    std::transform(zeroes.begin(), zeroes.end(), zeroes.begin(), ::toupper);
+
     auto res = root["_evm_storage"][zeroes];
     zbytes resAsStringBytes;
 
