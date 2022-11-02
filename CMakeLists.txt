@@ -32,6 +32,7 @@ find_package(bsoncxx REQUIRED)
 find_package(websocketpp REQUIRED)
 find_package(leveldb REQUIRED)
 find_package(g3log REQUIRED)
+find_package(g3sinks REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 
