@@ -26,7 +26,8 @@ using namespace std;
 chrono::high_resolution_clock::time_point startTime;
 
 void process_message(
-    pair<zbytes, std::pair<Peer, const unsigned char>>* message) {
+    std::shared_ptr<pair<zbytes, std::pair<Peer, const unsigned char>>>
+        message) {
   LOG_MARKER();
 
   if (message->first.size() < 10) {
@@ -45,8 +46,6 @@ void process_message(
                                            (time_span.count() * 1024 * 1024)
                                     << " MBps");
   }
-
-  delete message;
 }
 
 static bool comparePairSecond(

@@ -47,11 +47,13 @@ APIThreadPool::~APIThreadPool() {
   }
 }
 
-bool APIThreadPool::PushRequest(JobId id, std::string from, std::string body) {
+bool APIThreadPool::PushRequest(JobId id, bool isWebsocket, std::string from,
+                                std::string body) {
   if (!m_requestQueue.bounded_push(
-          Request{id, std::move(from), std::move(body)})) {
+          Request{id, isWebsocket, std::move(from), std::move(body)})) {
     Response response;
     response.id = id;
+    response.isWebsocket = isWebsocket;
     response.code = 503;
     PushResponse(std::move(response));
     return false;

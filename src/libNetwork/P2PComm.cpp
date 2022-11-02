@@ -88,7 +88,7 @@ static bool comparePairSecond(
   return a.second < b.second;
 }
 
-P2PComm::P2PComm() : m_sendQueue(SENDQUEUE_SIZE) {
+P2PComm::P2PComm() {
   // set libevent m_base to NULL
   m_base = NULL;
   auto func = [this]() -> void {
@@ -123,13 +123,7 @@ P2PComm::P2PComm() : m_sendQueue(SENDQUEUE_SIZE) {
   DetachedFunction(1, func);
 }
 
-P2PComm::~P2PComm() {
-  SendJob* job = NULL;
-  while (m_sendQueue.pop(job)) {
-    delete job;
-  }
-  m_base = NULL;
-}
+P2PComm::~P2PComm() { m_base = NULL; }
 
 P2PComm& P2PComm::GetInstance() {
   static P2PComm comm;
@@ -395,10 +389,9 @@ void SendJobPeers<T>::DoSend() {
   }
 }
 
-void P2PComm::ProcessSendJob(SendJob* job) {
-  auto funcSendMsg = [job]() mutable -> void {
+void P2PComm::ProcessSendJob(std::shared_ptr<SendJob> job) {
+  auto funcSendMsg = [job = std::move(job)]() mutable -> void {
     job->DoSend();
-    delete job;
   };
   m_SendPool.AddJob(funcSendMsg);
 }
@@ -408,6 +401,16 @@ void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
   lock_guard<mutex> guard(m_broadcastToRemoveMutex);
   m_broadcastToRemove.emplace_back(message_hash, chrono::system_clock::now());
 }
+
+namespace {
+
+inline std::shared_ptr<P2PComm::Msg> MakeMsg(zbytes&& msg, Peer peer,
+                                             unsigned char startByte) {
+  return std::make_shared<P2PComm::Msg>(std::make_pair(
+      std::move(msg), std::make_pair(std::move(peer), startByte)));
+}
+
+}  // namespace
 
 void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
   zbytes msg_hash(message.begin() + HDR_LEN,
@@ -454,14 +457,10 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
   LOG_STATE("[BROAD][" << std::setw(15) << std::left << p2p.m_selfPeer << "]["
                        << msgHashStr.substr(0, 6) << "] RECV");
 
-  // Move the shared_ptr message to raw pointer type
-  pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
-      new pair<zbytes, std::pair<Peer, const unsigned char>>(
-          zbytes(message.begin() + HDR_LEN + HASH_LEN, message.end()),
-          std::make_pair(from, START_BYTE_BROADCAST));
-
   // Queue the message
-  m_dispatcher(raw_message);
+  m_dispatcher(
+      MakeMsg(zbytes(message.begin() + HDR_LEN + HASH_LEN, message.end()), from,
+              START_BYTE_BROADCAST));
 }
 
 /*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from) {
@@ -494,27 +493,20 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
       zbytes tmp(rumor_message.begin() + PUB_KEY_SIZE +
                      SIGNATURE_CHALLENGE_SIZE + SIGNATURE_RESPONSE_SIZE,
                  rumor_message.end());
-      std::pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
-          new pair<zbytes, std::pair<Peer, const unsigned char>>(
-              tmp, make_pair(from, START_BYTE_GOSSIP));
 
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
-      m_dispatcher(raw_message);
+      m_dispatcher(MakeMsg(std::move(tmp), from, START_BYTE_GOSSIP));
     }
   } else {
     auto resp = p2p.m_rumorManager.RumorReceived(
         (unsigned int)gossipMsgTyp, gossipMsgRound, rumor_message, from);
     if (resp.first) {
-      std::pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
-          new pair<zbytes, std::pair<Peer, const unsigned char>>(
-              resp.second, make_pair(from, START_BYTE_GOSSIP));
-
       LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
 
       // Queue the message
-      m_dispatcher(raw_message);
+      m_dispatcher(MakeMsg(std::move(resp.second), from, START_BYTE_GOSSIP));
     }
   }
 }
@@ -732,14 +724,9 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     LOG_PAYLOAD(INFO, "Incoming normal " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    // Move the shared_ptr message to raw pointer type
-    pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
-        new pair<zbytes, std::pair<Peer, const unsigned char>>(
-            zbytes(message.begin() + HDR_LEN, message.end()),
-            std::make_pair(from, START_BYTE_NORMAL));
-
     // Queue the message
-    m_dispatcher(raw_message);
+    m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_NORMAL));
   } else if (startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
@@ -929,11 +916,6 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
     LOG_PAYLOAD(INFO, "Incoming request from ext seed " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
-    pair<zbytes, pair<Peer, const unsigned char>>* raw_message =
-        new pair<zbytes, pair<Peer, const unsigned char>>(
-            zbytes(message.begin() + HDR_LEN, message.end()),
-            std::make_pair(from, START_BYTE_SEED_TO_SEED_REQUEST));
-
     string bufKey = from.GetPrintableIPAddress() + ":" +
                     boost::lexical_cast<string>(from.GetListenPortHost());
     LOG_GENERAL(DEBUG, "bufferEventMap key=" << bufKey << " msg len=" << len
@@ -945,7 +927,8 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
       m_bufferEventMap[bufKey] = bev;
     }
     // Queue the message
-    m_dispatcher(raw_message);
+    m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_SEED_TO_SEED_REQUEST));
   } else {
     // Unexpected start byte. Drop this message
     LOG_CHECK_FAIL("Start byte", startByte, START_BYTE_SEED_TO_SEED_REQUEST);
@@ -1024,9 +1007,9 @@ void P2PComm::RemoveBevFromMap(const Peer& peer) {
     if (DEBUG_LEVEL == 4) {
       LOG_GENERAL(DEBUG, "P2PSeed clearing bufferevent for bufKey="
                              << it->first << " bev=" << it->second);
-      for (const auto& it : m_bufferEventMap) {
+      for (const auto& it2 : m_bufferEventMap) {
         LOG_GENERAL(DEBUG, " P2PSeed m_bufferEventMap key = "
-                               << it.first << " bev = " << it.second);
+                               << it2.first << " bev = " << it2.second);
       }
     }
     m_bufferEventMap.erase(it);
@@ -1050,9 +1033,9 @@ void P2PComm::RemoveBevAndCloseP2PConnServer(const Peer& peer,
       if (DEBUG_LEVEL == 4) {
         LOG_GENERAL(DEBUG, "P2PSeed clearing bufferevent for bufKey="
                                << it->first << " bev=" << it->second);
-        for (const auto& it : m_bufferEventMap) {
+        for (const auto& it2 : m_bufferEventMap) {
           LOG_GENERAL(DEBUG, " P2PSeed m_bufferEventMap key = "
-                                 << it.first << " bev = " << it.second);
+                                 << it2.first << " bev = " << it2.second);
         }
       }
       bufferevent* bufev = it->second;
@@ -1224,13 +1207,9 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
     LOG_PAYLOAD(INFO, "Incoming normal response from server seed " << from,
                 message, Logger::MAX_BYTES_TO_DISPLAY);
 
-    pair<zbytes, std::pair<Peer, const unsigned char>>* raw_message =
-        new pair<zbytes, std::pair<Peer, const unsigned char>>(
-            zbytes(message.begin() + HDR_LEN, message.end()),
-            make_pair(from, START_BYTE_SEED_TO_SEED_RESPONSE));
-
     // Queue the message
-    m_dispatcher(raw_message);
+    m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_SEED_TO_SEED_RESPONSE));
   } else {
     // Unexpected start byte. Drop this message
     LOG_CHECK_FAIL("Start byte", startByte, START_BYTE_SEED_TO_SEED_RESPONSE);
@@ -1310,17 +1289,15 @@ void P2PComm::StartMessagePump(Dispatcher dispatcher) {
 
   // Launch the thread that reads messages from the send queue
   auto funcCheckSendQueue = [this]() mutable -> void {
-    SendJob* job = NULL;
-    while (true) {
-      while (m_sendQueue.pop(job)) {
-        ProcessSendJob(job);
-      }
-      std::this_thread::sleep_for(std::chrono::microseconds(1));
+    std::shared_ptr<SendJob> job;
+    size_t queueSz{};
+    while (m_sendQueue.pop(job, queueSz)) {
+      ProcessSendJob(std::move(job));
     }
   };
   DetachedFunction(1, funcCheckSendQueue);
 
-  m_dispatcher = move(dispatcher);
+  m_dispatcher = std::move(dispatcher);
 }
 
 void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
@@ -1362,7 +1339,7 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(P2P_SEED_CONNECT_PORT);
     serv_addr.sin_addr.s_addr = INADDR_ANY;
-    struct evconnlistener* listener2 = evconnlistener_new_bind(
+    listener2 = evconnlistener_new_bind(
         m_base, AcceptCbServerSeed, nullptr,
         LEV_OPT_REUSEABLE | LEV_OPT_CLOSE_ON_FREE, -1,
         (struct sockaddr*)&serv_addr, sizeof(struct sockaddr_in));
@@ -1511,8 +1488,8 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
   }
 
   // Make job
-  SendJob* job = new SendJobPeers<vector<Peer>>;
-  dynamic_cast<SendJobPeers<vector<Peer>>*>(job)->m_peers = peers;
+  auto job = std::make_shared<SendJobPeers<vector<Peer>>>();
+  job->m_peers = peers;
   job->m_selfPeer = m_selfPeer;
   job->m_startbyte = startByteType;
   job->m_message = message;
@@ -1520,9 +1497,9 @@ void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
   job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
-  if (!m_sendQueue.bounded_push(job)) {
-    LOG_GENERAL(WARNING, "SendQueue is full");
-    delete job;
+  size_t queueSz{};
+  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
+    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
   }
 }
 
@@ -1535,8 +1512,8 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
   }
 
   // Make job
-  SendJob* job = new SendJobPeers<deque<Peer>>;
-  dynamic_cast<SendJobPeers<deque<Peer>>*>(job)->m_peers = peers;
+  auto job = std::make_shared<SendJobPeers<deque<Peer>>>();
+  job->m_peers = peers;
   job->m_selfPeer = m_selfPeer;
   job->m_startbyte = startByteType;
   job->m_message = message;
@@ -1544,17 +1521,17 @@ void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
   job->m_allowSendToRelaxedBlacklist = bAllowSendToRelaxedBlacklist;
 
   // Queue job
-  if (!m_sendQueue.bounded_push(job)) {
-    LOG_GENERAL(WARNING, "SendQueue is full");
-    delete job;
+  size_t queueSz{};
+  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
+    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
   }
 }
 
 void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
                           const unsigned char& startByteType) {
   // Make job
-  SendJob* job = new SendJobPeer;
-  dynamic_cast<SendJobPeer*>(job)->m_peer = peer;
+  auto job = std::make_shared<SendJobPeer>();
+  job->m_peer = peer;
   job->m_selfPeer = m_selfPeer;
   job->m_startbyte = startByteType;
   job->m_message = message;
@@ -1562,9 +1539,9 @@ void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
   job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
-  if (!m_sendQueue.bounded_push(job)) {
-    LOG_GENERAL(WARNING, "SendQueue is full");
-    delete job;
+  size_t queueSz{};
+  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
+    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
   }
 }
 
@@ -1580,8 +1557,8 @@ void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
   }
 
   // Make job
-  SendJob* job = new SendJobPeer;
-  dynamic_cast<SendJobPeer*>(job)->m_peer = peer;
+  auto job = std::make_shared<SendJobPeer>();
+  job->m_peer = peer;
   job->m_selfPeer = m_selfPeer;
   job->m_startbyte = startByteType;
   job->m_message = message;
@@ -1589,9 +1566,9 @@ void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
   job->m_allowSendToRelaxedBlacklist = false;
 
   // Queue job
-  if (!m_sendQueue.bounded_push(job)) {
-    LOG_GENERAL(WARNING, "SendQueue is full");
-    delete job;
+  size_t queueSz{};
+  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
+    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
   }
 }
 
@@ -1607,8 +1584,8 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   sha256.Update(message);
 
   // Make job
-  SendJob* job = new SendJobPeers<vector<Peer>>;
-  dynamic_cast<SendJobPeers<vector<Peer>>*>(job)->m_peers = peers;
+  auto job = std::make_shared<SendJobPeers<vector<Peer>>>();
+  job->m_peers = peers;
   job->m_selfPeer = m_selfPeer;
   job->m_startbyte = START_BYTE_BROADCAST;
   job->m_message = message;
@@ -1618,9 +1595,9 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
   zbytes hashCopy(job->m_hash);
 
   // Queue job
-  if (!m_sendQueue.bounded_push(job)) {
-    LOG_GENERAL(WARNING, "SendQueue is full");
-    delete job;
+  size_t queueSz{};
+  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
+    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -1639,8 +1616,8 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   sha256.Update(message);
 
   // Make job
-  SendJob* job = new SendJobPeers<deque<Peer>>;
-  dynamic_cast<SendJobPeers<deque<Peer>>*>(job)->m_peers = peers;
+  auto job = std::make_shared<SendJobPeers<deque<Peer>>>();
+  job->m_peers = peers;
   job->m_selfPeer = m_selfPeer;
   job->m_startbyte = START_BYTE_BROADCAST;
   job->m_message = message;
@@ -1650,9 +1627,9 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
   zbytes hashCopy(job->m_hash);
 
   // Queue job
-  if (!m_sendQueue.bounded_push(job)) {
-    LOG_GENERAL(WARNING, "SendQueue is full");
-    delete job;
+  size_t queueSz{};
+  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
+    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
   }
 
   lock_guard<mutex> guard(m_broadcastHashesMutex);

@@ -527,15 +527,14 @@ bool BlockStorage::GetLatestTxBlock(TxBlockSharedPtr& block) {
 
   {
     shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
-    leveldb::Iterator* it =
-        m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+    std::unique_ptr<leveldb::Iterator> it{
+        m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions())};
     for (it->SeekToFirst(); it->Valid(); it->Next()) {
       uint64_t blockNum = boost::lexical_cast<uint64_t>(it->key().ToString());
       if (blockNum > latestTxBlockNum) {
         latestTxBlockNum = blockNum;
       }
     }
-    delete it;
   }
 
   LOG_GENERAL(INFO, "Latest Tx block = " << latestTxBlockNum);
@@ -744,14 +743,13 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
 
   shared_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
 
-  leveldb::Iterator* it =
-      m_dsBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_dsBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
     string blockString = it->value().ToString();
     if (blockString.empty()) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
-      delete it;
       return false;
     }
 
@@ -760,8 +758,6 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
   }
-
-  delete it;
 
   if (blocks.empty()) {
     LOG_GENERAL(INFO, "Disk has no DSBlock");
@@ -785,8 +781,8 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
 
   string keyStr = "0000000001";
   uint32_t key;
-  leveldb::Iterator* it =
-      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   it->SeekToLast();
   if (it->Valid()) {
     keyStr = it->key().ToString();
@@ -796,12 +792,10 @@ bool BlockStorage::PutExtSeedPubKey(const PubKey& pubK) {
       ss << std::setw(10) << std::setfill('0') << ++key;
       keyStr = ss.str();
     } catch (...) {
-      delete it;
       LOG_GENERAL(WARNING, "key is not numeric");
       return false;
     }
   }
-  delete it;
 
   zbytes data;
   pubK.Serialize(data, 0);
@@ -822,8 +816,8 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
     return false;
   }
 
-  leveldb::Iterator* it =
-      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   zbytes data;
   pubK.Serialize(data, 0);
   string pubKStrI = DataConversion::CharArrayToString(data);
@@ -834,12 +828,10 @@ bool BlockStorage::DeleteExtSeedPubKey(const PubKey& pubK) {
       if (0 == m_extSeedPubKeysDB->DeleteKey(pns)) {
         LOG_GENERAL(
             INFO, "Deleted extseed pubkey " << pubK << " from DB successfully");
-        delete it;
         return true;
       }
     }
   }
-  delete it;
   return false;
 }
 
@@ -855,14 +847,13 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
     return false;
   }
 
-  leveldb::Iterator* it =
-      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_extSeedPubKeysDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   uint64_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string pubkString = it->value().ToString();
     if (pubkString.empty()) {
       LOG_GENERAL(WARNING, "Lost one extseed public key in the DB");
-      delete it;
       return false;
     }
     PubKey pubK(zbytes(pubkString.begin(), pubkString.end()), 0);
@@ -870,8 +861,6 @@ bool BlockStorage::GetAllExtSeedPubKeys(unordered_set<PubKey>& pubKeys) {
     count++;
   }
   LOG_GENERAL(INFO, "Retrieved " << count << " PubKeys");
-
-  delete it;
 
   if (pubKeys.empty()) {
     LOG_GENERAL(INFO, "Disk has no extseed PubKeys");
@@ -886,15 +875,14 @@ bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
 
   shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
 
-  leveldb::Iterator* it =
-      m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_txBlockchainDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   uint64_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
     string blockString = it->value().ToString();
     if (blockString.empty()) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
-      delete it;
       return false;
     }
     TxBlockSharedPtr block = TxBlockSharedPtr(
@@ -903,8 +891,6 @@ bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
     count++;
   }
   LOG_GENERAL(INFO, "Retrievd " << count << " TxBlocks");
-
-  delete it;
 
   if (blocks.empty()) {
     LOG_GENERAL(INFO, "Disk has no TxBlock");
@@ -919,15 +905,14 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
 
   shared_lock<shared_timed_mutex> g(m_mutexVCBlock);
 
-  leveldb::Iterator* it =
-      m_VCBlockDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_VCBlockDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   uint64_t count = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
     string blockString = it->value().ToString();
     if (blockString.empty()) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
-      delete it;
       return false;
     }
     VCBlockSharedPtr block = VCBlockSharedPtr(
@@ -936,8 +921,6 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
     count++;
   }
   LOG_GENERAL(INFO, "Retrievd " << count << " VCBlocks");
-
-  delete it;
 
   if (blocks.empty()) {
     LOG_GENERAL(INFO, "Disk has no VCBlock");
@@ -953,32 +936,28 @@ bool BlockStorage::GetAllBlockLink(std::list<BlockLink>& blocklinks) {
 
   shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
 
-  leveldb::Iterator* it =
-      m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_blockLinkDB->GetDB()->NewIterator(leveldb::ReadOptions())};
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     string bns = it->key().ToString();
     string blockString = it->value().ToString();
     if (blockString.empty()) {
       LOG_GENERAL(WARNING, "Lost one blocklink in the chain");
-      delete it;
       return false;
     }
     BlockLink blcklink;
     if (!Messenger::GetBlockLink(zbytes(blockString.begin(), blockString.end()),
                                  0, blcklink)) {
       LOG_GENERAL(WARNING, "Deserialization of blockLink failed " << bns);
-      delete it;
       return false;
     }
     if (get<BlockLinkIndex::VERSION>(blcklink) != BLOCKLINK_VERSION) {
       LOG_CHECK_FAIL("BlockLink version",
                      get<BlockLinkIndex::VERSION>(blcklink), BLOCKLINK_VERSION);
-      delete it;
       return false;
     }
     blocklinks.emplace_back(blcklink);
   }
-  delete it;
   if (blocklinks.empty()) {
     LOG_GENERAL(INFO, "Disk has no blocklink");
     return false;
@@ -1405,8 +1384,8 @@ void BlockStorage::GetDiagnosticDataNodes(
 
   lock_guard<mutex> g(m_mutexDiagnostic);
 
-  leveldb::Iterator* it =
-      m_diagnosticDBNodes->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_diagnosticDBNodes->GetDB()->NewIterator(leveldb::ReadOptions())};
 
   unsigned int index = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -1460,7 +1439,6 @@ void BlockStorage::GetDiagnosticDataNodes(
 
     index++;
   }
-  delete it;
 }
 
 void BlockStorage::GetDiagnosticDataCoinbase(
@@ -1469,8 +1447,8 @@ void BlockStorage::GetDiagnosticDataCoinbase(
 
   lock_guard<mutex> g(m_mutexDiagnostic);
 
-  leveldb::Iterator* it =
-      m_diagnosticDBCoinbase->GetDB()->NewIterator(leveldb::ReadOptions());
+  std::unique_ptr<leveldb::Iterator> it{
+      m_diagnosticDBCoinbase->GetDB()->NewIterator(leveldb::ReadOptions())};
 
   unsigned int index = 0;
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
@@ -1508,7 +1486,6 @@ void BlockStorage::GetDiagnosticDataCoinbase(
 
     index++;
   }
-  delete it;
 }
 
 unsigned int BlockStorage::GetDiagnosticDataNodesCount() {
