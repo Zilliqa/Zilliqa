@@ -20,8 +20,7 @@ describe("Openzeppelin ownable contract functionality", function () {
       .withArgs(123);
   });
 
-  // FIXME: In ZIL-4899
-  xit("should not be possible to call a restricted function using an arbitrary account", async function () {
+  it("should not be possible to call a restricted function using an arbitrary account", async function () {
     const [_, notOwner] = await ethers.getSigners();
 
     await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
@@ -40,8 +39,7 @@ describe("Openzeppelin ownable contract functionality", function () {
       .withArgs(prevOwner.address, newOwner.address);
   });
 
-  // FIXME: In ZIL-4899
-  xit("should not be possible to call restricted functions even by owner if renounceOwnership is called", async function () {
+  it("should not be possible to call restricted functions even by owner if renounceOwnership is called", async function () {
     // We changed the owner in previous test.
     const [_, owner] = await ethers.getSigners();
 

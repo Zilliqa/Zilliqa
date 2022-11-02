@@ -41,8 +41,7 @@ describe("Openzeppelin ERC20 functionality", function () {
       );
     });
 
-    // FIXME: In ZIL-4899
-    xit("Should not be possible to move more than available tokens to some address", async function () {
+    it("Should not be possible to move more than available tokens to some address", async function () {
       const [_, receiver] = await ethers.getSigners();
       const totalSupply = await contract.totalSupply();
 
@@ -54,8 +53,7 @@ describe("Openzeppelin ERC20 functionality", function () {
   });
 
   describe("Transfer From", function () {
-    // FIXME: In ZIL-4899
-    xit("Should not be possible to transfer from one account to another if allowance is insufficient", async function () {
+    it("Should not be possible to transfer from one account to another if allowance is insufficient", async function () {
       const [_, sender, spender] = await ethers.getSigners();
 
       // Fund the 2nd account first
