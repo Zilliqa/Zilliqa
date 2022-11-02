@@ -27,6 +27,7 @@
     "nlohmann-json",
     "libffi",
     "g3log",
+    "g3sinks",
     "schnorr"
   ],
   "builtin-baseline": "6ca56aeb457f033d344a7106cb3f9f1abf8f4e98",
@@ -54,6 +55,10 @@
     {
       "name": "schnorr",
       "version": "8.2.0"
+    },
+    {
+      "name": "g3sinks",
+      "version": "2.0.1"
     }
   ]
 }
