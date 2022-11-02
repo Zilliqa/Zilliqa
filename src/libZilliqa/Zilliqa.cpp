@@ -520,8 +520,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (asioCtx) {
-      pthread_setname_np(pthread_self(), "RPCAPI");
-
       boost::asio::signal_set sig(*asioCtx, SIGINT, SIGTERM);
       sig.async_wait([&](const boost::system::error_code&, int) {
         if (apiRPC) {

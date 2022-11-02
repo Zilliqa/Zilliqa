@@ -1447,8 +1447,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 
     Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
                              transactionIndex, baselogIndex);
-    const auto bloomLogs =
-        Eth::GetBloomFromReceiptHex(transactionBodyPtr->GetTransactionReceipt());
+    const auto bloomLogs = Eth::GetBloomFromReceiptHex(
+        transactionBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
         contractAddress, logs, bloomLogs, transactionIndex,

@@ -51,7 +51,7 @@ class WebsocketServerImpl
   explicit WebsocketServerImpl(AsioCtx& asio) : m_asio(asio) {}
 
   /// Explicit close because of shared_ptr usage. Called by owner
-  void CloseAll();
+  void CloseAll() override;
 
   /// Called by HTTP server on new WS upgrade request
   void NewConnection(Socket&& socket, HttpRequest&& req);
