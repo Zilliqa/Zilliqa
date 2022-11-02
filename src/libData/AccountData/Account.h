@@ -162,6 +162,12 @@ class Account : public AccountBase {
 
   void SetAddress(const Address& addr);
 
+  /// Returns true if account is a contract account
+  bool isContract() const;
+
+  // Returns true if the external library is deployed
+  bool IsLibrary() const;
+
   const Address& GetAddress() const;
 
   bool SetCode(const zbytes& code);
