@@ -20,10 +20,6 @@ describe("Calling " + METHOD, function () {
         assert.isString(result.result, "is string");
         assert.isNumber(result.error.code, -32601);
         assert.isString(result.error.message, "is string");
-        assert.equal(
-          result.error.message,
-          "METHOD_NOT_FOUND: The method being requested is not available on this server"
-        );
       });
     });
   });
