@@ -382,9 +382,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
     lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
-    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+    BOOST_CHECK_EQUAL(e.GetCode(), 3);
     LOG_GENERAL(DEBUG, e.GetMessage());
-    BOOST_CHECK_EQUAL(e.GetMessage(), "Reverted");
+    BOOST_CHECK_EQUAL(e.GetMessage(), "execution reverted");
   }
 
   const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
