@@ -1086,7 +1086,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "ID is not a contract txn");
     }
 
-    auto const nonce = tx.IsEth() ? tx.GetNonce() - 1 : tx.GetNonce();
+    auto const nonce = tx.IsEth() ? tx.GetNonce() : tx.GetNonce() - 1;
 
     return Account::GetAddressForContract(tx.GetSenderAddr(), nonce,
                                           tx.GetVersionIdentifier())
