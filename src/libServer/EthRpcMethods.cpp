@@ -442,21 +442,16 @@ std::string EthRpcMethods::CreateTransactionEth(
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
-        if (toAccountExist) {
-          if (toAccountIsContract) {
-            throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                                   "Contract account won't accept normal txn");
-            return ret;
-          }
+        if (toAccountExist && toAccountIsContract) {
+          // A simple transfer to an account that is a contract
+          // is processed like a CONTRACT_CALL.
+          auto check =
+              CheckContractTxnShards(priority, shard, tx, num_shards,
+                                     toAccountExist, toAccountIsContract);
+          mapIndex = check.second;
         }
-
         break;
-      case Transaction::ContractType::CONTRACT_CREATION: {
-        auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
-        mapIndex = check.second;
-      } break;
+      case Transaction::ContractType::CONTRACT_CREATION:
       case Transaction::ContractType::CONTRACT_CALL: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
