@@ -25,6 +25,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/EthRpcMethods.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
@@ -35,16 +36,16 @@
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
-    EvmCallParameters& params,          //
+    const evm::EvmArgs& args,           //
     bool& ret,                          //
     TransactionReceipt& receipt,        //
     evmproj::CallResponse& evmReturnValues) {
   //
   // create a worker to be executed in the async method
-  const auto worker = [&params, &ret, &evmReturnValues]() -> void {
+  const auto worker = [&args, &ret, &evmReturnValues]() -> void {
     try {
-      ret = EvmClient::GetInstance().CallRunner(
-          EvmUtils::GetEvmCallJson(params), evmReturnValues);
+      ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
+                                                evmReturnValues);
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
@@ -75,11 +76,11 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
-    Account* contractAccount, INVOKE_TYPE invoke_type,
-    EvmCallParameters& params, bool& ret, TransactionReceipt& receipt,
+    Account* contractAccount, INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
+    bool& ret, TransactionReceipt& receipt,
     evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
-  EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
+  EvmCallRunner(invoke_type, args, ret, receipt, evmReturnValues);
 
   if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
@@ -248,9 +249,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
+bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
                                        evmproj::CallResponse& response) {
-  return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(params),
+  return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                              response);
 }
 
@@ -296,8 +297,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
-          DataConversion::CharArrayToString(transaction.GetCode()),
-          DataConversion::CharArrayToString(transaction.GetData()));
+          transaction.GetCode(), transaction.GetData());
 
       // Check if gaslimit meets the minimum requirement for contract deployment
       if (transaction.GetGasLimitEth() < baseFee) {
@@ -386,21 +386,23 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      EvmCallExtras extras;
-      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+      evm::EvmEvalExtras extras;
+      if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
       }
-      EvmCallParameters params = {
-          contractAddress.hex(),
-          fromAddr.hex(),
-          DataConversion::CharArrayToString(transaction.GetCode()),
-          DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimitEth(),
-          transaction.GetAmountWei(),
-          std::move(extras),
-      };
+      evm::EvmArgs args;
+      *args.mutable_address() = AddressToProto(contractAddress);
+      *args.mutable_origin() = AddressToProto(fromAddr);
+      *args.mutable_code() =
+          DataConversion::CharArrayToString(StripEVM(transaction.GetCode()));
+      *args.mutable_data() =
+          DataConversion::CharArrayToString(transaction.GetData());
+      args.set_gas_limit(transaction.GetGasLimitEth());
+      *args.mutable_apparent_value() =
+          UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      args.set_allocated_extras(&extras);
 
       std::map<std::string, zbytes> t_newmetadata;
 
@@ -415,7 +417,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
       evmproj::CallResponse response;
       auto gasRemained =
-          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
+          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, response);
 
       // Decrease remained gas by baseFee (which is not taken into account by
@@ -562,27 +564,29 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      EvmCallExtras extras;
-      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+      evm::EvmEvalExtras extras;
+      if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
       }
-      EvmCallParameters params = {
-          m_curContractAddr.hex(),
-          fromAddr.hex(),
-          DataConversion::CharArrayToString(contractAccount->GetCode()),
-          DataConversion::CharArrayToString(transaction.GetData()),
-          transaction.GetGasLimitEth(),
-          transaction.GetAmountWei(),
-          std::move(extras)};
-
-      LOG_GENERAL(WARNING, "contract address is " << params.m_contract
+      evm::EvmArgs args;
+      *args.mutable_address() = AddressToProto(m_curContractAddr);
+      *args.mutable_origin() = AddressToProto(fromAddr);
+      *args.mutable_code() =
+          DataConversion::CharArrayToString(StripEVM(transaction.GetCode()));
+      *args.mutable_data() =
+          DataConversion::CharArrayToString(transaction.GetData());
+      args.set_gas_limit(transaction.GetGasLimitEth());
+      *args.mutable_apparent_value() =
+          UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      args.set_allocated_extras(&extras);
+      LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr
                                                   << " caller account is "
-                                                  << params.m_caller);
+                                                  << fromAddr);
       evmproj::CallResponse response;
       const uint64_t gasRemained =
-          InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
+          InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
                                evm_call_succeeded, receipt, response);
 
       if (response.Trace().size() > 0) {

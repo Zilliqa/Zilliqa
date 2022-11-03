@@ -49,7 +49,7 @@ message Apply {
     Address address = 1;
     UInt256 balance = 2;
     UInt256 nonce = 3;
-    optional bytes code = 4;
+    bytes code = 4;
     repeated Storage storage = 5;
     bool reset_storage = 6;
   }
@@ -103,7 +103,7 @@ message ExitReason {
     }
 
     Kind kind = 1;
-    optional string error_string = 2;
+    string error_string = 2;
   }
 
   enum Revert {
@@ -118,8 +118,8 @@ message ExitReason {
       OTHER = 3;
     }
     Kind kind = 1;
-    optional Error error = 2;  // set when kind == CALL_ERROR_AS_FATAL
-    optional string error_string = 3;
+    Error error = 2;  // set when kind == CALL_ERROR_AS_FATAL
+    string error_string = 3;
   }
 
   oneof exit_reason {

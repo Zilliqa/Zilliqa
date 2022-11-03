@@ -28,6 +28,7 @@
 #include "AccountStoreBase.h"
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/TxnExtras.h"
 
@@ -175,7 +176,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
-  void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
+  void EvmCallRunner(const INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
                      bool& ret, TransactionReceipt& receipt,
                      evmproj::CallResponse& evmReturnValues);
 
@@ -212,7 +213,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   uint64_t InvokeEvmInterpreter(Account* contractAccount,
                                 INVOKE_TYPE invoke_type,
-                                EvmCallParameters& params, bool& ret,
+                                const evm::EvmArgs& args, bool& ret,
                                 TransactionReceipt& receipt,
                                 evmproj::CallResponse& evmReturnValues);
 
@@ -266,8 +267,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Adds an Account to the atomic AccountStore.
   bool AddAccountAtomic(const Address& address, const Account& account);
 
-  bool ViewAccounts(const EvmCallParameters& params,
-                    evmproj::CallResponse& response);
+  bool ViewAccounts(const evm::EvmArgs& args, evmproj::CallResponse& response);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

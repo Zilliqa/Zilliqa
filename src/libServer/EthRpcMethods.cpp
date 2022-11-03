@@ -422,9 +422,8 @@ std::string EthRpcMethods::CreateTransactionEth(
       uint64_t minGasLimit = 0;
       if (Transaction::GetTransactionType(tx) ==
           Transaction::ContractType::CONTRACT_CREATION) {
-        minGasLimit = Eth::getGasUnitsForContractDeployment(
-            DataConversion::CharArrayToString(tx.GetCode()),
-            DataConversion::CharArrayToString(tx.GetData()));
+        minGasLimit =
+            Eth::getGasUnitsForContractDeployment(tx.GetCode(), tx.GetData());
       } else {
         minGasLimit = MIN_ETH_GAS;
       }
@@ -621,7 +620,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     toAddr = Address{toAddrStr};
   }
 
-  std::string code;
+  zbytes code;
   uint256_t accountFunds{};
   bool contractCreation = false;
   {
@@ -645,7 +644,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
             : nullptr;
 
     if (toAccount != nullptr && toAccount->isContract()) {
-      code = DataConversion::CharArrayToString(toAccount->GetCode());
+      code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
       toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
                                               TRANSACTION_VERSION_ETH);
@@ -653,11 +652,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  std::string data;
+  zbytes data;
   if (json.isMember("data")) {
-    data = json["data"].asString();
-    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
-      data = data.substr(2);
+    if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "data argument invalid");
     }
   }
 
@@ -721,20 +720,22 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  EvmCallExtras extras;
-  if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+  evm::EvmEvalExtras extras;
+  if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
   }
-
-  const EvmCallParameters params{
-
-      toAddr.hex(), fromAddr.hex(),    code, data, gas,
-      value,        std::move(extras), true /* only estimate gas */
-  };
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(toAddr);
+  *args.mutable_origin() = AddressToProto(fromAddr);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+  *args.mutable_data() = DataConversion::CharArrayToString(data);
+  args.set_gas_limit(gas);
+  *args.mutable_apparent_value() = UIntToProto(value);
+  args.set_allocated_extras(&extras);
 
   evmproj::CallResponse response;
-  if (AccountStore::GetInstance().ViewAccounts(params, response) &&
+  if (AccountStore::GetInstance().ViewAccounts(args, response) &&
       response.Success()) {
     const auto gasRemained = response.Gas();
     const auto consumedEvmGas =
@@ -782,10 +783,10 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       fromAddr = Address(_json[apiKeys.from].asString());
     }
 
-    uint64_t amount{0};
+    uint256_t value = 0;
     if (_json.isMember(apiKeys.value)) {
-      const auto amount_str = _json[apiKeys.value].asString();
-      amount = DataConversion::ConvertStrToInt<uint64_t>(amount_str, 0);
+      const auto valueStr = _json[apiKeys.value].asString();
+      value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
     }
 
     // for now set total gas as twice the ds gas limit
@@ -798,9 +799,11 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       gasRemained = min(gasRemained, userGas);
     }
 
-    string data = _json[apiKeys.data].asString();
-    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
-      data = data.substr(2);
+    zbytes data;
+    if (!DataConversion::HexStrToUint8Vec(_json[apiKeys.data].asString(),
+                                          data)) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "data argument invalid");
     }
 
     const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
@@ -813,21 +816,21 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
                             .GetHeader()
                             .GetBlockNum();
-    EvmCallExtras extras;
-    if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+    evm::EvmEvalExtras extras;
+    if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
       throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                              "Failed to get EVM call extras");
     }
+    evm::EvmArgs args;
+    *args.mutable_address() = AddressToProto(addr);
+    *args.mutable_origin() = AddressToProto(fromAddr);
+    *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+    *args.mutable_data() = DataConversion::CharArrayToString(data);
+    args.set_gas_limit(gasRemained);
+    *args.mutable_apparent_value() = UIntToProto(value);
+    args.set_allocated_extras(&extras);
 
-    const EvmCallParameters params{addr.hex(),
-                                   fromAddr.hex(),
-                                   DataConversion::CharArrayToString(code),
-                                   data,
-                                   gasRemained,
-                                   amount,
-                                   std::move(extras)};
-
-    if (AccountStore::GetInstance().ViewAccounts(params, response) &&
+    if (AccountStore::GetInstance().ViewAccounts(args, response) &&
         response.Success()) {
       success = true;
     }

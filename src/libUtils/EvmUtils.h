@@ -21,7 +21,11 @@
 #include <json/json.h>
 
 #include <boost/multiprecision/cpp_int.hpp>
+#include "common/BaseType.h"
+#include "depends/common/FixedHash.h"
+#include "libData/AccountData/Address.h"
 #include "libData/AccountData/InvokeType.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/TxnExtras.h"
 
@@ -39,12 +43,29 @@ class EvmUtils {
   /// get the command for invoking the evm_runner while calling
   static Json::Value GetEvmCallJson(const EvmCallParameters& params);
 
+  /// get the command for invoking the evm_runner while calling
+  static Json::Value GetEvmCallJson(const evm::EvmArgs& args);
+
   using zbytes = std::vector<uint8_t>;
 
   static bool isEvm(const zbytes& code);
 };
 
-bool GetEvmCallExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
-                      EvmCallExtras& extras_out);
+bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
+                      evm::EvmEvalExtras& extras_out);
+
+using H256 = dev::h256;
+
+evm::H256 H256ToProto(const H256& hash);
+H256 ProtoToH256(const evm::H256& hash);
+
+evm::Address AddressToProto(const Address& address);
+Address ProtoToAddress(const evm::Address& address);
+
+uint128_t ProtoToUint(const evm::UInt128& numProto);
+uint256_t ProtoToUint(const evm::UInt256& numProto);
+
+evm::UInt128 UIntToProto(const uint128_t& num);
+evm::UInt256 UIntToProto(const uint256_t& num);
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMUTILS_H_
