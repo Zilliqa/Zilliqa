@@ -59,6 +59,8 @@ spec:
   selector:
     matchLabels:
       testnet: devnet
+      app: multiplier
+      type: multiplier
   template:
     metadata:
       labels:
