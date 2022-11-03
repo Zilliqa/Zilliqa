@@ -17,6 +17,8 @@
 
 #include "Logger.h"
 
+#include <g3sinks/LogRotate.h>
+
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <unistd.h>
@@ -106,12 +108,21 @@ void Logger::newLog() {
 
   if (m_bRefactor) {
     m_logWorker = LogWorker::createLogWorker();
+#if 0
     auto sinkHandle = m_logWorker->addSink(
         std::make_unique<FileSink>(m_fileName.c_str(), m_logPath, ""),
         &FileSink::fileWrite);
     sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
         .wait();
     sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
+#endif
+
+    auto sinkHandle = m_logWorker->addSink(
+        std::make_unique<LogRotate>(m_fileName.c_str(), m_logPath),
+        &LogRotate::save);
+   sinkHandle->call(&LogRotate::setMaxLogSize, MAX_FILE_SIZE).wait();
+   // You can manually trigger a rotate of the log
+
     initializeLogging(m_logWorker.get());
   } else {
     m_fileName += ".log";
