@@ -1,5 +1,6 @@
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomiclabs/hardhat-web3");
+require("@nomiclabs/hardhat-truffle5");
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {

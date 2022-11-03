@@ -1,5 +1,6 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
+const {expectRevert} = require("@openzeppelin/test-helpers");
 
 describe("Openzeppelin ownable contract functionality", function () {
   let contract;
@@ -48,5 +49,25 @@ describe("Openzeppelin ownable contract functionality", function () {
 
     await contract.connect(owner).renounceOwnership();
     await expect(contract.connect(owner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
+  });
+});
+
+const Ownable = artifacts.require("OwnableBox");
+
+contract("Ownable", function (accounts) {
+  const [owner, other] = accounts;
+
+  beforeEach(async function () {
+    this.ownable = await Ownable.new({from: owner});
+  });
+
+  it("has an owner", async function () {
+    expect(await this.ownable.owner()).to.equal(owner);
+  });
+
+  describe("transfer ownership", function () {
+    it("prevents non-owners from transferring", async function () {
+      await expectRevert(this.ownable.transferOwnership(other, {from: other}), "Ownable: caller is not the owner");
+    });
   });
 });
