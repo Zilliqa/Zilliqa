@@ -16,8 +16,6 @@ describe("Calling " + METHOD, function () {
         hre.logDebug(result);
 
         assert.equal(status, 200, "has status code");
-        assert.property(result, "result", result.error ? result.error.message : "error");
-        assert.isString(result.result, "is string");
         assert.isNumber(result.error.code, -32601);
         assert.isString(result.error.message, "is string");
       });
