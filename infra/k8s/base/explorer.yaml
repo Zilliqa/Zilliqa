@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet-explorer
+  labels:
+    testnet: devnet
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    name: zilliqa-explorer
+  selector:
+    # select explorer pods
+    testnet: devnet
+    app: explorer
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devnet-explorer
+  labels:
+    testnet: devnet
+    external: "true"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  rules:
+  - host: explorer.local.z7a.xyz
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        backend:
+          service:
+            name: devnet-explorer
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devnet-explorer
+  labels:
+    testnet: devnet
+data:
+  default.conf: |
+    server {
+        listen       80;
+        server_name  localhost;
+        location / {
+            root   /usr/share/nginx/html;
+            index  index.html index.htm;
+            try_files $uri $uri/ /index.html;
+        }
+    }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devnet-urls
+  labels:
+    testnet: devnet
+data:
+  networks.json: |
+    {
+      "networks": [
+        {"http://localhost:8080": "local-l2api"},
+        {"https://api.zilliqa.com/": "Mainnet"},
+        {"https://dev-api.zilliqa.com/": "Testnet"}
+      ]
+    }
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: devnet-explorer
+  labels:
+    testnet: devnet
+spec:
+  selector:
+    matchLabels:
+      testnet: devnet
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        testnet: devnet
+        app: explorer
+    spec:
+      # tolerations can be always on
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: webapp
+        effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1 # not need a very high value since tolerations is used
+            preference:
+              matchExpressions:
+              - key: k8s.z7a.xyz/group
+                operator: In
+                values:
+                - webapp
+      volumes:
+      - name: config
+        configMap:
+          name: devnet-explorer
+      - name: urls
+        configMap:
+          name: devnet-urls
+      containers:
+      - name: nginx
+        image: zilliqa/devex:a532d82
+        volumeMounts:
+        - name: config
+          mountPath: /etc/nginx/conf.d
+        - name: urls
+          mountPath: /usr/share/nginx/html/networks.json
+          subPath: networks.json
+        ports:
+        - containerPort: 80
