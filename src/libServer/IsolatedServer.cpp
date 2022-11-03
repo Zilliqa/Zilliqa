@@ -22,6 +22,7 @@
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
+#include "libServer/APIThreadPool.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
@@ -1021,6 +1022,8 @@ string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
   auto incrThread = [this]() mutable -> void {
+    evmproj::SetThreadName("tx_block_incr");
+
     // start the post tx block directly to prevent a 'dead' period before the
     // first block
     PostTxBlock();

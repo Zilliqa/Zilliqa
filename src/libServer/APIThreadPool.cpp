@@ -66,6 +66,7 @@ void APIThreadPool::Close() {
 
 void APIThreadPool::WorkerThread(size_t threadNo) {
   auto threadName = std::string("APIWorker-") + std::to_string(threadNo + 1);
+  SetThreadName(threadName.c_str());
 
   Request request;
   size_t queueSize = 0;

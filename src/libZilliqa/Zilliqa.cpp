@@ -32,6 +32,7 @@
 #include "libNetwork/Guard.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/APIServer.h"
+#include "libServer/APIThreadPool.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DetachedFunction.h"
@@ -520,6 +521,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (asioCtx) {
+      evmproj::SetThreadName("RPCAPI");
+
       boost::asio::signal_set sig(*asioCtx, SIGINT, SIGTERM);
       sig.async_wait([&](const boost::system::error_code&, int) {
         if (apiRPC) {
