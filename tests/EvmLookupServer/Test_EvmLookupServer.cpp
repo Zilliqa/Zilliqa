@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <jsonrpccpp/common/exception.h>
+#include <boost/test/tools/old/interface.hpp>
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #define BOOST_TEST_MODULE EvmLookupServer
@@ -706,12 +708,9 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.lookupServer->GetEthCoinbaseI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(),
-                    "0x0000000000000000000000000000000000000000");
+  BOOST_CHECK_THROW(
+      lookupServer.lookupServer->GetEthCoinbaseI(paramsRequest, response),
+      jsonrpc::JsonRpcException);
 }
 
 BOOST_AUTO_TEST_CASE(test_net_version) {
