@@ -35,7 +35,7 @@ namespace evmproj {
 inline void SetThreadName(const char* threadName) {
   pthread_setname_np(threadName);
 }
-#elif defined _WIN32 || defined _WIN64
+#elif defined _WIN32 || defined _WIN64 || defined __linux__
 
 inline void SetThreadName(const char* threadName) {
   pthread_setname_np(pthread_self(), threadName);
