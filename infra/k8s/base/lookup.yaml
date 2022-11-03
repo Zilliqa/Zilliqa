@@ -59,6 +59,8 @@ spec:
   selector:
     matchLabels:
       testnet: devnet
+      app: zilliqa
+      type: lookup
   template:
     metadata:
       labels:
