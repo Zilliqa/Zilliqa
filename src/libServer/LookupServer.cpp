@@ -558,6 +558,12 @@ Json::Value LookupServer::CreateTransaction(
 
     Transaction tx = JSONConversion::convertJsontoTx(_json);
 
+    if (tx.IsEth()) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Eth txs not supported for CreateTransaction api "
+                             "- use eth_sendRawTransaction");
+    }
+
     Json::Value ret;
 
     const Address fromAddr = tx.GetSenderAddr();
@@ -615,7 +621,7 @@ Json::Value LookupServer::CreateTransaction(
                                    toAccountExist, toAccountIsContract);
         ret["Info"] = check.first;
         ret["ContractAddress"] =
-            Account::GetAddressForContract(fromAddr, tx.GetNonce(),
+            Account::GetAddressForContract(fromAddr, tx.GetNonce() - 1,
                                            tx.GetVersionIdentifier())
                 .hex();
         mapIndex = check.second;
@@ -1086,9 +1092,7 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
                              "ID is not a contract txn");
     }
 
-    auto const nonce = tx.IsEth() ? tx.GetNonce() - 1 : tx.GetNonce();
-
-    return Account::GetAddressForContract(tx.GetSenderAddr(), nonce,
+    return Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce() - 1,
                                           tx.GetVersionIdentifier())
         .hex();
   } catch (const JsonRpcException& je) {

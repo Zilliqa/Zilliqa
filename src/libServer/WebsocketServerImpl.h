@@ -39,6 +39,8 @@ using AsioCtx = asio::io_context;
 using Socket = tcp::socket;
 using HttpRequest = http::request<http::basic_string_body<char>>;
 
+class APIThreadPool;
+
 namespace ws {
 
 class Connection;
@@ -48,28 +50,36 @@ class WebsocketServerImpl
     : public WebsocketServer,
       public std::enable_shared_from_this<WebsocketServerImpl> {
  public:
-  explicit WebsocketServerImpl(AsioCtx& asio) : m_asio(asio) {}
-
-  /// Explicit close because of shared_ptr usage. Called by owner
-  void CloseAll() override;
+  WebsocketServerImpl(AsioCtx& asio, std::shared_ptr<APIThreadPool> threadPool)
+      : m_asio(asio), m_threadPool(std::move(threadPool)) {
+    assert(m_threadPool);
+  }
 
   /// Called by HTTP server on new WS upgrade request
-  void NewConnection(Socket&& socket, HttpRequest&& req);
+  void NewConnection(std::string&& from, Socket&& socket, HttpRequest&& req);
 
   /// Called from Connection with its id.
   /// Empty msg means that the conn is closed.
   /// If returns false then conn will close silently
-  bool MessageFromConnection(ConnectionId id, InMessage msg);
+  bool MessageFromConnection(ConnectionId id, const std::string& from,
+                             InMessage msg);
+
+  // overrides
+  void SendMessage(ConnectionId conn_id, OutMessage msg) override;
+  void CloseAll() override;
 
  private:
   // overrides
   void SetOptions(Feedback feedback, size_t max_in_msg_size) override;
-  void SendMessage(ConnectionId conn_id, OutMessage msg) override;
   void CloseConnection(ConnectionId conn_id) override;
 
   /// Asio context is needed here to perform network-related operations in their
   /// dedicated thread
   AsioCtx& m_asio;
+
+  /// Thread pool to which other messages than eth_[un]subscribe to be
+  /// dispatched
+  std::shared_ptr<APIThreadPool> m_threadPool;
 
   /// Feedback to WebsocketServer owner
   Feedback m_feedback;

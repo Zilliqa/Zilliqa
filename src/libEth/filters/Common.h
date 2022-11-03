@@ -23,6 +23,13 @@
 namespace evmproj {
 namespace filters {
 
+enum class FilterType {
+  INVALID,
+  EVENT_FILTER,
+  TXN_FILTER,
+  BLK_FILTER,
+};
+
 using Quantity = std::string;
 using Address = std::string;
 using TxnHash = std::string;
