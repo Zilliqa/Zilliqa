@@ -53,12 +53,14 @@ inline pid_t getCurrentPid() {
 const streampos Logger::MAX_FILE_SIZE =
     1024 * 1024 * 100;  // 100MB per log file
 
-Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
-               streampos max_file_size) {
+Logger::Logger() {
+#if 0
   this->m_logToFile = log_to_file;
   this->m_maxFileSize = max_file_size;
   this->m_logPath = logpath;
+#endif
 
+#if 0
   try {
     if (!boost::filesystem::create_directory(this->m_logPath)) {
       if ((boost::filesystem::status(this->m_logPath).permissions() &
@@ -84,9 +86,44 @@ Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
     m_seqNum = 0;
     newLog();
   }
+#endif
 }
 
 Logger::~Logger() { m_logFile.close(); }
+
+void Logger::LogToFile(const boost::filesystem::path& filePath,
+                       std::size_t /*maxFileSize = MAX_FILE_SIZE*/) {
+  const auto& fileName = filePath.filename();
+  try {
+#if 0
+    const auto& fileRoot = boost::filesystem::absolute(filePath.root_path());
+#endif
+
+    if (!boost::filesystem::create_directory(this->m_logPath)) {
+      if ((boost::filesystem::status(this->m_logPath).permissions() &
+           boost::filesystem::perms::owner_write) ==
+          boost::filesystem::perms::no_perms) {
+        std::cout << this->m_logPath
+                  << " already existed but no writing permission!" << endl;
+        this->m_logPath = boost::filesystem::absolute("./").string();
+        std::cout << "Use default log folder " << this->m_logPath << " instead."
+                  << endl;
+      }
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    std::cout << "Cannot create log folder in " << this->m_logPath
+              << ", error code: " << e.code() << endl;
+    this->m_logPath = boost::filesystem::absolute("./").string();
+    std::cout << "Use default log folder " << this->m_logPath << " instead."
+              << endl;
+  }
+
+  m_fileNamePrefix = fileName.empty() ? "common" : fileName.string();
+  m_seqNum = 0;
+  newLog();
+}
+
+void Logger::LogToConsole() {}
 
 void Logger::checkLog() {
   std::ifstream in(m_fileName.c_str(),
@@ -120,8 +157,7 @@ void Logger::newLog() {
     auto sinkHandle = m_logWorker->addSink(
         std::make_unique<LogRotate>(m_fileName.c_str(), m_logPath),
         &LogRotate::save);
-   sinkHandle->call(&LogRotate::setMaxLogSize, MAX_FILE_SIZE).wait();
-   // You can manually trigger a rotate of the log
+    sinkHandle->call(&LogRotate::setMaxLogSize, MAX_FILE_SIZE).wait();
 
     initializeLogging(m_logWorker.get());
   } else {
@@ -130,22 +166,18 @@ void Logger::newLog() {
   }
 }
 
-Logger& Logger::GetLogger(const char* fname_prefix, bool log_to_file,
-                          const char* logpath, streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
+Logger& Logger::GetLogger() {
+  static Logger logger;
   return logger;
 }
 
-Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
-                               const char* logpath, streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
+Logger& Logger::GetStateLogger() {
+  static Logger logger;
   return logger;
 }
 
-Logger& Logger::GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
-                                   const char* logpath,
-                                   streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
+Logger& Logger::GetEpochInfoLogger() {
+  static Logger logger;
   return logger;
 }
 
@@ -373,14 +405,10 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
 ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
                          const char* function)
     : m_linenum(linenum), m_filename(filename), m_function(function) {
-  Logger& logger = Logger::GetLogger(
-      NULL, true, boost::filesystem::absolute("./").string().c_str());
-  logger.LogGeneral(INFO, "BEG", linenum, filename, function);
+  Logger::GetLogger().LogGeneral(INFO, "BEG", linenum, filename, function);
 }
 
 ScopeMarker::~ScopeMarker() {
-  Logger& logger = Logger::GetLogger(
-      NULL, true, boost::filesystem::absolute("./").string().c_str());
-  logger.LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
-                    m_function.c_str());
+  Logger::GetLogger().LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
+                                 m_function.c_str());
 }
