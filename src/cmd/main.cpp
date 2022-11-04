@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 

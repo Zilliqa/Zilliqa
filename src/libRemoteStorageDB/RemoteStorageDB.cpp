@@ -16,6 +16,7 @@
  */
 
 #include "RemoteStorageDB.h"
+#include <boost/filesystem/operations.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/builder/stream/document.hpp>

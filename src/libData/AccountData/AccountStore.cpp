@@ -16,6 +16,7 @@
  */
 
 #include <leveldb/db.h>
+#include <boost/filesystem/operations.hpp>
 #include <regex>
 
 #include "AccountStore.h"
