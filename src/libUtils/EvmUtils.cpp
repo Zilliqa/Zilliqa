@@ -18,6 +18,7 @@
 #include <array>
 #include <iostream>
 #include <mutex>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 
@@ -36,7 +37,6 @@
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmCallParameters.h"
-#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/TxnExtras.h"
 
@@ -51,6 +51,17 @@ Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   // Output can contain non-UTF8, so must be wrapped in base64.
   arr_ret.append(websocketpp::base64_encode(output));
   return arr_ret;
+}
+
+using websocketpp::base64_decode;
+
+evm::EvmResult& EvmUtils::GetEvmResultFromJson(const Json::Value& json,
+                                               evm::EvmResult& result) {
+  std::string data = websocketpp::base64_decode(json.asString());
+  if (!result.ParseFromString(data)) {
+    throw std::runtime_error("Cannot parse EVM result protobuf");
+  }
+  return result;
 }
 
 bool EvmUtils::isEvm(const zbytes& code) {
@@ -71,6 +82,73 @@ bool EvmUtils::isEvm(const zbytes& code) {
   auto const hasEvm = (code[0] == 'E' && code[1] == 'V' && code[2] == 'M');
 
   return hasEvm;
+}
+
+static std::string ExitErrorString(const evm::ExitReason::Error& error) {
+  switch (error.kind()) {
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_STACK_OVERFLOW:
+      return "Error: stack overflow";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_STACK_UNDERFLOW:
+      return "stack underflow";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_INVALID_JUMP:
+      return "invalid jump";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_INVALID_RANGE:
+      return "invalid range";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_DESIGNATED_INVALID:
+      return "designated invalid";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_CALL_TOO_DEEP:
+      return "call too deep";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_CREATE_COLLISION:
+      return "create collision";
+    case evm::ExitReason_Error::Kind::
+        ExitReason_Error_Kind_CREATE_CONTRACT_LIMIT:
+      return "create contract limit";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_INVALID_CODE:
+      return "invalid code";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_OUT_OF_OFFSET:
+      return "out of offset";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_OUT_OF_GAS:
+      return "out of gas";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_OUT_OF_FUND:
+      return "out of fund";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_PC_UNDERFLOW:
+      return "pc underflow";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_CREATE_EMPTY:
+      return "pc underflow";
+    case evm::ExitReason_Error::Kind::ExitReason_Error_Kind_OTHER:
+      return error.error_string();
+    default:;
+  }
+  return "unknown error";
+}
+
+std::string EvmUtils::ExitReasonString(const evm::ExitReason& exit_reason) {
+  switch (exit_reason.exit_reason_case()) {
+    case evm::ExitReason::ExitReasonCase::kSucceed:
+      return "Succeed";
+    case evm::ExitReason::ExitReasonCase::kRevert:
+      return "Reverted";
+    case evm::ExitReason::ExitReasonCase::kFatal:
+      switch (exit_reason.fatal().kind()) {
+        case evm::ExitReason_Fatal::Kind::
+            ExitReason_Fatal_Kind_UNHANDLED_INTERRUPT:
+          return "Fatal: unhandled interrupt";
+        case evm::ExitReason_Fatal::Kind::ExitReason_Fatal_Kind_NOT_SUPPORTED:
+          return "Fatal: not supported";
+        case evm::ExitReason_Fatal::Kind::
+            ExitReason_Fatal_Kind_CALL_ERROR_AS_FATAL:
+          return "Fatal: " + ExitErrorString(exit_reason.fatal().error());
+        case evm::ExitReason_Fatal::Kind::ExitReason_Fatal_Kind_OTHER:
+          return "Fatal: " + exit_reason.fatal().error_string();
+        default:;
+      }
+      return "Fatal: unknown error";
+      break;
+    case evm::ExitReason::ExitReasonCase::kError:
+      return "Error: " + ExitErrorString(exit_reason.error());
+    default:;
+  }
+  return "Unknown failure";
 }
 
 bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,

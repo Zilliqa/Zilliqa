@@ -26,29 +26,19 @@
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/InvokeType.h"
 #include "libUtils/Evm.pb.h"
-#include "libUtils/EvmCallParameters.h"
 #include "libUtils/TxnExtras.h"
-
-// fwd decls
-
-class TransactionReceipt;
-class Account;
-
-namespace evmproj {
-struct ApplyInstructions;
-}
 
 class EvmUtils {
  public:
   /// get the command for invoking the evm_runner while calling
-  static Json::Value GetEvmCallJson(const EvmCallParameters& params);
-
-  /// get the command for invoking the evm_runner while calling
   static Json::Value GetEvmCallJson(const evm::EvmArgs& args);
 
-  using zbytes = std::vector<uint8_t>;
+  static evm::EvmResult& GetEvmResultFromJson(const Json::Value& json,
+                                              evm::EvmResult& result);
 
   static bool isEvm(const zbytes& code);
+
+  static std::string ExitReasonString(const evm::ExitReason& exit_reason);
 };
 
 bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,

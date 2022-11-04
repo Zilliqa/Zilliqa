@@ -36,11 +36,6 @@ template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
 
-namespace evmproj {
-struct ApplyInstructions;
-struct CallResponse;
-}  // namespace evmproj
-
 template <class MAP>
 class AccountStoreAtomic
     : public AccountStoreBase<std::unordered_map<Address, Account>> {
@@ -178,7 +173,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
           extlibs_exports);
   void EvmCallRunner(const INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
                      bool& ret, TransactionReceipt& receipt,
-                     evmproj::CallResponse& evmReturnValues);
+                     evm::EvmResult& result);
 
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
@@ -215,7 +210,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                                 INVOKE_TYPE invoke_type,
                                 const evm::EvmArgs& args, bool& ret,
                                 TransactionReceipt& receipt,
-                                evmproj::CallResponse& evmReturnValues);
+                                evm::EvmResult& result);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
@@ -267,7 +262,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Adds an Account to the atomic AccountStore.
   bool AddAccountAtomic(const Address& address, const Account& account);
 
-  bool ViewAccounts(const evm::EvmArgs& args, evmproj::CallResponse& response);
+  bool ViewAccounts(const evm::EvmArgs& args, evm::EvmResult& result);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

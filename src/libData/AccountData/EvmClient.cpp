@@ -20,7 +20,7 @@
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <thread>
-#include "libUtils/EvmJsonResponse.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
 namespace {
@@ -153,8 +153,7 @@ bool EvmClient::OpenServer() {
   return status;
 }
 
-bool EvmClient::CallRunner(const Json::Value& _json,
-                           evmproj::CallResponse& result) {
+bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
@@ -166,9 +165,9 @@ bool EvmClient::CallRunner(const Json::Value& _json,
     }
   }
   try {
-    const auto oldJson = m_client->CallMethod("run", _json);
+    const auto replyJson = m_client->CallMethod("run", _json);
     try {
-      const auto reply = evmproj::GetReturn(oldJson, result);
+      const auto reply = EvmUtils::GetEvmResultFromJson(replyJson, result);
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,

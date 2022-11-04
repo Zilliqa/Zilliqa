@@ -47,6 +47,7 @@
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/JsonUtils.h"
@@ -731,10 +732,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            "Failed to get EVM call extras");
   }
 
-  evmproj::CallResponse response;
-  if (AccountStore::GetInstance().ViewAccounts(args, response) &&
-      response.Success()) {
-    const auto gasRemained = response.Gas();
+  evm::EvmResult result;
+  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+      result.exit_reason().exit_reason_case() ==
+          evm::ExitReason::ExitReasonCase::kSucceed) {
+    const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
@@ -750,7 +752,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
     return (boost::format("0x%x") % retGas).str();
   } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
   }
 }
 
@@ -773,7 +776,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     code = contractAccount->GetCode();
   }
 
-  evmproj::CallResponse response;
+  evm::EvmResult result;
   try {
     Address fromAddr;
     if (_json.isMember(apiKeys.from)) {
@@ -825,13 +828,14 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                              "Failed to get EVM call extras");
     }
 
-    if (AccountStore::GetInstance().ViewAccounts(args, response) &&
-        response.Success()) {
+    if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+        result.exit_reason().exit_reason_case() ==
+            evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;
     }
 
     if (LOG_SC) {
-      LOG_GENERAL(INFO, "Called Evm, response:" << response);
+      LOG_GENERAL(INFO, "Called Evm, response:" << result.DebugString());
     }
 
   } catch (const exception& e) {
@@ -840,10 +844,13 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   }
 
   if (!success) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
   }
 
-  return "0x" + response.ReturnedBytes();
+  std::string ret;
+  DataConversion::StringToHexStr(result.return_value(), ret);
+  return "0x" + ret;
 }
 
 std::string EthRpcMethods::GetWeb3ClientVersion() {

@@ -17,6 +17,7 @@
 
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libUtils/Evm.pb.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
@@ -30,7 +31,8 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
-#include "libUtils/EvmJsonResponse.h"
+#include "libUtils/Evm.pb.h"
+#include "libUtils/EvmUtils.h"
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
@@ -45,7 +47,7 @@ class EvmClientMock : public EvmClient {
  public:
   EvmClientMock() = default;
 
-  bool CallRunner(const Json::Value& request, evmproj::CallResponse&) override {
+  bool CallRunner(const Json::Value& request, evm::EvmResult&) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
     return true;
   };
@@ -184,8 +186,7 @@ class GetEthCallEvmClientMock : public EvmClient {
         m_DefaultWaitTime(defaultWaitTime)  // default waittime
         {};
 
-  bool CallRunner(const Json::Value& request,
-                  evmproj::CallResponse& response) override {
+  bool CallRunner(const Json::Value& request, evm::EvmResult& result) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
     Json::Reader _reader;
@@ -193,7 +194,7 @@ class GetEthCallEvmClientMock : public EvmClient {
 
     BOOST_CHECK(_reader.parse(m_ExpectedResponse, responseJson));
     LOG_GENERAL(DEBUG, "CallRunner json response:" << responseJson);
-    evmproj::GetReturn(responseJson, response);
+    EvmUtils::GetEvmResultFromJson(responseJson, result);
     std::this_thread::sleep_for(m_DefaultWaitTime);
     return true;
   };

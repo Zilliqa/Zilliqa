@@ -15,8 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 //
+#include <json/value.h>
 #include <chrono>
 #include <future>
+#include <stdexcept>
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
@@ -25,27 +27,25 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/EthRpcMethods.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
-#include "libUtils/EvmCallParameters.h"
-#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TxnExtras.h"
 
 template <class MAP>
-void AccountStoreSC<MAP>::EvmCallRunner(
-    const INVOKE_TYPE /*invoke_type*/,  //
-    const evm::EvmArgs& args,           //
-    bool& ret,                          //
-    TransactionReceipt& receipt,        //
-    evmproj::CallResponse& evmReturnValues) {
+void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
+                                        const evm::EvmArgs& args,           //
+                                        bool& ret,                          //
+                                        TransactionReceipt& receipt,        //
+                                        evm::EvmResult& result) {
   //
   // create a worker to be executed in the async method
-  const auto worker = [&args, &ret, &evmReturnValues]() -> void {
+  const auto worker = [&args, &ret, &result]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
-                                                evmReturnValues);
+                                                result);
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
@@ -77,182 +77,141 @@ void AccountStoreSC<MAP>::EvmCallRunner(
 template <class MAP>
 uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
-    bool& ret, TransactionReceipt& receipt,
-    evmproj::CallResponse& evmReturnValues) {
+    bool& ret, TransactionReceipt& receipt, evm::EvmResult& result) {
   // call evm-ds
-  EvmCallRunner(invoke_type, args, ret, receipt, evmReturnValues);
+  EvmCallRunner(invoke_type, args, ret, receipt, result);
 
-  if (not evmReturnValues.Success()) {
-    LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
+  if (result.exit_reason().exit_reason_case() !=
+      evm::ExitReason::ExitReasonCase::kSucceed) {
+    LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(result.exit_reason()));
+    ret = false;
   }
 
-  // switch ret to reflect our overall success
-  ret = evmReturnValues.Success() ? ret : false;
+  if (result.logs_size() > 0) {
+    Json::Value entry = Json::arrayValue;
 
-  if (!evmReturnValues.Logs().empty()) {
-    Json::Value _json = Json::arrayValue;
-
-    for (const auto& logJsonString : evmReturnValues.Logs()) {
-      LOG_GENERAL(INFO, "Evm return value logs: " << logJsonString);
-
-      try {
-        Json::Value tmp;
-        Json::Reader _reader;
-        if (_reader.parse(logJsonString, tmp)) {
-          _json.append(tmp);
-        } else {
-          LOG_GENERAL(WARNING, "Parsing json unsuccessful " << logJsonString);
-        }
-      } catch (std::exception& e) {
-        LOG_GENERAL(WARNING, "Exception: " << e.what());
+    for (const auto& log : result.logs()) {
+      Json::Value logJson;
+      logJson["address"] = "0x" + ProtoToAddress(log.address()).hex();
+      Json::Value topics_array = Json::arrayValue;
+      for (const auto& topic : log.topics()) {
+        topics_array.append("0x" + ProtoToH256(topic).hex());
       }
+      logJson["topics"] = topics_array;
+      entry.append(logJson);
     }
-    receipt.AddJsonEntry(_json);
+    receipt.AddJsonEntry(entry);
   }
-
-  auto gas = evmReturnValues.Gas();
 
   std::map<std::string, zbytes> states;
   std::vector<std::string> toDeletes;
   // parse the return values from the call to evm.
-  for (const auto& it : evmReturnValues.GetApplyInstructions()) {
-    if (it->OperationType() == "delete") {
-      // Set account balance to 0 to avoid any leakage of funds in case
-      // selfdestruct is called multiple times
-      Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
-      targetAccount->SetBalance(uint128_t(0));
-      m_storageRootUpdateBufferAtomic.emplace(it->Address());
-
-    } else {
-      // Get the account that this apply instruction applies to
-      Account* targetAccount = this->GetAccountAtomic(Address(it->Address()));
-      if (targetAccount == nullptr) {
-        if (!this->AddAccountAtomic(Address(it->Address()), {0, 0})) {
-          LOG_GENERAL(WARNING, "AddAccount failed for address "
-                                   << Address(it->Address()).hex());
-          continue;
-        }
-        targetAccount = this->GetAccountAtomic(Address(it->Address()));
+  for (const auto& it : result.apply()) {
+    Address address;
+    Account* targetAccount;
+    switch (it.apply_case()) {
+      case evm::Apply::ApplyCase::kDelete:
+        // Set account balance to 0 to avoid any leakage of funds in case
+        // selfdestruct is called multiple times
+        address = ProtoToAddress(it.delete_().address());
+        targetAccount = this->GetAccountAtomic(address);
+        targetAccount->SetBalance(uint128_t(0));
+        m_storageRootUpdateBufferAtomic.emplace(address);
+        break;
+      case evm::Apply::ApplyCase::kModify: {
+        // Get the account that this apply instruction applies to
+        address = ProtoToAddress(it.modify().address());
+        targetAccount = this->GetAccountAtomic(address);
         if (targetAccount == nullptr) {
-          LOG_GENERAL(WARNING, "failed to retrieve new account for address "
-                                   << Address(it->Address()).hex());
-          continue;
-        }
-      }
-
-      if (it->OperationType() == "modify") {
-        try {
-          if (it->isResetStorage()) {
-            states.clear();
-            toDeletes.clear();
-
-            Contract::ContractStorage::GetContractStorage()
-                .FetchStateDataForContract(states, Address(it->Address()), "",
-                                           {}, true);
-            for (const auto& x : states) {
-              toDeletes.emplace_back(x.first);
-            }
-
-            if (!targetAccount->UpdateStates(Address(it->Address()), {},
-                                             toDeletes, true)) {
-              LOG_GENERAL(
-                  WARNING,
-                  "Failed to update states hby setting indices for deletion "
-                  "for "
-                      << it->Address());
-            }
+          if (!this->AddAccountAtomic(address, {0, 0})) {
+            LOG_GENERAL(WARNING,
+                        "AddAccount failed for address " << address.hex());
+            continue;
           }
-        } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will examine exact possibilities and catch specific exceptions.
-          LOG_GENERAL(WARNING,
-                      "Exception thrown trying to reset storage " << e.what());
+          targetAccount = this->GetAccountAtomic(address);
+          if (targetAccount == nullptr) {
+            LOG_GENERAL(WARNING, "failed to retrieve new account for address "
+                                     << address.hex());
+            continue;
+          }
+        }
+
+        if (it.modify().reset_storage()) {
+          states.clear();
+          toDeletes.clear();
+
+          Contract::ContractStorage::GetContractStorage()
+              .FetchStateDataForContract(states, address, "", {}, true);
+          for (const auto& x : states) {
+            toDeletes.emplace_back(x.first);
+          }
+
+          if (!targetAccount->UpdateStates(address, {}, toDeletes, true)) {
+            LOG_GENERAL(
+                WARNING,
+                "Failed to update states hby setting indices for deletion "
+                "for "
+                    << address);
+          }
         }
 
         // If Instructed to reset the Code do so and call SetImmutable to reset
         // the hash
-        try {
-          if (it->hasCode() && it->Code().size() > 0) {
-            targetAccount->SetImmutable(
-                DataConversion::StringToCharArray("EVM" + it->Code()), {});
-          }
-        } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will examine exact possibilities and catch specific exceptions.
-          LOG_GENERAL(
-              WARNING,
-              "Exception thrown trying to update Contract code " << e.what());
+        const std::string& code = it.modify().code();
+        if (!code.empty()) {
+          targetAccount->SetImmutable(
+              DataConversion::StringToCharArray("EVM" + code), {});
         }
 
         // Actually Update the state for the contract
-        try {
-          for (const auto& sit : it->Storage()) {
-            if (not Contract::ContractStorage::GetContractStorage()
-                        .UpdateStateValue(
-                            Address(it->Address()),
-                            DataConversion::StringToCharArray(sit.Key()), 0,
-                            DataConversion::StringToCharArray(sit.Value()),
-                            0)) {
-              LOG_GENERAL(WARNING,
-                          "Exception thrown trying to update state in Contract "
-                          "storage "
-                              << it->Address());
-            }
+        for (const auto& sit : it.modify().storage()) {
+          if (not Contract::ContractStorage::GetContractStorage()
+                      .UpdateStateValue(
+                          address, ProtoToH256(sit.key()).asBytes(), 0,
+                          ProtoToH256(sit.value()).asBytes(), 0)) {
+            LOG_GENERAL(WARNING,
+                        "Failed to update state value at address " << address);
           }
-        } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will examine exact possibilities and catch specific exceptions.
-          LOG_GENERAL(WARNING,
-                      "Exception thrown trying to update state on the contract "
-                          << e.what());
         }
 
-        try {
-          if (it->hasBalance() && it->Balance().size()) {
-            targetAccount->SetBalance(uint128_t(it->Balance()));
+        if (it.modify().has_balance()) {
+          uint256_t balance = ProtoToUint(it.modify().balance());
+          if ((balance >> 128) > 0) {
+            throw std::runtime_error("Balance overlow!");
           }
-        } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will examine exact possibilities and catch specific exceptions.
-          LOG_GENERAL(
-              WARNING,
-              "Exception thrown trying to update balance on target Account "
-                  << e.what());
+          targetAccount->SetBalance(balance.convert_to<uint128_t>());
         }
-
-        try {
-          if (it->hasNonce() && it->Nonce().size()) {
-            targetAccount->SetNonce(
-                DataConversion::ConvertStrToInt<uint64_t>(it->Nonce(), 0));
+        if (it.modify().has_nonce()) {
+          uint256_t nonce = ProtoToUint(it.modify().nonce());
+          if ((nonce >> 64) > 0) {
+            throw std::runtime_error("Nonce overflow!");
           }
-        } catch (std::exception& e) {
-          // for now catch any generic exceptions and report them
-          // will examine exact possibilities and catch specific exceptions.
-          LOG_GENERAL(WARNING,
-                      "Exception thrown trying to set Nonce on target Account "
-                          << e.what());
+          targetAccount->SetNonce(nonce.convert_to<uint64_t>());
         }
         // Mark the Address as updated
-        m_storageRootUpdateBufferAtomic.emplace(it->Address());
-      }
+        m_storageRootUpdateBufferAtomic.emplace(address);
+      } break;
+      case evm::Apply::ApplyCase::APPLY_NOT_SET:
+        // do nothing;
+        break;
     }
   }
 
   // send code to be executed
   if (invoke_type == RUNNER_CREATE) {
-    contractAccount->SetImmutable(DataConversion::StringToCharArray(
-                                      "EVM" + evmReturnValues.ReturnedBytes()),
-                                  contractAccount->GetInitData());
+    contractAccount->SetImmutable(
+        DataConversion::StringToCharArray("EVM" + result.return_value()),
+        contractAccount->GetInitData());
   }
 
-  return gas;
+  return result.remaining_gas();
 }
 
 template <class MAP>
 bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
-                                       evmproj::CallResponse& response) {
+                                       evm::EvmResult& result) {
   return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
-                                             response);
+                                             result);
 }
 
 template <class MAP>
@@ -413,17 +372,17 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
-      evmproj::CallResponse response;
+      evm::EvmResult result;
       auto gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
-                               evm_call_run_succeeded, receipt, response);
+                               evm_call_run_succeeded, receipt, result);
 
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
-      if (response.Trace().size() > 0) {
+      if (result.trace_size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
-                                                        response.Trace()[0])) {
+                                                        result.trace(0))) {
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << transaction.GetTranID());
         }
@@ -580,14 +539,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr
                                                   << " caller account is "
                                                   << fromAddr);
-      evmproj::CallResponse response;
+      evm::EvmResult result;
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
-                               evm_call_succeeded, receipt, response);
+                               evm_call_succeeded, receipt, result);
 
-      if (response.Trace().size() > 0) {
+      if (result.trace_size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
-                                                        response.Trace()[0])) {
+                                                        result.trace(0))) {
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << transaction.GetTranID());
         }
