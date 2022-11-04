@@ -115,7 +115,7 @@ void EvmClient::Init() {
   if (LAUNCH_EVM_DAEMON) {
     CleanupPreviousInstances();
   } else {
-    LOG_GENERAL(INFO, "Not killing previous instances dut to config " );
+    LOG_GENERAL(INFO, "Not killing previous instances dut to config ");
   }
 }
 
