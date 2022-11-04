@@ -386,12 +386,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      evm::EvmEvalExtras extras;
-      if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
-        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
-        error_code = TxnStatus::ERROR;
-        return false;
-      }
       evm::EvmArgs args;
       *args.mutable_address() = AddressToProto(contractAddress);
       *args.mutable_origin() = AddressToProto(fromAddr);
@@ -402,7 +396,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       args.set_gas_limit(transaction.GetGasLimitEth());
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
-      args.set_allocated_extras(&extras);
+      if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
 
       std::map<std::string, zbytes> t_newmetadata;
 
@@ -564,12 +562,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      evm::EvmEvalExtras extras;
-      if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
-        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
-        error_code = TxnStatus::ERROR;
-        return false;
-      }
       evm::EvmArgs args;
       *args.mutable_address() = AddressToProto(m_curContractAddr);
       *args.mutable_origin() = AddressToProto(fromAddr);
@@ -580,7 +572,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       args.set_gas_limit(transaction.GetGasLimitEth());
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
-      args.set_allocated_extras(&extras);
+      if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
       LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr
                                                   << " caller account is "
                                                   << fromAddr);

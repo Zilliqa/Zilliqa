@@ -483,13 +483,8 @@ zbytes ToEVM(zbytes const& in) {
   if (in.empty()) {
     return in;
   }
-
-  std::string prefixedEvm{"EVM"};
-  prefixedEvm += DataConversion::Uint8VecToHexStrRet(in);
-  zbytes ret;
-
-  std::copy(prefixedEvm.begin(), prefixedEvm.end(), std::back_inserter(ret));
-
+  zbytes ret{'E', 'V', 'M'};
+  std::copy(in.begin(), in.end(), std::back_inserter(ret));
   return ret;
 }
 
@@ -497,10 +492,7 @@ zbytes FromEVM(zbytes const& in) {
   if (in.size() < 4) {
     return in;
   }
-
-  std::string ret{in.begin() + 3, in.end()};
-
-  return DataConversion::HexStrToUint8VecRet(ret);
+  return zbytes(in.begin() + 3, in.end());
 }
 
 zbytes StripEVM(zbytes const& in) {

@@ -385,8 +385,7 @@ std::string EthRpcMethods::CreateTransactionEth(
   if (IsNullAddress(toAddr)) {
     code = ToEVM(fields.code);
   } else {
-    data = DataConversion::StringToCharArray(
-        DataConversion::Uint8VecToHexStrRet(fields.code));
+    data = fields.code;
   }
   Transaction tx{fields.version,
                  fields.nonce,
@@ -720,11 +719,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  evm::EvmEvalExtras extras;
-  if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
-    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                           "Failed to get EVM call extras");
-  }
   evm::EvmArgs args;
   *args.mutable_address() = AddressToProto(toAddr);
   *args.mutable_origin() = AddressToProto(fromAddr);
@@ -732,7 +726,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   *args.mutable_data() = DataConversion::CharArrayToString(data);
   args.set_gas_limit(gas);
   *args.mutable_apparent_value() = UIntToProto(value);
-  args.set_allocated_extras(&extras);
+  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                           "Failed to get EVM call extras");
+  }
 
   evmproj::CallResponse response;
   if (AccountStore::GetInstance().ViewAccounts(args, response) &&
@@ -816,11 +813,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
                             .GetHeader()
                             .GetBlockNum();
-    evm::EvmEvalExtras extras;
-    if (!GetEvmEvalExtras(blockNum, txnExtras, extras)) {
-      throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                             "Failed to get EVM call extras");
-    }
     evm::EvmArgs args;
     *args.mutable_address() = AddressToProto(addr);
     *args.mutable_origin() = AddressToProto(fromAddr);
@@ -828,7 +820,10 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     *args.mutable_data() = DataConversion::CharArrayToString(data);
     args.set_gas_limit(gasRemained);
     *args.mutable_apparent_value() = UIntToProto(value);
-    args.set_allocated_extras(&extras);
+    if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+      throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                             "Failed to get EVM call extras");
+    }
 
     if (AccountStore::GetInstance().ViewAccounts(args, response) &&
         response.Success()) {

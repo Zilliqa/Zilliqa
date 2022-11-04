@@ -232,7 +232,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -292,7 +292,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -359,7 +359,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -479,7 +479,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -578,7 +578,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_success) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
