@@ -704,8 +704,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     if (IsNullAddress(toAddr)) {
       code = ToEVM(fields.code);
     } else {
-      data = DataConversion::StringToCharArray(
-          DataConversion::Uint8VecToHexStrRet(fields.code));
+      data = fields.code;
     }
     Transaction tx{fields.version,
                    fields.nonce,
