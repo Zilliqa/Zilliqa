@@ -199,7 +199,7 @@
         <!-- blocking Call to read socket from evm-ds timeout -->
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
-        <EVM_LAUNCH_DAMEON>true</EVM_LAUNCH_DAMEON>
+        <LAUNCH_EVM_DAMEON>false</LAUNCH_EVM_DAMEON>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
