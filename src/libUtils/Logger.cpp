@@ -48,6 +48,24 @@ inline pid_t getCurrentPid() {
 #endif
 }
 
+class CustomLogRotate {
+ public:
+  template <typename... ArgsT>
+  CustomLogRotate(ArgsT&&... args)
+      : m_logRotate(std::forward<ArgsT>(args)...) {}
+
+  void setMaxLogSize(int max_file_size_in_bytes) {
+    m_logRotate.setMaxLogSize(max_file_size_in_bytes);
+  }
+
+  void receiveLogMessage(g3::LogMessageMover logEntry) {
+    m_logRotate.save(logEntry.get().message());
+  }
+
+ private:
+  LogRotate m_logRotate;
+};
+
 class StdoutSink {
  public:
   void forwardLogToStdout(g3::LogMessageMover logEntry) {
@@ -126,10 +144,11 @@ void Logger::LogToFile(const boost::filesystem::path& filePath,
   auto logFileName = filePath.filename();
   if (logFileName.empty()) logFileName = "common.log";
 
-  auto sinkHandle = m_logWorker->addSink(
-      std::make_unique<LogRotate>(logFileName.c_str(), logFileRoot.c_str()),
-      &LogRotate::save);
-  sinkHandle->call(&LogRotate::setMaxLogSize, maxFileSize).wait();
+  auto sinkHandle =
+      m_logWorker->addSink(std::make_unique<CustomLogRotate>(
+                               logFileName.c_str(), logFileRoot.c_str()),
+                           &CustomLogRotate::receiveLogMessage);
+  sinkHandle->call(&CustomLogRotate::setMaxLogSize, maxFileSize).wait();
 }
 
 void Logger::LogToConsole() {
