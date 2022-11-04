@@ -22,8 +22,7 @@
 #include <pthread.h>
 #include <sys/syscall.h>
 #include <unistd.h>
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <cstring>
 #include <iostream>
 
@@ -48,12 +47,21 @@ inline pid_t getCurrentPid() {
   return 0;
 #endif
 }
+
+class StdoutSink {
+ public:
+  void forwardLogToStdout(g3::LogMessageMover logEntry) {
+    std::cout << logEntry.get().message() << std::endl;
+  }
+};
+
 }  // namespace
 
 const streampos Logger::MAX_FILE_SIZE =
     1024 * 1024 * 100;  // 100MB per log file
 
-Logger::Logger() {
+Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
+  initializeLogging(m_logWorker.get());
 #if 0
   this->m_logToFile = log_to_file;
   this->m_maxFileSize = max_file_size;
@@ -89,54 +97,49 @@ Logger::Logger() {
 #endif
 }
 
-Logger::~Logger() { m_logFile.close(); }
-
 void Logger::LogToFile(const boost::filesystem::path& filePath,
-                       std::size_t /*maxFileSize = MAX_FILE_SIZE*/) {
-  const auto& fileName = filePath.filename();
+                       std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+  auto logFileRoot = boost::filesystem::absolute(filePath.root_path());
+  bool useDefaultLocation = false;
   try {
-#if 0
-    const auto& fileRoot = boost::filesystem::absolute(filePath.root_path());
-#endif
-
-    if (!boost::filesystem::create_directory(this->m_logPath)) {
-      if ((boost::filesystem::status(this->m_logPath).permissions() &
+    if (!boost::filesystem::create_directory(logFileRoot)) {
+      if ((boost::filesystem::status(logFileRoot).permissions() &
            boost::filesystem::perms::owner_write) ==
           boost::filesystem::perms::no_perms) {
-        std::cout << this->m_logPath
+        useDefaultLocation = true;
+        std::cout << logFileRoot
                   << " already existed but no writing permission!" << endl;
-        this->m_logPath = boost::filesystem::absolute("./").string();
-        std::cout << "Use default log folder " << this->m_logPath << " instead."
-                  << endl;
       }
     }
   } catch (const boost::filesystem::filesystem_error& e) {
-    std::cout << "Cannot create log folder in " << this->m_logPath
+    std::cout << "Cannot create log folder in " << logFileRoot
               << ", error code: " << e.code() << endl;
-    this->m_logPath = boost::filesystem::absolute("./").string();
-    std::cout << "Use default log folder " << this->m_logPath << " instead."
+    useDefaultLocation = true;
+  }
+
+  if (useDefaultLocation) {
+    logFileRoot = boost::filesystem::absolute("./");
+    std::cout << "Use default log folder " << logFileRoot << " instead."
               << endl;
   }
 
-  m_fileNamePrefix = fileName.empty() ? "common" : fileName.string();
-  m_seqNum = 0;
-  newLog();
+  auto logFileName = filePath.filename();
+  if (logFileName.empty()) logFileName = "common.log";
+
+  auto sinkHandle = m_logWorker->addSink(
+      std::make_unique<LogRotate>(logFileName.c_str(), logFileRoot.c_str()),
+      &LogRotate::save);
+  sinkHandle->call(&LogRotate::setMaxLogSize, maxFileSize).wait();
 }
 
-void Logger::LogToConsole() {}
-
-void Logger::checkLog() {
-  std::ifstream in(m_fileName.c_str(),
-                   std::ifstream::ate | std::ifstream::binary);
-
-  if (in.tellg() >= m_maxFileSize) {
-    m_logFile.close();
-    newLog();
-  }
+void Logger::LogToConsole() {
+  m_logWorker->addSink(std::make_unique<StdoutSink>(),
+                       &StdoutSink::forwardLogToStdout);
 }
 
+#if 0
 void Logger::newLog() {
-  m_seqNum++;
+  // m_seqNum++;
   m_bRefactor = (m_fileNamePrefix == "zilliqa");
 
   using boost::format;
@@ -144,15 +147,12 @@ void Logger::newLog() {
   m_fileName = m_fileNamePrefix + str(format("-%05d") % m_seqNum);
 
   if (m_bRefactor) {
-    m_logWorker = LogWorker::createLogWorker();
-#if 0
     auto sinkHandle = m_logWorker->addSink(
         std::make_unique<FileSink>(m_fileName.c_str(), m_logPath, ""),
         &FileSink::fileWrite);
     sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
         .wait();
     sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
-#endif
 
     auto sinkHandle = m_logWorker->addSink(
         std::make_unique<LogRotate>(m_fileName.c_str(), m_logPath),
@@ -165,6 +165,7 @@ void Logger::newLog() {
     m_logFile.open(m_logPath + m_fileName, ios_base::app);
   }
 }
+#endif
 
 Logger& Logger::GetLogger() {
   static Logger logger;
@@ -181,188 +182,71 @@ Logger& Logger::GetEpochInfoLogger() {
   return logger;
 }
 
-void Logger::LogState(const char* msg) {
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    m_logFile << msg << endl << flush;
-  } else {
-    cout << msg << endl << flush;
-  }
-}
+void Logger::LogState(const char* msg) { LOG(INFO) << msg << endl << flush; }
 
 void Logger::LogGeneral(const LEVELS& level, const char* msg,
                         const unsigned int linenum, const char* filename,
                         const char* function) {
-  if (IsG3Log()) {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-               << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-               << PAD(get_ms(cur), 3, '0') << "]["
-               << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)
-               << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
-    return;
-  }
-
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-              << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-              << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-              << flush;
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-         << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-         << flush;
-  }
+  auto cur = chrono::system_clock::now();
+  auto cur_time_t = chrono::system_clock::to_time_t(cur);
+  auto file_and_line =
+      std::string(std::string(filename) + ":" + std::to_string(linenum));
+  LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
+             << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
+             << PAD(get_ms(cur), 3, '0') << "]["
+             << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
 }
 
-void Logger::LogEpoch([[gnu::unused]] const LEVELS& level, const char* msg,
-                      const char* epoch, const unsigned int linenum,
-                      const char* filename, const char* function) {
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-              << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-              << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-              << "] " << msg << endl
-              << flush;
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-         << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-         << msg << endl
-         << flush;
-  }
+void Logger::LogEpoch(const LEVELS& level, const char* msg, const char* epoch,
+                      const unsigned int linenum, const char* filename,
+                      const char* function) {
+  auto cur = chrono::system_clock::now();
+  auto cur_time_t = chrono::system_clock::to_time_t(cur);
+  auto file_and_line =
+      std::string(std::string(filename) + ":" + std::to_string(linenum));
+  LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
+             << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
+             << PAD(get_ms(cur), 3, '0') << "]["
+             << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
+             << "] " << msg;
 }
 
-void Logger::LogPayload([[gnu::unused]] const LEVELS& level, const char* msg,
+void Logger::LogPayload(const LEVELS& level, const char* msg,
                         const bytes& payload, size_t max_bytes_to_display,
                         const unsigned int linenum, const char* filename,
                         const char* function) {
   std::unique_ptr<char[]> payload_string;
   GetPayloadS(payload, max_bytes_to_display, payload_string);
-  lock_guard<mutex> guard(m);
 
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
+  auto cur = chrono::system_clock::now();
+  auto cur_time_t = chrono::system_clock::to_time_t(cur);
+  auto file_and_line = std::string(filename) + ":" + std::to_string(linenum);
 
-    if (payload.size() > max_bytes_to_display) {
-      m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-                << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-                << PAD(get_ms(cur), 3, '0') << "]["
-                << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)
-                << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                << " (Len=" << payload.size() << "): " << payload_string.get()
-                << "..." << endl
-                << flush;
-    } else {
-      m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-                << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-                << PAD(get_ms(cur), 3, '0') << "]["
-                << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)
-                << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                << " (Len=" << payload.size() << "): " << payload_string.get()
-                << endl
-                << flush;
-    }
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-
-    if (payload.size() > max_bytes_to_display) {
-      cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-           << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-           << PAD(get_ms(cur), 3, '0') << "]["
-           << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-           << " (Len=" << payload.size() << "): " << payload_string.get()
-           << "..." << endl
-           << flush;
-    } else {
-      cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-           << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-           << PAD(get_ms(cur), 3, '0') << "]["
-           << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-           << " (Len=" << payload.size() << "): " << payload_string.get()
-           << endl
-           << flush;
-    }
-  }
+  LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
+             << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
+             << PAD(get_ms(cur), 3, '0') << "]["
+             << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
+             << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
+             << " (Len=" << payload.size() << "): " << payload_string.get()
+             << (payload.size() > max_bytes_to_display ? "..." : "");
 }
 
 void Logger::LogEpochInfo(const char* msg, const unsigned int linenum,
                           const char* filename, const char* function,
                           const char* epoch) {
   pid_t tid = getCurrentPid();
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    m_logFile << "[" << PAD(tid, TID_LEN, ' ') << "]["
-              << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-              << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-              << "] " << msg << endl
-              << flush;
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    cout << "[" << PAD(tid, TID_LEN, ' ') << "]["
-         << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-         << msg << endl
-         << flush;
-  }
+  auto cur = chrono::system_clock::now();
+  auto cur_time_t = chrono::system_clock::to_time_t(cur);
+  auto file_and_line =
+      std::string(std::string(filename) + ":" + std::to_string(linenum));
+  LOG(INFO) << "[" << PAD(tid, TID_LEN, ' ') << "]["
+            << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
+            << PAD(get_ms(cur), 3, '0') << "]["
+            << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
+            << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
+            << msg;
 }
 
 void Logger::DisplayLevelAbove(const LEVELS& level) {

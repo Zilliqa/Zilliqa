@@ -18,14 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
-#include <mutex>
 #include <sstream>
-#include <string>
-#include <vector>
 #include "common/BaseType.h"
 #include "g3log/g3log.hpp"
 #include "g3log/logworker.hpp"
@@ -43,23 +40,10 @@
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
-  std::mutex m;
-  bool m_logToFile;
-  std::streampos m_maxFileSize;
+  std::atomic_bool m_zilliqaLog{false};
   std::unique_ptr<g3::LogWorker> m_logWorker;
 
   Logger();
-  ~Logger();
-
-  void checkLog();
-  void newLog();
-
-  std::string m_fileNamePrefix;
-  std::string m_fileName;
-  std::ofstream m_logFile;
-  unsigned int m_seqNum;
-  bool m_bRefactor{};
-  std::string m_logPath;
 
  public:
   /// Limits the number of bytes of a payload to display.
@@ -138,8 +122,8 @@ class Logger {
   /// Disable the log level
   void DisableLevel(const LEVELS& level);
 
-  /// See if we need to use g3log or not
-  bool IsG3Log() { return (m_logToFile && m_bRefactor); };
+  /// Checks if this is the main zilliqa log file.
+  bool IsZilliqaLog() { return m_zilliqaLog; };
 
   /// Get current process id
   static pid_t GetPid();
@@ -194,7 +178,7 @@ class ScopeMarker {
 
 #define LOG_GENERAL(level, msg)                                                \
   {                                                                            \
-    if (Logger::GetLogger().IsG3Log()) {                                       \
+    if (Logger::GetLogger().IsZilliqaLog()) {                                  \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -215,7 +199,7 @@ class ScopeMarker {
 
 #define LOG_EPOCH(level, epoch, msg)                                           \
   {                                                                            \
-    if (Logger::GetLogger().IsG3Log()) {                                       \
+    if (Logger::GetLogger().IsZilliqaLog()) {                                  \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -238,7 +222,7 @@ class ScopeMarker {
 
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
   {                                                                            \
-    if (Logger::GetLogger().IsG3Log()) {                                       \
+    if (Logger::GetLogger().IsZilliqaLog()) {                                  \
       std::unique_ptr<char[]> payload_string;                                  \
       Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);      \
       auto cur = std::chrono::system_clock::now();                             \
