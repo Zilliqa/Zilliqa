@@ -429,25 +429,6 @@ def test_eth_syncing(url: str) -> bool:
 
     return True
 
-def test_eth_coinbase(url: str) -> bool:
-    """
-        Returns the client coinbase address. The coinbase address is the account to pay mining rewards to.
-        return all 0s
-    """
-    try:
-        response = requests.post(url, json={"id": "1", "jsonrpc": "2.0", "method": "eth_coinbase"})
-        res = get_result(response)
-
-        if res.lower() != "0x0000000000000000000000000000000000000000":
-            raise Exception(f"Bad eth_coinbase return value: {res}")
-
-    except Exception as e:
-        print(f"********* Failed test test_eth_coinbase with error: '{e}'")
-        print(f"\n\nTraceback: {traceback.format_exc()}")
-        return False
-
-    return True
-
 def test_eth_mining(url: str) -> bool:
     """
         Returns whether mining is happening. Returns false.
@@ -1585,7 +1566,6 @@ def main():
     ret &= test_net_peerCount(args.api)
     ret &= test_eth_protocolVersion(args.api)
     ret &= test_eth_syncing(args.api)
-    ret &= test_eth_coinbase(args.api)
     ret &= test_eth_mining(args.api)
     ret &= test_eth_accounts(args.api)
     #ret &= test_eth_blockNumber(args.api)

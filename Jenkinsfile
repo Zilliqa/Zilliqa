@@ -35,7 +35,7 @@ timestamps {
                 def pr_skipci = "0"
                 try {
                   if (env.CHANGE_TITLE != null && env.CHANGE_TITLE != "") {
-                    pr_skipci = sh(script: "echo ${env.CHANGE_TITLE.replace("(","").replace(")","")} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
+                    pr_skipci = sh(script: "echo ${env.CHANGE_TITLE.replace("(","").replace(")","").replace("'","")} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
                   }
                 } catch (err) {
                   println err.getMessage()
