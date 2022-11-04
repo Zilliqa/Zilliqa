@@ -30,20 +30,6 @@
 
 namespace evmproj {
 
-#ifdef __APPLE__
-
-inline void SetThreadName(const char* threadName) {
-  pthread_setname_np(threadName);
-}
-#elif defined _WIN32 || defined _WIN64 || defined __linux__
-
-inline void SetThreadName(const char* threadName) {
-  pthread_setname_np(pthread_self(), threadName);
-}
-#else
-inline void SetThreadName(const char*) {}
-#endif
-
 class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
  public:
   /// Job ID (is effectively connection's id)
