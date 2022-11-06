@@ -746,14 +746,14 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
     return (boost::format("0x%x") % retGas).str();
-  } else if (result.exit_reason().exit_reason_case() == evm::ExitReason::kRevert) {
+  } else if (result.exit_reason().exit_reason_case() ==
+             evm::ExitReason::kRevert) {
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     std::string return_value;
     DataConversion::StringToHexStr(result.return_value(), return_value);
-    throw JsonRpcException(3, "execution reverted",
-                           "0x" + return_value);
+    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            EvmUtils::ExitReasonString(result.exit_reason()));
@@ -850,13 +850,15 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   DataConversion::StringToHexStr(result.return_value(), return_value);
   if (success) {
     return "0x" + return_value;
-  } else if (result.exit_reason().exit_reason_case() == evm::ExitReason::kRevert) {
+  } else if (result.exit_reason().exit_reason_case() ==
+             evm::ExitReason::kRevert) {
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, EvmUtils::ExitReasonString(result.exit_reason()));
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
   }
 }
 
