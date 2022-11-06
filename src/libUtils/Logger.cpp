@@ -48,76 +48,13 @@ inline pid_t getCurrentPid() {
 #endif
 }
 
-class CustomLogRotate {
- public:
-  template <typename... ArgsT>
-  CustomLogRotate(ArgsT&&... args)
-      : m_logRotate(std::forward<ArgsT>(args)...) {}
+template <typename LogRotateSinkT>
+void AddFileSink(g3::LogWorker& logWorker, const std::string& filePrefix,
+                 const boost::filesystem::path& filePath,
+                 std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+  assert(!filePath.has_filename());
 
-  void setMaxLogSize(int max_file_size_in_bytes) {
-    m_logRotate.setMaxLogSize(max_file_size_in_bytes);
-  }
-
-  void receiveLogMessage(g3::LogMessageMover logEntry) {
-    m_logRotate.save(logEntry.get().message());
-  }
-
- private:
-  LogRotate m_logRotate;
-};
-
-class StdoutSink {
- public:
-  void forwardLogToStdout(g3::LogMessageMover logEntry) {
-    std::cout << logEntry.get().message() << std::endl;
-  }
-};
-
-}  // namespace
-
-const streampos Logger::MAX_FILE_SIZE =
-    1024 * 1024 * 100;  // 100MB per log file
-
-Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
-  initializeLogging(m_logWorker.get());
-#if 0
-  this->m_logToFile = log_to_file;
-  this->m_maxFileSize = max_file_size;
-  this->m_logPath = logpath;
-#endif
-
-#if 0
-  try {
-    if (!boost::filesystem::create_directory(this->m_logPath)) {
-      if ((boost::filesystem::status(this->m_logPath).permissions() &
-           boost::filesystem::perms::owner_write) ==
-          boost::filesystem::perms::no_perms) {
-        std::cout << this->m_logPath
-                  << " already existed but no writing permission!" << endl;
-        this->m_logPath = boost::filesystem::absolute("./").string();
-        std::cout << "Use default log folder " << this->m_logPath << " instead."
-                  << endl;
-      }
-    }
-  } catch (const boost::filesystem::filesystem_error& e) {
-    std::cout << "Cannot create log folder in " << this->m_logPath
-              << ", error code: " << e.code() << endl;
-    this->m_logPath = boost::filesystem::absolute("./").string();
-    std::cout << "Use default log folder " << this->m_logPath << " instead."
-              << endl;
-  }
-
-  if (log_to_file) {
-    m_fileNamePrefix = prefix ? prefix : "common";
-    m_seqNum = 0;
-    newLog();
-  }
-#endif
-}
-
-void Logger::LogToFile(const boost::filesystem::path& filePath,
-                       std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
-  auto logFileRoot = boost::filesystem::absolute(filePath.root_path());
+  auto logFileRoot = boost::filesystem::absolute(filePath);
   bool useDefaultLocation = false;
   try {
     if (!boost::filesystem::create_directory(logFileRoot)) {
@@ -141,68 +78,95 @@ void Logger::LogToFile(const boost::filesystem::path& filePath,
               << endl;
   }
 
-  auto logFileName = filePath.filename();
-  if (logFileName.empty()) logFileName = "common.log";
-
-  auto sinkHandle =
-      m_logWorker->addSink(std::make_unique<CustomLogRotate>(
-                               logFileName.c_str(), logFileRoot.c_str()),
-                           &CustomLogRotate::receiveLogMessage);
-  sinkHandle->call(&CustomLogRotate::setMaxLogSize, maxFileSize).wait();
+  auto sinkHandle = logWorker.addSink(
+      std::make_unique<LogRotateSinkT>(
+          filePrefix.empty() ? "common" : filePrefix, logFileRoot.c_str()),
+      &LogRotateSinkT::receiveLogMessage);
+  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxFileSize).wait();
 }
 
-void Logger::LogToConsole() {
+class CustomLogRotate {
+ public:
+  virtual ~CustomLogRotate() noexcept = default;
+
+  template <typename... ArgsT>
+  CustomLogRotate(ArgsT&&... args)
+      : m_logRotate(std::forward<ArgsT>(args)...) {}
+
+  void setMaxLogSize(int max_file_size_in_bytes) {
+    m_logRotate.setMaxLogSize(max_file_size_in_bytes);
+  }
+
+  void receiveLogMessage(g3::LogMessageMover logEntry) {
+    m_logRotate.save(logEntry.get().message());
+  }
+
+ private:
+  LogRotate m_logRotate;
+};
+
+class GeneralLogSink : public CustomLogRotate {
+ public:
+  using CustomLogRotate::CustomLogRotate;
+};
+
+class StateLogSink : public CustomLogRotate {
+ public:
+  using CustomLogRotate::CustomLogRotate;
+};
+
+class EpochLogSink : public CustomLogRotate {
+ public:
+  using CustomLogRotate::CustomLogRotate;
+};
+
+class StdoutSink {
+ public:
+  void forwardLogToStdout(g3::LogMessageMover logEntry) {
+    std::cout << logEntry.get().message();
+  }
+};
+
+}  // namespace
+
+const streampos Logger::MAX_FILE_SIZE =
+    1024 * 1024 * 100;  // 100MB per log file
+
+Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
+  initializeLogging(m_logWorker.get());
+}
+
+void Logger::AddGeneralSink(const std::string& filePrefix,
+                            const boost::filesystem::path& filePath,
+                            std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+  AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
+}
+
+void Logger::AddStateSink(const std::string& filePrefix,
+                          const boost::filesystem::path& filePath,
+                          std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+  AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
+}
+
+void Logger::AddEpochSink(const std::string& filePrefix,
+                          const boost::filesystem::path& filePath,
+                          std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+  AddFileSink<EpochLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
+}
+
+void Logger::AddStdoutSink() {
   m_logWorker->addSink(std::make_unique<StdoutSink>(),
                        &StdoutSink::forwardLogToStdout);
 }
-
-#if 0
-void Logger::newLog() {
-  // m_seqNum++;
-  m_bRefactor = (m_fileNamePrefix == "zilliqa");
-
-  using boost::format;
-  // Filename = m_fileNamePrefix + 5-digit sequence number + timestamp + ".log"
-  m_fileName = m_fileNamePrefix + str(format("-%05d") % m_seqNum);
-
-  if (m_bRefactor) {
-    auto sinkHandle = m_logWorker->addSink(
-        std::make_unique<FileSink>(m_fileName.c_str(), m_logPath, ""),
-        &FileSink::fileWrite);
-    sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
-        .wait();
-    sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
-
-    auto sinkHandle = m_logWorker->addSink(
-        std::make_unique<LogRotate>(m_fileName.c_str(), m_logPath),
-        &LogRotate::save);
-    sinkHandle->call(&LogRotate::setMaxLogSize, MAX_FILE_SIZE).wait();
-
-    initializeLogging(m_logWorker.get());
-  } else {
-    m_fileName += ".log";
-    m_logFile.open(m_logPath + m_fileName, ios_base::app);
-  }
-}
-#endif
 
 Logger& Logger::GetLogger() {
   static Logger logger;
   return logger;
 }
 
-Logger& Logger::GetStateLogger() {
-  static Logger logger;
-  return logger;
-}
-
-Logger& Logger::GetEpochInfoLogger() {
-  static Logger logger;
-  return logger;
-}
-
 void Logger::LogState(const char* msg) { LOG(INFO) << msg << endl << flush; }
 
+#if 0
 void Logger::LogGeneral(const LEVELS& level, const char* msg,
                         const unsigned int linenum, const char* filename,
                         const char* function) {
@@ -216,6 +180,7 @@ void Logger::LogGeneral(const LEVELS& level, const char* msg,
              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
              << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
 }
+#endif
 
 void Logger::LogEpoch(const LEVELS& level, const char* msg, const char* epoch,
                       const unsigned int linenum, const char* filename,
@@ -308,10 +273,14 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
 ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
                          const char* function)
     : m_linenum(linenum), m_filename(filename), m_function(function) {
+#if 0
   Logger::GetLogger().LogGeneral(INFO, "BEG", linenum, filename, function);
+#endif
 }
 
 ScopeMarker::~ScopeMarker() {
+#if 0
   Logger::GetLogger().LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
                                  m_function.c_str());
+#endif
 }

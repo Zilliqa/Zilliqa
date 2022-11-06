@@ -40,7 +40,6 @@
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
-  std::atomic_bool m_zilliqaLog{false};
   std::unique_ptr<g3::LogWorker> m_logWorker;
 
   Logger();
@@ -68,27 +67,23 @@ class Logger {
   /// Returns the singleton instance for the main Logger.
   static Logger& GetLogger();
 
-  /// Returns the singleton instance for the state/reporting Logger.
-  static Logger& GetStateLogger();
+  void AddGeneralSink(const std::string& filePrefix,
+                      const boost::filesystem::path& filePath,
+                      std::size_t maxFileSize = MAX_FILE_SIZE);
 
-  /// Returns the singleton instance for the epoch info Logger.
-  static Logger& GetEpochInfoLogger();
+  void AddStateSink(const std::string& filePrefix,
+                    const boost::filesystem::path& filePath,
+                    std::size_t maxFileSize = MAX_FILE_SIZE);
 
-  /// Adds a rotating file sink.
-  void LogToFile(const boost::filesystem::path& filePath,
-                 std::size_t maxFileSize = MAX_FILE_SIZE);
+  void AddEpochSink(const std::string& filePrefix,
+                    const boost::filesystem::path& filePath,
+                    std::size_t maxFileSize = MAX_FILE_SIZE);
 
-  /// Adds a stdout sink.
-  void LogToConsole();
+  void AddStdoutSink();
 
   /// Outputs the specified message and function name to the state/reporting
   /// log.
   void LogState(const char* msg);
-
-  /// Outputs the specified message and function name to the main log.
-  void LogGeneral(const LEVELS& level, const char* msg,
-                  const unsigned int linenum, const char* filename,
-                  const char* function);
 
   /// Outputs the specified message, function name, and block number to the main
   /// log.
@@ -96,11 +91,6 @@ class Logger {
                 const unsigned int linenum, const char* filename,
                 const char* function);
 
-  /// Outputs the specified message, function name, and payload to the main log.
-  void LogMessageAndPayload(const char* msg, const bytes& payload,
-                            size_t max_bytes_to_display,
-                            const unsigned int linenum, const char* filename,
-                            const char* function);
   /// Outputs the specified message and function name to the epoch info log.
   void LogEpochInfo(const char* msg, const unsigned int linenum,
                     const char* filename, const char* function,
@@ -121,9 +111,6 @@ class Logger {
 
   /// Disable the log level
   void DisableLevel(const LEVELS& level);
-
-  /// Checks if this is the main zilliqa log file.
-  bool IsZilliqaLog() { return m_zilliqaLog; };
 
   /// Get current process id
   static pid_t GetPid();
@@ -148,21 +135,21 @@ class ScopeMarker {
   ~ScopeMarker();
 };
 
-#define INIT_FILE_LOGGER(filePath)         \
-  Logger::GetLogger().LogToFile(filePath); \
+#define INIT_FILE_LOGGER(filePrefix, filePath)              \
+  Logger::GetLogger().AddGeneralSink(filePrefix, filePath); \
   Logger::GetLogger()
 
 #define INIT_STDOUT_LOGGER()          \
   Logger::GetLogger().LogToConsole(); \
   Logger::GetLogger()
 
-#define INIT_STATE_LOGGER(filePath)             \
-  Logger::GetStateLogger().LogToFile(filePath); \
-  Logger::GetStateLogger()
+#define INIT_STATE_LOGGER(filePrefix, filePath)           \
+  Logger::GetLogger().AddStateSink(filePrefix, filePath); \
+  Logger::GetLogger()
 
-#define INIT_EPOCHINFO_LOGGER(filePath)             \
-  Logger::GetEpochInfoLogger().LogToFile(filePath); \
-  Logger::GetEpochInfoLogger()
+#define INIT_EPOCHINFO_LOGGER(filePrefix, filePath)       \
+  Logger::GetLogger().AddEpochSink(filePrefix, filePath); \
+  Logger::GetLogger()
 
 #define LOG_MARKER() ScopeMarker marker(__LINE__, __FILE__, __FUNCTION__)
 
@@ -176,30 +163,23 @@ class ScopeMarker {
     Logger::GetStateLogger().LogState(oss.str().c_str());             \
   }
 
-#define LOG_GENERAL(level, msg)                                                \
-  {                                                                            \
-    if (Logger::GetLogger().IsZilliqaLog()) {                                  \
-      auto cur = std::chrono::system_clock::now();                             \
-      auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
-      auto file_and_line =                                                     \
-          std::string(std::string(__FILE__) + ":" + std::to_string(__LINE__)); \
-      LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
-                 << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
-                 << PAD(get_ms(cur), 3, '0') << "]["                           \
-                 << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)    \
-                 << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
-                 << "] " << msg;                                               \
-    } else {                                                                   \
-      std::ostringstream oss;                                                  \
-      oss << msg;                                                              \
-      Logger::GetLogger().LogGeneral(level, oss.str().c_str(), __LINE__,       \
-                                     __FILE__, __FUNCTION__);                  \
-    }                                                                          \
+#define LOG_GENERAL(level, msg)                                              \
+  {                                                                          \
+    auto cur = std::chrono::system_clock::now();                             \
+    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
+    auto file_and_line =                                                     \
+        std::string(__FILE__) + ":" + std::to_string(__LINE__);              \
+    LOG(level) << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "][" \
+               << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")         \
+               << PAD(get_ms(cur), 3, '0') << "]["                           \
+               << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)    \
+               << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
+               << "] " << msg << std::endl;                                  \
   }
 
 #define LOG_EPOCH(level, epoch, msg)                                           \
   {                                                                            \
-    if (Logger::GetLogger().IsZilliqaLog()) {                                  \
+    /*if (Logger::GetLogger().IsZilliqaLog())*/ {                              \
       auto cur = std::chrono::system_clock::now();                             \
       auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
       auto file_and_line =                                                     \
@@ -211,7 +191,8 @@ class ScopeMarker {
                  << "][" << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN)      \
                  << "] [Epoch " << std::to_string(epoch).c_str() << "] "       \
                  << msg;                                                       \
-    } else {                                                                   \
+    }                                                                          \
+    else {                                                                     \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
       Logger::GetLogger().LogEpoch(level, std::to_string(epoch).c_str(),       \
@@ -222,7 +203,7 @@ class ScopeMarker {
 
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)                 \
   {                                                                            \
-    if (Logger::GetLogger().IsZilliqaLog()) {                                  \
+    /*if (Logger::GetLogger().IsZilliqaLog())*/ {                              \
       std::unique_ptr<char[]> payload_string;                                  \
       Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);      \
       auto cur = std::chrono::system_clock::now();                             \
@@ -248,7 +229,8 @@ class ScopeMarker {
                    << "] " << msg << " (Len=" << (payload).size()              \
                    << "): " << payload_string.get();                           \
       }                                                                        \
-    } else {                                                                   \
+    }                                                                          \
+    else {                                                                     \
       std::ostringstream oss;                                                  \
       oss << msg;                                                              \
       Logger::GetLogger().LogPayload(level, oss.str().c_str(), payload,        \
