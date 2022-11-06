@@ -35,6 +35,8 @@ class EvmUtils {
 
   static evm::EvmResult& GetEvmResultFromJson(const Json::Value& json,
                                               evm::EvmResult& result);
+  static std::string GetEvmResultJsonFromTextProto(
+      const std::string& text_proto);
 
   static bool isEvm(const zbytes& code);
 

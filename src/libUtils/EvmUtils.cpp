@@ -22,6 +22,8 @@
 #include <string>
 #include <unordered_map>
 
+#include <google/protobuf/text_format.h>
+#include <json/value.h>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/endian.hpp>
 #include <boost/filesystem.hpp>
@@ -52,8 +54,6 @@ Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   arr_ret.append(websocketpp::base64_encode(output));
   return arr_ret;
 }
-
-using websocketpp::base64_decode;
 
 evm::EvmResult& EvmUtils::GetEvmResultFromJson(const Json::Value& json,
                                                evm::EvmResult& result) {
@@ -149,6 +149,15 @@ std::string EvmUtils::ExitReasonString(const evm::ExitReason& exit_reason) {
     default:;
   }
   return "Unknown failure";
+}
+
+std::string EvmUtils::GetEvmResultJsonFromTextProto(
+    const std::string& text_proto) {
+  evm::EvmResult result;
+  google::protobuf::TextFormat::ParseFromString(text_proto, &result);
+  std::string output;
+  result.SerializeToString(&output);
+  return "\"" + websocketpp::base64_encode(output) + "\"";
 }
 
 bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
