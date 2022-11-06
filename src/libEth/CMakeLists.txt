@@ -4,6 +4,7 @@ target_link_libraries(Eth EthCrypto AccountData)
 
 add_library(Filters
         filters/FiltersImpl.cpp
+        filters/SubscriptionsImpl.cpp
         filters/FiltersUtils.cpp
         filters/PendingTxnCache.cpp
         filters/BlocksCache.cpp
@@ -14,4 +15,4 @@ add_library(EthUtils
         )
 target_include_directories(EthUtils PRIVATE ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries(Filters Utils jsonrpc::client)
+target_link_libraries(Filters Utils)

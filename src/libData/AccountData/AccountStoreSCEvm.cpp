@@ -242,11 +242,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   }
 
   switch (Transaction::GetTransactionType(transaction)) {
-    case Transaction::NON_CONTRACT: {
-      LOG_GENERAL(WARNING, "Non Contracts are handled by Scilla processor");
-      return false;
-    }
-
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
       Account* fromAccount = this->GetAccount(fromAddr);
@@ -436,6 +431,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       break;
     }
 
+    case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();

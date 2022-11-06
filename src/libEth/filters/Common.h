@@ -23,6 +23,13 @@
 namespace evmproj {
 namespace filters {
 
+enum class FilterType {
+  INVALID,
+  EVENT_FILTER,
+  TXN_FILTER,
+  BLK_FILTER,
+};
+
 using Quantity = std::string;
 using Address = std::string;
 using TxnHash = std::string;
@@ -47,7 +54,7 @@ struct EventFilterParams {
   /// every address matches this filter
   Address address;
 
-  /// **OR** logic. Empty vector means that nay value matches
+  /// **OR** logic. Empty vector means that any value matches
   using TopicMatchVariants = std::vector<Quantity>;
 
   /// *AND* logic. Up to 4 topics. Empty topic at position i (0..3) matches

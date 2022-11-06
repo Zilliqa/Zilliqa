@@ -114,6 +114,8 @@ void EvmClient::Init() {
                                         << " for communication");
   if (LAUNCH_EVM_DAEMON) {
     CleanupPreviousInstances();
+  } else {
+    LOG_GENERAL(INFO, "Not launching evm due to config flag");
   }
 }
 
