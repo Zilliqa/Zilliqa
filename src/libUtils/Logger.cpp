@@ -37,7 +37,7 @@ inline string MyCustomFormatting(const LogMessage& msg) {
 
 namespace {
 /// helper function to get tid with better cross-platform support
-inline pid_t getCurrentPid() {
+inline pid_t getCurrentTid() {
 #if defined(__linux__)
   return syscall(SYS_gettid);
 #elif defined(__APPLE__) && defined(__MACH__)
@@ -191,7 +191,7 @@ void Logger::DisableLevel(const LEVELS& level) {
   g3::log_levels::disable(level);
 }
 
-pid_t Logger::GetPid() { return getCurrentPid(); }
+pid_t Logger::GetPid() { return getCurrentTid(); }
 
 void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
                          std::unique_ptr<char[]>& res) {
@@ -214,4 +214,32 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
   }
 
   res.get()[payload_string_len - 1] = '\0';
+}
+
+#define LIMIT(s, len)                              \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << std::string(s).substr(0, len)
+
+#define LIMIT_RIGHT(s, len)                        \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << s.substr(std::max<int>((int)s.size() - len, 0))
+
+std::ostream& Logger::CurrentTime(std::ostream& stream) {
+  auto cur = std::chrono::system_clock::now();
+  auto cur_time_t = std::chrono::system_clock::to_time_t(cur);
+  stream << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
+         << PAD(get_ms(cur), 3, '0') << " ]";
+  return stream;
+}
+
+std::ostream& Logger::CurrentThreadId(std::ostream& stream) {
+  stream << '[' << PAD(getCurrentTid(), Logger::TID_LEN, ' ') << ']';
+  return stream;
+}
+
+std::ostream& Logger::CodeLocation::operator()(std::ostream& stream) const {
+  auto fileAndLine = m_file + ':' + std::to_string(m_line);
+  stream << '[' << LIMIT_RIGHT(fileAndLine, Logger::MAX_FILEANDLINE_LEN) << "]["
+         << LIMIT(m_func, Logger::MAX_FUNCNAME_LEN) << ']';
+  return stream;
 }

@@ -172,10 +172,10 @@ int main(int argc, const char* argv[]) {
     if (vm.count("stdoutlog")) {
       INIT_STDOUT_LOGGER();
     } else {
-      INIT_FILE_LOGGER(logBasePath / "zilliqa.log");
+      INIT_FILE_LOGGER("zilliqa", logBasePath);
     }
-    INIT_STATE_LOGGER(logBasePath / "state.log");
-    INIT_EPOCHINFO_LOGGER(logBasePath / "epochinfo.log");
+    INIT_STATE_LOGGER("state", logBasePath);
+    INIT_EPOCHINFO_LOGGER("epochinfo", logBasePath);
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 

@@ -29,14 +29,6 @@
 #include "g3log/logworker.hpp"
 #include "libUtils/TimeUtils.h"
 
-#define LIMIT(s, len)                              \
-  std::setw(len) << std::setfill(' ') << std::left \
-                 << std::string(s).substr(0, len)
-
-#define LIMIT_RIGHT(s, len)                        \
-  std::setw(len) << std::setfill(' ') << std::left \
-                 << s.substr(std::max<int>((int)s.size() - len, 0))
-
 #define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
@@ -104,7 +96,30 @@ class Logger {
   static bool IsGeneralSink(g3::internal::SinkWrapper&, g3::LogMessage&);
   static bool IsStateSink(g3::internal::SinkWrapper&, g3::LogMessage&);
   static bool IsEpochInfoSink(g3::internal::SinkWrapper&, g3::LogMessage&);
+
+  static std::ostream& CurrentTime(std::ostream&);
+  static std::ostream& CurrentThreadId(std::ostream&);
+
+  struct CodeLocation {
+    CodeLocation(const char* file, int line, const char* func)
+        : m_file{file}, m_line{line}, m_func{func} {}
+
+    std::ostream& operator()(std::ostream&) const;
+
+   private:
+    std::string m_file;
+    int m_line;
+    std::string m_func;
+  };
 };
+
+namespace std {
+
+inline ostream& operator<<(std::ostream& stream,
+                           const Logger::CodeLocation& codeLocation) {
+  return codeLocation(stream);
+}
+}  // namespace std
 
 #define INIT_FILE_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddGeneralSink(filePrefix, filePath);
@@ -117,93 +132,57 @@ class Logger {
 #define INIT_EPOCHINFO_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddEpochInfoSink(filePrefix, filePath);
 
-#define LOG_STATE(msg)                                                \
-  {                                                                   \
-    auto cur = std::chrono::system_clock::now();                      \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);      \
-    FILTERED_LOG(INFO, &Logger::IsStateSink)                          \
-        << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.") \
-        << PAD(get_ms(cur), 3, '0') << " ]" << msg;                   \
-  }
+#define LOG_STATE(msg) \
+  FILTERED_LOG(INFO, &Logger::IsStateSink) << Logger::CurrentTime << msg;
 
-#define LOG_GENERAL(level, msg)                                            \
-  {                                                                        \
-    auto cur = std::chrono::system_clock::now();                           \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);           \
-    auto file_and_line =                                                   \
-        std::string(__FILE__) + ":" + std::to_string(__LINE__);            \
-    FILTERED_LOG(level, &Logger::IsGeneralSink)                            \
-        << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "]["      \
-        << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")              \
-        << PAD(get_ms(cur), 3, '0') << "]["                                \
-        << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "][" \
-        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] " << msg    \
-        << std::endl;                                                      \
+#define LOG_GENERAL(level, msg)                                          \
+  {                                                                      \
+    FILTERED_LOG(level, &Logger::IsGeneralSink)                          \
+        << Logger::CurrentThreadId << Logger::CurrentTime                \
+        << Logger::CodeLocation(__FILE__, __LINE__, __FUNCTION__) << ' ' \
+        << msg << std::endl;                                             \
   }
 
 #define LOG_MARKER()                                                    \
   BOOST_SCOPE_EXIT(void){LOG_GENERAL(INFO, "END")} BOOST_SCOPE_EXIT_END \
   LOG_GENERAL(INFO, "BEG")
 
-#define LOG_EPOCH(level, epoch, msg)                                       \
-  {                                                                        \
-    auto cur = std::chrono::system_clock::now();                           \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);           \
-    auto file_and_line =                                                   \
-        std::string(__FILE__) + ":" + std::to_string(__LINE__);            \
-    FILTERED_LOG(level, &Logger::IsGeneralSink)                            \
-        << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "]["      \
-        << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")              \
-        << PAD(get_ms(cur), 3, '0') << "]["                                \
-        << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "][" \
-        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] [Epoch "    \
-        << std::to_string(epoch).c_str() << "] " << msg;                   \
+#define LOG_EPOCH(level, epoch, msg)                                   \
+  {                                                                    \
+    FILTERED_LOG(level, &Logger::IsGeneralSink)                        \
+        << Logger::CurrentThreadId << Logger::CurrentTime              \
+        << Logger::CodeLocation(__FILE__, __LINE__, __FUNCTION__)      \
+        << " [Epoch " << std::to_string(epoch).c_str() << "] " << msg; \
   }
 
-#define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)               \
-  {                                                                          \
-    std::unique_ptr<char[]> payload_string;                                  \
-    Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);      \
-    auto cur = std::chrono::system_clock::now();                             \
-    auto cur_time_t = std::chrono::system_clock::to_time_t(cur);             \
-    auto file_and_line =                                                     \
-        std::string(__FILE__) + ":" + std::to_string(__LINE__);              \
-    if ((payload).size() > max_bytes_to_display) {                           \
-      FILTERED_LOG(level, &Logger::IsGeneralSink)                            \
-          << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "]["      \
-          << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")              \
-          << PAD(get_ms(cur), 3, '0') << "]["                                \
-          << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "][" \
-          << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] " << msg    \
-          << " (Len=" << (payload).size() << "): " << payload_string.get()   \
-          << "...";                                                          \
-    } else {                                                                 \
-      FILTERED_LOG(level, &Logger::IsGeneralSink)                            \
-          << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "]["      \
-          << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")              \
-          << PAD(get_ms(cur), 3, '0') << "]["                                \
-          << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "][" \
-          << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] " << msg    \
-          << " (Len=" << (payload).size() << "): " << payload_string.get();  \
-    }                                                                        \
+#define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)             \
+  {                                                                        \
+    std::unique_ptr<char[]> payload_string;                                \
+    Logger::GetPayloadS(payload, max_bytes_to_display, payload_string);    \
+    if ((payload).size() > max_bytes_to_display) {                         \
+      FILTERED_LOG(level, &Logger::IsGeneralSink)                          \
+          << Logger::CurrentThreadId << Logger::CurrentTime                \
+          << Logger::CodeLocation(__FILE__, __LINE__, __FUNCTION__) << ' ' \
+          << msg << " (Len=" << (payload).size()                           \
+          << "): " << payload_string.get() << "...";                       \
+    } else {                                                               \
+      FILTERED_LOG(level, &Logger::IsGeneralSink)                          \
+          << Logger::CurrentThreadId << Logger::CurrentTime                \
+          << Logger::CodeLocation(__FILE__, __LINE__, __FUNCTION__) << ' ' \
+          << msg << " (Len=" << (payload).size()                           \
+          << "): " << payload_string.get();                                \
+    }                                                                      \
   }
 
 #define LOG_DISPLAY_LEVEL_ABOVE(level) \
   { Logger::GetLogger().DisplayLevelAbove(level); }
 
-#define LOG_EPOCHINFO(blockNum, msg)                                       \
-  {                                                                        \
-    auto cur = chrono::system_clock::now();                                \
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);                \
-    auto file_and_line =                                                   \
-        std::string(__FILE__) + ":" + std::to_string(__LINE__);            \
-    FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)                           \
-        << "[" << PAD(Logger::GetPid(), Logger::TID_LEN, ' ') << "]["      \
-        << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")                   \
-        << PAD(get_ms(cur), 3, '0') << "]["                                \
-        << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "][" \
-        << LIMIT(__FUNCTION__, Logger::MAX_FUNCNAME_LEN) << "] [Epoch "    \
-        << std::to_string(blockNum) << "] " << msg;                        \
+#define LOG_EPOCHINFO(blockNum, msg)                              \
+  {                                                               \
+    FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)                  \
+        << Logger::CurrentThreadId << Logger::CurrentTime         \
+        << Logger::CodeLocation(__FILE__, __LINE__, __FUNCTION__) \
+        << " [Epoch " << std::to_string(blockNum) << "] " << msg; \
   }
 
 #define LOG_CHECK_FAIL(checktype, received, expected) \
