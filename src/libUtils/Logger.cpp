@@ -29,9 +29,11 @@
 using namespace std;
 using namespace g3;
 
+#if 0
 inline string MyCustomFormatting(const LogMessage& msg) {
   return string("[") + msg.level().substr(0, 4) + "]";
 }
+#endif
 
 namespace {
 /// helper function to get tid with better cross-platform support
@@ -51,9 +53,7 @@ inline pid_t getCurrentPid() {
 template <typename LogRotateSinkT>
 void AddFileSink(g3::LogWorker& logWorker, const std::string& filePrefix,
                  const boost::filesystem::path& filePath,
-                 std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
-  assert(!filePath.has_filename());
-
+                 int maxFileSize /*= MAX_FILE_SIZE*/) {
   auto logFileRoot = boost::filesystem::absolute(filePath);
   bool useDefaultLocation = false;
   try {
@@ -115,7 +115,7 @@ class StateLogSink : public CustomLogRotate {
   using CustomLogRotate::CustomLogRotate;
 };
 
-class EpochLogSink : public CustomLogRotate {
+class EpochInfoLogSink : public CustomLogRotate {
  public:
   using CustomLogRotate::CustomLogRotate;
 };
@@ -129,8 +129,7 @@ class StdoutSink {
 
 }  // namespace
 
-const streampos Logger::MAX_FILE_SIZE =
-    1024 * 1024 * 100;  // 100MB per log file
+const int Logger::MAX_FILE_SIZE = 1024 * 1024 * 100;  // 100MB per log file
 
 Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
   initializeLogging(m_logWorker.get());
@@ -138,20 +137,21 @@ Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
 
 void Logger::AddGeneralSink(const std::string& filePrefix,
                             const boost::filesystem::path& filePath,
-                            std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+                            int maxFileSize /*= MAX_FILE_SIZE*/) {
   AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
 }
 
 void Logger::AddStateSink(const std::string& filePrefix,
                           const boost::filesystem::path& filePath,
-                          std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
+                          int maxFileSize /*= MAX_FILE_SIZE*/) {
   AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
 }
 
-void Logger::AddEpochSink(const std::string& filePrefix,
-                          const boost::filesystem::path& filePath,
-                          std::size_t maxFileSize /*= MAX_FILE_SIZE*/) {
-  AddFileSink<EpochLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
+void Logger::AddEpochInfoSink(const std::string& filePrefix,
+                              const boost::filesystem::path& filePath,
+                              int maxFileSize /*= MAX_FILE_SIZE*/) {
+  AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath,
+                                maxFileSize);
 }
 
 void Logger::AddStdoutSink() {
@@ -159,78 +159,24 @@ void Logger::AddStdoutSink() {
                        &StdoutSink::forwardLogToStdout);
 }
 
+bool Logger::IsGeneralSink(g3::internal::SinkWrapper& sink, g3::LogMessage&) {
+  return typeid(sink) == typeid(g3::internal::Sink<GeneralLogSink>) ||
+         typeid(sink) == typeid(g3::internal::Sink<StdoutSink>);
+}
+
+bool Logger::IsStateSink(g3::internal::SinkWrapper& sink, g3::LogMessage&) {
+  return typeid(sink) == typeid(g3::internal::Sink<StateLogSink>) ||
+         typeid(sink) == typeid(g3::internal::Sink<StdoutSink>);
+}
+
+bool Logger::IsEpochInfoSink(g3::internal::SinkWrapper& sink, g3::LogMessage&) {
+  return typeid(sink) == typeid(g3::internal::Sink<EpochInfoLogSink>) ||
+         typeid(sink) == typeid(g3::internal::Sink<StdoutSink>);
+}
+
 Logger& Logger::GetLogger() {
   static Logger logger;
   return logger;
-}
-
-void Logger::LogState(const char* msg) { LOG(INFO) << msg << endl << flush; }
-
-#if 0
-void Logger::LogGeneral(const LEVELS& level, const char* msg,
-                        const unsigned int linenum, const char* filename,
-                        const char* function) {
-  auto cur = chrono::system_clock::now();
-  auto cur_time_t = chrono::system_clock::to_time_t(cur);
-  auto file_and_line =
-      std::string(std::string(filename) + ":" + std::to_string(linenum));
-  LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-             << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-             << PAD(get_ms(cur), 3, '0') << "]["
-             << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-             << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
-}
-#endif
-
-void Logger::LogEpoch(const LEVELS& level, const char* msg, const char* epoch,
-                      const unsigned int linenum, const char* filename,
-                      const char* function) {
-  auto cur = chrono::system_clock::now();
-  auto cur_time_t = chrono::system_clock::to_time_t(cur);
-  auto file_and_line =
-      std::string(std::string(filename) + ":" + std::to_string(linenum));
-  LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-             << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-             << PAD(get_ms(cur), 3, '0') << "]["
-             << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-             << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-             << "] " << msg;
-}
-
-void Logger::LogPayload(const LEVELS& level, const char* msg,
-                        const bytes& payload, size_t max_bytes_to_display,
-                        const unsigned int linenum, const char* filename,
-                        const char* function) {
-  std::unique_ptr<char[]> payload_string;
-  GetPayloadS(payload, max_bytes_to_display, payload_string);
-
-  auto cur = chrono::system_clock::now();
-  auto cur_time_t = chrono::system_clock::to_time_t(cur);
-  auto file_and_line = std::string(filename) + ":" + std::to_string(linenum);
-
-  LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-             << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-             << PAD(get_ms(cur), 3, '0') << "]["
-             << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-             << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-             << " (Len=" << payload.size() << "): " << payload_string.get()
-             << (payload.size() > max_bytes_to_display ? "..." : "");
-}
-
-void Logger::LogEpochInfo(const char* msg, const unsigned int linenum,
-                          const char* filename, const char* function,
-                          const char* epoch) {
-  pid_t tid = getCurrentPid();
-  auto cur = chrono::system_clock::now();
-  auto cur_time_t = chrono::system_clock::to_time_t(cur);
-  auto file_and_line =
-      std::string(std::string(filename) + ":" + std::to_string(linenum));
-  LOG(INFO) << "[" << PAD(tid, TID_LEN, ' ') << "]["
-            << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-            << PAD(get_ms(cur), 3, '0') << "]["
-            << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-            << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-            << msg;
 }
 
 void Logger::DisplayLevelAbove(const LEVELS& level) {
@@ -268,19 +214,4 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
   }
 
   res.get()[payload_string_len - 1] = '\0';
-}
-
-ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
-                         const char* function)
-    : m_linenum(linenum), m_filename(filename), m_function(function) {
-#if 0
-  Logger::GetLogger().LogGeneral(INFO, "BEG", linenum, filename, function);
-#endif
-}
-
-ScopeMarker::~ScopeMarker() {
-#if 0
-  Logger::GetLogger().LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
-                                 m_function.c_str());
-#endif
 }
