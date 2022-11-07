@@ -282,15 +282,15 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let mut io = IoHandler::new();
     io.add_method("run", move |params| {
         let args = jsonrpc_core::Value::from(params);
-        match args.get(0) {
-            Some(arg) => evm_server
-                .run(arg.to_string())
-                .map(|result| result.map(jsonrpc_core::Value::from))
-                .boxed(),
-            None => {
-                futures::future::err(jsonrpc_core::Error::invalid_params("No parameter")).boxed()
-            }
-        }
+        let Some(arg) = args.get(0) else {
+            return futures::future::err(jsonrpc_core::Error::invalid_params("No parameter")).boxed();
+        };
+        let Some(arg_str) = arg.as_str() else {
+            return futures::future::err(jsonrpc_core::Error::invalid_params("Invalid parameter")).boxed();
+        };
+        evm_server.run(arg_str.to_string())
+            .map(|result| result.map(jsonrpc_core::Value::from))
+            .boxed()
     });
 
     let shutdown_sender = std::sync::Mutex::new(shutdown_sender);
