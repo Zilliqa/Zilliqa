@@ -27,6 +27,7 @@
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/TimeUtils.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(

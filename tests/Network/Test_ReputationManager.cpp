@@ -28,13 +28,17 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(reputationManager)
 
 uint128_t node1, node2;
 
 void setup() {
-  // INIT_STDOUT_LOGGER();
-
   ReputationManager& rm = ReputationManager::GetInstance();
   rm.Clear();
 

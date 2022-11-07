@@ -16,42 +16,19 @@
  */
 
 #include "Logger.h"
+#include "libUtils/TimeUtils.h"
 
 #include <g3sinks/LogRotate.h>
 
-#include <pthread.h>
-#include <sys/syscall.h>
-#include <unistd.h>
 #include <boost/filesystem/operations.hpp>
-#include <cstring>
-#include <iostream>
 
 using namespace std;
 using namespace g3;
 
-#if 0
-inline string MyCustomFormatting(const LogMessage& msg) {
-  return string("[") + msg.level().substr(0, 4) + "]";
-}
-#endif
-
 namespace {
-/// helper function to get tid with better cross-platform support
-inline pid_t getCurrentTid() {
-#if defined(__linux__)
-  return syscall(SYS_gettid);
-#elif defined(__APPLE__) && defined(__MACH__)
-  uint64_t tid64;
-  pthread_threadid_np(NULL, &tid64);
-  return static_cast<pid_t>(tid64);
-#else
-#error  // not implemented in this platform
-  return 0;
-#endif
-}
 
 template <typename LogRotateSinkT>
-void AddFileSink(g3::LogWorker& logWorker, const std::string& filePrefix,
+void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
                  const boost::filesystem::path& filePath,
                  int maxFileSize /*= MAX_FILE_SIZE*/) {
   auto logFileRoot = boost::filesystem::absolute(filePath);
@@ -97,17 +74,22 @@ class CustomLogRotate {
     m_logRotate.setMaxLogSize(max_file_size_in_bytes);
   }
 
-  void receiveLogMessage(g3::LogMessageMover logEntry) {
+  void receiveLogMessage(LogMessageMover logEntry) {
     m_logRotate.save(logEntry.get().message());
   }
 
- private:
+ protected:
   LogRotate m_logRotate;
 };
 
 class GeneralLogSink : public CustomLogRotate {
  public:
   using CustomLogRotate::CustomLogRotate;
+
+  void receiveLogMessage(LogMessageMover logEntry) {
+    m_logRotate.save('[' + logEntry.get().level().substr(0, 4) + ']' +
+                     logEntry.get().message());
+  }
 };
 
 class StateLogSink : public CustomLogRotate {
@@ -122,7 +104,7 @@ class EpochInfoLogSink : public CustomLogRotate {
 
 class StdoutSink {
  public:
-  void forwardLogToStdout(g3::LogMessageMover logEntry) {
+  void forwardLogToStdout(LogMessageMover logEntry) {
     std::cout << logEntry.get().message();
   }
 };
@@ -159,19 +141,19 @@ void Logger::AddStdoutSink() {
                        &StdoutSink::forwardLogToStdout);
 }
 
-bool Logger::IsGeneralSink(g3::internal::SinkWrapper& sink, g3::LogMessage&) {
-  return typeid(sink) == typeid(g3::internal::Sink<GeneralLogSink>) ||
-         typeid(sink) == typeid(g3::internal::Sink<StdoutSink>);
+bool Logger::IsGeneralSink(internal::SinkWrapper& sink, LogMessage&) {
+  return typeid(sink) == typeid(internal::Sink<GeneralLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
-bool Logger::IsStateSink(g3::internal::SinkWrapper& sink, g3::LogMessage&) {
-  return typeid(sink) == typeid(g3::internal::Sink<StateLogSink>) ||
-         typeid(sink) == typeid(g3::internal::Sink<StdoutSink>);
+bool Logger::IsStateSink(internal::SinkWrapper& sink, LogMessage&) {
+  return typeid(sink) == typeid(internal::Sink<StateLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
-bool Logger::IsEpochInfoSink(g3::internal::SinkWrapper& sink, g3::LogMessage&) {
-  return typeid(sink) == typeid(g3::internal::Sink<EpochInfoLogSink>) ||
-         typeid(sink) == typeid(g3::internal::Sink<StdoutSink>);
+bool Logger::IsEpochInfoSink(internal::SinkWrapper& sink, LogMessage&) {
+  return typeid(sink) == typeid(internal::Sink<EpochInfoLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
 Logger& Logger::GetLogger() {
@@ -182,16 +164,12 @@ Logger& Logger::GetLogger() {
 void Logger::DisplayLevelAbove(const LEVELS& level) {
   if (level != INFO && level != WARNING && level != FATAL) return;
 
-  g3::log_levels::setHighest(level);
+  log_levels::setHighest(level);
 }
 
-void Logger::EnableLevel(const LEVELS& level) { g3::log_levels::enable(level); }
+void Logger::EnableLevel(const LEVELS& level) { log_levels::enable(level); }
 
-void Logger::DisableLevel(const LEVELS& level) {
-  g3::log_levels::disable(level);
-}
-
-pid_t Logger::GetPid() { return getCurrentTid(); }
+void Logger::DisableLevel(const LEVELS& level) { log_levels::disable(level); }
 
 void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
                          std::unique_ptr<char[]>& res) {
@@ -227,13 +205,15 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
 std::ostream& Logger::CurrentTime(std::ostream& stream) {
   auto cur = std::chrono::system_clock::now();
   auto cur_time_t = std::chrono::system_clock::to_time_t(cur);
-  stream << "[ " << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << " ]";
+  stream << "[" << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
+         << PAD(get_ms(cur), 3, '0') << "]";
   return stream;
 }
 
 std::ostream& Logger::CurrentThreadId(std::ostream& stream) {
-  stream << '[' << PAD(getCurrentTid(), Logger::TID_LEN, ' ') << ']';
+  stream << '[' << std::hex
+         << PAD(std::this_thread::get_id(), Logger::TID_LEN, ' ') << std::dec
+         << ']';
   return stream;
 }
 
@@ -242,4 +222,17 @@ std::ostream& Logger::CodeLocation::operator()(std::ostream& stream) const {
   stream << '[' << LIMIT_RIGHT(fileAndLine, Logger::MAX_FILEANDLINE_LEN) << "]["
          << LIMIT(m_func, Logger::MAX_FUNCNAME_LEN) << ']';
   return stream;
+}
+
+Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func)
+    : CodeLocation{file, line, func} {
+  INTERNAL_FILTERED_LOG_COMMON_BASE(INFO, &Logger::IsGeneralSink,
+                                    m_file.c_str(), m_line, m_func.c_str())
+      << "BEG" << std::endl;
+}
+
+Logger::ScopeMarker::~ScopeMarker() {
+  INTERNAL_FILTERED_LOG_COMMON_BASE(INFO, &Logger::IsGeneralSink,
+                                    m_file.c_str(), m_line, m_func.c_str())
+      << "END" << std::endl;
 }
