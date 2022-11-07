@@ -31,9 +31,6 @@
 using namespace jsonrpc;
 using namespace std;
 
-const char* ZEROES_HASH =
-    "0x0000000000000000000000000000000000000000000000000000000000000";
-
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
                                const uint64_t& blocknum,
@@ -734,34 +731,14 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  zbytes const& pubKey) {
   // Always return the TX hash or the null hash
-  std::string ret = ZEROES_HASH;
+  std::string ret;
 
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    const Address toAddr{fields.toAddr};
-    zbytes data;
-    zbytes code;
-    if (IsNullAddress(toAddr)) {
-      code = ToEVM(fields.code);
-    } else {
-      data = DataConversion::StringToCharArray(
-          DataConversion::Uint8VecToHexStrRet(fields.code));
-    }
-    Transaction tx{fields.version,
-                   fields.nonce,
-                   toAddr,
-                   PubKey(pubKey, 0),
-                   fields.amount,
-                   fields.gasPrice,
-                   fields.gasLimit,
-                   code,  // either empty or stripped EVM-less code
-                   data,  // either empty or un-hexed byte-stream
-                   Signature(fields.signature, 0)};
-
-    ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+    auto tx = GetTxFromFields(fields, pubKey, ret);
 
     uint256_t senderBalance;
 

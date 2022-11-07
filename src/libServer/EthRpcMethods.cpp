@@ -368,6 +368,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
+  std::string ret;
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -379,27 +380,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 
-  Address toAddr{fields.toAddr};
-  zbytes data;
-  zbytes code;
-  if (IsNullAddress(toAddr)) {
-    code = ToEVM(fields.code);
-  } else {
-    data = DataConversion::StringToCharArray(
-        DataConversion::Uint8VecToHexStrRet(fields.code));
-  }
-  Transaction tx{fields.version,
-                 fields.nonce,
-                 Address(fields.toAddr),
-                 PubKey(pubKey, 0),
-                 fields.amount,
-                 fields.gasPrice,
-                 fields.gasLimit,
-                 code,  // either empty or stripped EVM-less code
-                 data,  // either empty or un-hexed byte-stream
-                 Signature(fields.signature, 0)};
-
-  const std::string ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+  auto tx = GetTxFromFields(fields, pubKey, ret);
 
   try {
     const Address fromAddr = tx.GetSenderAddr();
