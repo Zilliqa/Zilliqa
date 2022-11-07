@@ -37,6 +37,8 @@ Install the evm from the repo: https://github.com/Zilliqa/evm-ds
 <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
 <ENABLE_SC>true</ENABLE_SC>
 <SCILLA_ROOT>scilla</SCILLA_ROOT>
+ # Make sure this, when appended to `SCILLA_ROOT`, points to a directory containing (e.g.) `BoolUtils.scillib`.
+<SCILLA_LIB>lib/scilla/stdlib</SCILLA_LIB>
 <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
 
 ## Steps to Enable EVM for a run this temporarily replaces the Scilla Interpreter
