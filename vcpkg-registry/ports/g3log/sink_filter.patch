@@ -1,0 +1,241 @@
+diff --git a/src/g3log.cpp b/src/g3log.cpp
+index f93bb71..9d32ee5 100644
+--- a/src/g3log.cpp
++++ b/src/g3log.cpp
+@@ -39,6 +39,7 @@ namespace {
+    std::mutex g_logging_init_mutex;
+ 
+    std::unique_ptr<g3::LogMessage> g_first_uninitialized_msg = {nullptr};
++   g3::FilterPred g_first_uninitialized_filter;
+    std::once_flag g_set_first_uninitialized_flag;
+    std::once_flag g_save_first_uninitialized_flag;
+    const std::function<void(void)> g_pre_fatal_hook_that_does_nothing = [] { /*does nothing */};
+@@ -76,7 +77,7 @@ namespace g3 {
+       // Save the first uninitialized message, if any
+       std::call_once(g_save_first_uninitialized_flag, [&bgworker] {
+          if (g_first_uninitialized_msg) {
+-            bgworker->save(LogMessagePtr {std::move(g_first_uninitialized_msg)});
++            bgworker->save(LogMessagePtr {std::move(g_first_uninitialized_msg)}, g_first_uninitialized_filter);
+          }
+       });
+ 
+@@ -156,7 +157,7 @@ namespace g3 {
+       /** explicitly copy of all input. This is makes it possibly to use g3log across dynamically loaded libraries
+       * i.e. (dlopen + dlsym)  */
+       void saveMessage(const char* entry, const char* file, int line, const char* function, const LEVELS& level,
+-                       const char* boolean_expression, int fatal_signal, const char* stack_trace) {
++                       const FilterPred& filter, const char* boolean_expression, int fatal_signal, const char* stack_trace) {
+          LEVELS msgLevel {level};
+          LogMessagePtr message {std::make_unique<LogMessage>(file, line, function, msgLevel)};
+          message.get()->write().append(entry);
+@@ -189,7 +190,7 @@ namespace g3 {
+             //..... OR it's in unit-test mode then we throw a std::runtime_error (and never hit sleep)
+             fatalCall(fatal_message);
+          } else {
+-            pushMessageToLogger(message);
++            pushMessageToLogger(message, filter);
+          }
+       }
+ 
+@@ -201,11 +202,12 @@ namespace g3 {
+        * The first initialized log entry will also save the first uninitialized log message, if any
+        * @param log_entry to save to logger
+        */
+-      void pushMessageToLogger(LogMessagePtr incoming) { // todo rename to Push SavedMessage To Worker
++      void pushMessageToLogger(LogMessagePtr incoming, const FilterPred& filter) { // todo rename to Push SavedMessage To Worker
+          // Uninitialized messages are ignored but does not CHECK/crash the logger
+          if (!internal::isLoggingInitialized()) {
+             std::call_once(g_set_first_uninitialized_flag, [&] {
+                g_first_uninitialized_msg = incoming.release();
++               g_first_uninitialized_filter = filter;
+                std::string err = {"LOGGER NOT INITIALIZED:\n\t\t"};
+                err.append(g_first_uninitialized_msg->message());
+                std::string& str = g_first_uninitialized_msg->write();
+@@ -217,7 +219,7 @@ namespace g3 {
+          }
+ 
+          // logger is initialized
+-         g_logger_instance->save(incoming);
++         g_logger_instance->save(incoming, filter);
+       }
+ 
+       /** Fatal call saved to logger. This will trigger SIGABRT or other fatal signal
+diff --git a/src/g3log/g3log.hpp b/src/g3log/g3log.hpp
+index fb84124..f4617d2 100644
+--- a/src/g3log/g3log.hpp
++++ b/src/g3log/g3log.hpp
+@@ -105,10 +105,10 @@ namespace g3 {
+ 
+       // Save the created LogMessage to any existing sinks
+       void saveMessage(const char *message, const char *file, int line, const char *function, const LEVELS &level,
+-                       const char *boolean_expression, int fatal_signal, const char *stack_trace);
++                       const FilterPred& filter, const char *boolean_expression, int fatal_signal, const char *stack_trace);
+ 
+       // forwards the message to all sinks
+-      void pushMessageToLogger(LogMessagePtr log_entry);
++      void pushMessageToLogger(LogMessagePtr log_entry, const FilterPred& filter);
+ 
+ 
+       // forwards a FATAL message to all sinks,. after which the g3logworker
+@@ -140,6 +140,8 @@ namespace g3 {
+ 
+ #define INTERNAL_LOG_MESSAGE(level) LogCapture(__FILE__, __LINE__, static_cast<const char*>(__PRETTY_FUNCTION__), level)
+ 
++#define FILTERED_INTERNAL_LOG_MESSAGE(level, pred) LogCapture(__FILE__, __LINE__, static_cast<const char*>(__PRETTY_FUNCTION__), level, pred)
++
+ #define INTERNAL_CONTRACT_MESSAGE(boolean_expression)  \
+    LogCapture(__FILE__, __LINE__, __PRETTY_FUNCTION__, g3::internal::CONTRACT, boolean_expression)
+ 
+@@ -147,11 +149,15 @@ namespace g3 {
+ // LOG(level) is the API for the stream log
+ #define LOG(level) if (!g3::logLevel(level)) {} else INTERNAL_LOG_MESSAGE(level).stream()
+ 
++#define FILTERED_LOG(level, pred) if (!g3::logLevel(level)) {} else FILTERED_INTERNAL_LOG_MESSAGE(level, pred).stream()
+ 
+ // 'Conditional' stream log
+ #define LOG_IF(level, boolean_expression)  \
+    if (!g3::logLevel(level) || false == (boolean_expression)) {} else INTERNAL_LOG_MESSAGE(level).stream()
+ 
++#define FILTERED_LOG_IF(level, boolean_expression, pred)  \
++   if (!g3::logLevel(level) || false == (boolean_expression)) {} else FILTERED_INTERNAL_LOG_MESSAGE(level, pred).stream()
++
+ // 'Design By Contract' stream API. Broken Contracts will exit the application by using fatal signal SIGABRT
+ //  For unit testing, you can override the fatal handling using setFatalExitHandler(...). See tes_io.cpp for examples
+ #define CHECK(boolean_expression)        \
+diff --git a/src/g3log/logcapture.hpp b/src/g3log/logcapture.hpp
+index 159eeba..2a21863 100644
+--- a/src/g3log/logcapture.hpp
++++ b/src/g3log/logcapture.hpp
+@@ -38,6 +38,7 @@ struct LogCapture {
+     */
+    LogCapture(const char *file, const int line, const char *function, const LEVELS &level, const char *expression = "", g3::SignalType fatal_signal = SIGABRT, const char *dump = nullptr);
+ 
++   LogCapture(const char *file, const int line, const char *function, const LEVELS &level, g3::FilterPred filter, const char *expression = "", g3::SignalType fatal_signal = SIGABRT, const char *dump = nullptr);
+ 
+    // At destruction the message will be forwarded to the g3log worker.
+    // In the case of dynamically (at runtime) loaded libraries, the important thing to know is that
+@@ -78,6 +79,7 @@ struct LogCapture {
+    const LEVELS &_level;
+    const char* _expression;
+    const g3::SignalType _fatal_signal;
++   const g3::FilterPred _filter;
+ 
+ };
+ //} // g3
+diff --git a/src/g3log/loglevels.hpp b/src/g3log/loglevels.hpp
+index 66d05ce..774ec61 100644
+--- a/src/g3log/loglevels.hpp
++++ b/src/g3log/loglevels.hpp
+@@ -26,6 +26,7 @@
+ #include <algorithm>
+ #include <map>
+ #include <atomic>
++#include <functional>
+ #include <g3log/atomicbool.hpp>
+ 
+ // Levels for logging, made so that it would be easy to change, remove, add levels -- KjellKod
+@@ -136,8 +137,13 @@ namespace g3 {
+       /// helper function to tell the logger if a log message was fatal. If it is it will force
+       /// a shutdown after all log entries are saved to the sinks
+       bool wasFatal(const LEVELS& level);
++
++      struct SinkWrapper;
+    }
+ 
++   struct LogMessage;
++   using FilterPred = std::function<bool (internal::SinkWrapper&, LogMessage&)>;
++
+ #ifdef G3_DYNAMIC_LOGGING
+    // Only safe if done at initialization in a single-thread context
+    namespace only_change_at_initialization {
+diff --git a/src/g3log/logworker.hpp b/src/g3log/logworker.hpp
+index 4f925b4..7595cd6 100644
+--- a/src/g3log/logworker.hpp
++++ b/src/g3log/logworker.hpp
+@@ -37,7 +37,7 @@ namespace g3 {
+       LogWorkerImpl();
+       ~LogWorkerImpl() = default;
+ 
+-      void bgSave(g3::LogMessagePtr msgPtr);
++      void bgSave(g3::LogMessagePtr msgPtr, const FilterPred& filter);
+       void bgFatal(FatalMessagePtr msgPtr);
+ 
+       LogWorkerImpl(const LogWorkerImpl&) = delete;
+@@ -136,7 +136,7 @@ namespace g3 {
+ 
+       /// internal:
+       /// pushes in background thread (asynchronously) input messages to log file
+-      void save(LogMessagePtr entry);
++      void save(LogMessagePtr entry, const FilterPred& filter);
+ 
+       /// internal:
+       //  pushes a fatal message on the queue, this is the last message to be processed
+diff --git a/src/logcapture.cpp b/src/logcapture.cpp
+index 2e2604c..ca7d7c2 100644
+--- a/src/logcapture.cpp
++++ b/src/logcapture.cpp
+@@ -41,7 +41,7 @@ void g3::only_change_at_initialization::setMaxMessageSize(size_t max_size) {
+ LogCapture::~LogCapture() noexcept (false) {
+    using namespace g3::internal;
+    SIGNAL_HANDLER_VERIFY();
+-   saveMessage(_stream.str().c_str(), _file, _line, _function, _level, _expression, _fatal_signal, _stack_trace.c_str());
++   saveMessage(_stream.str().c_str(), _file, _line, _function, _level, _filter, _expression, _fatal_signal, _stack_trace.c_str());
+ }
+ 
+ 
+@@ -55,9 +55,9 @@ LogCapture::LogCapture(const LEVELS &level, g3::SignalType fatal_signal, const c
+  * @expression for CHECK calls
+  * @fatal_signal for failed CHECK:SIGABRT or fatal signal caught in the signal handler
+  */
+-LogCapture::LogCapture(const char *file, const int line, const char *function, const LEVELS &level,
+-                       const char *expression, g3::SignalType fatal_signal, const char *dump)
+-   : _file(file), _line(line), _function(function), _level(level), _expression(expression), _fatal_signal(fatal_signal) {
++LogCapture::LogCapture(const char *file, const int line, const char *function, const LEVELS &level, g3::FilterPred filter, const char *expression, g3::SignalType fatal_signal, const char *dump)
++   : _file(file), _line(line), _function(function), _level(level), _expression(expression), _fatal_signal(fatal_signal),
++     _filter(std::move(filter)) {
+ 
+    if (g3::internal::wasFatal(level)) {
+       _stack_trace = std::string{"\n*******\tSTACKDUMP *******\n"};
+@@ -65,7 +65,11 @@ LogCapture::LogCapture(const char *file, const int line, const char *function, c
+    }
+ }
+ 
+-
++LogCapture::LogCapture(const char *file, const int line, const char *function, const LEVELS &level,
++                       const char *expression, g3::SignalType fatal_signal, const char *dump)
++   : LogCapture(file, line, function, level, g3::FilterPred{}, expression, fatal_signal, dump)
++{
++}
+ 
+ /**
+ * capturef, used for "printf" like API in CHECKF, LOGF, LOGF_IF
+diff --git a/src/logworker.cpp b/src/logworker.cpp
+index 7a0e384..181e437 100644
+--- a/src/logworker.cpp
++++ b/src/logworker.cpp
+@@ -19,10 +19,13 @@ namespace g3 {
+ 
+    LogWorkerImpl::LogWorkerImpl() : _bg(kjellkod::Active::createActive()) { }
+ 
+-   void LogWorkerImpl::bgSave(g3::LogMessagePtr msgPtr) {
++   void LogWorkerImpl::bgSave(g3::LogMessagePtr msgPtr, const FilterPred& filter) {
+       std::unique_ptr<LogMessage> uniqueMsg(std::move(msgPtr.get()));
+ 
+       for (auto& sink : _sinks) {
++         if (filter && !filter(*sink, *uniqueMsg))
++           continue;
++
+          LogMessage msg(*(uniqueMsg));
+          sink->send(LogMessageMover(std::move(msg)));
+       }
+@@ -101,8 +104,8 @@ namespace g3 {
+       _impl._bg.reset(nullptr);
+    }
+ 
+-   void LogWorker::save(LogMessagePtr msg) {
+-      _impl._bg->send([this, msg] {_impl.bgSave(msg); });
++   void LogWorker::save(LogMessagePtr msg, const FilterPred& filter) {
++      _impl._bg->send([this, msg, filter] {_impl.bgSave(msg, filter); });
+    }
+ 
+    void LogWorker::fatal(FatalMessagePtr fatal_message) {

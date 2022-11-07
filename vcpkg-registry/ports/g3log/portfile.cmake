@@ -1,9 +1,13 @@
+set(PATCHES
+     sink_filter.patch)
+
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO KjellKod/g3log
     REF 2fca06ff6da5c67465b591f4d45e8fd14d531142 #v1.3.4
     SHA512 8dba89e5a08e44d585478470725e25e37486685d8fe4d3cb5e97c81013389c95d96bdde658244e425008169bc8a9fc2d34a065b83b110c62e73d3ccab9b2b9e1
     HEAD_REF master
+    PATCHES ${PATCHES}
 )
 
 string(COMPARE EQUAL "${VCPKG_LIBRARY_LINKAGE}" "dynamic" G3_SHARED_LIB)
