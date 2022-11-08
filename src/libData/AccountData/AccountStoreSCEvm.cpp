@@ -20,6 +20,7 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
+#include "TransactionEnvelope.h"
 #include "common/Constants.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
@@ -256,32 +257,24 @@ bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
 
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code) {
+    const uint64_t& blockNumber, std::shared_ptr<TransactionEnvelope> te,
+    TxnStatus& error_code) {
+  bool fast{false};
+
   LOG_MARKER();
 
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+  Transaction::ContractType transactionType = TransactionEnvelope::NORMAL;
+
+  if (te->GetContentType() == TransactionEnvelope::FAST) {
+    transactionType = Transaction::ContractType::CONTRACT_CALL;
+  } else {
+    transactionType = Transaction::GetTransactionType(te->GetTransaction());
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  m_curIsDS = isDS;
-  m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
-  const Address fromAddr = transaction.GetSenderAddr();
 
-  uint64_t gasRemained = transaction.GetGasLimitEth();
-
-  // Get the amount of deposit for running this txn
-  uint256_t gasDepositWei;
-  if (!SafeMath<uint256_t>::mul(transaction.GetGasLimitZil(),
-                                transaction.GetGasPriceWei(), gasDepositWei)) {
-    error_code = TxnStatus::MATH_ERROR;
-    return false;
-  }
-
-  switch (Transaction::GetTransactionType(transaction)) {
+  switch (transactionType) {
     case Transaction::NON_CONTRACT: {
       LOG_GENERAL(WARNING, "Non Contracts are handled by Scilla processor");
       return false;
@@ -289,6 +282,18 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
+      const Transaction& transaction = te->GetTransaction();
+      const Address fromAddr = transaction.GetSenderAddr();
+      uint64_t gasRemained = transaction.GetGasLimitEth();
+      // Get the amount of deposit for running this txn
+      uint256_t gasDepositWei;
+
+      if (!SafeMath<uint256_t>::mul(transaction.GetGasLimitZil(),
+                                    transaction.GetGasPriceWei(),
+                                    gasDepositWei)) {
+        error_code = TxnStatus::MATH_ERROR;
+        return false;
+      }
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -348,8 +353,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       try {
-        // TODO verify this line is needed, suspect it is a scilla thing
-        m_curBlockNum = blockNum;
         const uint128_t decreaseAmount =
             uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
         if (!this->DecreaseBalance(fromAddr, decreaseAmount)) {
@@ -387,7 +390,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       EvmCallExtras extras;
-      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+
+      if (!GetEvmCallExtras(blockNumber, te->GetExtras(), extras)) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
@@ -414,13 +418,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
       evmproj::CallResponse response;
-      auto gasRemained =
-          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
-                               evm_call_run_succeeded, receipt, response);
+      auto gasRemainingPostCall = InvokeEvmInterpreter(contractAccount, RUNNER_CREATE,
+                                              params, evm_call_run_succeeded,
+                                              te->GetReceipt(), response);
 
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
-      gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
+      gasRemained = gasRemainingPostCall > baseFee ? gasRemainingPostCall - baseFee : 0;
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
                                                         response.Trace()[0])) {
@@ -447,10 +451,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       } else {
         DiscardAtomics();
 
-        receipt.SetResult(false);
-        receipt.AddError(RUNNER_FAILED);
-        receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemainedCore);
-        receipt.update();
+        te->GetReceipt().SetResult(false);
+        te->GetReceipt().AddError(RUNNER_FAILED);
+        te->GetReceipt().SetCumGas(transaction.GetGasLimitZil() -
+                                   gasRemainedCore);
+        te->GetReceipt().update();
         // TODO : confirm we increase nonce on failure
         if (!this->IncreaseNonce(fromAddr)) {
           error_code = TxnStatus::MATH_ERROR;
@@ -472,7 +477,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       /// calculate total gas in receipt
-      receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemainedCore);
+      te->GetReceipt().SetCumGas(transaction.GetGasLimitZil() -
+                                 gasRemainedCore);
 
       break;
     }
@@ -481,7 +487,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
+#ifdef OLD_STUFF
       m_originAddr = fromAddr;
+#endif
+      const Address fromAddr = fast ? Address(te->GetParameters().m_caller)
+                                    : te->GetTransaction().GetSenderAddr();
 
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
@@ -490,7 +500,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      Account* contractAccount = this->GetAccount(transaction.GetToAddr());
+      Account* contractAccount =
+          fast ? Address(te->GetParameters().m_contract)
+               : this->GetAccount(te->GetTransaction().GetToAddr());
+
       if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
@@ -501,6 +514,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       const uint256_t fromAccountBalance =
           uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+
       if (fromAccountBalance < gasDepositWei + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING, "The account (balance: "
                                  << fromAccountBalance
@@ -516,10 +530,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
-
+#ifdef OLD_STUFF
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
-
+#endif
       if (contractAccount->GetCode().empty()) {
         LOG_GENERAL(
             WARNING,
@@ -527,9 +541,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::NOT_PRESENT;
         return false;
       }
-
+#ifdef DO_OLD_WORK
       m_curBlockNum = blockNum;
-
+#endif
       DiscardAtomics();
       const uint128_t amountToDecrease =
           uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
@@ -538,13 +552,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
-
+#ifdef DO_OLD_WORK
       m_curGasLimit = transaction.GetGasLimitZil();
       m_curGasPrice = transaction.GetGasPriceWei();
       m_curContractAddr = transaction.GetToAddr();
       m_curAmount = transaction.GetAmountQa();
       m_curNumShards = numShards;
-
+#endif
       std::chrono::system_clock::time_point tpStart;
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         tpStart = r_timer_start();
@@ -563,7 +577,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       EvmCallExtras extras;
-      if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+      if (!GetEvmCallExtras(blockNumber, te->GetExtras(), extras)) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
@@ -583,7 +597,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       evmproj::CallResponse response;
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
-                               evm_call_succeeded, receipt, response);
+                               evm_call_succeeded, te->GetReceipt(), response);
 
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
@@ -625,11 +639,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemainedCore);
+      te->GetReceipt().SetCumGas(transaction.GetGasLimitZil() -
+                                 gasRemainedCore);
       if (!evm_call_succeeded) {
-        receipt.SetResult(false);
-        receipt.CleanEntry();
-        receipt.update();
+        te->GetReceipt().SetResult(false);
+        te->GetReceipt().CleanEntry();
+        te->GetReceipt().update();
 
         if (!this->IncreaseNonce(fromAddr)) {
           error_code = TxnStatus::MATH_ERROR;
@@ -655,8 +670,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     return false;
   }
 
-  receipt.SetResult(true);
-  receipt.update();
+  te->GetReceipt().SetResult(true);
+  te->GetReceipt().update();
 
   // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
   m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
@@ -664,7 +679,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Executing contract transaction finished");
-    LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
+    LOG_GENERAL(INFO, "receipt: " << te->GetReceipt().GetString());
   }
 
   return true;

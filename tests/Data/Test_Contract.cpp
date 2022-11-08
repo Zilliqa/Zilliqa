@@ -158,9 +158,14 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
                    0, PRECISION_MIN_VALUE, 20000, test.code, data);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
-        GetDefaultTxnExtras(), tr, error_code);
+    // Create an Envelope for the Transaction
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx, GetDefaultTxnExtras());
+    // Create a transaction as normal but hold a copy of the transaction in the
+    // envelope
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, th,
+        error_code);
     nonce++;
   }
 
@@ -173,9 +178,13 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
                    amount, PRECISION_MIN_VALUE, 2000000, {}, data);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, tx,
-        GetDefaultTxnExtras(), tr, error_code);
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx, GetDefaultTxnExtras());
+    // Create a transaction as normal but hold a copy of the transaction in the
+    // envelope
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        ScillaTestUtil::GetBlockNumberFromJson(test.blockchain), 1, true, th,
+        error_code);
 
     LOG_GENERAL(INFO, "tr: " << tr.GetString());
 
@@ -273,8 +282,13 @@ BOOST_AUTO_TEST_CASE(salarybot) {
                    amount, PRECISION_MIN_VALUE, 20000, code, data);
     TransactionReceipt tr;
     TxnStatus ets;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx, GetDefaultTxnExtras(), tr, ets);
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx, GetDefaultTxnExtras());
+    // Create a transaction as normal but hold a copy of the transaction in the
+    // envelope
+    AccountStore::GetInstance().UpdateAccountsTempQueued(bnum, 1, true, th,
+                                                         ets);
+
     nonce++;
   }
 
@@ -346,8 +360,13 @@ BOOST_AUTO_TEST_CASE(timestamp) {
                   dataTimestamp);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnumTimestamp, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(tx0, GetDefaultTxnExtras());
+  // Create a transaction as normal but hold a copy of the transaction in the
+  // envelope
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnumTimestamp, 1, true,
+                                                       th, error_code);
+
   Account* accountTimestamp =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
@@ -363,8 +382,10 @@ BOOST_AUTO_TEST_CASE(timestamp) {
                   500000, {}, dataTransfer);
   TransactionReceipt tr1;
 
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnumTimestamp, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+  th = std::make_shared<TransactionEnvelope>(tx1, GetDefaultTxnExtras());
+
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnumTimestamp, 1, true,
+                                                       th, error_code);
 
   Json::Value timestampState;
   BOOST_CHECK_MESSAGE(
@@ -431,8 +452,12 @@ BOOST_AUTO_TEST_CASE(chainid) {
                   0, PRECISION_MIN_VALUE, 50000, chainidTest.code, dataChainid);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnumChainid, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(tx0, GetDefaultTxnExtras());
+
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnumChainid, 1, true, th,
+                                                       error_code);
   Account* accountChainid =
       AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
@@ -448,8 +473,10 @@ BOOST_AUTO_TEST_CASE(chainid) {
                   500000, {}, dataTransfer);
   TransactionReceipt tr1;
 
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnumChainid, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+  th = std::make_shared<TransactionEnvelope>(tx1, GetDefaultTxnExtras());
+
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnumChainid, 1, true, th,
+                                                       error_code);
 
   Json::Value chainidState;
   BOOST_CHECK_MESSAGE(
@@ -897,8 +924,10 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
                   0, PRECISION_MIN_VALUE, 50000, t1.code, data1);
   TransactionReceipt tr1;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(tx1, GetDefaultTxnExtras());
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnum, 1, true, th,
+                                                       error_code);
   Account* account1 = AccountStore::GetInstance().GetAccountTemp(libAddr1);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account1 != nullptr,
@@ -943,8 +972,9 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t2.code, data2);
   TransactionReceipt tr2;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum2, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code);
+  th = std::make_shared<TransactionEnvelope>(tx2, GetDefaultTxnExtras());
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnum2, 1, true, th,
+                                                       error_code);
   Account* account2 = AccountStore::GetInstance().GetAccountTemp(libAddr2);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account2 != nullptr,
@@ -998,8 +1028,9 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t3.code, data3);
   TransactionReceipt tr3;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum3, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code);
+  th = std::make_shared<TransactionEnvelope>(tx3, GetDefaultTxnExtras());
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnum3, 1, true, th,
+                                                       error_code);
   Account* account3 = AccountStore::GetInstance().GetAccountTemp(contrAddr1);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account3 != nullptr,
@@ -1022,8 +1053,9 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr1, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataHi);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum, 1, true, tx4, GetDefaultTxnExtras(), tr4, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx4,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnum, 1, true, th,  error_code)) {
     nonce++;
   }
 
@@ -1088,8 +1120,10 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
                   0, PRECISION_MIN_VALUE, 50000, t1.code, data);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+
+  std::shared_ptr<TransactionEnvelope> th = std::make_shared<TransactionEnvelope>(tx0, GetDefaultTxnExtras());
+  AccountStore::GetInstance().UpdateAccountsTempQueued(bnum, 1, true, th,
+                                                       error_code);
   Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(account != nullptr,
@@ -1105,8 +1139,10 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataDonate);
   TransactionReceipt tr1;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code)) {
+  th =
+      std::make_shared<TransactionEnvelope>(tx1, GetDefaultTxnExtras());
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(bnum, 1, true, th,
+                                                           error_code)) {
     nonce++;
   }
 
@@ -1144,8 +1180,10 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor2,
                   amount2, PRECISION_MIN_VALUE, 50000, {}, dataDonate2);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum2, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code)) {
+
+  th = std::make_shared<TransactionEnvelope>(tx2,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnum2, 1, true, th, error_code)) {
     nonce++;
   }
 
@@ -1174,8 +1212,9 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount, PRECISION_MIN_VALUE, 50000, {}, dataDonate);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx3,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnum, 1, true, th, error_code)) {
     nonce++;
   }
   uint128_t contrBal3 =
@@ -1212,8 +1251,9 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, owner,
                   amount4, PRECISION_MIN_VALUE, 50000, {}, data4);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum4, 1, true, tx4, GetDefaultTxnExtras(), tr4, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx4,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnum4, 1, true, th, error_code)) {
     nonce++;
   }
 
@@ -1251,8 +1291,9 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
   Transaction tx5(DataConversion::Pack(CHAIN_ID, 1), nonce, contrAddr, donor1,
                   amount5, PRECISION_MIN_VALUE, 50000, {}, data5);
   TransactionReceipt tr5;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum5, 1, true, tx5, GetDefaultTxnExtras(), tr5, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx5,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnum5, 1, true, th, error_code)) {
     nonce++;
   }
 
@@ -1323,8 +1364,10 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
                   0, PRECISION_MIN_VALUE, 50000, t0ping.code, dataPing);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnumPing, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(tx0,GetDefaultTxnExtras() );
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnumPing, 1, true, th, error_code);
   Account* accountPing = AccountStore::GetInstance().GetAccountTemp(pingAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountPing != nullptr,
@@ -1348,8 +1391,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, t0pong.code, dataPong);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnumPong, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+  th = std::make_shared<TransactionEnvelope>(tx1,GetDefaultTxnExtras() );
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnumPong, 1, true, th, error_code);
   Account* accountPong = AccountStore::GetInstance().GetAccountTemp(pongAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountPong != nullptr,
@@ -1373,8 +1417,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr2;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnumPing, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx2,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnumPing, 1, true, th, error_code)) {
     nonce++;
   }
 
@@ -1389,8 +1434,10 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, pongAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnumPong, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx3,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnumPong, 1, true, th,
+          error_code)) {
     nonce++;
   }
 
@@ -1408,8 +1455,9 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
   Transaction tx4(DataConversion::Pack(CHAIN_ID, 1), nonce, pingAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr4;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnumPing, 1, true, tx4, GetDefaultTxnExtras(), tr4, error_code)) {
+  th = std::make_shared<TransactionEnvelope>(tx4, GetDefaultTxnExtras());
+      if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnumPing, 1, true, th, error_code)) {
     nonce++;
   }
 
@@ -1485,8 +1533,10 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
                   0, PRECISION_MIN_VALUE, 50000, tContrA.code, dataA);
   TransactionReceipt tr0;
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(tx0,GetDefaultTxnExtras() );
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnum, 1, true, th, error_code);
   Account* accountA = AccountStore::GetInstance().GetAccountTemp(aAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountA != nullptr, "Error with creation of contract A");
@@ -1507,8 +1557,9 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx1(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, tContrB.code, dataB);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+  th = std::make_shared<TransactionEnvelope>(tx1,GetDefaultTxnExtras());
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnum, 1, true, th, error_code);
   Account* accountB = AccountStore::GetInstance().GetAccountTemp(bAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountB != nullptr, "Error with creation of contract B");
@@ -1529,8 +1580,10 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx2(DataConversion::Pack(CHAIN_ID, 1), nonce, NullAddress, owner,
                   0, PRECISION_MIN_VALUE, 50000, tContrC.code, dataC);
   TransactionReceipt tr2;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code);
+  th =
+      std::make_shared<TransactionEnvelope>(tx2,GetDefaultTxnExtras() );
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnum, 1, true, th, error_code);
   Account* accountC = AccountStore::GetInstance().GetAccountTemp(cAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountC != nullptr, "Error with creation of contract C");
@@ -1555,22 +1608,28 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
                         100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundA;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, txFundA, GetDefaultTxnExtras(), trFundA, error_code);
+    th =
+        std::make_shared<TransactionEnvelope>(txFundA,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
     nonce++;
     // Fund contrB
     Transaction txFundB(DataConversion::Pack(CHAIN_ID, 1), nonce, bAddr, owner,
                         100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundB;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, txFundB, GetDefaultTxnExtras(), trFundB, error_code);
+    th =
+        std::make_shared<TransactionEnvelope>(txFundB,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
     nonce++;
     // Fund contrC
     Transaction txFundC(DataConversion::Pack(CHAIN_ID, 1), nonce, cAddr, owner,
                         100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundC;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, txFundC, GetDefaultTxnExtras(), trFundC, error_code);
+    th =
+        std::make_shared<TransactionEnvelope>(txFundC,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
     nonce++;
   }
 
@@ -1588,8 +1647,10 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
   Transaction tx3(DataConversion::Pack(CHAIN_ID, 1), nonce, aAddr, owner,
                   amount, PRECISION_MIN_VALUE, 50000, {}, data);
   TransactionReceipt tr3;
-  if (AccountStore::GetInstance().UpdateAccountsTemp(
-          bnum, 1, true, tx3, GetDefaultTxnExtras(), tr3, error_code)) {
+  th =
+      std::make_shared<TransactionEnvelope>(tx3,GetDefaultTxnExtras() );
+  if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+          bnum, 1, true, th, error_code)) {
     nonce++;
   }
 
@@ -1658,8 +1719,11 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
                            NullAddress, owner, 0, PRECISION_MIN_VALUE, 50000,
                            tImpl1.code, dataImpl);
   TransactionReceipt tr1;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, txCreateImpl, GetDefaultTxnExtras(), tr1, error_code);
+
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(txCreateImpl,GetDefaultTxnExtras() );
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnum, 1, true, th, error_code);
   Account* accountImpl = AccountStore::GetInstance().GetAccountTemp(implAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountImpl != nullptr,
@@ -1697,8 +1761,10 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
                             NullAddress, owner, 0, PRECISION_MIN_VALUE, 50000,
                             tProxy1.code, dataProxy);
   TransactionReceipt tr0;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, txCreateProxy, GetDefaultTxnExtras(), tr0, error_code);
+  th =
+      std::make_shared<TransactionEnvelope>(txCreateProxy,GetDefaultTxnExtras() );
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnum, 1, true, th, error_code);
   Account* accountProxy = AccountStore::GetInstance().GetAccountTemp(proxyAddr);
   // We should now have a new account.
   BOOST_CHECK_MESSAGE(accountProxy != nullptr, "Error with creation of proxy");
@@ -1723,8 +1789,10 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
                         owner, 100, PRECISION_MIN_VALUE, 50000, {}, m_data);
     TransactionReceipt trFundA;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, txFundA, GetDefaultTxnExtras(), trFundA, error_code);
+    th =
+        std::make_shared<TransactionEnvelope>(txFundA,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
     nonce++;
   }
 
@@ -1796,8 +1864,11 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx0,GetDefaultTxnExtras() );
+
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     nonce++;
 
@@ -1859,10 +1930,11 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
     Transaction tx1(1, nonce, contractAddr, ownerKeyPair, amount,
                     PRECISION_MIN_VALUE, 500000, {}, dataTransfer);
     TransactionReceipt tr1;
-
+    th =
+        std::make_shared<TransactionEnvelope>(tx1,GetDefaultTxnExtras() );
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th,  error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
     nonce++;
 
@@ -1925,8 +1997,12 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx0,GetDefaultTxnExtras() );
+
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
+
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
@@ -1992,8 +2068,10 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+    th =
+        std::make_shared<TransactionEnvelope>(tx1,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th,error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
     LOG_GENERAL(
@@ -2080,8 +2158,10 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     TransactionReceipt tr0;
     auto startTimeDeployment = r_timer_start();
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx0,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th,error_code);
     auto timeElapsedDeployment = r_timer_end(startTimeDeployment);
     Account* account = AccountStore::GetInstance().GetAccountTemp(contrAddr);
 
@@ -2209,8 +2289,10 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
     TransactionReceipt tr1;
 
     auto startTimeCall = r_timer_start();
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx1, GetDefaultTxnExtras(), tr1, error_code);
+    th =
+        std::make_shared<TransactionEnvelope>(tx1,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th, error_code);
     auto timeElapsedCall = r_timer_end(startTimeCall);
 
     Json::Value outputState;
@@ -2402,9 +2484,11 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
   Transaction tx0(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                   500000, rsr_dep1.code, data);
   TransactionReceipt tr0;
+  std::shared_ptr<TransactionEnvelope> th =
+      std::make_shared<TransactionEnvelope>(tx0,GetDefaultTxnExtras() );
   TxnStatus error_code;
-  AccountStore::GetInstance().UpdateAccountsTemp(
-      bnum, 1, true, tx0, GetDefaultTxnExtras(), tr0, error_code);
+  AccountStore::GetInstance().UpdateAccountsTempQueued(
+      bnum, 1, true, th, error_code);
 
   // ------------- execute transitions ------------------------------------//
 
@@ -2444,8 +2528,10 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
     Transaction tx_i(DataConversion::Pack(CHAIN_ID, 1), ownerNonce, contrAddr,
                      owner, amount, PRECISION_MIN_VALUE, 500, {}, data);
     TransactionReceipt tr4;
-    if (AccountStore::GetInstance().UpdateAccountsTemp(
-            bnum, 1, true, tx_i, GetDefaultTxnExtras(), tr4, error_code)) {
+    th =
+        std::make_shared<TransactionEnvelope>(tx_i,GetDefaultTxnExtras() );
+    if (AccountStore::GetInstance().UpdateAccountsTempQueued(
+            bnum, 1, true, th, error_code)) {
       ownerNonce++;
     }
 
@@ -2529,8 +2615,10 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
     Transaction tx2(1, ownerNonce, NullAddress, owner, 0, PRECISION_MIN_VALUE,
                     10000, rsr_dep2.code, data2);
     TransactionReceipt tr2;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        bnum, 1, true, tx2, GetDefaultTxnExtras(), tr2, error_code);
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(tx2,GetDefaultTxnExtras() );
+    AccountStore::GetInstance().UpdateAccountsTempQueued(
+        bnum, 1, true, th,error_code);
     ownerNonce++;
     LOG_GENERAL(
         INFO, "remote_state_reads: " << testName << " : deployment successful");

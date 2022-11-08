@@ -29,7 +29,7 @@
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
 #include "Address.h"
-#include "TransactionContainer.h"
+#include "TransactionEnvelope.h"
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"
@@ -160,6 +160,7 @@ class AccountStore
 
   Account* GetAccountTempAtomic(const Address& address);
 
+#ifdef OLD_STUFF
   /// update account states in AccountStoreTemp
   bool UpdateAccountsTemp(const uint64_t& blockNum,
                           const unsigned int& numShards, const bool& isDS,
@@ -167,11 +168,17 @@ class AccountStore
                           const TxnExtras& txnExtras,
                           TransactionReceipt& receipt, TxnStatus& error_code);
 
+#endif
+
   /// update Queued account states in AccountStoreTemp
   bool UpdateAccountsTempQueued(const uint64_t& blockNum,
                                 const unsigned int& numShards, const bool& isDS,
                                 std::shared_ptr<TransactionEnvelope> txne,
                                 TxnStatus& error_code);
+
+  bool PostTransactionToQueue(std::shared_ptr<TransactionEnvelope>& tp, bool enqueue);
+
+  bool Dequeue();
 
   /// add account in AccountStoreTemp
   void AddAccountTemp(const Address& address, const Account& account) {

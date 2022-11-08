@@ -819,23 +819,29 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                              "Failed to get EVM call extras");
     }
 
-    const EvmCallParameters params{addr.hex(),
-                                   fromAddr.hex(),
+    const EvmCallParameters params{DataConversion::CharArrayToString(addr.asBytes()),
+                                   DataConversion::CharArrayToString(fromAddr.asBytes()),
                                    DataConversion::CharArrayToString(code),
                                    data,
                                    gasRemained,
                                    amount,
-                                   std::move(extras)};
+                                   std::move(extras),
+                                   false,
+                                   blockNum};
 
-    if (AccountStore::GetInstance().ViewAccounts(params, response) &&
-        response.Success()) {
-      success = true;
-    }
+    std::shared_ptr<TransactionEnvelope> th =
+        std::make_shared<TransactionEnvelope>(params );
+
+    AccountStore::GetInstance().PostTransactionToQueue(th , true );
+    // Dequeue at least one job to dispatch for processing.
+
+    response = th->GetResponse();
+
+    success = response.Success();
 
     if (LOG_SC) {
       LOG_GENERAL(INFO, "Called Evm, response:" << response);
     }
-
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
@@ -844,13 +850,12 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   if (!success) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
-
   return "0x" + response.ReturnedBytes();
 }
 
 std::string EthRpcMethods::GetWeb3ClientVersion() {
   LOG_MARKER();
-  return "Zilliqa/v8.2";
+  return "Zilliqa/v8.3";
 }
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value& _json) {

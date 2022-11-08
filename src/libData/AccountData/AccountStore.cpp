@@ -506,6 +506,8 @@ Account* AccountStore::GetAccountTempAtomic(const Address& address) {
   return m_accountStoreTemp->GetAccountAtomic(address);
 }
 
+#ifdef OLD_STUFF
+
 /// UpdateAccountsTemp
 /// First Check the txnQueue for any pending Transactions to be dispatched
 /// then work the transaction we have been given.
@@ -544,12 +546,57 @@ bool AccountStore::UpdateAccountsTemp(
     return false;
   }
   if (isEvm) {
-    return m_accountStoreTemp->UpdateAccountsEvm(
-        blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
+    return m_accountStoreTemp->UpdateAccountsEvm(blockNum,transaction, txnExtras,
+                                                 receipt, error_code);
   } else {
     return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                               transaction, receipt, error_code);
   }
+}
+
+#endif
+
+bool AccountStore::PostTransactionToQueue(
+    std::shared_ptr<TransactionEnvelope>& tp, bool dequeue) {
+  this->m_txQ.push(tp);
+  if (dequeue) {
+    return Dequeue();
+  }
+  return true;
+}
+
+bool AccountStore::Dequeue() {
+  bool isEvm{false};
+
+  if (this->m_txQ.empty()) {
+    return false;
+  }
+
+  auto tx = this->m_txQ.front();
+  this->m_txQ.pop();
+
+  if (Transaction::GetTransactionType(tx->GetTransaction()) ==
+      Transaction::CONTRACT_CREATION) {
+    isEvm = EvmUtils::isEvm(tx->GetTransaction().GetCode());
+  } else if (Transaction::GetTransactionType(tx->GetTransaction()) ==
+             Transaction::CONTRACT_CALL) {
+    Account* contractAccount =
+        this->GetAccountTemp(tx->GetTransaction().GetToAddr());
+    if (contractAccount != nullptr) {
+      isEvm = EvmUtils::isEvm(contractAccount->GetCode());
+    }
+  }
+  if (ENABLE_EVM == false && isEvm) {
+    LOG_GENERAL(WARNING,
+                "EVM is disabled so not processing this EVM transaction ");
+    return false;
+  }
+  if (isEvm) {
+    TxnStatus error_code;
+    return m_accountStoreTemp->UpdateAccountsEvm(tx->GetParameters().m_blockNumber,
+        tx, error_code);
+  }
+  return true;
 }
 
 bool AccountStore::UpdateAccountsTempQueued(
@@ -587,9 +634,8 @@ bool AccountStore::UpdateAccountsTempQueued(
       return false;
     }
     if (isEvm) {
-      return m_accountStoreTemp->UpdateAccountsEvm(
-          blockNum, numShards, isDS, tx->GetTransaction(), tx->GetExtras(),
-          tx->GetReceipt(), error_code);
+      return m_accountStoreTemp->UpdateAccountsEvm(blockNum,
+          tx, error_code);
     } else {
       return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                                 tx->GetTransaction(),

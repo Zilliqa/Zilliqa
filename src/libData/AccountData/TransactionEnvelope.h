@@ -19,6 +19,9 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONCONTAINER_H_
 
 #include <memory>
+#include <future>
+#include "libUtils/EvmCallParameters.h"
+#include "libUtils/EvmJsonResponse.h"
 
 // A holder for the transaction that can be safely queued and dispatched for
 // later processing
@@ -27,6 +30,25 @@
 
 class TransactionEnvelope {
  public:
+  enum TxType{
+    NORMAL=0,
+    FAST=1
+  };
+
+  TransactionEnvelope(const Transaction& t, const TxnExtras& tex)
+      : m_txType(NORMAL),m_txn(std::move(t)), m_extras(tex){
+  }
+
+  TransactionEnvelope(const EvmCallParameters& p)
+      : m_txType(FAST), m_params(std::move(p)){
+      m_callFuture=m_callPromise.get_future();
+  }
+
+  TransactionEnvelope()
+      : m_txType(NORMAL){
+  }
+
+
   const Transaction& GetTransaction() {
     return const_cast<const Transaction&>(m_txn);
   }
@@ -43,11 +65,32 @@ class TransactionEnvelope {
 
   TransactionReceipt& GetReceipt() { return m_receipt; }
 
+  evmproj::CallResponse GetResponse(){
+    return m_callFuture.get();
+  }
+
+  const EvmCallParameters& GetParameters(){
+    return m_params;
+  }
+
+  void SetResponse(const evmproj::CallResponse& result){
+    m_callPromise.set_value(result);
+  }
+
+  const TxType& GetContentType(){
+    return m_txType;
+  }
+
  private:
   unsigned int m_version{1};
+  TxType       m_txType{NORMAL};
   Transaction m_txn{};
   TxnExtras m_extras{};
   TransactionReceipt m_receipt{};
+
+  EvmCallParameters  m_params;
+  std::future<evmproj::CallResponse>    m_callFuture;
+  std::promise<evmproj::CallResponse>   m_callPromise;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONCONTAINER_H_

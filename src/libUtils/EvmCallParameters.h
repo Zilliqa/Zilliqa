@@ -40,6 +40,7 @@ struct EvmCallParameters {
   boost::multiprecision::uint256_t m_apparent_value = {0};
   EvmCallExtras m_extras;
   bool m_onlyEstimateGas = false;
+  u_int64_t  m_blockNumber = {0};
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
