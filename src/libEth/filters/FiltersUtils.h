@@ -37,13 +37,6 @@ extern const char *TRANSACTIONHASH_STR;
 extern const char *TRANSACTIONINDEX_STR;
 extern const char *DATA_STR;
 
-enum class FilterType {
-  INVALID,
-  EVENT_FILTER,
-  TXN_FILTER,
-  BLK_FILTER,
-};
-
 // TODO propose it to libUtils
 Json::Value JsonRead(const std::string &str, std::string &error);
 

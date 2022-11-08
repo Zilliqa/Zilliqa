@@ -30,8 +30,7 @@ describe("ForwardZil contract functionality", function () {
     );
   });
 
-  // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-4954
-  xit("should be possible to transfer ethers to the contract", async function () {
+  it("should be possible to transfer ethers to the contract", async function () {
     const [payer] = await ethers.getSigners();
     expect(
       await payer.sendTransaction({

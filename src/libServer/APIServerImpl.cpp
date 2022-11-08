@@ -287,6 +287,18 @@ APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
   if (m_options.maxQueueSize == 0) {
     m_options.maxQueueSize = std::numeric_limits<size_t>::max();
   }
+
+  m_threadPool = std::make_shared<APIThreadPool>(
+      *m_asio, m_options.numThreads, m_options.maxQueueSize,
+      [this](const APIThreadPool::Request& req) -> APIThreadPool::Response {
+        return ProcessRequestInThreadPool(req);
+      },
+      [this](APIThreadPool::Response&& res) {
+        OnResponseFromThreadPool(std::move(res));
+      });
+
+  m_websocket =
+      std::make_shared<ws::WebsocketServerImpl>(*m_asio, m_threadPool);
 }
 
 bool APIServerImpl::Start() {
@@ -320,18 +332,6 @@ bool APIServerImpl::Start() {
   CHECK_EC();
 
 #undef CHECK_EC
-
-  m_threadPool = std::make_shared<APIThreadPool>(
-      *m_asio, m_options.numThreads, m_options.maxQueueSize,
-      [this](const APIThreadPool::Request& req) -> APIThreadPool::Response {
-        return ProcessRequestInThreadPool(req);
-      },
-      [this](APIThreadPool::Response&& res) {
-        OnResponseFromThreadPool(std::move(res));
-      });
-
-  m_websocket =
-      std::make_shared<ws::WebsocketServerImpl>(*m_asio, m_threadPool);
 
   AcceptNext();
 
