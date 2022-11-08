@@ -450,7 +450,8 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
     response.code = 500;
     response.body = "Error processing request";
   }
-
+  LOG_GENERAL(WARNING, "REQUEST: " << request.body.c_str());
+  LOG_GENERAL(WARNING, "RESPONSE: " << response.body.c_str());
   response.id = request.id;
   response.isWebsocket = request.isWebsocket;
   return response;

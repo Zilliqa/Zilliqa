@@ -204,6 +204,7 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
   for (const auto& conn : m_subscribedToLogs) {
     for (const auto& pair : conn->eventFilters) {
       if (Match(pair.second, address, topics)) {
+        LOG_GENERAL(WARNING, "MATCHED one filter!");
         if (!prepared) {
           json["params"] = Json::Value{};
           json["params"]["result"] = log_response;
@@ -217,6 +218,8 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
 
         // Don't send the same message to the same connection
         break;
+      } else {
+        LOG_GENERAL(WARNING, "NOT MATCHED one filter!");
       }
     }
   }
