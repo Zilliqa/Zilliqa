@@ -220,170 +220,170 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
       }
     }
   }
+}
 
-  bool SubscriptionsImpl::OnIncomingMessage(
-      Id conn_id, const WebsocketServer::InMessage& msg,
-      bool& unknownMethodFound) {
-    assert(m_websocketServer);
+bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
+                                          const WebsocketServer::InMessage& msg,
+                                          bool& unknownMethodFound) {
+  assert(m_websocketServer);
 
-    if (msg.empty()) {
-      Lock lk(m_mutex);
-      OnSessionDisconnected(conn_id);
-      return false;
-    }
-
-    Request req;
-    if (!ParseRequest(msg, req, unknownMethodFound)) {
-      LOG_GENERAL(INFO, "Request parse error: " << req.error);
-      ReplyError(conn_id, std::move(req.id), req.errorCode,
-                 std::move(req.error));
-      return true;
-    }
-
-    if (unknownMethodFound) {
-      return true;
-    }
-
+  if (msg.empty()) {
     Lock lk(m_mutex);
+    OnSessionDisconnected(conn_id);
+    return false;
+  }
 
-    auto it = m_connections.find(conn_id);
-    if (it == m_connections.end()) {
-      auto newConn = std::make_shared<Connection>();
-      newConn->id = conn_id;
-      it = m_connections.insert(std::make_pair(conn_id, std::move(newConn)))
-               .first;
-    }
-
-    const auto& conn = it->second;
-
-    WebsocketServer::OutMessage response;
-    switch (req.action) {
-      case Request::UNSUBSCRIBE:
-        response = OnUnsubscribe(conn, std::move(req.id),
-                                 std::move(req.subscriptionId));
-        break;
-      case Request::SUBSCR_NEW_HEADS:
-        response = OnSubscribeToNewHeads(conn, std::move(req.id));
-        break;
-      case Request::SUBSCR_PENDING_TXNS:
-        response = OnSubscribeToPendingTxns(conn, std::move(req.id));
-        break;
-      case Request::SUBSCR_EVENTS:
-        response = OnSubscribeToEvents(conn, std::move(req.id),
-                                       std::move(req.eventFilter));
-        break;
-      default:
-        ReplyError(conn_id, std::move(req.id), RPCError::INTERNAL_ERROR,
-                   "Should not get here");
-        return true;
-    }
-
-    m_websocketServer->SendMessage(conn_id, std::move(response));
+  Request req;
+  if (!ParseRequest(msg, req, unknownMethodFound)) {
+    LOG_GENERAL(INFO, "Request parse error: " << req.error);
+    ReplyError(conn_id, std::move(req.id), req.errorCode, std::move(req.error));
     return true;
   }
 
-  void SubscriptionsImpl::ReplyError(Id conn_id, Json::Value && request_id,
-                                     RPCError errorCode, std::string && error) {
-    Json::Value json;
-    json["jsonrpc"] = "2.0";
-    json["id"] = std::move(request_id);
-    auto& err = json["error"];
-    err["code"] = static_cast<int>(errorCode);
-    err["message"] = std::move(error);
-    m_websocketServer->SendMessage(
-        conn_id, std::make_shared<std::string>(JsonWrite(json)));
+  if (unknownMethodFound) {
+    return true;
   }
 
-  void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
-    auto it = m_connections.find(conn_id);
-    if (it == m_connections.end()) {
-      return;
+  Lock lk(m_mutex);
+
+  auto it = m_connections.find(conn_id);
+  if (it == m_connections.end()) {
+    auto newConn = std::make_shared<Connection>();
+    newConn->id = conn_id;
+    it =
+        m_connections.insert(std::make_pair(conn_id, std::move(newConn))).first;
+  }
+
+  const auto& conn = it->second;
+
+  WebsocketServer::OutMessage response;
+  switch (req.action) {
+    case Request::UNSUBSCRIBE:
+      response =
+          OnUnsubscribe(conn, std::move(req.id), std::move(req.subscriptionId));
+      break;
+    case Request::SUBSCR_NEW_HEADS:
+      response = OnSubscribeToNewHeads(conn, std::move(req.id));
+      break;
+    case Request::SUBSCR_PENDING_TXNS:
+      response = OnSubscribeToPendingTxns(conn, std::move(req.id));
+      break;
+    case Request::SUBSCR_EVENTS:
+      response = OnSubscribeToEvents(conn, std::move(req.id),
+                                     std::move(req.eventFilter));
+      break;
+    default:
+      ReplyError(conn_id, std::move(req.id), RPCError::INTERNAL_ERROR,
+                 "Should not get here");
+      return true;
+  }
+
+  m_websocketServer->SendMessage(conn_id, std::move(response));
+  return true;
+}
+
+void SubscriptionsImpl::ReplyError(Id conn_id, Json::Value&& request_id,
+                                   RPCError errorCode, std::string&& error) {
+  Json::Value json;
+  json["jsonrpc"] = "2.0";
+  json["id"] = std::move(request_id);
+  auto& err = json["error"];
+  err["code"] = static_cast<int>(errorCode);
+  err["message"] = std::move(error);
+  m_websocketServer->SendMessage(
+      conn_id, std::make_shared<std::string>(JsonWrite(json)));
+}
+
+void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
+  auto it = m_connections.find(conn_id);
+  if (it == m_connections.end()) {
+    return;
+  }
+  const auto& conn = it->second;
+  m_subscribedToPendingTxns.erase(conn);
+  m_subscribedToNewHeads.erase(conn);
+  m_subscribedToLogs.erase(conn);
+  m_connections.erase(it);
+}
+
+WebsocketServer::OutMessage SubscriptionsImpl::OnUnsubscribe(
+    const ConnectionPtr& conn, Json::Value&& request_id,
+    std::string&& subscription_id) {
+  bool result = false;
+  if (subscription_id == SUBSCR_ID_FOR_PENDING_TXNS) {
+    if (conn->subscribedToPendingTxns) {
+      m_subscribedToPendingTxns.erase(conn);
+      conn->subscribedToPendingTxns = false;
+      result = true;
     }
-    const auto& conn = it->second;
-    m_subscribedToPendingTxns.erase(conn);
-    m_subscribedToNewHeads.erase(conn);
-    m_subscribedToLogs.erase(conn);
-    m_connections.erase(it);
-  }
-
-  WebsocketServer::OutMessage SubscriptionsImpl::OnUnsubscribe(
-      const ConnectionPtr& conn, Json::Value&& request_id,
-      std::string&& subscription_id) {
-    bool result = false;
-    if (subscription_id == SUBSCR_ID_FOR_PENDING_TXNS) {
-      if (conn->subscribedToPendingTxns) {
-        m_subscribedToPendingTxns.erase(conn);
-        conn->subscribedToPendingTxns = false;
-        result = true;
+  } else if (subscription_id == SUBSCR_ID_FOR_NEW_HEADS) {
+    if (conn->subscribedToNewHeads) {
+      m_subscribedToNewHeads.erase(conn);
+      conn->subscribedToNewHeads = false;
+      result = true;
+    }
+  } else {
+    auto& filters = conn->eventFilters;
+    auto it = filters.find(subscription_id);
+    if (it != filters.end()) {
+      filters.erase(it);
+      if (filters.empty()) {
+        m_subscribedToLogs.erase(conn);
       }
-    } else if (subscription_id == SUBSCR_ID_FOR_NEW_HEADS) {
-      if (conn->subscribedToNewHeads) {
-        m_subscribedToNewHeads.erase(conn);
-        conn->subscribedToNewHeads = false;
-        result = true;
-      }
-    } else {
-      auto& filters = conn->eventFilters;
-      auto it = filters.find(subscription_id);
-      if (it != filters.end()) {
-        filters.erase(it);
-        if (filters.empty()) {
-          m_subscribedToLogs.erase(conn);
-        }
-        result = true;
-      }
+      result = true;
     }
-
-    Json::Value json;
-    json["jsonrpc"] = "2.0";
-    json["id"] = std::move(request_id);
-    json["result"] = result;
-    return std::make_shared<std::string>(JsonWrite(json));
   }
 
-  WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
-      const ConnectionPtr& conn, Json::Value&& request_id) {
-    if (!conn->subscribedToNewHeads) {
-      conn->subscribedToNewHeads = true;
-      m_subscribedToNewHeads.insert(conn);
-    }
+  Json::Value json;
+  json["jsonrpc"] = "2.0";
+  json["id"] = std::move(request_id);
+  json["result"] = result;
+  return std::make_shared<std::string>(JsonWrite(json));
+}
 
-    Json::Value json;
-    json["jsonrpc"] = "2.0";
-    json["id"] = std::move(request_id);
-    json["result"] = SUBSCR_ID_FOR_NEW_HEADS;
-    return std::make_shared<std::string>(JsonWrite(json));
+WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
+    const ConnectionPtr& conn, Json::Value&& request_id) {
+  if (!conn->subscribedToNewHeads) {
+    conn->subscribedToNewHeads = true;
+    m_subscribedToNewHeads.insert(conn);
   }
 
-  WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
-      const ConnectionPtr& conn, Json::Value&& request_id) {
-    if (!conn->subscribedToPendingTxns) {
-      conn->subscribedToPendingTxns = true;
-      m_subscribedToPendingTxns.insert(conn);
-    }
+  Json::Value json;
+  json["jsonrpc"] = "2.0";
+  json["id"] = std::move(request_id);
+  json["result"] = SUBSCR_ID_FOR_NEW_HEADS;
+  return std::make_shared<std::string>(JsonWrite(json));
+}
 
-    Json::Value json;
-    json["jsonrpc"] = "2.0";
-    json["id"] = std::move(request_id);
-    json["result"] = SUBSCR_ID_FOR_PENDING_TXNS;
-    return std::make_shared<std::string>(JsonWrite(json));
+WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
+    const ConnectionPtr& conn, Json::Value&& request_id) {
+  if (!conn->subscribedToPendingTxns) {
+    conn->subscribedToPendingTxns = true;
+    m_subscribedToPendingTxns.insert(conn);
   }
 
-  WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToEvents(
-      const ConnectionPtr& conn, Json::Value&& request_id,
-      EventFilterParams&& filter) {
-    auto subscriptionId = NumberAsString(++m_eventSubscriptionCounter);
-    conn->eventFilters[subscriptionId] = std::move(filter);
-    if (conn->eventFilters.size() == 1) {
-      m_subscribedToLogs.insert(conn);
-    }
+  Json::Value json;
+  json["jsonrpc"] = "2.0";
+  json["id"] = std::move(request_id);
+  json["result"] = SUBSCR_ID_FOR_PENDING_TXNS;
+  return std::make_shared<std::string>(JsonWrite(json));
+}
 
-    Json::Value json;
-    json["jsonrpc"] = "2.0";
-    json["id"] = std::move(request_id);
-    json["result"] = std::move(subscriptionId);
-    return std::make_shared<std::string>(JsonWrite(json));
+WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToEvents(
+    const ConnectionPtr& conn, Json::Value&& request_id,
+    EventFilterParams&& filter) {
+  auto subscriptionId = NumberAsString(++m_eventSubscriptionCounter);
+  conn->eventFilters[subscriptionId] = std::move(filter);
+  if (conn->eventFilters.size() == 1) {
+    m_subscribedToLogs.insert(conn);
   }
+
+  Json::Value json;
+  json["jsonrpc"] = "2.0";
+  json["id"] = std::move(request_id);
+  json["result"] = std::move(subscriptionId);
+  return std::make_shared<std::string>(JsonWrite(json));
+}
 
 }  // namespace filters
-}  // namespace filters
+}  // namespace evmproj
