@@ -37,8 +37,8 @@ message EvmEvalExtras {
 }
 
 message Storage {
-  H256 key = 1;
-  H256 value = 2;
+  bytes key = 1;
+  bytes value = 2;
 }
 
 message Apply {

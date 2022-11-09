@@ -1,5 +1,6 @@
 use crate::protos::Evm as EvmProto;
 use byteorder::{BigEndian, ByteOrder};
+use bytes::Bytes;
 use primitive_types::*;
 use std::ops::Shr;
 
@@ -169,11 +170,11 @@ impl From<evm::ExitReason> for EvmProto::ExitReason {
     }
 }
 
-impl From<(H256, H256)> for EvmProto::Storage {
-    fn from(storage: (H256, H256)) -> Self {
+impl From<(Bytes, Bytes)> for EvmProto::Storage {
+    fn from(storage: (Bytes, Bytes)) -> Self {
         let mut result = EvmProto::Storage::new();
-        result.set_key(storage.0.into());
-        result.set_value(storage.1.into());
+        result.set_key(storage.0);
+        result.set_value(storage.1);
         result
     }
 }

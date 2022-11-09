@@ -18,6 +18,7 @@
 #include <Schnorr.h>
 #include <jsonrpccpp/common/exception.h>
 #include <boost/format.hpp>
+#include <boost/algorithm/hex.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include <stdexcept>
@@ -27,6 +28,7 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "json/value.h"
+#include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -1013,6 +1015,8 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
                              "FetchStateJson failed");
     }
 
+    LOG_GENERAL(INFO, "State JSON: " << root);
+
     // Attempt to get storage at position.
     // Left-pad position with 0s up to 64
     std::string zeroes =
@@ -1063,25 +1067,25 @@ Json::Value EthRpcMethods::GetEthCode(std::string const& address,
                                       std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  // Strip off "0x" if exists
-  auto addressCopy = address;
+  zbytes code;
+  try {
+    Address addr{address, Address::FromHex};
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
 
-  if (addressCopy.size() >= 2 && addressCopy[0] == '0' &&
-      addressCopy[1] == 'x') {
-    addressCopy.erase(0, 2);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
+    if (account) {
+      code = StripEVM(account->GetCode());
+    }
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
   }
-
-  auto code = m_lookupServer->GetSmartContractCode(addressCopy);
-  auto codeStr = code["code"].asString();
-
-  // Erase 'EVM' from beginning, put '0x'
-  if (codeStr.size() > 3) {
-    codeStr[1] = '0';
-    codeStr[2] = 'x';
-    codeStr.erase(0, 1);
-  }
-
-  return codeStr;
+  std::string result{"0x"};
+  boost::algorithm::hex(code.begin(), code.end(), std::back_inserter(result));
+  return result;
 }
 
 Json::Value EthRpcMethods::GetEthBlockNumber() {

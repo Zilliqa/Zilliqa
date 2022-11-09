@@ -24,7 +24,7 @@ use evm::{
 };
 use futures::FutureExt;
 
-use log::{error, info};
+use log::{debug, error, info};
 use std::fmt::Debug;
 
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
@@ -175,10 +175,6 @@ async fn run_evm_impl(
         let result = match result {
             Ok(exit_reason) => {
                 let (state_apply, logs) = executor.into_state().deconstruct();
-                info!(
-                    "Return value: {:?}",
-                    hex::encode(runtime.machine().return_value())
-                );
                 let mut result = EvmProto::EvmResult::new();
                 result.set_exit_reason(exit_reason.into());
                 result.set_return_value(runtime.machine().return_value().into());
@@ -199,6 +195,7 @@ async fn run_evm_impl(
                                              storage,
                                              reset_storage,
                                          } => {
+                                             debug!("Modify: {:?} {:?}", address, basic);
                                              let mut modify = EvmProto::Apply_Modify::new();
                                              modify.set_address(address.into());
                                              modify.set_balance(basic.balance.into());
@@ -207,7 +204,10 @@ async fn run_evm_impl(
                                                  modify.set_code(code.into());
                                              }
                                              modify.set_reset_storage(reset_storage);
-                                             modify.set_storage(storage.into_iter().map(Into::into).collect());
+                                             let storage_proto = storage.into_iter().map(
+                                                 |(k, v)| backend.encode_storage(k, v).into()).collect();
+                                             modify.set_storage(storage_proto);
+                                             result.set_modify(modify);
                                          }
                                      };
                                    result
@@ -216,6 +216,7 @@ async fn run_evm_impl(
                 result.set_trace(listener.traces.into_iter().map(Into::into).collect());
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
+                debug!("Result: {:?}", result);
                 result
             },
             Err(panic) => {

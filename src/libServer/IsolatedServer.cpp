@@ -741,6 +741,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
+    LOG_GENERAL(INFO, "toAddr: '" << DataConversion::Uint8VecToHexStrRet(fields.toAddr) << "'");
     const Address toAddr{fields.toAddr};
     zbytes data;
     zbytes code;

@@ -2,6 +2,7 @@
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use bytes::Bytes;
 use evm::backend::{Backend, Basic};
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
@@ -190,6 +191,22 @@ impl ScillaBackend {
             }
             Err(_) => Ok(None),
         }
+    }
+
+    // Encode key/value pairs for storage in such a way that the Zilliqa node
+    // could interpret it without much modification.
+    pub(crate) fn encode_storage(&self, key: H256, value: H256) -> (Bytes, Bytes) {
+        let mut query = ScillaMessage::ProtoScillaQuery::new();
+        query.set_name("_evm_storage".into());
+        query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
+        query.set_mapdepth(1);
+        let mut val = ScillaMessage::ProtoScillaVal::new();
+        let bval = value.as_bytes().to_vec();
+        val.set_bval(bval.into());
+        (
+            query.write_to_bytes().unwrap().into(),
+            val.write_to_bytes().unwrap().into(),
+        )
     }
 
     pub(crate) fn scale_zil_to_eth(&self, zil: U256) -> U256 {
