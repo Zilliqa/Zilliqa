@@ -1244,11 +1244,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
         LookupServer::AddToRecentTransactions(txhash);
 
         const auto& receipt = twr.GetTransactionReceipt();
-        const auto jsonStr =
-            JSONUtils::GetInstance().convertJsontoStr(receipt.GetJsonValue());
-
-        LOG_GENERAL(WARNING, "Receipt jsoned value: " << jsonStr);
-
         cache_upd.AddCommittedTransaction(epochNum, shardId, txhash.hex(),
                                           receipt.GetJsonValue());
 

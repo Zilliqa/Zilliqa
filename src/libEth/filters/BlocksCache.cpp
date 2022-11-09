@@ -106,15 +106,11 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   std::string error;
   bool found = false;
 
-  LOG_GENERAL(WARNING, "BlocksCache::AddCommittedTransaction() "
-                           << "Checking logs...");
   auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
   for (const auto &event : logs) {
-    LOG_GENERAL(WARNING, "BlocksCache::AddCommittedTransaction() "
-                             << "Extracting one log");
     ++ctx.totalLogs;
 
     item.events.emplace_back();
@@ -150,8 +146,6 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   }
 
   if (ctx.currentTxns >= ctx.totalTxns) {
-    LOG_GENERAL(WARNING, "BlocksCache::TryFinalizeEpochs() "
-                             << "Trying to finalize epoch");
     TryFinalizeEpochs();
   }
 }
@@ -198,7 +192,6 @@ void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
       }
     }
   }
-  LOG_GENERAL(WARNING, "BlocksCache::FinalizeOneEpoch() Invoking callback");
   m_epochFinalizedCallback(item);
 }
 

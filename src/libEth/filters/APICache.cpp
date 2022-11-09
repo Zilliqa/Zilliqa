@@ -67,9 +67,6 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
   void AddCommittedTransaction(uint64_t epoch, uint32_t shard,
                                const TxnHash& hash,
                                const Json::Value& receipt) override {
-    LOG_GENERAL(WARNING, "APICache::AddCommittedTransaction()"
-                             << "Adding transaction with hash: "
-                             << hash.c_str());
     auto hash_normalized = NormalizeHexString(hash);
     m_blocksCache.AddCommittedTransaction(epoch, shard, hash_normalized,
                                           receipt);
@@ -97,10 +94,6 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
     LOG_GENERAL(INFO, "Finalized epoch " << epoch);
 
     m_subscriptions.OnNewHead(meta.blockHash);
-    LOG_GENERAL(
-        WARNING,
-        "APICache:EpochFinalized(): Iterating over logs to be sent with size: "
-            << meta.meta.size());
     for (const auto& event : meta.meta) {
       m_subscriptions.OnEventLog(event.address, event.topics, event.response);
     }
