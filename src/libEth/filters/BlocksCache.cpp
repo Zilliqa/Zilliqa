@@ -163,7 +163,6 @@ void BlocksCache::TryFinalizeEpochs() {
 }
 
 void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
-  LOG_GENERAL(WARNING, "BlocksCache::FinalizeOneEpoch() Enter");
   if (m_finalizedEpochs.size() >= m_depth) {
     m_finalizedEpochs.pop_front();
   }
