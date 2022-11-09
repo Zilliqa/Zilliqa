@@ -18,22 +18,18 @@
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
 #include "common/Constants.h"
-#include "libData/AccountData/TransactionContainer.h"
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
-
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SetThreadName.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
-
-const char* ZEROES_HASH =
-    "0x0000000000000000000000000000000000000000000000000000000000000";
 
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
@@ -571,17 +567,12 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    // Create an Envelope for the Transaction
-    std::shared_ptr<TransactionEnvelope> th =
-        std::make_shared<TransactionEnvelope>();
-    // Create a transaction as normal but hold a copy of the transaction in the
-    // envelope
-    th->CopyTransaction(JSONConversion::convertJsontoTx(_json));
+    Transaction tx = JSONConversion::convertJsontoTx(_json);
 
     uint64_t senderNonce;
     uint128_t senderBalance;
 
-    const Address fromAddr = th->GetTransaction().GetSenderAddr();
+    const Address fromAddr = tx.GetSenderAddr();
 
     lock_guard<mutex> g(m_blockMutex);
 
@@ -594,7 +585,7 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
-      if (!ValidateTxn(th->GetTransaction(), fromAddr, sender, m_gasPrice)) {
+      if (!ValidateTxn(tx, fromAddr, sender, m_gasPrice)) {
         return ret;
       }
 
@@ -602,22 +593,22 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
       senderBalance = sender->GetBalance();
     }
 
-    if (senderNonce + 1 != th->GetTransaction().GetNonce()) {
+    if (senderNonce + 1 != tx.GetNonce()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Expected Nonce: " + to_string(senderNonce + 1));
     }
 
-    if (senderBalance < th->GetTransaction().GetAmountQa()) {
+    if (senderBalance < tx.GetAmountQa()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Insufficient Balance: " + senderBalance.str());
     }
 
-    if (m_gasPrice > th->GetTransaction().GetGasPriceQa()) {
+    if (m_gasPrice > tx.GetGasPriceQa()) {
       throw JsonRpcException(RPC_INVALID_PARAMETER,
                              "Minimum gas price greater: " + m_gasPrice.str());
     }
 
-    switch (Transaction::GetTransactionType(th->GetTransaction())) {
+    switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         break;
       case Transaction::ContractType::CONTRACT_CREATION:
@@ -641,8 +632,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                 return AccountStore::GetInstance().GetPrimaryWriteAccess();
               });
 
-          const Account* account = AccountStore::GetInstance().GetAccount(
-              th->GetTransaction().GetToAddr());
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -664,18 +655,21 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         throw JsonRpcException(RPC_MISC_ERROR, "Txn type unexpected");
     }
 
+    TransactionReceipt txreceipt;
+
     TxnStatus error_code;
     bool throwError = false;
-    th->GetReceipt().SetEpochNum(m_blocknum);
-
-    th->SetExtras({
+    txreceipt.SetEpochNum(m_blocknum);
+    TxnExtras extras{
         GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
-    });
-
-    if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
-            m_blocknum, 3, true, th, error_code)) {
+    };
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+            m_blocknum,
+            3  // Arbitrary values
+            ,
+            true, tx, extras, txreceipt, error_code)) {
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server");
@@ -694,19 +688,19 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
                              "Error Code: " + to_string(error_code));
     }
 
-    TransactionWithReceipt twr(th->GetTransaction(), th->GetReceipt());
+    TransactionWithReceipt twr(tx, txreceipt);
 
     zbytes twr_ser;
 
     twr.Serialize(twr_ser, 0);
 
-    m_currEpochGas += th->GetReceipt().GetCumGas();
+    m_currEpochGas += txreceipt.GetCumGas();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBody(
-            m_blocknum, th->GetTransaction().GetTranID(), twr_ser)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
+                                                   twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
-    const auto& txHash = th->GetTransaction().GetTranID();
+    const auto& txHash = tx.GetTranID();
     LookupServer::AddToRecentTransactions(txHash);
     {
       lock_guard<mutex> g(m_txnBlockNumMapMutex);
@@ -737,47 +731,14 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  zbytes const& pubKey) {
   // Always return the TX hash or the null hash
-  std::string ret = ZEROES_HASH;
+  std::string ret;
 
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    const Address toAddr{fields.toAddr};
-    zbytes data;
-    zbytes code;
-    if (IsNullAddress(toAddr)) {
-      code = ToEVM(fields.code);
-    } else {
-      data = DataConversion::StringToCharArray(
-          DataConversion::Uint8VecToHexStrRet(fields.code));
-    }
-    /*
-    Transaction tx{fields.version,
-                   fields.nonce,
-                   toAddr,
-                   PubKey(pubKey, 0),
-                   fields.amount,
-                   fields.gasPrice,
-                   fields.gasLimit,
-                   code,  // either empty or stripped EVM-less code
-                   data,  // either empty or un-hexed byte-stream
-                   Signature(fields.signature, 0)};
-    */
-    // Create an Envelope for the Transaction
-    std::shared_ptr<TransactionEnvelope> th =
-        std::make_shared<TransactionEnvelope>();
-    // Create a transaction as normal but hold a copy of the transaction in the
-    // envelope
-    th->CopyTransaction({fields.version, fields.nonce, toAddr,
-                         PubKey(pubKey, 0), fields.amount, fields.gasPrice,
-                         fields.gasLimit,
-                         code,  // either empty or stripped EVM-less code
-                         data,  // either empty or un-hexed byte-stream
-                         Signature(fields.signature, 0)});
-
-    ret = DataConversion::AddOXPrefix(th->GetTransaction().GetTranID().hex());
+    auto tx = GetTxFromFields(fields, pubKey, ret);
 
     uint256_t senderBalance;
 
@@ -786,7 +747,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
          EVM_ZIL_SCALING_FACTOR) /
         GasConv::GetScalingFactor();
 
-    const Address fromAddr = th->GetTransaction().GetSenderAddr();
+    const Address fromAddr = tx.GetSenderAddr();
 
     lock_guard<mutex> g(m_blockMutex);
 
@@ -797,24 +758,24 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       const Account* sender = AccountStore::GetInstance().GetAccount(fromAddr);
 
       uint64_t minGasLimit = 0;
-      if (Transaction::GetTransactionType(th->GetTransaction()) ==
+      if (Transaction::GetTransactionType(tx) ==
           Transaction::ContractType::CONTRACT_CREATION) {
         minGasLimit = Eth::getGasUnitsForContractDeployment(
-            DataConversion::CharArrayToString(th->GetTransaction().GetCode()),
-            DataConversion::CharArrayToString(th->GetTransaction().GetData()));
+            DataConversion::CharArrayToString(tx.GetCode()),
+            DataConversion::CharArrayToString(tx.GetData()));
       } else {
         minGasLimit = MIN_ETH_GAS;
       }
       LOG_GENERAL(WARNING, "Minium gas units required: " << minGasLimit);
-      if (!Eth::ValidateEthTxn(th->GetTransaction(), fromAddr, sender,
-                               gasPriceWei, minGasLimit)) {
+      if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPriceWei,
+                               minGasLimit)) {
         return ret;
       }
 
       senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
     }
 
-    switch (Transaction::GetTransactionType(th->GetTransaction())) {
+    switch (Transaction::GetTransactionType(tx)) {
       case Transaction::ContractType::NON_CONTRACT:
         break;
       case Transaction::ContractType::CONTRACT_CREATION: {
@@ -831,8 +792,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
           shared_lock<shared_timed_mutex> lock(
               AccountStore::GetInstance().GetPrimaryMutex());
 
-          const Account* account = AccountStore::GetInstance().GetAccount(
-              th->GetTransaction().GetToAddr());
+          const Account* account =
+              AccountStore::GetInstance().GetAccount(tx.GetToAddr());
 
           if (account == nullptr) {
             throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
@@ -858,16 +819,18 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     TxnStatus error_code;
     bool throwError = false;
-    th->GetReceipt().SetEpochNum(m_blocknum);
+    txreceipt.SetEpochNum(m_blocknum);
 
-    th->SetExtras({
+    TxnExtras extras{
         GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
-    });
-
-    if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
-            m_blocknum, 3, true, th, error_code)) {
+    };
+    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+            m_blocknum,
+            3,  // Arbitrary values
+            true, tx, extras, txreceipt, error_code)) {
+      LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server...");
@@ -887,20 +850,20 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                              "Error Code: " + to_string(error_code));
     }
 
-    TransactionWithReceipt twr(th->GetTransaction(), th->GetReceipt());
+    TransactionWithReceipt twr(tx, txreceipt);
 
     zbytes twr_ser;
 
     twr.Serialize(twr_ser, 0);
 
-    m_currEpochGas += th->GetReceipt().GetCumGas();
+    m_currEpochGas += txreceipt.GetCumGas();
 
-    if (!BlockStorage::GetBlockStorage().PutTxBody(
-            m_blocknum, th->GetTransaction().GetTranID(), twr_ser)) {
+    if (!BlockStorage::GetBlockStorage().PutTxBody(m_blocknum, tx.GetTranID(),
+                                                   twr_ser)) {
       LOG_GENERAL(WARNING, "Unable to put tx body");
     }
 
-    const auto& txHash = th->GetTransaction().GetTranID();
+    const auto& txHash = tx.GetTranID();
 
     m_mediator.m_filtersAPICache->GetUpdate().AddPendingTransaction(
         txHash.hex(), m_blocknum);
@@ -1036,7 +999,7 @@ string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
   auto incrThread = [this]() mutable -> void {
-    pthread_setname_np(pthread_self(), "tx_block_incr");
+    utility::SetThreadName("tx_block_incr");
 
     // start the post tx block directly to prevent a 'dead' period before the
     // first block

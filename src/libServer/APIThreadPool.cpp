@@ -18,6 +18,7 @@
 #include "APIThreadPool.h"
 
 #include "libUtils/Logger.h"
+#include "libUtils/SetThreadName.h"
 
 namespace evmproj {
 
@@ -47,11 +48,13 @@ APIThreadPool::~APIThreadPool() {
   }
 }
 
-bool APIThreadPool::PushRequest(JobId id, std::string from, std::string body) {
+bool APIThreadPool::PushRequest(JobId id, bool isWebsocket, std::string from,
+                                std::string body) {
   if (!m_requestQueue.bounded_push(
-          Request{id, std::move(from), std::move(body)})) {
+          Request{id, isWebsocket, std::move(from), std::move(body)})) {
     Response response;
     response.id = id;
+    response.isWebsocket = isWebsocket;
     response.code = 503;
     PushResponse(std::move(response));
     return false;
@@ -66,7 +69,7 @@ void APIThreadPool::Close() {
 
 void APIThreadPool::WorkerThread(size_t threadNo) {
   auto threadName = std::string("APIWorker-") + std::to_string(threadNo + 1);
-  pthread_setname_np(pthread_self(), threadName.c_str());
+  utility::SetThreadName(threadName.c_str());
 
   Request request;
   size_t queueSize = 0;

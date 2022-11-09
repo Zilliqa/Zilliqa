@@ -15,10 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string_view>
+#include <boost/asio/steady_timer.hpp>
 
 #include "FiltersImpl.h"
 #include "FiltersUtils.h"
+#include "libUtils/Logger.h"
 
 namespace evmproj {
 namespace filters {
@@ -28,9 +29,18 @@ using SharedLock = std::shared_lock<std::shared_timed_mutex>;
 using Lock = std::lock_guard<std::mutex>;
 
 namespace {
+
 const char *API_NOT_READY = "Filter API not ready";
 const char *INVALID_FILTER_ID = "Invalid filter id";
 const char *FILTER_NOT_FOUND = "Filter not found";
+
+std::chrono::seconds Now() {
+  return std::chrono::duration_cast<std::chrono::seconds>(
+      boost::asio::steady_timer::clock_type::now().time_since_epoch());
+}
+
+static const std::chrono::seconds FILTER_EXPIRE_TIME(86400);
+
 }  // namespace
 
 void FilterAPIBackendImpl::SetEpochRange(uint64_t earliest, uint64_t latest) {
@@ -40,11 +50,21 @@ void FilterAPIBackendImpl::SetEpochRange(uint64_t earliest, uint64_t latest) {
 
   if (m_earliestEpoch >= static_cast<EpochNumber>(earliest) ||
       m_latestEpoch >= static_cast<EpochNumber>(latest)) {
-    // XXX LOG warning
+    LOG_GENERAL(WARNING, "Inconsistency in epochs");
+  } else {
+    m_earliestEpoch = static_cast<EpochNumber>(earliest);
+    m_latestEpoch = static_cast<EpochNumber>(latest);
   }
 
-  m_earliestEpoch = static_cast<EpochNumber>(earliest);
-  m_latestEpoch = static_cast<EpochNumber>(latest);
+  auto now = Now();
+  auto it = m_expiration.begin();
+  for (; it != m_expiration.end(); ++it) {
+    if (it->first > now) {
+      break;
+    }
+    UninstallFilter(it->second, GuessFilterType(it->second));
+  }
+  m_expiration.erase(m_expiration.begin(), it);
 }
 
 FilterAPIBackend::InstallResult FilterAPIBackendImpl::InstallNewEventFilter(
@@ -66,6 +86,9 @@ FilterAPIBackend::InstallResult FilterAPIBackendImpl::InstallNewEventFilter(
 
   ret.result = NewFilterId(++m_filterCounter, FilterType::EVENT_FILTER);
 
+  filter->expireTime = Now() + FILTER_EXPIRE_TIME;
+  m_expiration.emplace(std::make_pair(filter->expireTime, ret.result));
+
   m_eventFilters[ret.result] = std::move(filter);
 
   ret.success = true;
@@ -83,6 +106,10 @@ FilterAPIBackend::InstallResult FilterAPIBackendImpl::InstallNewBlockFilter() {
     ret.result = NewFilterId(++m_filterCounter, FilterType::BLK_FILTER);
     auto filter = std::make_unique<BlockFilter>();
     filter->lastSeen = m_latestEpoch - 1;
+
+    filter->expireTime = Now() + FILTER_EXPIRE_TIME;
+    m_expiration.emplace(std::make_pair(filter->expireTime, ret.result));
+
     m_blockFilters[ret.result] = std::move(filter);
     ret.success = true;
   }
@@ -102,6 +129,10 @@ FilterAPIBackendImpl::InstallNewPendingTxnFilter() {
     ret.result = NewFilterId(++m_filterCounter, FilterType::TXN_FILTER);
     auto filter = std::make_unique<PendingTxnFilter>();
     filter->lastSeen = SEEN_NOTHING;
+
+    filter->expireTime = Now() + FILTER_EXPIRE_TIME;
+    m_expiration.emplace(std::make_pair(filter->expireTime, ret.result));
+
     m_pendingTxnFilters[ret.result] = std::move(filter);
     ret.success = true;
   }
@@ -118,6 +149,11 @@ bool FilterAPIBackendImpl::UninstallFilter(const std::string &filter_id) {
 
   UniqueLock lock(m_installMutex);
 
+  return UninstallFilter(filter_id, type);
+}
+
+bool FilterAPIBackendImpl::UninstallFilter(const std::string &filter_id,
+                                           FilterType type) {
   if (type == FilterType::EVENT_FILTER) {
     return (m_eventFilters.erase(filter_id) != 0);
   }
@@ -135,27 +171,41 @@ PollResult FilterAPIBackendImpl::GetFilterChanges(
 
   auto type = GuessFilterType(filter_id);
 
+  std::chrono::seconds expireTime{};
+
   switch (type) {
     case FilterType::EVENT_FILTER:
-      GetEventFilterChanges(filter_id, ret);
+      GetEventFilterChanges(filter_id, ret, expireTime);
       break;
     case FilterType::TXN_FILTER:
-      GetPendingTxnFilterChanges(filter_id, ret);
+      GetPendingTxnFilterChanges(filter_id, ret, expireTime);
       break;
     case FilterType::BLK_FILTER:
-      GetBlockFilterChanges(filter_id, ret);
+      GetBlockFilterChanges(filter_id, ret, expireTime);
       break;
     default:
       ret.error = INVALID_FILTER_ID;
       break;
   }
 
+  // shift expiration time
+  if (expireTime != std::chrono::seconds::zero()) {
+    auto newExpireTime = Now() + FILTER_EXPIRE_TIME;
+
+    if (newExpireTime != expireTime) {
+      auto p = std::make_pair(expireTime, filter_id);
+      m_expiration.erase(p);
+      p.first = newExpireTime;
+      m_expiration.emplace(std::move(p));
+    }
+  }
+
   return ret;
 }
 
-void FilterAPIBackendImpl::GetEventFilterChanges(const std::string &filter_id,
-                                                 PollResult &result,
-                                                 bool ignore_last_seen_cursor) {
+void FilterAPIBackendImpl::GetEventFilterChanges(
+    const std::string &filter_id, PollResult &result,
+    std::chrono::seconds &expireTime, bool ignore_last_seen_cursor) {
   SharedLock lock(m_installMutex);
 
   auto it = m_eventFilters.find(filter_id);
@@ -175,6 +225,8 @@ void FilterAPIBackendImpl::GetEventFilterChanges(const std::string &filter_id,
     return;
   }
 
+  expireTime = filter.expireTime;
+
   if (filter.lastSeen >= m_latestEpoch) {
     result.success = true;
     return;
@@ -185,7 +237,8 @@ void FilterAPIBackendImpl::GetEventFilterChanges(const std::string &filter_id,
 }
 
 void FilterAPIBackendImpl::GetPendingTxnFilterChanges(
-    const std::string &filter_id, PollResult &result) {
+    const std::string &filter_id, PollResult &result,
+    std::chrono::seconds &expireTime) {
   SharedLock lock(m_installMutex);
 
   auto it = m_pendingTxnFilters.find(filter_id);
@@ -199,6 +252,8 @@ void FilterAPIBackendImpl::GetPendingTxnFilterChanges(
 
   Lock personal_lock(filter.inProcessMutex);
 
+  expireTime = filter.expireTime;
+
   if (filter.lastSeen >= m_latestEpoch) {
     result.success = true;
     return;
@@ -208,8 +263,9 @@ void FilterAPIBackendImpl::GetPendingTxnFilterChanges(
       m_cache.GetPendingTxnsFilterChanges(filter.lastSeen, result);
 }
 
-void FilterAPIBackendImpl::GetBlockFilterChanges(const std::string &filter_id,
-                                                 PollResult &result) {
+void FilterAPIBackendImpl::GetBlockFilterChanges(
+    const std::string &filter_id, PollResult &result,
+    std::chrono::seconds &expireTime) {
   SharedLock lock(m_installMutex);
 
   auto it = m_blockFilters.find(filter_id);
@@ -222,6 +278,8 @@ void FilterAPIBackendImpl::GetBlockFilterChanges(const std::string &filter_id,
   result.result = Json::arrayValue;
 
   Lock personal_lock(filter.inProcessMutex);
+
+  expireTime = filter.expireTime;
 
   if (filter.lastSeen >= m_latestEpoch) {
     result.success = true;
@@ -237,7 +295,8 @@ PollResult FilterAPIBackendImpl::GetFilterLogs(const FilterId &filter_id) {
   if (GuessFilterType(filter_id) != FilterType::EVENT_FILTER) {
     ret.error = INVALID_FILTER_ID;
   } else {
-    GetEventFilterChanges(filter_id, ret, true);
+    std::chrono::seconds dummy;
+    GetEventFilterChanges(filter_id, ret, dummy, true);
   }
 
   return ret;

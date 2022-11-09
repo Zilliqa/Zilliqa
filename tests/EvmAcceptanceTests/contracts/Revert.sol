@@ -13,11 +13,11 @@ contract Revert {
     owner = msg.sender; // address that deploys contract will be the owner
   }
 
-  function revertCall() public pure {
+  function revertCall() public payable {
     revert();
   }
 
-  function revertCallWithMessage(string memory revertMessage) public pure {
+  function revertCallWithMessage(string memory revertMessage) public payable {
     revert(revertMessage);
   }
 

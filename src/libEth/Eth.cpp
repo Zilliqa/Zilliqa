@@ -32,6 +32,9 @@
 
 using namespace jsonrpc;
 
+const char *ZEROES_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000";
+
 namespace Eth {
 
 Json::Value populateReceiptHelper(
@@ -338,6 +341,37 @@ uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
   }
 
   return logIndex;
+}
+
+// Common code to both the isolated server and lookup server - that is,
+// parse the fields into a TX and get its hash
+Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
+                            std::string &hash) {
+  hash = ZEROES_HASH;
+
+  Address toAddr{fields.toAddr};
+  zbytes data;
+  zbytes code;
+  if (IsNullAddress(toAddr)) {
+    code = ToEVM(fields.code);
+  } else {
+    data = DataConversion::StringToCharArray(
+        DataConversion::Uint8VecToHexStrRet(fields.code));
+  }
+  Transaction tx{fields.version,
+                 fields.nonce,
+                 Address(fields.toAddr),
+                 PubKey(pubKey, 0),
+                 fields.amount,
+                 fields.gasPrice,
+                 fields.gasLimit,
+                 code,  // either empty or stripped EVM-less code
+                 data,  // either empty or un-hexed byte-stream
+                 Signature(fields.signature, 0)};
+
+  hash = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+
+  return tx;
 }
 
 }  // namespace Eth

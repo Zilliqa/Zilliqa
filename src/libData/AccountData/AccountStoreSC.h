@@ -180,6 +180,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
                      bool& ret, TransactionReceipt& receipt,
                      evmproj::CallResponse& evmReturnValues);
+  void CreateScillaCodeFiles(
+      Account& contract,
+      const std::map<Address, std::pair<std::string, std::string>>&
+          extlibs_exports,
+      const std::string& scillaCodeExtension);
 
   /// Amount Transfer
   /// add amount transfer to the m_accountStoreAtomic
