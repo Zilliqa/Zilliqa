@@ -46,6 +46,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
+      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {

@@ -208,7 +208,7 @@ evm::Address AddressToProto(const Address& address) {
 }
 
 Address ProtoToAddress(const evm::Address& address) {
-  zbytes buffer(32);
+  zbytes buffer(20);
   boost::endian::store_big_u32(&buffer[0], address.x0());
   boost::endian::store_big_u64(&buffer[4], address.x1());
   boost::endian::store_big_u64(&buffer[12], address.x2());
