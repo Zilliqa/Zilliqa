@@ -255,6 +255,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
                                              response);
 }
 
+
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNumber, std::shared_ptr<TransactionEnvelope> te,
@@ -263,37 +264,29 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   LOG_MARKER();
 
-  Transaction::ContractType transactionType = TransactionEnvelope::NORMAL;
+  const Transaction& transaction = te->GetTransaction();
 
-  if (te->GetContentType() == TransactionEnvelope::FAST) {
-    transactionType = Transaction::ContractType::CONTRACT_CALL;
-  } else {
-    transactionType = Transaction::GetTransactionType(te->GetTransaction());
+  if (LOG_SC) {
+    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   error_code = TxnStatus::NOT_PRESENT;
+  const Address fromAddr = transaction.GetSenderAddr();
 
-  switch (transactionType) {
-    case Transaction::NON_CONTRACT: {
-      LOG_GENERAL(WARNING, "Non Contracts are handled by Scilla processor");
-      return false;
-    }
+  uint64_t gasRemained = transaction.GetGasLimitEth();
 
+  // Get the amount of deposit for running this txn
+  uint256_t gasDepositWei;
+  if (!SafeMath<uint256_t>::mul(transaction.GetGasLimitZil(),
+                                transaction.GetGasPriceWei(), gasDepositWei)) {
+    error_code = TxnStatus::MATH_ERROR;
+    return false;
+  }
+
+  switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
-      const Transaction& transaction = te->GetTransaction();
-      const Address fromAddr = transaction.GetSenderAddr();
-      uint64_t gasRemained = transaction.GetGasLimitEth();
-      // Get the amount of deposit for running this txn
-      uint256_t gasDepositWei;
-
-      if (!SafeMath<uint256_t>::mul(transaction.GetGasLimitZil(),
-                                    transaction.GetGasPriceWei(),
-                                    gasDepositWei)) {
-        error_code = TxnStatus::MATH_ERROR;
-        return false;
-      }
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -418,13 +411,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
       evmproj::CallResponse response;
-      auto gasRemainingPostCall = InvokeEvmInterpreter(contractAccount, RUNNER_CREATE,
-                                              params, evm_call_run_succeeded,
-                                              te->GetReceipt(), response);
+      auto gasRemained =
+          InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
+                               evm_call_run_succeeded, te->GetReceipt(), response);
 
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
-      gasRemained = gasRemainingPostCall > baseFee ? gasRemainingPostCall - baseFee : 0;
+      gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
                                                         response.Trace()[0])) {
@@ -483,6 +476,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       break;
     }
 
+    case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
@@ -500,10 +494,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      Account* contractAccount =
-          fast ? Address(te->GetParameters().m_contract)
-               : this->GetAccount(te->GetTransaction().GetToAddr());
-
+      Account* contractAccount = this->GetAccount(transaction.GetToAddr());
       if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
@@ -514,7 +505,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       const uint256_t fromAccountBalance =
           uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
-
       if (fromAccountBalance < gasDepositWei + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING, "The account (balance: "
                                  << fromAccountBalance
