@@ -17,8 +17,8 @@
 #include "EthRpcMethods.h"
 #include <Schnorr.h>
 #include <jsonrpccpp/common/exception.h>
-#include <boost/format.hpp>
 #include <boost/algorithm/hex.hpp>
+#include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include <stdexcept>

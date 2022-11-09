@@ -169,9 +169,9 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
           LOG_GENERAL(INFO, "Saving storage for Address: " << address);
           if (not Contract::ContractStorage::GetContractStorage()
                       .UpdateStateValue(
-                                        address,
-                                        DataConversion::StringToCharArray(sit.key()), 0,
-                                        DataConversion::StringToCharArray(sit.value()), 0)) {
+                          address, DataConversion::StringToCharArray(sit.key()),
+                          0, DataConversion::StringToCharArray(sit.value()),
+                          0)) {
             LOG_GENERAL(WARNING,
                         "Failed to update state value at address " << address);
           }
@@ -523,8 +523,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       evm::EvmArgs args;
       *args.mutable_address() = AddressToProto(m_curContractAddr);
       *args.mutable_origin() = AddressToProto(fromAddr);
-      *args.mutable_code() =
-          DataConversion::CharArrayToString(StripEVM(contractAccount->GetCode()));
+      *args.mutable_code() = DataConversion::CharArrayToString(
+          StripEVM(contractAccount->GetCode()));
       *args.mutable_data() =
           DataConversion::CharArrayToString(transaction.GetData());
       args.set_gas_limit(transaction.GetGasLimitEth());
