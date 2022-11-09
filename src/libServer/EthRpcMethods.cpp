@@ -450,14 +450,6 @@ std::string EthRpcMethods::CreateTransactionEth(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
-
-    m_lookupServer->m_sharedMediator.m_filtersAPICache->GetUpdate()
-        .AddPendingTransaction(
-            tx.GetTranID().hex(),
-            m_lookupServer->m_sharedMediator.m_txBlockChain.GetLastBlock()
-                .GetHeader()
-                .GetBlockNum());
-
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");
     throw je;
