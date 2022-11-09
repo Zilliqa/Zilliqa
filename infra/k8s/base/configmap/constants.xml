@@ -15,6 +15,9 @@
         <NUM_DS_EPOCHS_STATE_HISTORY>200</NUM_DS_EPOCHS_STATE_HISTORY>
         <ENABLE_MEMORY_STATS>false</ENABLE_MEMORY_STATS>
         <INIT_TRIE_DB_SNAPSHOT_EPOCH>0</INIT_TRIE_DB_SNAPSHOT_EPOCH>
+        <MAX_ARCHIVED_LOG_COUNT>15</MAX_ARCHIVED_LOG_COUNT>
+        <MAX_LOG_FILE_SIZE_KB>15360</MAX_LOG_FILE_SIZE_KB>
+        <JSON_LOGGING>false</JSON_LOGGING>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -187,6 +190,16 @@
         <CONNECTION_ALL_TIMEOUT>1</CONNECTION_ALL_TIMEOUT>
         
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
+        <ENABLE_EVM>true</ENABLE_EVM>
+        <EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
+        <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
+        <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
+        <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
+        <EVM_ZIL_SCALING_FACTOR>1000000</EVM_ZIL_SCALING_FACTOR>
+        <!-- blocking Call to read socket from evm-ds timeout -->
+        <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
+        <!-- manage the evm-ds instance or not -->
+        <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
     </jsonrpc>
     <network_composition>
         
@@ -221,7 +234,6 @@
         <SENDJOBPEERS_TIMEOUT>5</SENDJOBPEERS_TIMEOUT>
     </p2pcomm>
     <pow>
-        <CUDA_GPU_MINE>false</CUDA_GPU_MINE>
         <FULL_DATASET_MINE>false</FULL_DATASET_MINE>
         <OPENCL_GPU_MINE>false</OPENCL_GPU_MINE>
         <REMOTE_MINE>false</REMOTE_MINE>
@@ -238,7 +250,7 @@
         <POW_BOUNDARY_N_DIVIDED>8</POW_BOUNDARY_N_DIVIDED>
         <POW_BOUNDARY_N_DIVIDED_START>32</POW_BOUNDARY_N_DIVIDED_START>
         <POW_SUBMISSION_LIMIT>2</POW_SUBMISSION_LIMIT>
-        <NUM_FINAL_BLOCK_PER_POW>5</NUM_FINAL_BLOCK_PER_POW>
+        <NUM_FINAL_BLOCK_PER_POW>10</NUM_FINAL_BLOCK_PER_POW>
         
         <POW_CHANGE_TO_ADJ_DIFF>9</POW_CHANGE_TO_ADJ_DIFF>
         
@@ -300,7 +312,7 @@
         <SCILLA_SERVER_LOOP_WAIT_MICROSECONDS>10</SCILLA_SERVER_LOOP_WAIT_MICROSECONDS>
     </smart_contract>
     <tests>
-        <ENABLE_CHECK_PERFORMANCE_LOG>false</ENABLE_CHECK_PERFORMANCE_LOG>
+        <ENABLE_CHECK_PERFORMANCE_LOG>true</ENABLE_CHECK_PERFORMANCE_LOG>
         <NUM_TXN_TO_SEND_PER_ACCOUNT>100</NUM_TXN_TO_SEND_PER_ACCOUNT>
         <ENABLE_ACCOUNTS_POPULATING>false</ENABLE_ACCOUNTS_POPULATING>
         <UPDATE_PREGENED_ACCOUNTS>false</UPDATE_PREGENED_ACCOUNTS>
@@ -337,6 +349,18 @@
         <BLOOM_FILTER_FALSE_RATE>0.000001</BLOOM_FILTER_FALSE_RATE>
         <TXN_DISPATCH_ATTEMPT_LIMIT>3</TXN_DISPATCH_ATTEMPT_LIMIT>
     </transactions>
+    <metric>
+        <zilliqa>
+            <METRIC_ZILLIQA_HOSTNAME>localhost</METRIC_ZILLIQA_HOSTNAME>
+            <METRIC_ZILLIQA_PORT>8081</METRIC_ZILLIQA_PORT>
+            <METRIC_ZILLIQA_READER_EXPORT_MS>1000</METRIC_ZILLIQA_READER_EXPORT_MS>
+            <METRIC_ZILLIQA_READER_TIMEOUT_MS>500</METRIC_ZILLIQA_READER_TIMEOUT_MS>
+            <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
+            <METRIC_ZILLIQA_VERSION>1.2.0</METRIC_ZILLIQA_VERSION>
+            <!-- All bits on in the mask means all metrics are enabled ffff ffff ffff ffff 64bit max -->
+            <METRIC_ZILLIQA_MASK>0xffffffffffffffff</METRIC_ZILLIQA_MASK>
+        </zilliqa>
+    </metric>
     <verifier>
         <exclusion_list>
             <entry>
