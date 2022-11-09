@@ -11,7 +11,7 @@ describe("Delegatecall functionality", function () {
   });
 
   it("should delegate function call correctly", async function () {
-    const VALUE = 1000;
+    const VALUE = 1000000;
     const NUM = 123;
 
     const [owner] = await ethers.getSigners();
