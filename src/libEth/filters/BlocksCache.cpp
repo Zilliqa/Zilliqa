@@ -108,7 +108,7 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
 
   LOG_GENERAL(WARNING, "BlocksCache::AddCommittedTransaction() "
                            << "Checking logs...");
-  auto logs = ExtractArrayFromJsonObj(receipt, "logs", error);
+  auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
