@@ -545,8 +545,9 @@ bool AccountStore::UpdateAccountsTemp(
     return false;
   }
   if (isEvm) {
+    TransactionEnvelopeSp env = std::make_shared<TransactionEnvelope>(transaction,txnExtras,receipt);
     return m_accountStoreTemp->UpdateAccountsEvm(
-        blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
+        blockNum, numShards, isDS, env, error_code);
   } else {
     return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                               transaction, receipt, error_code);
@@ -561,9 +562,6 @@ bool AccountStore::UpdateAccountsTempQueued(
   lock(g, g2);
 
   bool isEvm{false};
-
-  //
-  // Post ourselves the transaction.
 
   this->m_txQ.push(orig);
 
@@ -589,8 +587,7 @@ bool AccountStore::UpdateAccountsTempQueued(
     }
     if (isEvm) {
       return m_accountStoreTemp->UpdateAccountsEvm(
-          blockNum, numShards, isDS, tx->GetTransaction(), tx->GetExtras(),
-          tx->GetReceipt(), error_code);
+          blockNum, numShards, isDS, tx , error_code);
     } else {
       return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
                                                 tx->GetTransaction(),

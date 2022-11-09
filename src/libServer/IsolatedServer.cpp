@@ -665,11 +665,12 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+    TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,extras,txreceipt);
+    if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
             m_blocknum,
             3  // Arbitrary values
             ,
-            true, tx, extras, txreceipt, error_code)) {
+            true, txEnv, error_code)) {
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server");
@@ -826,10 +827,11 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+    TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,extras,txreceipt);
+    if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
             m_blocknum,
             3,  // Arbitrary values
-            true, tx, extras, txreceipt, error_code)) {
+            true, txEnv, error_code)) {
       LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }

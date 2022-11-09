@@ -32,8 +32,9 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TxnExtras.h"
 
+
 template <class MAP>
-void AccountStoreSC<MAP>::EvmCallRunner(
+void AccountStoreSC<MAP>::_EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
     EvmCallParameters& params,          //
     bool& ret,                          //
@@ -79,7 +80,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     EvmCallParameters& params, bool& ret, TransactionReceipt& receipt,
     evmproj::CallResponse& evmReturnValues) {
   // call evm-ds
-  EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
+  _EvmCallRunner(invoke_type, params, ret, receipt, evmReturnValues);
 
   if (not evmReturnValues.Success()) {
     LOG_GENERAL(WARNING, evmReturnValues.ExitReason());
@@ -257,9 +258,18 @@ bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code) {
+    TransactionEnvelopeSp envelope, TxnStatus& error_code) {
   LOG_MARKER();
+
+  const Transaction& transaction = envelope->GetTransaction();
+  TransactionReceipt& receipt = envelope->GetReceipt();
+  const TxnExtras& txnExtras = envelope->GetExtras();
+
+  TransactionEnvelope::TX_TYPE txType = envelope->GetTxType();
+
+  if (txType != TransactionEnvelope::TX_TYPE::NORMAL){
+    LOG_GENERAL(INFO, "Got a new type Transaction: " << txType);
+  }
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
@@ -654,10 +664,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   receipt.SetResult(true);
   receipt.update();
 
-  // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
-  m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
-                                   m_storageRootUpdateBufferAtomic.end());
-
+  if (txType != TransactionEnvelope::TX_TYPE::NORMAL) {
+    // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
+    m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                     m_storageRootUpdateBufferAtomic.end());
+  } else {
+    m_storageRootUpdateBufferAtomic.clear();
+    LOG_GENERAL(INFO, "Not Committing as Non commital transaction");
+  }
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Executing contract transaction finished");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());

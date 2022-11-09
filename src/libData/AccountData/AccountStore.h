@@ -29,7 +29,7 @@
 #include "AccountStoreSC.h"
 #include "AccountStoreTrie.h"
 #include "Address.h"
-#include "TransactionContainer.h"
+#include "TransactionEnvelope.h"
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Singleton.h"

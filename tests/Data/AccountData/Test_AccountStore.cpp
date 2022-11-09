@@ -82,8 +82,10 @@ BOOST_AUTO_TEST_CASE(rwtest) {
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        0, 1, false, tx, GetDefaultTxnExtras(), tr, error_code);
+    TransactionEnvelopeSp txEnv =
+        std::make_shared<TransactionEnvelope>(tx, GetDefaultTxnExtras(), tr);
+    AccountStore::GetInstance().UpdateAccountsTempQueued(0, 1, false, txEnv,
+                                                         error_code);
   }
 
   for (unsigned int i = 0; i < 20; i++) {
@@ -114,8 +116,10 @@ BOOST_AUTO_TEST_CASE(rwtest) {
                    PRECISION_MIN_VALUE, 1);
     TransactionReceipt tr;
     TxnStatus error_code;
-    AccountStore::GetInstance().UpdateAccountsTemp(
-        0, 1, false, tx, GetDefaultTxnExtras(), tr, error_code);
+    TransactionEnvelopeSp txEnv =
+        std::make_shared<TransactionEnvelope>(tx, GetDefaultTxnExtras(), tr);
+    AccountStore::GetInstance().UpdateAccountsTempQueued(0, 1, false, txEnv,
+                                                         error_code);
   }
 
   BOOST_CHECK(AccountStore::GetInstance().SerializeDelta());

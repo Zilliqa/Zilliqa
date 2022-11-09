@@ -599,6 +599,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   std::string code;
   uint256_t accountFunds{};
+  uint64_t nonce{};
+
   bool contractCreation = false;
   {
     shared_lock<shared_timed_mutex> lock(
@@ -614,7 +616,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "Sender doesn't exist");
     }
     accountFunds = sender->GetBalance();
-
+    nonce = sender->GetNonce();
     const Account* toAccount =
         !IsNullAddress(toAddr)
             ? AccountStore::GetInstance().GetAccount(toAddr, true)
@@ -703,13 +705,38 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            "Failed to get EVM call extras");
   }
 
-  const EvmCallParameters params{
+  const uint32_t version = 0;
+  uint64_t    value64 = (uint64_t) value ;
+  PubKey  k;
+  Signature s;
 
-      toAddr.hex(), fromAddr.hex(),    code, data, gas,
-      value,        std::move(extras), true /* only estimate gas */
-  };
+  Transaction tx{version,
+                 nonce,
+                 Address(toAddr),
+                 k,
+                 gas,
+                 dsBlock.GetHeader().GetGasPrice(),
+                 value64,
+                 DataConversion::StringToCharArray(code),  // either empty or stripped EVM-less code
+                 DataConversion::StringToCharArray(data),  // either empty or un-hexed byte-stream
+                 s};
+
+  TransactionReceipt tr;
+  TxnStatus           error_code;
+
+  TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,txnExtras,tr,TransactionEnvelope::NON_TRANSMISSABLE);
+  if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
+          blockNum,
+          3  // Arbitrary values
+          ,
+          true, txEnv, error_code)) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "Base fee exceeds gas limit");
+
+  }
 
   evmproj::CallResponse response;
+  /*
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
       response.Success()) {
     const auto gasRemained = response.Gas();
@@ -736,6 +763,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
+  */
+  return "hello";
 }
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,

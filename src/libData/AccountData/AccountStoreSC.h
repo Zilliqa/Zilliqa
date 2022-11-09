@@ -27,6 +27,7 @@
 #include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
 #include "InvokeType.h"
+#include "TransactionEnvelope.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/Queue.h"
@@ -177,7 +178,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
-  void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
+  void _EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
                      bool& ret, TransactionReceipt& receipt,
                      evmproj::CallResponse& evmReturnValues);
   void CreateScillaCodeFiles(
@@ -239,9 +240,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   bool UpdateAccountsEvm(const uint64_t& blockNum,
                          const unsigned int& numShards, const bool& isDS,
-                         const Transaction& transaction,
-                         const TxnExtras& txnExtras,
-                         TransactionReceipt& receipt, TxnStatus& error_code);
+                         TransactionEnvelopeSp envelope, TxnStatus& error_code);
 
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,

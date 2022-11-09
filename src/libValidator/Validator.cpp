@@ -117,10 +117,13 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
       dsBlock.GetHeader().GetDifficulty()};
 
-  return AccountStore::GetInstance().UpdateAccountsTemp(
+  TransactionEnvelopeSp txEnv =
+      std::make_shared<TransactionEnvelope>(tx, txnExtras, receipt);
+
+  return AccountStore::GetInstance().UpdateAccountsTempQueued(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
-      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, txnExtras,
-      receipt, error_code);
+      m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, txEnv,
+      error_code);
 }
 
 bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
