@@ -17,6 +17,8 @@
 # This script is dedicated for CI use
 #
 
+export RUST_VERSION=1.65.0
+
 apt update -y
 
 # APT packages are organized into two groups, build dependency and
@@ -30,7 +32,6 @@ apt install -y build-essential \
     libjsoncpp-dev \
     libjsonrpccpp-dev \
     libssl-dev \
-    cargo \
     pkg-config \
     python \
     wget
@@ -60,3 +61,7 @@ rm cmake-3.24.2-Linux-x86_64.sh
 
 export PATH="$(pwd)/.local/bin:${PATH}"
 cmake --version
+
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain=$RUST_VERSION
+cp $HOME/.cargo/bin/* /usr/local/bin
+cargo --version
