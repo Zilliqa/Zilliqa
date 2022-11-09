@@ -24,10 +24,8 @@
 #include "JSONConversion.h"
 #include "LookupServer.h"
 #include "common/Constants.h"
-#include "common/Messages.h"
 #include "common/Serializable.h"
 #include "json/value.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -35,21 +33,14 @@
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/ContractStorage.h"
-#include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
@@ -459,6 +450,14 @@ std::string EthRpcMethods::CreateTransactionEth(
                              "Txn could not be added as database exceeded "
                              "limit or the txn was already present");
     }
+
+    m_lookupServer->m_sharedMediator.m_filtersAPICache->GetUpdate()
+        .AddPendingTransaction(
+            tx.GetTranID().hex(),
+            m_lookupServer->m_sharedMediator.m_txBlockChain.GetLastBlock()
+                .GetHeader()
+                .GetBlockNum());
+
   } catch (const JsonRpcException& je) {
     LOG_GENERAL(INFO, "[Error]" << je.what() << " Input: N/A");
     throw je;
