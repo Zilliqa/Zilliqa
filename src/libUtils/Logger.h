@@ -19,8 +19,6 @@
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
 #include <boost/filesystem/path.hpp>
-#include <iomanip>
-#include <sstream>
 #include "common/BaseType.h"
 #include "g3log/g3log.hpp"
 #include "g3log/logworker.hpp"
@@ -91,46 +89,28 @@ class Logger {
 
   //@{
   /// @name Filter predicates (used internally by the below macros)
+
+  // Note that all the predicates return true for the stdout sink as well
+  // so all logs are also printed to std::cout.
   static bool IsGeneralSink(g3::internal::SinkWrapper&, g3::LogMessage&);
   static bool IsStateSink(g3::internal::SinkWrapper&, g3::LogMessage&);
   static bool IsEpochInfoSink(g3::internal::SinkWrapper&, g3::LogMessage&);
   //@}
 
-  //@{
-  /// @name I/O stream manipulators.
-  static std::ostream& CurrentTime(std::ostream&);
-  static std::ostream& CurrentThreadId(std::ostream&);
-
-  struct CodeLocation {
-    CodeLocation(const char* file, int line, const char* func)
-        : m_file{file}, m_line{line}, m_func{func} {}
-
-    std::ostream& operator()(std::ostream&) const;
-
-   protected:
-    std::string m_file;
-    int m_line;
-    std::string m_func;
-  };
-  //@}
-
-  struct ScopeMarker final : private CodeLocation {
+  // Auxiliary class to mark the beginning & end of a scope.
+  struct ScopeMarker final {
     ScopeMarker(const char* file, int line, const char* func);
     ~ScopeMarker();
 
    private:
+    std::string m_file;
+    int m_line;
+    std::string m_func;
+
     ScopeMarker(const ScopeMarker&) = delete;
     ScopeMarker& operator=(const ScopeMarker&) = delete;
   };
 };
-
-namespace std {
-
-inline ostream& operator<<(std::ostream& stream,
-                           const Logger::CodeLocation& codeLocation) {
-  return codeLocation(stream);
-}
-}  // namespace std
 
 #define INIT_FILE_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddGeneralSink(filePrefix, filePath);
@@ -143,54 +123,38 @@ inline ostream& operator<<(std::ostream& stream,
 #define INIT_EPOCHINFO_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddEpochInfoSink(filePrefix, filePath);
 
-#define LOG_STATE(msg)                              \
-  {                                                 \
-    FILTERED_LOG(INFO, &Logger::IsStateSink)        \
-        << Logger::CurrentTime << msg << std::endl; \
-  }
+#define LOG_STATE(msg) \
+  { FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
 
-#define INTERNAL_FILTERED_LOG_COMMON_BASE(level, pred, file, line, func)      \
-  FILTERED_LOG(level, pred) << Logger::CurrentThreadId << Logger::CurrentTime \
-                            << Logger::CodeLocation(file, line, func) << ' '
-
-#define INTERNAL_FILTERED_LOG_COMMON(level, pred)                    \
-  INTERNAL_FILTERED_LOG_COMMON_BASE(level, pred, __FILE__, __LINE__, \
-                                    __FUNCTION__)
-
-#define LOG_GENERAL(level, msg)                                 \
-  {                                                             \
-    INTERNAL_FILTERED_LOG_COMMON(level, &Logger::IsGeneralSink) \
-        << msg << std::endl;                                    \
-  }
+#define LOG_GENERAL(level, msg) \
+  { FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
 
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
 
-#define LOG_EPOCH(level, epoch, msg)                                 \
-  {                                                                  \
-    INTERNAL_FILTERED_LOG_COMMON(level, &Logger::IsGeneralSink)      \
-        << "[Epoch " << std::to_string(epoch).c_str() << "] " << msg \
-        << std::endl;                                                \
+#define LOG_EPOCH(level, epoch, msg)                                  \
+  {                                                                   \
+    FILTERED_LOG(level, &Logger::IsGeneralSink)                       \
+        << "[Epoch " << std::to_string(epoch).c_str() << "] " << msg; \
   }
 
 #define LOG_PAYLOAD(level, msg, payload, max_bytes_to_display)          \
   {                                                                     \
     std::unique_ptr<char[]> payload_string;                             \
     Logger::GetPayloadS(payload, max_bytes_to_display, payload_string); \
-    INTERNAL_FILTERED_LOG_COMMON(level, &Logger::IsGeneralSink)         \
-        << msg << " (Len=" << (payload).size()                          \
+    FILTERED_LOG(level, &Logger::IsGeneralSink)                         \
+        << ' ' << msg << " (Len=" << (payload).size()                   \
         << "): " << payload_string.get()                                \
-        << (((payload).size() > max_bytes_to_display) ? "..." : "")     \
-        << std::endl;                                                   \
+        << (((payload).size() > max_bytes_to_display) ? "..." : "");    \
   }
 
 #define LOG_DISPLAY_LEVEL_ABOVE(level) \
   { Logger::GetLogger().DisplayLevelAbove(level); }
 
-#define LOG_EPOCHINFO(blockNum, msg)                                          \
-  {                                                                           \
-    INTERNAL_FILTERED_LOG_COMMON(INFO, &Logger::IsEpochInfoSink)              \
-        << "[Epoch " << std::to_string(blockNum) << "] " << msg << std::endl; \
+#define LOG_EPOCHINFO(blockNum, msg)                             \
+  {                                                              \
+    FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)                 \
+        << "[Epoch " << std::to_string(blockNum) << "] " << msg; \
   }
 
 #define LOG_CHECK_FAIL(checktype, received, expected) \

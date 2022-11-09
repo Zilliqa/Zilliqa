@@ -62,6 +62,88 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
   sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxFileSize).wait();
 }
 
+#define LIMIT(s, len)                              \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << std::string(s).substr(0, len)
+
+#define LIMIT_RIGHT(s, len)                        \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << s.substr(std::max<int>((int)s.size() - len, 0))
+
+// Auxiliary class to write manipulators for log message formatting.
+template <std::ostream& (*FuncT)(std::ostream&, const LogMessage&)>
+struct LoggerManip {
+  LoggerManip(const LogMessage& message) : m_message{message} {}
+
+  std::ostream& operator()(std::ostream& stream) const {
+    return FuncT(stream, m_message);
+  }
+
+ private:
+  const LogMessage& m_message;
+};
+}  // namespace
+
+namespace std {
+// Output operator to be able to use LoggerManip manipulators.
+template <std::ostream& (*FuncT)(std::ostream&, const LogMessage&)>
+inline ostream& operator<<(std::ostream& stream,
+                           const LoggerManip<FuncT>& manip) {
+  return manip(stream);
+}
+}  // namespace std
+
+namespace {
+std::ostream& logThreadId(std::ostream& stream, const LogMessage& message) {
+  stream << '[' << std::hex
+         << PAD(message._call_thread_id, Logger::TID_LEN, ' ') << std::dec
+         << ']';
+  return stream;
+}
+
+std::ostream& logTimestamp(std::ostream& stream, const LogMessage& message) {
+  // The following is taken from g3log's localtime_formatted; we're changing
+  // it here to show our own time format in UTC instead of localtime.
+  auto ts = to_system_time(message._timestamp);
+  auto format_buffer =
+      internal::localtime_formatted_fractions(ts, "%y-%m-%dT%T.%f3");
+  auto time_point = std::chrono::system_clock::to_time_t(ts);
+  auto t = std::gmtime(&time_point);
+
+  stream << '[' << g3::put_time(t, format_buffer.c_str()) << ']';
+  return stream;
+}
+
+std::ostream& logCodeLocation(std::ostream& stream, const LogMessage& message) {
+  auto fileAndLine = message._file + ':' + std::to_string(message._line);
+  stream << '[' << LIMIT_RIGHT(fileAndLine, Logger::MAX_FILEANDLINE_LEN) << "]["
+         << LIMIT(message._function, Logger::MAX_FUNCNAME_LEN) << ']';
+  return stream;
+}
+
+std::ostream& logLevel(std::ostream& stream, const LogMessage& message) {
+  stream << '[' + message.level().substr(0, 4) + ']';
+  return stream;
+}
+
+std::ostream& logMessage(std::ostream& stream, const LogMessage& message) {
+  stream << message.message();
+  return stream;
+}
+
+using ThreadId = LoggerManip<&logThreadId>;
+using Timestamp = LoggerManip<&logTimestamp>;
+using CodeLocation = LoggerManip<&logCodeLocation>;
+using Message = LoggerManip<&logMessage>;
+using Level = LoggerManip<&logLevel>;
+
+std::ostream& logMessageCommon(std::ostream& stream,
+                               const LogMessage& message) {
+  stream << ThreadId(message) << Timestamp(message) << CodeLocation(message)
+         << Message(message) << std::endl;
+  return stream;
+}
+
 class CustomLogRotate {
  public:
   virtual ~CustomLogRotate() noexcept = default;
@@ -75,10 +157,13 @@ class CustomLogRotate {
   }
 
   void receiveLogMessage(LogMessageMover logEntry) {
-    m_logRotate.save(logEntry.get().message());
+    logMessageCommon(m_stream, logEntry.get());
+    m_logRotate.save(m_stream.str());
+    m_stream.str("");
   }
 
  protected:
+  std::ostringstream m_stream;
   LogRotate m_logRotate;
 };
 
@@ -87,8 +172,10 @@ class GeneralLogSink : public CustomLogRotate {
   using CustomLogRotate::CustomLogRotate;
 
   void receiveLogMessage(LogMessageMover logEntry) {
-    m_logRotate.save('[' + logEntry.get().level().substr(0, 4) + ']' +
-                     logEntry.get().message());
+    m_stream << Level(logEntry.get());
+    logMessageCommon(m_stream, logEntry.get());
+    m_logRotate.save(m_stream.str());
+    m_stream.str("");
   }
 };
 
@@ -105,8 +192,12 @@ class EpochInfoLogSink : public CustomLogRotate {
 class StdoutSink {
  public:
   void forwardLogToStdout(LogMessageMover logEntry) {
-    std::cout << logEntry.get().message();
+    logMessageCommon(m_stream, logEntry.get());
+    std::cout << m_stream.str();
+    m_stream.str("");
   }
+ private:
+  std::ostringstream m_stream;
 };
 
 }  // namespace
@@ -194,45 +285,17 @@ void Logger::GetPayloadS(const bytes& payload, size_t max_bytes_to_display,
   res.get()[payload_string_len - 1] = '\0';
 }
 
-#define LIMIT(s, len)                              \
-  std::setw(len) << std::setfill(' ') << std::left \
-                 << std::string(s).substr(0, len)
-
-#define LIMIT_RIGHT(s, len)                        \
-  std::setw(len) << std::setfill(' ') << std::left \
-                 << s.substr(std::max<int>((int)s.size() - len, 0))
-
-std::ostream& Logger::CurrentTime(std::ostream& stream) {
-  auto cur = std::chrono::system_clock::now();
-  auto cur_time_t = std::chrono::system_clock::to_time_t(cur);
-  stream << "[" << std::put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]";
-  return stream;
-}
-
-std::ostream& Logger::CurrentThreadId(std::ostream& stream) {
-  stream << '[' << std::hex
-         << PAD(std::this_thread::get_id(), Logger::TID_LEN, ' ') << std::dec
-         << ']';
-  return stream;
-}
-
-std::ostream& Logger::CodeLocation::operator()(std::ostream& stream) const {
-  auto fileAndLine = m_file + ':' + std::to_string(m_line);
-  stream << '[' << LIMIT_RIGHT(fileAndLine, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(m_func, Logger::MAX_FUNCNAME_LEN) << ']';
-  return stream;
-}
-
 Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func)
-    : CodeLocation{file, line, func} {
-  INTERNAL_FILTERED_LOG_COMMON_BASE(INFO, &Logger::IsGeneralSink,
-                                    m_file.c_str(), m_line, m_func.c_str())
-      << "BEG" << std::endl;
+    : m_file{file}, m_line{line}, m_func{func} {
+  LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
+             &Logger::IsGeneralSink)
+          .stream()
+      << " BEG";
 }
 
 Logger::ScopeMarker::~ScopeMarker() {
-  INTERNAL_FILTERED_LOG_COMMON_BASE(INFO, &Logger::IsGeneralSink,
-                                    m_file.c_str(), m_line, m_func.c_str())
-      << "END" << std::endl;
+  LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
+             &Logger::IsGeneralSink)
+          .stream()
+      << " END";
 }
