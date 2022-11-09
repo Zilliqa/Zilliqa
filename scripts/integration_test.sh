@@ -116,5 +116,8 @@ else
     mv constants_backup.xml constants.xml
 
     echo "Success with integration test"
+
+    sleep 8000
+
     exit 0
 fi
