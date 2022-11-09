@@ -64,13 +64,13 @@ using namespace boost::multiprecision;
 bool Node::StoreFinalBlock(const TxBlock& txBlock) {
   LOG_MARKER();
 
+  AddBlock(txBlock);
+
   if (LOOKUP_NODE_MODE) {
     m_mediator.m_filtersAPICache->GetUpdate().StartEpoch(
         txBlock.GetHeader().GetBlockNum(), txBlock.GetBlockHash().hex(),
         txBlock.GetMicroBlockInfos().size(), txBlock.GetHeader().GetNumTxs());
   }
-
-  AddBlock(txBlock);
 
   // At this point, the transactions in the last Epoch is no longer useful, thus
   // erase. EraseCommittedTransactions(m_mediator.m_currentEpochNum - 2);
