@@ -27,41 +27,6 @@ using namespace g3;
 
 namespace {
 
-template <typename LogRotateSinkT>
-void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
-                 const boost::filesystem::path& filePath,
-                 int maxFileSize /*= MAX_FILE_SIZE*/) {
-  auto logFileRoot = boost::filesystem::absolute(filePath);
-  bool useDefaultLocation = false;
-  try {
-    if (!boost::filesystem::create_directory(logFileRoot)) {
-      if ((boost::filesystem::status(logFileRoot).permissions() &
-           boost::filesystem::perms::owner_write) ==
-          boost::filesystem::perms::no_perms) {
-        useDefaultLocation = true;
-        std::cout << logFileRoot
-                  << " already existed but no writing permission!" << endl;
-      }
-    }
-  } catch (const boost::filesystem::filesystem_error& e) {
-    std::cout << "Cannot create log folder in " << logFileRoot
-              << ", error code: " << e.code() << endl;
-    useDefaultLocation = true;
-  }
-
-  if (useDefaultLocation) {
-    logFileRoot = boost::filesystem::absolute("./");
-    std::cout << "Use default log folder " << logFileRoot << " instead."
-              << endl;
-  }
-
-  auto sinkHandle = logWorker.addSink(
-      std::make_unique<LogRotateSinkT>(
-          filePrefix.empty() ? "common" : filePrefix, logFileRoot.c_str()),
-      &LogRotateSinkT::receiveLogMessage);
-  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxFileSize).wait();
-}
-
 #define LIMIT(s, len)                              \
   std::setw(len) << std::setfill(' ') << std::left \
                  << std::string(s).substr(0, len)
@@ -144,6 +109,9 @@ std::ostream& logMessageCommon(std::ostream& stream,
   return stream;
 }
 
+// FIXME: make this configurable. This is per LogRotate sink.
+const int MAX_ARCHIVED_LOG_COUNT = 15;
+
 class CustomLogRotate {
  public:
   virtual ~CustomLogRotate() noexcept = default;
@@ -154,6 +122,10 @@ class CustomLogRotate {
 
   void setMaxLogSize(int max_file_size_in_bytes) {
     m_logRotate.setMaxLogSize(max_file_size_in_bytes);
+  }
+
+  void setMaxArchiveLogCount(int max_size) {
+    m_logRotate.setMaxArchiveLogCount(max_size);
   }
 
   void receiveLogMessage(LogMessageMover logEntry) {
@@ -196,13 +168,52 @@ class StdoutSink {
     std::cout << m_stream.str();
     m_stream.str("");
   }
+
  private:
   std::ostringstream m_stream;
 };
 
+template <typename LogRotateSinkT>
+void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
+                 const boost::filesystem::path& filePath,
+                 int maxFileSize /*= MAX_FILE_SIZE*/) {
+  auto logFileRoot = boost::filesystem::absolute(filePath);
+  bool useDefaultLocation = false;
+  try {
+    if (!boost::filesystem::create_directory(logFileRoot)) {
+      if ((boost::filesystem::status(logFileRoot).permissions() &
+           boost::filesystem::perms::owner_write) ==
+          boost::filesystem::perms::no_perms) {
+        useDefaultLocation = true;
+        std::cout << logFileRoot
+                  << " already existed but no writing permission!" << endl;
+      }
+    }
+  } catch (const boost::filesystem::filesystem_error& e) {
+    std::cout << "Cannot create log folder in " << logFileRoot
+              << ", error code: " << e.code() << endl;
+    useDefaultLocation = true;
+  }
+
+  if (useDefaultLocation) {
+    logFileRoot = boost::filesystem::absolute("./");
+    std::cout << "Use default log folder " << logFileRoot << " instead."
+              << endl;
+  }
+
+  auto sinkHandle = logWorker.addSink(
+      std::make_unique<LogRotateSinkT>(
+          filePrefix.empty() ? "common" : filePrefix, logFileRoot.c_str()),
+      &LogRotateSinkT::receiveLogMessage);
+  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxFileSize).wait();
+  sinkHandle
+      ->call(&LogRotateSinkT::setMaxArchiveLogCount, MAX_ARCHIVED_LOG_COUNT)
+      .wait();
+}
+
 }  // namespace
 
-const int Logger::MAX_FILE_SIZE = 1024 * 1024 * 100;  // 100MB per log file
+const int Logger::MAX_FILE_SIZE = 1024 * 1024 * 10;  // 10MB per log file
 
 Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
   initializeLogging(m_logWorker.get());
