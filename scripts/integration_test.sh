@@ -55,6 +55,8 @@ else
 
     cd evm-ds
     cargo --version
+    rustup update stable
+    cargo --version
     echo "building evm ds"
 
     cargo build --release --package evm-ds -q
