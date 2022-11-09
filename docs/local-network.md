@@ -19,7 +19,7 @@ You may need to authenticate to AWS first.
 
     ```
     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-    kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=90s
+    kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=300s
     ```
 
 1. (Optionally) change the Zilliqa container image in `infra/k8s/base/kustomization.yaml`.

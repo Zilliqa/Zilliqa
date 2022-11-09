@@ -6,16 +6,15 @@ resources:
 - explorer.yaml
 - lookup.yaml
 - multiplier.yaml
-- new.yaml
 - normal.yaml
 - origin.yaml
-- seedprv.yaml
 - seedpub.yaml
 - services.yaml
 - configmap/
 - secret/
 
-images:
-- name: zilliqa
-  newName: 648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa
-  newTag: fedfc55
+#images:
+#- name: zilliqa/zilliqa
+#  newName: 648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa
+#  newTag: 2ace9cc
+#  #newTag: tilt-4e870e456d43d544
