@@ -25,7 +25,6 @@
 #include "JSONConversion.h"
 #include "LookupServer.h"
 #include "common/Constants.h"
-#include "common/Messages.h"
 #include "common/Serializable.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
@@ -37,14 +36,9 @@
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/ContractStorage.h"
-#include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
@@ -52,7 +46,6 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
@@ -371,6 +364,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
+  std::string ret;
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -382,26 +376,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 
-  Address toAddr{fields.toAddr};
-  zbytes data;
-  zbytes code;
-  if (IsNullAddress(toAddr)) {
-    code = ToEVM(fields.code);
-  } else {
-    data = fields.code;
-  }
-  Transaction tx{fields.version,
-                 fields.nonce,
-                 Address(fields.toAddr),
-                 PubKey(pubKey, 0),
-                 fields.amount,
-                 fields.gasPrice,
-                 fields.gasLimit,
-                 code,  // either empty or stripped EVM-less code
-                 data,  // either empty or un-hexed byte-stream
-                 Signature(fields.signature, 0)};
-
-  const std::string ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+  auto tx = GetTxFromFields(fields, pubKey, ret);
 
   try {
     const Address fromAddr = tx.GetSenderAddr();
@@ -1413,6 +1388,10 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactionBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
+      return Json::nullValue;
+    }
+    if (!transactionBodyPtr->GetTransaction().IsEth()) {
+      LOG_GENERAL(WARNING, "No tx receipts for zil txs");
       return Json::nullValue;
     }
 

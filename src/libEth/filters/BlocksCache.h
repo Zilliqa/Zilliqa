@@ -87,8 +87,6 @@ class BlocksCache {
 
   using FinalizedEpochs = std::deque<EpochMetadata>;
 
-  // void CleanupOldEpochs(EpochNumber cleanup_before);
-
   FinalizedEpochs::iterator FindNext(EpochNumber after_epoch);
 
   /// Tries to finalize unfinished meta, returns true if current epoch advanced

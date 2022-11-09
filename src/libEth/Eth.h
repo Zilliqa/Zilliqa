@@ -79,6 +79,9 @@ LogBloom BuildBloomForLogs(const Json::Value &logsArray);
 uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
                                           const TxBlock &block);
 
+Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
+                            std::string &hash);
+
 }  // namespace Eth
 
 #endif  // ZILLIQA_SRC_LIBETH_ETH_H_
