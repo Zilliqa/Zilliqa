@@ -26,8 +26,6 @@
 // A holder for the transaction that can be safely queued and dispatched for
 // later processing
 
-/// The new transaction holder.
-
 class TransactionEnvelope {
  public:
   enum TxType{
@@ -92,5 +90,7 @@ class TransactionEnvelope {
   std::future<evmproj::CallResponse>    m_callFuture;
   std::promise<evmproj::CallResponse>   m_callPromise;
 };
+
+using TransactionEnvelopePtr=std::shared_ptr<TransactionEnvelope>;
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONCONTAINER_H_

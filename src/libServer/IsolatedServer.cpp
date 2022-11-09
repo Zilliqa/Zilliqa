@@ -27,6 +27,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 #include "libUtils/TimeUtils.h"
+#include "libData/AccountData/TransactionEnvelope.h"
 
 using namespace jsonrpc;
 using namespace std;
@@ -665,17 +666,17 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+    TransactionEnvelopePtr te = std::make_shared<TransactionEnvelope>(tx,extras);
+    if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
             m_blocknum,
             3  // Arbitrary values
             ,
-            true, tx, extras, txreceipt, error_code)) {
+            true, te, error_code)) {
       throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server");
     AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
     AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
-
     AccountStore::GetInstance().SerializeDelta();
     AccountStore::GetInstance().CommitTemp();
 
@@ -826,10 +827,11 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
-    if (!AccountStore::GetInstance().UpdateAccountsTemp(
+    TransactionEnvelopePtr te = std::make_shared<TransactionEnvelope>(tx,extras);
+    if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
             m_blocknum,
             3,  // Arbitrary values
-            true, tx, extras, txreceipt, error_code)) {
+            true, te, error_code)) {
       LOG_GENERAL(WARNING, "failed to update accounts!!!");
       throwError = true;
     }
