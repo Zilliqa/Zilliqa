@@ -45,7 +45,7 @@ class APIServerImpl : public APIServer,
   bool Start();
 
   /// Called from a connection on websocket upgrade
-  void OnWebsocketUpgrade(ConnectionId id, Socket&& socket,
+  void OnWebsocketUpgrade(ConnectionId id, std::string&& from, Socket&& socket,
                           HttpRequest&& request);
 
   /// Called from a connection to put the request into thread pool
@@ -89,11 +89,11 @@ class APIServerImpl : public APIServer,
   /// Started flag
   std::atomic<bool> m_started{};
 
-  /// Websocket server
-  std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
-
   /// Thread pool
   std::shared_ptr<APIThreadPool> m_threadPool;
+
+  /// Websocket server
+  std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
 
   /// Listening socket
   boost::optional<tcp::acceptor> m_acceptor;

@@ -90,8 +90,6 @@ Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
 int main(int argc, const char* argv[]) {
   using namespace evmproj;
 
-  pthread_setname_np(pthread_self(), "main");
-
   string accountJsonFilePath;
   uint port{5555};
   string blocknum_str{"1"};

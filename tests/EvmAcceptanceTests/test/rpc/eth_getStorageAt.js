@@ -23,8 +23,7 @@ describe("Calling " + METHOD, function () {
     });
   });
 
-  // FIXME: In https://zilliqa-jira.atlassian.net/browse/ZIL-4953
-  xit("should return proper storage value when a value from a map is requested", async function () {
+  it("should return proper storage value when a value from a map is requested", async function () {
     const MAPPING_SLOT = "0000000000000000000000000000000000000000000000000000000000000001";
 
     // KEY that we want to read in the mapping

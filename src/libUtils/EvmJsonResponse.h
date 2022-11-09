@@ -127,8 +127,12 @@ struct CallResponse {
   inline bool Success() const { return m_success; }
   inline void SetSuccess(const bool _ok) { m_success = _ok; }
 
+  inline bool Revert() const { return m_revert; }
+  inline void SetRevert(bool revert) { m_revert = revert; }
+
  private:
   bool m_success{false};
+  bool m_revert{false};
   std::vector<std::shared_ptr<ApplyInstructions>> m_apply;
   std::vector<std::string> m_logs;
   std::vector<std::string> m_trace;

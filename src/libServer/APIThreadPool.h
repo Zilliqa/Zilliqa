@@ -32,17 +32,37 @@ namespace evmproj {
 
 class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
  public:
+  /// Job ID (is effectively connection's id)
   using JobId = uint64_t;
 
+  /// OK response code
+  static constexpr int OK_RESPONSE_CODE = 200;
+
   struct Request {
+    /// Job ID
     JobId id = 0;
+
+    /// If true than the response will be dispatched to websocket connections
+    bool isWebsocket = false;
+
+    /// Remote peer (for logging)
     std::string from;
+
+    /// Request body (json rpc 2.0 format expected)
     std::string body;
   };
 
   struct Response {
+    /// Job ID
     JobId id = 0;
-    int code = 200;
+
+    /// If true than the response will be dispatched to websocket connections
+    bool isWebsocket = false;
+
+    /// HTTP response code
+    int code = OK_RESPONSE_CODE;
+
+    /// Response body
     std::string body;
   };
 
@@ -61,7 +81,8 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   ~APIThreadPool();
 
   /// Owner pushes a new request
-  bool PushRequest(JobId id, std::string from, std::string body);
+  bool PushRequest(JobId id, bool isWebsocket, std::string from,
+                   std::string body);
 
   /// Explicit close due to shared_ptr usage
   void Close();

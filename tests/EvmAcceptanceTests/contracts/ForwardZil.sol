@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 
-pragma solidity >=0.7.0 <0.9.0;
+pragma solidity >=0.8.7 <0.9.0;
 
 contract ForwardZil {
 
@@ -37,5 +37,8 @@ contract ForwardZil {
         // Note that "to" is declared as payable
         (bool success, ) = _to.call{value: _amount}("");
         require(success, "Failed to send Ether");
+    }
+
+    receive() external payable {
     }
 }
