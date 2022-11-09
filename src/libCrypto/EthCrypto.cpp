@@ -448,12 +448,8 @@ zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << toAddr;
     rlpStreamRecreated << info.amount;
     if (IsNullAddress(info.toAddr)) {
-      LOG_GENERAL(INFO, "adding txn code: "
-                            << DataConversion::Uint8VecToHexStrRet(info.code));
       rlpStreamRecreated << FromEVM(info.code);
     } else {
-      LOG_GENERAL(INFO, "adding txn data: "
-                            << DataConversion::Uint8VecToHexStrRet(info.data));
       rlpStreamRecreated << info.data;
     }
 
