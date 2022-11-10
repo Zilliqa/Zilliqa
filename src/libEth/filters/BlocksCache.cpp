@@ -110,7 +110,6 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
-
   for (const auto &event : logs) {
     ++ctx.totalLogs;
 
@@ -137,8 +136,8 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
       log.topics.emplace_back(t.asString());
     }
 
-    auto data = ExtractArrayFromJsonObj(event, DATA_STR, error);
-    if (!error.empty()) {
+    auto data = ExtractStringFromJsonObj(event, DATA_STR, error, found);
+    if (data.empty()) {
       LOG_GENERAL(WARNING, "Error extracting event log data: " << error);
     }
 
@@ -192,7 +191,6 @@ void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
       }
     }
   }
-
   m_epochFinalizedCallback(item);
 }
 

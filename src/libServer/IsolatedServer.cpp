@@ -25,13 +25,11 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SetThreadName.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
-
-const char* ZEROES_HASH =
-    "0x0000000000000000000000000000000000000000000000000000000000000";
 
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
@@ -733,34 +731,14 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  zbytes const& pubKey) {
   // Always return the TX hash or the null hash
-  std::string ret = ZEROES_HASH;
+  std::string ret;
 
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    const Address toAddr{fields.toAddr};
-    zbytes data;
-    zbytes code;
-    if (IsNullAddress(toAddr)) {
-      code = ToEVM(fields.code);
-    } else {
-      data = DataConversion::StringToCharArray(
-          DataConversion::Uint8VecToHexStrRet(fields.code));
-    }
-    Transaction tx{fields.version,
-                   fields.nonce,
-                   toAddr,
-                   PubKey(pubKey, 0),
-                   fields.amount,
-                   fields.gasPrice,
-                   fields.gasLimit,
-                   code,  // either empty or stripped EVM-less code
-                   data,  // either empty or un-hexed byte-stream
-                   Signature(fields.signature, 0)};
-
-    ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+    auto tx = GetTxFromFields(fields, pubKey, ret);
 
     uint256_t senderBalance;
 
@@ -1021,7 +999,7 @@ string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
   auto incrThread = [this]() mutable -> void {
-    pthread_setname_np(pthread_self(), "tx_block_incr");
+    utility::SetThreadName("tx_block_incr");
 
     // start the post tx block directly to prevent a 'dead' period before the
     // first block
@@ -1149,10 +1127,12 @@ void IsolatedServer::PostTxBlock() {
       cacheUpdate.StartEpoch(epoch, blockHash, 0, txnHashes.size());
       Json::Value receipt;
       for (const auto& tx : txnHashes) {
-        if (!ExtractTxnReceipt(tx, receipt)) {
-          LOG_GENERAL(WARNING, "Extract txn receipt failed for " << tx);
-        }
-        cacheUpdate.AddCommittedTransaction(epoch, 0, tx, receipt);
+        TxBodySharedPtr tptr;
+        TxnHash tranHash(tx);
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+        const auto& transactionReceipt = tptr->GetTransactionReceipt();
+        cacheUpdate.AddCommittedTransaction(epoch, 0, tx,
+                                            transactionReceipt.GetJsonValue());
       }
     }
   }

@@ -127,13 +127,17 @@ pub(crate) fn blake2(
     _is_static: bool,
 ) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
     if input.len() != consts::INPUT_LENGTH {
-        return Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) });
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")),
+        });
     }
 
     let cost = required_gas(input).unwrap();
     if let Some(target_gas) = target_gas {
         if cost > target_gas {
-            return Err(PrecompileFailure::Error { exit_status: ExitError::OutOfGas });
+            return Err(PrecompileFailure::Error {
+                exit_status: ExitError::OutOfGas,
+            });
         }
     }
 
@@ -166,7 +170,9 @@ pub(crate) fn blake2(
     }
 
     if input[212] != 0 && input[212] != 1 {
-        return Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_FINAL_FLAG")) });
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_FINAL_FLAG")),
+        });
     }
     let finished = input[212] != 0;
 
@@ -175,7 +181,7 @@ pub(crate) fn blake2(
         cost,
         exit_status: ExitSucceed::Returned,
         logs: vec![],
-        output
+        output,
     })
 }
 
@@ -300,7 +306,7 @@ mod tests {
             01",
         )
         .unwrap();
-        
+
         blake2(&input, Some(12), &new_context(), false)
             .unwrap()
             .output
@@ -308,7 +314,7 @@ mod tests {
 
     fn test_blake2f_r_12() -> Vec<u8> {
         let input = hex::decode(INPUT).unwrap();
-        
+
         blake2(&input, Some(12), &new_context(), false)
             .unwrap()
             .output
@@ -338,27 +344,37 @@ mod tests {
     fn test_blake2f() {
         assert!(matches!(
             test_blake2f_out_of_gas(),
-            Err(PrecompileFailure::Error { exit_status: ExitError::OutOfGas }) 
+            Err(PrecompileFailure::Error {
+                exit_status: ExitError::OutOfGas
+            })
         ));
 
         assert!(matches!(
             test_blake2f_empty(),
-            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) })
+            Err(PrecompileFailure::Error {
+                exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN"))
+            })
         ));
 
         assert!(matches!(
             test_blake2f_invalid_len_1(),
-            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) })
+            Err(PrecompileFailure::Error {
+                exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN"))
+            })
         ));
 
         assert!(matches!(
             test_blake2f_invalid_len_2(),
-            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")) })
+            Err(PrecompileFailure::Error {
+                exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN"))
+            })
         ));
 
         assert!(matches!(
             test_blake2f_invalid_flag(),
-            Err(PrecompileFailure::Error { exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_FINAL_FLAG")) })
+            Err(PrecompileFailure::Error {
+                exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_FINAL_FLAG"))
+            })
         ));
 
         let expected = hex::decode(

@@ -48,7 +48,7 @@ class APIServer {
     bool bindToLocalhost = false;
 
     /// Limit in bytes for POST bodies of incoming requests (security)
-    size_t inputBodyLimit = 50000;
+    size_t inputBodyLimit = 5 * 1024 * 1024;
 
     /// Number of threads in thread pool
     size_t numThreads = 6;

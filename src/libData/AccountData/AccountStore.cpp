@@ -281,7 +281,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   unordered_map<string, string> initdata_batch;
 
   for (const auto& i : *m_addressToAccount) {
-    if (i.second.isContract()) {
+    if (i.second.isContract() || i.second.IsLibrary()) {
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
               .empty()) {
@@ -519,8 +519,9 @@ bool AccountStore::UpdateAccountsTemp(
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {
     isEvm = EvmUtils::isEvm(transaction.GetCode());
-  } else if (Transaction::GetTransactionType(transaction) ==
-             Transaction::CONTRACT_CALL) {
+  } else {
+    // We need to look at the code for any transaction type. Even if it is a
+    // simple transfer, it might actually be a call.
     Account* contractAccount = this->GetAccountTemp(transaction.GetToAddr());
     if (contractAccount != nullptr) {
       isEvm = EvmUtils::isEvm(contractAccount->GetCode());
