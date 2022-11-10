@@ -703,6 +703,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
   }
+  args.set_estimate(true);
 
   evm::EvmResult result;
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
