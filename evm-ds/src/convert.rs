@@ -29,9 +29,9 @@ impl From<U256> for EvmProto::UInt256 {
     fn from(num: U256) -> Self {
         let mut result = Self::new();
         result.set_x3(num.low_u64());
-        result.set_x2(num.shr(8).low_u64());
-        result.set_x1(num.shr(16).low_u64());
-        result.set_x0(num.shr(24).low_u64());
+        result.set_x2(num.shr(64).low_u64());
+        result.set_x1(num.shr(128).low_u64());
+        result.set_x0(num.shr(192).low_u64());
         result
     }
 }
