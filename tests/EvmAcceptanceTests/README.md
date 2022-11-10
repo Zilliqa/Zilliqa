@@ -95,7 +95,8 @@ npx hardhat test --network ganache
 
 # How to debug
 
-- Use `hre.logDebug` :smile:
+- Use `--log-jsonrpc` option to enable Json-RPC requests/responses logging. It only works with ethers.js currently.
+- Use `hre.logDebug`
 - Use vscode debugger
 - Use `--verbose` option to enable hardhat verbose logging.
 

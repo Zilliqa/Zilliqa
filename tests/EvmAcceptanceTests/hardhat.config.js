@@ -60,8 +60,20 @@ module.exports = {
 
 task("test")
   .addFlag("debug", "Print debugging logs")
+  .addFlag("logJsonrpc", "Log JSON RPC ")
   .setAction(async (taskArgs, hre, runSuper) => {
     hre.debugMode = taskArgs.debug ?? false;
     hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
+    if (taskArgs.logJsonrpc) {
+      hre.ethers.provider.on("debug", (info) => {
+        if (info.request) {
+          console.log("Request:", info.request);
+        }
+        if (info.request) {
+          console.log("Response:", info.response);
+        }
+        console.log("=========================================================");
+      });
+    }
     return runSuper();
   });
