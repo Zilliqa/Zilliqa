@@ -106,11 +106,10 @@ void BlocksCache::AddCommittedTransaction(uint64_t epoch, uint32_t shard,
   std::string error;
   bool found = false;
 
-  auto logs = ExtractArrayFromJsonObj(receipt, "logs", error);
+  auto logs = ExtractArrayFromJsonObj(receipt, "event_logs", error);
   if (!error.empty()) {
     LOG_GENERAL(WARNING, "Error extracting event logs: " << error);
   }
-
   for (const auto &event : logs) {
     ++ctx.totalLogs;
 
@@ -192,7 +191,6 @@ void BlocksCache::FinalizeOneEpoch(EpochNumber n, EpochInProcess &data) {
       }
     }
   }
-
   m_epochFinalizedCallback(item);
 }
 

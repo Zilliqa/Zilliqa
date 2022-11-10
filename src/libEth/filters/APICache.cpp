@@ -94,7 +94,6 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
     LOG_GENERAL(INFO, "Finalized epoch " << epoch);
 
     m_subscriptions.OnNewHead(meta.blockHash);
-
     for (const auto& event : meta.meta) {
       m_subscriptions.OnEventLog(event.address, event.topics, event.response);
     }

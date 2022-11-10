@@ -18,6 +18,10 @@ var general_helper = {
     return hre.network.config.url;
   },
 
+  getWebsocketUrl: function () {
+    return hre.network.config.websocketUrl;
+  },
+
   getPrivateAddressAt: function (index) {
     return hre.network.config.accounts[index];
   },
