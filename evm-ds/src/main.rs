@@ -198,7 +198,7 @@ async fn run_evm_impl(
                                              debug!("Modify: {:?} {:?}", address, basic);
                                              let mut modify = EvmProto::Apply_Modify::new();
                                              modify.set_address(address.into());
-                                             modify.set_balance(basic.balance.into());
+                                             modify.set_balance(backend.scale_eth_to_zil(basic.balance).into());
                                              modify.set_nonce(basic.nonce.into());
                                              if let Some(code) = code {
                                                  modify.set_code(code.into());

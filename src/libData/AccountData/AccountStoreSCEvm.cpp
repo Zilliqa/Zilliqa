@@ -181,7 +181,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
         if (it.modify().has_balance()) {
           uint256_t balance = ProtoToUint(it.modify().balance());
           if ((balance >> 128) > 0) {
-            throw std::runtime_error("Balance overlow!");
+            throw std::runtime_error("Balance overflow!");
           }
           targetAccount->SetBalance(balance.convert_to<uint128_t>());
         }

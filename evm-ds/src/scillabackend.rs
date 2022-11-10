@@ -209,6 +209,10 @@ impl ScillaBackend {
         )
     }
 
+    pub(crate) fn scale_eth_to_zil(&self, eth: U256) -> U256 {
+        eth / self.config.zil_scaling_factor
+    }
+
     pub(crate) fn scale_zil_to_eth(&self, zil: U256) -> U256 {
         zil * self.config.zil_scaling_factor
     }
