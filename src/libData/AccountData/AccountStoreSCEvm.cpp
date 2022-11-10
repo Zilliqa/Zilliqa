@@ -238,8 +238,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
-  const Address fromAddr = transaction.GetSenderAddr();
 
+  TransactionEnvelope::TX_TYPE txType = envelope->GetTxType();
+
+  const Address fromAddr =
+      (txType == TransactionEnvelope::TX_TYPE::NORMAL) ? transaction.GetSenderAddr()
+                                                       : Address(envelope->GetSource());
   uint64_t gasRemained = transaction.GetGasLimitEth();
 
   // Get the amount of deposit for running this txn
