@@ -226,8 +226,11 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   /// Deal with blacklist in which peer may have appeared after some delay
   bool CheckAgainstBlacklist() {
-    if (IsBlacklisted(m_peer, false)) {
+    auto sz = m_queue.size();
+    if (sz > 0 && IsBlacklisted(m_peer, false)) {
       if (!IsBlacklisted(m_peer, true)) {
+        LOG_GENERAL(INFO,
+                    "Peer " << m_peer << " is relaxed blacklisted, Q=" << sz);
         // Find 1st item which allows to be sent in non-strict blacklist mode
         while (!m_queue.empty()) {
           auto& item = m_queue.front();
@@ -236,17 +239,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
           }
           m_queue.pop_front();
         }
-
       } else {
         // the peer is blacklisted strictly
+        LOG_GENERAL(INFO,
+                    "Peer " << m_peer << " is strictly blacklisted, Q=" << sz);
         m_queue.clear();
       }
     }
 
     if (m_queue.empty()) {
-      LOG_GENERAL(INFO, "Blacklisted after messages queued, peer="
-                            << m_peer.GetPrintableIPAddress() << ":"
-                            << m_peer.GetListenPortHost());
       Done();
       return false;
     }
@@ -316,9 +317,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void Done(const ErrorCode& ec = ErrorCode{}) {
     if (!m_closed) {
-      // XXX
-      LOG_GENERAL(INFO, "Done with peer " << m_peer);
-
       m_doneCallback(m_peer, ec);
     }
   }
@@ -358,7 +356,11 @@ class SendJobsImpl : public SendJobs,
  private:
   void SendMessageToPeer(const Peer& peer, RawMessage message,
                          bool allow_relaxed_blacklist) override {
-    // XXX
+    if (peer.m_listenPortHost == 0) {
+      LOG_GENERAL(INFO, "Ignoring message to peer " << peer);
+      return;
+    }
+
     LOG_GENERAL(INFO, "Enqueueing message, size=" << message.size);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
@@ -411,10 +413,13 @@ class SendJobsImpl : public SendJobs,
   }
 
   void OnPeerQueueFinished(const Peer& peer, ErrorCode ec) {
-    LOG_GENERAL(INFO,
-                "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
+    if (ec) {
+      LOG_GENERAL(
+          INFO, "Peer queue finished, peer=" << peer.GetPrintableIPAddress()
                                              << ":" << peer.GetListenPortHost()
                                              << " ec=" << ec.message());
+    }
+
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {
       // impossible
@@ -424,7 +429,7 @@ class SendJobsImpl : public SendJobs,
     if (IsHostHavingNetworkIssue(ec)) {
       if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
+                                 << ec.value() << " (" << ec.message()
                                  << "). Adding seed "
                                  << peer.GetPrintableIPAddress()
                                  << " as relaxed blacklisted");
@@ -433,14 +438,14 @@ class SendJobsImpl : public SendJobs,
         Blacklist::GetInstance().Add(peer.m_ipAddress, false, true);
       } else {
         LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
+                                 << ec.value() << " (" << ec.message()
                                  << "). Adding " << peer.GetPrintableIPAddress()
                                  << " as strictly blacklisted");
         Blacklist::GetInstance().Add(peer.m_ipAddress);  // strict
       }
     } else if (IsNodeNotRunning(ec)) {
       LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                               << errno << " (" << std::strerror(errno)
+                               << ec.value() << " (" << ec.message()
                                << "). Adding " << peer.GetPrintableIPAddress()
                                << " as relaxed blacklisted");
       Blacklist::GetInstance().Add(peer.m_ipAddress, false);
