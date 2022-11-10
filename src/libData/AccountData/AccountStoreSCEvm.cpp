@@ -221,13 +221,18 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code) {
+    TransactionEnvelopeSp envelope, TxnStatus& error_code) {
   LOG_MARKER();
+
+  const Transaction& transaction = envelope->GetTransaction();
+  TxnExtras& txnExtras = envelope->GetExtras();
+  TransactionReceipt& receipt = envelope->GetReceipt();
+  evm::EvmResult result;
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   }
+
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
@@ -371,7 +376,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
-      evm::EvmResult result;
       auto gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, result);
@@ -539,7 +543,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr
                                                   << " caller account is "
                                                   << fromAddr);
-      evm::EvmResult result;
+
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
                                evm_call_succeeded, receipt, result);
@@ -617,9 +621,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   receipt.SetResult(true);
   receipt.update();
 
-  // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
-  m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
-                                   m_storageRootUpdateBufferAtomic.end());
+  if (envelope->GetTxType() == TransactionEnvelope::TX_TYPE::NORMAL) {
+    // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
+    m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
+                                     m_storageRootUpdateBufferAtomic.end());
+  } else {
+    envelope->SetResponse(result);
+  }
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Executing contract transaction finished");

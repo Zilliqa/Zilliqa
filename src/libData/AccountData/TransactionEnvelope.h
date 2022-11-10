@@ -21,7 +21,8 @@
 #include <memory>
 #include <future>
 #include "libUtils/TxnExtras.h"
-#include "libUtils/EvmJsonResponse.h"
+#include "libUtils/Evm.pb.h"
+
 
 // A holder for the transaction that can be safely queued and dispatched for
 // later processing
@@ -57,11 +58,11 @@ class TransactionEnvelope {
     return m_txType;
   }
 
-  void SetResponse(const evmproj::CallResponse& result){
+  void SetResponse(const evm::EvmResult& result){
     m_callPromise.set_value(std::move(result));
   }
 
-  evmproj::CallResponse GetResponse(){
+  evm::EvmResult GetResponse(){
     return m_callFuture.get();
   }
 
@@ -80,8 +81,8 @@ class TransactionEnvelope {
   TxnExtras m_extras;
   TransactionReceipt& m_receipt;
   TX_TYPE   m_txType;
-  std::future<evmproj::CallResponse>    m_callFuture;
-  std::promise<evmproj::CallResponse>   m_callPromise;
+  std::future<evm::EvmResult>    m_callFuture;
+  std::promise<evm::EvmResult>   m_callPromise;
   std::string                           m_fromAddress;
 };
 
