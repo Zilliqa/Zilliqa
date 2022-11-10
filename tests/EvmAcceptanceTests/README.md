@@ -4,6 +4,7 @@
     npm install
     npx hardhat test    # to run tests
     npx hardhat test --network devnet    # to run tests against the devnet
+    npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
     npx hardhat test --debug    # to run tests and print log messages
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
@@ -95,7 +96,8 @@ npx hardhat test --network ganache
 
 # How to debug
 
-- Use `hre.logDebug` :smile:
+- Use `--log-jsonrpc` option to enable Json-RPC requests/responses logging. It only works with ethers.js currently.
+- Use `hre.logDebug`
 - Use vscode debugger
 - Use `--verbose` option to enable hardhat verbose logging.
 
