@@ -28,10 +28,8 @@
 #include <event2/thread.h>
 #include <event2/util.h>
 #include <netinet/in.h>
-#include <signal.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -39,7 +37,7 @@
 
 #include "Blacklist.h"
 #include "P2PComm.h"
-#include "common/Messages.h"
+#include "SendJobs.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -74,13 +72,6 @@ struct HashCompare {
     return equal(l.begin(), l.end(), r.begin(), r.end());
   }
 };
-
-static void close_socket(int* cli_sock) {
-  if (cli_sock != NULL) {
-    shutdown(*cli_sock, SHUT_RDWR);
-    close(*cli_sock);
-  }
-}
 
 static bool comparePairSecond(
     const pair<zbytes, chrono::time_point<chrono::system_clock>>& a,
@@ -130,272 +121,6 @@ P2PComm& P2PComm::GetInstance() {
   return comm;
 }
 
-uint32_t SendJob::writeMsg(const void* buf, int cli_sock, const Peer& from,
-                           const uint32_t message_length) {
-  uint32_t written_length = 0;
-
-  while (written_length < message_length) {
-    ssize_t n = write(cli_sock, (unsigned char*)buf + written_length,
-                      message_length - written_length);
-    LOG_GENERAL(DEBUG, "Sent chunk of " << n << " bytes");
-    if (n <= 0) {
-      if (P2PComm::IsHostHavingNetworkIssue()) {
-        if (Blacklist::GetInstance().IsWhitelistedSeed(from.m_ipAddress)) {
-          LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                   << errno << " (" << std::strerror(errno)
-                                   << "). Adding seed "
-                                   << from.GetPrintableIPAddress()
-                                   << " as relaxed blacklisted");
-          // Add this seed node to relaxed blacklist even if it is whitelisted
-          // in general.
-          Blacklist::GetInstance().Add(from.m_ipAddress, false, true);
-        } else {
-          LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                   << errno << " (" << std::strerror(errno)
-                                   << "). Adding "
-                                   << from.GetPrintableIPAddress()
-                                   << " as strictly blacklisted");
-          Blacklist::GetInstance().Add(from.m_ipAddress);  // strict
-        }
-      } else if (P2PComm::IsNodeNotRunning()) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding " << from.GetPrintableIPAddress()
-                                 << " as relaxed blacklisted");
-        Blacklist::GetInstance().Add(from.m_ipAddress, false);  // relaxed
-      } else if (errno == EPIPE) {
-        LOG_GENERAL(WARNING, " SIGPIPE detected. Error No: "
-                                 << errno << " Desc: " << std::strerror(errno));
-        // No retry as it is likely the other end terminate the conn due to
-        // duplicated msg.
-      } else {
-        LOG_GENERAL(WARNING, "Socket write failed in message header. Code = "
-                                 << errno << " Desc: " << std::strerror(errno)
-                                 << ". IP address:" << from);
-      }
-      return written_length;
-    }
-
-    written_length += n;
-  }
-
-  if (written_length > 1000000) {
-    LOG_GENERAL(INFO, "DEBUG: Sent a total of " << written_length << " bytes");
-  }
-
-  return written_length;
-}
-
-bool SendJob::SendMessageSocketCore(const Peer& peer, const zbytes& message,
-                                    unsigned char start_byte,
-                                    const zbytes& msg_hash) {
-  // LOG_MARKER();
-  LOG_PAYLOAD(DEBUG, "Sending to " << peer, message,
-              Logger::MAX_BYTES_TO_DISPLAY);
-
-  if (peer.m_ipAddress == 0 && peer.m_listenPortHost == 0) {
-    LOG_GENERAL(INFO,
-                "I am sending to 0.0.0.0 at port 0. Don't send anything.");
-    return true;
-  } else if (peer.m_listenPortHost == 0) {
-    LOG_GENERAL(INFO, "I am sending to " << peer.GetPrintableIPAddress()
-                                         << " at port 0. Investigate why!");
-    return true;
-  }
-
-  try {
-    int cli_sock = socket(AF_INET, SOCK_STREAM, 0);
-    unique_ptr<int, void (*)(int*)> cli_sock_closer(&cli_sock, close_socket);
-
-    // LINUX HAS NO SO_NOSIGPIPE
-    // int set = 1;
-    // setsockopt(cli_sock, SOL_SOCKET, SO_NOSIGPIPE, (void *)&set,
-    // sizeof(int));
-    signal(SIGPIPE, SIG_IGN);
-    if (cli_sock < 0) {
-      LOG_GENERAL(WARNING, "Socket creation failed. Code = "
-                               << errno << " Desc: " << std::strerror(errno)
-                               << ". IP address: " << peer);
-      return false;
-    }
-
-    struct sockaddr_in serv_addr {};
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = peer.m_ipAddress.convert_to<unsigned long>();
-    serv_addr.sin_port = htons(peer.m_listenPortHost);
-
-    if (connect(cli_sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) <
-        0) {
-      LOG_GENERAL(WARNING, "Socket connect failed. Code = "
-                               << errno << " Desc: " << std::strerror(errno)
-                               << ". IP address: " << peer);
-      if (P2PComm::IsHostHavingNetworkIssue()) {
-        if (Blacklist::GetInstance().IsWhitelistedSeed(peer.m_ipAddress)) {
-          LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                   << errno << " (" << std::strerror(errno)
-                                   << "). Adding seed "
-                                   << peer.GetPrintableIPAddress()
-                                   << " as relaxed blacklisted");
-          // Add this seed node to relaxed blacklist even if it is whitelisted
-          // in general.
-          Blacklist::GetInstance().Add(peer.m_ipAddress, false, true);
-        } else {
-          LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                   << errno << " (" << std::strerror(errno)
-                                   << "). Adding "
-                                   << peer.GetPrintableIPAddress()
-                                   << " as strictly blacklisted");
-          Blacklist::GetInstance().Add(peer.m_ipAddress);  // strict
-        }
-      } else if (P2PComm::IsNodeNotRunning()) {
-        LOG_GENERAL(WARNING, "[blacklist] Encountered "
-                                 << errno << " (" << std::strerror(errno)
-                                 << "). Adding " << peer.GetPrintableIPAddress()
-                                 << " as relaxed blacklisted");
-        Blacklist::GetInstance().Add(peer.m_ipAddress, false);
-      }
-
-      return false;
-    }
-    // Transmission format:
-    // 0x01 ~ 0xFF - version, defined in constant file
-    // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
-    // 0x11 - start byte
-    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
-    // <message>
-
-    // 0x01 ~ 0xFF - version, defined in constant file
-    // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
-    // 0x22 - start byte (broadcast)
-    // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
-    // <32-byte hash> <message>
-
-    // 0x01 ~ 0xFF - version, defined in constant file
-    // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
-    // 0x33 - start byte (report)
-    // 0x00 0x00 0x00 0x01 - 4-byte length of message
-    // 0x00
-    uint32_t length = message.size();
-
-    if (start_byte == START_BYTE_BROADCAST) {
-      length += HASH_LEN;
-    }
-
-    unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
-                                  (unsigned char)((NETWORK_ID >> 8) & 0XFF),
-                                  (unsigned char)(NETWORK_ID & 0xFF),
-                                  start_byte,
-                                  (unsigned char)((length >> 24) & 0xFF),
-                                  (unsigned char)((length >> 16) & 0xFF),
-                                  (unsigned char)((length >> 8) & 0xFF),
-                                  (unsigned char)(length & 0xFF)};
-
-    uint32_t written = writeMsg(buf, cli_sock, peer, HDR_LEN);
-    if (HDR_LEN != written) {
-      LOG_CHECK_FAIL("Failed to write header bytes", written, HDR_LEN);
-      return true;
-    }
-
-    if (start_byte != START_BYTE_BROADCAST) {
-      writeMsg(&message.at(0), cli_sock, peer, length);
-      return true;
-    }
-
-    if (HASH_LEN != writeMsg(&msg_hash.at(0), cli_sock, peer, HASH_LEN)) {
-      LOG_GENERAL(WARNING, "Wrong message hash length.");
-      return true;
-    }
-
-    length -= HASH_LEN;
-    writeMsg(&message.at(0), cli_sock, peer, length);
-  } catch (const std::exception& e) {
-    LOG_GENERAL(WARNING, "Error with write socket." << ' ' << e.what());
-    return false;
-  }
-  return true;
-}
-
-void SendJob::SendMessageCore(const Peer& peer, const zbytes& message,
-                              unsigned char startbyte, const zbytes& hash) {
-  uint32_t retry_counter = 0;
-  while (!SendMessageSocketCore(peer, message, startbyte, hash)) {
-    if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
-      return;
-    }
-
-    LOG_GENERAL(WARNING, "Socket connect failed " << retry_counter << "/"
-                                                  << MAXRETRYCONN
-                                                  << ". IP address: " << peer);
-
-    if (++retry_counter > MAXRETRYCONN) {
-      LOG_GENERAL(WARNING,
-                  "Socket connect failed over " << MAXRETRYCONN << " times.");
-      return;
-    }
-    this_thread::sleep_for(
-        chrono::milliseconds(rand() % PUMPMESSAGE_MILLISECONDS + 1));
-  }
-}
-
-void SendJobPeer::DoSend() {
-  if (Blacklist::GetInstance().Exist(m_peer.m_ipAddress)) {
-    LOG_GENERAL(INFO, m_peer << " is blacklisted - blocking all messages");
-    return;
-  }
-
-  SendMessageCore(m_peer, m_message, m_startbyte, m_hash);
-}
-
-template <class T>
-void SendJobPeers<T>::DoSend() {
-  vector<unsigned int> indexes(m_peers.size());
-
-  for (unsigned int i = 0; i < indexes.size(); i++) {
-    indexes.at(i) = i;
-  }
-
-  std::random_device randomDevice;
-  std::mt19937 randomEngine(randomDevice());
-  shuffle(indexes.begin(), indexes.end(), randomEngine);
-
-  string hashStr;
-  if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    if (!DataConversion::Uint8VecToHexStr(m_hash, hashStr)) {
-      return;
-    }
-    LOG_STATE("[BROAD][" << std::setw(15) << std::left
-                         << m_selfPeer.GetPrintableIPAddress() << "]["
-                         << hashStr.substr(0, 6) << "] BEGN");
-  }
-
-  for (vector<unsigned int>::const_iterator curr = indexes.begin();
-       curr < indexes.end(); ++curr) {
-    const Peer& peer = m_peers.at(*curr);
-
-    /// TBD: Update the container dynamically when blacklist is updated
-    if (Blacklist::GetInstance().Exist(peer.m_ipAddress,
-                                       !m_allowSendToRelaxedBlacklist)) {
-      LOG_GENERAL(INFO, peer << " is blacklisted - blocking all messages");
-      continue;
-    }
-
-    SendMessageCore(peer, m_message, m_startbyte, m_hash);
-  }
-
-  if ((m_startbyte == START_BYTE_BROADCAST) && (m_selfPeer != Peer())) {
-    LOG_STATE("[BROAD][" << std::setw(15) << std::left
-                         << m_selfPeer.GetPrintableIPAddress() << "]["
-                         << hashStr.substr(0, 6) << "] DONE");
-  }
-}
-
-void P2PComm::ProcessSendJob(std::shared_ptr<SendJob> job) {
-  auto funcSendMsg = [job = std::move(job)]() mutable -> void {
-    job->DoSend();
-  };
-  m_SendPool.AddJob(funcSendMsg);
-}
-
 void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
   LOG_MARKER();
   lock_guard<mutex> guard(m_broadcastToRemoveMutex);
@@ -404,7 +129,7 @@ void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
 
 namespace {
 
-inline std::shared_ptr<P2PComm::Msg> MakeMsg(zbytes&& msg, Peer peer,
+inline std::shared_ptr<P2PComm::Msg> MakeMsg(zbytes msg, Peer peer,
                                              unsigned char startByte) {
   return std::make_shared<P2PComm::Msg>(std::make_pair(
       std::move(msg), std::make_pair(std::move(peer), startByte)));
@@ -944,6 +669,8 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
+  LOG_GENERAL(INFO, "Connection from " << from);
+
   if (Blacklist::GetInstance().Exist(from.m_ipAddress,
                                      false /* for incoming message */)) {
     LOG_GENERAL(INFO, "The node "
@@ -1231,6 +958,9 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
+  // XXX
+  LOG_GENERAL(INFO, "Connection from " << from);
+
   {
     std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
     if (m_peerConnectionCount[from.GetIpAddress()] >
@@ -1276,26 +1006,12 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
-inline bool P2PComm::IsHostHavingNetworkIssue() {
-  return (errno == EHOSTUNREACH || errno == ETIMEDOUT);
-}
-
-inline bool P2PComm::IsNodeNotRunning() {
-  return (errno == EHOSTDOWN || errno == ECONNREFUSED);
-}
-
 void P2PComm::StartMessagePump(Dispatcher dispatcher) {
   LOG_MARKER();
 
-  // Launch the thread that reads messages from the send queue
-  auto funcCheckSendQueue = [this]() mutable -> void {
-    std::shared_ptr<SendJob> job;
-    size_t queueSz{};
-    while (m_sendQueue.pop(job, queueSz)) {
-      ProcessSendJob(std::move(job));
-    }
-  };
-  DetachedFunction(1, funcCheckSendQueue);
+  if (!m_sendJobs) {
+    m_sendJobs = SendJobs::Create();
+  }
 
   m_dispatcher = std::move(dispatcher);
 }
@@ -1481,68 +1197,52 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
   }
 }
 
-void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
-                          const unsigned char& startByteType) {
+namespace {
+
+template <typename PeerList>
+void SendMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
+                     const PeerList& peers, const zbytes& message,
+                     const unsigned char& startByteType,
+                     const bool bAllowSendToRelaxedBlacklist) {
   if (peers.empty()) {
+    LOG_GENERAL(WARNING, "Error: empty peer list");
     return;
   }
 
-  // Make job
-  auto job = std::make_shared<SendJobPeers<vector<Peer>>>();
-  job->m_peers = peers;
-  job->m_selfPeer = m_selfPeer;
-  job->m_startbyte = startByteType;
-  job->m_message = message;
-  job->m_hash.clear();
-  job->m_allowSendToRelaxedBlacklist = false;
-
-  // Queue job
-  size_t queueSz{};
-  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
-    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
+  if (!sendJobs) {
+    LOG_GENERAL(WARNING, "Message pump not started");
+    return;
   }
+
+  static const zbytes no_hash;
+  auto raw_msg = sendJobs->CreateMessage(message, no_hash, startByteType);
+
+  for (const auto& peer : peers) {
+    sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist);
+  }
+}
+
+}  // namespace
+
+void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
+                          const unsigned char& startByteType) {
+  SendMessageImpl(m_sendJobs, peers, message, startByteType, false);
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
                           const unsigned char& startByteType,
                           const bool bAllowSendToRelaxedBlacklist) {
-  // LOG_MARKER();
-  if (peers.empty()) {
-    return;
-  }
-
-  // Make job
-  auto job = std::make_shared<SendJobPeers<deque<Peer>>>();
-  job->m_peers = peers;
-  job->m_selfPeer = m_selfPeer;
-  job->m_startbyte = startByteType;
-  job->m_message = message;
-  job->m_hash.clear();
-  job->m_allowSendToRelaxedBlacklist = bAllowSendToRelaxedBlacklist;
-
-  // Queue job
-  size_t queueSz{};
-  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
-    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
-  }
+  SendMessageImpl(m_sendJobs, peers, message, startByteType,
+                  bAllowSendToRelaxedBlacklist);
 }
 
 void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
                           const unsigned char& startByteType) {
-  // Make job
-  auto job = std::make_shared<SendJobPeer>();
-  job->m_peer = peer;
-  job->m_selfPeer = m_selfPeer;
-  job->m_startbyte = startByteType;
-  job->m_message = message;
-  job->m_hash.clear();
-  job->m_allowSendToRelaxedBlacklist = false;
-
-  // Queue job
-  size_t queueSz{};
-  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
-    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
+  if (!m_sendJobs) {
+    LOG_GENERAL(WARNING, "Message pump not started");
+    return;
   }
+  m_sendJobs->SendMessageToPeer(peer, message, startByteType);
 }
 
 // Overloaded for p2pseed as we need actual socket port coming in from
@@ -1555,91 +1255,75 @@ void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
     SendMsgToSeedNodeOnWire(peer, fromPeer, message, startByteType);
     return;
   }
-
-  // Make job
-  auto job = std::make_shared<SendJobPeer>();
-  job->m_peer = peer;
-  job->m_selfPeer = m_selfPeer;
-  job->m_startbyte = startByteType;
-  job->m_message = message;
-  job->m_hash.clear();
-  job->m_allowSendToRelaxedBlacklist = false;
-
-  // Queue job
-  size_t queueSz{};
-  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
-    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
-  }
+  SendMessage(peer, message, startByteType);
 }
 
-void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
-                                   const zbytes& message) {
-  LOG_MARKER();
+namespace {
 
+template <typename PeerList>
+void SendBroadcastMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
+                              const PeerList& peers, const Peer& selfPeer,
+                              const zbytes& message, zbytes& hash) {
   if (peers.empty()) {
+    return;
+  }
+
+  if (!sendJobs) {
+    LOG_GENERAL(WARNING, "Message pump not started");
     return;
   }
 
   SHA2<HashType::HASH_VARIANT_256> sha256;
   sha256.Update(message);
+  hash = sha256.Finalize();
 
-  // Make job
-  auto job = std::make_shared<SendJobPeers<vector<Peer>>>();
-  job->m_peers = peers;
-  job->m_selfPeer = m_selfPeer;
-  job->m_startbyte = START_BYTE_BROADCAST;
-  job->m_message = message;
-  job->m_hash = sha256.Finalize();
-  job->m_allowSendToRelaxedBlacklist = false;
+  auto raw_msg = sendJobs->CreateMessage(message, hash, START_BYTE_BROADCAST);
 
-  zbytes hashCopy(job->m_hash);
-
-  // Queue job
-  size_t queueSz{};
-  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
-    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
+  string hashStr;
+  if (selfPeer != Peer()) {
+    if (!DataConversion::Uint8VecToHexStr(hash, hashStr)) {
+      return;
+    }
+    LOG_STATE("[BROAD][" << std::setw(15) << std::left
+                         << selfPeer.GetPrintableIPAddress() << "]["
+                         << hashStr.substr(0, 6) << "] DONE");
   }
 
-  lock_guard<mutex> guard(m_broadcastHashesMutex);
-  m_broadcastHashes.insert(hashCopy);
+  for (const auto& peer : peers) {
+    sendJobs->SendMessageToPeer(peer, raw_msg, false);
+  }
+}
+
+}  // namespace
+
+void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
+                                   const zbytes& message) {
+  LOG_MARKER();
+
+  zbytes hash;
+  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash);
+
+  if (!hash.empty()) {
+    lock_guard<mutex> guard(m_broadcastHashesMutex);
+    m_broadcastHashes.emplace(std::move(hash));
+  }
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
                                    const zbytes& message) {
   LOG_MARKER();
 
-  if (peers.empty()) {
-    return;
+  zbytes hash;
+  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash);
+
+  if (!hash.empty()) {
+    lock_guard<mutex> guard(m_broadcastHashesMutex);
+    m_broadcastHashes.emplace(std::move(hash));
   }
-
-  SHA2<HashType::HASH_VARIANT_256> sha256;
-  sha256.Update(message);
-
-  // Make job
-  auto job = std::make_shared<SendJobPeers<deque<Peer>>>();
-  job->m_peers = peers;
-  job->m_selfPeer = m_selfPeer;
-  job->m_startbyte = START_BYTE_BROADCAST;
-  job->m_message = message;
-  job->m_hash = sha256.Finalize();
-  job->m_allowSendToRelaxedBlacklist = false;
-
-  zbytes hashCopy(job->m_hash);
-
-  // Queue job
-  size_t queueSz{};
-  if (!m_sendQueue.bounded_push(std::move(job), queueSz)) {
-    LOG_GENERAL(WARNING, "SendQueue is full: " << queueSz);
-  }
-
-  lock_guard<mutex> guard(m_broadcastHashesMutex);
-  m_broadcastHashes.insert(hashCopy);
 }
 
 void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
                                  const unsigned char& startByteType) {
-  // LOG_MARKER();
-
   if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << peer
@@ -1647,7 +1331,10 @@ void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
     return;
   }
 
-  SendJob::SendMessageCore(peer, message, startByteType, {});
+  if (!m_sendJobs) {
+    m_sendJobs = SendJobs::Create();
+  }
+  m_sendJobs->SendMessageToPeerSynchronous(peer, message, startByteType);
 }
 
 bool P2PComm::SpreadRumor(const zbytes& message) {
