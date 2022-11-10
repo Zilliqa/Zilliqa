@@ -679,6 +679,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
+  code = "EVM" + code;
+
   uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
 
   // Use gas specified by user
@@ -706,39 +708,47 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   const uint32_t version = 0;
-  uint64_t    value64 = (uint64_t) value ;
+  uint64_t    value64 = (uint64_t)100000;
   PubKey  k;
   Signature s;
+  zbytes    dummy{};
 
   Transaction tx{version,
                  nonce,
                  Address(toAddr),
-                 k,
+                 k, // we do not use
                  gas,
                  dsBlock.GetHeader().GetGasPrice(),
                  value64,
-                 DataConversion::StringToCharArray(code),  // either empty or stripped EVM-less code
-                 DataConversion::StringToCharArray(data),  // either empty or un-hexed byte-stream
-                 s};
+                 code.length() > 0 ? dummy : DataConversion::StringToCharArray(code),  // either empty or stripped EVM-less code
+                 data.length() > 0 ? dummy : DataConversion::StringToCharArray(data),  // either empty or un-hexed byte-stream
+                 s // we do not use
+                 };
+
+  if (Transaction::GetTransactionType(tx) != Transaction::NON_CONTRACT){
+    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                           "Not Manually Generated Appropriate Transaction");
+
+  }
 
   TransactionReceipt tr;
   TxnStatus           error_code;
 
   TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,txnExtras,tr,TransactionEnvelope::NON_TRANSMISSABLE);
+  // We have to save the fromAddr as we are not able to carry it in the transaction yet.
+  txEnv->SetSource(DataConversion::CharArrayToString(fromAddr.asBytes()));
   if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
           blockNum,
           3  // Arbitrary values
           ,
           true, txEnv, error_code)) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "Base fee exceeds gas limit");
-
+                          "Base fee exceeds gas limit");
   }
 
-  evmproj::CallResponse response;
-  /*
-  if (AccountStore::GetInstance().ViewAccounts(params, response) &&
-      response.Success()) {
+  evmproj::CallResponse response = txEnv->GetResponse();
+
+  if (response.Success()) {
     const auto gasRemained = response.Gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
@@ -753,7 +763,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "Base fee exceeds gas limit");
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
-    return (boost::format("0x%x") % retGas).str();
+    return (boost::format("0x%x") % retGas).str();[385929][22-11-10T10:43:00.044][APIThreadPool.cpp:77][WorkerThread        ] APIWorker-4 processes job #35, Q=1
+
   } else if (response.Revert()) {
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
@@ -763,8 +774,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
-  */
-  return "hello";
 }
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,

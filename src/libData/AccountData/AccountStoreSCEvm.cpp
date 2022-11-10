@@ -32,7 +32,6 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TxnExtras.h"
 
-
 template <class MAP>
 void AccountStoreSC<MAP>::_EvmCallRunner(
     const INVOKE_TYPE /*invoke_type*/,  //
@@ -256,9 +255,11 @@ bool AccountStoreSC<MAP>::ViewAccounts(const EvmCallParameters& params,
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    TransactionEnvelopeSp envelope, TxnStatus& error_code) {
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
+                                            const unsigned int& numShards,
+                                            const bool& isDS,
+                                            TransactionEnvelopeSp envelope,
+                                            TxnStatus& error_code) {
   LOG_MARKER();
 
   const Transaction& transaction = envelope->GetTransaction();
@@ -267,19 +268,22 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   TransactionEnvelope::TX_TYPE txType = envelope->GetTxType();
 
-  if (txType != TransactionEnvelope::TX_TYPE::NORMAL){
+  if (txType != TransactionEnvelope::TX_TYPE::NORMAL) {
     LOG_GENERAL(INFO, "Got a new type Transaction: " << txType);
   }
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   }
-
+  evmproj::CallResponse response;
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
-  const Address fromAddr = transaction.GetSenderAddr();
+
+  Address fromAddr =
+      (txType == TransactionEnvelope::TX_TYPE::NORMAL) ? transaction.GetSenderAddr()
+      : Address(envelope->GetSource());
 
   uint64_t gasRemained = transaction.GetGasLimitEth();
 
@@ -586,7 +590,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                   << " caller account is "
                                                   << params.m_caller);
-      evmproj::CallResponse response;
+
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
                                evm_call_succeeded, receipt, response);
@@ -665,12 +669,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   receipt.update();
 
   if (txType != TransactionEnvelope::TX_TYPE::NORMAL) {
-    // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
+    // since txn succeeded, commit the atomic buffer. If no updates, it is a
+    // noop.
     m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                      m_storageRootUpdateBufferAtomic.end());
   } else {
     m_storageRootUpdateBufferAtomic.clear();
     LOG_GENERAL(INFO, "Not Committing as Non commital transaction");
+    // This sets the future value that callee might be waiting on.
+    envelope->SetResponse(response);
   }
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Executing contract transaction finished");

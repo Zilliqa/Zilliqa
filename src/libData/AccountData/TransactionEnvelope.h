@@ -19,7 +19,9 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONENVELOPE_H_
 
 #include <memory>
+#include <future>
 #include "libUtils/TxnExtras.h"
+#include "libUtils/EvmJsonResponse.h"
 
 // A holder for the transaction that can be safely queued and dispatched for
 // later processing
@@ -36,7 +38,7 @@ class TransactionEnvelope {
   TransactionEnvelope() = delete;
   explicit TransactionEnvelope(const Transaction& tx,const TxnExtras& extras,TransactionReceipt& rc,TX_TYPE tx_type=NORMAL):
     m_txn(std::move(tx)), m_extras(extras), m_receipt(rc),m_txType(tx_type){
-
+    m_callFuture=m_callPromise.get_future();
   }
 
   const Transaction& GetTransaction() {
@@ -55,14 +57,35 @@ class TransactionEnvelope {
     return m_txType;
   }
 
+  void SetResponse(const evmproj::CallResponse& result){
+    m_callPromise.set_value(std::move(result));
+  }
+
+  evmproj::CallResponse GetResponse(){
+    return m_callFuture.get();
+  }
+
+  void SetSource(const std::string& str){
+    m_fromAddress = str;
+  }
+
+  const std::string& GetSource(){
+    return m_fromAddress;
+  }
+
+
  private:
   unsigned int m_version{1};
   Transaction m_txn;
   TxnExtras m_extras;
   TransactionReceipt& m_receipt;
   TX_TYPE   m_txType;
+  std::future<evmproj::CallResponse>    m_callFuture;
+  std::promise<evmproj::CallResponse>   m_callPromise;
+  std::string                           m_fromAddress;
 };
 
 using TransactionEnvelopeSp=std::shared_ptr<TransactionEnvelope>;
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONENVELOPE_H_
+

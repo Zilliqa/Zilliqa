@@ -572,13 +572,15 @@ bool AccountStore::UpdateAccountsTempQueued(
     if (Transaction::GetTransactionType(tx->GetTransaction()) ==
         Transaction::CONTRACT_CREATION) {
       isEvm = EvmUtils::isEvm(tx->GetTransaction().GetCode());
-    } else if (Transaction::GetTransactionType(tx->GetTransaction()) ==
-               Transaction::CONTRACT_CALL) {
+    } else {
       Account* contractAccount =
           this->GetAccountTemp(tx->GetTransaction().GetToAddr());
       if (contractAccount != nullptr) {
         isEvm = EvmUtils::isEvm(contractAccount->GetCode());
       }
+    }
+    if (tx->GetTxType() == TransactionEnvelope::TX_TYPE::NON_TRANSMISSABLE){
+      isEvm = true;
     }
     if (ENABLE_EVM == false && isEvm) {
       LOG_GENERAL(WARNING,
