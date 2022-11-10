@@ -16,6 +16,7 @@
  */
 
 #include "Logger.h"
+#include "common/Constants.h"
 #include "libUtils/TimeUtils.h"
 
 #include <g3sinks/LogRotate.h>
@@ -110,9 +111,6 @@ std::ostream& logMessageCommon(std::ostream& stream,
          << Message(message) << std::endl;
   return stream;
 }
-
-// FIXME: make this configurable. This is per LogRotate sink.
-const int MAX_ARCHIVED_LOG_COUNT = 15;
 
 class CustomLogRotate {
  public:
