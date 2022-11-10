@@ -25,25 +25,35 @@
 class SendJobs {
  public:
   struct RawMessage {
+    // shared_ptr here is for not to duplicate broadcast messages
     std::shared_ptr<const void> data;
     size_t size = 0;
   };
 
   static std::shared_ptr<SendJobs> Create();
 
+  /// Serializes a message
   static RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
                                   uint8_t start_byte);
 
   virtual ~SendJobs() = default;
 
+  /// Enqueues message to be sent to peer
   virtual void SendMessageToPeer(const Peer& peer, RawMessage message,
                                  bool allow_relaxed_blacklist) = 0;
 
+  /// Helper for the function above, for the most common case
   void SendMessageToPeer(const Peer& peer, const zbytes& message,
                          uint8_t start_byte) {
     static const zbytes no_hash;
     SendMessageToPeer(peer, CreateMessage(message, no_hash, start_byte), false);
   }
+
+  /// Sends message to peer in the current thread, without queueing.
+  /// WARNING: it blocks
+  virtual void SendMessageToPeerSynchronous(const Peer& peer,
+                                            const zbytes& message,
+                                            uint8_t start_byte) = 0;
 };
 
 #endif  // ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_

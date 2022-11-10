@@ -28,10 +28,8 @@
 #include <event2/thread.h>
 #include <event2/util.h>
 #include <netinet/in.h>
-#include <signal.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include <unistd.h>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -40,7 +38,6 @@
 #include "Blacklist.h"
 #include "P2PComm.h"
 #include "SendJobs.h"
-#include "common/Messages.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -1327,8 +1324,6 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
 
 void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
                                  const unsigned char& startByteType) {
-  // LOG_MARKER();
-
   if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << peer
@@ -1339,7 +1334,7 @@ void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
   if (!m_sendJobs) {
     m_sendJobs = SendJobs::Create();
   }
-  m_sendJobs->SendMessageToPeer(peer, message, startByteType);
+  m_sendJobs->SendMessageToPeerSynchronous(peer, message, startByteType);
 }
 
 bool P2PComm::SpreadRumor(const zbytes& message) {

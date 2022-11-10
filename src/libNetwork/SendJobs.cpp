@@ -370,6 +370,31 @@ class SendJobsImpl : public SendJobs,
     });
   }
 
+  void SendMessageToPeerSynchronous(const Peer& peer, const zbytes& message,
+                                    uint8_t start_byte) override {
+    LOG_MARKER();
+
+    AsioContext localCtx(1);
+
+    auto doneCallback = [&](const Peer& peer, ErrorCode ec) {
+      auto peerStr = peer.GetPrintableIPAddress();
+      if (ec) {
+        LOG_GENERAL(WARNING, "Send message to "
+                                 << peerStr
+                                 << " failed with error: " << ec.message());
+      } else {
+        LOG_GENERAL(INFO, "Send message to " << peerStr << " done");
+      }
+      localCtx.stop();
+    };
+
+    auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
+                                                   std::move(peer));
+    peerCtx->Enqueue(CreateMessage(message, {}, start_byte), false);
+
+    localCtx.run();
+  }
+
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
     if (IsBlacklisted(peer, allow_relaxed_blacklist)) {
       LOG_GENERAL(INFO,
