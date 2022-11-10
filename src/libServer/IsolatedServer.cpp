@@ -665,7 +665,8 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
-    TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,extras,txreceipt);
+    TransactionEnvelopeSp txEnv =
+        std::make_shared<TransactionEnvelope>(tx, extras, txreceipt);
     if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
             m_blocknum,
             3  // Arbitrary values
@@ -827,7 +828,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
-    TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,extras,txreceipt);
+    TransactionEnvelopeSp txEnv =
+        std::make_shared<TransactionEnvelope>(tx, extras, txreceipt);
     if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
             m_blocknum,
             3,  // Arbitrary values

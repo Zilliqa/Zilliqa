@@ -868,34 +868,40 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   const uint32_t version = 0;
-  uint64_t    value64 = (uint64_t)100000;
-  PubKey  k;
+  uint64_t value64 = (uint64_t)100000;
+  PubKey k;
   Signature s;
-  zbytes    dummy{};
+  zbytes dummy{};
 
-  Transaction tx{version,
-                 nonce,
-                 Address(toAddr),
-                 k, // we do not use
-                 gas,
-                 dsBlock.GetHeader().GetGasPrice(),
-                 value64,
-                 code.length() > 0 ? dummy : DataConversion::StringToCharArray(code),  // either empty or stripped EVM-less code
-                 data.length() > 0 ? dummy : DataConversion::StringToCharArray(data),  // either empty or un-hexed byte-stream
-                 s // we do not use
-                 };
+  Transaction tx{
+      version,
+      nonce,
+      Address(toAddr),
+      k,  // we do not use
+      gas,
+      dsBlock.GetHeader().GetGasPrice(),
+      value64,
+      code.length() > 0 ? dummy
+                        : DataConversion::StringToCharArray(
+                              code),  // either empty or stripped EVM-less code
+      data.length() > 0 ? dummy
+                        : DataConversion::StringToCharArray(
+                              data),  // either empty or un-hexed byte-stream
+      s                               // we do not use
+  };
 
-  if (Transaction::GetTransactionType(tx) != Transaction::NON_CONTRACT){
+  if (Transaction::GetTransactionType(tx) != Transaction::NON_CONTRACT) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Not Manually Generated Appropriate Transaction");
-
   }
 
   TransactionReceipt tr;
-  TxnStatus           error_code;
+  TxnStatus error_code;
 
-  TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(tx,txnExtras,tr,TransactionEnvelope::NON_TRANSMISSABLE);
-  // We have to save the fromAddr as we are not able to carry it in the transaction yet.
+  TransactionEnvelopeSp txEnv = std::make_shared<TransactionEnvelope>(
+      tx, txnExtras, tr, TransactionEnvelope::NON_TRANSMISSABLE);
+  // We have to save the fromAddr as we are not able to carry it in the
+  // transaction yet.
   txEnv->SetSource(DataConversion::CharArrayToString(fromAddr.asBytes()));
   if (!AccountStore::GetInstance().UpdateAccountsTempQueued(
           blockNum,
@@ -903,7 +909,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
           ,
           true, txEnv, error_code)) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                          "Base fee exceeds gas limit");
+                           "Base fee exceeds gas limit");
   }
 
   evmproj::CallResponse response = txEnv->GetResponse();
