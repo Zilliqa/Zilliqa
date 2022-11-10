@@ -668,7 +668,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   receipt.SetResult(true);
   receipt.update();
 
-  if (txType != TransactionEnvelope::TX_TYPE::NORMAL) {
+  if (txType == TransactionEnvelope::TX_TYPE::NORMAL) {
     // since txn succeeded, commit the atomic buffer. If no updates, it is a
     // noop.
     m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
