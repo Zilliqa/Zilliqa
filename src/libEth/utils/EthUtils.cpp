@@ -17,26 +17,20 @@
 
 #include "EthUtils.h"
 #include "common/Constants.h"
+#include "libCrypto/EthCrypto.h"
 #include "libUtils/DataConversion.h"
 
 namespace Eth {
-uint64_t getGasUnitsForContractDeployment(const std::string& code,
-                                          const std::string& data) {
+uint64_t getGasUnitsForContractDeployment(const zbytes& code,
+                                          const zbytes& data) {
   constexpr auto GAS_COST_FOR_ZERO_DATA = 4;
   constexpr auto GAS_COST_FOR_NON_ZERO_DATA = 16;
   constexpr auto CONTRACT_DEPLOYMENT_BASE_FEE = 32000;
   LOG_GENERAL(WARNING, "Contract size for gas units, code: "
                            << code.size() << ", data: " << data.size());
   uint64_t gas = 0;
-  auto calculateGas = [&gas](std::string input) {
-    if (input.size() <= 2) {
-      return;
-    }
-    if (input[0] == 'E' && input[1] == 'V' && input[2] == 'M') {
-      input = {input.begin() + 3, input.end()};
-    }
-    const auto bytes = DataConversion::HexStrToUint8VecRet(input);
-    for (const auto& byte : bytes) {
+  auto calculateGas = [&gas](const zbytes& input) {
+    for (const auto& byte : input) {
       if (byte == 0) {
         gas += GAS_COST_FOR_ZERO_DATA;
       } else {
@@ -44,7 +38,7 @@ uint64_t getGasUnitsForContractDeployment(const std::string& code,
       }
     }
   };
-  calculateGas(code);
+  calculateGas(StripEVM(code));
   calculateGas(data);
   return MIN_ETH_GAS + CONTRACT_DEPLOYMENT_BASE_FEE + gas;
 }

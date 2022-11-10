@@ -15,3 +15,6 @@ root:
     - stderr
     - filelog
 
+loggers:
+  evm_ds:
+    level: debug

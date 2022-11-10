@@ -29,6 +29,7 @@
 #include "InvokeType.h"
 #include "TransactionEnvelope.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/Queue.h"
 #include "libUtils/TxnExtras.h"
@@ -36,7 +37,6 @@
 template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
-class TransactionContainer;
 
 namespace evmproj {
 struct ApplyInstructions;
@@ -178,9 +178,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
-  void _EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
+  void EvmCallRunner(const INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
                      bool& ret, TransactionReceipt& receipt,
-                     evmproj::CallResponse& evmReturnValues);
+                     evm::EvmResult& result);
   void CreateScillaCodeFiles(
       Account& contract,
       const std::map<Address, std::pair<std::string, std::string>>&
@@ -220,9 +220,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   uint64_t InvokeEvmInterpreter(Account* contractAccount,
                                 INVOKE_TYPE invoke_type,
-                                EvmCallParameters& params, bool& ret,
+                                const evm::EvmArgs& args, bool& ret,
                                 TransactionReceipt& receipt,
-                                evmproj::CallResponse& evmReturnValues);
+                                evm::EvmResult& result);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration

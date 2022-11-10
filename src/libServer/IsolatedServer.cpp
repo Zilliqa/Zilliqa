@@ -762,9 +762,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       uint64_t minGasLimit = 0;
       if (Transaction::GetTransactionType(tx) ==
           Transaction::ContractType::CONTRACT_CREATION) {
-        minGasLimit = Eth::getGasUnitsForContractDeployment(
-            DataConversion::CharArrayToString(tx.GetCode()),
-            DataConversion::CharArrayToString(tx.GetData()));
+        minGasLimit =
+            Eth::getGasUnitsForContractDeployment(tx.GetCode(), tx.GetData());
       } else {
         minGasLimit = MIN_ETH_GAS;
       }
