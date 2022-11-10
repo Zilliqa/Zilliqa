@@ -201,14 +201,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     }
   }
 
-  if (result.trace_size() > 0) {
-    if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
-                                                    result.trace(0))) {
-      LOG_GENERAL(INFO,
-                  "FAIL: Put TX trace failed " << transaction.GetTranID());
-    }
-  }
-
   // send code to be executed
   if (invoke_type == RUNNER_CREATE) {
     contractAccount->SetImmutable(
@@ -387,6 +379,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
+      if (result.trace_size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        result.trace(0))) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+        }
+      }
+
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
       // Summary
@@ -543,6 +543,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
                                evm_call_succeeded, receipt, result);
+
+      if (result.trace_size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+                                                        result.trace(0))) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+        }
+      }
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 

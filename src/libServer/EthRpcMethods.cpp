@@ -1063,7 +1063,6 @@ Json::Value EthRpcMethods::GetEthCode(std::string const& address,
   return result;
 }
 
-
 Json::Value EthRpcMethods::GetEthBlockNumber() {
   Json::Value ret;
 
