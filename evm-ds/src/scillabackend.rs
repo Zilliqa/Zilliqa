@@ -293,12 +293,11 @@ impl Backend for ScillaBackend {
             .expect("query_state_value(_code)")
             .map(|value| value.as_bytes())
             .unwrap_or_default();
-        (if bytes.len() > 2 && bytes[0] == b'E' && bytes[1] == b'V' && bytes[2] == b'M' {
-            hex::decode(&bytes[3..])
+        if bytes.len() > 2 && bytes[0] == b'E' && bytes[1] == b'V' && bytes[2] == b'M' {
+            (&bytes[3..]).to_vec()
         } else {
-            hex::decode(bytes)
-        })
-        .expect("Code cannot be HEX decoded")
+            bytes
+        }
     }
 
     fn storage(&self, address: H160, key: H256) -> H256 {
