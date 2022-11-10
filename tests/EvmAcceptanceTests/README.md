@@ -4,6 +4,7 @@
     npm install
     npx hardhat test    # to run tests
     npx hardhat test --network devnet    # to run tests against the devnet
+    npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
     npx hardhat test --debug    # to run tests and print log messages
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
