@@ -69,6 +69,8 @@ std::ostream& logThreadId(std::ostream& stream, const LogMessage& message) {
 std::ostream& logTimestamp(std::ostream& stream, const LogMessage& message) {
   // The following is taken from g3log's localtime_formatted; we're changing
   // it here to show our own time format in UTC instead of localtime.
+  // (License is completely free; see:
+  // https://github.com/KjellKod/g3log/blob/master/LICENSE)
   auto ts = to_system_time(message._timestamp);
   auto format_buffer =
       internal::localtime_formatted_fractions(ts, "%y-%m-%dT%T.%f3");

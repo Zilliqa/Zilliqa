@@ -1,4 +1,7 @@
 set(PATCHES
+    # The following patch is used to allow simple sink filtering based on a predicate to get
+    # around only having one logger. See ZIL-4972 for more details.
+    # (License is completely free; see: https://github.com/KjellKod/g3sinks/blob/master/LICENSE)
     find-library-g3log.patch)
 
 vcpkg_from_github(
