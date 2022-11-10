@@ -579,9 +579,6 @@ bool AccountStore::UpdateAccountsTempQueued(
         isEvm = EvmUtils::isEvm(contractAccount->GetCode());
       }
     }
-    if (tx->GetTxType() == TransactionEnvelope::TX_TYPE::NON_TRANSMISSABLE){
-      isEvm = true;
-    }
     if (ENABLE_EVM == false && isEvm) {
       LOG_GENERAL(WARNING,
                   "EVM is disabled so not processing this EVM transaction ");
