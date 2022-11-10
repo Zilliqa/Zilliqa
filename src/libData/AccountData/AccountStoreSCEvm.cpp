@@ -94,6 +94,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
     for (const auto& log : result.logs()) {
       Json::Value logJson;
       logJson["address"] = "0x" + ProtoToAddress(log.address()).hex();
+      logJson["data"] = "0x" + boost::algorithm::hex(log.data());
       Json::Value topics_array = Json::arrayValue;
       for (const auto& topic : log.topics()) {
         topics_array.append("0x" + ProtoToH256(topic).hex());
