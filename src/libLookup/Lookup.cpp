@@ -2778,7 +2778,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(
       *m_mediator.m_DSCommittee);
 
   //    Data::GetInstance().SetDSPeers(dsPeers);
-  //#endif // IS_LOOKUP_NODE
+  // #endif // IS_LOOKUP_NODE
 
   if (m_dsInfoWaitingNotifying &&
       (m_syncType != NO_SYNC ||
@@ -2934,7 +2934,7 @@ bool Lookup::ProcessSetMinerInfoFromSeed(
 bool Lookup::ProcessSetTxBlockFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-  //#ifndef IS_LOOKUP_NODE
+  // #ifndef IS_LOOKUP_NODE
   LOG_MARKER();
 
   if (AlreadyJoinedNetwork()) {
