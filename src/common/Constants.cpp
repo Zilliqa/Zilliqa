@@ -136,6 +136,9 @@ const unsigned int NUM_DS_EPOCHS_STATE_HISTORY{
 const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH{
     ReadConstantUInt64("INIT_TRIE_DB_SNAPSHOT_EPOCH")};
 
+const unsigned int MAX_ARCHIVED_LOG_COUNT{
+    ReadConstantNumeric("MAX_ARCHIVED_LOG_COUNT")};
+
 // Version constants
 const unsigned int MSG_VERSION{
     ReadConstantNumeric("MSG_VERSION", "node.version.")};

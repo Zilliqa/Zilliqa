@@ -1,5 +1,7 @@
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
+configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+
 # lookup server tests
 add_executable(Test_EvmFiltersAPI Test_EvmFiltersAPI.cpp)
 

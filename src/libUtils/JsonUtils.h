@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBUTILS_JSONUTILS_H_
 
 #include <json/json.h>
+#include <fstream>
 #include <memory>
 #include <sstream>
 #include <string>

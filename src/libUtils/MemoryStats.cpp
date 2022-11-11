@@ -84,15 +84,18 @@ void DisplayVirtualMemoryStats() {
   virtualMemUsed *= memInfo.mem_unit;
   int processVirtualMemUsed = GetProcessVirtualMemoryStats();
   if (processVirtualMemUsed == -1) return;
-  LOG_GENERAL(INFO, "Total VM            = " << totalVirtualMem / 1048576
-                                             << " MB"
-                                             << " pid=" << Logger::GetPid());
-  LOG_GENERAL(INFO, "Total VM used       = " << virtualMemUsed / 1048576
-                                             << " MB"
-                                             << " pid=" << Logger::GetPid());
-  LOG_GENERAL(INFO, "VM used by process  = " << processVirtualMemUsed / 1024
-                                             << " MB"
-                                             << " pid=" << Logger::GetPid());
+  LOG_GENERAL(
+      INFO, "Total VM            = " << totalVirtualMem / 1048576 << " MB"
+                                     << " tid=" << std::hex
+                                     << std::this_thread::get_id() << std::dec);
+  LOG_GENERAL(
+      INFO, "Total VM used       = " << virtualMemUsed / 1048576 << " MB"
+                                     << " tid=" << std::hex
+                                     << std::this_thread::get_id() << std::dec);
+  LOG_GENERAL(
+      INFO, "VM used by process  = " << processVirtualMemUsed / 1024 << " MB"
+                                     << " tid=" << std::hex
+                                     << std::this_thread::get_id() << std::dec);
 #endif
 }
 
