@@ -75,7 +75,7 @@ class TransactionEnvelope {
 
 
  private:
-  unsigned int m_version{1};
+  //unsigned int m_version{1};
   Transaction m_txn;
   TxnExtras m_extras;
   TransactionReceipt& m_receipt;
