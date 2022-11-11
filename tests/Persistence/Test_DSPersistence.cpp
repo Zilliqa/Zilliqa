@@ -32,12 +32,15 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
-BOOST_AUTO_TEST_CASE(init) {
-  INIT_STDOUT_LOGGER();
-  TestUtils::Initialize();
-}
+BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
 
 DSBlock constructDummyDSBlock(uint64_t blocknum) {
   BlockHash prevHash1;
@@ -294,8 +297,8 @@ void readBlock(unsigned int id) {
     LOG_GENERAL(INFO, "block num is " << (*block).GetHeader().GetBlockNum()
                                       << ", id is " << id);
     if ((*block).GetHeader().GetBlockNum() != id) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
+      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                                << ": " << __FUNCTION__ << ")");
     }
   }
 }

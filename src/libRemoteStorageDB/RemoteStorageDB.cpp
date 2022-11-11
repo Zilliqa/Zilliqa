@@ -16,6 +16,7 @@
  */
 
 #include "RemoteStorageDB.h"
+#include <boost/filesystem/operations.hpp>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/builder/basic/kvp.hpp>
 #include <bsoncxx/builder/stream/document.hpp>
@@ -23,6 +24,7 @@
 #include <bsoncxx/stdx/make_unique.hpp>
 #include "libServer/JSONConversion.h"
 #include "libUtils/HashUtils.h"
+#include "libUtils/TimeUtils.h"
 
 using namespace std;
 using bsoncxx::builder::basic::kvp;

@@ -159,6 +159,8 @@ extern const bool KEEP_HISTORICAL_STATE;
 extern const bool ENABLE_MEMORY_STATS;
 extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
+extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
+extern const unsigned int MAX_LOG_FILE_SIZE_KB;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -508,4 +510,5 @@ extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 extern const bool IGNORE_BLOCKCOSIG_CHECK;
 extern const std::vector<std::pair<uint64_t, uint32_t>>
     VERIFIER_MICROBLOCK_EXCLUSION_LIST;
+
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

@@ -30,6 +30,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
+#include "libUtils/TimeUtils.h"
 
 #include "AccountStoreSC.h"
 
