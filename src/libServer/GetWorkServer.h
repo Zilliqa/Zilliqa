@@ -89,6 +89,15 @@ class AbstractStubServer : public jsonrpc::AbstractServer<AbstractStubServer> {
 struct PoWWorkPackage {
   PoWWorkPackage() = default;
 
+  template <typename HeaderT, typename SeedT, typename BoundaryT>
+  PoWWorkPackage(HeaderT &&hdr, SeedT &&sd, BoundaryT &&bndry, uint64_t blknum,
+                 uint8_t diff)
+      : header{std::forward<HeaderT>(hdr)},
+        seed{std::forward<SeedT>(sd)},
+        boundary{std::forward<BoundaryT>(bndry)},
+        blocknum{blknum},
+        difficulty{diff} {}
+
   std::string header;
   std::string seed;
   std::string boundary;
