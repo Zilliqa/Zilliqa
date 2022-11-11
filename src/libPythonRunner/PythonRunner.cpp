@@ -23,6 +23,7 @@
 #endif
 
 #include "PythonRunner.h"
+#include <boost/filesystem/operations.hpp>
 #include <boost/python.hpp>
 
 #if defined(__APPLE__) && defined(__clang__)

@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include <boost/filesystem/operations.hpp>
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
@@ -164,13 +165,14 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
+    boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
       INIT_STDOUT_LOGGER();
     } else {
-      INIT_FILE_LOGGER("zilliqa", logpath.c_str());
+      INIT_FILE_LOGGER("zilliqa", logBasePath);
     }
-    INIT_STATE_LOGGER("state", logpath.c_str());
-    INIT_EPOCHINFO_LOGGER("epochinfo", logpath.c_str());
+    INIT_STATE_LOGGER("state", logBasePath);
+    INIT_EPOCHINFO_LOGGER("epochinfo", logBasePath);
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 

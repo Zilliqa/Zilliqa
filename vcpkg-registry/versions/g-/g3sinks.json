@@ -1,0 +1,10 @@
+{
+  "versions": [
+    {
+      "path": "$/ports/g3sinks",
+      "version": "2.0.1",
+      "port-version": 0
+    }
+  ]
+}
+
