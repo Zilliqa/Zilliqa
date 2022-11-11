@@ -175,8 +175,7 @@ class StdoutSink {
 
 template <typename LogRotateSinkT>
 void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
-                 const boost::filesystem::path& filePath,
-                 int maxFileSize /*= MAX_FILE_SIZE*/) {
+                 const boost::filesystem::path& filePath) {
   auto logFileRoot = boost::filesystem::absolute(filePath);
   bool useDefaultLocation = false;
   try {
@@ -205,7 +204,8 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
       std::make_unique<LogRotateSinkT>(
           filePrefix.empty() ? "common" : filePrefix, logFileRoot.c_str()),
       &LogRotateSinkT::receiveLogMessage);
-  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxFileSize).wait();
+  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, MAX_LOG_FILE_SIZE_KB * 1024)
+      .wait();
   sinkHandle
       ->call(&LogRotateSinkT::setMaxArchiveLogCount, MAX_ARCHIVED_LOG_COUNT)
       .wait();
@@ -213,29 +213,23 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
 
 }  // namespace
 
-const int Logger::MAX_FILE_SIZE = 1024 * 1024 * 10;  // 10MB per log file
-
 Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
   initializeLogging(m_logWorker.get());
 }
 
 void Logger::AddGeneralSink(const std::string& filePrefix,
-                            const boost::filesystem::path& filePath,
-                            int maxFileSize /*= MAX_FILE_SIZE*/) {
-  AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
+                            const boost::filesystem::path& filePath) {
+  AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath);
 }
 
 void Logger::AddStateSink(const std::string& filePrefix,
-                          const boost::filesystem::path& filePath,
-                          int maxFileSize /*= MAX_FILE_SIZE*/) {
-  AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath, maxFileSize);
+                          const boost::filesystem::path& filePath) {
+  AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath);
 }
 
 void Logger::AddEpochInfoSink(const std::string& filePrefix,
-                              const boost::filesystem::path& filePath,
-                              int maxFileSize /*= MAX_FILE_SIZE*/) {
-  AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath,
-                                maxFileSize);
+                              const boost::filesystem::path& filePath) {
+  AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath);
 }
 
 void Logger::AddStdoutSink() {
