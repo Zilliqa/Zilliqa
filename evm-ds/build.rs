@@ -23,7 +23,7 @@ fn main() {
             ..Default::default()
         })
         .run()
-        .expect("Running protoc faile for EVM.proto");
+        .expect("Running protoc failed for EVM.proto");
 
     println!("cargo:rerun-if-changed=../src/libPersistence/ScillaMessage.proto");
     println!("cargo:rerun-if-changed=../src/libUtils/Evm.proto");
