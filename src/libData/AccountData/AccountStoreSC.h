@@ -26,6 +26,7 @@
 
 #include <libServer/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
+#include "EvmProcessing.h"
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"
@@ -235,7 +236,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          const unsigned int& numShards, const bool& isDS,
                          const Transaction& transaction,
                          const TxnExtras& txnExtras,
-                         TransactionReceipt& receipt, TxnStatus& error_code);
+                         TransactionReceipt& receipt, TxnStatus& error_code,
+                         ProcessingParameters& evmContext);
 
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,

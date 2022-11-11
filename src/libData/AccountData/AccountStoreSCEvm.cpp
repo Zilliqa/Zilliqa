@@ -34,6 +34,8 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
+#include "EvmProcessing.h"
+
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
@@ -223,11 +225,13 @@ template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
     const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code) {
+    TransactionReceipt& receipt, TxnStatus& error_code, ProcessingParameters& evmContext) {
   LOG_MARKER();
 
+  LOG_GENERAL(INFO,"Context " << evmContext.GetCommit());
+
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
+    LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
@@ -246,7 +250,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     return false;
   }
 
-  switch (Transaction::GetTransactionType(transaction)) {
+  switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
       Account* fromAccount = this->GetAccount(fromAddr);
@@ -381,10 +385,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       // EVM)
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
       if (result.trace_size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         result.trace(0))) {
           LOG_GENERAL(INFO,
-                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
       }
 
@@ -546,10 +550,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
                                evm_call_succeeded, receipt, result);
 
       if (result.trace_size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         result.trace(0))) {
           LOG_GENERAL(INFO,
-                      "FAIL: Put TX trace failed " << transaction.GetTranID());
+                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
       }
 
@@ -638,3 +642,4 @@ bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
 
 template class AccountStoreSC<std::map<Address, Account>>;
 template class AccountStoreSC<std::unordered_map<Address, Account>>;
+

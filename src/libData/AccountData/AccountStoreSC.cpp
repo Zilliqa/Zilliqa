@@ -31,8 +31,9 @@
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
-
+#include "EvmProcessing.h"
 #include "AccountStoreSC.h"
+
 
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
