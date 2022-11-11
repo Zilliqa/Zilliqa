@@ -744,6 +744,9 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
+
+  std::cout << json << std::endl;
+
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
@@ -803,10 +806,16 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  uint256_t value = 0;
+  uint64_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    uint256_t v = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    uint256_t x = GasConv::GetScalingFactor();
+
+
+    value = static_cast<uint64_t>(v / x);
+
+    std::cout << " result " << value << std::endl;
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -872,10 +881,15 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   const uint32_t version = 0;
-  uint64_t value64 = (uint64_t)100000;
   PubKey k;
   Signature s;
   zbytes dummy{};
+
+  if (value == 0){
+    value = 100000000;
+  }
+
+  LOG_GENERAL(INFO,"Creating Non Committal transaction with gas " << gas << " value " << value ) ;
 
   Transaction tx{
       version,
@@ -884,7 +898,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       k,  // we do not use
       gas,
       dsBlock.GetHeader().GetGasPrice(),
-      value64,
+      value,
       code.length() > 0 ? dummy
                         : DataConversion::StringToCharArray(
                               code),  // either empty or stripped EVM-less code
@@ -912,7 +926,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
           blockNum,
           3  // Arbitrary values
           ,
-          true, txEnv, error_code)) {
+          false, txEnv, error_code)) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            "Base fee exceeds gas limit");
   }
@@ -921,12 +935,15 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   if (response.Success()) {
     const auto gasRemained = response.Gas();
+    const auto newGas = GasConv::GasUnitsFromEthToCore(gasRemained);
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : 0;
     const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
+
+    std::cout << "gasRemaining " << gasRemained << " new " << newGas << " consumed " << consumedEvmGas << " base " << baseFee << " ret gas " << retGas << std::endl;
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {

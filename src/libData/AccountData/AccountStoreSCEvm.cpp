@@ -41,6 +41,9 @@ void AccountStoreSC<MAP>::_EvmCallRunner(
     evmproj::CallResponse& evmReturnValues) {
   //
   // create a worker to be executed in the async method
+  LOG_GENERAL(INFO,"gas / alleged " << params.m_available_gas << " / "
+              << params.m_apparent_value);
+
   const auto worker = [&params, &ret, &evmReturnValues]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(
