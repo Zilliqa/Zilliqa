@@ -9,6 +9,7 @@ module.exports = {
   networks: {
     ganache: {
       url: "http://localhost:7545",
+      websocketUrl: "ws://localhost:7545",
       chainId: 1337,
       web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
       protocolVersion: 0x3f,
@@ -23,6 +24,7 @@ module.exports = {
     },
     devnet: {
       url: "https://evmdev-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://evmdev-l2api.dev.z7a.xyz",
       accounts: [
         "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
@@ -37,6 +39,7 @@ module.exports = {
     },
     isolated_server: {
       url: "http://localhost:5555/",
+      websocketUrl: "ws://localhost:5555/",
       accounts: [
         "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
@@ -57,8 +60,20 @@ module.exports = {
 
 task("test")
   .addFlag("debug", "Print debugging logs")
+  .addFlag("logJsonrpc", "Log JSON RPC ")
   .setAction(async (taskArgs, hre, runSuper) => {
     hre.debugMode = taskArgs.debug ?? false;
     hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
+    if (taskArgs.logJsonrpc) {
+      hre.ethers.provider.on("debug", (info) => {
+        if (info.request) {
+          console.log("Request:", info.request);
+        }
+        if (info.request) {
+          console.log("Response:", info.response);
+        }
+        console.log("=========================================================");
+      });
+    }
     return runSuper();
   });

@@ -17,6 +17,7 @@
 
 #include <Schnorr.h>
 #include <array>
+#include <fstream>
 #include <string>
 #include <vector>
 #include "common/Constants.h"

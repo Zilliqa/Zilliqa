@@ -1131,10 +1131,12 @@ void IsolatedServer::PostTxBlock() {
       cacheUpdate.StartEpoch(epoch, blockHash, 0, txnHashes.size());
       Json::Value receipt;
       for (const auto& tx : txnHashes) {
-        if (!ExtractTxnReceipt(tx, receipt)) {
-          LOG_GENERAL(WARNING, "Extract txn receipt failed for " << tx);
-        }
-        cacheUpdate.AddCommittedTransaction(epoch, 0, tx, receipt);
+        TxBodySharedPtr tptr;
+        TxnHash tranHash(tx);
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+        const auto& transactionReceipt = tptr->GetTransactionReceipt();
+        cacheUpdate.AddCommittedTransaction(epoch, 0, tx,
+                                            transactionReceipt.GetJsonValue());
       }
     }
   }

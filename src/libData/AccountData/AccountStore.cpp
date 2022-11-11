@@ -16,6 +16,7 @@
  */
 
 #include <leveldb/db.h>
+#include <boost/filesystem/operations.hpp>
 #include <regex>
 
 #include "AccountStore.h"
@@ -45,7 +46,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
 
-  if ((ENABLE_SC && ENABLE_EVM) || ISOLATED_SERVER) {
+  if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);

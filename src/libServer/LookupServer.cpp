@@ -2277,38 +2277,43 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
                            "Non - contract address called");
   }
 
-  Address affectedAddress =
-      (Transaction::GetTransactionType(tx) == Transaction::CONTRACT_CREATION)
-          ? Account::GetAddressForContract(tx.GetSenderAddr(), tx.GetNonce(),
-                                           tx.GetVersionIdentifier())
-          : tx.GetToAddr();
+  Transaction::ContractType scType = Transaction::GetTransactionType(tx);
 
-  unsigned int to_shard =
-      Transaction::GetShardIndex(affectedAddress, num_shards);
   // Use m_sendSCCallsToDS as initial setting
   bool sendToDs = priority || m_sharedMediator.m_lookup->m_sendSCCallsToDS;
-  if ((to_shard == shard) && !sendToDs) {
-    if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding shard maximum limit");
-    }
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
-    }
-    resultStr =
-        "Contract Creation/Call Txn, Shards Match of the sender "
-        "and receiver";
+  if (!tx.IsEth() && scType == Transaction::CONTRACT_CREATION) {
+    // Scilla smart CONTRACT_CREATION call should be executed in shard rather
+    // than DS.
+    mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+    resultStr = "Contract Creation txn, sent to shard";
   } else {
-    if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding ds maximum limit");
-    }
-    if (ARCHIVAL_LOOKUP) {
-      mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+    // CONTRACT_CALL - scilla and EVM , CONTRACT_CREATION - EVM
+    Address affectedAddress = tx.GetToAddr();
+    unsigned int to_shard =
+        Transaction::GetShardIndex(affectedAddress, num_shards);
+    if ((to_shard == shard) && !sendToDs) {
+      if (tx.GetGasLimitZil() > SHARD_MICROBLOCK_GAS_LIMIT) {
+        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                               "txn gas limit exceeding shard maximum limit");
+      }
+      if (ARCHIVAL_LOOKUP) {
+        mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
+      }
+      resultStr =
+          "Contract Creation/Call Txn, Shards Match of the sender "
+          "and receiver";
     } else {
-      mapIndex = num_shards;
+      if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
+        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                               "txn gas limit exceeding ds maximum limit");
+      }
+      if (ARCHIVAL_LOOKUP) {
+        mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
+      } else {
+        mapIndex = num_shards;
+      }
+      resultStr = "Contract Creation/Call Txn, Sent To Ds";
     }
-    resultStr = "Contract Creation/Call Txn, Sent To Ds";
   }
   return make_pair(resultStr, mapIndex);
 }

@@ -29,7 +29,7 @@ class WebsocketServer {
  public:
   /// Default max inbound raw message size. That big because it can handle EVM
   /// contract bytes
-  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 50000;
+  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 5 * 1024 * 1024;
 
   /// Connection ID: auto-incremented integer unique for server instance
   using ConnectionId = uint64_t;
