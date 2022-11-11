@@ -174,10 +174,19 @@ async fn run_evm_impl(
         let remaining_gas = executor.gas() / gas_scaling_factor;
         let result = match result {
             Ok(exit_reason) => {
-                let (state_apply, logs) = executor.into_state().deconstruct();
+                match exit_reason {
+                    evm::ExitReason::Succeed(_) => {}
+                    _ => {
+                        debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
+                               runtime.machine().position(),
+                               &runtime.machine().memory().data().iter().take(128).collect::<Vec<_>>(),
+                               &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
+                    }
+                }
                 let mut result = EvmProto::EvmResult::new();
                 result.set_exit_reason(exit_reason.into());
                 result.set_return_value(runtime.machine().return_value().into());
+                let (state_apply, logs) = executor.into_state().deconstruct();
                 result.set_apply(state_apply
                         .into_iter()
                                  .map(|apply| {

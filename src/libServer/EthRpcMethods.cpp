@@ -731,6 +731,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     std::string return_value;
     DataConversion::StringToHexStr(result.return_value(), return_value);
+    boost::algorithm::to_lower(return_value);
     throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -826,6 +827,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
 
   std::string return_value;
   DataConversion::StringToHexStr(result.return_value(), return_value);
+  boost::algorithm::to_lower(return_value);
   if (success) {
     return "0x" + return_value;
   } else if (result.exit_reason().exit_reason_case() ==
