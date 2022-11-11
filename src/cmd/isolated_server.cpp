@@ -18,6 +18,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/program_options.hpp>
+#include <fstream>
 #include <iostream>
 #include "libEth/Filters.h"
 #include "libServer/APIServer.h"
