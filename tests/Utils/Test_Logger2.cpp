@@ -25,10 +25,12 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(utils)
 
+// TODO: consider removing as nothing is actually checked in this test.
+//       this actually relies on the logging library (g3log) functionality.
 BOOST_AUTO_TEST_CASE(testLogger2) {
   // Write to a file and confirm log rolls to new file after max size
 
-  Logger::GetLogger().AddGeneralSink("test2", "./", 64);
+  Logger::GetLogger().AddGeneralSink("test2", "./");
   LOG_GENERAL(INFO, "Hello world");
   LOG_GENERAL(INFO, "Hello world");
   LOG_GENERAL(INFO, "Hello world");

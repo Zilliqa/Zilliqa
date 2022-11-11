@@ -48,25 +48,19 @@ class Logger {
   /// Limits the number of digits of the current time to display.
   static const size_t TIME_LEN = 5;
 
-  /// Limits the output file size before rolling over to new output file.
-  static const int MAX_FILE_SIZE;
-
   /// Returns the singleton instance for the logger.
   static Logger& GetLogger();
 
   //@{
   /// @name Sink addition.
   void AddGeneralSink(const std::string& filePrefix,
-                      const boost::filesystem::path& filePath,
-                      int maxFileSize = MAX_FILE_SIZE);
+                      const boost::filesystem::path& filePath);
 
   void AddStateSink(const std::string& filePrefix,
-                    const boost::filesystem::path& filePath,
-                    int maxFileSize = MAX_FILE_SIZE);
+                    const boost::filesystem::path& filePath);
 
   void AddEpochInfoSink(const std::string& filePrefix,
-                        const boost::filesystem::path& filePath,
-                        int maxFileSize = MAX_FILE_SIZE);
+                        const boost::filesystem::path& filePath);
 
   void AddStdoutSink();
   //@}
