@@ -16,10 +16,9 @@
  */
 
 #include <array>
-#include <map>
-#include <vector>
 
 #include "libEth/filters/FiltersUtils.h"
+#include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE filtersapitest
 #define BOOST_TEST_DYN_LINK
@@ -27,6 +26,12 @@
 
 using namespace evmproj::filters;
 using namespace std::string_literals;
+
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
 
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 

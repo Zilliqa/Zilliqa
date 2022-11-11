@@ -1,0 +1,24 @@
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index d4d6174..8505dd9 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -41,18 +41,7 @@ endif()
+ # Global find g3log
+ # =========================
+ include_directories(${CMAKE_PREFIX_PATH}/include)
+-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+-  find_library(G3LOG_LIBRARY g3log PATHS /usr/local/lib ${CMAKE_PREFIX_PATH}
+-                                         ${CMAKE_INSTALL_PREFIX})
+-else()
+-  # APPLE and WIN32 use find_package library"
+-  find_package(G3LOG)
+-  message(
+-    "g3log package:
+-        found: ${G3LOG_FOUND}
+-        include dir: ${G3LOG_INCLUDE_DIRS}
+-        libraries: ${G3LOG_LIBRARY}")
+-endif()
++find_package(g3log REQUIRED)
+ 
+ if(NOT G3LOG_LIBRARY)
+   message(FATAL "Could not locate G3LOG_LIBRARY: ${G3LOG_LIBRARY}")

@@ -32,6 +32,7 @@
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
+#include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
 
 template <class MAP>

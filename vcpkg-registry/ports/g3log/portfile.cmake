@@ -1,5 +1,6 @@
 set(PATCHES
-    0001-cxx17.patch)
+    0001-cxx17.patch
+    sink_filter.patch)
 
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH

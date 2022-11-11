@@ -17,5 +17,7 @@ target_link_libraries(Utils
     jsonrpc::common
     jsoncpp_lib
     protobuf::libprotobuf
- PRIVATE
-    CryptoUtils)
+  PRIVATE
+    CryptoUtils
+    ${g3sinks_LOGROTATE_LIBRARY})
+
