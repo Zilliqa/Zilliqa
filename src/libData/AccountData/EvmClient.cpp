@@ -163,7 +163,7 @@ bool EvmClient::CallRunner(const Json::Value& _json,
 #endif
   if (not m_child.running()) {
     if (not EvmClient::OpenServer()) {
-      LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
+      LOG_GENERAL(INFO, "Failed to establish connection to evm-ds");
       return false;
     }
   }

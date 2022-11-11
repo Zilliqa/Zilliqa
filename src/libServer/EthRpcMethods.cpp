@@ -744,6 +744,8 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
+  std::cout << "ESTIMATING GAS "  << std::endl;
+
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
@@ -803,11 +805,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  uint256_t value = 0;
+  uint128_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    std::cout << "valstr is: " << valueStr << std::endl;
+    value = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
   }
+  //const uint128_t value = val;
 
   uint256_t gasPrice = GetEthGasPriceNum();
   if (json.isMember("gasPrice")) {
@@ -882,7 +886,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       nonce,
       Address(toAddr),
       k,  // we do not use
-      gas,
+      value,
       dsBlock.GetHeader().GetGasPrice(),
       value64,
       code.length() > 0 ? dummy
