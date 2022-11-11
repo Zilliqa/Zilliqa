@@ -42,4 +42,31 @@ struct EvmCallParameters {
   bool m_onlyEstimateGas = false;
 };
 
+//template<typename T>
+inline std::ostream& operator << (std::ostream& o, const EvmCallExtras& a)
+{
+  o << "block_timestamp: " << a.block_timestamp << std::endl;
+  o << "block_gas_limit: " << a.block_gas_limit << std::endl;
+  o << "block_difficulty:  " << a.block_difficulty << std::endl;
+  o << "block_number:  " << a.block_number << std::endl;
+  o << "gas_price:  " << a.gas_price << std::endl;
+
+  return o;
+}
+
+//template<typename T>
+inline std::ostream& operator << (std::ostream& o, const EvmCallParameters& a)
+{
+  o << "m_contract: " << a.m_contract << std::endl;
+  o << "m_caller: " << a.m_caller << std::endl;
+  o << "m_code: " << a.m_code << std::endl;
+  o << "m_data: " << a.m_data << std::endl;
+  o << "m_available_gas: " << a.m_available_gas << std::endl;
+  o << "m_apparent_value: " << a.m_apparent_value << std::endl;
+  o << "m_extras: { " << a.m_extras << " }" << std::endl;
+  o << "m_onlyEstimateGas: " << a.m_onlyEstimateGas << std::endl;
+
+  return o;
+}
+
 #endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
