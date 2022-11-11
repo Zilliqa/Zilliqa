@@ -99,6 +99,9 @@ int main(int argc, const char* argv[]) {
   string uuid;
 
   LOOKUP_NODE_MODE = true;
+  if (SCILLA_ROOT == "/scilla") {
+    SCILLA_ROOT = "/tmp";
+  }
 
   try {
     po::options_description desc("Options");

@@ -28,6 +28,17 @@ describe("Gas estimation with web3.js", function () {
     it("Should return proper gas estimation [@transactional]", async function () {
       const gasAmount = await contract.methods.installChild(123).estimateGas();
       expect(gasAmount).to.be.at.least(CREATE2_MIN_GAS);
+
+      console.log("estimated gas: ", gasAmount);
+
+      const result = await contract.methods
+        .installChild(123)
+        .send({gasLimit: 1000000, from: web3_helper.getPrimaryAccountAddress()});
+      expect(result).to.be.not.null;
+
+
+      console.log("acutal gas: ", result);
+
     });
   });
 });
