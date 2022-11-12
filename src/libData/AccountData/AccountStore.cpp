@@ -534,7 +534,7 @@ bool AccountStore::UpdateAccountsTemp(
     return false;
   }
   if (isEvm) {
-    ProcessingParameters p(transaction,txnExtras);
+    ProcessingParameters p(blockNum,transaction,txnExtras);
     return m_accountStoreTemp->UpdateAccountsEvm(
         blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code, p);
   } else {

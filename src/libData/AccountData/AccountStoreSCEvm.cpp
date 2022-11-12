@@ -228,6 +228,18 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     TransactionReceipt& receipt, TxnStatus& error_code, ProcessingParameters& evmContext) {
   LOG_MARKER();
 
+  if (evmContext.GetStatus()){
+    LOG_GENERAL(INFO,"Context Journal" << evmContext.GetStatus());
+    for (auto line: evmContext.GetJournal()){
+      LOG_GENERAL(INFO,line);
+    }
+  } else {
+    LOG_GENERAL(INFO,"Context had errors" << evmContext.GetStatus());
+    for (auto line: evmContext.GetJournal()){
+      LOG_GENERAL(INFO,line);
+    }
+  }
+
   LOG_GENERAL(INFO,"Context " << evmContext.GetCommit());
 
   if (LOG_SC) {
@@ -259,10 +271,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
+
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           transaction.GetCode(), transaction.GetData());
 
       // Check if gaslimit meets the minimum requirement for contract deployment
+      // is done by context
       if (transaction.GetGasLimitEth() < baseFee) {
         LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitEth()
                                           << " less than " << baseFee);
@@ -284,6 +298,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       Address contractAddress =
           Account::GetAddressForContract(fromAddr, fromAccount->GetNonce(),
                                          transaction.GetVersionIdentifier());
+
+      evmContext.SetContractAddress(contractAddress);
+
       LOG_GENERAL(INFO, "Contract creation address is " << contractAddress);
       // instantiate the object for contract account
       // ** Remember to call RemoveAccount if deployment failed halfway
@@ -309,6 +326,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
+
+
 
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
@@ -363,6 +382,17 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
+      }
+
+      evm::EvmArgs argsGenerated = evmContext.GetEvmArgs();
+
+      if (evmContext.CompareEvmArgs(argsGenerated,args)){
+        LOG_GENERAL(WARNING, "Generated Arguments match original");
+      } else {
+        LOG_GENERAL(INFO,"Context Journal" << evmContext.GetStatus());
+        for (auto line: evmContext.GetJournal()){
+          LOG_GENERAL(INFO,line);
+        }
       }
 
       std::map<std::string, zbytes> t_newmetadata;
