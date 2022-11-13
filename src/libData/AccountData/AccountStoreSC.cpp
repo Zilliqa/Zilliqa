@@ -23,6 +23,8 @@
 #include <vector>
 #include "ScillaClient.h"
 
+#include "AccountStoreSC.h"
+#include "EvmProcessing.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
@@ -31,9 +33,6 @@
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
-#include "EvmProcessing.h"
-#include "AccountStoreSC.h"
-
 
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;

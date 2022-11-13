@@ -23,9 +23,7 @@
 #include "Messages.h"
 
 #define MAKE_LITERAL_STRING(s) \
-  {                            \
-#s                         \
-  }
+  { #s }
 #define ARRAY_SIZE(s) (sizeof(s) / sizeof(s[0]))
 
 static const std::string DSInstructionStrings[]{

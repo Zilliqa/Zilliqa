@@ -22,6 +22,7 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
+#include "EvmProcessing.h"
 #include "common/Constants.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
@@ -34,8 +35,6 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
-#include "EvmProcessing.h"
-
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
@@ -221,26 +220,62 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
                                              result);
 }
 
+/*
+ * EvmProcessMessage()
+ *
+ * New direct call into processing without using traditional transaction.
+ *
+ */
+
+template <class MAP>
+bool AccountStoreSC<MAP>::EvmProcessMessage(ProcessingParameters& params,
+                                       evm::EvmResult& result) {
+
+  unsigned int         unused_numShards = 0;
+  bool                 unused_isds = true;
+  TransactionReceipt   rcpt;
+  TxnStatus            error_code;
+  TxnExtras            extras;
+  Transaction          t;
+
+
+  bool status =  UpdateAccountsEvm( params.GetBlockNumber(),
+                                    unused_numShards,
+                                    unused_isds,
+                                    t,
+                                    extras,
+                                    rcpt,
+                                    error_code,
+                                    params
+                                  );
+
+  result = params.GetEvmResult();
+
+  return status;
+}
+
+
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
     const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code, ProcessingParameters& evmContext) {
+    TransactionReceipt& receipt, TxnStatus& error_code,
+    ProcessingParameters& evmContext) {
   LOG_MARKER();
 
-  if (evmContext.GetStatus()){
-    LOG_GENERAL(INFO,"Context Journal" << evmContext.GetStatus());
-    for (auto line: evmContext.GetJournal()){
-      LOG_GENERAL(INFO,line);
+  if (evmContext.GetStatus()) {
+    LOG_GENERAL(INFO, "Context Journal" << evmContext.GetStatus());
+    for (auto line : evmContext.GetJournal()) {
+      LOG_GENERAL(INFO, line);
     }
   } else {
-    LOG_GENERAL(INFO,"Context had errors" << evmContext.GetStatus());
-    for (auto line: evmContext.GetJournal()){
-      LOG_GENERAL(INFO,line);
+    LOG_GENERAL(INFO, "Context had errors" << evmContext.GetStatus());
+    for (auto line : evmContext.GetJournal()) {
+      LOG_GENERAL(INFO, line);
     }
   }
 
-  LOG_GENERAL(INFO,"Context " << evmContext.GetCommit());
+  LOG_GENERAL(INFO, "Context " << evmContext.GetCommit());
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
@@ -327,8 +362,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-
-
       try {
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
@@ -386,12 +419,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       evm::EvmArgs argsGenerated = evmContext.GetEvmArgs();
 
-      if (evmContext.CompareEvmArgs(argsGenerated,args)){
+      if (evmContext.CompareEvmArgs(argsGenerated, args)) {
         LOG_GENERAL(WARNING, "Generated Arguments match original");
       } else {
-        LOG_GENERAL(INFO,"Context Journal" << evmContext.GetStatus());
-        for (auto line: evmContext.GetJournal()){
-          LOG_GENERAL(INFO,line);
+        LOG_GENERAL(INFO, "Context Journal" << evmContext.GetStatus());
+        for (auto line : evmContext.GetJournal()) {
+          LOG_GENERAL(INFO, line);
         }
       }
 
@@ -579,12 +612,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       evm::EvmArgs argsGenerated = evmContext.GetEvmArgs();
 
-      if (evmContext.CompareEvmArgs(argsGenerated,args)){
-        LOG_GENERAL(WARNING, "Generated Arguments match original");
+      if (evmContext.CompareEvmArgs(argsGenerated, args)) {
+        LOG_GENERAL(WARNING, "Generated Arguments match original in update routine");
       } else {
-        LOG_GENERAL(INFO,"Context Journal" << evmContext.GetStatus());
-        for (auto line: evmContext.GetJournal()){
-          LOG_GENERAL(INFO,line);
+        LOG_GENERAL(INFO, "Context Journal" << evmContext.GetStatus());
+        for (auto line : evmContext.GetJournal()) {
+          LOG_GENERAL(INFO, line);
         }
       }
 
@@ -686,4 +719,3 @@ bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
 
 template class AccountStoreSC<std::map<Address, Account>>;
 template class AccountStoreSC<std::unordered_map<Address, Account>>;
-

@@ -31,6 +31,7 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
+#include "libData/AccountData/EvmProcessing.h"
 #include "libData/AccountData/Transaction.h"
 #include "libEth/Eth.h"
 #include "libEth/Filters.h"
@@ -575,6 +576,7 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 }
 
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
+  static int simHash = 1;
   Address fromAddr;
 
   if (!json.isMember("from")) {
@@ -705,6 +707,31 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
   args.set_estimate(true);
 
+  { // steves test section.
+    dev::h256 fakeHash(simHash++);
+    ProcessingParameters::DirectCall evmParams = {
+        fromAddr, toAddr, code, data, gas, value, fakeHash, blockNum, true};
+
+    TxnExtras txnExtras2{
+        dsBlock.GetHeader().GetGasPrice(),
+        txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+        dsBlock.GetHeader().GetDifficulty()};
+
+    ProcessingParameters allParams(evmParams, txnExtras2);
+
+
+    evm::EvmArgs newArgs = allParams.GetEvmArgs();
+
+    if ( allParams.CompareEvmArgs(newArgs,args)){
+      LOG_GENERAL(INFO, "Context Journal Good" << allParams.GetStatus());
+    } else {
+      LOG_GENERAL(INFO, "Context Journal Bad" << allParams.GetStatus());
+      for (auto line : allParams.GetJournal()) {
+        LOG_GENERAL(INFO, line);
+      }
+    }
+  }
+
   evm::EvmResult result;
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
@@ -738,6 +765,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            EvmUtils::ExitReasonString(result.exit_reason()));
   }
 }
+
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                                      const ApiKeys& apiKeys) {

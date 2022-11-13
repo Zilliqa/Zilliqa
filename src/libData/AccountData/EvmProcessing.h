@@ -20,13 +20,13 @@
 
 #include <memory>
 #include "Transaction.h"
+#include "libCrypto/EthCrypto.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/TxnExtras.h"
 #include "libUtils/SafeMath.h"
-#include "libCrypto/EthCrypto.h"
+#include "libUtils/TxnExtras.h"
 
 #ifdef FOR_EXAMPLE_ONLY
 struct tx {
@@ -100,24 +100,47 @@ class GasConv {
  *
  * */
 
-
 #include "common/TxnStatus.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
 struct ProcessingParameters {
  public:
-
-  ProcessingParameters(const uint64_t& blkNum,const Transaction& txn, const TxnExtras& extras, bool commit=true)
-   :m_contractType(Transaction::GetTransactionType(txn)),m_blkNum(blkNum) {
+  //
+  // DirectCall is the internal call format used by Zilliqa implementations
+  // particularly in the eth library
+  //
+  struct DirectCall {
+    Address m_caller;
+    Address m_contract;
+    zbytes m_code;
+    zbytes m_data;
+    uint64_t m_available_gas = {0};
+    boost::multiprecision::uint256_t m_apparent_value = {0};
+    // for tracing purposes
+    dev::h256 m_tranID;
+    uint64_t m_blkNum{0};
+    bool m_onlyEstimateGas{false};
+  };
+  /*
+   *   ProcessingParameters(const uint64_t& blkNum, const Transaction& txn,
+   *                       const TxnExtras& extras, bool commit = true)
+   *   This is the traditional form of the constructor as used by the existing
+   *   Zilliqa platform pre-evm for the 8.3 and beyond series.
+   *
+   */
+  ProcessingParameters(const uint64_t& blkNum, const Transaction& txn,
+                       const TxnExtras& extras, bool commit = true)
+      : m_contractType(Transaction::GetTransactionType(txn))  {
     m_direct = false;
-    m_caller = txn.GetSenderAddr();
-    m_contract = txn.GetToAddr();
-    m_code = txn.GetCode();
-    m_data = txn.GetData();
-    m_available_gas = txn.GetGasLimitEth();
-    m_apparent_value = txn.GetAmountWei().convert_to<uint256_t>();
-    m_tranID = txn.GetTranID();
+    _internal.m_caller = txn.GetSenderAddr();
+    _internal.m_contract = txn.GetToAddr();
+    _internal.m_code = txn.GetCode();
+    _internal.m_data = txn.GetData();
+    _internal.m_available_gas = txn.GetGasLimitEth();
+    _internal.m_apparent_value = txn.GetAmountWei().convert_to<uint256_t>();
+    _internal.m_tranID = txn.GetTranID();
+    _internal.m_blkNum = blkNum ;
     std::ostringstream stringStream;
 
     // We charge for creating a contract, this is included in our base fee.
@@ -127,7 +150,8 @@ struct ProcessingParameters {
         m_errorCode = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         m_status = false;
         stringStream.clear();
-        stringStream << "Jrn:" << "Cannot create a contract with empty code";
+        stringStream << "Jrn:"
+                     << "Cannot create a contract with empty code";
         m_journal.push_back(stringStream.str());
         return;
       }
@@ -138,43 +162,43 @@ struct ProcessingParameters {
       stringStream.clear();
       stringStream << "Base Fee " << m_baseFee << " : gwei";
       m_journal.push_back(stringStream.str());
-      
-      
-      
+
       // Check if limit is sufficient for creation fee
-      if (m_available_gas < m_baseFee) {
+      if (_internal.m_available_gas < m_baseFee) {
         m_errorCode = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         m_status = false;
         stringStream.clear();
-        stringStream << "Err:" << "Gas " << txn.GetGasLimitEth() << " less than Base Fee " << m_baseFee;
+        stringStream << "Err:"
+                     << "Gas " << txn.GetGasLimitEth() << " less than Base Fee "
+                     << m_baseFee;
         m_journal.push_back(stringStream.str());
         return;
       }
     }
-    
+
     // Calculate how much we need to take as a deposit for transaction.
-    
-    if (!SafeMath<uint256_t>::mul(txn.GetGasLimitZil(),
-                                  txn.GetGasPriceWei(), m_gasDepositWei)) {
+
+    if (!SafeMath<uint256_t>::mul(txn.GetGasLimitZil(), txn.GetGasPriceWei(),
+                                  m_gasDepositWei)) {
       m_errorCode = TxnStatus::MATH_ERROR;
       m_status = false;
-      return ;
+      return;
     }
-    
+
     stringStream.clear();
-    stringStream << "Jrn:" << "Gas Deposit Fee " << m_baseFee << " : gwei";
+    stringStream << "Jrn:"
+                 << "Gas Deposit Fee " << m_baseFee << " : gwei";
     m_journal.push_back(stringStream.str());
-    
 
     // setters required.
-    m_onlyEstimateGas = false;
+    _internal.m_onlyEstimateGas = false;
     //
     // TxnExtras is an Evn Soecific entity is therefore supplied in
     // gwei
     //
     m_extras = std::move(extras);
 
-    if (this->GenerateEvmArgs()){
+    if (this->GenerateEvmArgs()) {
       stringStream.clear();
       stringStream << "Generated Evm Args";
       m_journal.push_back(stringStream.str());
@@ -183,24 +207,36 @@ struct ProcessingParameters {
       stringStream << "Failed Generating Evm Args";
       m_journal.push_back(stringStream.str());
       m_status = false;
-      return ;
+      return;
     }
 
     m_status = true;
-    if (commit) {}
+    if (commit) {
+    }
   }
+  /*
+   *   ProcessingParameters(const uint64_t& blkNum, const Transaction& txn,
+   *                       const TxnExtras& extras, bool commit = true)
+   *   This is the DirectCall format as used by 8.3 and beyond series.
+   *
+   */
+  ProcessingParameters(const DirectCall& params, const TxnExtras& extras,
+                       bool commit = true){
 
-  ProcessingParameters(const EvmCallParameters& params,const TxnExtras& extras,bool commit=true)
-  : m_contractType(Transaction::NON_CONTRACT){
+    m_contractType = this->GetInternalType(params.m_contract,
+                                           params.m_code,
+                                           params.m_data);
     m_direct = true;
-    m_extras = std::move(extras);
-    if (commit) {}
-    if (params.m_onlyEstimateGas) {}
+    // maybe able to std::move these after testing complete
+    _internal = params;
+    m_extras = extras;
+    if (commit) {
+    }
+    if (params.m_onlyEstimateGas) {
+    }
   }
 
-  bool GetCommit(){
-    return m_commit;
-  }
+  bool GetCommit() { return m_commit; }
 
   /* GetContractType()
    *
@@ -208,10 +244,7 @@ struct ProcessingParameters {
    * This is deduced from looking at code and data fields.
    * */
 
-  Transaction::ContractType
-      GetContractType(){
-    return m_contractType;
-  }
+  Transaction::ContractType GetContractType() { return m_contractType; }
 
   /*
    * SetCode(const zbytes& code)
@@ -221,10 +254,10 @@ struct ProcessingParameters {
    * always be used regardless of what the use has passed to us.
    */
 
-  void SetCode(const zbytes& code ){
+  void SetCode(const zbytes& code) {
     // Todo, make sure that this is copyable and possibly std::move it for
     // efficiency.
-    m_code = code;
+    _internal.m_code = code;
   }
 
   /*  SetContractAddress()
@@ -234,9 +267,7 @@ struct ProcessingParameters {
    *
    */
 
-  void SetContractAddress(const Address& addr){
-    m_contract = addr;
-  }
+  void SetContractAddress(const Address& addr) { _internal.m_contract = addr; }
 
   /* GetTranID()
    *
@@ -244,19 +275,14 @@ struct ProcessingParameters {
    * Probably useful for debugging
    * */
 
-  dev::h256
-      GetTranID(){
-    return m_tranID;
-  }
+  dev::h256 GetTranID() { return _internal.m_tranID; }
 
- /* GetStatus()
-  * returns true when all is good, otherwise Journal
-  * contains the log of operations performed.
-  * */
+  /* GetStatus()
+   * returns true when all is good, otherwise Journal
+   * contains the log of operations performed.
+   * */
 
-  const bool& GetStatus(){
-    return m_status;
-  }
+  const bool& GetStatus() { return m_status; }
 
   /*
    * GetJournal()
@@ -264,10 +290,7 @@ struct ProcessingParameters {
    * caused a bad status
    */
 
-  const std::vector<std::string>&
-      GetJournal(){
-    return m_journal;
-  }
+  const std::vector<std::string>& GetJournal() { return m_journal; }
 
   /*
    * GetGasDeposit()
@@ -277,10 +300,10 @@ struct ProcessingParameters {
    *
    * for direct :
    */
-  
-  const  uint256_t& GetGasDeposit(){
-    return m_gasDepositWei;
-  }
+
+  const uint256_t& GetGasDeposit() { return m_gasDepositWei; }
+
+  const uint64_t& GetBlockNumber() { return _internal.m_blkNum; }
 
   /*
    * GetEvmArgs()
@@ -290,10 +313,9 @@ struct ProcessingParameters {
    *
    */
 
-  const evm::EvmArgs&
-  GetEvmArgs() {
+  const evm::EvmArgs& GetEvmArgs() {
     std::ostringstream stringStream;
-    if (this->GenerateEvmArgs()){
+    if (this->GenerateEvmArgs()) {
       stringStream.clear();
       stringStream << "Generated Evm Args";
       m_journal.push_back(stringStream.str());
@@ -306,64 +328,93 @@ struct ProcessingParameters {
     return m_evmArgs;
   }
 
+
   /*
    * Diagnostic routines used in development and verification process
+   * Do not delete these, they have proofed themselves many times.
    */
 
-  bool
-      CompareEvmArgs(const evm::EvmArgs& actual,const evm::EvmArgs& expected){
+  bool CompareEvmArgs(const evm::EvmArgs& actual,
+                      const evm::EvmArgs& expected) {
     std::ostringstream stringStream;
     m_status = true;
-    if (actual.code() != expected.code()){
+    if (actual.code() != expected.code()) {
       stringStream.clear();
-      stringStream << "code different " << actual.code().data() << " expected " << expected.code().data();
+      stringStream << "code different " << actual.code().data() << " expected "
+                   << expected.code().data();
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    if (actual.data() != expected.data()){
+    if (actual.data() != expected.data()) {
       stringStream.clear();
       stringStream << "data different";
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    if(actual.address().SerializeAsString() != expected.address().SerializeAsString()){
+    if (actual.address().SerializeAsString() !=
+        expected.address().SerializeAsString()) {
       stringStream.clear();
       stringStream << "address different ";
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    if(actual.origin().SerializeAsString() != expected.origin().SerializeAsString()){
+    if (actual.origin().SerializeAsString() !=
+        expected.origin().SerializeAsString()) {
       stringStream.clear();
       stringStream << "origin different ";
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    if(actual.apparent_value().SerializeAsString() != expected.apparent_value().SerializeAsString()){
+    if (actual.apparent_value().SerializeAsString() !=
+        expected.apparent_value().SerializeAsString()) {
       stringStream.clear();
       stringStream << "aparaent value different ";
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    if(actual.gas_limit() != expected.gas_limit()){
+    if (actual.gas_limit() != expected.gas_limit()) {
       stringStream.clear();
       stringStream << "gas value different ";
+      m_journal.push_back(stringStream.str());
+      m_status = false;
+    }
+    if (actual.estimate() != expected.estimate()) {
+      stringStream.clear();
+      stringStream << "estimate different ";
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
     return m_status;
   }
 
+  /*
+   * Return internal structure populated by call to evm
+   */
+
+  const evm::EvmResult& GetEvmResult(){
+    return m_evmResult;
+  }
+
+  /*
+   * Return internal structure populated by call to evm
+   */
+
+  void SetEvmResult(const evm::EvmResult& result){
+    // TODO - once tested turn into std::move
+    m_evmResult = result;
+  }
+
 
  private:
-
-  bool GenerateEvmArgs(){
-    *m_evmArgs.mutable_address() = AddressToProto(m_contract);
-    *m_evmArgs.mutable_origin() = AddressToProto(m_caller);
-    *m_evmArgs.mutable_code() = DataConversion::CharArrayToString(StripEVM(m_code));
-    *m_evmArgs.mutable_data() =DataConversion::CharArrayToString(m_data);
-    m_evmArgs.set_gas_limit(this->m_available_gas);
-    *m_evmArgs.mutable_apparent_value() = UIntToProto(m_apparent_value);
-    if (!GetEvmEvalExtras(m_blkNum, m_extras, *m_evmArgs.mutable_extras())) {
+  bool GenerateEvmArgs() {
+    *m_evmArgs.mutable_address() = AddressToProto(_internal.m_contract);
+    *m_evmArgs.mutable_origin() = AddressToProto(_internal.m_caller);
+    *m_evmArgs.mutable_code() =
+        DataConversion::CharArrayToString(StripEVM(_internal.m_code));
+    *m_evmArgs.mutable_data() = DataConversion::CharArrayToString(_internal.m_data);
+    m_evmArgs.set_gas_limit(this->_internal.m_available_gas);
+    *m_evmArgs.mutable_apparent_value() = UIntToProto(_internal.m_apparent_value);
+    if (!GetEvmEvalExtras(_internal.m_blkNum, m_extras, *m_evmArgs.mutable_extras())) {
       std::ostringstream stringStream;
       stringStream.clear();
       stringStream << "Call to GetEvmExtraValues has failed";
@@ -371,32 +422,52 @@ struct ProcessingParameters {
       m_status = false;
       return false;
     }
+    m_evmArgs.set_estimate(_internal.m_onlyEstimateGas);
     return true;
   }
+  /*
+   * Determine the type of call that is required by Evm Processing
+   *
+   * This is copied from the transaction class
+   */
+  Transaction::ContractType GetInternalType(const Address& contractAddr,
+                                               const zbytes& code ,
+                                               const zbytes& data ) {
+    auto const nullAddr = IsNullAddress(contractAddr);
 
+    if ((not data.empty() && not nullAddr) && code.empty()) {
+      return Transaction::CONTRACT_CALL;
+    }
 
+    if ( not code.empty() && nullAddr) {
+      return Transaction::CONTRACT_CREATION;
+    }
 
-  TxnExtras                 m_extras;
+    if ((data.empty() && not nullAddr) && code.empty()) {
+      return Transaction::NON_CONTRACT;
+    }
+
+    return Transaction::ERROR;
+  }
+
+ private:
+  DirectCall  _internal;
+  TxnExtras m_extras;
   Transaction::ContractType m_contractType;
-
-  bool  m_direct{false};
-  bool  m_commit{false};
-  Address       m_caller;
-  Address       m_contract;
-  zbytes        m_code;
-  zbytes        m_data;
-  uint64_t m_available_gas = {0};
-  boost::multiprecision::uint256_t m_apparent_value = {0};
-  // for tracing purposes
-  dev::h256      m_tranID;
-  uint64_t       m_baseFee{0};
-  int            m_errorCode;
-  bool           m_status{true};
-  std::vector<std::string>  m_journal;
-  uint256_t      m_gasDepositWei;
+  bool m_direct{false};
+  bool m_commit{false};
+  uint64_t m_baseFee{0};
+  int m_errorCode;
+  bool m_status{true};
+  std::vector<std::string> m_journal;
+  uint256_t m_gasDepositWei;
+  /*
+   * For those folks that really need to know the internal business
+   */
   evm::EvmArgs   m_evmArgs;
-  uint64_t       m_blkNum{0};
-  bool           m_onlyEstimateGas{false};
+  evm::EvmResult m_evmResult;
 };
+
+
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSING_H_
