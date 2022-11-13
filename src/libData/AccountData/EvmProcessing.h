@@ -46,8 +46,8 @@ struct ep {
   std::string m_caller;
   std::string m_code;
   std::string m_data;
-  uint64_t m_available_gas = {0};
-  boost::multiprecision::uint256_t m_apparent_value = {0};
+  uint64_t m_gas = {0};
+  boost::multiprecision::uint256_t m_amount = {0};
   ee m_extras;
   bool m_onlyEstimateGas = false;
 };
@@ -115,8 +115,8 @@ struct ProcessingParameters {
     Address m_contract;
     zbytes m_code;
     zbytes m_data;
-    uint64_t m_available_gas = {0};
-    boost::multiprecision::uint256_t m_apparent_value = {0};
+    uint64_t m_gas = {0};
+    uint128_t m_amount = {0};
     // for tracing purposes
     dev::h256 m_tranID;
     uint64_t m_blkNum{0};
@@ -131,16 +131,24 @@ struct ProcessingParameters {
    */
   ProcessingParameters(const uint64_t& blkNum, const Transaction& txn,
                        const TxnExtras& extras, bool commit = true)
-      : m_contractType(Transaction::GetTransactionType(txn))  {
-    m_direct = false;
+      :
+        m_contractType(Transaction::GetTransactionType(txn)),
+        m_direct(false),
+        m_extras(extras),
+        m_gasPrice(extras.gas_price),
+        m_versionIdentifier(txn.GetVersionIdentifier()){
+    m_ethTransaction = txn.IsEth();
+
     _internal.m_caller = txn.GetSenderAddr();
     _internal.m_contract = txn.GetToAddr();
     _internal.m_code = txn.GetCode();
     _internal.m_data = txn.GetData();
-    _internal.m_available_gas = txn.GetGasLimitEth();
-    _internal.m_apparent_value = txn.GetAmountWei().convert_to<uint256_t>();
+
+    _internal.m_gas = txn.GetGasLimitRaw();
+    _internal.m_amount = txn.GetAmountRaw();
     _internal.m_tranID = txn.GetTranID();
-    _internal.m_blkNum = blkNum ;
+    _internal.m_blkNum = blkNum;
+
     std::ostringstream stringStream;
 
     // We charge for creating a contract, this is included in our base fee.
@@ -164,7 +172,7 @@ struct ProcessingParameters {
       m_journal.push_back(stringStream.str());
 
       // Check if limit is sufficient for creation fee
-      if (_internal.m_available_gas < m_baseFee) {
+      if (_internal.m_gas < m_baseFee) {
         m_errorCode = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         m_status = false;
         stringStream.clear();
@@ -191,28 +199,9 @@ struct ProcessingParameters {
     m_journal.push_back(stringStream.str());
 
     // setters required.
-    _internal.m_onlyEstimateGas = false;
-    //
-    // TxnExtras is an Evn Soecific entity is therefore supplied in
-    // gwei
-    //
-    m_extras = std::move(extras);
-
-    if (this->GenerateEvmArgs()) {
-      stringStream.clear();
-      stringStream << "Generated Evm Args";
-      m_journal.push_back(stringStream.str());
-    } else {
-      stringStream.clear();
-      stringStream << "Failed Generating Evm Args";
-      m_journal.push_back(stringStream.str());
-      m_status = false;
-      return;
-    }
-
+    _internal.m_onlyEstimateGas = not commit;
     m_status = true;
-    if (commit) {
-    }
+    m_commit = commit;
   }
   /*
    *   ProcessingParameters(const uint64_t& blkNum, const Transaction& txn,
@@ -221,15 +210,12 @@ struct ProcessingParameters {
    *
    */
   ProcessingParameters(const DirectCall& params, const TxnExtras& extras,
-                       bool commit = true){
-
-    m_contractType = this->GetInternalType(params.m_contract,
-                                           params.m_code,
-                                           params.m_data);
+                       bool commit = true)
+                               :_internal(params), m_extras(extras) {
+    m_contractType =
+        this->GetInternalType(params.m_contract, params.m_code, params.m_data);
     m_direct = true;
     // maybe able to std::move these after testing complete
-    _internal = params;
-    m_extras = extras;
     if (commit) {
     }
     if (params.m_onlyEstimateGas) {
@@ -260,6 +246,23 @@ struct ProcessingParameters {
     _internal.m_code = code;
   }
 
+  /*
+   * const zbyte& GetCode()
+   *
+   * get a const ref to the binary code that represents the EVM contract
+   */
+
+  const zbytes& GetCode() { return _internal.m_code; }
+
+  /*
+   * const zbyte& GetData()
+   *
+   * get a const ref to the binary data that usual represents the parameters to
+   * the EVM contract
+   */
+
+  const zbytes& GetData() { return _internal.m_data; }
+
   /*  SetContractAddress()
    *
    *  Used within a create contract and must be set by the user when they
@@ -269,11 +272,21 @@ struct ProcessingParameters {
 
   void SetContractAddress(const Address& addr) { _internal.m_contract = addr; }
 
+  /*
+   * GetContractAddress()
+   */
+
+  const Address& GetContractAddress() {
+    return _internal.m_contract;
+  }
+
   /* GetTranID()
    *
    * GetTransactionId() supplied by transaction
    * Probably useful for debugging
    * */
+
+
 
   dev::h256 GetTranID() { return _internal.m_tranID; }
 
@@ -303,7 +316,106 @@ struct ProcessingParameters {
 
   const uint256_t& GetGasDeposit() { return m_gasDepositWei; }
 
+  /*
+   * GetBlockNumber()
+   *
+   * returns the Block number as passed in by the EvmMessage
+   */
+
   const uint64_t& GetBlockNumber() { return _internal.m_blkNum; }
+
+  /*
+   * GetSenderAddress()
+   *
+   * returns the Address of the Sender of The message passed in by the
+   * EvmMessage
+   */
+
+  const Address& GetSenderAddress() { return _internal.m_caller; }
+
+  /*
+   * GetGasLimit()
+   *
+   * return GasLimit in Eth
+   */
+
+  uint64_t GetGasLimitEth() const {
+      if (m_ethTransaction) {
+        return _internal.m_gas;
+      }
+      return GasConv::GasUnitsFromCoreToEth(_internal.m_gas);
+  }
+
+  uint64_t GetGasLimitRaw() const {
+    return this->_internal.m_gas;
+  }
+
+  /*
+   * GetGasLimitZil()
+   *
+   * limit in zil as the name suggests
+   */
+
+  uint64_t GetGasLimitZil() const {
+    if (m_ethTransaction) {
+      return GasConv::GasUnitsFromEthToCore(_internal.m_gas);
+    }
+    return _internal.m_gas;
+  }
+
+  /*
+   * GetAmountWei()
+   *
+   * as name implies
+   */
+
+  const uint128_t GetAmountWei() const {
+    if (m_ethTransaction) {
+      return _internal.m_amount;
+    } else {
+      // We know the amounts in transactions are capped, so it won't overlow.
+      return _internal.m_amount * EVM_ZIL_SCALING_FACTOR;
+    }
+  }
+
+  const uint128_t& GetGasPriceRaw() const {
+    return m_gasPrice;
+  }
+
+  /*
+   * GetGasPriceWei()
+   */
+
+  const uint128_t GetGasPriceWei() const {
+    if (m_ethTransaction) {
+      return m_gasPrice;
+    } else {
+      // We know the amounts in transactions are capped, so it won't overlow.
+      return m_gasPrice * EVM_ZIL_SCALING_FACTOR /
+             GasConv::GetScalingFactor();
+    }
+  }
+
+  /*
+   * GetAmountQa()
+   */
+
+  const uint128_t GetAmountQa() const {
+    if (m_ethTransaction) {
+      return _internal.m_amount.convert_to<uint128_t>() / EVM_ZIL_SCALING_FACTOR;
+    } else {
+      return _internal.m_amount.convert_to<uint128_t>();
+    }
+  }
+
+  /*
+   * GetVersionIdentifier()
+   */
+
+  const uint32_t& GetVersionIdentifier(){
+    return m_versionIdentifier;
+  }
+
 
   /*
    * GetEvmArgs()
@@ -313,9 +425,10 @@ struct ProcessingParameters {
    *
    */
 
-  const evm::EvmArgs& GetEvmArgs() {
+  const evm::EvmArgs GetEvmArgs() {
+    evm::EvmArgs args;
     std::ostringstream stringStream;
-    if (this->GenerateEvmArgs()) {
+    if (this->GenerateEvmArgs(args)) {
       stringStream.clear();
       stringStream << "Generated Evm Args";
       m_journal.push_back(stringStream.str());
@@ -325,9 +438,8 @@ struct ProcessingParameters {
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    return m_evmArgs;
+    return args;
   }
-
 
   /*
    * Diagnostic routines used in development and verification process
@@ -365,16 +477,9 @@ struct ProcessingParameters {
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
-    if (actual.apparent_value().SerializeAsString() !=
-        expected.apparent_value().SerializeAsString()) {
-      stringStream.clear();
-      stringStream << "aparaent value different ";
-      m_journal.push_back(stringStream.str());
-      m_status = false;
-    }
     if (actual.gas_limit() != expected.gas_limit()) {
       stringStream.clear();
-      stringStream << "gas value different ";
+      stringStream << "gas value different actual " << actual.gas_limit() << ":" << expected.gas_limit();
       m_journal.push_back(stringStream.str());
       m_status = false;
     }
@@ -391,30 +496,31 @@ struct ProcessingParameters {
    * Return internal structure populated by call to evm
    */
 
-  const evm::EvmResult& GetEvmResult(){
-    return m_evmResult;
-  }
+  const evm::EvmResult& GetEvmResult() { return m_evmResult; }
 
   /*
    * Return internal structure populated by call to evm
    */
 
-  void SetEvmResult(const evm::EvmResult& result){
+  void SetEvmResult(const evm::EvmResult& result) {
     // TODO - once tested turn into std::move
     m_evmResult = result;
   }
 
-
  private:
-  bool GenerateEvmArgs() {
-    *m_evmArgs.mutable_address() = AddressToProto(_internal.m_contract);
-    *m_evmArgs.mutable_origin() = AddressToProto(_internal.m_caller);
-    *m_evmArgs.mutable_code() =
+  bool GenerateEvmArgs(evm::EvmArgs &arg) {
+    *arg.mutable_address() = AddressToProto(_internal.m_contract);
+    *arg.mutable_origin() = AddressToProto(_internal.m_caller);
+    *arg.mutable_code() =
         DataConversion::CharArrayToString(StripEVM(_internal.m_code));
-    *m_evmArgs.mutable_data() = DataConversion::CharArrayToString(_internal.m_data);
-    m_evmArgs.set_gas_limit(this->_internal.m_available_gas);
-    *m_evmArgs.mutable_apparent_value() = UIntToProto(_internal.m_apparent_value);
-    if (!GetEvmEvalExtras(_internal.m_blkNum, m_extras, *m_evmArgs.mutable_extras())) {
+    *arg.mutable_data() =
+        DataConversion::CharArrayToString(_internal.m_data);
+    arg.set_gas_limit(GetGasLimitEth());
+    *arg.mutable_apparent_value() =
+        UIntToProto(GetAmountWei().convert_to<uint256_t>());
+
+    if (!GetEvmEvalExtras(_internal.m_blkNum, m_extras,
+                          *arg.mutable_extras())) {
       std::ostringstream stringStream;
       stringStream.clear();
       stringStream << "Call to GetEvmExtraValues has failed";
@@ -422,7 +528,6 @@ struct ProcessingParameters {
       m_status = false;
       return false;
     }
-    m_evmArgs.set_estimate(_internal.m_onlyEstimateGas);
     return true;
   }
   /*
@@ -431,15 +536,15 @@ struct ProcessingParameters {
    * This is copied from the transaction class
    */
   Transaction::ContractType GetInternalType(const Address& contractAddr,
-                                               const zbytes& code ,
-                                               const zbytes& data ) {
+                                            const zbytes& code,
+                                            const zbytes& data) {
     auto const nullAddr = IsNullAddress(contractAddr);
 
     if ((not data.empty() && not nullAddr) && code.empty()) {
       return Transaction::CONTRACT_CALL;
     }
 
-    if ( not code.empty() && nullAddr) {
+    if (not code.empty() && nullAddr) {
       return Transaction::CONTRACT_CREATION;
     }
 
@@ -451,23 +556,23 @@ struct ProcessingParameters {
   }
 
  private:
-  DirectCall  _internal;
-  TxnExtras m_extras;
+  DirectCall _internal;
   Transaction::ContractType m_contractType;
   bool m_direct{false};
   bool m_commit{false};
   uint64_t m_baseFee{0};
   int m_errorCode;
   bool m_status{true};
+  TxnExtras  m_extras;
   std::vector<std::string> m_journal;
   uint256_t m_gasDepositWei;
+  uint128_t m_gasPrice;
+  uint32_t  m_versionIdentifier;
   /*
    * For those folks that really need to know the internal business
    */
-  evm::EvmArgs   m_evmArgs;
   evm::EvmResult m_evmResult;
+  bool m_ethTransaction{false};
 };
-
-
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSING_H_

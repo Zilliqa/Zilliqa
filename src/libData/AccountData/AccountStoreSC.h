@@ -234,8 +234,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   bool UpdateAccountsEvm(const uint64_t& blockNum,
                          const unsigned int& numShards, const bool& isDS,
-                         const Transaction& transaction,
-                         const TxnExtras& txnExtras,
                          TransactionReceipt& receipt, TxnStatus& error_code,
                          ProcessingParameters& evmContext);
 

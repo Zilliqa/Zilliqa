@@ -634,10 +634,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  uint256_t value = 0;
+  uint128_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    value = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -700,7 +700,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
   *args.mutable_data() = DataConversion::CharArrayToString(data);
   args.set_gas_limit(gas);
-  *args.mutable_apparent_value() = UIntToProto(value);
+  *args.mutable_apparent_value() = UIntToProto(value.convert_to<uint256_t>());
   if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
