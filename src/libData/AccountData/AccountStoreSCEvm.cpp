@@ -524,6 +524,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       m_curBlockNum = blockNum;
 
+      evmContext.SetCode(contractAccount->GetCode());
+
       DiscardAtomics();
       const uint128_t amountToDecrease =
           uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
@@ -574,6 +576,18 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr
                                                   << " caller account is "
                                                   << fromAddr);
+
+      evm::EvmArgs argsGenerated = evmContext.GetEvmArgs();
+
+      if (evmContext.CompareEvmArgs(argsGenerated,args)){
+        LOG_GENERAL(WARNING, "Generated Arguments match original");
+      } else {
+        LOG_GENERAL(INFO,"Context Journal" << evmContext.GetStatus());
+        for (auto line: evmContext.GetJournal()){
+          LOG_GENERAL(INFO,line);
+        }
+      }
+
       evm::EvmResult result;
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,

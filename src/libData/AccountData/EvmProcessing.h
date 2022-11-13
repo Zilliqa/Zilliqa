@@ -213,6 +213,20 @@ struct ProcessingParameters {
     return m_contractType;
   }
 
+  /*
+   * SetCode(const zbytes& code)
+   *
+   * In the case of a contract_call or non_contract then the contract already
+   * exists in the account and the official version from the storage will
+   * always be used regardless of what the use has passed to us.
+   */
+
+  void SetCode(const zbytes& code ){
+    // Todo, make sure that this is copyable and possibly std::move it for
+    // efficiency.
+    m_code = code;
+  }
+
   /*  SetContractAddress()
    *
    *  Used within a create contract and must be set by the user when they
