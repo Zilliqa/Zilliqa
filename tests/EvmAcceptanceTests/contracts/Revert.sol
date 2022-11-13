@@ -7,9 +7,10 @@ error FakeError(uint256 value, address sender);
 
 contract Revert {
   address owner;
+  uint256[] private _array;
 
   constructor() {
-    console.log("Constructing RevertContract ofrom sender:", msg.sender);
+    console.log("Constructing RevertContract from sender:", msg.sender);
     owner = msg.sender; // address that deploys contract will be the owner
   }
 
@@ -27,5 +28,11 @@ contract Revert {
 
   function value() public pure returns (int256) {
     return 0xFFFF;
+  }
+
+  function outOfGas() public {
+    for (uint256 i = 0; ; ++i) {
+        _array.push(i);
+    }
   }
 }
