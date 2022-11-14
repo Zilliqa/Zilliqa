@@ -157,8 +157,6 @@ class EthRpcMethods {
                            EVM_ZIL_SCALING_FACTOR) /
                           GasConv::GetScalingFactor();
 
-    std::cerr << "gas price raw tx: " << gasPrice << std::endl;
-
     response = CreateTransactionEth(fields, pubKey, shards, gasPrice,
                                     m_createTransactionTarget);
   }

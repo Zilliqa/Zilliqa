@@ -46,6 +46,9 @@ using namespace std;
 using namespace boost::multiprecision;
 
 Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
+
+  std::cerr << "getting evm call json: " << args.DebugString() << std::endl;
+
   Json::Value arr_ret(Json::arrayValue);
 
   std::string output;

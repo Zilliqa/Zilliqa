@@ -47,7 +47,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
-      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+      //LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
@@ -86,7 +86,10 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   if (result.exit_reason().exit_reason_case() !=
       evm::ExitReason::ExitReasonCase::kSucceed) {
     LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(result.exit_reason()));
+    std::cerr << "not succeeded!!! " << EvmUtils::ExitReasonString(result.exit_reason()) << std::endl;
     ret = false;
+  } else {
+    std::cerr << "succeeded!!! " << std::endl;
   }
 
   if (result.logs_size() > 0) {
@@ -376,10 +379,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      if (LOG_SC) {
-        LOG_GENERAL(WARNING, "Sending to the evm: " << std::endl << params);
-      }
-
       evm::EvmResult result;
 
       auto gasRemained =
@@ -557,10 +556,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
         return false;
-      }
-
-      if (LOG_SC) {
-        LOG_GENERAL(WARNING, "Calling EVM with parameters: " << params);
       }
 
       LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr

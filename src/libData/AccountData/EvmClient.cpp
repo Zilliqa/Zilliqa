@@ -167,13 +167,21 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     }
   }
   try {
-    if (LOG_SC) {
-      LOG_GENERAL(WARNING, "Calling EVM with arg: " << _json.toStyledString());
-    }
+    //if (LOG_SC) {
+    //  LOG_GENERAL(WARNING, "Calling EVM with arg: " << _json.toStyledString());
+    //}
 
     const auto replyJson = m_client->CallMethod("run", _json);
+
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING, "EVM reply" << replyJson.toStyledString());
+    }
+
     try {
-      const auto reply = EvmUtils::GetEvmResultFromJson(replyJson, result);
+      EvmUtils::GetEvmResultFromJson(replyJson, result);
+
+      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
