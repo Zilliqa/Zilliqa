@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_COMMON_CONSTANTS_H_
 
 #include "depends/common/FixedHash.h"
+#include "BaseType.h"
 
 using BlockHash = dev::h256;
 const size_t BLOCK_NUMERIC_DIGITS =
