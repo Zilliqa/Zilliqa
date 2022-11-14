@@ -373,7 +373,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       // Undergo a runner
       bool evm_call_run_succeeded{true};
 
-      LOG_GENERAL(INFO, "*** Invoking EVM with Cumulative Gas "
+      LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
                             << gasLimitEth << " alleged "
                             << transaction.GetAmountQa() << " limit "
                             << transaction.GetGasLimitEth());
@@ -422,12 +422,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, params,
                                evm_call_run_succeeded, receipt, response);
 
-      std::cerr << "Gas remained: " << gasRemained << std::endl;
-
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
-      std::cerr << "Gas remained: " << gasRemained << std::endl;
 
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
@@ -438,7 +435,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
-      std::cerr << "Gas remained core: " << gasRemainedCore << std::endl;
 
       // *************************************************************************
       // Summary
@@ -448,7 +444,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
-      std::cerr << "Gas remained core2: " << gasRemainedCore << std::endl;
 
       if (!this->IncreaseBalance(fromAddr,
                                  gasRefund / EVM_ZIL_SCALING_FACTOR)) {
@@ -613,14 +608,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
                                evm_call_succeeded, receipt, response);
 
-      std::cerr <<  "contract call gas remained: " << gasRemained << std::endl;
-
-
-      if(LOG_SC) {
-        LOG_GENERAL(WARNING, "Return from EVM with gas remaining: " << gasRemained);
-        LOG_GENERAL(WARNING, "Return from EVM with success: " << response.Success());
-        LOG_GENERAL(WARNING, "Return from EVM with revert: " << response.Revert());
-      }
 
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
@@ -631,8 +618,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
-
-      std::cerr <<  "contract call gas remained core: " << gasRemainedCore << std::endl;
 
       if (!evm_call_succeeded) {
         Contract::ContractStorage::GetContractStorage().RevertPrevState();
@@ -649,8 +634,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      std::cerr <<  "contract call gas remained core3: " << gasRemainedCore << std::endl;
-
       if (!this->IncreaseBalance(fromAddr,
 
                                  gasRefund / EVM_ZIL_SCALING_FACTOR)) {
@@ -666,10 +649,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      std::cerr <<  "0Setting cum gas: " << transaction.GetGasLimitZil() << std::endl;
-      std::cerr <<  "1Setting cum gas: " << gasRemainedCore << std::endl;
-      std::cerr <<  "2Setting cum gas: " << transaction.GetGasLimitZil() - gasRemainedCore << std::endl;
-
+      // TODO: the cum gas might not be applied correctly (should be block level)
       receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemainedCore);
       if (!evm_call_succeeded) {
         receipt.SetResult(false);
@@ -703,8 +683,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   receipt.SetResult(true);
   receipt.update();
-
-  std::cerr <<  "2TX receipt: " <<  receipt.GetString() << std::endl;
 
   // since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
   m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),

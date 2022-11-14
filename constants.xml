@@ -201,7 +201,7 @@
         <!-- blocking Call to read socket from evm-ds timeout -->
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
-        <LAUNCH_EVM_DAEMON>false</LAUNCH_EVM_DAEMON>
+        <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -310,7 +310,7 @@
         <LIBRARY_CODE_EXTENSION>.scillib</LIBRARY_CODE_EXTENSION>
         <EXTLIB_FOLDER>scilla_libs</EXTLIB_FOLDER>
         <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
-        <LOG_SC>true</LOG_SC>
+        <LOG_SC>false</LOG_SC>
         <DISABLE_SCILLA_LIB>false</DISABLE_SCILLA_LIB>
         <SCILLA_SERVER_PENDING_IN_MS>1500</SCILLA_SERVER_PENDING_IN_MS>
         <SCILLA_SERVER_LOOP_WAIT_MICROSECONDS>10</SCILLA_SERVER_LOOP_WAIT_MICROSECONDS>

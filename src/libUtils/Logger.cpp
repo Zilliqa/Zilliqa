@@ -290,8 +290,8 @@ void Logger::GetPayloadS(const zbytes& payload, size_t max_bytes_to_display,
   res.get()[payload_string_len - 1] = '\0';
 }
 
-Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func)
-    : m_file{file}, m_line{line}, m_func{func} {
+Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func, bool should_print)
+    : m_file{file}, m_line{line}, m_func{func}, should_print {should_print} {
   LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
              &Logger::IsGeneralSink)
           .stream()
@@ -299,8 +299,10 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func)
 }
 
 Logger::ScopeMarker::~ScopeMarker() {
-  LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-             &Logger::IsGeneralSink)
-          .stream()
-      << " END";
+  if (should_print) {
+    LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
+               &Logger::IsGeneralSink)
+        .stream()
+        << " END";
+  }
 }

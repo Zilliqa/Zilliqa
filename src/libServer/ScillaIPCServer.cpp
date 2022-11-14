@@ -154,9 +154,6 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
                                               string &type) {
   zbytes destination;
 
-  std::cout << "fetch external state val: " << addr << std::endl;
-  std::cout << "fetch external state que: " << query << std::endl;
-
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
           m_BCInfo.getCurContrAddr(), Address(addr),
           DataConversion::StringToCharArray(query), 0, destination, 0, found,

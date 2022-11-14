@@ -158,8 +158,6 @@ bool EvmClient::CallRunner(const Json::Value& _json,
                            evmproj::CallResponse& result) {
   LOG_MARKER();
 
-  std::cerr << "Calling runner..." << std::endl;
-
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
@@ -172,7 +170,6 @@ bool EvmClient::CallRunner(const Json::Value& _json,
   try {
 
     if (LOG_SC) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
       LOG_GENERAL(WARNING,
                   "Calling EVM with arg: " << _json.toStyledString());
     }

@@ -826,7 +826,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       .GetGasPrice();
 
     TxnExtras extras{
-        gas_price,          // Default for IsolatedServer.
+        gas_price,
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };

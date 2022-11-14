@@ -977,9 +977,7 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
       return AccountStore::GetInstance().GetPrimaryWriteAccess();
     });
 
-    std::cerr << "getting account " << std::endl;
     const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
-    std::cerr << "got account! " << std::endl;
 
     if (account == nullptr) {
       throw JsonRpcException(RPC_INVALID_ADDRESS_OR_KEY,
