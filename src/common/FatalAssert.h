@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_FATAL_ASSERT_H_
-#define ZILLIQA_SRC_COMMON_FATAL_ASSERT_H_
+#ifndef ZILLIQA_SRC_COMMON_FATALASSERT_H_
+#define ZILLIQA_SRC_COMMON_FATALASSERT_H_
 
 #include <g3log/g3log.hpp>
 
@@ -25,4 +25,4 @@
     LOG(FATAL) << "assertion failed"; \
   }
 
-#endif  // ZILLIQA_SRC_COMMON_FATAL_ASSERT_H_
+#endif  // ZILLIQA_SRC_COMMON_FATALASSERT_H_
