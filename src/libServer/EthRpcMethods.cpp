@@ -27,6 +27,8 @@
 #include "common/Serializable.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
+#include "libCrypto/EthCrypto.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/EvmProcessContext.h"
@@ -980,8 +982,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           EvmUtils::ExitReasonString(result.exit_reason()));
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
 }
 
