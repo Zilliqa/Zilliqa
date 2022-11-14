@@ -235,9 +235,8 @@ bool AccountStoreSC<MAP>::EvmProcessMessage(ProcessingParameters& params,
   TransactionReceipt rcpt;
   TxnStatus error_code;
 
-  bool status =
-      UpdateAccountsEvm(params.GetBlockNumber(), unused_numShards, unused_isds,
-                        rcpt, error_code, params);
+  bool status = UpdateAccountsEvm(params.GetBlockNumber(), unused_numShards,
+                                  unused_isds, rcpt, error_code, params);
 
   result = params.GetEvmResult();
 
@@ -245,10 +244,12 @@ bool AccountStoreSC<MAP>::EvmProcessMessage(ProcessingParameters& params,
 }
 
 template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    TransactionReceipt& receipt, TxnStatus& error_code,
-    ProcessingParameters& evmContext) {
+bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
+                                            const unsigned int& numShards,
+                                            const bool& isDS,
+                                            TransactionReceipt& receipt,
+                                            TxnStatus& error_code,
+                                            ProcessingParameters& evmContext) {
   LOG_MARKER();
 
   /*
@@ -262,7 +263,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     }
     return false;
   } else {
-    LOG_GENERAL(INFO, "Commit Context Mode=" << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
+    LOG_GENERAL(INFO,
+                "Commit Context Mode="
+                    << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
   }
 
   if (LOG_SC) {
@@ -287,26 +290,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
-    LOG_GENERAL(INFO, "Create contract");
+      LOG_GENERAL(INFO, "Create contract");
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
-
-      const auto baseFee = Eth::getGasUnitsForContractDeployment(
-          evmContext.GetCode(), evmContext.GetData());
-
-      // Check if gaslimit meets the minimum requirement for contract deployment
-      // is done by context
-      if (evmContext.GetGasLimitEth() < baseFee) {
-        LOG_GENERAL(WARNING, "Gas limit " << evmContext.GetGasLimitEth()
-                                          << " less than " << baseFee);
-        error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
-        return false;
-      }
-
       // Check if the sender has enough balance to pay gasDeposit
       const uint256_t fromAccountBalance =
           uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
@@ -316,7 +306,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
-
       // generate address for new contract account
       Address contractAddress = Account::GetAddressForContract(
           fromAddr, fromAccount->GetNonce(), evmContext.GetVersionIdentifier());
@@ -325,7 +314,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
        * Maybe we should make the context immutable but have a mutable property
        */
       evmContext.SetContractAddress(contractAddress);
-
       LOG_GENERAL(INFO, "Contract creation address is " << contractAddress);
       // instantiate the object for contract account
       // ** Remember to call RemoveAccount if deployment failed halfway
@@ -345,13 +333,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
-      if (evmContext.GetCode().empty()) {
-        LOG_GENERAL(WARNING,
-                    "Creating a contract with empty code is not feasible.");
-        error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
-        return false;
-      }
-
       try {
         m_curBlockNum = blockNum;
         const uint128_t decreaseAmount =
@@ -367,13 +348,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::FAIL_CONTRACT_INIT;
         return false;
       }
-
       std::map<std::string, zbytes> t_metadata;
       t_metadata.emplace(
           Contract::ContractStorage::GetContractStorage().GenerateStorageKey(
               contractAddress, SCILLA_VERSION_INDICATOR, {}),
           DataConversion::StringToCharArray("0"));
-
       // *************************************************************************
       // Undergo a runner
       bool evm_call_run_succeeded{true};
@@ -389,28 +368,33 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
-
-      evm::EvmArgs args = evmContext.GetEvmArgs();
-
+      /*
+       * Add metadata into contract storage - TODO verify and document
+       */
       std::map<std::string, zbytes> t_newmetadata;
-
       t_newmetadata.emplace(Contract::ContractStorage::GenerateStorageKey(
                                 contractAddress, CONTRACT_ADDR_INDICATOR, {}),
                             contractAddress.asBytes());
-
       if (!contractAccount->UpdateStates(contractAddress, t_newmetadata, {},
                                          true)) {
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
+      /*
+       * Retrieve the validated message for the evm.
+       */
+      evm::EvmArgs args = evmContext.GetEvmArgs();
       evm::EvmResult result;
+      /*
+       * make the call to Evm
+       */
       gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, result);
       evmContext.SetEvmResult(result);
-
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
+      uint64_t baseFee = evmContext.GetBaseFee();
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
       if (result.trace_size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
@@ -419,7 +403,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
       }
-
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
       // *************************************************************************
       // Summary
@@ -437,7 +420,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         CommitAtomics();
       } else {
         DiscardAtomics();
-
         receipt.SetResult(false);
         receipt.AddError(RUNNER_FAILED);
         receipt.SetCumGas(evmContext.GetGasLimitZil() - gasRemainedCore);
@@ -446,13 +428,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         if (!this->IncreaseNonce(fromAddr)) {
           error_code = TxnStatus::MATH_ERROR;
         }
-
         LOG_GENERAL(INFO,
                     "Executing contract Creation Xtransaction finished "
                     "unsuccessfully");
         return false;
       }
-
       if (evmContext.GetGasLimitZil() < gasRemainedCore) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
                                  << evmContext.GetGasLimitZil()
@@ -461,10 +441,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         return false;
       }
-
       /// calculate total gas in receipt
       receipt.SetCumGas(evmContext.GetGasLimitZil() - gasRemainedCore);
-
       break;
     }
 
@@ -481,16 +459,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
-
-      Account* contractAccount = this->GetAccount(evmContext.GetContractAddress());
+      Account* contractAccount =
+          this->GetAccount(evmContext.GetContractAddress());
       if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
         return false;
       }
-
       LOG_GENERAL(INFO, "Call contract");
-
       const uint256_t fromAccountBalance =
           uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
       if (fromAccountBalance < gasDepositWei + evmContext.GetAmountWei()) {
@@ -508,10 +484,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
-
       m_curSenderAddr = fromAddr;
       m_curEdges = 0;
-
       if (contractAccount->GetCode().empty()) {
         LOG_GENERAL(
             WARNING,
@@ -519,11 +493,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::NOT_PRESENT;
         return false;
       }
-
       m_curBlockNum = blockNum;
-
       evmContext.SetCode(contractAccount->GetCode());
-
       DiscardAtomics();
       const uint128_t amountToDecrease =
           uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
@@ -532,7 +503,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
-
       m_curGasLimit = evmContext.GetGasLimitZil();
       m_curGasPrice = evmContext.GetGasPriceWei();
       m_curContractAddr = evmContext.GetContractAddress();
@@ -543,30 +513,26 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         tpStart = r_timer_start();
       }
-
       Contract::ContractStorage::GetContractStorage().BufferCurrentState();
-
-      std::string runnerPrint;
       bool evm_call_succeeded{true};
-
-      if (!TransferBalanceAtomic(fromAddr, m_curContractAddr,
+      if (!TransferBalanceAtomic(fromAddr, evmContext.GetContractAddress(),
                                  evmContext.GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
 
-      evm::EvmArgs args = evmContext.GetEvmArgs();
+      {
+        evm::EvmArgs args = evmContext.GetEvmArgs();
+        evm::EvmResult result;
+        gasRemained = InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
+                                           evm_call_succeeded, receipt, result);
+        evmContext.SetEvmResult(result);
+      }
 
-      evm::EvmResult result;
-      gasRemained =
-          InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
-                               evm_call_succeeded, receipt, result);
-      evmContext.SetEvmResult(result);
-
-      if (result.trace_size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                        result.trace(0))) {
+      if (evmContext.GetEvmResult().trace_size() > 0) {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(
+                evmContext.GetTranID(), evmContext.GetEvmResult().trace(0))) {
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
@@ -616,17 +582,14 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         }
         return false;
       }
-    } break;
-
+    }
+    break;
+    case Transaction::ERROR:
     default: {
       LOG_GENERAL(WARNING, "Txn is not typed correctly")
       error_code = TxnStatus::INCORRECT_TXN_TYPE;
       return false;
     }
-    case Transaction::ERROR:
-      // TODO
-      // maybe we should treat this error properly we have just fallen through.
-      break;
   }
 
   if (!this->IncreaseNonce(fromAddr)) {
@@ -638,14 +601,16 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   receipt.update();
 
   /*
-   * Check that we are to commit this transaction it be an estimate message
+   * Only commit the buffer is commit is enabled.
    *
-   * since txn succeeded, commit the atomic buffer. If no updates, it is a noop.
+   * since txn succeeded, commit the atomic buffer. If no updates, it is a
+   * noop.
    */
 
   if (evmContext.GetCommit()) {
     m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                      m_storageRootUpdateBufferAtomic.end());
+  } else {
   }
 
   if (LOG_SC) {

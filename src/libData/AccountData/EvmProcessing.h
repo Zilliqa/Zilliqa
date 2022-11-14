@@ -137,13 +137,12 @@ struct ProcessingParameters {
         m_extras(extras),
         m_gasPrice(extras.gas_price),
         m_versionIdentifier(txn.GetVersionIdentifier()){
-    m_ethTransaction = txn.IsEth();
 
+    m_ethTransaction = txn.IsEth();
     _internal.m_caller = txn.GetSenderAddr();
     _internal.m_contract = txn.GetToAddr();
     _internal.m_code = txn.GetCode();
     _internal.m_data = txn.GetData();
-
     _internal.m_gas = txn.GetGasLimitRaw();
     _internal.m_amount = txn.GetAmountRaw();
     _internal.m_tranID = txn.GetTranID();
@@ -154,6 +153,8 @@ struct ProcessingParameters {
     // We charge for creating a contract, this is included in our base fee.
 
     if (m_contractType == Transaction::CONTRACT_CREATION) {
+
+
       if (txn.GetCode().empty()) {
         m_errorCode = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         m_status = false;
@@ -166,9 +167,8 @@ struct ProcessingParameters {
 
       m_baseFee =
           Eth::getGasUnitsForContractDeployment(txn.GetCode(), txn.GetData());
-
       stringStream.clear();
-      stringStream << "Base Fee " << m_baseFee << " : gwei";
+      stringStream << "Base Fee " << m_baseFee << " : gwei" << std::endl;
       m_journal.push_back(stringStream.str());
 
       // Check if limit is sufficient for creation fee
@@ -416,6 +416,13 @@ struct ProcessingParameters {
     return m_versionIdentifier;
   }
 
+  /*
+   * GetBaseFee()
+   */
+
+  const uint64_t& GetBaseFee(){
+    return m_baseFee;
+  }
 
   /*
    * GetEvmArgs()
