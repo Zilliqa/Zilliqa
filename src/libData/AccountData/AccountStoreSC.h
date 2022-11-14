@@ -270,8 +270,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool AddAccountAtomic(const Address& address, const Account& account);
 
   bool ViewAccounts(const evm::EvmArgs& args, evm::EvmResult& result);
-  bool EvmProcessMessage(EvmProcessContext& params,
-                                              evm::EvmResult& result) ;
+  bool EvmProcessMessage(EvmProcessContext& params, evm::EvmResult& result) ;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
