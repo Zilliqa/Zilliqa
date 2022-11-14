@@ -821,8 +821,12 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
+    auto const gas_price = m_mediator.m_dsBlockChain.GetLastBlock()
+      .GetHeader()
+      .GetGasPrice();
+
     TxnExtras extras{
-        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        gas_price,          // Default for IsolatedServer.
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };

@@ -23,10 +23,16 @@
 class GasConv {
  public:
   static uint64_t GasUnitsFromEthToCore(uint64_t gasLimit) {
+    std::cerr << "gas div: " << gasLimit << std::endl;
+    std::cerr << "gas div: " << GetScalingFactor() << std::endl;
+    std::cerr << "gas div: " << gasLimit / GetScalingFactor() << std::endl;
     return gasLimit / GetScalingFactor();
   }
 
   static uint64_t GasUnitsFromCoreToEth(uint64_t gasLimit) {
+    std::cerr << "gas multiply: " << gasLimit << std::endl;
+    std::cerr << "gas multiply2: " << GetScalingFactor() << std::endl;
+    std::cerr << "gas multiply3: " << gasLimit * GetScalingFactor() << std::endl;
     return gasLimit * GetScalingFactor();
   }
 

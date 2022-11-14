@@ -128,7 +128,6 @@ EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
   bool status{true};
-  LOG_MARKER();
   LOG_GENERAL(INFO, "OpenServer for EVM ");
 
   try {
@@ -158,6 +157,9 @@ bool EvmClient::OpenServer() {
 bool EvmClient::CallRunner(const Json::Value& _json,
                            evmproj::CallResponse& result) {
   LOG_MARKER();
+
+  std::cerr << "Calling runner..." << std::endl;
+
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
@@ -168,6 +170,13 @@ bool EvmClient::CallRunner(const Json::Value& _json,
     }
   }
   try {
+
+    if (LOG_SC) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(200));
+      LOG_GENERAL(WARNING,
+                  "Calling EVM with arg: " << _json.toStyledString());
+    }
+
     const auto oldJson = m_client->CallMethod("run", _json);
     try {
       const auto reply = evmproj::GetReturn(oldJson, result);

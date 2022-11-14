@@ -361,6 +361,9 @@ std::string EthRpcMethods::CreateTransactionEth(
   LOG_MARKER();
   std::string ret;
 
+  std::cerr << "gas price external " << gasPrice << std::endl;
+  std::cerr << "gas price internal " << fields.gasPrice << std::endl;
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
@@ -573,6 +576,8 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
+  std::cerr << "*** estimating gas! *** " << std::endl;
+
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
@@ -627,6 +632,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       data = data.substr(2);
     }
   }
+  std::transform(data.begin(), data.end(), data.begin(), ::toupper);
 
   uint256_t value = 0;
   if (json.isMember("value")) {
@@ -678,6 +684,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     gas = min(gas, userGas);
   }
 
+  std::cerr << "user gas: " << gas << std::endl;
+
   const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
   // TODO: adapt to any block, not just latest.
@@ -697,19 +705,24 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   const EvmCallParameters params{
 
       toAddr.hex(), fromAddr.hex(),    code, data, gas,
-      value,        std::move(extras), true /* only estimate gas */
+      value,        std::move(extras), false /* only estimate gas */
   };
 
   evmproj::CallResponse response;
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
       response.Success()) {
     const auto gasRemained = response.Gas();
+    std::cerr << "gas remained: " << gasRemained << std::endl;
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
+    std::cerr << "gas consumed: " << consumedEvmGas << std::endl;
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : 0;
+    std::cerr << "base fee" << baseFee << std::endl;
     const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
+
+    std::cerr << "ret gas" << retGas << std::endl;
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
@@ -717,14 +730,17 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "Base fee exceeds gas limit");
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
+    std::cerr << "EST" << std::endl;
     return (boost::format("0x%x") % retGas).str();
   } else if (response.Revert()) {
+    std::cerr << "EST" << std::endl;
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     throw JsonRpcException(3, "execution reverted",
                            "0x" + response.ReturnedBytes());
   } else {
+    std::cerr << "EST" << std::endl;
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
   }
 }
@@ -1367,6 +1383,9 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const std::string& txnhash) {
+
+  std::cout << "Getting eth TX receitp for hash: " << txnhash << std::endl;
+
   try {
     TxnHash argHash{txnhash};
     TxBodySharedPtr transactionBodyPtr;

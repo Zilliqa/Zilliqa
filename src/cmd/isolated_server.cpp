@@ -98,7 +98,9 @@ int main(int argc, const char* argv[]) {
   bool nonisoload{false};
   string uuid;
 
+  ENABLE_EVM = true;
   LOOKUP_NODE_MODE = true;
+  SCILLA_SERVER_LOOP_WAIT_MICROSECONDS = 100000;
   if (SCILLA_ROOT == "/scilla") {
     SCILLA_ROOT = "/tmp";
   }
