@@ -107,7 +107,7 @@ impl From<evm::ExitError> for EvmProto::ExitReason_Error {
             evm::ExitError::CreateContractLimit => {
                 result.set_kind(EvmProto::ExitReason_Error_Kind::CREATE_CONTRACT_LIMIT);
             }
-            evm::ExitError::InvalidCode => {
+            evm::ExitError::InvalidCode(opcode) => {
                 result.set_kind(EvmProto::ExitReason_Error_Kind::INVALID_CODE);
             }
             evm::ExitError::OutOfOffset => {
