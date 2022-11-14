@@ -1,4 +1,0 @@
-
-[0x16b34f000][22-11-13T23:01:33.417][thRpcMethods.cpp:731][GetEthEstimateGas   ] Gas estimated: 6562803350
-420000000000
-413437196650

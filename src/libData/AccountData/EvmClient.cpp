@@ -167,10 +167,6 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     }
   }
   try {
-    //if (LOG_SC) {
-    //  LOG_GENERAL(WARNING, "Calling EVM with arg: " << _json.toStyledString());
-    //}
-
     const auto replyJson = m_client->CallMethod("run", _json);
 
     if (LOG_SC) {

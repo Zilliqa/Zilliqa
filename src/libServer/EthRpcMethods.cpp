@@ -706,14 +706,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
   args.set_estimate(false);
 
-  std::cerr << "setting view accounts! " << std::endl;
-
   evm::EvmResult result;
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
 
-    std::cerr << "finished view accounts! " << std::endl;
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
@@ -724,8 +721,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
-
-      std::cerr << "argh view accounts! " << std::endl;
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Base fee exceeds gas limit");
     }
