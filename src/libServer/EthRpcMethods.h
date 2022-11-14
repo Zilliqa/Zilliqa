@@ -522,6 +522,7 @@ class EthRpcMethods {
   std::string GetEthCallEth(const Json::Value& _json,
                             const std::string& block_or_tag);
   std::string GetEthEstimateGas(const Json::Value& _json);
+  std::string NewGetEthEstimateGas(const Json::Value& _json);
   std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
   Json::Value GetBalanceAndNonce(const std::string& address);
   std::string GetWeb3ClientVersion();

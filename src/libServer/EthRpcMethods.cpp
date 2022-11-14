@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "EthRpcMethods.h"
-#include <Schnorr.h>
 #include <jsonrpccpp/common/exception.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
@@ -28,10 +27,9 @@
 #include "common/Serializable.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/EvmProcessing.h"
+#include "libData/AccountData/EvmProcessContext.h"
 #include "libData/AccountData/Transaction.h"
 #include "libEth/Eth.h"
 #include "libEth/Filters.h"
@@ -43,7 +41,6 @@
 #include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
@@ -576,9 +573,13 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 }
 
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
-  static int simHash = 1;
   Address fromAddr;
 
+#ifdef NEW_TESTING
+  std::string res = NewGetEthEstimateGas(json);
+
+  return res;
+#endif
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
@@ -707,31 +708,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
   args.set_estimate(true);
 
-  { // steves test section.
-    dev::h256 fakeHash(simHash++);
-    ProcessingParameters::DirectCall evmParams = {
-        fromAddr, toAddr, code, data, gas, value, fakeHash, blockNum, true};
-
-    TxnExtras txnExtras2{
-        dsBlock.GetHeader().GetGasPrice(),
-        txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
-        dsBlock.GetHeader().GetDifficulty()};
-
-    ProcessingParameters allParams(evmParams, txnExtras2);
-
-
-    evm::EvmArgs newArgs = allParams.GetEvmArgs();
-
-    if ( allParams.CompareEvmArgs(newArgs,args)){
-      LOG_GENERAL(INFO, "Context Journal Good" << allParams.GetStatus());
-    } else {
-      LOG_GENERAL(INFO, "Context Journal Bad" << allParams.GetStatus());
-      for (auto line : allParams.GetJournal()) {
-        LOG_GENERAL(INFO, line);
-      }
-    }
-  }
-
   evm::EvmResult result;
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
@@ -766,6 +742,145 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 }
 
+std::string EthRpcMethods::NewGetEthEstimateGas(const Json::Value& json) {
+  std::cout << "[" << json << "]" << std::endl;
+
+  static int simHash = 1;
+  Address fromAddr;
+
+  if (!json.isMember("from")) {
+    LOG_GENERAL(WARNING, "Missing from account");
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
+  } else {
+    fromAddr = Address{json["from"].asString()};
+  }
+
+  Address toAddr;
+
+  if (json.isMember("to")) {
+    auto toAddrStr = json["to"].asString();
+    DataConversion::NormalizeHexString(toAddrStr);
+    toAddr = Address{toAddrStr};
+  }
+
+  zbytes data;
+  if (json.isMember("data")) {
+    if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "data argument invalid");
+    }
+  }
+
+  zbytes code;
+  if (json.isMember("code")) {
+    if (!DataConversion::HexStrToUint8Vec(json["code"].asString(), code)) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "data argument invalid");
+    }
+  }
+
+  uint128_t value = 0;
+  if (json.isMember("value")) {
+    const auto valueStr = json["value"].asString();
+    value = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
+  }
+
+  uint256_t gasPrice = GetEthGasPriceNum();
+  if (json.isMember("gasPrice")) {
+    const auto gasPriceStr = json["gasPrice"].asString();
+    uint256_t inputGasPrice =
+        DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
+    gasPrice = max(gasPrice, inputGasPrice);
+  }
+
+  uint256_t gasDeposit = 0;
+  if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "gasPrice * MIN_ETH_GAS overflow!");
+  }
+
+  // Typical fund transfer
+  if (code.empty() && data.empty()) {
+    return (boost::format("0x%x") % MIN_ETH_GAS).str();
+  }
+
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
+
+  // Use gas specified by user
+  if (json.isMember("gas")) {
+    const auto gasLimitStr = json["gas"].asString();
+    const uint64_t userGas =
+        DataConversion::ConvertStrToInt<uint64_t>(gasLimitStr, 0);
+    gas = min(gas, userGas);
+  }
+
+  const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+  const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
+  // TODO: adapt to any block, not just latest.
+  TxnExtras txnExtras{
+      dsBlock.GetHeader().GetGasPrice(),
+      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
+      dsBlock.GetHeader().GetDifficulty()};
+
+  uint64_t blockNum =
+      m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  dev::h256 fakeHash(simHash++);
+  EvmProcessContext::DirectCall evmParams = {
+      fromAddr, toAddr, code, data, gas, value, fakeHash, blockNum, true};
+
+  EvmProcessContext evmMessageContext(evmParams, txnExtras);
+
+  if (not evmMessageContext.GetStatus()) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "Badly composed parameters to call");
+  }
+
+  evm::EvmArgs args = evmMessageContext.GetEvmArgs();
+  evm::EvmResult result;
+  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
+                                                    result) &&
+      result.exit_reason().exit_reason_case() ==
+          evm::ExitReason::ExitReasonCase::kSucceed) {
+    const TransactionReceipt& rcpt = evmMessageContext.GetEvmReceipt();
+    const auto gasFromRcpt = GasConv::GasUnitsFromCoreToEth(rcpt.GetCumGas());
+
+    const auto gasRemained = result.remaining_gas();
+    const auto consumedEvmGas =
+        (gas >= gasRemained) ? (gas - gasRemained) : gas;
+    const auto baseFee =
+        evmMessageContext.GetContractType() == Transaction::CONTRACT_CREATION
+            ? Eth::getGasUnitsForContractDeployment(code, data)
+            : 0;
+    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
+
+    const auto myRetGas = std::max(baseFee + gasFromRcpt, MIN_ETH_GAS);
+
+    if (retGas != myRetGas){
+      LOG_GENERAL(WARNING, "Gas estimated: " << retGas << " myGas " << myRetGas );
+    }
+
+    // We can't go beyond gas provided by user (or taken from last block)
+    if (retGas >= gas) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                             "Base fee exceeds gas limit");
+    }
+    LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
+    return (boost::format("0x%x") % retGas).str();
+  } else if (result.exit_reason().exit_reason_case() ==
+             evm::ExitReason::kRevert) {
+    // Error code 3 is a special case. It is practially documented only in geth
+    // and its clones, e.g. here:
+    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
+    std::string return_value;
+    DataConversion::StringToHexStr(result.return_value(), return_value);
+    boost::algorithm::to_lower(return_value);
+    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+  } else {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
+  }
+}
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                                      const ApiKeys& apiKeys) {

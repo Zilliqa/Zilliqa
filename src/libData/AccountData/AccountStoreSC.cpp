@@ -24,7 +24,7 @@
 #include "ScillaClient.h"
 
 #include "AccountStoreSC.h"
-#include "EvmProcessing.h"
+#include "EvmProcessContext.h"
 #include "libPersistence/ContractStorage.h"
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"

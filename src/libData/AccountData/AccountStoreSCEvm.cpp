@@ -22,7 +22,7 @@
 #include <vector>
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
-#include "EvmProcessing.h"
+#include "EvmProcessContext.h"
 #include "common/Constants.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
@@ -228,7 +228,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
  */
 
 template <class MAP>
-bool AccountStoreSC<MAP>::EvmProcessMessage(ProcessingParameters& params,
+bool AccountStoreSC<MAP>::EvmProcessMessage(EvmProcessContext& params,
                                             evm::EvmResult& result) {
   unsigned int unused_numShards = 0;
   bool unused_isds = true;
@@ -239,6 +239,7 @@ bool AccountStoreSC<MAP>::EvmProcessMessage(ProcessingParameters& params,
                                   unused_isds, rcpt, error_code, params);
 
   result = params.GetEvmResult();
+  params.SetEvmReceipt(rcpt);
 
   return status;
 }
@@ -249,7 +250,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             const bool& isDS,
                                             TransactionReceipt& receipt,
                                             TxnStatus& error_code,
-                                            ProcessingParameters& evmContext) {
+                                            EvmProcessContext& evmContext) {
   LOG_MARKER();
 
   /*
@@ -257,10 +258,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    */
 
   if (not evmContext.GetStatus()) {
-    LOG_GENERAL(INFO, "Context had errors" << evmContext.GetStatus());
-    for (auto line : evmContext.GetJournal()) {
-      LOG_GENERAL(INFO, line);
-    }
     return false;
   } else {
     LOG_GENERAL(INFO,
@@ -273,20 +270,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  m_curIsDS = isDS;
-  m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = evmContext.GetSenderAddress();
-
   uint64_t gasRemained = evmContext.GetGasLimitEth();
+  uint256_t gasDepositWei = evmContext.GetGasDeposit();
 
-  // Get the amount of deposit for running this txn
-  uint256_t gasDepositWei;
-  if (!SafeMath<uint256_t>::mul(evmContext.GetGasLimitZil(),
-                                evmContext.GetGasPriceWei(), gasDepositWei)) {
-    error_code = TxnStatus::MATH_ERROR;
-    return false;
-  }
+  m_curIsDS = isDS;
+  m_txnProcessTimeout = false;
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
@@ -495,9 +485,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
       m_curBlockNum = blockNum;
       evmContext.SetCode(contractAccount->GetCode());
+      evmContext.GetBaseFee();
       DiscardAtomics();
       const uint128_t amountToDecrease =
-          uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
+          uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR} ;
       if (!this->DecreaseBalance(fromAddr, amountToDecrease)) {
         LOG_GENERAL(WARNING, "DecreaseBalance failed");
         error_code = TxnStatus::MATH_ERROR;
@@ -607,10 +598,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    * noop.
    */
 
-  if (evmContext.GetCommit()) {
+  if (evmContext.GetCommit() && not evmContext.GetEstimateOnly()) {
     m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                      m_storageRootUpdateBufferAtomic.end());
-  } else {
   }
 
   if (LOG_SC) {
