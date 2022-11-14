@@ -28,17 +28,13 @@
 #include "AccountStoreBase.h"
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmCallParameters.h"
 #include "libUtils/TxnExtras.h"
 
 template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
-
-namespace evmproj {
-struct ApplyInstructions;
-struct CallResponse;
-}  // namespace evmproj
 
 template <class MAP>
 class AccountStoreAtomic
@@ -175,9 +171,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>&
           extlibs_exports);
-  void EvmCallRunner(const INVOKE_TYPE invoke_type, EvmCallParameters& params,
+  void EvmCallRunner(const INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
                      bool& ret, TransactionReceipt& receipt,
-                     evmproj::CallResponse& evmReturnValues);
+                     evm::EvmResult& result);
   void CreateScillaCodeFiles(
       Account& contract,
       const std::map<Address, std::pair<std::string, std::string>>&
@@ -217,9 +213,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   uint64_t InvokeEvmInterpreter(Account* contractAccount,
                                 INVOKE_TYPE invoke_type,
-                                EvmCallParameters& params, bool& ret,
+                                const evm::EvmArgs& args, bool& ret,
                                 TransactionReceipt& receipt,
-                                evmproj::CallResponse& evmReturnValues);
+                                evm::EvmResult& result);
 
   /// verify the return from scilla_checker for deployment is valid
   /// expose in protected for using by data migration
@@ -271,8 +267,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   // Adds an Account to the atomic AccountStore.
   bool AddAccountAtomic(const Address& address, const Account& account);
 
-  bool ViewAccounts(const EvmCallParameters& params,
-                    evmproj::CallResponse& response);
+  bool ViewAccounts(const evm::EvmArgs& args, evm::EvmResult& result);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

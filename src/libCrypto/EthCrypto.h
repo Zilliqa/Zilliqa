@@ -48,8 +48,8 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId);
 
 // Given a native transaction, get the corresponding RLP (that was sent to
 // create it)
-std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                              std::string signature, uint64_t& recid);
+zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
+                         std::string signature, uint64_t& recid);
 
 // As a workaround, code/data strings have an evm prefix to distinguish them,
 // but this must be stripped before it goes to the EVM
@@ -58,7 +58,7 @@ zbytes FromEVM(zbytes const& in);
 zbytes StripEVM(zbytes const& in);
 
 // Create an ethereum style transaction hash
-zbytes CreateHash(std::string const& rawTx);
+zbytes CreateHash(zbytes const& rawTx);
 
 // Create the eth-style contract address given the sender address and nonce
 zbytes CreateContractAddr(zbytes const& senderAddr, int nonce);
