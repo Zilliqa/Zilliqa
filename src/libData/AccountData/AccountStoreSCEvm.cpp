@@ -413,7 +413,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      if(LOG_SC) {
+      if (LOG_SC) {
         LOG_GENERAL(WARNING, "Sending to the evm: " << std::endl << params);
       }
 
@@ -485,13 +485,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     }
 
     case Transaction::NON_CONTRACT: {
-      if(LOG_SC) {
+      if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is normal transfer");
       }
     }
 
     case Transaction::CONTRACT_CALL: {
-      if(LOG_SC) {
+      if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
       }
 
@@ -594,8 +594,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           transaction.GetAmountWei(),
           std::move(extras)};
 
-
-      if(LOG_SC) {
+      if (LOG_SC) {
         LOG_GENERAL(WARNING, "contract address is " << params.m_contract
                                                     << " caller account is "
                                                     << params.m_caller);
@@ -607,7 +606,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, params,
                                evm_call_succeeded, receipt, response);
-
 
       if (response.Trace().size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
@@ -649,7 +647,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
-      // TODO: the cum gas might not be applied correctly (should be block level)
+      // TODO: the cum gas might not be applied correctly (should be block
+      // level)
       receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemainedCore);
       if (!evm_call_succeeded) {
         receipt.SetResult(false);
@@ -672,7 +671,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     case Transaction::ERROR:
       // TODO
       // maybe we should treat this error properly we have just fallen through.
-      LOG_GENERAL(WARNING, "Txn does not appear to be valid! Nothing has been executed.")
+      LOG_GENERAL(WARNING,
+                  "Txn does not appear to be valid! Nothing has been executed.")
       break;
   }
 

@@ -42,9 +42,8 @@ struct EvmCallParameters {
   bool m_onlyEstimateGas = false;
 };
 
-//template<typename T>
-inline std::ostream& operator << (std::ostream& o, const EvmCallExtras& a)
-{
+// template<typename T>
+inline std::ostream& operator<<(std::ostream& o, const EvmCallExtras& a) {
   o << "block_timestamp: " << a.block_timestamp << std::endl;
   o << "block_gas_limit: " << a.block_gas_limit << std::endl;
   o << "block_difficulty:  " << a.block_difficulty << std::endl;
@@ -54,9 +53,8 @@ inline std::ostream& operator << (std::ostream& o, const EvmCallExtras& a)
   return o;
 }
 
-//template<typename T>
-inline std::ostream& operator << (std::ostream& o, const EvmCallParameters& a)
-{
+// template<typename T>
+inline std::ostream& operator<<(std::ostream& o, const EvmCallParameters& a) {
   o << "m_contract: " << a.m_contract << std::endl;
   o << "m_caller: " << a.m_caller << std::endl;
   o << "m_code: " << a.m_code << std::endl;

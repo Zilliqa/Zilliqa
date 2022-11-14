@@ -698,8 +698,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   const EvmCallParameters params{
 
       toAddr.hex(), fromAddr.hex(),    code, data, gas,
-      value,        std::move(extras), false
-  };
+      value,        std::move(extras), false};
 
   evmproj::CallResponse response;
   if (AccountStore::GetInstance().ViewAccounts(params, response) &&
@@ -1368,7 +1367,6 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const std::string& txnhash) {
-
   std::cout << "Getting eth TX receitp for hash: " << txnhash << std::endl;
 
   try {

@@ -821,9 +821,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
-    auto const gas_price = m_mediator.m_dsBlockChain.GetLastBlock()
-      .GetHeader()
-      .GetGasPrice();
+    auto const gas_price =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
 
     TxnExtras extras{
         gas_price,

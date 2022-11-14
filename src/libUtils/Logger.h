@@ -93,7 +93,8 @@ class Logger {
 
   // Auxiliary class to mark the beginning & end of a scope.
   struct ScopeMarker final {
-    ScopeMarker(const char* file, int line, const char* func, bool should_print = true);
+    ScopeMarker(const char* file, int line, const char* func,
+                bool should_print = true);
     ~ScopeMarker();
 
    private:

@@ -58,7 +58,9 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
         unixDomainSocket.connect(stream_protocol::endpoint(m_path));
       } catch (std::exception& e) {
         if (LOG_SC) {
-          LOG_GENERAL(INFO, "Exception calling connect " << e.what() << " to path: " << m_path << " to send msg: "<< message);
+          LOG_GENERAL(INFO, "Exception calling connect "
+                                << e.what() << " to path: " << m_path
+                                << " to send msg: " << message);
         }
         throw e;
       }
