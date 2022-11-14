@@ -28,10 +28,7 @@
 #include <memory>
 #include "common/Constants.h"
 #include "common/Singleton.h"
-
-namespace evmproj {
-struct CallResponse;
-}
+#include "libUtils/Evm.pb.h"
 
 // EvmDsDomainSocketClient
 //
@@ -139,8 +136,7 @@ class EvmClient : public Singleton<EvmClient> {
   // Invoked the RPC method contained within the _json parameter
   // Returns a C++ object populated with the results.
 
-  virtual bool CallRunner(const Json::Value& _json,
-                          evmproj::CallResponse& result);
+  virtual bool CallRunner(const Json::Value& _json, evm::EvmResult& result);
 
  protected:
   // OpenServer

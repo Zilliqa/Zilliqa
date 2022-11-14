@@ -2,6 +2,7 @@
 use std::path::PathBuf;
 use std::str::FromStr;
 
+use bytes::Bytes;
 use evm::backend::{Backend, Basic};
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
@@ -14,8 +15,8 @@ use log::{debug, info};
 use protobuf::Message;
 
 use crate::ipc_connect;
+use crate::protos::Evm as EvmProto;
 use crate::protos::ScillaMessage;
-use crate::EvmEvalExtras;
 
 #[derive(Clone)]
 pub struct ScillaBackendConfig {
@@ -29,7 +30,7 @@ pub struct ScillaBackendConfig {
 pub struct ScillaBackend {
     config: ScillaBackendConfig,
     pub origin: H160,
-    pub extras: EvmEvalExtras,
+    pub extras: EvmProto::EvmEvalExtras,
 }
 
 // Adding some convenience to ProtoScillaVal to convert to U256 and bytes.
@@ -39,9 +40,9 @@ impl ScillaMessage::ProtoScillaVal {
         String::from_utf8(self.get_bval().to_vec())
             .ok()
             .and_then(|s| {
-                let s = s.replace("\"", "");
-                if s.starts_with("0x") {
-                    U256::from_str(&s[2..]).ok()
+                let s = s.replace('\"', "");
+                if let Some(stripped) = s.strip_prefix("0x") {
+                    U256::from_str(stripped).ok()
                 } else {
                     U256::from_dec_str(&s).ok()
                 }
@@ -54,7 +55,7 @@ impl ScillaMessage::ProtoScillaVal {
 }
 
 impl ScillaBackend {
-    pub fn new(config: ScillaBackendConfig, origin: H160, extras: EvmEvalExtras) -> Self {
+    pub fn new(config: ScillaBackendConfig, origin: H160, extras: EvmProto::EvmEvalExtras) -> Self {
         Self {
             config,
             origin,
@@ -184,7 +185,7 @@ impl ScillaBackend {
                                     ScillaMessage::ProtoScillaVal::parse_from_bytes(&buffer).ok()
                                 })
                             })
-                            .ok_or(Error::internal_error())
+                            .ok_or_else(Error::internal_error)
                     },
                 )
             }
@@ -194,7 +195,7 @@ impl ScillaBackend {
 
     // Encode key/value pairs for storage in such a way that the Zilliqa node
     // could interpret it without much modification.
-    pub(crate) fn encode_storage(&self, key: H256, value: H256) -> (String, String) {
+    pub(crate) fn encode_storage(&self, key: H256, value: H256) -> (Bytes, Bytes) {
         let mut query = ScillaMessage::ProtoScillaQuery::new();
         query.set_name("_evm_storage".into());
         query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
@@ -203,8 +204,8 @@ impl ScillaBackend {
         let bval = value.as_bytes().to_vec();
         val.set_bval(bval.into());
         (
-            base64::encode(query.write_to_bytes().unwrap()),
-            base64::encode(val.write_to_bytes().unwrap()),
+            query.write_to_bytes().unwrap().into(),
+            val.write_to_bytes().unwrap().into(),
         )
     }
 
@@ -217,9 +218,9 @@ impl ScillaBackend {
     }
 }
 
-impl<'config> Backend for ScillaBackend {
+impl Backend for ScillaBackend {
     fn gas_price(&self) -> U256 {
-        U256::from_dec_str(&self.extras.gas_price).expect("parsing gas_price")
+        self.extras.get_gas_price().into()
     }
 
     fn origin(&self) -> H160 {
@@ -232,7 +233,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_number(&self) -> U256 {
-        self.extras.block_number.into()
+        self.extras.get_block_number().into()
     }
 
     fn block_coinbase(&self) -> H160 {
@@ -241,15 +242,15 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn block_timestamp(&self) -> U256 {
-        self.extras.block_timestamp.into()
+        self.extras.get_block_timestamp().into()
     }
 
     fn block_difficulty(&self) -> U256 {
-        self.extras.block_difficulty.into()
+        self.extras.get_block_difficulty().into()
     }
 
     fn block_gas_limit(&self) -> U256 {
-        self.extras.block_gas_limit.into()
+        self.extras.get_block_gas_limit().into()
     }
 
     fn block_base_fee_per_gas(&self) -> U256 {
@@ -259,7 +260,7 @@ impl<'config> Backend for ScillaBackend {
     }
 
     fn chain_id(&self) -> U256 {
-        self.extras.chain_id.into()
+        self.extras.get_chain_id().into()
     }
 
     fn exists(&self, address: H160) -> bool {
@@ -292,12 +293,11 @@ impl<'config> Backend for ScillaBackend {
             .expect("query_state_value(_code)")
             .map(|value| value.as_bytes())
             .unwrap_or_default();
-        (if bytes.len() > 2 && bytes[0] == b'E' && bytes[1] == b'V' && bytes[2] == b'M' {
-            hex::decode(&bytes[3..])
+        if bytes.len() > 2 && bytes[0] == b'E' && bytes[1] == b'V' && bytes[2] == b'M' {
+            (&bytes[3..]).to_vec()
         } else {
-            hex::decode(bytes)
-        })
-        .expect("Code cannot be HEX decoded")
+            bytes
+        }
     }
 
     fn storage(&self, address: H160, key: H256) -> H256 {

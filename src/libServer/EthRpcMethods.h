@@ -21,7 +21,6 @@
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
-#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/GasConv.h"
 
 class LookupServer;

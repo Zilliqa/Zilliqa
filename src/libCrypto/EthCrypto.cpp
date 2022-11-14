@@ -400,9 +400,7 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
   if (IsNullAddress(info.toAddr)) {
     rlpStreamRecreated << FromEVM(info.code);
   } else {
-    // TODO: remove hexing here.
-    rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
-        DataConversion::CharArrayToString(info.data));
+    rlpStreamRecreated << info.data;
   }
 
   rlpStreamRecreated << chainId;
@@ -416,15 +414,15 @@ zbytes GetOriginalHash(TransactionCoreInfo const& info, uint64_t chainId) {
 }
 
 // From a zilliqa TX, get the RLP that was sent to the node to create it
-std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
-                              std::string signature, uint64_t& recid) {
+zbytes GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
+                         std::string signature, uint64_t& recid) {
   if (signature.size() >= 2 && signature[0] == '0' && signature[1] == 'x') {
     signature.erase(0, 2);
   }
 
   if (signature.size() != 128) {
     LOG_GENERAL(WARNING, "Received bad signature size: " << signature.size());
-    return "";
+    return zbytes{};
   }
 
   std::string s = signature.substr(64, std::string::npos);
@@ -433,7 +431,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
   for (int i = 0;; i++) {
     if (i >= 2) {
       LOG_GENERAL(WARNING, "Error recreating sent RLP stream");
-      return "";
+      return zbytes{};
     }
 
     dev::RLPStream rlpStreamRecreated(9);
@@ -452,9 +450,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     if (IsNullAddress(info.toAddr)) {
       rlpStreamRecreated << FromEVM(info.code);
     } else {
-      // TODO: remove hexing here.
-      rlpStreamRecreated << DataConversion::HexStrToUint8VecRet(
-          DataConversion::CharArrayToString(info.data));
+      rlpStreamRecreated << info.data;
     }
 
     // i is the parity, either 0 or 1
@@ -464,10 +460,8 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     rlpStreamRecreated << dev::u256("0x" + signature);
     rlpStreamRecreated << dev::u256("0x" + s);
 
-    auto const* dataPtr = rlpStreamRecreated.out().data();
-    auto const& asString = DataConversion::Uint8VecToHexStrRet(
-        zbytes(dataPtr, dataPtr + rlpStreamRecreated.out().size()));
-
+    zbytes data = rlpStreamRecreated.out();
+    auto const& asString = DataConversion::Uint8VecToHexStrRet(data);
     auto const pubK = RecoverECDSAPubKey(asString, chainId);
 
     if (!PubKeysSame(pubK, info.senderPubKey)) {
@@ -475,7 +469,7 @@ std::string GetTransmittedRLP(TransactionCoreInfo const& info, uint64_t chainId,
     }
 
     recid = v;
-    return asString;
+    return data;
   }
 }
 
@@ -483,13 +477,8 @@ zbytes ToEVM(zbytes const& in) {
   if (in.empty()) {
     return in;
   }
-
-  std::string prefixedEvm{"EVM"};
-  prefixedEvm += DataConversion::Uint8VecToHexStrRet(in);
-  zbytes ret;
-
-  std::copy(prefixedEvm.begin(), prefixedEvm.end(), std::back_inserter(ret));
-
+  zbytes ret{'E', 'V', 'M'};
+  std::copy(in.begin(), in.end(), std::back_inserter(ret));
   return ret;
 }
 
@@ -497,10 +486,7 @@ zbytes FromEVM(zbytes const& in) {
   if (in.size() < 4) {
     return in;
   }
-
-  std::string ret{in.begin() + 3, in.end()};
-
-  return DataConversion::HexStrToUint8VecRet(ret);
+  return zbytes(in.begin() + 3, in.end());
 }
 
 zbytes StripEVM(zbytes const& in) {
@@ -511,10 +497,8 @@ zbytes StripEVM(zbytes const& in) {
   }
 }
 
-zbytes CreateHash(std::string const& rawTx) {
-  auto const asBytes = DataConversion::HexStrToUint8VecRet(rawTx);
-
-  auto const hash = ethash::keccak256(asBytes.data(), asBytes.size());
+zbytes CreateHash(zbytes const& rawTx) {
+  auto const hash = ethash::keccak256(rawTx.data(), rawTx.size());
 
   zbytes hashBytes;
 

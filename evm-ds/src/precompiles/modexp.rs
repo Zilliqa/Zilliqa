@@ -24,7 +24,7 @@ pub(crate) fn modexp(
         }
     }
 
-    let result = match run_inner(input) {
+    match run_inner(input) {
         Ok(out) => Ok(PrecompileOutput {
             cost,
             exit_status: ExitSucceed::Returned,
@@ -32,8 +32,7 @@ pub(crate) fn modexp(
             output: out,
         }),
         Err(err) => Err(PrecompileFailure::Error { exit_status: err }),
-    };
-    result
+    }
 }
 
 fn calc_iter_count(exp_len: u64, base_len: u64, bytes: &[u8]) -> Result<U256, ExitError> {
