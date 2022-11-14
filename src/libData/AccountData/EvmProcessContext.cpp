@@ -17,6 +17,7 @@
 
 #include <memory>
 #include "Transaction.h"
+#include "common/TxnStatus.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
@@ -24,7 +25,6 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TxnExtras.h"
-#include "common/TxnStatus.h"
 /* EvmProcessContext
  * *
  * This structure is the holding structure for data about
@@ -85,8 +85,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
 
   // We charge for creating a contract, this is included in our base fee.
 
-  if (not Validate())
-    return;
+  if (not Validate()) return;
 
   // setters required.
   m_innerData.m_onlyEstimateGas = not commit;
@@ -99,16 +98,16 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
  */
 
 bool EvmProcessContext::Validate() {
-
   std::ostringstream stringStream;
 
-  if (m_contractType == Transaction::ERROR){
+  if (m_contractType == Transaction::ERROR) {
     m_errorCode = TxnStatus::ERROR;
     m_status = false;
     stringStream.clear();
     stringStream << "Jrn:"
                  << "C"
-                    "Failed basic tests on code and data to determine type"<< std::endl;
+                    "Failed basic tests on code and data to determine type"
+                 << std::endl;
     m_journal.push_back(stringStream.str());
   }
 
@@ -118,7 +117,7 @@ bool EvmProcessContext::Validate() {
       m_status = false;
       stringStream.clear();
       stringStream << "Jrn:"
-                   << "Cannot create a contract with empty code"<< std::endl;
+                   << "Cannot create a contract with empty code" << std::endl;
       m_journal.push_back(stringStream.str());
     }
 
@@ -133,7 +132,8 @@ bool EvmProcessContext::Validate() {
       m_status = false;
       stringStream.clear();
       stringStream << "Err:"
-                   << "Gas " << GetGasLimitEth() << " less than Base Fee "<< std::endl
+                   << "Gas " << GetGasLimitEth() << " less than Base Fee "
+                   << std::endl
                    << m_baseFee;
       m_journal.push_back(stringStream.str());
     }
@@ -389,7 +389,7 @@ const uint32_t& EvmProcessContext::GetVersionIdentifier() const {
  */
 
 const uint64_t& EvmProcessContext::GetBaseFee() {
-  m_baseFee =  Eth::getGasUnitsForContractDeployment(GetCode(), GetData());
+  m_baseFee = Eth::getGasUnitsForContractDeployment(GetCode(), GetData());
   return m_baseFee;
 }
 
@@ -494,21 +494,20 @@ void EvmProcessContext::SetEvmResult(const evm::EvmResult& result) {
 }
 
 /*
-   * SetEvmReceipt(const TransactionReceipt& tr)
+ * SetEvmReceipt(const TransactionReceipt& tr)
  */
 
-void  EvmProcessContext::SetEvmReceipt(const TransactionReceipt& tr){
+void EvmProcessContext::SetEvmReceipt(const TransactionReceipt& tr) {
   m_evmRcpt = tr;
 }
 
 /*
-   * GetEvmReceipt()
+ * GetEvmReceipt()
  */
 
-const  TransactionReceipt&  EvmProcessContext::GetEvmReceipt() const {
+const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
   return m_evmRcpt;
 }
-
 
 bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
   *arg.mutable_address() = AddressToProto(m_innerData.m_contract);

@@ -27,7 +27,6 @@
 #include "common/Serializable.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
-#include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -858,8 +857,9 @@ std::string EthRpcMethods::NewGetEthEstimateGas(const Json::Value& json) {
 
     const auto myRetGas = std::max(baseFee + gasFromRcpt, MIN_ETH_GAS);
 
-    if (retGas != myRetGas){
-      LOG_GENERAL(WARNING, "Gas estimated: " << retGas << " myGas " << myRetGas );
+    if (retGas != myRetGas) {
+      LOG_GENERAL(WARNING,
+                  "Gas estimated: " << retGas << " myGas " << myRetGas);
     }
 
     // We can't go beyond gas provided by user (or taken from last block)

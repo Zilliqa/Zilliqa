@@ -488,7 +488,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       evmContext.GetBaseFee();
       DiscardAtomics();
       const uint128_t amountToDecrease =
-          uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR} ;
+          uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
       if (!this->DecreaseBalance(fromAddr, amountToDecrease)) {
         LOG_GENERAL(WARNING, "DecreaseBalance failed");
         error_code = TxnStatus::MATH_ERROR;
@@ -573,8 +573,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         }
         return false;
       }
-    }
-    break;
+    } break;
     case Transaction::ERROR:
     default: {
       LOG_GENERAL(WARNING, "Txn is not typed correctly")

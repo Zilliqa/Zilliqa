@@ -23,7 +23,6 @@
 class Transaction;
 class TxnExtras;
 
-
 /* EvmProcessContext
  * *
  * This structure is the holding structure for data about
@@ -51,9 +50,9 @@ class TxnExtras;
  * */
 
 #include "common/TxnStatus.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
-#include "libData/AccountData/TransactionReceipt.h"
 
 struct EvmProcessContext {
  public:
@@ -249,7 +248,7 @@ struct EvmProcessContext {
    * GetBaseFee()
    */
 
-  const uint64_t& GetBaseFee() ;
+  const uint64_t& GetBaseFee();
 
   /*
    * GetEvmArgs()
@@ -296,7 +295,7 @@ struct EvmProcessContext {
    * GetEvmReceipt()
    */
 
-  const TransactionReceipt&  GetEvmReceipt() const ;
+  const TransactionReceipt& GetEvmReceipt() const;
 
  private:
   bool GenerateEvmArgs(evm::EvmArgs& arg);
