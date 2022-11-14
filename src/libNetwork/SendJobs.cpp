@@ -32,6 +32,7 @@
 #include "Blacklist.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SetThreadName.h"
 
 namespace send_jobs {
 
@@ -457,7 +458,7 @@ class SendJobsImpl : public SendJobs,
   }
 
   void WorkerThread() {
-    pthread_setname_np(pthread_self(), "SendJobs");
+    utility::SetThreadName("SendJobs");
 
     // Need this workaround to prevent the event loop from returning when there
     // are no current jobs
