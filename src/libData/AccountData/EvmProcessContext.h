@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSING_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSING_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSCONTEXT_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSCONTEXT_H_
 
 #include <memory>
 
@@ -336,4 +336,4 @@ struct EvmProcessContext {
   bool m_ethTransaction{false};
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSING_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSCONTEXT_H_

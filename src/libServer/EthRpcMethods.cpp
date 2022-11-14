@@ -637,10 +637,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  uint128_t value = 0;
+  uint256_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
+    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -703,7 +703,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
   *args.mutable_data() = DataConversion::CharArrayToString(data);
   args.set_gas_limit(gas);
-  *args.mutable_apparent_value() = UIntToProto(value.convert_to<uint256_t>());
+  *args.mutable_apparent_value() = UIntToProto(value);
   if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
@@ -982,7 +982,8 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
   }
 }
 
