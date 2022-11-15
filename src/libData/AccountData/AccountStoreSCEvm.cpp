@@ -597,7 +597,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    * noop.
    */
 
-  if (evmContext.GetCommit() && not evmContext.GetEstimateOnly()) {
+  if (evmContext.GetCommit()) {
     m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                      m_storageRootUpdateBufferAtomic.end());
   }

@@ -576,11 +576,6 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
-#ifdef NEW_TESTING
-  std::string res = NewGetEthEstimateGas(json);
-
-  return res;
-#endif
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
@@ -597,33 +592,17 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   zbytes code;
-  uint256_t accountFunds{};
   bool contractCreation = false;
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
-
-    const Account* sender =
-        !IsNullAddress(fromAddr)
-            ? AccountStore::GetInstance().GetAccount(fromAddr, true)
-            : nullptr;
-    if (sender == nullptr) {
-      LOG_GENERAL(WARNING, "Sender doesn't exist");
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Sender doesn't exist");
-    }
-    accountFunds = sender->GetBalance();
 
     const Account* toAccount =
         !IsNullAddress(toAddr)
             ? AccountStore::GetInstance().GetAccount(toAddr, true)
             : nullptr;
 
-    if (toAccount != nullptr && toAccount->isContract()) {
-      code = toAccount->GetCode();
-    } else if (toAccount == nullptr) {
-      toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
-                                              TRANSACTION_VERSION_ETH);
+    if (toAccount == nullptr) {
       contractCreation = true;
     }
   }
@@ -655,17 +634,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "gasPrice * MIN_ETH_GAS overflow!");
   }
-  uint256_t balance = 0;
-  if (!SafeMath<uint256_t>::mul(accountFunds, EVM_ZIL_SCALING_FACTOR,
-                                balance)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "accountFunds * EVM_ZIL_SCALING_FACTOR overflow!");
-  }
-
-  if (balance < gasDeposit) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "Insufficient funds to perform this operation");
-  }
 
   // Typical fund transfer
   if (code.empty() && data.empty()) {
@@ -688,179 +656,52 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
-  // TODO: adapt to any block, not just latest.
+
   TxnExtras txnExtras{
       dsBlock.GetHeader().GetGasPrice(),
       txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
       dsBlock.GetHeader().GetDifficulty()};
+
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  evm::EvmArgs args;
-  *args.mutable_address() = AddressToProto(toAddr);
-  *args.mutable_origin() = AddressToProto(fromAddr);
-  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
-  *args.mutable_data() = DataConversion::CharArrayToString(data);
-  args.set_gas_limit(gas);
-  *args.mutable_apparent_value() = UIntToProto(value);
-  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
-    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                           "Failed to get EVM call extras");
-  }
-  args.set_estimate(true);
-
-  evm::EvmResult result;
-  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
-      result.exit_reason().exit_reason_case() ==
-          evm::ExitReason::ExitReasonCase::kSucceed) {
-    const auto gasRemained = result.remaining_gas();
-    const auto consumedEvmGas =
-        (gas >= gasRemained) ? (gas - gasRemained) : gas;
-    const auto baseFee = contractCreation
-                             ? Eth::getGasUnitsForContractDeployment(code, data)
-                             : 0;
-    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
-
-    // We can't go beyond gas provided by user (or taken from last block)
-    if (retGas >= gas) {
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Base fee exceeds gas limit");
-    }
-    LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
-    return (boost::format("0x%x") % retGas).str();
-  } else if (result.exit_reason().exit_reason_case() ==
-             evm::ExitReason::kRevert) {
-    // Error code 3 is a special case. It is practially documented only in geth
-    // and its clones, e.g. here:
-    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
-    std::string return_value;
-    DataConversion::StringToHexStr(result.return_value(), return_value);
-    boost::algorithm::to_lower(return_value);
-    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
-  } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           EvmUtils::ExitReasonString(result.exit_reason()));
-  }
-}
-
-std::string EthRpcMethods::NewGetEthEstimateGas(const Json::Value& json) {
-  std::cout << "[" << json << "]" << std::endl;
 
   static int simHash = 1;
-  Address fromAddr;
+  dev::h256 ourTranId(simHash++);
+  zbytes dummy{};
 
-  if (!json.isMember("from")) {
-    LOG_GENERAL(WARNING, "Missing from account");
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
-  } else {
-    fromAddr = Address{json["from"].asString()};
-  }
+  EvmProcessContext::DirectCall evmParams = {fromAddr,
+                                             toAddr,
+                                             not code.empty() ? code : dummy,
+                                             not data.empty() ? data : dummy,
+                                             gas,
+                                             value.convert_to<uint128_t>(),
+                                             ourTranId,
+                                             blockNum};
 
-  Address toAddr;
-
-  if (json.isMember("to")) {
-    auto toAddrStr = json["to"].asString();
-    DataConversion::NormalizeHexString(toAddrStr);
-    toAddr = Address{toAddrStr};
-  }
-
-  zbytes data;
-  if (json.isMember("data")) {
-    if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "data argument invalid");
-    }
-  }
-
-  zbytes code;
-  if (json.isMember("code")) {
-    if (!DataConversion::HexStrToUint8Vec(json["code"].asString(), code)) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "data argument invalid");
-    }
-  }
-
-  uint128_t value = 0;
-  if (json.isMember("value")) {
-    const auto valueStr = json["value"].asString();
-    value = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
-  }
-
-  uint256_t gasPrice = GetEthGasPriceNum();
-  if (json.isMember("gasPrice")) {
-    const auto gasPriceStr = json["gasPrice"].asString();
-    uint256_t inputGasPrice =
-        DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
-    gasPrice = max(gasPrice, inputGasPrice);
-  }
-
-  uint256_t gasDeposit = 0;
-  if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "gasPrice * MIN_ETH_GAS overflow!");
-  }
-
-  // Typical fund transfer
-  if (code.empty() && data.empty()) {
-    return (boost::format("0x%x") % MIN_ETH_GAS).str();
-  }
-
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
-
-  // Use gas specified by user
-  if (json.isMember("gas")) {
-    const auto gasLimitStr = json["gas"].asString();
-    const uint64_t userGas =
-        DataConversion::ConvertStrToInt<uint64_t>(gasLimitStr, 0);
-    gas = min(gas, userGas);
-  }
-
-  const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
-  const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
-  // TODO: adapt to any block, not just latest.
-  TxnExtras txnExtras{
-      dsBlock.GetHeader().GetGasPrice(),
-      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
-      dsBlock.GetHeader().GetDifficulty()};
-
-  uint64_t blockNum =
-      m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  dev::h256 fakeHash(simHash++);
-  EvmProcessContext::DirectCall evmParams = {
-      fromAddr, toAddr, code, data, gas, value, fakeHash, blockNum, true};
-
-  EvmProcessContext evmMessageContext(evmParams, txnExtras);
+  EvmProcessContext evmMessageContext(evmParams, txnExtras, true, false);
 
   if (not evmMessageContext.GetStatus()) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           "Badly composed parameters to call");
+    std::vector<std::string> log = evmMessageContext.GetJournal();
+    std::string str;
+    for (auto line : log) {
+      str += line + " : ";
+    }
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "some argument invalids - reason " + str);
   }
 
-  evm::EvmArgs args = evmMessageContext.GetEvmArgs();
   evm::EvmResult result;
   if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
                                                     result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
-    const TransactionReceipt& rcpt = evmMessageContext.GetEvmReceipt();
-    const auto gasFromRcpt = GasConv::GasUnitsFromCoreToEth(rcpt.GetCumGas());
-
-    const auto gasRemained = result.remaining_gas();
-    const auto consumedEvmGas =
-        (gas >= gasRemained) ? (gas - gasRemained) : gas;
+    const auto gasFromRcpt = GasConv::GasUnitsFromCoreToEth(
+        evmMessageContext.GetEvmReceipt().GetCumGas());
     const auto baseFee =
         evmMessageContext.GetContractType() == Transaction::CONTRACT_CREATION
             ? Eth::getGasUnitsForContractDeployment(code, data)
             : 0;
-    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
-
-    const auto myRetGas = std::max(baseFee + gasFromRcpt, MIN_ETH_GAS);
-
-    if (retGas != myRetGas) {
-      LOG_GENERAL(WARNING,
-                  "Gas estimated: " << retGas << " myGas " << myRetGas);
-    }
+    const auto retGas = std::max(baseFee + gasFromRcpt, MIN_ETH_GAS);
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {

@@ -87,8 +87,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
 
   if (not Validate()) return;
 
-  // setters required.
-  m_innerData.m_onlyEstimateGas = not commit;
+  m_onlyEstimate = false;
   m_status = true;
   m_commit = commit;
 }
@@ -110,6 +109,11 @@ bool EvmProcessContext::Validate() {
                  << std::endl;
     m_journal.push_back(stringStream.str());
   }
+  m_baseFee = GetBaseFee();
+  stringStream.clear();
+  stringStream << "Base Fee " << m_baseFee << " : gwei" << std::endl;
+  m_journal.push_back(stringStream.str());
+  // Calculate how much we need to take as a deposit for transaction.
 
   if (m_contractType == Transaction::CONTRACT_CREATION) {
     if (GetCode().empty()) {
@@ -120,11 +124,6 @@ bool EvmProcessContext::Validate() {
                    << "Cannot create a contract with empty code" << std::endl;
       m_journal.push_back(stringStream.str());
     }
-
-    m_baseFee = GetBaseFee();
-    stringStream.clear();
-    stringStream << "Base Fee " << m_baseFee << " : gwei" << std::endl;
-    m_journal.push_back(stringStream.str());
 
     // Check if limit is sufficient for creation fee
     if (m_innerData.m_gas < m_baseFee) {
@@ -139,18 +138,12 @@ bool EvmProcessContext::Validate() {
     }
   }
 
-  // Calculate how much we need to take as a deposit for transaction.
-
   if (!SafeMath<uint256_t>::mul(GetGasLimitZil(), GetGasPriceWei(),
                                 m_gasDepositWei)) {
     m_errorCode = TxnStatus::MATH_ERROR;
     m_status = false;
   }
 
-  stringStream.clear();
-  stringStream << "Jrn:"
-               << "Gas Deposit Fee " << m_baseFee << " : gwei" << std::endl;
-  m_journal.push_back(stringStream.str());
   return m_status;
 }
 /*
@@ -160,8 +153,12 @@ bool EvmProcessContext::Validate() {
  *
  */
 EvmProcessContext::EvmProcessContext(const DirectCall& params,
-                                     const TxnExtras& extras, bool commit)
-    : m_innerData(params), m_commit(commit), m_extras(extras) {
+                                     const TxnExtras& extras, bool estimate,
+                                     bool commit)
+    : m_innerData(params),
+      m_commit(commit),
+      m_extras(extras),
+      m_onlyEstimate(estimate) {
   m_ethTransaction = true;
   m_direct = true;
   m_contractType =
@@ -178,9 +175,7 @@ bool EvmProcessContext::GetCommit() const { return m_commit; }
  * Flag that registers in EstimateMode is set.
  */
 
-bool EvmProcessContext::GetEstimateOnly() const {
-  return m_innerData.m_onlyEstimateGas;
-}
+bool EvmProcessContext::GetEstimateOnly() const { return m_onlyEstimate; }
 
 /* GetContractType()
  *
@@ -518,7 +513,7 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
   arg.set_gas_limit(GetGasLimitEth());
   *arg.mutable_apparent_value() =
       UIntToProto(GetAmountWei().convert_to<uint256_t>());
-  arg.set_estimate(m_innerData.m_onlyEstimateGas);
+  arg.set_estimate(m_onlyEstimate);
   if (!GetEvmEvalExtras(m_innerData.m_blkNum, m_extras,
                         *arg.mutable_extras())) {
     std::ostringstream stringStream;

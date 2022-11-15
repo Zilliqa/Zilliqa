@@ -70,7 +70,6 @@ struct EvmProcessContext {
     // for tracing purposes
     dev::h256 m_tranID;
     uint64_t m_blkNum{0};
-    bool m_onlyEstimateGas{false};
   };
   /*
    *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
@@ -88,7 +87,7 @@ struct EvmProcessContext {
    *
    */
   EvmProcessContext(const DirectCall& params, const TxnExtras& extras,
-                    bool commit = true);
+                    bool estimate = false, bool commit = true);
 
   bool GetCommit() const;
 
@@ -333,6 +332,7 @@ struct EvmProcessContext {
   evm::EvmResult m_evmResult;
   TransactionReceipt m_evmRcpt;
   bool m_ethTransaction{false};
+  bool m_onlyEstimate{false};
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSCONTEXT_H_
