@@ -707,7 +707,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
   }
-  args.set_estimate(false );
+  args.set_estimate(false);
 
   evm::EvmResult result;
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
@@ -820,7 +820,7 @@ std::string EthRpcMethods::GetEthEstimateGas2(const Json::Value& json) {
     std::swap(data, code);
   }
 
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(200 * DS_MICROBLOCK_GAS_LIMIT);
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
 
   // Use gas specified by user
   if (json.isMember("gas")) {

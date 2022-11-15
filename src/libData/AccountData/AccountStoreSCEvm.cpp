@@ -253,6 +253,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             EvmProcessContext& evmContext) {
   LOG_MARKER();
 
+  if (not evmContext.GetDirect()){
+    std::cout << "not direct call" << std::endl;
+  }
+
   /*
    * Some preliminary debug code
    */
@@ -419,7 +423,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           error_code = TxnStatus::MATH_ERROR;
         }
         LOG_GENERAL(INFO,
-                    "Executing contract Creation Xtransaction finished "
+                    "Executing contract Creation transaction finished "
                     "unsuccessfully");
         return false;
       }

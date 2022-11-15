@@ -296,6 +296,10 @@ struct EvmProcessContext {
 
   const TransactionReceipt& GetEvmReceipt() const;
 
+  bool GetDirect(){
+    return m_direct;
+  }
+
  private:
   bool GenerateEvmArgs(evm::EvmArgs& arg);
   /*

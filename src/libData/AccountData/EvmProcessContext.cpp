@@ -68,6 +68,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
                                      const TxnExtras& extras, bool commit)
     : m_contractType(Transaction::GetTransactionType(txn)),
       m_direct(false),
+      m_commit(commit),
       m_extras(extras),
       m_gasPrice(extras.gas_price),
       m_versionIdentifier(txn.GetVersionIdentifier()) {
@@ -85,11 +86,10 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
 
   // We charge for creating a contract, this is included in our base fee.
 
-  if (not Validate()) return;
+  Validate();
 
   m_onlyEstimate = false;
   m_status = true;
-  m_commit = commit;
 }
 
 /*
@@ -156,9 +156,11 @@ EvmProcessContext::EvmProcessContext(const DirectCall& params,
                                      const TxnExtras& extras, bool estimate,
                                      bool commit)
     : m_innerData(params),
+      m_direct(true),
       m_commit(commit),
       m_extras(extras),
-      m_onlyEstimate(estimate) {
+      m_versionIdentifier(TRANSACTION_VERSION_ETH),
+      m_onlyEstimate(estimate){
   m_ethTransaction = true;
   m_direct = true;
   m_contractType =
@@ -513,11 +515,7 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
   arg.set_gas_limit(GetGasLimitEth());
   *arg.mutable_apparent_value() =
       UIntToProto(GetAmountWei().convert_to<uint256_t>());
-#if SUSPECTED_BUG_IN_SPUTNIK_FIXED
-  arg.set_estimate(m_onlyEstimate);
-#else
   arg.set_estimate(false);
-#endif
   if (!GetEvmEvalExtras(m_innerData.m_blkNum, m_extras,
                         *arg.mutable_extras())) {
     std::ostringstream stringStream;
