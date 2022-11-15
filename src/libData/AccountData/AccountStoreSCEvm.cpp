@@ -443,12 +443,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       break;
     }
 
-    case Transaction::NON_CONTRACT: {
-      if (LOG_SC) {
-        LOG_GENERAL(WARNING, "Tx is normal transfer");
-      }
-    }
-
+    case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
