@@ -57,7 +57,7 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 RUN apt-get remove -y python3 cmake && apt-get autoremove -y
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=master
+ARG COMMIT_OR_TAG=v8.3.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
