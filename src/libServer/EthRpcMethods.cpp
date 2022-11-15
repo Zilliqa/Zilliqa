@@ -574,12 +574,8 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
 
-
-
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
-
-  return GetEthEstimateGas2(json);
 
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
@@ -696,23 +692,25 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  evm::EvmArgs args;
-  *args.mutable_address() = AddressToProto(toAddr);
-  *args.mutable_origin() = AddressToProto(fromAddr);
-  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
-  *args.mutable_data() = DataConversion::CharArrayToString(data);
-  args.set_gas_limit(gas);
-  *args.mutable_apparent_value() = UIntToProto(value);
-  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
-    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                           "Failed to get EVM call extras");
-  }
-  args.set_estimate(false);
+  static int simHash = 1;
+  dev::h256 ourTranId(simHash++);
+  zbytes dummy{};
 
+  EvmProcessContext::DirectCall evmParams = {fromAddr,
+                                             toAddr,
+                                             not code.empty() ? code : dummy,
+                                             not data.empty() ? data : dummy,
+                                             gas,
+                                             value.convert_to<uint128_t>(),
+                                             ourTranId,
+                                             blockNum};
+
+  EvmProcessContext evmMessageContext(evmParams, txnExtras, true, false);
   evm::EvmResult result;
-  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
+    result = evmMessageContext.GetEvmResult();
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
@@ -729,161 +727,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
 
-    return (boost::format("0x%x") % retGas).str();
-  } else if (result.exit_reason().exit_reason_case() ==
-             evm::ExitReason::kRevert) {
-    // Error code 3 is a special case. It is practially documented only in geth
-    // and its clones, e.g. here:
-    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
-    std::string return_value;
-    DataConversion::StringToHexStr(result.return_value(), return_value);
-    boost::algorithm::to_lower(return_value);
-    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
-  } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                           EvmUtils::ExitReasonString(result.exit_reason()));
-  }
-}
-
-
-
-std::string EthRpcMethods::GetEthEstimateGas2(const Json::Value& json) {
-  Address fromAddr;
-
-  std::cout << "[" << json << "]" << std::endl;
-
-  if (!json.isMember("from")) {
-    LOG_GENERAL(WARNING, "Missing from account");
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
-  } else {
-    fromAddr = Address{json["from"].asString()};
-  }
-
-  Address toAddr;
-
-  if (json.isMember("to")) {
-    auto toAddrStr = json["to"].asString();
-    DataConversion::NormalizeHexString(toAddrStr);
-    toAddr = Address{toAddrStr};
-  }
-
-  zbytes code;
-  bool contractCreation = false;
-  {
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
-
-    const Account* toAccount =
-        !IsNullAddress(toAddr)
-            ? AccountStore::GetInstance().GetAccount(toAddr, true)
-            : nullptr;
-
-    if (toAccount == nullptr) {
-      contractCreation = true;
-    }
-  }
-
-  zbytes data;
-  if (json.isMember("data")) {
-    if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "data argument invalid");
-    }
-  }
-
-  uint256_t value = 0;
-  if (json.isMember("value")) {
-    const auto valueStr = json["value"].asString();
-    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
-  }
-
-  uint256_t gasPrice = GetEthGasPriceNum();
-  if (json.isMember("gasPrice")) {
-    const auto gasPriceStr = json["gasPrice"].asString();
-    uint256_t inputGasPrice =
-        DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
-    gasPrice = max(gasPrice, inputGasPrice);
-  }
-
-  uint256_t gasDeposit = 0;
-  if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "gasPrice * MIN_ETH_GAS overflow!");
-  }
-
-  // Typical fund transfer
-  if (code.empty() && data.empty()) {
-    return (boost::format("0x%x") % MIN_ETH_GAS).str();
-  }
-
-  if (contractCreation && code.empty() && !data.empty()) {
-    std::swap(data, code);
-  }
-
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
-
-  // Use gas specified by user
-  if (json.isMember("gas")) {
-    const auto gasLimitStr = json["gas"].asString();
-    const uint64_t userGas =
-        DataConversion::ConvertStrToInt<uint64_t>(gasLimitStr, 0);
-    gas = min(gas, userGas);
-  }
-
-  const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
-  const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
-
-  TxnExtras txnExtras{
-      dsBlock.GetHeader().GetGasPrice(),
-      txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
-      dsBlock.GetHeader().GetDifficulty()};
-
-  uint64_t blockNum =
-      m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
-
-  static int simHash = 1;
-  dev::h256 ourTranId(simHash++);
-  zbytes dummy{};
-
-  EvmProcessContext::DirectCall evmParams = {fromAddr,
-                                             toAddr,
-                                             not code.empty() ? code : dummy,
-                                             not data.empty() ? data : dummy,
-                                             gas,
-                                             value.convert_to<uint128_t>(),
-                                             ourTranId,
-                                             blockNum};
-
-  EvmProcessContext evmMessageContext(evmParams, txnExtras, false, false);
-
-  if (not evmMessageContext.GetStatus()) {
-    std::vector<std::string> log = evmMessageContext.GetJournal();
-    std::string str;
-    for (auto line : log) {
-      str += line + " : ";
-    }
-  }
-
-  evm::EvmResult result;
-  evm::EvmArgs args = evmMessageContext.GetEvmArgs();
-  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
-                                                    result) &&
-      result.exit_reason().exit_reason_case() ==
-          evm::ExitReason::ExitReasonCase::kSucceed) {
-    const auto gasFromRcpt = GasConv::GasUnitsFromCoreToEth(
-        evmMessageContext.GetEvmReceipt().GetCumGas());
-    const auto baseFee =
-        evmMessageContext.GetContractType() == Transaction::CONTRACT_CREATION
-            ? Eth::getGasUnitsForContractDeployment(code, data)
-            : 0;
-    const auto retGas = std::max(baseFee + gasFromRcpt, MIN_ETH_GAS);
-
-    // We can't go beyond gas provided by user (or taken from last block)
-    if (retGas >= gas) {
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Base fee exceeds gas limit");
-    }
-    LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {

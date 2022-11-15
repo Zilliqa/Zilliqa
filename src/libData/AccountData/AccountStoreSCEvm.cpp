@@ -253,10 +253,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             EvmProcessContext& evmContext) {
   LOG_MARKER();
 
-  if (not evmContext.GetDirect()){
-    std::cout << "not direct call" << std::endl;
-  }
-
   /*
    * Some preliminary debug code
    */
@@ -281,6 +277,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
+
+  if (evmContext.GetDirect()) {
+    evm::EvmArgs args = evmContext.GetEvmArgs();
+    evm::EvmResult res;
+    bool status = EvmClient::GetInstance().CallRunner(
+        EvmUtils::GetEvmCallJson(args), res);
+    evmContext.SetEvmResult(res);
+    return status;
+  }
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {

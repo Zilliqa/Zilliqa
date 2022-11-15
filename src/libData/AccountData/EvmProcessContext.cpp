@@ -548,5 +548,5 @@ Transaction::ContractType EvmProcessContext::GetInternalType(
     return Transaction::NON_CONTRACT;
   }
 
-  return Transaction::ERROR;
+  return Transaction::NON_CONTRACT;
 }
