@@ -35,8 +35,8 @@ describe("Gas estimation with web3.js", function () {
     });
 
     it("Should return proper gas estimation [@transactional]", async function () {
-      const gasAmount = await contract.methods.installChild(123).estimateGas();
-      expect(gasAmount).to.be.at.least(CREATE2_MIN_GAS);
+      const gasAmountEst = await contract.methods.installChild(123).estimateGas();
+      expect(gasAmountEst).to.be.at.least(CREATE2_MIN_GAS);
 
       const result = await contract.methods
         .installChild(123)
@@ -45,8 +45,8 @@ describe("Gas estimation with web3.js", function () {
       expect(result).to.be.not.null;
       const actualGas = result.gasUsed;
 
-      expect(actualGas).to.be.at.least(gasAmount * 0.9);
-      expect(actualGas).to.be.at.most(gasAmount * 1.1);
+      expect(gasAmountEst).to.be.at.least(actualGas * 0.9);
+      expect(gasAmountEst).to.be.at.most(actualGas * 2.1);
     });
   });
 });
