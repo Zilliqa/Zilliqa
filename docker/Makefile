@@ -1,8 +1,8 @@
 
-.PHONY: all k8s release release-cuda
+.PHONY: all k8s release
 
 # build the default zilliqa docker image same as the one on Docker Hub
-all: release release-cuda
+all: release
 
 len=$(shell echo $(COMMIT_OR_TAG) | wc -c)
 commit_or_tag=$(shell echo $(COMMIT_OR_TAG) | cut -c 1-7)
@@ -39,5 +39,3 @@ deps:
 release:
 	docker build -f Dockerfile -t zilliqa/zilliqa:v$(major).$(minor).$(fix) .
 
-release-cuda:
-	docker build -f Dockerfile.cuda -t zilliqa/zilliqa:v$(major).$(minor).$(fix)-cuda .
