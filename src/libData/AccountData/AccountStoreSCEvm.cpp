@@ -598,8 +598,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    */
 
   if (evmContext.GetCommit()) {
+    LOG_GENERAL(INFO, "Committing data");
     m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                      m_storageRootUpdateBufferAtomic.end());
+  } else {
+    m_storageRootUpdateBuffer.clear();
+    DiscardAtomics();
+    LOG_GENERAL(INFO, "Not Committing data as commit turned off");
   }
 
   if (LOG_SC) {

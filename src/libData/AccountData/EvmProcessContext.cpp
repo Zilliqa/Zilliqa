@@ -513,7 +513,11 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
   arg.set_gas_limit(GetGasLimitEth());
   *arg.mutable_apparent_value() =
       UIntToProto(GetAmountWei().convert_to<uint256_t>());
+#if SUSPECTED_BUG_IN_SPUTNIK_FIXED
   arg.set_estimate(m_onlyEstimate);
+#else
+  arg.set_estimate(false);
+#endif
   if (!GetEvmEvalExtras(m_innerData.m_blkNum, m_extras,
                         *arg.mutable_extras())) {
     std::ostringstream stringStream;
