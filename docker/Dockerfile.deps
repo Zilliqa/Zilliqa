@@ -64,7 +64,7 @@ RUN git -C ${VCPKG_ROOT} checkout ${VCPKG_COMMIT_OR_TAG}
 RUN ${VCPKG_ROOT}/bootstrap-vcpkg.sh
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=master
+ARG COMMIT_OR_TAG=v8.3.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_TRIPLET=x64-linux-dynamic
