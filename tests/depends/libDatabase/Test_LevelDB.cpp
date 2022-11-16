@@ -36,11 +36,15 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace dev;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(trietest)
 
 BOOST_AUTO_TEST_CASE(fat_trie) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   LevelDB m_testDB("test");
@@ -63,8 +67,6 @@ BOOST_AUTO_TEST_CASE(fat_trie) {
 }
 
 BOOST_AUTO_TEST_CASE(iterator_order) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   LevelDB m_testDB("iterator_order");

@@ -45,6 +45,12 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(updatedscomposition)
 
 BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
@@ -77,8 +83,6 @@ struct F {
 // Test the original behaviour: nodes expire by having their index incremented
 // above the DS committee size.
 BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the winners.
   std::map<PubKey, Peer> winners;
   for (int i = 0; i < NUM_OF_ELECTED; ++i) {
@@ -142,8 +146,6 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutRemovals, F) {
 
 // Test that the composition does not change when the winners is empty.
 BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the empty winners map.
   std::map<PubKey, Peer> winners;
 
@@ -198,8 +200,6 @@ BOOST_FIXTURE_TEST_CASE(test_UpdateWithoutWinners, F) {
 
 // Test the new behaviour: remove Byzantine nodes.
 BOOST_FIXTURE_TEST_CASE(test_UpdateWithRemovals, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the winners.
   std::map<PubKey, Peer> winners;
   for (int i = 0; i < NUM_OF_ELECTED; ++i) {

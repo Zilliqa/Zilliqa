@@ -253,7 +253,7 @@ namespace dev
 /// Only works for POD element types.
     template<class T>
     void trimFront(T &_t, unsigned _elements) {
-        ZIL_FATAL_ASSERT(std::is_pod<typename T::value_type>::value);
+        ZIL_FATAL_ASSERT(std::is_standard_layout<typename T::value_type>::value && std::is_trivial<typename T::value_type>::value);
         memmove(_t.data(), _t.data() + _elements, (_t.size() - _elements) * sizeof(_t[0]));
         _t.resize(_t.size() - _elements);
     }
@@ -262,7 +262,7 @@ namespace dev
 /// Only works for POD element types.
     template<class T, class _U>
     void pushFront(T &_t, _U _e) {
-        ZIL_FATAL_ASSERT(std::is_pod<typename T::value_type>::value);
+        ZIL_FATAL_ASSERT(std::is_standard_layout<typename T::value_type>::value && std::is_trivial<typename T::value_type>::value);
         _t.push_back(_e);
         memmove(_t.data() + 1, _t.data(), (_t.size() - 1) * sizeof(_e));
         _t[0] = _e;
@@ -271,7 +271,9 @@ namespace dev
 /// Concatenate two vectors of elements of POD types.
     template<class T>
     inline std::vector<T> &
-    operator+=(std::vector<typename std::enable_if<std::is_pod<T>::value, T>::type> &_a, std::vector<T> const &_b) {
+    operator+=(std::vector<typename std::enable_if<
+        std::is_standard_layout<typename T::value_type>::value && std::is_trivial<typename T::value_type>::value,
+        T>::type> &_a, std::vector<T> const &_b) {
         auto s = _a.size();
         _a.resize(_a.size() + _b.size());
         memcpy(_a.data() + s, _b.data(), _b.size() * sizeof(T));
@@ -282,7 +284,9 @@ namespace dev
 /// Concatenate two vectors of elements.
     template<class T>
     inline std::vector<T> &
-    operator+=(std::vector<typename std::enable_if<!std::is_pod<T>::value, T>::type> &_a, std::vector<T> const &_b) {
+    operator+=(std::vector<typename std::enable_if<
+        !(std::is_standard_layout<typename T::value_type>::value && std::is_trivial<typename T::value_type>::value),
+        T>::type> &_a, std::vector<T> const &_b) {
         _a.reserve(_a.size() + _b.size());
         for (auto &i: _b)
             _a.push_back(i);

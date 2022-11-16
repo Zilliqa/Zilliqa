@@ -75,66 +75,62 @@ void test_function_exhaustive(
   }
 }
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(safemath_exhaustive)
 
 BOOST_AUTO_TEST_CASE(test_uint8_addition) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(SafeMath<typeToTest>::add,
                                                      plus<typeToVerify>());
 }
 
 BOOST_AUTO_TEST_CASE(test_uint8_subtraction) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(SafeMath<typeToTest>::sub,
                                                      minus<typeToVerify>());
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_addition) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTestSigned, typeToVerifySigned>(
       SafeMath<typeToTestSigned>::add, plus<typeToVerifySigned>());
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_subtraction) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTestSigned, typeToVerifySigned>(
       SafeMath<typeToTestSigned>::sub, minus<typeToVerifySigned>());
 }
 
 BOOST_AUTO_TEST_CASE(test_uint8_mul) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(
       SafeMath<typeToTest>::mul, multiplies<typeToVerify>());
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_mul) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTestSigned, typeToVerifySigned>(
       SafeMath<typeToTestSigned>::mul, multiplies<typeToVerifySigned>());
 }
 
 BOOST_AUTO_TEST_CASE(test_uint8_div) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(
       SafeMath<typeToTest>::div, divides<typeToVerify>(), OperatorType::DIV);
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_div) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTestSigned, typeToVerifySigned>(
       SafeMath<typeToTestSigned>::div, divides<typeToVerifySigned>(),
       OperatorType::DIV);
 }
 
 BOOST_AUTO_TEST_CASE(test_uint8_pow) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTest, typeToVerify>(
       SafeMath<typeToTest>::power_core, powerTest<typeToVerify>,
       OperatorType::EXP);
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_pow) {
-  INIT_STDOUT_LOGGER();
   test_function_exhaustive<typeToTestSigned, typeToVerifySigned>(
       SafeMath<typeToTestSigned>::power_core, powerTest<typeToVerifySigned>,
       OperatorType::EXP);
