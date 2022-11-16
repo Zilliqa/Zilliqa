@@ -276,7 +276,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
 
-#ifndef TESTING_COMPROMISED
+
   /*
    * This section of code is a very direct call to the evm-ds
    * This will be removed when we fix the transaction detection code.
@@ -288,7 +288,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
     evmContext.SetEvmResult(res);
     return status;
   }
-#endif
+
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
