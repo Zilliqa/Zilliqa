@@ -46,6 +46,7 @@ apt install -y ccache \
     lcov \
     libxml2-utils \
     libsecp256k1-dev \
+    ninja-build \
     zip \
     unzip \
     tar \

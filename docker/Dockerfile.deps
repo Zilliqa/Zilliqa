@@ -15,7 +15,8 @@
 #
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM ubuntu:20.04 AS builder
+FROM ubuntu:20.04
+
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -24,17 +25,40 @@ RUN apt-get update \
     bison \
     build-essential \
     ca-certificates \
-    wget \
+    cron \
     curl \
+    dnsutils \
+    gawk \
+    gdb \
     git \
+    golang \
+    libcurl4-openssl-dev \
+    libjsonrpccpp-dev \
+    libsecp256k1-dev \
+    libssl-dev \
     libtool \
+    logrotate \
+    net-tools \
+    ninja-build \
+    ocl-icd-opencl-dev \
+    openssh-client \
     pkg-config \
     python3-dev \
     python3-pip \
-    zip \
-    unzip \
+    rsync \
+    rsyslog \
     tar \
-    && rm -rf /var/lib/apt/lists/*
+    trickle \
+    unzip \
+    vim \
+    wget \
+    zip
+
+
+# Cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
+    sh install_script.sh -y
+ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Install cmake 3.24
 ARG CMAKE_VERSION=3.24.2
@@ -70,7 +94,10 @@ ARG SOURCE_DIR=/zilliqa
 ARG BUILD_TRIPLET=x64-linux-dynamic
 ARG EXTRA_CMAKE_ARGS=
 
-RUN git clone ${REPO} ${SOURCE_DIR}
+# If COMMIT_OR_TAG is a branch name or a tag, clone a shallow copy which is
+# faster; if this fails, just clone the full repo and checkout the commit.
+RUN git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} \
+  || git clone ${REPO} ${SOURCE_DIR}
 RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
 WORKDIR ${SOURCE_DIR}
 RUN ${VCPKG_ROOT}/vcpkg install --triplet=${BUILD_TRIPLET}

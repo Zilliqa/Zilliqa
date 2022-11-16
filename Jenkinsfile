@@ -6,12 +6,12 @@ spec:
     beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
-    image: "zilliqa/scilla:456db82c"
+    image: "zilliqa/scilla:v0.13.0"
     command:
     - cat
     tty: true
   - name: "ubuntu"
-    image: "648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa:v8.3.0-deps"
+    image: "zilliqa/zilliqa:v0.0.0-deps"
     command:
     - cat
     tty: true

@@ -85,8 +85,8 @@ then
 fi
 
 # assume that it is run from project root directory
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${triplet}
-cmake --build ${dir} -- -j${n_parallel}
+cmake -G Ninja -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${triplet}
+cmake --build ${dir} --config Debug -j ${n_parallel}
 
 # remember to append `|| exit` after the commands added in if-then-else
 if [ "$os" = "Linux" ]
