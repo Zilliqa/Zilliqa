@@ -25,6 +25,10 @@ RUN apt-get update \
     bison \
     build-essential \
     ca-certificates \
+    ccache \
+    clang \
+    clang-format-7 \
+    clang-tidy \
     cron \
     curl \
     dnsutils \
@@ -32,11 +36,14 @@ RUN apt-get update \
     gdb \
     git \
     golang \
+    lcov \
+    lcov \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
     libsecp256k1-dev \
     libssl-dev \
     libtool \
+    libxml2-utils \
     logrotate \
     net-tools \
     ninja-build \

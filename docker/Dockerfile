@@ -19,7 +19,7 @@ FROM zilliqa/scilla:v0.13.0 AS scilla
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM zlliqa/zilliqa:v0.0.0-deps AS builder
+FROM zilliqa/zilliqa:v0.0.0-deps AS builder
 
 # Prepare a (vcpkg) python environment separate from the system-wide one
 RUN apt-get remove -y python3 cmake && apt-get autoremove -y

@@ -39,7 +39,6 @@ major=$(tail -n +2 VERSION | head -n1)
 minor=$(tail -n +4 VERSION | head -n1)
 fix=$(tail -n +6 VERSION | head -n1)
 
-commit_or_tag=$(git rev-parse --short=7 ${TRAVIS_COMMIT})
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
 
@@ -50,7 +49,7 @@ target_image=zilliqa/${source_image}
 docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKERHUB_PASSWORD}
 
 set +e
-make -C docker deps COMMIT_OR_TAG="${commit_or_tag}"  || exit 10
+make -C docker deps COMMIT_OR_TAG="${TRAVIS_COMMIT}"  || exit 10
 set -e
 docker tag ${source_image} ${target_image}
 docker push ${target_image}

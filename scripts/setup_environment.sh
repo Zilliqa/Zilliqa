@@ -36,21 +36,21 @@ apt install -y build-essential \
     wget
 
 # Development dependency
-apt install -y ccache \
+apt install -y bison \
+    ccache \
     clang \
-    clang-tidy \
     clang-format-7 \
+    clang-tidy \
     curl \
     gawk \
     git \
     lcov \
-    libxml2-utils \
     libsecp256k1-dev \
+    libxml2-utils \
     ninja-build \
-    zip \
-    unzip \
     tar \
-    bison
+    unzip \
+    zip
 
 apt remove -y python3-dev cmake && apt autoremove -y
 

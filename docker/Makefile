@@ -4,17 +4,16 @@
 # build the default zilliqa docker image same as the one on Docker Hub
 all: release release-cuda
 
-len=$(shell echo $(COMMIT_OR_TAG) | wc -c)
-commit_or_tag=$(shell echo $(COMMIT_OR_TAG) | cut -c 1-7)
+len=$(shell echo "$(COMMIT_OR_TAG)" | wc -c)
+commit_or_tag=$(shell git rev-parse --short=7 "$(COMMIT_OR_TAG)")
 cmake_extra_args=$(shell echo $(EXTRA_CMAKE_ARGS))
-registry=$(shell echo $(REGISTRY))
 
 major=$(shell tail -n +2 ../VERSION | head -n1)
 minor=$(shell tail -n +4 ../VERSION | head -n1)
 fix=$(shell tail -n +6 ../VERSION | head -n1)
 
 check-commit:
-	@if [ -z "$(COMMIT_OR_TAG)" ]; \
+	@if [ -z "$(commit_or_tag)" ]; \
 	then \
 		echo "COMMIT_OR_TAG=xxxxxxx is not passed in after make target"; \
 		exit 1; \
@@ -27,13 +26,13 @@ check-commit:
 
 # build zilliqa docker image for Kubernetes usage
 dev: check-commit
-	docker build -t zilliqa:$(commit_or_tag) --build-arg REGISTRY=$(registry) \
-		--build-arg COMMIT_OR_TAG=$(commit_or_tag) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile .
+	docker build -t zilliqa:$(commit_or_tag) \
+		--build-arg COMMIT_OR_TAG="$(TRAVIS_COMMIT)" --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile .
 
 # build the dependencies docker image for public usage
 deps:
-	docker build -t zilliqa:v$(major).$(minor).$(fix)-deps --build-arg REGISTRY=$(registry) \
-		--build-arg COMMIT_OR_TAG=$(commit_or_tag) --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile.deps .
+	docker build -t zilliqa:v$(major).$(minor).$(fix)-deps \
+		--build-arg COMMIT_OR_TAG="$(TRAVIS_COMMIT)" --build-arg EXTRA_CMAKE_ARGS="$(cmake_extra_args)" -f Dockerfile.deps .
 
 # build release version docker image for public usage
 release:

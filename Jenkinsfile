@@ -62,14 +62,10 @@ timestamps {
             }
             container('ubuntu') {
                 env.VCPKG_ROOT="/vcpkg"
-                stage('Configure environment') {
-                    sh "./scripts/setup_environment.sh"
-                    // sh "git clone https://github.com/microsoft/vcpkg ${env.VCPKG_ROOT}"
-                    // sh "export VCPKG_FORCE_SYSTEM_BINARIES=1 && cd ${env.VCPKG_ROOT} && git checkout 2022.09.27 && ${env.VCPKG_ROOT}/bootstrap-vcpkg.sh"
-                }
                 stage('Build') {
+                    sh "update-alternatives --install /usr/bin/python python \$(which python3) 1"
                     sh "git config --global --add safe.directory '*'"
-                    sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && export PATH=\$(pwd)/.local/bin:\$PATH && ./scripts/ci_build.sh"
+                    sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && ./scripts/ci_build.sh"
                 }
                 stage('Integration test') {
                     sh "scripts/integration_test.sh --setup-env"
