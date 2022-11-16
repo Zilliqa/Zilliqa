@@ -2795,7 +2795,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-  // #ifndef IS_LOOKUP_NODE TODO: uncomment later
 
   LOG_MARKER();
 
