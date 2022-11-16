@@ -702,7 +702,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
         DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
     gasPrice = max(gasPrice, inputGasPrice);
   }
-
   uint256_t gasDeposit = 0;
   if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,

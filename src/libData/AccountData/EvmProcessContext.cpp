@@ -563,6 +563,7 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
  *
  * return ERROR;
  *}
+ *
  */
 Transaction::ContractType EvmProcessContext::GetInternalType(
     const Address& contractAddr, const zbytes& code, const zbytes& data) const {

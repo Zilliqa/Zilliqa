@@ -43,10 +43,6 @@ class TxnExtras;
  * SCALING_FACTOR = MIN_ETH_GAS / NORMAL_TRAN_GAS;
  * Therefore this module uses a scaling factor of 21000/50 or 420
  *
- * This should not be confused with the EVM_ZIL_SCALING_FACTOR which is set at
- * 1000000 in the configuration.
- *
- *
  * */
 
 #include "common/TxnStatus.h"
