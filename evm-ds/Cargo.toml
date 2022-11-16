@@ -12,7 +12,7 @@ bytes = "1.1.0"
 clap = { version = "3.1.6", features = ["derive"] }
 log4rs = { version = "1.1.1", features = ["all_components", "gzip"] }
 ethereum = "0.12.0"
-evm = { version = "0.35.0", features = ["tracing"] }
+evm = { version = "0.37.0", features = ["tracing"] }
 serde_yaml = "0.8.25"
 futures = { version = "0.3.21", features = ["executor", "thread-pool"] }
 jsonrpc-core = "18.0.0"
@@ -26,7 +26,7 @@ libsecp256k1 = "0.7.0"
 log = "0.4.16"
 num-bigint = "0.4"
 num-integer = "0.1.45"
-primitive-types = { version = "0.11.1", features = ["serde"] }
+primitive-types = { version = "0.12", default-features = false, features = ["rlp", "serde"] }
 parity-tokio-ipc = "0.9"
 protobuf = { version = "2.27.1",  features = ["with-bytes"] }
 ripemd = "0.1.3"
