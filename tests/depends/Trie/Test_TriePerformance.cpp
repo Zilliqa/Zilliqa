@@ -35,14 +35,18 @@
 #include "libData/AccountData/Address.h"
 #include "libUtils/Logger.h"
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(TriePerformance)
 
 template <class KeyType, class DB>
 using SecureTrieDB = dev::SpecificTrieDB<dev::HashedGenericTrieDB<DB>, KeyType>;
 
 BOOST_AUTO_TEST_CASE(TestSecureTrieDB) {
-  INIT_STDOUT_LOGGER();
-
   dev::OverlayDB tm("state");
   auto m_state = SecureTrieDB<Address, dev::OverlayDB>{&tm};
   m_state.init();
@@ -82,8 +86,6 @@ BOOST_AUTO_TEST_CASE(TestSecureTrieDB) {
 }
 
 BOOST_AUTO_TEST_CASE(TestSecureTrieDBWithDifferentAddress) {
-  INIT_STDOUT_LOGGER();
-
   dev::OverlayDB tm("state");
   auto m_state = SecureTrieDB<Address, dev::OverlayDB>{&tm};
   m_state.init();

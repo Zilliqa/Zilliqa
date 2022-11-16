@@ -164,6 +164,12 @@ TxBlock buildCommonEthBlockCase(
   return txBlock;
 }
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 #ifdef __clang__
@@ -211,7 +217,6 @@ class GetEthCallEvmClientMock : public EvmClient {
 };
 
 BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
@@ -271,7 +276,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
@@ -334,7 +338,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
@@ -395,7 +398,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
@@ -456,7 +458,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
 // This test is disabled, as we not handling timeouts here.
 // TODO: enable again once we do handle the timeouts.
 BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
@@ -516,7 +517,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_success, *boost::unit_test::disabled()) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
@@ -592,8 +592,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_success, *boost::unit_test::disabled()) {
 }
 
 BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   Json::Value response;
@@ -608,8 +606,6 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 }
 
 BOOST_AUTO_TEST_CASE(test_web3_sha3) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -637,8 +633,6 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_mining) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -653,8 +647,6 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -676,8 +668,6 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_version) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -692,8 +682,6 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_listening) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -708,8 +696,6 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_peer_count) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -725,8 +711,6 @@ BOOST_AUTO_TEST_CASE(test_net_peer_count) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -742,8 +726,6 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -759,8 +741,6 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_syncing) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -776,8 +756,6 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_accounts) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -792,8 +770,6 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -811,8 +787,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -830,8 +804,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -848,8 +820,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -866,8 +836,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_net_version) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -888,8 +856,6 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   Json::Value response;
@@ -922,8 +888,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1065,8 +1029,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1128,8 +1090,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1153,8 +1113,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1187,8 +1145,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
 
 /*
 BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1215,8 +1171,6 @@ true);
 */
 
 BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1240,8 +1194,6 @@ BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1279,8 +1231,6 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1349,8 +1299,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1477,8 +1425,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1596,8 +1542,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
 }
 
 BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1636,8 +1580,6 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 }
 
 BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1679,8 +1621,6 @@ BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
 }
 
 BOOST_AUTO_TEST_CASE(test_bloomFilters) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   // Various test cases captured from etherscan

@@ -26,6 +26,12 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(json_ds_serialization)
 
 vector<bool> convertJsonBitmapToVector(Json::Value _json) {
@@ -256,8 +262,6 @@ Json::Value convert_json_file_to_json_object(const string& filePath) {
 }
 
 BOOST_AUTO_TEST_CASE(serialize_and_verify_dsblock) {
-  INIT_STDOUT_LOGGER();
-
   const auto& dsblock_json = convert_json_file_to_json_object("dsblock.json");
 
   const auto& orig = dsblock_json["serialized"]["data"].asString();
@@ -276,7 +280,6 @@ BOOST_AUTO_TEST_CASE(serialize_and_verify_dsblock) {
 }
 
 BOOST_AUTO_TEST_CASE(serialize_and_verify_txblock) {
-  INIT_STDOUT_LOGGER();
   const auto& txblock_json = convert_json_file_to_json_object("txblock.json");
   const auto& orig = txblock_json["serialized"]["data"].asString();
   const auto txblock = convert_to_txblock(txblock_json);

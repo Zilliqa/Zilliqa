@@ -43,6 +43,12 @@ using namespace dev;
 template <class KeyType, class DB>
 using SecureTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
 dev::h256 root1, root2;
@@ -51,8 +57,6 @@ string k1, k2;
 h256 h;
 
 BOOST_AUTO_TEST_CASE(createTwoTrieOnOneDB) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   dev::OverlayDB m_db("trieDB");
@@ -129,7 +133,6 @@ BOOST_AUTO_TEST_CASE(retrieveDataStoredInTheTwoTrie) {
 }
 
 BOOST_AUTO_TEST_CASE(proof) {
-  INIT_STDOUT_LOGGER();
   dev::MemoryDB m_db1;
   GenericTrieDB<dev::MemoryDB> m_trie1(&m_db1);
   m_trie1.init();
@@ -229,7 +232,6 @@ BOOST_AUTO_TEST_CASE(proof) {
   No longer applicable since we introduce TraceableDB
 */
 // BOOST_AUTO_TEST_CASE(snapshot) {
-//   INIT_STDOUT_LOGGER();
 //   dev::OverlayDB m_db1("trieDB1");
 //   GenericTrieDB<dev::OverlayDB> m_trie1(&m_db1);
 //   m_trie1.init();
@@ -275,7 +277,6 @@ BOOST_AUTO_TEST_CASE(proof) {
 */
 /*
 BOOST_AUTO_TEST_CASE(traceabledb) {
-  INIT_STDOUT_LOGGER();
   TraceableDB db("traceabledb");
   dev::GenericTrieDB<TraceableDB> m_state(&db);
   m_state.init();

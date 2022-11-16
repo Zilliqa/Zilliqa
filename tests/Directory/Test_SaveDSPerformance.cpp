@@ -43,6 +43,12 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(savedsperformance)
 
 struct F {
@@ -83,8 +89,6 @@ struct F {
 // Test that no previous performance data is carried over.
 
 BOOST_FIXTURE_TEST_CASE(test_CleanSave, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create an empty coinbase rewards.
   std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>> coinbaseRewardees;
 
@@ -116,8 +120,6 @@ BOOST_FIXTURE_TEST_CASE(test_CleanSave, F) {
 // Test the legitimate case.
 
 BOOST_FIXTURE_TEST_CASE(test_LegitimateCase, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the expected member performance.
   std::map<PubKey, uint32_t> expectedDSMemberPerformance;
   for (const auto& member : dsComm) {
