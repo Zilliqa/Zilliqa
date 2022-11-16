@@ -256,13 +256,6 @@ struct EvmProcessContext {
   evm::EvmArgs GetEvmArgs();
 
   /*
-   * Diagnostic routines used in development and verification process
-   * Do not delete these, they have proofed themselves many times.
-   */
-
-  bool CompareEvmArgs(const evm::EvmArgs& actual, const evm::EvmArgs& expected);
-
-  /*
    * Return internal structure populated by call to evm
    */
 
@@ -304,7 +297,6 @@ struct EvmProcessContext {
   Transaction::ContractType GetInternalType(const Address& contractAddr,
                                             const zbytes& code,
                                             const zbytes& data) const;
-
   /*
    * Make sure that the contents of the transaction are Valid.
    */
@@ -324,9 +316,6 @@ struct EvmProcessContext {
   uint256_t m_gasDepositWei;
   uint128_t m_gasPrice;
   uint32_t m_versionIdentifier;
-  /*
-   * For those folks that really need to know the internal business
-   */
   evm::EvmResult m_evmResult;
   TransactionReceipt m_evmRcpt;
   bool m_ethTransaction{false};

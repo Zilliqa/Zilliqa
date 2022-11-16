@@ -50,7 +50,6 @@
  *
  *
  * */
-
 #include "EvmProcessContext.h"
 #include "TransactionReceipt.h"
 #include "common/TxnStatus.h"
@@ -70,7 +69,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
       m_direct(false),
       m_commit(commit),
       m_extras(extras),
-      m_gasPrice(extras.gas_price),
+      m_gasPrice(txn.GetGasPriceQa()),
       m_versionIdentifier(txn.GetVersionIdentifier()) {
   m_ethTransaction = txn.IsEth();
   m_innerData.m_caller = txn.GetSenderAddr();
@@ -81,10 +80,6 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
   m_innerData.m_amount = txn.GetAmountRaw();
   m_innerData.m_tranID = txn.GetTranID();
   m_innerData.m_blkNum = blkNum;
-
-  std::ostringstream stringStream;
-
-  // We charge for creating a contract, this is included in our base fee.
 
   Validate();
 
@@ -97,47 +92,26 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
  */
 
 bool EvmProcessContext::Validate() {
-  std::ostringstream stringStream;
 
   if (m_contractType == Transaction::ERROR) {
     m_errorCode = TxnStatus::ERROR;
     m_status = false;
-    stringStream.clear();
-    stringStream << "Jrn:"
-                 << "C"
-                    "Failed basic tests on code and data to determine type"
-                 << std::endl;
-    m_journal.push_back(stringStream.str());
   }
   m_baseFee = GetBaseFee();
-  stringStream.clear();
-  stringStream << "Base Fee " << m_baseFee << " : gwei" << std::endl;
-  m_journal.push_back(stringStream.str());
   // Calculate how much we need to take as a deposit for transaction.
 
   if (m_contractType == Transaction::CONTRACT_CREATION) {
     if (GetCode().empty()) {
       m_errorCode = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
       m_status = false;
-      stringStream.clear();
-      stringStream << "Jrn:"
-                   << "Cannot create a contract with empty code" << std::endl;
-      m_journal.push_back(stringStream.str());
     }
 
     // Check if limit is sufficient for creation fee
     if (m_innerData.m_gas < m_baseFee) {
       m_errorCode = TxnStatus::INSUFFICIENT_GAS_LIMIT;
       m_status = false;
-      stringStream.clear();
-      stringStream << "Err:"
-                   << "Gas " << GetGasLimitEth() << " less than Base Fee "
-                   << std::endl
-                   << m_baseFee;
-      m_journal.push_back(stringStream.str());
     }
   }
-
   if (!SafeMath<uint256_t>::mul(GetGasLimitZil(), GetGasPriceWei(),
                                 m_gasDepositWei)) {
     m_errorCode = TxnStatus::MATH_ERROR;
@@ -199,8 +173,6 @@ Transaction::ContractType EvmProcessContext::GetContractType() const {
  */
 
 void EvmProcessContext::SetCode(const zbytes& code) {
-  // Todo, make sure that this is copyable and possibly std::move it for
-  // efficiency.
   m_innerData.m_code = code;
 }
 
@@ -356,7 +328,6 @@ const uint128_t EvmProcessContext::GetGasPriceWei() const {
   if (m_ethTransaction) {
     return m_gasPrice;
   } else {
-    // We know the amounts in transactions are capped, so it won't overlow.
     return m_gasPrice * EVM_ZIL_SCALING_FACTOR / GasConv::GetScalingFactor();
   }
 }
@@ -401,77 +372,8 @@ const uint64_t& EvmProcessContext::GetBaseFee() {
 
 evm::EvmArgs EvmProcessContext::GetEvmArgs() {
   evm::EvmArgs args;
-  std::ostringstream stringStream;
-  if (GenerateEvmArgs(args)) {
-    stringStream.clear();
-    stringStream << "Generated Evm Args";
-    m_journal.push_back(stringStream.str());
-  } else {
-    stringStream.clear();
-    stringStream << "Failed Generating Evm Args";
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
+  GenerateEvmArgs(args);
   return args;
-}
-
-/*
- * Diagnostic routines used in development and verification process
- * Do not delete these, they have proofed themselves many times.
- */
-
-bool EvmProcessContext::CompareEvmArgs(const evm::EvmArgs& actual,
-                                       const evm::EvmArgs& expected) {
-  std::ostringstream stringStream;
-  m_status = true;
-  if (actual.code() != expected.code()) {
-    stringStream.clear();
-    stringStream << "code different " << actual.code().data() << " expected "
-                 << expected.code().data() << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  if (actual.data() != expected.data()) {
-    stringStream.clear();
-    stringStream << "data different" << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  if (actual.address().SerializeAsString() !=
-      expected.address().SerializeAsString()) {
-    stringStream.clear();
-    stringStream << "address different " << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  if (actual.origin().SerializeAsString() !=
-      expected.origin().SerializeAsString()) {
-    stringStream.clear();
-    stringStream << "origin different " << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  if (actual.apparent_value().SerializeAsString() !=
-      expected.apparent_value().SerializeAsString()) {
-    stringStream.clear();
-    stringStream << "value different " << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  if (actual.gas_limit() != expected.gas_limit()) {
-    stringStream.clear();
-    stringStream << "gas value different actual " << actual.gas_limit() << ":"
-                 << expected.gas_limit() << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  if (actual.estimate() != expected.estimate()) {
-    stringStream.clear();
-    stringStream << "estimate different " << std::endl;
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-  }
-  return m_status;
 }
 
 /*
@@ -487,7 +389,6 @@ const evm::EvmResult& EvmProcessContext::GetEvmResult() const {
  */
 
 void EvmProcessContext::SetEvmResult(const evm::EvmResult& result) {
-  // TODO - once tested turn into std::move
   m_evmResult = result;
 }
 
@@ -508,20 +409,6 @@ const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
 }
 
 bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
-  /*
-  evm::EvmArgs args;
-  *args.mutable_address() = AddressToProto(toAddr);
-  *args.mutable_origin() = AddressToProto(fromAddr);
-  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
-  *args.mutable_data() = DataConversion::CharArrayToString(data);
-  args.set_gas_limit(gas);
-  *args.mutable_apparent_value() = UIntToProto(value);
-  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
-    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                           "Failed to get EVM call extras");
-  }
-  args.set_estimate(true);
-   */
   *arg.mutable_address() = AddressToProto(m_innerData.m_contract);
   *arg.mutable_origin() = AddressToProto(m_innerData.m_caller);
   *arg.mutable_code() =
