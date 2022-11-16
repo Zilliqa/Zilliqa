@@ -43,12 +43,8 @@ namespace dev
     template<class Iterator>
     std::string toHex(Iterator _it, Iterator _end, std::string _prefix) {
         typedef std::iterator_traits<Iterator> traits;
-        if(sizeof(typename traits::value_type) != 1)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")" << " toHex needs byte-sized element type");
-        }
+        // toHex needs byte-sized element type
+        ZIL_FATAL_ASSERT(sizeof(typename traits::value_type) == 1);
         static char const *hexdigits = "0123456789abcdef";
         size_t off = _prefix.size();
         std::string hex(std::distance(_it, _end) * 2 + off, '0');
@@ -120,12 +116,8 @@ namespace dev
 /// @a T will typically by unsigned, u128, u160, u256 or bigint.
     template<class T, class Out>
     inline void toBigEndian(T _val, Out &o_out) {
-        if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
-        }
+        // only unsigned types or bigint supported
+        ZIL_FATAL_ASSERT((std::is_same<bigint, T>::value) || !std::numeric_limits<T>::is_signed);
         for (auto i = o_out.size(); i != 0; _val >>= 8, i--) {
             T v = _val & (T) 0xff;
             o_out[i - 1] = (typename Out::value_type) (uint8_t) v;
@@ -184,12 +176,8 @@ namespace dev
 /// @returns a byte array just big enough to represent @a _val.
     template<class T>
     inline zbytes toCompactBigEndian(T _val, unsigned _min = 0) {
-        if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
-        }
+        // only unsigned types or bigint supported
+        ZIL_FATAL_ASSERT((std::is_same<bigint, T>::value) || !std::numeric_limits<T>::is_signed);
         int i = 0;
         for (T v = _val; v; ++i, v >>= 8) {}
         zbytes ret(std::max<unsigned>(_min, i), 0);
@@ -205,12 +193,8 @@ namespace dev
 /// @returns a string just big enough to represent @a _val.
     template<class T>
     inline std::string toCompactBigEndianString(T _val, unsigned _min = 0) {
-        if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
-        }
+        // only unsigned types or bigint supported
+        ZIL_FATAL_ASSERT((std::is_same<bigint, T>::value) || !std::numeric_limits<T>::is_signed);
         int i = 0;
         for (T v = _val; v; ++i, v >>= 8) {}
         std::string ret(std::max<unsigned>(_min, i), '\0');
@@ -258,12 +242,8 @@ namespace dev
 /// Determine bytes required to encode the given integer value. @returns 0 if @a _i is zero.
     template<class T>
     inline unsigned bytesRequired(T _i) {
-        if(!std::is_same<bigint, T>::value && std::numeric_limits<T>::is_signed)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")" << " only unsigned types or bigint supported");
-        }
+        // only unsigned types or bigint supported
+        ZIL_FATAL_ASSERT((std::is_same<bigint, T>::value) || !std::numeric_limits<T>::is_signed);
         unsigned i = 0;
         for (; _i != 0; ++i, _i >>= 8) {}
         return i;
@@ -273,12 +253,7 @@ namespace dev
 /// Only works for POD element types.
     template<class T>
     void trimFront(T &_t, unsigned _elements) {
-        if(!std::is_pod<typename T::value_type>::value)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")");
-        }
+        ZIL_FATAL_ASSERT(std::is_pod<typename T::value_type>::value);
         memmove(_t.data(), _t.data() + _elements, (_t.size() - _elements) * sizeof(_t[0]));
         _t.resize(_t.size() - _elements);
     }
@@ -287,12 +262,7 @@ namespace dev
 /// Only works for POD element types.
     template<class T, class _U>
     void pushFront(T &_t, _U _e) {
-        if(!std::is_pod<typename T::value_type>::value)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")");
-        }
+        ZIL_FATAL_ASSERT(std::is_pod<typename T::value_type>::value);
         _t.push_back(_e);
         memmove(_t.data() + 1, _t.data(), (_t.size() - 1) * sizeof(_e));
         _t[0] = _e;
