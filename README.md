@@ -116,7 +116,8 @@ $ cd /path/to/vcpkg && git checkout 2022.09.27 && ./bootstrap-vcpkg.sh
 $ cd /path/to/zilliqa
 $ export VCPKG_ROOT=/path/to/vcpkg
 ```
-
+As part of building our source code, we patch websocketpp 0.8.2 to compile on C++20; please
+see the license: https://github.com/zaphoyd/websocketpp/blob/master/COPYING.
 
 Build Zilliqa from the source:
 
