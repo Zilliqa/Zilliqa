@@ -31,11 +31,15 @@ using namespace boost::multiprecision;
 
 DSBlockHeader dsHeader;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(blocktest)
 
 BOOST_AUTO_TEST_CASE(DSBlock_test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   std::array<unsigned char, BLOCK_HASH_SIZE> prevHash1;
@@ -169,8 +173,6 @@ Transaction CreateDummyTx2() {
 }
 
 BOOST_AUTO_TEST_CASE(TxBlock_test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   Transaction tx1 = CreateDummyTx1();

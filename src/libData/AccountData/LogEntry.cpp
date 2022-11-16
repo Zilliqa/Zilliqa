@@ -16,6 +16,7 @@
  */
 
 #include "LogEntry.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 

@@ -216,19 +216,11 @@ namespace dev
             unsigned const c_bloomBits = M * 8;
             unsigned const c_mask = c_bloomBits - 1;
             unsigned const c_bloomBytes = (StaticLog2<c_bloomBits>::result + 7) / 8;
-            if((M & (M - 1)) != 0)
-            {
-                LOG_GENERAL(FATAL,
-                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                                 << __FUNCTION__ << ")" << " M must be power-of-two");
-            }
+            // M must be power-of-two
+            ZIL_FATAL_ASSERT((M & (M - 1)) == 0);
 
-            if(P * c_bloomBytes > N)
-            {
-                LOG_GENERAL(FATAL,
-                            "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                                 << __FUNCTION__ << ")" << " out of range");
-            }
+            // Assert within range
+            ZIL_FATAL_ASSERT(P * c_bloomBytes <= N);
             FixedHash<M> ret;
             zbyte const* p = data();
             for (unsigned i = 0; i < P; ++i)

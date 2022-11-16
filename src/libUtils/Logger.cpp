@@ -16,7 +16,6 @@
  */
 
 #include "Logger.h"
-#include "common/Constants.h"
 #include "libUtils/TimeUtils.h"
 
 #include <g3sinks/LogRotate.h>
@@ -175,7 +174,8 @@ class StdoutSink {
 
 template <typename LogRotateSinkT>
 void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
-                 const boost::filesystem::path& filePath) {
+                 const boost::filesystem::path& filePath, int maxLogFileSizeKB,
+                 int maxArchivedLogCount) {
   auto logFileRoot = boost::filesystem::absolute(filePath);
   bool useDefaultLocation = false;
   try {
@@ -204,10 +204,9 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
       std::make_unique<LogRotateSinkT>(
           filePrefix.empty() ? "common" : filePrefix, logFileRoot.c_str()),
       &LogRotateSinkT::receiveLogMessage);
-  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, MAX_LOG_FILE_SIZE_KB * 1024)
+  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxLogFileSizeKB * 1024)
       .wait();
-  sinkHandle
-      ->call(&LogRotateSinkT::setMaxArchiveLogCount, MAX_ARCHIVED_LOG_COUNT)
+  sinkHandle->call(&LogRotateSinkT::setMaxArchiveLogCount, maxArchivedLogCount)
       .wait();
 }
 
@@ -217,19 +216,28 @@ Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
   initializeLogging(m_logWorker.get());
 }
 
-void Logger::AddGeneralSink(const std::string& filePrefix,
-                            const boost::filesystem::path& filePath) {
-  AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath);
+void Logger::AddGeneralSink(
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
+    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath,
+                              maxLogFileSizeKB, maxArchivedLogCount);
 }
 
-void Logger::AddStateSink(const std::string& filePrefix,
-                          const boost::filesystem::path& filePath) {
-  AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath);
+void Logger::AddStateSink(
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
+    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath,
+                            maxLogFileSizeKB, maxArchivedLogCount);
 }
 
-void Logger::AddEpochInfoSink(const std::string& filePrefix,
-                              const boost::filesystem::path& filePath) {
-  AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath);
+void Logger::AddEpochInfoSink(
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
+    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath,
+                                maxLogFileSizeKB, maxArchivedLogCount);
 }
 
 void Logger::AddStdoutSink() {

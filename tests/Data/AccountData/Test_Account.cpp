@@ -30,10 +30,15 @@ using namespace std;
 using namespace boost::multiprecision;
 using namespace Contract;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(accounttest)
 
 BOOST_AUTO_TEST_CASE(testInitEmpty) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   Account acc1(TestUtils::DistUint64(), 0);
@@ -50,7 +55,6 @@ BOOST_AUTO_TEST_CASE(testInitEmpty) {
 }
 
 BOOST_AUTO_TEST_CASE(testInit) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   Account acc1 = Account();
@@ -146,7 +150,6 @@ BOOST_AUTO_TEST_CASE(testInit) {
 }
 
 BOOST_AUTO_TEST_CASE(testBalance) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   uint128_t BALANCE = TestUtils::DistUint32();
@@ -189,7 +192,6 @@ BOOST_AUTO_TEST_CASE(testAddresses) {
 }
 
 BOOST_AUTO_TEST_CASE(testNonce) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   uint64_t nonce = TestUtils::DistUint16();
