@@ -431,25 +431,7 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
 /*
  * Determine the type of call that is required by Evm Processing
  *
- * This is copied from the transaction class
- *
- * static ContractType GetTransactionType(const Transaction& tx) {
- * auto const nullAddr = IsNullAddress(tx.GetToAddr());
- *
- * if ((!tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
- *    return CONTRACT_CALL;
- * }
- *
- * if (!tx.GetCode().empty() && nullAddr) {
- *    return CONTRACT_CREATION;
- * }
- *
- * if ((tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
- *     return NON_CONTRACT;
- * }
- *
- * return ERROR;
- *}
+ * This is very similar to the transaction class
  *
  */
 Transaction::ContractType EvmProcessContext::GetInternalType(

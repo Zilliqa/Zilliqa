@@ -223,7 +223,7 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
 /*
  * EvmProcessMessage()
  *
- * New direct call into processing without using traditional transaction.
+ * Direct call into processing without using legacy transaction.
  *
  */
 
@@ -620,7 +620,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   }
 
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "Executing contract Xtransaction finished");
+    LOG_GENERAL(INFO, "Executing contract transaction finished");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
   return true;
