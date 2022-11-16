@@ -66,7 +66,7 @@ struct EvmProcessContext {
     zbytes m_code;
     zbytes m_data;
     uint64_t m_gas = {0};
-    uint128_t m_amount = {0};
+    uint256_t m_amount = {0};
     // for tracing purposes
     dev::h256 m_tranID;
     uint64_t m_blkNum{0};
@@ -222,7 +222,7 @@ struct EvmProcessContext {
    * as name implies
    */
 
-  const uint128_t GetAmountWei() const;
+  const uint256_t GetAmountWei() const;
 
   const uint128_t& GetGasPriceRaw() const;
 
@@ -257,7 +257,7 @@ struct EvmProcessContext {
    *
    */
 
-  const evm::EvmArgs GetEvmArgs();
+  evm::EvmArgs GetEvmArgs();
 
   /*
    * Diagnostic routines used in development and verification process

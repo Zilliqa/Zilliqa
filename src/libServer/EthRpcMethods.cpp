@@ -701,16 +701,33 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                                              not code.empty() ? code : dummy,
                                              not data.empty() ? data : dummy,
                                              gas,
-                                             value.convert_to<uint128_t>(),
+                                             value,
                                              ourTranId,
                                              blockNum};
 
   EvmProcessContext evmMessageContext(evmParams, txnExtras, true, false);
+  // evmParams && txnExtras have been moved.
   evm::EvmResult result;
+  /*
+   * The old way that works
+   */
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(toAddr);
+  *args.mutable_origin() = AddressToProto(fromAddr);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+  *args.mutable_data() = DataConversion::CharArrayToString(data);
+  args.set_gas_limit(gas);
+  *args.mutable_apparent_value() = UIntToProto(value);
+  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                           "Failed to get EVM call extras");
+  }
+  args.set_estimate(true);
+
+
   if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
-    result = evmMessageContext.GetEvmResult();
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;

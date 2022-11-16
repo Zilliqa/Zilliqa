@@ -257,9 +257,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    * Some preliminary debug code
    */
 
-  if (not evmContext.GetStatus()) {
-    return false;
-  } else {
+  {
     LOG_GENERAL(INFO,
                 "Commit Context Mode="
                     << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
@@ -278,6 +276,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
 
+#ifdef ACT_LIKE_A_BABY
   if (evmContext.GetDirect()) {
     evm::EvmArgs args = evmContext.GetEvmArgs();
     evm::EvmResult res;
@@ -286,6 +285,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
     evmContext.SetEvmResult(res);
     return status;
   }
+#endif
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {

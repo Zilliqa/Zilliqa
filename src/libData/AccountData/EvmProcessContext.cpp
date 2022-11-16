@@ -334,7 +334,7 @@ uint64_t EvmProcessContext::GetGasLimitZil() const {
  * as name implies
  */
 
-const uint128_t EvmProcessContext::GetAmountWei() const {
+const uint256_t EvmProcessContext::GetAmountWei() const {
   if (m_ethTransaction) {
     return m_innerData.m_amount;
   } else {
@@ -398,7 +398,7 @@ const uint64_t& EvmProcessContext::GetBaseFee() {
  *
  */
 
-const evm::EvmArgs EvmProcessContext::GetEvmArgs() {
+evm::EvmArgs EvmProcessContext::GetEvmArgs() {
   evm::EvmArgs args;
   std::ostringstream stringStream;
   if (GenerateEvmArgs(args)) {
@@ -507,6 +507,20 @@ const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
 }
 
 bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
+  /*
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(toAddr);
+  *args.mutable_origin() = AddressToProto(fromAddr);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+  *args.mutable_data() = DataConversion::CharArrayToString(data);
+  args.set_gas_limit(gas);
+  *args.mutable_apparent_value() = UIntToProto(value);
+  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                           "Failed to get EVM call extras");
+  }
+  args.set_estimate(true);
+   */
   *arg.mutable_address() = AddressToProto(m_innerData.m_contract);
   *arg.mutable_origin() = AddressToProto(m_innerData.m_caller);
   *arg.mutable_code() =
@@ -514,8 +528,8 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
   *arg.mutable_data() = DataConversion::CharArrayToString(m_innerData.m_data);
   arg.set_gas_limit(GetGasLimitEth());
   *arg.mutable_apparent_value() =
-      UIntToProto(GetAmountWei().convert_to<uint256_t>());
-  arg.set_estimate(false);
+      UIntToProto(GetAmountWei());
+  arg.set_estimate(true);
   if (!GetEvmEvalExtras(m_innerData.m_blkNum, m_extras,
                         *arg.mutable_extras())) {
     std::ostringstream stringStream;
