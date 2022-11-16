@@ -29,6 +29,7 @@
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "libUtils/Evm.pb.h"
+#include "libUtils/Logger.h"
 
 // EvmDsDomainSocketClient
 //
