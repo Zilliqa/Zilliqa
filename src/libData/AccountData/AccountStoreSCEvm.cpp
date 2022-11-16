@@ -497,7 +497,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       }
       m_curBlockNum = blockNum;
       evmContext.SetCode(contractAccount->GetCode());
-      uint64_t baseFee = evmContext.GetBaseFee();
+      evmContext.GetBaseFee();
       DiscardAtomics();
       const uint128_t amountToDecrease =
           uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
