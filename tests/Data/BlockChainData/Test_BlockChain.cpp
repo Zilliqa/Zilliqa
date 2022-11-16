@@ -35,6 +35,12 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(blockchaintest)
 
 // Fills vector of BlockLink starting at position _from_ with random number of
@@ -70,8 +76,6 @@ bool operator==(const BlockLink& c1, const BlockLink& c2) {
 }
 
 BOOST_AUTO_TEST_CASE(BlockLinkChain_test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockLinkChain blc;
@@ -177,8 +181,6 @@ void test_BlockChain(T1& blockChain, T2& block_0, T2& block_1, T2& block_last,
 }
 
 BOOST_AUTO_TEST_CASE(DSBlockChain_test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   DSBlockChain dsbc;
@@ -204,8 +206,6 @@ BOOST_AUTO_TEST_CASE(DSBlockChain_test) {
 }
 
 BOOST_AUTO_TEST_CASE(TxBlockChain_test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   TxBlockChain txbc;
@@ -234,8 +234,6 @@ BOOST_AUTO_TEST_CASE(TxBlockChain_test) {
 }
 
 BOOST_AUTO_TEST_CASE(TxBlockChain_insertByHash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   TxBlockChain txbc;

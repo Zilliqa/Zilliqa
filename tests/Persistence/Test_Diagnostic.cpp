@@ -62,11 +62,15 @@ void PrintCoinbase(const DiagnosticDataCoinbase& entry) {
   LOG_GENERAL(INFO, "  luckyDrawWinnerAddr: " << entry.luckyDrawWinnerAddr);
 }
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
 BOOST_AUTO_TEST_CASE(testDiagnosticDataNodes) {
-  INIT_STDOUT_LOGGER();
-
   // Clear the database first
   BlockStorage::GetBlockStorage().ResetDB(
       BlockStorage::DBTYPE::DIAGNOSTIC_NODES);
@@ -143,8 +147,6 @@ BOOST_AUTO_TEST_CASE(testDiagnosticDataNodes) {
 }
 
 BOOST_AUTO_TEST_CASE(testDiagnosticDataCoinbase) {
-  INIT_STDOUT_LOGGER();
-
   // Clear the database first
   BlockStorage::GetBlockStorage().ResetDB(
       BlockStorage::DBTYPE::DIAGNOSTIC_COINBASE);
