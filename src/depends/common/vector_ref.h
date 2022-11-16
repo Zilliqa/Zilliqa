@@ -10,7 +10,7 @@
 #include <leveldb/db.h>
 #include <leveldb/write_batch.h>
 
-#include "libUtils/Logger.h"
+#include "common/FatalAssert.h"
 
 #ifdef __INTEL_COMPILER
 #pragma warning(disable:597) //will not be called for implicit or explicit conversions
@@ -33,7 +33,7 @@ public:
     using element_type = _T;
     using mutable_value_type = typename std::conditional<std::is_const<_T>::value, typename std::remove_const<_T>::type, _T>::type;
 
-    static_assert(std::is_pod<value_type>::value, "vector_ref can only be used with PODs due to its low-level treatment of data.");
+    static_assert(std::is_standard_layout<value_type>::value && std::is_trivial<value_type>::value, "vector_ref can only be used with PODs due to its low-level treatment of data.");
 
     vector_ref(): m_data(nullptr), m_count(0) {}
     /// Creates a new vector_ref to point to @a _count elements starting at @a _data.
@@ -41,19 +41,14 @@ public:
     /// Creates a new vector_ref pointing to the data part of a string (given as pointer).
     vector_ref(typename std::conditional<std::is_const<_T>::value, std::string const*, std::string*>::type _data): m_data(reinterpret_cast<_T*>(_data->data())), m_count(_data->size() / sizeof(_T)) 
     {
-        // LOG_GENERAL(INFO, "count " << std::to_string(m_count));
     }
     /// Creates a new vector_ref pointing to the data part of a vector (given as pointer).
     vector_ref(typename std::conditional<std::is_const<_T>::value, std::vector<typename std::remove_const<_T>::type> const*, std::vector<_T>*>::type _data): m_data(_data->data()), m_count(_data->size()) 
     {
-        // LOG_GENERAL(INFO, "count " << std::to_string(_data->size() / sizeof(_T)));
-        // LOG_GENERAL(INFO, "count " << std::to_string(m_count));
     }
     /// Creates a new vector_ref pointing to the data part of a string (given as reference).
     vector_ref(typename std::conditional<std::is_const<_T>::value, std::string const&, std::string&>::type _data): m_data(reinterpret_cast<_T*>(_data.data())), m_count(_data.size() / sizeof(_T)) 
     {
-        // LOG_GENERAL(INFO, "count " << std::to_string(_data->size() / sizeof(_T)));
-        // LOG_GENERAL(INFO, "count " << std::to_string(m_count));
     }
 //#if DEV_LDB
     vector_ref(ldb::Slice const& _s): m_data(reinterpret_cast<_T*>(_s.data())), m_count(_s.size() / sizeof(_T)) {}
@@ -67,12 +62,7 @@ public:
 
     template <class _T2> explicit operator vector_ref<_T2>() const
     {
-        if(m_count * sizeof(_T) / sizeof(_T2) * sizeof(_T2) / sizeof(_T) != m_count)
-        {
-            LOG_GENERAL(FATAL,
-                        "assertion failed (" << __FILE__ << ":" << __LINE__ << ": "
-                                             << __FUNCTION__ << ")");
-        }
+        ZIL_FATAL_ASSERT(m_count * sizeof(_T) / sizeof(_T2) * sizeof(_T2) / sizeof(_T) == m_count);
         return vector_ref<_T2>(reinterpret_cast<_T2*>(m_data), m_count * sizeof(_T) / sizeof(_T2));
     }
     operator vector_ref<_T const>() const { return vector_ref<_T const>(m_data, m_count); }

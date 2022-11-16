@@ -28,6 +28,11 @@
 #include <unordered_map>
 #include <vector>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include <boost/multiprecision/cpp_int.hpp>
+#pragma GCC diagnostic pop
+
 #include "vector_ref.h"
 
 // Binary data types.

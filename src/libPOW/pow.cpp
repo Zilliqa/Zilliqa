@@ -269,7 +269,7 @@ ethash_mining_result_t POW::MineGetWork(uint64_t blockNum,
       BlockhashToHexString(DifficultyLevelInIntDevided(difficulty));
   std::string headerStr = BlockhashToHexString(headerHash);
 
-  PoWWorkPackage work = {headerStr, seed, boundary, blockNum, difficulty};
+  PoWWorkPackage work{headerStr, seed, boundary, blockNum, difficulty};
 
   GetWorkServer::GetInstance().StartMining(work);
   auto result = GetWorkServer::GetInstance().GetResult(timeWindow);

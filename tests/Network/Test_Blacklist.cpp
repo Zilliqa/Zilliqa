@@ -24,11 +24,15 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(blacklist)
 
 BOOST_AUTO_TEST_CASE(test_fundamental) {
-  INIT_STDOUT_LOGGER();
-
   Blacklist& bl = Blacklist::GetInstance();
   bl.Clear();
 
@@ -82,8 +86,6 @@ BOOST_AUTO_TEST_CASE(test_fundamental) {
 }
 
 BOOST_AUTO_TEST_CASE(test_pop) {
-  INIT_STDOUT_LOGGER();
-
   Blacklist& bl = Blacklist::GetInstance();
   bl.Clear();
 

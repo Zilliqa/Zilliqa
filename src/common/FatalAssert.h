@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
+#ifndef ZILLIQA_SRC_COMMON_FATALASSERT_H_
+#define ZILLIQA_SRC_COMMON_FATALASSERT_H_
 
-#include <unordered_set>
-#include <vector>
+#include <g3log/g3log.hpp>
 
-#include "common/Constants.h"
-#include "depends/common/FixedHash.h"
+#define ZIL_FATAL_ASSERT(cond)        \
+  if (!(cond)) {                      \
+    LOG(FATAL) << "assertion failed"; \
+  }
 
-using Address = dev::h160;  // earlier it was std::array<unsigned char,
-                            // ACC_ADDR_SIZE>; ACC_ADDR_SIZE = 20
-using Addresses = std::vector<Address>;
-using AddressHashSet = std::unordered_set<Address>;
-
-const Address NullAddress;
-
-inline bool IsNullAddress(const Address& address) { return !address; }
-
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
+#endif  // ZILLIQA_SRC_COMMON_FATALASSERT_H_

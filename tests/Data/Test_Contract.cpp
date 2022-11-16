@@ -88,10 +88,15 @@ TxBlock constructDummyTxBlock(int instanceNum) {
       vector<MicroBlockInfo>(1), CoSignatures());
 }
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(contracttest)
 
 BOOST_AUTO_TEST_CASE(loopytreecall) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   LOG_GENERAL(INFO, "loopy-tree-call started")
@@ -186,7 +191,6 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
 }
 
 BOOST_AUTO_TEST_CASE(salarybot) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -295,7 +299,6 @@ BOOST_AUTO_TEST_CASE(salarybot) {
 }
 
 BOOST_AUTO_TEST_CASE(timestamp) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -394,7 +397,6 @@ BOOST_AUTO_TEST_CASE(timestamp) {
 }
 
 BOOST_AUTO_TEST_CASE(chainid) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -481,7 +483,6 @@ BOOST_AUTO_TEST_CASE(chainid) {
   codehashOnNonExistenceAddr - No codehash
 */
 BOOST_AUTO_TEST_CASE(codehashOnContract) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -564,7 +565,6 @@ BOOST_AUTO_TEST_CASE(codehashOnContract) {
 }
 
 BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -696,7 +696,6 @@ BOOST_AUTO_TEST_CASE(codehashOnLibrary) {
 }
 
 BOOST_AUTO_TEST_CASE(codehashOnAccount) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -777,7 +776,6 @@ BOOST_AUTO_TEST_CASE(codehashOnAccount) {
 }
 
 BOOST_AUTO_TEST_CASE(codehashOnNonExistenceAddr) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -854,7 +852,6 @@ BOOST_AUTO_TEST_CASE(codehashOnNonExistenceAddr) {
 
 // Scilla Library
 BOOST_AUTO_TEST_CASE(testScillaLibrary) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -1033,7 +1030,6 @@ BOOST_AUTO_TEST_CASE(testScillaLibrary) {
 
 // Create Transaction to create contract
 BOOST_AUTO_TEST_CASE(testCrowdfunding) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner(priv1, {priv1}), donor1(priv2, {priv2}),
@@ -1278,7 +1274,6 @@ BOOST_AUTO_TEST_CASE(testCrowdfunding) {
 }
 
 BOOST_AUTO_TEST_CASE(testPingPong) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner(priv1, {priv1}), ping(priv2, {priv2}), pong(priv3, {priv3});
@@ -1438,7 +1433,6 @@ BOOST_AUTO_TEST_CASE(testPingPong) {
 }
 
 BOOST_AUTO_TEST_CASE(testChainCalls) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}),
@@ -1612,7 +1606,6 @@ BOOST_AUTO_TEST_CASE(testChainCalls) {
 }
 
 BOOST_AUTO_TEST_CASE(testAddFunds) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey owner(priv1, {priv1}), contrA(priv2, {priv2}),
@@ -1746,7 +1739,6 @@ BOOST_AUTO_TEST_CASE(testAddFunds) {
 
 // Comment due to deprecated function used
 BOOST_AUTO_TEST_CASE(testStoragePerf) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   PairOfKey ownerKeyPair(priv1, {priv1});
@@ -1873,7 +1865,6 @@ BOOST_AUTO_TEST_CASE(testStoragePerf) {
 }
 
 BOOST_AUTO_TEST_CASE(testFungibleToken) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   // 1. Bootstrap our test case.
@@ -2006,7 +1997,6 @@ BOOST_AUTO_TEST_CASE(testFungibleToken) {
 }
 
 BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   // 1. Bootstrap test case
@@ -2231,7 +2221,6 @@ BOOST_AUTO_TEST_CASE(testNonFungibleToken) {
 }
 
 BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   // Disable pretty printing of Scilla literals. This will ensure
@@ -2543,7 +2532,6 @@ BOOST_AUTO_TEST_CASE(testRemoteStateReads) {
 }
 
 // BOOST_AUTO_TEST_CASE(testDEX) {
-//   INIT_STDOUT_LOGGER();
 //   LOG_MARKER();
 
 //   // 1. Bootstrap test case

@@ -105,6 +105,12 @@ void ShardCountTestMain(const uint32_t shardSize,
   }
 }
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 
 #define TD_i td_i
@@ -112,7 +118,6 @@ BOOST_AUTO_TEST_SUITE(shardsizecalculator)
 #define NUMOFNODES_v td_i.second
 
 BOOST_AUTO_TEST_CASE(test_shard_size_bounds) {
-  INIT_STDOUT_LOGGER();
   ShardSizeMap testData;
   prepareTestdata(testData);
   for (auto const& TD_i : testData) {
@@ -128,8 +133,6 @@ BOOST_AUTO_TEST_CASE(test_shard_size_bounds) {
 
 // Right now the result for this test needs to be inspected visually
 BOOST_AUTO_TEST_CASE(test_shard_count_generation) {
-  INIT_STDOUT_LOGGER();
-
   // ShardCountTestMain(20, 10, 0, 0, 60);
   // ShardCountTestMain(20, 5, 5, 0, 60);
   // ShardCountTestMain(600, 0, 0, 590, 610);
