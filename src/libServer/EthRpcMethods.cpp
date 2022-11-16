@@ -631,7 +631,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "data argument invalid");
     }
   }
-  std::transform(data.begin(), data.end(), data.begin(), ::toupper);
 
   uint256_t value = 0;
   if (json.isMember("value")) {
@@ -704,20 +703,19 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
   }
-  args.set_estimate(false);
+  args.set_estimate(true);
 
   evm::EvmResult result;
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
-
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : 0;
-    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS) * 2;
+    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
@@ -1386,7 +1384,6 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const std::string& txnhash) {
-
   try {
     TxnHash argHash{txnhash};
     TxBodySharedPtr transactionBodyPtr;
