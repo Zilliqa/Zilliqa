@@ -2933,7 +2933,6 @@ bool Lookup::ProcessSetMinerInfoFromSeed(
 bool Lookup::ProcessSetTxBlockFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-  // #ifndef IS_LOOKUP_NODE
   LOG_MARKER();
 
   if (AlreadyJoinedNetwork()) {

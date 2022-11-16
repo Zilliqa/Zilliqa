@@ -624,7 +624,7 @@ void dumpParams(const EvmProcessContext& ctx, const bool& contractCreation,
   std::cout << "To Address " << to.hex() << std::endl;
 }
 
-}
+}  // namespace
 
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
