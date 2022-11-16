@@ -160,7 +160,7 @@ EvmProcessContext::EvmProcessContext(const DirectCall& params,
       m_commit(commit),
       m_extras(extras),
       m_versionIdentifier(TRANSACTION_VERSION_ETH),
-      m_onlyEstimate(estimate){
+      m_onlyEstimate(estimate) {
   m_ethTransaction = true;
   m_direct = true;
   m_contractType =
@@ -186,7 +186,8 @@ bool EvmProcessContext::GetEstimateOnly() const { return m_onlyEstimate; }
  * */
 
 Transaction::ContractType EvmProcessContext::GetContractType() const {
-  return m_contractType;
+  return this->GetInternalType(m_innerData.m_contract, m_innerData.m_code,
+                               m_innerData.m_data);
 }
 
 /*
@@ -527,8 +528,7 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
       DataConversion::CharArrayToString(StripEVM(m_innerData.m_code));
   *arg.mutable_data() = DataConversion::CharArrayToString(m_innerData.m_data);
   arg.set_gas_limit(GetGasLimitEth());
-  *arg.mutable_apparent_value() =
-      UIntToProto(GetAmountWei());
+  *arg.mutable_apparent_value() = UIntToProto(GetAmountWei());
   arg.set_estimate(true);
   if (!GetEvmEvalExtras(m_innerData.m_blkNum, m_extras,
                         *arg.mutable_extras())) {
@@ -545,6 +545,24 @@ bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
  * Determine the type of call that is required by Evm Processing
  *
  * This is copied from the transaction class
+ *
+ * static ContractType GetTransactionType(const Transaction& tx) {
+ * auto const nullAddr = IsNullAddress(tx.GetToAddr());
+ *
+ * if ((!tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
+ *    return CONTRACT_CALL;
+ * }
+ *
+ * if (!tx.GetCode().empty() && nullAddr) {
+ *    return CONTRACT_CREATION;
+ * }
+ *
+ * if ((tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
+ *     return NON_CONTRACT;
+ * }
+ *
+ * return ERROR;
+ *}
  */
 Transaction::ContractType EvmProcessContext::GetInternalType(
     const Address& contractAddr, const zbytes& code, const zbytes& data) const {
@@ -562,5 +580,5 @@ Transaction::ContractType EvmProcessContext::GetInternalType(
     return Transaction::NON_CONTRACT;
   }
 
-  return Transaction::NON_CONTRACT;
+  return Transaction::ERROR;
 }

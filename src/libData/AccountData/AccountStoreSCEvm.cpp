@@ -276,12 +276,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
 
-#ifdef ACT_LIKE_A_BABY
+#ifndef TESTING_COMPROMISED
+  /*
+   * This section of code is a very direct call to the evm-ds
+   * This will be removed when we fix the transaction detection code.
+   */
   if (evmContext.GetDirect()) {
-    evm::EvmArgs args = evmContext.GetEvmArgs();
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
-        EvmUtils::GetEvmCallJson(args), res);
+        EvmUtils::GetEvmCallJson(evmContext.GetEvmArgs()), res);
     evmContext.SetEvmResult(res);
     return status;
   }
@@ -493,8 +496,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
       m_curBlockNum = blockNum;
+      std::cout << "contract size [" << contractAccount->GetCode().size() << std::endl;
       evmContext.SetCode(contractAccount->GetCode());
-      evmContext.GetBaseFee();
+      uint64_t baseFee = evmContext.GetBaseFee();
+      std::cout << "call base Fee [" << baseFee << std::endl;
       DiscardAtomics();
       const uint128_t amountToDecrease =
           uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};

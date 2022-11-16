@@ -560,7 +560,6 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string& address) {
 }
 
 string EthRpcMethods::GetEthCallZil(const Json::Value& _json) {
-
   return this->GetEthCallImpl(
       _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
 }
@@ -574,8 +573,63 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
 
+namespace {
+void dumpFirstTenBytes(zbytes arr) {
+  int count = 0;
+  for (auto cc : DataConversion::Uint8VecToHexStrRet(arr)) {
+    std::cout << cc << " ";
+    if (count++ == 10) break;
+  }
+  std::cout << std::endl;
+}
+
+void dumpParams(const EvmProcessContext& ctx, const bool& contractCreation,
+                const Json::Value& json, const zbytes& Code, const zbytes& Data,
+                const Address& from, const Address& to) {
+  std::cout << "Input to GetEstimate Gas was =>>" << json << std::endl;
+  Transaction::ContractType test = ctx.GetContractType();
+
+  switch (test) {
+    case Transaction::CONTRACT_CREATION: {
+      LOG_GENERAL(INFO, "Contract Creation (Create Contract="
+                            << std::boolalpha << contractCreation << ")");
+      break;
+    }
+    case Transaction::CONTRACT_CALL: {
+      LOG_GENERAL(INFO, "Contract Call (Create Contract="
+                            << std::boolalpha << contractCreation << ")");
+      break;
+    }
+    case Transaction::NON_CONTRACT: {
+      LOG_GENERAL(INFO, "Non Contract");
+      break;
+    }
+    case Transaction::ERROR: {
+      LOG_GENERAL(INFO, "Contract Error (Create Contract="
+                            << std::boolalpha << contractCreation << ")");
+      break;
+    }
+    default:
+      LOG_GENERAL(INFO, "Unknown (Create Contract=" << std::boolalpha
+                                                    << contractCreation << ")");
+      break;
+  }
+  std::cout << "Code length " << Code.size() << " Contents [";
+  dumpFirstTenBytes(Code);
+
+  std::cout << "Data length " << Data.size() << " Contents [";
+  dumpFirstTenBytes(Data);
+
+  std::cout << "From Address " << from.hex() << std::endl;
+  std::cout << "To Address " << to.hex() << std::endl;
+}
+
+};  // namespace
+
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
+
+  std::cout << "Processing start " << std::endl;
 
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
@@ -630,6 +684,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");
     }
+    std::cout << "Set Data" << std::endl;
+  } else {
+    data.clear();
   }
 
   uint256_t value = 0;
@@ -672,7 +729,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(4 * DS_MICROBLOCK_GAS_LIMIT);
 
   // Use gas specified by user
   if (json.isMember("gas")) {
@@ -696,36 +753,23 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   dev::h256 ourTranId(simHash++);
   zbytes dummy{};
 
-  EvmProcessContext::DirectCall evmParams = {fromAddr,
-                                             toAddr,
-                                             not code.empty() ? code : dummy,
-                                             not data.empty() ? data : dummy,
-                                             gas,
-                                             value,
-                                             ourTranId,
-                                             blockNum};
-
-  EvmProcessContext evmMessageContext(evmParams, txnExtras, true, false);
-  // evmParams && txnExtras have been moved.
-  evm::EvmResult result;
   /*
-   * The old way that works
+   * EVM estimate only is currently disabled, as per n-hutton advice.
    */
-  evm::EvmArgs args;
-  *args.mutable_address() = AddressToProto(toAddr);
-  *args.mutable_origin() = AddressToProto(fromAddr);
-  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
-  *args.mutable_data() = DataConversion::CharArrayToString(data);
-  args.set_gas_limit(gas);
-  *args.mutable_apparent_value() = UIntToProto(value);
-  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
-    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                           "Failed to get EVM call extras");
+  EvmProcessContext evmMessageContext(
+      {fromAddr, toAddr, code, data, gas, value, ourTranId, blockNum},
+      txnExtras, false, false);
+
+  if (LOG_SC &&
+      evmMessageContext.GetContractType() == Transaction::ContractType::ERROR) {
+    dumpParams(evmMessageContext, contractCreation, json, code, data, fromAddr,
+               toAddr);
   }
-  args.set_estimate(true);
 
+  evm::EvmResult result;
 
-  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result) &&
+  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
+                                                    result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
@@ -743,7 +787,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
-
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
@@ -759,7 +802,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            EvmUtils::ExitReasonString(result.exit_reason()));
   }
 }
-
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                                      const ApiKeys& apiKeys) {
