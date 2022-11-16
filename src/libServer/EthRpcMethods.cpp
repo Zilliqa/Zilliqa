@@ -866,14 +866,12 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     dev::h256 ourTranId(simHash++);
     zbytes dummy{};
 
-    /*
-     * EVM estimate only is currently disabled, as per n-hutton advice.
-     */
     EvmProcessContext evmMessageContext(
         {fromAddr, addr, code, data, gasRemained, value, ourTranId, blockNum},
         txnExtras, false, false);
 
-    if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result) &&
+    if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
+                                                      result) &&
         result.exit_reason().exit_reason_case() ==
             evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;

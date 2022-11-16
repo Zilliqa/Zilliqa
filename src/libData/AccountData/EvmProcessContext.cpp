@@ -92,7 +92,6 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
  */
 
 bool EvmProcessContext::Validate() {
-
   if (m_contractType == Transaction::ERROR) {
     m_errorCode = TxnStatus::ERROR;
     m_status = false;

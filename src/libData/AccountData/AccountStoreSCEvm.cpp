@@ -253,15 +253,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             EvmProcessContext& evmContext) {
   LOG_MARKER();
 
-  /*
-   * Some preliminary debug code
-   */
-
-  {
-    LOG_GENERAL(INFO,
-                "Commit Context Mode="
-                    << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
-  }
+  LOG_GENERAL(INFO,
+              "Commit Context Mode="
+                  << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
@@ -276,7 +270,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
 
-
   /*
    * This section of code is a very direct call to the evm-ds
    * This will be removed when we fix the transaction detection code.
@@ -288,7 +281,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
     evmContext.SetEvmResult(res);
     return status;
   }
-
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
