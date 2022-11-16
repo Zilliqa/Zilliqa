@@ -139,7 +139,7 @@ async fn run_evm_impl(
             backend.extras, estimate);
         let code = Rc::new(code);
         let data = Rc::new(data);
-        let config = evm::Config { estimate, ..evm::Config::london()};
+        let config = evm::Config { estimate, call_l64_after_gas: false, ..evm::Config::london()};
         let context = evm::Context {
             address,
             caller: backend.origin,
