@@ -237,8 +237,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                          TransactionReceipt& receipt, TxnStatus& error_code,
                          EvmProcessContext& evmContext);
 
-  /// New processing routine to supercede ViewAccounts.
-
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,
       std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
