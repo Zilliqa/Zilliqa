@@ -38,8 +38,13 @@ using namespace std;
 
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_CASE(test1) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   Address toAddr;
@@ -176,7 +181,6 @@ BOOST_AUTO_TEST_CASE(test1) {
 }
 
 BOOST_AUTO_TEST_CASE(testOperators) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   TxnHash txH1 = TxnHash();
@@ -197,7 +201,6 @@ BOOST_AUTO_TEST_CASE(testOperators) {
 
 // Coverage of MBnForwardedTxnEntry
 BOOST_AUTO_TEST_CASE(coveragembnforwardedtxnentry) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   MBnForwardedTxnEntry mf;

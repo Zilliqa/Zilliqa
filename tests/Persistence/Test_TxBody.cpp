@@ -36,6 +36,12 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(persistencetest)
 
 TransactionWithReceipt constructDummyTxBody(int instanceNum) {
@@ -54,8 +60,6 @@ TransactionWithReceipt constructDummyTxBody(int instanceNum) {
 }
 
 BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   // checking if normal serialization and deserialization of blocks is working
@@ -75,8 +79,6 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
 }
 
 BOOST_AUTO_TEST_CASE(testBlockStorage) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     TransactionWithReceipt body1 = constructDummyTxBody(0);
@@ -97,8 +99,6 @@ BOOST_AUTO_TEST_CASE(testBlockStorage) {
 }
 
 BOOST_AUTO_TEST_CASE(testTRDeserializationFromFile) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   // checking if serialization and deserialization of TransactionWithReceipt
@@ -164,8 +164,6 @@ BOOST_AUTO_TEST_CASE(testTRDeserializationFromFile) {
 }
 
 BOOST_AUTO_TEST_CASE(testRandomBlockAccesses) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
   if (LOOKUP_NODE_MODE) {
     TransactionWithReceipt body1 = constructDummyTxBody(1);

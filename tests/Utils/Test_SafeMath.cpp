@@ -24,11 +24,15 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(safemath)
 
 BOOST_AUTO_TEST_CASE(test_uint8_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test uint8_t start...");
 
   uint8_t num1 = 0x0F, num2 = 0x0B, addRes, subRes1, subRes2, subRes3;
@@ -71,8 +75,6 @@ BOOST_AUTO_TEST_CASE(test_uint8_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_uint16_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test uint16_t start...");
 
   uint16_t num1 = 0x0FFF, num2 = 0x0BBB, addRes, subRes1, subRes2, subRes3;
@@ -115,8 +117,6 @@ BOOST_AUTO_TEST_CASE(test_uint16_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_uint32_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test uint32_t start...");
 
   uint32_t num1 = 0x0000FFFF, num2 = 0x00000BBB, addRes, subRes1, subRes2,
@@ -160,8 +160,6 @@ BOOST_AUTO_TEST_CASE(test_uint32_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_uint64_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test uint64_t start...");
 
   uint64_t num1 = 0x000FFFFFFFFFFFFF, num2 = 0x00BBBBBBBBBBBBBB, addRes,
@@ -205,8 +203,6 @@ BOOST_AUTO_TEST_CASE(test_uint64_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_uint128_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_uint128_t start...");
 
   uint128_t num1("0x0FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"),
@@ -251,8 +247,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint128_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_uint256_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_uint256_t start...");
 
   uint256_t num1(
@@ -306,8 +300,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint256_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_uint512_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_uint512_t start...");
 
   boost::multiprecision::uint512_t num1(
@@ -379,8 +371,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint512_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_uint1024_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_uint1024_t start...");
 
   boost::multiprecision::uint1024_t num1(
@@ -467,8 +457,6 @@ BOOST_AUTO_TEST_CASE(test_boost_uint1024_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_int8_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test int8_t start...");
 
   int8_t num1 = std::numeric_limits<int8_t>::max(), num2 = 1, addRes1, addRes2,
@@ -543,8 +531,6 @@ BOOST_AUTO_TEST_CASE(test_int8_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_int16_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test int16_t start...");
 
   int16_t num1 = std::numeric_limits<int16_t>::max(), num2 = 1, addRes1,
@@ -619,8 +605,6 @@ BOOST_AUTO_TEST_CASE(test_int16_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_int32_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test int32_t start...");
 
   int32_t num1 = std::numeric_limits<int32_t>::max(), num2 = 1, addRes1,
@@ -695,8 +679,6 @@ BOOST_AUTO_TEST_CASE(test_int32_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_int64_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test int64_t start...");
 
   int64_t num1 = std::numeric_limits<int64_t>::max(), num2 = 1, addRes1,
@@ -771,8 +753,6 @@ BOOST_AUTO_TEST_CASE(test_int64_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_int128_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_int128_t start...");
 
   boost::multiprecision::int128_t
@@ -861,8 +841,6 @@ BOOST_AUTO_TEST_CASE(test_boost_int128_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_int256_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_int256_t start...");
 
   boost::multiprecision::int256_t
@@ -951,8 +929,6 @@ BOOST_AUTO_TEST_CASE(test_boost_int256_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_int512_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_int512_t start...");
 
   boost::multiprecision::int512_t
@@ -1041,8 +1017,6 @@ BOOST_AUTO_TEST_CASE(test_boost_int512_t) {
 }
 
 BOOST_AUTO_TEST_CASE(test_boost_int1024_t) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Test boost_int1024_t start...");
 
   boost::multiprecision::int1024_t
