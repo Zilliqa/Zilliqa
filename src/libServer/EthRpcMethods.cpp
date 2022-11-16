@@ -861,19 +861,19 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
                             .GetHeader()
                             .GetBlockNum();
-    evm::EvmArgs args;
-    *args.mutable_address() = AddressToProto(addr);
-    *args.mutable_origin() = AddressToProto(fromAddr);
-    *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
-    *args.mutable_data() = DataConversion::CharArrayToString(data);
-    args.set_gas_limit(gasRemained);
-    *args.mutable_apparent_value() = UIntToProto(value);
-    if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
-      throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
-                             "Failed to get EVM call extras");
-    }
 
-    if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+    static int simHash = 1;
+    dev::h256 ourTranId(simHash++);
+    zbytes dummy{};
+
+    /*
+     * EVM estimate only is currently disabled, as per n-hutton advice.
+     */
+    EvmProcessContext evmMessageContext(
+        {fromAddr, addr, code, data, gasRemained, value, ourTranId, blockNum},
+        txnExtras, false, false);
+
+    if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result) &&
         result.exit_reason().exit_reason_case() ==
             evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;
