@@ -496,10 +496,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         return false;
       }
       m_curBlockNum = blockNum;
-      std::cout << "contract size [" << contractAccount->GetCode().size() << std::endl;
       evmContext.SetCode(contractAccount->GetCode());
       uint64_t baseFee = evmContext.GetBaseFee();
-      std::cout << "call base Fee [" << baseFee << std::endl;
       DiscardAtomics();
       const uint128_t amountToDecrease =
           uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
