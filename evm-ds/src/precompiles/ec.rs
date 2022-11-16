@@ -51,9 +51,7 @@ pub(crate) fn ec_add(
 
     Ok(PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost: ADD_COST,
         output: output.to_vec(),
-        logs: vec![],
     })
 }
 
@@ -93,9 +91,7 @@ pub(crate) fn ec_mul(
 
     Ok(PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost: MUL_COST,
         output: output.to_vec(),
-        logs: vec![],
     })
 }
 
@@ -125,7 +121,7 @@ pub(crate) fn ec_pairing(
             let a = parse_point(p[0..64].try_into().unwrap())?;
             let b = parse_point_g2(p[64..192].try_into().unwrap())?;
 
-            Ok((a, b))
+            Ok::<(G1, G2), PrecompileFailure>((a, b))
         })
         .collect();
     let points = points?;
@@ -141,9 +137,7 @@ pub(crate) fn ec_pairing(
 
     Ok(PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost,
         output: output.to_vec(),
-        logs: vec![],
     })
 }
 

@@ -29,9 +29,7 @@ pub(crate) fn sha2_256(
     use sha2::Digest;
     let output = sha2::Sha256::digest(input).to_vec();
     Ok(PrecompileOutput {
-        cost,
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output,
     })
 }

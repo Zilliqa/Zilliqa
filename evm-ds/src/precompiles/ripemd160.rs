@@ -31,9 +31,7 @@ pub(crate) fn ripemd160(
     output[12..].copy_from_slice(&hash);
 
     Ok(PrecompileOutput {
-        cost,
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output,
     })
 }

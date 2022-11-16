@@ -178,9 +178,7 @@ pub(crate) fn blake2(
 
     let output = f(h, m, t, finished, rounds);
     Ok(PrecompileOutput {
-        cost,
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output,
     })
 }

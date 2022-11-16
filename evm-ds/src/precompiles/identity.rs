@@ -27,9 +27,7 @@ pub(crate) fn identity(
     }
 
     Ok(PrecompileOutput {
-        cost: gas_needed,
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output: input.to_vec(),
     })
 }

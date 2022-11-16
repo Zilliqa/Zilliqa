@@ -3,6 +3,7 @@ use byteorder::{BigEndian, ByteOrder};
 use bytes::Bytes;
 use primitive_types::*;
 use std::ops::Shr;
+use evm::backend::{Log};
 
 impl From<H160> for EvmProto::Address {
     fn from(address: H160) -> Self {
@@ -59,8 +60,8 @@ impl From<H256> for EvmProto::H256 {
     }
 }
 
-impl From<ethereum::Log> for EvmProto::EvmLog {
-    fn from(log: ethereum::Log) -> Self {
+impl From<Log> for EvmProto::EvmLog {
+    fn from(log: Log) -> Self {
         let mut evm_log = EvmProto::EvmLog::new();
         evm_log.set_address(log.address.into());
         evm_log.set_topics(log.topics.into_iter().map(Into::into).collect());

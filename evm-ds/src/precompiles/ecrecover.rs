@@ -41,9 +41,7 @@ pub(crate) fn ecrecover(
         _ => {
             return Ok(PrecompileOutput {
                 exit_status: ExitSucceed::Returned,
-                cost,
                 output: vec![],
-                logs: vec![],
             })
         }
     };
@@ -61,9 +59,7 @@ pub(crate) fn ecrecover(
 
     Ok(PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost,
         output,
-        logs: vec![],
     })
 }
 
