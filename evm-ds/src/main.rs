@@ -3,6 +3,8 @@
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
 
+extern crate core;
+
 mod convert;
 mod ipc_connect;
 mod precompiles;
@@ -17,11 +19,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 use clap::Parser;
-use evm::{
-    backend::Apply,
-    executor::stack::{MemoryStackState, StackSubstateMetadata},
-    tracing,
-};
+use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}, tracing};
 use futures::FutureExt;
 
 use log::{debug, error, info};
@@ -362,3 +360,4 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+

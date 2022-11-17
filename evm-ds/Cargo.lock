@@ -412,7 +412,6 @@ dependencies = [
  "fixed-hash 0.8.0",
  "impl-codec",
  "impl-rlp",
- "impl-serde",
  "scale-info",
  "tiny-keccak",
 ]
@@ -479,7 +478,6 @@ dependencies = [
  "fixed-hash 0.8.0",
  "impl-codec",
  "impl-rlp",
- "impl-serde",
  "primitive-types 0.12.1",
  "scale-info",
  "uint",
