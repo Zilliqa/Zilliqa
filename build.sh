@@ -241,7 +241,7 @@ else
 fi
 
 if [ -z ${INSTALL_DIR} ]; then
-  install_dir=..
+  install_dir="${BUILD_DIR}/install"
 else
   install_dir="${INSTALL_DIR}"
 fi

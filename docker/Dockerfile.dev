@@ -1,0 +1,38 @@
+# Copyright (C) 2022 Zilliqa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+FROM zilliqa/zilliqa:v0.0.0-deps
+
+# Manually input tag or commit, can be overwritten by docker build-args
+ARG COMMIT_OR_TAG=master
+ARG REPO=https://github.com/Zilliqa/Zilliqa.git
+ARG SOURCE_DIR=/zilliqa
+ARG BUILD_DIR=/build
+ARG VCPKG_ROOT=/vcpkg
+
+# If COMMIT_OR_TAG is a branch name or a tag, clone a shallow copy which is
+# faster; if this fails, just clone the full repo and checkout the commit.
+RUN git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} \
+  || git clone ${REPO} ${SOURCE_DIR}
+RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
+
+# Build both debug & release
+WORKDIR ${SOURCE_DIR}
+RUN ./build.sh ninja
+RUN rm -rf "${BUILD_DIR}/CMake*" && ./build.sh ninja debug
+
+WORKDIR /
+RUN rm -rf ${SOURCE_DIR}
+RUN rm -rf ${BUILD_DIR}
