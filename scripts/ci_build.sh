@@ -86,7 +86,7 @@ fi
 
 # assume that it is run from project root directory
 cmake -G Ninja -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${triplet}
-cmake --build ${dir} --config Debug -j ${n_parallel}
+cmake --build ${dir} --config Debug
 
 # remember to append `|| exit` after the commands added in if-then-else
 if [ "$os" = "Linux" ]
@@ -96,7 +96,7 @@ then
     ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
     ./scripts/license_checker.sh || exit 1
     ./scripts/depends/check_guard.sh || exit 1
-    cmake --build ${dir} --target clang-format || exit 1
+    #cmake --build ${dir} --target clang-format || exit 1
     #cmake --build ${dir} --target clang-tidy || exit 1
     # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
     cmake --build ${dir} --target Zilliqa_coverage || exit 1
