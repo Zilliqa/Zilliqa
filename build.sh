@@ -69,8 +69,6 @@ else
   ccache -s
 fi
 
-dir=build
-
 run_clang_format_fix=0
 run_clang_tidy_fix=0
 run_code_coverage=0
@@ -233,11 +231,30 @@ do
     esac
 done
 
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
-if [ ${parallelize} -ne 0 ]; then
-  cmake --build ${dir} --config ${build_type}  -j${n_parallel}
+# TODO: ideally these should be passed into the command line but at the
+#       moment the script doesn't accept argument value so for simplicity
+#       we use environment variables at the moment.
+if [ -z ${BUILD_DIR} ]; then
+  build_dir=build
 else
-  cmake --build ${dir} --config ${build_type}
+  build_dir="${BUILD_DIR}"
+fi
+
+if [ -z ${INSTALL_DIR} ]; then
+  install_dir=..
+else
+  install_dir="${INSTALL_DIR}"
+fi
+
+echo "Currenct directory: $(pwd)"
+echo "Build directory: ${build_dir}"
+echo "Install directory: ${install_dir}"
+
+cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+if [ ${parallelize} -ne 0 ]; then
+  cmake --build "${build_dir}" --config ${build_type} -j${n_parallel}
+else
+  cmake --build "${build_dir}" --config ${build_type}
 fi
 
 if command -v ccache &> /dev/null; then
@@ -250,7 +267,7 @@ fi
 ./scripts/ci_xml_checker.sh constants_local.xml
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
 
-if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build ${dir} --config ${build_type} --target clang-tidy-fix; fi
-if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build ${dir} --config ${build_type} --target clang-format-fix; fi
-if [ ${run_code_coverage} -ne 0 ]; then cmake --build ${dir} --config ${build_type} --target Zilliqa_coverage; fi
+if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-tidy-fix; fi
+if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-format-fix; fi
+if [ ${run_code_coverage} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target Zilliqa_coverage -j${n_parallel}; fi
 
