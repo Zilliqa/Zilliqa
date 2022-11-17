@@ -23,7 +23,9 @@ describe("Openzeppelin ownable contract functionality", function () {
   it("should not be possible to call a restricted function using an arbitrary account", async function () {
     const [_, notOwner] = await ethers.getSigners();
 
-    await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(contract.connect(notOwner).store(123, {gasLimit: 1_000_000})).to.be.revertedWith(
+      "Ownable: caller is not the owner"
+    );
   });
 
   it("should be possible to call a unrestricted function", async function () {
