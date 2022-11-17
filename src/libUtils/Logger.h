@@ -98,13 +98,15 @@ class Logger {
 
   // Auxiliary class to mark the beginning & end of a scope.
   struct ScopeMarker final {
-    ScopeMarker(const char* file, int line, const char* func);
+    ScopeMarker(const char* file, int line, const char* func,
+                bool should_print = true);
     ~ScopeMarker();
 
    private:
     std::string m_file;
     int m_line;
     std::string m_func;
+    bool should_print;
 
     ScopeMarker(const ScopeMarker&) = delete;
     ScopeMarker& operator=(const ScopeMarker&) = delete;
@@ -130,6 +132,9 @@ class Logger {
 
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
+
+#define LOG_MARKER_CONTITIONAL(conditional) \
+  Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__, conditional};
 
 #define LOG_EPOCH(level, epoch, msg)                                  \
   {                                                                   \
