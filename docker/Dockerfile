@@ -19,10 +19,7 @@ FROM zilliqa/scilla:v0.13.0 AS scilla
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
 # start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM zilliqa:dev AS builder
-
-# Prepare a (vcpkg) python environment separate from the system-wide one
-RUN apt-get remove -y python3 cmake && apt-get autoremove -y
+FROM zilliqa:ccache AS builder
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
@@ -30,29 +27,21 @@ ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/zilliqa
 ARG BUILD_DIR=/build
 ARG INSTALL_DIR=/usr/local
-ARG EXTRA_CMAKE_ARGS=
 ARG VCPKG_ROOT=/vcpkg
 
-# If COMMIT_OR_TAG is a branch name or a tag, clone a shallow copy which is
-# faster; if this fails, just clone the full repo and checkout the commit.
-RUN git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} \
-  || git clone ${REPO} ${SOURCE_DIR}
-RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
-
-# Build
-WORKDIR ${SOURCE_DIR}
-RUN ./build.sh ninja
-
-# Install
-RUN cmake --build "${BUILD_DIR}" --target install
-
-# Compile & Install EVM
-RUN cd $SOURCE_DIR/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
+# Build & install Zilliqa
+RUN (( git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} || git clone ${REPO} ${SOURCE_DIR} )) \
+  && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
+  && cd ${SOURCE_DIR} && BUILD_DIR="${BUILD_DIR}" ./build.sh ninja \
+  && cmake --build "${BUILD_DIR}" --target install
 
 # Make sure all DLLs / shared libraries are installed
 RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
   && cp ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/libffi.so ${INSTALL_DIR}/lib 
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
+
+# Build & install EVM
+RUN cd ${SOURCE_DIR}/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
 
 ARG VCPKG_PYTHON_PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/python3
 ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
@@ -90,21 +79,32 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
 
+FROM zilliqa:base
+
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib \
     /zilliqa/scripts
 
+ARG INSTALL_DIR=/usr/local
+ARG SOURCE_DIR=/zilliqa
+
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
 # pour in scilla conntract stdlibs
 COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
-
-RUN cp ${SOURCE_DIR}/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/ \
-  && cp ${SOURCE_DIR}/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
+# pour in zilliqa scripts
+COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
+# pour in zilliqa binaries and dynnamic libs
+COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
+COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
+COPY --from=builder ${INSTALL_DIR}/lib/python3.10 ${INSTALL_DIR}/lib/python3.10
+COPY --from=builder ${SOURCE_DIR}/evm-ds/target/release/evm-ds ${INSTALL_DIR}/bin/
+COPY --from=builder ${SOURCE_DIR}/evm-ds/log4rs.yml ${INSTALL_DIR}/etc/
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
+ARG PYTHON3_ENV_PATH=${INSTALL_DIR}
 COPY requirements3.txt ./
 RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
   && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
@@ -117,12 +117,6 @@ RUN python3 -m pip install --upgrade pip setuptools wheel \
 RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
   && chmod a+x /usr/bin/pip3 \
   && ln -s /usr/bin/pip3 /usr/bin/pip
-
-RUN rm -rf ${HOME}/.cache
-RUN rm -rf ${VCPKG_ROOT}
-RUN rm -rf ${SOURCE_DIR}
-RUN rm -rf ${BUILD_DIR}
-RUN rm -rf /var/lib/apt/lists/*
 
 ENTRYPOINT ["/bin/bash"]
 
