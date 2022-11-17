@@ -534,15 +534,18 @@ bool AccountStore::UpdateAccountsTemp(
     return false;
   }
   bool status;
-  LOG_GENERAL(WARNING,"[AS] Starting to Process <" << transaction.GetTranID() << ">");
+  LOG_GENERAL(WARNING,
+              "[AS] Starting to Process <" << transaction.GetTranID() << ">");
   if (isEvm) {
     status = m_accountStoreTemp->UpdateAccountsEvm(
         blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
   } else {
-    status = m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                              transaction, receipt, error_code);
+    status = m_accountStoreTemp->UpdateAccounts(
+        blockNum, numShards, isDS, transaction, receipt, error_code);
   }
-  LOG_GENERAL(WARNING,"[AS] Finished Processing <" << transaction.GetTranID() << "> (" << (status ? "Successfully)" : "Failed)"));
+  LOG_GENERAL(WARNING, "[AS] Finished Processing <"
+                           << transaction.GetTranID() << "> ("
+                           << (status ? "Successfully)" : "Failed)"));
   return status;
 }
 
