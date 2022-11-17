@@ -22,6 +22,7 @@
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/range/iterator_range.hpp>
@@ -137,10 +138,9 @@ bool ScillaClient::CheckClient(uint32_t version, bool enforce) {
     return false;
   }
 
-  std::shared_ptr<jsonrpc::UnixDomainSocketClient> conn =
-      std::make_shared<jsonrpc::UnixDomainSocketClient>(
-          SCILLA_SERVER_SOCKET_PATH +
-          (ENABLE_SCILLA_MULTI_VERSION ? ("." + std::to_string(version)) : ""));
+  auto conn = std::make_shared<rpc::UnixDomainSocketClient>(
+      SCILLA_SERVER_SOCKET_PATH +
+      (ENABLE_SCILLA_MULTI_VERSION ? ("." + std::to_string(version)) : ""));
 
   m_connectors[version] = conn;
 

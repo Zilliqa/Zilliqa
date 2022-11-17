@@ -26,6 +26,7 @@
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
+#include "libData/AccountData/UnixDomainSocketClient.h"
 
 #define BOOST_TEST_MODULE scillaipc
 #define BOOST_TEST_DYN_LINK
@@ -71,7 +72,7 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -119,7 +120,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -201,7 +202,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -272,7 +273,7 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -495,7 +496,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -580,7 +581,7 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -644,7 +645,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -734,7 +735,7 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
@@ -820,7 +821,7 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
-  UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
   server.setBCInfoProvider(makeBCInfo());
