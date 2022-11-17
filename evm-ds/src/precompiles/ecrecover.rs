@@ -13,7 +13,7 @@ pub(crate) fn ecrecover(
     gas_limit: Option<u64>,
     _contex: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = ECRECOVER_BASE;
     if let Some(gas_limit) = gas_limit {
         if cost > gas_limit {
@@ -39,12 +39,10 @@ pub(crate) fn ecrecover(
     let v_bit = match v[31] {
         27 | 28 if v[..31] == [0; 31] => v[31] - 27,
         _ => {
-            return Ok(PrecompileOutput {
+            return Ok((PrecompileOutput {
                 exit_status: ExitSucceed::Returned,
-                cost,
                 output: vec![],
-                logs: vec![],
-            })
+            }, cost))
         }
     };
     signature[64] = v_bit; // v
@@ -59,12 +57,10 @@ pub(crate) fn ecrecover(
         Err(_) => Vec::new(),
     };
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost,
         output,
-        logs: vec![],
-    })
+    }, cost))
 }
 
 fn ecrecover_impl(hash: H256, signature: &[u8]) -> Result<Address, ExitError> {

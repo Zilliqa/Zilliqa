@@ -4,6 +4,7 @@
 //! * https://eips.ethereum.org/EIPS/eip-197
 //! * https://eips.ethereum.org/EIPS/eip-1108.
 
+use std::convert::TryInto;
 use evm::{
     executor::stack::{PrecompileFailure, PrecompileOutput},
     Context, ExitError, ExitSucceed,
@@ -20,7 +21,7 @@ pub(crate) fn ec_add(
     gas_limit: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if let Some(gas_limit) = gas_limit {
         if ADD_COST > gas_limit {
             return Err(PrecompileFailure::Error {
@@ -49,12 +50,10 @@ pub(crate) fn ec_add(
     sum.x().to_big_endian(&mut output[0..32]).unwrap();
     sum.y().to_big_endian(&mut output[32..64]).unwrap();
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost: ADD_COST,
         output: output.to_vec(),
-        logs: vec![],
-    })
+    }, ADD_COST))
 }
 
 pub(crate) fn ec_mul(
@@ -62,7 +61,7 @@ pub(crate) fn ec_mul(
     gas_limit: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if let Some(gas_limit) = gas_limit {
         if MUL_COST > gas_limit {
             return Err(PrecompileFailure::Error {
@@ -91,12 +90,10 @@ pub(crate) fn ec_mul(
     result.x().to_big_endian(&mut output[0..32]).unwrap();
     result.y().to_big_endian(&mut output[32..64]).unwrap();
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost: MUL_COST,
         output: output.to_vec(),
-        logs: vec![],
-    })
+    }, MUL_COST))
 }
 
 pub(crate) fn ec_pairing(
@@ -104,7 +101,7 @@ pub(crate) fn ec_pairing(
     gas_limit: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if input.len() % 192 != 0 {
         return Err(err("invalid input"));
     }
@@ -125,7 +122,7 @@ pub(crate) fn ec_pairing(
             let a = parse_point(p[0..64].try_into().unwrap())?;
             let b = parse_point_g2(p[64..192].try_into().unwrap())?;
 
-            Ok((a, b))
+            Ok::<(G1, G2), PrecompileFailure>((a, b))
         })
         .collect();
     let points = points?;
@@ -139,12 +136,10 @@ pub(crate) fn ec_pairing(
     }
     // Otherwise, return 0.
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        cost,
         output: output.to_vec(),
-        logs: vec![],
-    })
+    }, cost))
 }
 
 fn pair_cost(num_points: usize) -> u64 {

@@ -1,6 +1,7 @@
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
+use std::convert::TryFrom;
 
 const RIPEMD160_BASE: u64 = 600;
 const RIPEMD160_PER_WORD: u64 = 120;
@@ -12,7 +13,7 @@ pub(crate) fn ripemd160(
     target_gas: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {
         Ok(i) => i,
         Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
@@ -30,12 +31,10 @@ pub(crate) fn ripemd160(
     let mut output = vec![0u8; 32];
     output[12..].copy_from_slice(&hash);
 
-    Ok(PrecompileOutput {
-        cost,
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output,
-    })
+    }, cost))
 }
 
 fn internal_impl(input: &[u8]) -> [u8; 20] {

@@ -1,4 +1,5 @@
 use std::borrow::Cow;
+use std::convert::{TryFrom, TryInto};
 
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
 use evm::{Context, ExitError, ExitSucceed};
@@ -125,7 +126,7 @@ pub(crate) fn blake2(
     target_gas: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if input.len() != consts::INPUT_LENGTH {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("ERR_BLAKE2F_INVALID_LEN")),
@@ -177,12 +178,10 @@ pub(crate) fn blake2(
     let finished = input[212] != 0;
 
     let output = f(h, m, t, finished, rounds);
-    Ok(PrecompileOutput {
-        cost,
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output,
-    })
+    }, cost))
 }
 
 pub(super) const F_ROUND: u64 = 1;

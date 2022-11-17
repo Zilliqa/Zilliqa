@@ -1,62 +1,49 @@
-# EVM-DS is an EVM implementation for Zilliqa
+# SputnikVM: Rust Ethereum Virtual Machine Implementation
 
-EVM-DS is designed to run on Zilliqa Directory Service nodes.
+[![Build Status](https://github.com/rust-blockchain/evm/workflows/Rust/badge.svg)](https://github.com/rust-blockchain/evm/actions?query=workflow%3ARust)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](./LICENSE)
 
-## Building it
+| Name          | Description                                                     | Crates.io                                                                                                 | Documentation                                                                              |
+|---------------|:---------------------------------------------------------------:|:---------------------------------------------------------------------------------------------------------:|:------------------------------------------------------------------------------------------:|
+| evm           | Main library that re-exports most things.                        | [![crates.io](https://img.shields.io/crates/v/evm.svg)](https://crates.io/crates/evm)                     | [![Documentation](https://docs.rs/evm/badge.svg)](https://docs.rs/evm)                     |
+| evm-core      | Core library defining the basic execution rules.                | [![crates.io](https://img.shields.io/crates/v/evm-core.svg)](https://crates.io/crates/evm-core)           | [![Documentation](https://docs.rs/evm-core/badge.svg)](https://docs.rs/evm-core)           |
+| evm-gasometer | Integration of Ethereum gas rules.                              | [![crates.io](https://img.shields.io/crates/v/evm-gasometer.svg)](https://crates.io/crates/evm-gasometer) | [![Documentation](https://docs.rs/evm-gasometer/badge.svg)](https://docs.rs/evm-gasometer) |
+| evm-runtime   | Runtime defining interface for block, transaction, and storage. | [![crates.io](https://img.shields.io/crates/v/evm-runtime.svg)](https://crates.io/crates/evm-runtime)     | [![Documentation](https://docs.rs/evm-runtime/badge.svg)](https://docs.rs/evm-runtime)     |
 
-Install the Rust toolchain, then do:
+## Features
 
-```
-cargo build --release
-```
+* **Standalone** - can be launched as an independent process or integrated into other apps
+* **Universal** - supports different Ethereum chains, such as ETC, ETH or private ones
+* **Stateless** - only an execution environment connected to independent State storage
+* **Fast** - main focus is on performance
+* written in Rust, can be used as a binary, cargo crate or shared
+  library
 
-As in all Rust projects, the binary will be found in `target/release/evm-ds`, (unless the cargo configuration is changed locally, then according to the configuration).
+## Dependencies
 
-## Running it
+Ensure you have at least `rustc 1.51.0 (2fd73fabe 2021-03-23)`. Rust 1.50.0 and
+before are not supported.
 
+## Documentation
 
-Running EVM-DS is similar to the Scilla interpreter. The Zilliqa node should run `evm-ds` as a subprocess.
+* [Latest release documentation](https://docs.rs/evm)
 
-Arguments:
+## Build from sources
 
-  * `--socket`: Path of the EVM server Unix domain socket. The `evm-ds` binary will be the server listening on this socket and accepting EVM code execution requests on it. Default is `/tmp/evm-server.sock`.
-  
-  * `--node_socket`: Path of the Node Unix domain socket. The `evm-ds` binary will be the client requesting account and state data from the Zilliqa node. Default is `/tmp/zilliqa.sock`.
+SputnikVM is written in Rust. If you are not familiar with Rust, please
+see the [starting documentation](https://www.rust-lang.org/learn).
 
-  * `--http_port`: an HTTP port serving the same purpose as the `--socket` above. It is needed only for debugging of `evm-ds`, as there are way more tools for HTTP JSON-RPC, than for Unix sockets.
-  
-  * `--tracing`: if true, additional trace logging will be enabled.
-  
+### Build
 
-## JSON-RPC methods
+To start working with SputnikVM you'll
+need to install [rustup](https://www.rustup.rs/), then you can do:
 
-  * `EvmResult run(string address, string caller, string code, string data, string apparent_value)` - run execution of `code` with calldata `data`, as a contract at address `address`, on behalf of account `caller`. `apparent_value` is the message funds in WEI.
-
-Returns: a dictionary of the form:
-```
-{
-  "Ok": {
-    "exit_reason": { "Succeed": "Stopped" },
-    "return_value": "48656c6c6f20776f726c6421",      // some string hex value.
-    "apply": [ {"A": "modify", "address": "<address>", "balance": 12345, "nonce": 2,
-                "code": "608060405234801561001057600080fd5b50600436106100415", // new EVM code for address
-                "storage": [["<key in hex>", "<value in hex>"], ["<key in hex>", "<value in hex>"] ... ],
-                "reset_storage": false,  // whether to wipe the account storage before appying changes.
-                },
-               ...
-               {"A": "delete", "address": "<address of account to delete">},
-               ...
-               ],
-
-     "logs": [ { ... log entry ...}, { ... log entry ... }]    // will be specified.
-}
+```bash
+$ git clone git@github.com:rust-blockchain/evm.git
+$ cd evm
+$ cargo build --release --all
 ```
 
-or
-```
-{
-   "Err": error_object // - can be just printed to the log message
-}
-```
+## License
 
-
+Apache 2.0

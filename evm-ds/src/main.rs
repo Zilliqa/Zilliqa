@@ -3,11 +3,14 @@
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
 
+extern crate core;
+
 mod convert;
 mod ipc_connect;
 mod precompiles;
 mod protos;
 mod scillabackend;
+mod tracing;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::panic::{self, AssertUnwindSafe};
@@ -17,11 +20,7 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 use clap::Parser;
-use evm::{
-    backend::Apply,
-    executor::stack::{MemoryStackState, StackSubstateMetadata},
-    tracing,
-};
+use evm::{backend::Apply, executor::stack::{MemoryStackState, StackSubstateMetadata}};
 use futures::FutureExt;
 
 use log::{debug, error, info};
@@ -35,6 +34,11 @@ use scillabackend::{ScillaBackend, ScillaBackendConfig};
 use crate::precompiles::get_precompiles;
 use crate::protos::Evm as EvmProto;
 use protobuf::Message;
+
+use evm_runtime::tracing::EventListener;
+//use evm_runtime::*;
+//use evm::runtime::tracing::EventListener;
+//use evm_runtime::tracing;
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -166,7 +170,7 @@ async fn run_evm_impl(
         // the unwind.
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             if tracing {
-                evm::tracing::using(&mut listener, || executor.execute(&mut runtime))
+                evm_runtime::tracing::using(&mut listener, || executor.execute(&mut runtime))
             } else {
                 executor.execute(&mut runtime)
             }
@@ -255,8 +259,9 @@ struct LoggingEventListener {
     pub traces: Vec<String>,
 }
 
-impl tracing::EventListener for LoggingEventListener {
-    fn event(&mut self, event: tracing::Event) {
+impl evm_runtime::tracing::EventListener for LoggingEventListener {
+    fn event(&mut self, event: evm_runtime::tracing::Event) {
+        println!("Event: {:?}", event);
         self.traces.push(format!("{:?}", event));
     }
 }
@@ -362,3 +367,4 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+

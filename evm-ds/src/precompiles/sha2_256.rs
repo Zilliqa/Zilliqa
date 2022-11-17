@@ -1,6 +1,7 @@
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
+use std::convert::TryFrom;
 
 const SHA256_BASE: u64 = 60;
 const SHA256_PER_WORD: u64 = 12;
@@ -12,7 +13,7 @@ pub(crate) fn sha2_256(
     target_gas: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {
         Ok(i) => i,
         Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
@@ -28,12 +29,10 @@ pub(crate) fn sha2_256(
 
     use sha2::Digest;
     let output = sha2::Sha256::digest(input).to_vec();
-    Ok(PrecompileOutput {
-        cost,
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
-        logs: vec![],
         output,
-    })
+    }, cost))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
