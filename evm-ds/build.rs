@@ -3,8 +3,8 @@ extern crate protoc_rust;
 fn main() {
     protoc_rust::Codegen::new()
         .out_dir("src/protos")
-        .inputs(&["../Zilliqa/src/libPersistence/ScillaMessage.proto"])
-        .include("../Zilliqa/src/libPersistence")
+        .inputs(&["../src/libPersistence/ScillaMessage.proto"])
+        .include("../src/libPersistence")
         .customize(protoc_rust::Customize {
             carllerche_bytes_for_bytes: Some(true),
             carllerche_bytes_for_string: Some(true),
@@ -15,8 +15,8 @@ fn main() {
 
     protoc_rust::Codegen::new()
         .out_dir("src/protos")
-        .inputs(&["../Zilliqa/src/libUtils/Evm.proto"])
-        .include("../Zilliqa/src/libUtils")
+        .inputs(&["../src/libUtils/Evm.proto"])
+        .include("../src/libUtils")
         .customize(protoc_rust::Customize {
             carllerche_bytes_for_bytes: Some(true),
             carllerche_bytes_for_string: Some(true),
@@ -25,6 +25,6 @@ fn main() {
         .run()
         .expect("Running protoc failed for EVM.proto");
 
-    println!("cargo:rerun-if-changed=../Zilliqa/src/libPersistence/ScillaMessage.proto");
-    println!("cargo:rerun-if-changed=../Zilliqa/src/libUtils/Evm.proto");
+    println!("cargo:rerun-if-changed=../src/libPersistence/ScillaMessage.proto");
+    println!("cargo:rerun-if-changed=../src/libUtils/Evm.proto");
 }
