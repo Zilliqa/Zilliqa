@@ -48,8 +48,8 @@ void FilterAPIBackendImpl::SetEpochRange(uint64_t earliest, uint64_t latest) {
 
   UniqueLock lock(m_installMutex);
 
-  if (m_earliestEpoch >= static_cast<EpochNumber>(earliest) ||
-      m_latestEpoch >= static_cast<EpochNumber>(latest)) {
+  if (m_earliestEpoch > static_cast<EpochNumber>(earliest) ||
+      m_latestEpoch > static_cast<EpochNumber>(latest)) {
     LOG_GENERAL(WARNING, "Inconsistency in epochs");
   } else {
     m_earliestEpoch = static_cast<EpochNumber>(earliest);

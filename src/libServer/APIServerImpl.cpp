@@ -167,6 +167,7 @@ class APIServerImpl::Connection
             "origin, content-type, accept");
     res.set(http::field::dav, "1");
     res.keep_alive(keepAlive);
+    res.prepare_payload();
     m_writeQueue.emplace_back(std::move(res));
     StartWriting();
   }
