@@ -47,7 +47,6 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
-      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
@@ -236,7 +235,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = transaction.GetSenderAddr();
 
-  uint64_t gasRemained = transaction.GetGasLimitEth();
+  uint64_t gasLimitEth = transaction.GetGasLimitEth();
 
   // Get the amount of deposit for running this txn
   uint256_t gasDepositWei;
@@ -248,7 +247,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Create contract");
+      if (LOG_SC) {
+        LOG_GENERAL(WARNING, "Create contract");
+      }
+
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -334,7 +336,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       bool evm_call_run_succeeded{true};
 
       LOG_GENERAL(INFO, "Invoking EVM with Cumulative Gas "
-                            << gasRemained << " alleged "
+                            << gasLimitEth << " alleged "
                             << transaction.GetAmountQa() << " limit "
                             << transaction.GetGasLimitEth());
 
@@ -372,7 +374,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
+
       evm::EvmResult result;
+
       auto gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, result);
@@ -380,6 +384,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
       gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
+
       if (result.trace_size() > 0) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
                                                         result.trace(0))) {
@@ -389,6 +394,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
+
       // *************************************************************************
       // Summary
       uint128_t gasRefund;
@@ -397,6 +403,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::MATH_ERROR;
         return false;
       }
+
       if (!this->IncreaseBalance(fromAddr,
                                  gasRefund / EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
@@ -438,6 +445,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
+      if (LOG_SC) {
+        LOG_GENERAL(WARNING, "Tx is contract call");
+      }
+
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
@@ -537,6 +548,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         error_code = TxnStatus::ERROR;
         return false;
       }
+
       LOG_GENERAL(WARNING, "contract address is " << m_curContractAddr
                                                   << " caller account is "
                                                   << fromAddr);
@@ -585,6 +597,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
+      // TODO: the cum gas might not be applied correctly (should be block
+      // level)
       receipt.SetCumGas(transaction.GetGasLimitZil() - gasRemainedCore);
       if (!evm_call_succeeded) {
         receipt.SetResult(false);
@@ -607,6 +621,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     case Transaction::ERROR:
       // TODO
       // maybe we should treat this error properly we have just fallen through.
+      LOG_GENERAL(WARNING,
+                  "Txn does not appear to be valid! Nothing has been executed.")
       break;
   }
 
