@@ -67,20 +67,53 @@ void APIThreadPool::Close() {
   m_responseQueue.stop();
 }
 
+namespace {
+
+class StopWatch {
+ public:
+  void Start() {
+    m_elapsed = 0;
+    m_started = std::chrono::high_resolution_clock::now();
+  }
+
+  void Stop() {
+    auto diff = std::chrono::high_resolution_clock::now() - m_started;
+    m_elapsed =
+        std::chrono::duration_cast<std::chrono::microseconds>(diff).count();
+  }
+
+  uint64_t Microseconds() const { return m_elapsed; }
+
+ private:
+  std::chrono::high_resolution_clock::time_point m_started;
+  uint64_t m_elapsed;
+};
+
+}  // namespace
+
 void APIThreadPool::WorkerThread(size_t threadNo) {
   auto threadName = std::string("APIWorker-") + std::to_string(threadNo + 1);
   utility::SetThreadName(threadName.c_str());
+  StopWatch sw;
 
   Request request;
   size_t queueSize = 0;
   while (m_requestQueue.pop(request, queueSize)) {
     LOG_GENERAL(INFO, threadName << " processes job #" << request.id
                                  << ", Q=" << queueSize);
-    PushResponse(m_processRequest(request));
+    sw.Start();
+    auto response = m_processRequest(request);
+    sw.Stop();
+
+    LOG_GENERAL(INFO, threadName << ": " << sw.Microseconds()
+                                 << " microsec, request=\n"
+                                 << request.body << "\nresponse=\n"
+                                 << response.body);
+    PushResponse(std::move(response));
   }
 }
 
-void APIThreadPool::PushResponse(Response response) {
+void APIThreadPool::PushResponse(Response&& response) {
   size_t queueSize = 0;
   if (!m_responseQueue.bounded_push(std::move(response), queueSize)) {
     return;
