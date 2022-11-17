@@ -12,7 +12,7 @@ pub(crate) fn identity(
     gas_limit: Option<u64>,
     _contex: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let gas_needed = match required_gas(input) {
         Ok(i) => i,
         Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
@@ -26,10 +26,10 @@ pub(crate) fn identity(
         }
     }
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
         output: input.to_vec(),
-    })
+    }, gas_needed))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {

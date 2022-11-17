@@ -12,7 +12,7 @@ pub(crate) fn sha2_256(
     target_gas: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {
         Ok(i) => i,
         Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
@@ -28,10 +28,10 @@ pub(crate) fn sha2_256(
 
     use sha2::Digest;
     let output = sha2::Sha256::digest(input).to_vec();
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
         output,
-    })
+    }, cost))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {

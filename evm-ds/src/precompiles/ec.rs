@@ -20,7 +20,7 @@ pub(crate) fn ec_add(
     gas_limit: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if let Some(gas_limit) = gas_limit {
         if ADD_COST > gas_limit {
             return Err(PrecompileFailure::Error {
@@ -49,10 +49,10 @@ pub(crate) fn ec_add(
     sum.x().to_big_endian(&mut output[0..32]).unwrap();
     sum.y().to_big_endian(&mut output[32..64]).unwrap();
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
         output: output.to_vec(),
-    })
+    }, ADD_COST))
 }
 
 pub(crate) fn ec_mul(
@@ -60,7 +60,7 @@ pub(crate) fn ec_mul(
     gas_limit: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if let Some(gas_limit) = gas_limit {
         if MUL_COST > gas_limit {
             return Err(PrecompileFailure::Error {
@@ -89,10 +89,10 @@ pub(crate) fn ec_mul(
     result.x().to_big_endian(&mut output[0..32]).unwrap();
     result.y().to_big_endian(&mut output[32..64]).unwrap();
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
         output: output.to_vec(),
-    })
+    }, MUL_COST))
 }
 
 pub(crate) fn ec_pairing(
@@ -100,7 +100,7 @@ pub(crate) fn ec_pairing(
     gas_limit: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if input.len() % 192 != 0 {
         return Err(err("invalid input"));
     }
@@ -135,10 +135,10 @@ pub(crate) fn ec_pairing(
     }
     // Otherwise, return 0.
 
-    Ok(PrecompileOutput {
+    Ok((PrecompileOutput {
         exit_status: ExitSucceed::Returned,
         output: output.to_vec(),
-    })
+    }, cost))
 }
 
 fn pair_cost(num_points: usize) -> u64 {
