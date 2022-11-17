@@ -37,7 +37,6 @@ RUN apt-get update \
     git \
     golang \
     lcov \
-    lcov \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
     libsecp256k1-dev \
@@ -92,6 +91,13 @@ ARG VCPKG_ROOT=/vcpkg
 # Clone vcpkg
 RUN git clone https://github.com/microsoft/vcpkg ${VCPKG_ROOT}
 RUN git -C ${VCPKG_ROOT} checkout ${VCPKG_COMMIT_OR_TAG}
+
+# Setup ccache
+RUN ln -s "$(which ccache)" /usr/local/bin/gcc \
+  && ln -s "$(which ccache)" /usr/local/bin/g++ \
+  && ln -s "$(which ccache)" /usr/local/bin/cc \
+  && ln -s "$(which ccache)" /usr/local/bin/c++
+
 RUN ${VCPKG_ROOT}/bootstrap-vcpkg.sh
 
 # Manually input tag or commit, can be overwritten by docker build-args

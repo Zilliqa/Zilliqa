@@ -56,10 +56,26 @@ case $os in
 esac
 
 echo "n_parallel=${n_parallel}"
+
+if ! command -v ccache &> /dev/null; then
+  echo "ccache isn't installed"
+else
+  echo "ccache configuration"
+  ccache --version
+  ccache -p
+
+  ccache -z
+  echo "ccache status"
+  ccache -s
+fi
+
 dir=build
 
 run_clang_format_fix=0
 run_clang_tidy_fix=0
+run_code_coverage=0
+parallelize=1
+build_type="RelWithDebInfo"
 
 for option in "$@"
 do
@@ -191,16 +207,50 @@ do
 	evm_build_result=$(cd evm-ds; cargo build --release)
 	exit $evm_build_result
     ;;
+    ninja)
+        CMAKE_EXTRA_OPTIONS="-G Ninja ${CMAKE_EXTRA_OPTIONS}"
+        # Ninja is parallelized by default
+        parallelize=0
+        echo "Build using Ninja"
+    ;;
+    debug)
+        build_type="Debug"
+        echo "Build debug"
+    ;;
+    tests)
+        CMAKE_EXTRA_OPTIONS="-DTESTS=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build tests"
+    ;;
+    coverage)
+        CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON -DENABLE_COVERAGE=ON ${CMAKE_EXTRA_OPTIONS}"
+        run_code_coverage=1
+        echo "Build with code coverage"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>]"
+        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>] [ninja] [debug]"
         exit 1
     ;;
     esac
 done
 
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
-cmake --build ${dir} -- -j${n_parallel}
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+if [ ${parallelize} -ne 0 ]; then
+  cmake --build ${dir} --config ${build_type}  -j${n_parallel}
+else
+  cmake --build ${dir} --config ${build_type}
+fi
+
+if command -v ccache &> /dev/null; then
+  echo "ccache status"
+  ccache -s
+fi
+
 ./scripts/license_checker.sh
+./scripts/ci_xml_checker.sh constants.xml
+./scripts/ci_xml_checker.sh constants_local.xml
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
-if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build ${dir} --target clang-tidy-fix; fi
-if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build ${dir} --target clang-format-fix; fi
+
+if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build ${dir} --config ${build_type} --target clang-tidy-fix; fi
+if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build ${dir} --config ${build_type} --target clang-format-fix; fi
+if [ ${run_code_coverage} -ne 0 ]; then cmake --build ${dir} --config ${build_type} --target Zilliqa_coverage; fi
+

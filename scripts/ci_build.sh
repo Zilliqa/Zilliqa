@@ -32,77 +32,8 @@ then
     exit 0
 fi
 
-# set n_parallel to fully utilize the resources
 os=$(uname)
-arch=$(uname -m)
-case $os in
-    'Linux')
-        n_parallel=$(nproc)
-        case $arch in
-            'x86_64')
-                triplet=x64-linux-dynamic
-                ;;
-            'arm64')
-                triplet=armx64-linux-dynamic
-                ;;
-        esac
-        ;;
-    'Darwin')
-        n_parallel=$(sysctl -n hw.ncpu)
-        case $arch in
-            'x86_64')
-                triplet=x64-osx-dynamic
-                ;;
-            'arm64')
-                triplet=arm64-osx-dynamic
-                ;;
-        esac
-        ;;
-    *)
-        n_parallel=2
-        # Default is x64-linux-dynamic
-        triplet=x64-linux-dynamic
-        ;;
-esac
-
-echo "n_parallel=${n_parallel}"
-
-echo "ccache configuration"
-ccache --version
-ccache -p
-
-ccache -z
-echo "ccache status"
-ccache -s
-
 dir=build
 
-CMAKE_EXTRA_OPTIONS=""
+${SHELL} -x ./build.sh debug tests coverage
 
-if [ "$os" = "Linux" ]
-then
-    CMAKE_EXTRA_OPTIONS="$CMAKE_EXTRA_OPTIONS -DLLVM_EXTRA_TOOLS=ON"
-fi
-
-# assume that it is run from project root directory
-cmake -G Ninja -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=Debug -DTESTS=ON -DENABLE_COVERAGE=ON -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${triplet}
-cmake --build ${dir} --config Debug
-
-# remember to append `|| exit` after the commands added in if-then-else
-if [ "$os" = "Linux" ]
-then
-    #./scripts/integration_test.sh || exit 1
-    ./scripts/ci_xml_checker.sh constants.xml || exit 1
-    ./scripts/ci_xml_checker.sh constants_local.xml || exit 1
-    ./scripts/license_checker.sh || exit 1
-    ./scripts/depends/check_guard.sh || exit 1
-    #cmake --build ${dir} --target clang-format || exit 1
-    #cmake --build ${dir} --target clang-tidy || exit 1
-    # The target Zilliqa_coverage already includes "ctest" command, see cmake/CodeCoverage.cmake
-    cmake --build ${dir} --target Zilliqa_coverage || exit 1
-else
-    cd build && ctest --output-on-failure -j1 || exit 1
-fi
-
-echo "ccache status"
-ccache -s

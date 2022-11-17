@@ -40,7 +40,7 @@ RUN git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} \
   || git clone ${REPO} ${SOURCE_DIR}
 RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
 RUN cmake -G Ninja -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic ${EXTRA_CMAKE_ARGS} 
-RUN cmake --build ${BUILD_DIR} --config ${BUILD_TYPE} -j$(nproc)
+RUN cmake --build ${BUILD_DIR} --config ${BUILD_TYPE}
 RUN cmake --build ${BUILD_DIR} --target install
 RUN cd $SOURCE_DIR/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
 RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
