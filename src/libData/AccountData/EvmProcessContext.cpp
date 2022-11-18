@@ -21,7 +21,6 @@
 #include "libCrypto/EthCrypto.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/EvmCallParameters.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TxnExtras.h"

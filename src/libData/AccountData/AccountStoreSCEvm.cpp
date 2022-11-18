@@ -534,7 +534,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
-/*
+
       {
         evm::EvmArgs args = evmContext.GetEvmArgs();
         evm::EvmResult result;
