@@ -267,21 +267,16 @@ class APIServerImpl::Connection
   unsigned m_clientHttpVersion = 0;
 };
 
-std::shared_ptr<APIServer> APIServer::CreateAndStart(
-    std::shared_ptr<boost::asio::io_context> asio, APIServer::Options options,
-    bool startImmediately) {
-  auto server =
-      std::make_shared<APIServerImpl>(std::move(asio), std::move(options));
+std::shared_ptr<APIServer> APIServer::CreateAndStart(APIServer::Options options,
+                                                     bool startImmediately) {
+  auto server = std::make_shared<APIServerImpl>(std::move(options));
   if (startImmediately && !server->Start()) {
     return {};
   }
   return server;
 }
 
-APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
-    : m_asio(std::move(asio)), m_options(std::move(options)) {
-  assert(m_asio);
-
+APIServerImpl::APIServerImpl(Options options) : m_options(std::move(options)) {
   if (m_options.numThreads == 0) {
     m_options.numThreads = 1;
   }
@@ -289,8 +284,13 @@ APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
     m_options.maxQueueSize = std::numeric_limits<size_t>::max();
   }
 
+  if (!m_options.asio) {
+    m_options.asio = std::make_shared<AsioCtx>(1);
+    m_ownEventLoop = true;
+  }
+
   m_threadPool = std::make_shared<APIThreadPool>(
-      *m_asio, m_options.threadPoolName, m_options.numThreads,
+      *m_options.asio, m_options.threadPoolName, m_options.numThreads,
       m_options.maxQueueSize,
       [this](const APIThreadPool::Request& req) -> APIThreadPool::Response {
         return ProcessRequestInThreadPool(req);
@@ -300,7 +300,7 @@ APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
       });
 
   m_websocket =
-      std::make_shared<ws::WebsocketServerImpl>(*m_asio, m_threadPool);
+      std::make_shared<ws::WebsocketServerImpl>(*m_options.asio, m_threadPool);
 }
 
 bool APIServerImpl::Start() {
@@ -314,7 +314,7 @@ bool APIServerImpl::Start() {
                      : boost::asio::ip::address_v4::any();
   tcp::endpoint endpoint(address, m_options.port);
 
-  m_acceptor.emplace(*m_asio);
+  m_acceptor.emplace(*m_options.asio);
 
   beast::error_code ec;
 
@@ -338,6 +338,11 @@ bool APIServerImpl::Start() {
   AcceptNext();
 
   m_started = true;
+
+  if (m_ownEventLoop) {
+    // spawn thread
+  }
+
   return true;
 }
 
@@ -383,6 +388,8 @@ void APIServerImpl::Close() {
       }
       self->m_connections.clear();
     });
+
+    // XXX if m_thread join
   }
 }
 
@@ -411,9 +418,9 @@ void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
     return;
   }
 
-  socket.set_option(asio::socket_base::keep_alive(true));
+  socket.set_option(asio::socket_base::keep_alive(true), ec);
 
-  auto ep = socket.remote_endpoint();
+  auto ep = socket.remote_endpoint(ec);
   auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
 
   ++m_counter;

@@ -25,8 +25,6 @@
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 
-#include "depends/safeserver/safehttpserver.h"
-
 using namespace std;
 using namespace jsonrpc;
 
@@ -36,12 +34,22 @@ using namespace jsonrpc;
 
 static ethash_mining_result_t FAIL_RESULT = {"", "", 0, false};
 
+namespace {
+
+std::shared_ptr<rpc::APIServer> GetServerConnector() {
+  rpc::APIServer::Options options;
+  options.threadPoolName = "GetWork";
+  options.numThreads = 2;
+  options.port = static_cast<uint16_t>(GETWORK_SERVER_PORT);
+  return rpc::APIServer::CreateAndStart(std::move(options), false);
+}
+
+}  // namespace
+
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {
-  static SafeHttpServer httpserver(GETWORK_SERVER_PORT);
-  //st
-
-  static GetWorkServer powserver(httpserver);
+  static std::shared_ptr<rpc::APIServer> httpserver(GetServerConnector());
+  static GetWorkServer powserver(httpserver->GetRPCServerBackend());
   return powserver;
 }
 

@@ -38,7 +38,7 @@ class APIServerImpl : public APIServer,
   using ConnectionId = uint64_t;
 
   /// Ctor
-  APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options);
+  explicit APIServerImpl(Options options);
 
   /// Called from server's owner. Cannot put everything into the ctor because of
   /// shared_from_this() usage
@@ -80,11 +80,11 @@ class APIServerImpl : public APIServer,
   /// Processes responses from thread pool in the main thread
   void OnResponseFromThreadPool(APIThreadPool::Response&& response);
 
-  /// Asio context
-  std::shared_ptr<AsioCtx> m_asio;
-
   /// Server options
   Options m_options;
+
+  /// If true, dedicated event loop will be running
+  bool m_ownEventLoop = false;
 
   /// Started flag
   std::atomic<bool> m_started{};
@@ -103,6 +103,8 @@ class APIServerImpl : public APIServer,
 
   /// Active connections
   std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
+
+  // m_eventLoopThread
 };
 
 }  // namespace rpc
