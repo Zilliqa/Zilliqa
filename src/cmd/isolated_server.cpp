@@ -89,7 +89,7 @@ Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-  using namespace evmproj;
+  using namespace rpc;
 
   string accountJsonFilePath;
   uint port{5555};

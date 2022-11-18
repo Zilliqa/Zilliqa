@@ -22,7 +22,7 @@
 #include "APIThreadPool.h"
 #include "libUtils/Logger.h"
 
-namespace evmproj {
+namespace rpc {
 namespace ws {
 
 using CloseReason = websocket::close_code;
@@ -318,4 +318,4 @@ void WebsocketServerImpl::CloseConnection(ConnectionId conn_id) {
 }
 
 }  // namespace ws
-}  // namespace evmproj
+}  // namespace rpc

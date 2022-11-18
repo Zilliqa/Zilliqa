@@ -17,13 +17,15 @@
 
 #include <chrono>
 
-#include "depends/safeserver/safehttpserver.h"
 #include "ethash/ethash.hpp"
 
+#include "APIServer.h"
 #include "GetWorkServer.h"
 #include "common/Constants.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
+
+#include "depends/safeserver/safehttpserver.h"
 
 using namespace std;
 using namespace jsonrpc;
@@ -37,6 +39,8 @@ static ethash_mining_result_t FAIL_RESULT = {"", "", 0, false};
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {
   static SafeHttpServer httpserver(GETWORK_SERVER_PORT);
+  //st
+
   static GetWorkServer powserver(httpserver);
   return powserver;
 }

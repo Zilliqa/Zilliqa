@@ -31,7 +31,7 @@ namespace jsonrpc {
 class AbstractServerConnector;
 }
 
-namespace evmproj {
+namespace rpc {
 
 class WebsocketServer;
 
@@ -85,6 +85,6 @@ class APIServer {
   virtual void Close() = 0;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_APISERVER_H_

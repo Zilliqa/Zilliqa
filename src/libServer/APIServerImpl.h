@@ -28,7 +28,7 @@
 #include "APIThreadPool.h"
 #include "WebsocketServerImpl.h"
 
-namespace evmproj {
+namespace rpc {
 
 class APIServerImpl : public APIServer,
                       public jsonrpc::AbstractServerConnector,
@@ -105,6 +105,6 @@ class APIServerImpl : public APIServer,
   std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_APISERVERIMPL_H_

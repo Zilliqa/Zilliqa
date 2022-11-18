@@ -21,7 +21,7 @@
 
 #include "libUtils/Logger.h"
 
-namespace evmproj {
+namespace rpc {
 
 /// HTTP connection from the server perspective
 /// TODO write buffer constraint against slow clients or their sabotage
@@ -479,4 +479,4 @@ void APIServerImpl::OnResponseFromThreadPool(
                             std::move(response.body));
 }
 
-}  // namespace evmproj
+}  // namespace rpc

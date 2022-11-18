@@ -43,7 +43,7 @@ class SubscriptionsImpl {
   ~SubscriptionsImpl();
 
   /// Attaches websocket server
-  void Start(std::shared_ptr<WebsocketServer> websocketServer,
+  void Start(std::shared_ptr<rpc::WebsocketServer> websocketServer,
              APICache::BlockByHash blockByHash);
 
   /// Broadcasts new head
@@ -58,13 +58,13 @@ class SubscriptionsImpl {
 
  private:
   /// Websocket backend
-  std::shared_ptr<WebsocketServer> m_websocketServer;
+  std::shared_ptr<rpc::WebsocketServer> m_websocketServer;
 
   /// Callback which gets JSON message for newHeads subscription out of block
   /// hash
   APICache::BlockByHash m_blockByHash;
 
-  using Id = WebsocketServer::ConnectionId;
+  using Id = rpc::WebsocketServer::ConnectionId;
 
   struct Connection {
     /// Id for websocket dispatch
@@ -83,7 +83,7 @@ class SubscriptionsImpl {
   using ConnectionPtr = std::shared_ptr<Connection>;
 
   /// Incoming message from websocket server
-  bool OnIncomingMessage(Id conn_id, const WebsocketServer::InMessage& msg,
+  bool OnIncomingMessage(Id conn_id, const rpc::WebsocketServer::InMessage& msg,
                          bool& methodAccepted);
 
   /// Connection closed
@@ -93,23 +93,24 @@ class SubscriptionsImpl {
   void ReplyError(Id conn_id, Json::Value&& request_id, RPCError errorCode,
                   std::string&& error);
 
+  using OutMessage = rpc::WebsocketServer::OutMessage;
+
   /// eth_unsubscribe handler
-  WebsocketServer::OutMessage OnUnsubscribe(const ConnectionPtr& conn,
-                                            Json::Value&& request_id,
-                                            std::string&& subscription_id);
+  OutMessage OnUnsubscribe(const ConnectionPtr& conn, Json::Value&& request_id,
+                           std::string&& subscription_id);
 
   /// eth_subscribe to "newHeads" handler
-  WebsocketServer::OutMessage OnSubscribeToNewHeads(const ConnectionPtr& conn,
-                                                    Json::Value&& request_id);
+  OutMessage OnSubscribeToNewHeads(const ConnectionPtr& conn,
+                                   Json::Value&& request_id);
 
   /// eth_subscribe to "newPendingTransactions" handler
-  WebsocketServer::OutMessage OnSubscribeToPendingTxns(
-      const ConnectionPtr& conn, Json::Value&& request_id);
+  OutMessage OnSubscribeToPendingTxns(const ConnectionPtr& conn,
+                                      Json::Value&& request_id);
 
   /// eth_subscribe to "logs" handler
-  WebsocketServer::OutMessage OnSubscribeToEvents(const ConnectionPtr& conn,
-                                                  Json::Value&& request_id,
-                                                  EventFilterParams&& filter);
+  OutMessage OnSubscribeToEvents(const ConnectionPtr& conn,
+                                 Json::Value&& request_id,
+                                 EventFilterParams&& filter);
 
   /// All active connections
   std::unordered_map<Id, ConnectionPtr> m_connections;

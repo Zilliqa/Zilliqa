@@ -28,7 +28,7 @@
 
 #include "libUtils/Queue.h"
 
-namespace evmproj {
+namespace rpc {
 
 class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
  public:
@@ -119,6 +119,6 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   utility::Queue<Response> m_responseQueue;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_APITHREADPOOL_H_

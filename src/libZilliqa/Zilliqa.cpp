@@ -41,7 +41,6 @@
 #include "libUtils/UpgradeManager.h"
 
 using namespace std;
-using namespace jsonrpc;
 
 void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
   zbytes tmp1;
@@ -411,19 +410,19 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     std::shared_ptr<boost::asio::io_context> asioCtx;
-    std::shared_ptr<evmproj::APIServer> apiRPC;
-    std::shared_ptr<evmproj::APIServer> stakingRPC;
+    std::shared_ptr<rpc::APIServer> apiRPC;
+    std::shared_ptr<rpc::APIServer> stakingRPC;
 
     if (LOOKUP_NODE_MODE || ENABLE_STAKING_RPC) {
       asioCtx = std::make_shared<boost::asio::io_context>(1);
     }
 
     if (LOOKUP_NODE_MODE) {
-      evmproj::APIServer::Options options;
+      rpc::APIServer::Options options;
       options.threadPoolName = "API";
       options.port = static_cast<uint16_t>(LOOKUP_RPC_PORT);
 
-      apiRPC = evmproj::APIServer::CreateAndStart(asioCtx, std::move(options),
+      apiRPC = rpc::APIServer::CreateAndStart(asioCtx, std::move(options),
                                                   false);
       if (apiRPC) {
         m_lookupServer = make_shared<LookupServer>(
@@ -476,7 +475,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (ENABLE_STATUS_RPC) {
       m_statusServerConnector =
-          make_unique<TcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
+          make_unique<jsonrpc::TcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
       m_statusServer =
           make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
       if (m_statusServer == nullptr) {
@@ -491,12 +490,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
 
     if (ENABLE_STAKING_RPC) {
-      evmproj::APIServer::Options options;
+      rpc::APIServer::Options options;
       options.threadPoolName = "Staking";
       options.numThreads = 3;
       options.port = static_cast<uint16_t>(STAKING_RPC_PORT);
 
-      stakingRPC = evmproj::APIServer::CreateAndStart(
+      stakingRPC = rpc::APIServer::CreateAndStart(
           asioCtx, std::move(options), false);
       if (stakingRPC) {
         m_stakingServer = make_shared<StakingServer>(
