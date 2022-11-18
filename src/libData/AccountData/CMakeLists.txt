@@ -13,6 +13,7 @@ add_library(AccountData
     EvmClient.cpp
     InvokeType.h
     AccountStoreSCEvm.cpp
-    UnixDomainSocketClient.cpp)
+    UnixDomainSocketClient.cpp
+    UnixDomainSocketServer.cpp)
 target_include_directories(AccountData PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(AccountData PUBLIC Server Block BlockHeader Message Trie Utils Persistence TraceableDB EthCrypto PRIVATE EthUtils)

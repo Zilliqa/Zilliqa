@@ -19,7 +19,6 @@
 
 #include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/abstractserver.h>
-#include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 
 #include "depends/common/FixedHash.h"
 

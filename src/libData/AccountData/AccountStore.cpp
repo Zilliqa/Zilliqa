@@ -22,6 +22,7 @@
 #include "AccountStore.h"
 #include "EvmClient.h"
 #include "ScillaClient.h"
+#include "UnixDomainSocketServer.h"
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
@@ -51,9 +52,9 @@ AccountStore::AccountStore() : m_externalWriters{0} {
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServerConnector =
-        make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServerConnector->SetWaitTime(
-        SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+        make_unique<rpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
+// XXX   m_scillaIPCServerConnector->SetWaitTime(
+//        SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 

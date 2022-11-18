@@ -27,6 +27,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
 #include "libData/AccountData/UnixDomainSocketClient.h"
+#include "libData/AccountData/UnixDomainSocketServer.h"
 
 #define BOOST_TEST_MODULE scillaipc
 #define BOOST_TEST_DYN_LINK
@@ -56,8 +57,8 @@ BOOST_AUTO_TEST_SUITE(scillaipc)
 
 // Connection sanity test.
 BOOST_AUTO_TEST_CASE(test_connection) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   ScillaIPCServer server(s);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.setBCInfoProvider(makeBCInfo());
@@ -69,9 +70,9 @@ BOOST_AUTO_TEST_CASE(test_connection) {
 
 // Simple non-map query.
 BOOST_AUTO_TEST_CASE(test_query_simple) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -117,9 +118,9 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
 
 // Simple map query.
 BOOST_AUTO_TEST_CASE(test_query_map_1) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -199,9 +200,9 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
 
 // insert, delete and query empty string key.
 BOOST_AUTO_TEST_CASE(test_query_empty_key) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -270,9 +271,9 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
 
 // Nested map queries.
 BOOST_AUTO_TEST_CASE(test_query_map_2) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -493,9 +494,9 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
 
 // Add an empty map, and then replace it with a non-empty map.
 BOOST_AUTO_TEST_CASE(test_query_empty_map) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -578,9 +579,9 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
 
 // Delete key in a map to make it empty and then query the map.
 BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -642,9 +643,9 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
 
 // Tests updating empty nested maps.
 BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -732,9 +733,9 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
 // map whose name is a prefix of the first map.
 // This test is extracted from Scilla's in-place map contract.
 BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -818,9 +819,9 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
 // Update and fetch nested map, in full.
 // This test is extracted from Scilla's earmarked coin contract.
 BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   rpc::UnixDomainSocketClient c(SCILLA_IPC_SOCKET_PATH);
   Client client(c);
 
@@ -928,9 +929,9 @@ BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
     return;
   }
 
-  UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
+  rpc::UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
-  s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+  // XXX s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   LOG_GENERAL(INFO, "Test_ScillaIPCServer: initialized server.");
   server.setBCInfoProvider(makeBCInfo());
   server.StartListening();
