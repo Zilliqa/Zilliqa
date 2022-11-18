@@ -291,6 +291,7 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
   }
 
   P2PComm::GetInstance().SendMessage(peer, tx_message);
+
   return true;
 }
 

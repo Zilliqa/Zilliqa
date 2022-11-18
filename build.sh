@@ -198,9 +198,9 @@ do
     esac
 done
 
-cmake -G Ninja -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
 cmake --build ${dir} -- -j${n_parallel}
-#./scripts/license_checker.sh
+./scripts/license_checker.sh
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
 if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build ${dir} --target clang-tidy-fix; fi
 if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build ${dir} --target clang-format-fix; fi
