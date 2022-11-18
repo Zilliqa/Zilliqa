@@ -21,7 +21,7 @@
 #include "APIServer.h"
 
 #include <atomic>
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <jsonrpccpp/server/abstractserverconnector.h>
 
@@ -80,6 +80,9 @@ class APIServerImpl : public APIServer,
   /// Processes responses from thread pool in the main thread
   void OnResponseFromThreadPool(APIThreadPool::Response&& response);
 
+  /// Event loop thread
+  void EventLoopThread();
+
   /// Server options
   Options m_options;
 
@@ -96,7 +99,7 @@ class APIServerImpl : public APIServer,
   std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
 
   /// Listening socket
-  boost::optional<tcp::acceptor> m_acceptor;
+  std::optional<tcp::acceptor> m_acceptor;
 
   /// Incremental counter
   ConnectionId m_counter = 0;
@@ -104,7 +107,8 @@ class APIServerImpl : public APIServer,
   /// Active connections
   std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
 
-  // m_eventLoopThread
+  /// Event loop thread (if internal loop enabled)
+  std::optional<std::thread> m_eventLoopThread;
 };
 
 }  // namespace rpc

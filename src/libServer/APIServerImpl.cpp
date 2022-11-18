@@ -17,9 +17,11 @@
 
 #include "APIServerImpl.h"
 
+#include <boost/asio/signal_set.hpp>
 #include <deque>
 
 #include "libUtils/Logger.h"
+#include "libUtils/SetThreadName.h"
 
 namespace rpc {
 
@@ -340,7 +342,7 @@ bool APIServerImpl::Start() {
   m_started = true;
 
   if (m_ownEventLoop) {
-    // spawn thread
+    m_eventLoopThread.emplace([this] { EventLoopThread(); });
   }
 
   return true;
@@ -382,14 +384,20 @@ void APIServerImpl::Close() {
     assert(m_websocket);
     m_websocket->CloseAll();
 
-    m_asio->post([self = shared_from_this()] {
+    m_options.asio->post([self = shared_from_this()] {
       for (auto& conn : self->m_connections) {
         conn.second->Close();
       }
       self->m_connections.clear();
     });
 
-    // XXX if m_thread join
+    if (m_eventLoopThread.has_value()) {
+      // after connections closed
+      m_options.asio->post(
+          [self = shared_from_this()] { self->m_options.asio->stop(); });
+      m_eventLoopThread->join();
+      m_eventLoopThread.reset();
+    }
   }
 }
 
@@ -484,6 +492,19 @@ void APIServerImpl::OnResponseFromThreadPool(
   }
   it->second->WriteResponse(static_cast<http::status>(response.code),
                             std::move(response.body));
+}
+
+void APIServerImpl::EventLoopThread() {
+  LOG_MARKER();
+
+  if (!m_options.threadPoolName.empty()) {
+    utility::SetThreadName(m_options.threadPoolName.c_str());
+  }
+
+  boost::asio::signal_set sig(*m_options.asio, SIGABRT);
+  sig.async_wait([](const boost::system::error_code&, int) {});
+
+  m_options.asio->run();
 }
 
 }  // namespace rpc

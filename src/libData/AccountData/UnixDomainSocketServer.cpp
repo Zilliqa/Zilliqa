@@ -79,14 +79,9 @@ bool UnixDomainSocketServer::DoStop() {
   assert(m_thread.has_value());
 
   m_started = false;
-
-  LOG_GENERAL(INFO, "xxxxxxxxxxxx JOIN");
   WakeAcceptor(m_path);
-
   m_thread->join();
-  LOG_GENERAL(INFO, "xxxxxxxxxxxx JOINED");
   m_acceptor.reset();
-
   return true;
 }
 
@@ -108,8 +103,6 @@ void UnixDomainSocketServer::WorkerThread() {
         break;
       }
 
-      LOG_GENERAL(INFO, "xxxxxxxxxxxx ACCEPTED");
-
       readBuffer.clear();
 
       auto n = boost::asio::read_until(
@@ -127,8 +120,6 @@ void UnixDomainSocketServer::WorkerThread() {
 
       readBuffer.erase(n);
       response.clear();
-
-      LOG_GENERAL(INFO, "xxxxxxxxxxxx READ " << readBuffer);
 
       try {
         ProcessRequest(readBuffer, response);
@@ -149,8 +140,6 @@ void UnixDomainSocketServer::WorkerThread() {
         std::replace(response.begin(), response.end(), DEFAULT_DELIMITER_CHAR,
                      ' ');
       }
-
-      LOG_GENERAL(INFO, "xxxxxxxxxxxx RESPONSE " << response);
 
       response += DEFAULT_DELIMITER_CHAR;
 

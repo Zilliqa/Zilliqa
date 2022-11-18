@@ -419,11 +419,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (LOOKUP_NODE_MODE) {
       rpc::APIServer::Options options;
+      options.asio = asioCtx;
       options.threadPoolName = "API";
       options.port = static_cast<uint16_t>(LOOKUP_RPC_PORT);
 
-      apiRPC = rpc::APIServer::CreateAndStart(asioCtx, std::move(options),
-                                                  false);
+      apiRPC = rpc::APIServer::CreateAndStart(std::move(options), false);
       if (apiRPC) {
         m_lookupServer = make_shared<LookupServer>(
             m_mediator, apiRPC->GetRPCServerBackend());
@@ -491,12 +491,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (ENABLE_STAKING_RPC) {
       rpc::APIServer::Options options;
+      options.asio = asioCtx;
       options.threadPoolName = "Staking";
       options.numThreads = 3;
       options.port = static_cast<uint16_t>(STAKING_RPC_PORT);
 
-      stakingRPC = rpc::APIServer::CreateAndStart(
-          asioCtx, std::move(options), false);
+      stakingRPC = rpc::APIServer::CreateAndStart(std::move(options), false);
       if (stakingRPC) {
         m_stakingServer = make_shared<StakingServer>(
             m_mediator, stakingRPC->GetRPCServerBackend());
