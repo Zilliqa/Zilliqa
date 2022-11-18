@@ -180,8 +180,8 @@ class APIServerImpl::Connection
     if (!description.empty()) {
       res.set(http::field::content_type, "text/plain");
       res.body() = std::move(description);
-      res.prepare_payload();
     }
+    res.prepare_payload();
     m_writeQueue.emplace_back(std::move(res));
     StartWriting();
   }
