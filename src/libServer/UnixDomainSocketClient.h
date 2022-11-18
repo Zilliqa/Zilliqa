@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_UNIXDOMAINSOCKETCLIENT_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_UNIXDOMAINSOCKETCLIENT_H_
+#ifndef ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETCLIENT_H_
+#define ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETCLIENT_H_
 
 #include <jsonrpccpp/client.h>
 
@@ -37,4 +37,4 @@ class UnixDomainSocketClient : public jsonrpc::IClientConnector {
 
 }  // namespace rpc
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_UNIXDOMAINSOCKETCLIENT_H_
+#endif  // ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETCLIENT_H_
