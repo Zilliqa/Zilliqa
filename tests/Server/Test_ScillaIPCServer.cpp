@@ -26,8 +26,8 @@
 #include "libServer/ScillaIPCServer.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
-#include "libData/AccountData/UnixDomainSocketClient.h"
-#include "libData/AccountData/UnixDomainSocketServer.h"
+#include "libServer/UnixDomainSocketClient.h"
+#include "libServer/UnixDomainSocketServer.h"
 
 #define BOOST_TEST_MODULE scillaipc
 #define BOOST_TEST_DYN_LINK

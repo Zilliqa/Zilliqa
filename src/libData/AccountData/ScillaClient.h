@@ -22,8 +22,8 @@
 #include <memory>
 #include <mutex>
 
-#include "UnixDomainSocketClient.h"
 #include "common/Constants.h"
+#include "libServer/UnixDomainSocketClient.h"
 
 class ScillaClient {
   std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;

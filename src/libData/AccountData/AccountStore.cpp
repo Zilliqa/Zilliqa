@@ -22,7 +22,6 @@
 #include "AccountStore.h"
 #include "EvmClient.h"
 #include "ScillaClient.h"
-#include "UnixDomainSocketServer.h"
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
@@ -34,6 +33,7 @@
 #pragma GCC diagnostic pop
 #include "EvmClient.h"
 #include "libServer/ScillaIPCServer.h"
+#include "libServer/UnixDomainSocketServer.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"

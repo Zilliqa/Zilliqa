@@ -12,7 +12,9 @@ add_library(Server
     EthRpcMethods.cpp
     APIServerImpl.cpp
     APIThreadPool.cpp
-    WebsocketServerImpl.cpp)
+    WebsocketServerImpl.cpp
+    UnixDomainSocketClient.cpp
+    UnixDomainSocketServer.cpp)
 
 add_dependencies(Server jsonrpc-project)
 
