@@ -27,24 +27,22 @@ FROM zilliqa/zilliqa-ccache:${ZILLIQA_CCACHE_VERSION} AS builder
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
-ARG SOURCE_DIR=/zilliqa
-ARG BUILD_DIR=/build
+ARG SOURCE_DIR=/root/zilliqa
+ARG BUILD_DIR=/root/zilliqa/build
 ARG INSTALL_DIR=/usr/local
 ARG VCPKG_ROOT=/vcpkg
 
 # Build & install Zilliqa
 RUN (( git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} || git clone ${REPO} ${SOURCE_DIR} )) \
   && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
-  && cd ${SOURCE_DIR} && BUILD_DIR="${BUILD_DIR}" ./build.sh ninja \
-  && cmake --build "${BUILD_DIR}" --target install
+  && cd ${SOURCE_DIR} && CCACHE_BASEDIR="${SOURCE_DIR}" ./build.sh ninja \
+  && cmake --build "${BUILD_DIR}" --target install \
+  && cd ${SOURCE_DIR}/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
 
 # Make sure all DLLs / shared libraries are installed
 RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
   && cp ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/libffi.so ${INSTALL_DIR}/lib 
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
-
-# Build & install EVM
-RUN cd ${SOURCE_DIR}/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
 
 ARG VCPKG_PYTHON_PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/python3
 ARG VCPKG_PYTHON3=${VCPKG_PYTHON_PATH}/python3.10
@@ -90,7 +88,7 @@ RUN mkdir -p \
     /zilliqa/scripts
 
 ARG INSTALL_DIR=/usr/local
-ARG SOURCE_DIR=/zilliqa
+ARG SOURCE_DIR=/root/zilliqa
 
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin

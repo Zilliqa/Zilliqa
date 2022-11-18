@@ -65,7 +65,7 @@ timestamps {
                 stage('Build') {
                     sh "update-alternatives --install /usr/bin/python python \$(which python3) 1"
                     sh "git config --global --add safe.directory '*'"
-                    sh "export VCPKG_ROOT=${env.VCPKG_ROOT} && ./scripts/ci_build.sh"
+                    sh "VCPKG_ROOT=${env.VCPKG_ROOT} CCACHE_BASEDIR=\"\$(pwd)\" ./scripts/ci_build.sh"
                 }
                 stage('Integration test') {
                     sh "scripts/integration_test.sh --setup-env"

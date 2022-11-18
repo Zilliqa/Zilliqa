@@ -46,7 +46,7 @@ ccache: check-commit
 
 # FIXME: change to debug build
 dev: check-commit
-	docker build -t zilliqa:v$(major).$(minor).$(fix) \
+	docker build -t zilliqa:$(commit_or_tag) \
 		--build-arg ZILLIQA_BASE_VERSION="v$(major).$(minor).$(fix)" \
 		--build-arg ZILLIQA_CCACHE_VERSION="v$(major).$(minor).$(fix)" \
 		--build-arg COMMIT_OR_TAG="$(COMMIT_OR_TAG)" \

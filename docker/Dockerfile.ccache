@@ -21,15 +21,19 @@ FROM zilliqa/zilliqa-deps:${ZILLIQA_DEPS_VERSION} AS deps
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
-ARG SOURCE_DIR=/zilliqa
-ARG BUILD_DIR=/build
 ARG VCPKG_ROOT=/vcpkg
 
-RUN (( git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} || git clone ${REPO} ${SOURCE_DIR} )) \
-  && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
-  && cd ${SOURCE_DIR} && BUILD_DIR="${BUILD_DIR}" ./build.sh ninja tests \
-  && rm -rf ${SOURCE_DIR} \
-  && rm -rf ${BUILD_DIR}
+RUN ccache -M 10G
+RUN ccache -o hash_dir=false
+RUN ccache -o compression=true
+
+RUN SOURCE_DIR=${HOME}/zilliqa \
+  && (( git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} || git clone ${REPO} ${SOURCE_DIR} )) \
+  && git -C "${SOURCE_DIR}" checkout ${COMMIT_OR_TAG} \
+  && cd "${SOURCE_DIR}" && CCACHE_BASEDIR="${SOURCE_DIR}" ./build.sh ninja \
+  && rm -rf ${SOURCE_DIR}/build \
+  && cd "${SOURCE_DIR}" && CCACHE_BASEDIR="${SOURCE_DIR}" CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON -DENABLE_COVERAGE=ON" ./build.sh ninja debug tests \
+  && rm -rf ${SOURCE_DIR}
 
 FROM zilliqa/zilliqa-devbase:${ZILLIQA_DEVBASE_VERSION}
 

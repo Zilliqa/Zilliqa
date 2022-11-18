@@ -25,15 +25,11 @@ if [ -f /scilla/0 ]
     ls /scilla/0/
 fi
 
-
 re="\\bNOCI\\b"
 if [[ "$TRAVIS_COMMIT_MESSAGE" =~ $re ]]
 then
     exit 0
 fi
 
-os=$(uname)
-dir=build
-
-${SHELL} -x ./build.sh debug tests coverage
+${SHELL} -x ./build.sh ninja debug tests coverage
 
