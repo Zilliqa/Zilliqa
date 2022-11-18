@@ -26,7 +26,6 @@
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "jsonrpccpp/server/connectors/tcpsocketserver.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libEth/Filters.h"
@@ -34,6 +33,7 @@
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/APIServer.h"
 #include "libServer/GetWorkServer.h"
+#include "libServer/LocalAPIServer.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -475,7 +475,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (ENABLE_STATUS_RPC) {
       m_statusServerConnector =
-          make_unique<jsonrpc::TcpSocketServer>(IP_TO_BIND, STATUS_RPC_PORT);
+          make_unique<rpc::LocalAPIServer>(IP_TO_BIND, STATUS_RPC_PORT);
       m_statusServer =
           make_unique<StatusServer>(m_mediator, *m_statusServerConnector);
       if (m_statusServer == nullptr) {

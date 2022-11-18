@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETSERVER_H_
-#define ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETSERVER_H_
+#ifndef ZILLIQA_SRC_LIBSERVER_LOCALAPISERVER_H_
+#define ZILLIQA_SRC_LIBSERVER_LOCALAPISERVER_H_
 
 #include <atomic>
 #include <optional>
@@ -24,16 +24,16 @@
 
 #include <jsonrpccpp/server/abstractserverconnector.h>
 #include <boost/asio/io_context.hpp>
-#include <boost/asio/local/stream_protocol.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 namespace rpc {
 
-class UnixDomainSocketServer : public jsonrpc::AbstractServerConnector {
+class LocalAPIServer : public jsonrpc::AbstractServerConnector {
  public:
-  explicit UnixDomainSocketServer(const std::string& path)
-      : m_path(path), m_asio(1) {};
+  LocalAPIServer(const std::string& ipToBind, uint16_t port)
+      : m_ip(ipToBind), m_port(port), m_asio(1){};
 
-  ~UnixDomainSocketServer() override;
+  ~LocalAPIServer() override;
 
  private:
   // AbstractServerConnector overrides
@@ -46,13 +46,15 @@ class UnixDomainSocketServer : public jsonrpc::AbstractServerConnector {
   // WorkerThread that accepts connections
   void WorkerThread();
 
-  std::string m_path;
+  std::string m_ip;
+  uint16_t m_port;
+  boost::asio::ip::tcp::endpoint m_endpoint;
   boost::asio::io_context m_asio;
-  std::optional<boost::asio::local::stream_protocol::acceptor> m_acceptor;
+  std::optional<boost::asio::ip::tcp::acceptor> m_acceptor;
   std::optional<std::thread> m_thread;
   std::atomic<bool> m_started{};
 };
 
 }  // namespace rpc
 
-#endif  // ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETSERVER_H_
+#endif  // ZILLIQA_SRC_LIBSERVER_LOCALAPISERVER_H_

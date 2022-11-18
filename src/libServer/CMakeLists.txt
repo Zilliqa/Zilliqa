@@ -14,18 +14,19 @@ add_library(Server
     APIThreadPool.cpp
     WebsocketServerImpl.cpp
     UnixDomainSocketClient.cpp
-    UnixDomainSocketServer.cpp)
+    UnixDomainSocketServer.cpp
+    LocalAPIServer.cpp)
 
 add_dependencies(Server jsonrpc-project)
 
-target_include_directories(Server PUBLIC 
-                                  ${PROJECT_SOURCE_DIR}/src)
+target_include_directories(Server PUBLIC
+    ${PROJECT_SOURCE_DIR}/src)
 
-target_link_libraries (Server PUBLIC
-                              jsonrpc::server
-                              AccountData
-                              Validator
-                              Eth)
+target_link_libraries(Server PUBLIC
+    jsonrpc::server
+    AccountData
+    Validator
+    Eth)
 
-target_link_libraries (Server PRIVATE 
-                              SafeServer)
+#target_link_libraries (Server PRIVATE
+# XXX                             SafeServer)
