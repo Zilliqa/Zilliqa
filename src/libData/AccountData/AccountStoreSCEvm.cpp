@@ -48,7 +48,6 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
-      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
@@ -284,7 +283,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Create contract");
+      if (LOG_SC) {
+        LOG_GENERAL(WARNING, "Create contract");
+      }
+
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
@@ -362,13 +364,29 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
-      /*
-       * Add metadata into contract storage - TODO verify and document
-       */
+/*
+      evm::EvmArgs args;
+      *args.mutable_address() = AddressToProto(contractAddress);
+      *args.mutable_origin() = AddressToProto(fromAddr);
+      *args.mutable_code() =
+          DataConversion::CharArrayToString(StripEVM(transaction.GetCode()));
+      *args.mutable_data() =
+          DataConversion::CharArrayToString(transaction.GetData());
+      args.set_gas_limit(transaction.GetGasLimitEth());
+      *args.mutable_apparent_value() =
+          UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+        LOG_GENERAL(WARNING, "Failed to get EVM call extras");
+        error_code = TxnStatus::ERROR;
+        return false;
+      }
+*/
       std::map<std::string, zbytes> t_newmetadata;
+
       t_newmetadata.emplace(Contract::ContractStorage::GenerateStorageKey(
                                 contractAddress, CONTRACT_ADDR_INDICATOR, {}),
                             contractAddress.asBytes());
+
       if (!contractAccount->UpdateStates(contractAddress, t_newmetadata, {},
                                          true)) {
         LOG_GENERAL(WARNING, "Account::UpdateStates failed");
@@ -385,7 +403,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, result);
-      evmContext.SetEvmResult(result);
+
       // Decrease remained gas by baseFee (which is not taken into account by
       // EVM)
       uint64_t baseFee = evmContext.GetBaseFee();
@@ -516,7 +534,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
         return false;
       }
-
+/*
       {
         evm::EvmArgs args = evmContext.GetEvmArgs();
         evm::EvmResult result;

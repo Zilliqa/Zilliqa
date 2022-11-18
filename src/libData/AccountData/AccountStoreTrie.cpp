@@ -71,7 +71,6 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     return account;
   }
 
-  LOG_GENERAL(INFO, "resetRoot:" << resetRoot);
   std::string rawAccountBase;
 
   {
@@ -98,7 +97,6 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
     }
   }
   if (rawAccountBase.empty()) {
-    LOG_GENERAL(WARNING, "rawAccountBase is empty");
     return nullptr;
   }
 

@@ -30,7 +30,6 @@
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"
-#include "libUtils/EvmCallParameters.h"
 #include "libUtils/TxnExtras.h"
 
 template <class MAP>

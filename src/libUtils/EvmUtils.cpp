@@ -38,7 +38,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/Evm.pb.h"
-#include "libUtils/EvmCallParameters.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/TxnExtras.h"
 

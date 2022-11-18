@@ -533,14 +533,21 @@ bool AccountStore::UpdateAccountsTemp(
                 "EVM is disabled so not processing this EVM transaction ");
     return false;
   }
+  bool status;
+  LOG_GENERAL(WARNING,
+              "[AS] Starting to Process <" << transaction.GetTranID() << ">");
   if (isEvm) {
     EvmProcessContext context(blockNum, transaction, txnExtras);
-    return m_accountStoreTemp->UpdateAccountsEvm(blockNum, numShards, isDS,
+    status = m_accountStoreTemp->UpdateAccountsEvm(blockNum, numShards, isDS,
                                                  receipt, error_code, context);
   } else {
-    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                              transaction, receipt, error_code);
+    status = m_accountStoreTemp->UpdateAccounts(
+        blockNum, numShards, isDS, transaction, receipt, error_code);
   }
+  LOG_GENERAL(WARNING, "[AS] Finished Processing <"
+                           << transaction.GetTranID() << "> ("
+                           << (status ? "Successfully)" : "Failed)"));
+  return status;
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
