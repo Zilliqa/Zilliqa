@@ -50,6 +50,9 @@ class APIServer {
     /// Limit in bytes for POST bodies of incoming requests (security)
     size_t inputBodyLimit = 5 * 1024 * 1024;
 
+    /// Prefix for thread names in threadpool
+    std::string threadPoolName;
+
     /// Number of threads in thread pool
     size_t numThreads = 6;
 

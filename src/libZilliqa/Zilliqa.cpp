@@ -420,6 +420,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (LOOKUP_NODE_MODE) {
       evmproj::APIServer::Options options;
+      options.threadPoolName = "API";
       options.port = static_cast<uint16_t>(LOOKUP_RPC_PORT);
 
       apiRPC = evmproj::APIServer::CreateAndStart(asioCtx, std::move(options),
@@ -491,6 +492,8 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
 
     if (ENABLE_STAKING_RPC) {
       evmproj::APIServer::Options options;
+      options.threadPoolName = "Staking";
+      options.numThreads = 3;
       options.port = static_cast<uint16_t>(STAKING_RPC_PORT);
 
       stakingRPC = evmproj::APIServer::CreateAndStart(

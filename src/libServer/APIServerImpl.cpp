@@ -290,7 +290,8 @@ APIServerImpl::APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options)
   }
 
   m_threadPool = std::make_shared<APIThreadPool>(
-      *m_asio, m_options.numThreads, m_options.maxQueueSize,
+      *m_asio, m_options.threadPoolName, m_options.numThreads,
+      m_options.maxQueueSize,
       [this](const APIThreadPool::Request& req) -> APIThreadPool::Response {
         return ProcessRequestInThreadPool(req);
       },
