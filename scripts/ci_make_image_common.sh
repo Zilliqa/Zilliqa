@@ -18,7 +18,7 @@
 #
 # Usage:
 #
-#    ./scripts/ci_make_deps_image.sh
+#    ./scripts/ci_make_image_common.sh <image type>
 #
 # Environment Varibles:
 #
@@ -29,8 +29,15 @@
 #
 #
 # IMPORTANT: note that the built image will *not* depend on the commit and will *always*
-#            be tagged based on the version in ../VERSION
+#            be tagged based on the version in the VERSION file in the root directory
+#            of this repository.
 set -e
+
+if [ -z "$1" ]
+then
+    echo Usage: $0 image-type
+    exit 1
+fi
 
 docker --version
 aws --version
@@ -39,17 +46,18 @@ major=$(tail -n +2 VERSION | head -n1)
 minor=$(tail -n +4 VERSION | head -n1)
 fix=$(tail -n +6 VERSION | head -n1)
 
+image_name=zilliqa-"$1"
+source_image=${image_name}:v${major}.${minor}.${fix}
+target_image=zilliqa/${source_image}
+
 account_id=$(aws sts get-caller-identity --output text --query 'Account')
 region_id=us-west-2
-
-# See above comment about the image tag.
-source_image=zilliqa:v${major}.${minor}.${fix}-deps
-target_image=zilliqa/${source_image}
 
 docker login --username ${DOCKERHUB_USERNAME} --password ${DOCKERHUB_PASSWORD}
 
 set +e
-make -C docker deps COMMIT_OR_TAG="${TRAVIS_COMMIT}"  || exit 10
+make -C docker "$1" COMMIT_OR_TAG="${TRAVIS_COMMIT}"  || exit 10
 set -e
+
 docker tag ${source_image} ${target_image}
 docker push ${target_image}

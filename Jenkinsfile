@@ -11,7 +11,7 @@ spec:
     - cat
     tty: true
   - name: "ubuntu"
-    image: "648273915458.dkr.ecr.us-west-2.amazonaws.com/zilliqa:4d3cb5c"
+    image: "zilliqa/zilliqa-ccache:v0.0.0"
     command:
     - cat
     tty: true

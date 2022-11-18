@@ -13,13 +13,16 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-FROM zilliqa/scilla:v0.13.0 AS scilla
+ARG SCILLA_VERSION=v0.13.0
+ARG ZILLIQA_BASE_VERSION=
+ARG ZILLIQA_CCACHE_VERSION=
+
+FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
 
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-# start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM zilliqa:ccache AS builder
+FROM zilliqa/zilliqa-ccache:${ZILLIQA_CCACHE_VERSION} AS builder
 
 # Manually input tag or commit, can be overwritten by docker build-args
 ARG COMMIT_OR_TAG=master
@@ -79,7 +82,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
 
-FROM zilliqa:base
+FROM zilliqa/zilliqa-base:${ZILLIQA_BASE_VERSION}
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
