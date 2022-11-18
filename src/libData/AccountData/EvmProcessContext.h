@@ -51,22 +51,9 @@ class TxnExtras;
 #include "libUtils/EvmUtils.h"
 
 struct EvmProcessContext {
+  const uint64_t& GetBlockNumber();
+
  public:
-  //
-  // DirectCall is the internal call format used by Zilliqa implementations
-  // particularly in the eth library
-  //
-  struct DirectCall {
-    Address m_caller;
-    Address m_contract;
-    zbytes m_code;
-    zbytes m_data;
-    uint64_t m_gas = {0};
-    uint256_t m_amount = {0};
-    // for tracing purposes
-    dev::h256 m_tranID;
-    uint64_t m_blkNum{0};
-  };
   /*
    *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
    *                       const TxnExtras& extras, bool commit = true)
@@ -82,18 +69,12 @@ struct EvmProcessContext {
    *   This is the DirectCall format as used by 8.3 and beyond series.
    *
    */
-  EvmProcessContext(const DirectCall& params, const TxnExtras& extras,
-                    bool estimate = false, bool commit = true);
+  EvmProcessContext(const Address& caller, const Address& contract,
+                    const zbytes& code, const zbytes& data, const uint64_t& gas,
+                    const uint256_t& amount, const uint64_t& blkNum,
+                    const TxnExtras& extras, bool estimate = false);
 
   bool GetCommit() const;
-
-  /* GetContractType()
-   *
-   * return the contract type from the transaction
-   * This is deduced from looking at code and data fields.
-   * */
-
-  Transaction::ContractType GetContractType() const;
 
   /*
    * SetCode(const zbytes& code)
@@ -131,12 +112,6 @@ struct EvmProcessContext {
 
   void SetContractAddress(const Address& addr);
 
-  /*
-   * GetContractAddress()
-   */
-
-  const Address& GetContractAddress() const;
-
   /* GetTranID()
    *
    * GetTransactionId() supplied by transaction
@@ -152,98 +127,6 @@ struct EvmProcessContext {
 
   const bool& GetStatus() const;
 
-  /*
-   * GetJournal()
-   * returns a journal of operations performed and final error if a failure
-   * caused a bad status
-   */
-
-  const std::vector<std::string>& GetJournal() const;
-
-  /*
-   * GetGasDeposit()
-   * returns the GasDeposit calculated from the input parameters
-   * for transactions :
-   * txn.GetGasLimitZil() * txn.GetGasPriceWei();
-   *
-   * for direct :
-   */
-
-  const uint256_t& GetGasDeposit() const;
-
-  /*
-   * GetBlockNumber()
-   *
-   * returns the Block number as passed in by the EvmMessage
-   */
-
-  const uint64_t& GetBlockNumber() const;
-
-  /*
-   * GetSenderAddress()
-   *
-   * returns the Address of the Sender of The message passed in by the
-   * EvmMessage
-   */
-
-  const Address& GetSenderAddress() const;
-
-  /*
-   * GetGasLimit()
-   *
-   * return GasLimit in Eth
-   */
-
-  uint64_t GetGasLimitEth() const;
-
-  /*
-   * GetGasLimitRaw()
-   *
-   * return GasLimit in Eth
-   */
-
-  uint64_t GetGasLimitRaw() const;
-
-  /*
-   * GetGasLimitZil()
-   *
-   * limit in zil as the name suggests
-   */
-
-  uint64_t GetGasLimitZil() const;
-
-  /*
-   * GetAmountWei()
-   *
-   * as name implies
-   */
-
-  const uint256_t GetAmountWei() const;
-
-  const uint128_t& GetGasPriceRaw() const;
-
-  /*
-   * GetGasPriceWei()
-   */
-
-  const uint128_t GetGasPriceWei() const;
-
-  /*
-   * GetAmountQa()
-   */
-
-  const uint128_t GetAmountQa() const;
-  /*
-   * GetVersionIdentifier()
-   */
-
-  const uint32_t& GetVersionIdentifier() const;
-
-  /*
-   * GetBaseFee()
-   */
-
-  const uint64_t& GetBaseFee();
 
   /*
    * GetEvmArgs()
@@ -253,7 +136,7 @@ struct EvmProcessContext {
    *
    */
 
-  evm::EvmArgs GetEvmArgs();
+  inline const evm::EvmArgs& GetEvmArgs() { return m_protoData; }
 
   /*
    * Return internal structure populated by call to evm
@@ -287,39 +170,28 @@ struct EvmProcessContext {
 
   bool GetDirect() { return m_direct; }
 
- private:
-  bool GenerateEvmArgs(evm::EvmArgs& arg);
-  /*
-   * Determine the type of call that is required by Evm Processing
-   *
-   * This is copied from the transaction class
-   */
-  Transaction::ContractType GetInternalType(const Address& contractAddr,
-                                            const zbytes& code,
-                                            const zbytes& data) const;
-  /*
-   * Make sure that the contents of the transaction are Valid.
-   */
+  inline Transaction::ContractType GetContractType() {
+    return Transaction::GetTransactionType(m_legacyTxn);
+  }
 
-  bool Validate();
+  inline const Transaction& GetTransaction() const { return m_legacyTxn; }
 
  private:
-  DirectCall m_innerData;
-  Transaction::ContractType m_contractType;
+  const zbytes& m_txnCode;
+  const zbytes& m_txnData;
+  const Transaction& m_legacyTxn;
+  const Transaction m_dummyTransaction{};
+
+  evm::EvmArgs m_protoData;
+
   bool m_direct{false};
   bool m_commit{false};
-  uint64_t m_baseFee{0};
-  int m_errorCode;
   bool m_status{true};
-  TxnExtras m_extras;
-  std::vector<std::string> m_journal;
-  uint256_t m_gasDepositWei;
-  uint128_t m_gasPrice;
-  uint32_t m_versionIdentifier;
+
   evm::EvmResult m_evmResult;
   TransactionReceipt m_evmRcpt;
-  bool m_ethTransaction{false};
-  bool m_onlyEstimate{false};
+
+  const uint64_t& m_blockNumber;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMPROCESSCONTEXT_H_

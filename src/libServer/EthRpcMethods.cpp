@@ -573,59 +573,6 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"});
 }
 
-namespace {
-void dumpFirstTenBytes(zbytes arr) {
-  int count = 0;
-  for (auto cc : DataConversion::Uint8VecToHexStrRet(arr)) {
-    std::cout << cc << " ";
-    if (count++ == 10) break;
-  }
-  std::cout << std::endl;
-}
-
-void dumpParams(const EvmProcessContext& ctx, const bool& contractCreation,
-                const Json::Value& json, const zbytes& Code, const zbytes& Data,
-                const Address& from, const Address& to) {
-  std::cout << "Input to GetEstimate Gas was =>>" << json << std::endl;
-  Transaction::ContractType test = ctx.GetContractType();
-
-  switch (test) {
-    case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Contract Creation (Create Contract="
-                            << std::boolalpha << contractCreation << ")");
-      break;
-    }
-    case Transaction::CONTRACT_CALL: {
-      LOG_GENERAL(INFO, "Contract Call (Create Contract="
-                            << std::boolalpha << contractCreation << ")");
-      break;
-    }
-    case Transaction::NON_CONTRACT: {
-      LOG_GENERAL(INFO, "Non Contract");
-      break;
-    }
-    case Transaction::ERROR: {
-      LOG_GENERAL(INFO, "Contract Error (Create Contract="
-                            << std::boolalpha << contractCreation << ")");
-      break;
-    }
-    default:
-      LOG_GENERAL(INFO, "Unknown (Create Contract=" << std::boolalpha
-                                                    << contractCreation << ")");
-      break;
-  }
-  std::cout << "Code length " << Code.size() << " Contents [";
-  dumpFirstTenBytes(Code);
-
-  std::cout << "Data length " << Data.size() << " Contents [";
-  dumpFirstTenBytes(Data);
-
-  std::cout << "From Address " << from.hex() << std::endl;
-  std::cout << "To Address " << to.hex() << std::endl;
-}
-
-}  // namespace
-
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
@@ -748,22 +695,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  static int simHash = 1;
-  dev::h256 ourTranId(simHash++);
-  zbytes dummy{};
-
   /*
    * EVM estimate only is currently disabled, as per n-hutton advice.
    */
-  EvmProcessContext evmMessageContext(
-      {fromAddr, toAddr, code, data, gas, value, ourTranId, blockNum},
-      txnExtras, false, false);
-
-  if (LOG_SC &&
-      evmMessageContext.GetContractType() == Transaction::ContractType::ERROR) {
-    dumpParams(evmMessageContext, contractCreation, json, code, data, fromAddr,
-               toAddr);
-  }
+  EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
+                                      blockNum, txnExtras, false );
 
   evm::EvmResult result;
 
@@ -862,13 +798,11 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                             .GetHeader()
                             .GetBlockNum();
 
-    static int simHash = 1;
-    dev::h256 ourTranId(simHash++);
-    zbytes dummy{};
-
-    EvmProcessContext evmMessageContext(
-        {fromAddr, addr, code, data, gasRemained, value, ourTranId, blockNum},
-        txnExtras, false, false);
+    /*
+     * EVM estimate only is currently disabled, as per n-hutton advice.
+     */
+    EvmProcessContext evmMessageContext(fromAddr, addr, code, data, gasRemained,
+                                        value, blockNum, txnExtras, false);
 
     if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
                                                       result) &&

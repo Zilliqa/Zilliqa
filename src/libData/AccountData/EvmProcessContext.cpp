@@ -64,103 +64,62 @@
 EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
                                      const Transaction& txn,
                                      const TxnExtras& extras, bool commit)
-    : m_contractType(Transaction::GetTransactionType(txn)),
+    : m_txnCode(txn.GetCode()),
+      m_txnData(txn.GetData()),
+      m_legacyTxn(txn),
       m_direct(false),
       m_commit(commit),
-      m_extras(extras),
-      m_gasPrice(txn.GetGasPriceQa()),
-      m_versionIdentifier(txn.GetVersionIdentifier()) {
-  m_ethTransaction = txn.IsEth();
-  m_innerData.m_caller = txn.GetSenderAddr();
-  m_innerData.m_contract = txn.GetToAddr();
-  m_innerData.m_code = txn.GetCode();
-  m_innerData.m_data = txn.GetData();
-  m_innerData.m_gas = txn.GetGasLimitRaw();
-  m_innerData.m_amount = txn.GetAmountRaw();
-  m_innerData.m_tranID = txn.GetTranID();
-  m_innerData.m_blkNum = blkNum;
+      m_blockNumber(blkNum){
 
-  Validate();
+  *m_protoData.mutable_address() = AddressToProto(txn.GetToAddr());
 
-  m_onlyEstimate = false;
+  *m_protoData.mutable_origin() = AddressToProto(txn.GetSenderAddr());
+  *m_protoData.mutable_code() =
+      DataConversion::CharArrayToString(StripEVM(txn.GetCode()));
+  *m_protoData.mutable_data() =
+      DataConversion::CharArrayToString(txn.GetData());
+  m_protoData.set_gas_limit(txn.GetGasLimitEth());
+  *m_protoData.mutable_apparent_value() = UIntToProto(txn.GetAmountWei().convert_to<uint256_t>());
+
+  if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
+    m_status = false;
+  }
+  m_protoData.set_estimate(false);
+  // Initialised OK
   m_status = true;
 }
 
-/*
- * Validate that the inputTransaction is in good Shape.
- */
-
-bool EvmProcessContext::Validate() {
-  if (m_contractType == Transaction::ERROR) {
-    m_errorCode = TxnStatus::ERROR;
-    m_status = false;
-  }
-  m_baseFee = GetBaseFee();
-  // Calculate how much we need to take as a deposit for transaction.
-
-  if (m_contractType == Transaction::CONTRACT_CREATION) {
-    if (GetCode().empty()) {
-      m_errorCode = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
-      m_status = false;
-    }
-
-    // Check if limit is sufficient for creation fee
-    if (m_innerData.m_gas < m_baseFee) {
-      m_errorCode = TxnStatus::INSUFFICIENT_GAS_LIMIT;
-      m_status = false;
-    }
-  }
-  if (!SafeMath<uint256_t>::mul(GetGasLimitZil(), GetGasPriceWei(),
-                                m_gasDepositWei)) {
-    m_errorCode = TxnStatus::MATH_ERROR;
-    m_status = false;
-  }
-
-  return m_status;
-}
 /*
  *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
  *                       const TxnExtras& extras, bool commit = true)
  *   This is the DirectCall format as used by 8.3 and beyond series.
  *
  */
-EvmProcessContext::EvmProcessContext(const DirectCall& params,
-                                     const TxnExtras& extras, bool estimate,
-                                     bool commit)
-    : m_innerData(params),
-      m_direct(true),
-      m_commit(commit),
-      m_extras(extras),
-      m_versionIdentifier(TRANSACTION_VERSION_ETH),
-      m_onlyEstimate(estimate) {
-  m_ethTransaction = true;
-  m_direct = true;
-  m_contractType =
-      this->GetInternalType(params.m_contract, params.m_code, params.m_data);
 
-  Validate();
+EvmProcessContext::EvmProcessContext(
+    const Address& caller, const Address& contract, const zbytes& code,
+    const zbytes& data, const uint64_t& gas, const uint256_t& amount,
+    const uint64_t& blkNum, const TxnExtras& extras, bool estimate)
+    : m_txnCode(code),
+      m_txnData(data),
+      m_legacyTxn(m_dummyTransaction),
+      m_direct(true),
+      m_blockNumber(blkNum) {
+  *m_protoData.mutable_address() = AddressToProto(contract);
+  *m_protoData.mutable_origin() = AddressToProto(caller);
+  *m_protoData.mutable_code() =
+      DataConversion::CharArrayToString(StripEVM(code));
+  *m_protoData.mutable_data() = DataConversion::CharArrayToString(data);
+  m_protoData.set_gas_limit(gas);
+  *m_protoData.mutable_apparent_value() = UIntToProto(amount);
+  m_protoData.set_estimate(estimate);
+  if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
+    m_status = false;
+  }
 }
 
 bool EvmProcessContext::GetCommit() const { return m_commit; }
 
-/*
- * GetEstimateGas()
- *
- * Flag that registers in EstimateMode is set.
- */
-
-bool EvmProcessContext::GetEstimateOnly() const { return m_onlyEstimate; }
-
-/* GetContractType()
- *
- * return the contract type from the transaction
- * This is deduced from looking at code and data fields.
- * */
-
-Transaction::ContractType EvmProcessContext::GetContractType() const {
-  return this->GetInternalType(m_innerData.m_contract, m_innerData.m_code,
-                               m_innerData.m_data);
-}
 
 /*
  * SetCode(const zbytes& code)
@@ -171,7 +130,8 @@ Transaction::ContractType EvmProcessContext::GetContractType() const {
  */
 
 void EvmProcessContext::SetCode(const zbytes& code) {
-  m_innerData.m_code = code;
+  *m_protoData.mutable_code() =
+      DataConversion::CharArrayToString(StripEVM(code));
 }
 
 /*
@@ -180,7 +140,7 @@ void EvmProcessContext::SetCode(const zbytes& code) {
  * get a const ref to the binary code that represents the EVM contract
  */
 
-const zbytes& EvmProcessContext::GetCode() const { return m_innerData.m_code; }
+const zbytes& EvmProcessContext::GetCode() const { return m_txnCode; }
 
 /*
  * const zbyte& GetData()
@@ -189,7 +149,7 @@ const zbytes& EvmProcessContext::GetCode() const { return m_innerData.m_code; }
  * the EVM contract
  */
 
-const zbytes& EvmProcessContext::GetData() const { return m_innerData.m_data; }
+const zbytes& EvmProcessContext::GetData() const { return m_txnData; }
 
 /*  SetContractAddress()
  *
@@ -199,15 +159,7 @@ const zbytes& EvmProcessContext::GetData() const { return m_innerData.m_data; }
  */
 
 void EvmProcessContext::SetContractAddress(const Address& addr) {
-  m_innerData.m_contract = addr;
-}
-
-/*
- * GetContractAddress()
- */
-
-const Address& EvmProcessContext::GetContractAddress() const {
-  return m_innerData.m_contract;
+  *m_protoData.mutable_address() = AddressToProto(addr);
 }
 
 /* GetTranID()
@@ -216,7 +168,9 @@ const Address& EvmProcessContext::GetContractAddress() const {
  * Probably useful for debugging
  * */
 
-dev::h256 EvmProcessContext::GetTranID() const { return m_innerData.m_tranID; }
+dev::h256 EvmProcessContext::GetTranID() const {
+  return m_legacyTxn.GetTranID();
+}
 
 /* GetStatus()
  * returns true when all is good, otherwise Journal
@@ -226,153 +180,12 @@ dev::h256 EvmProcessContext::GetTranID() const { return m_innerData.m_tranID; }
 const bool& EvmProcessContext::GetStatus() const { return m_status; }
 
 /*
- * GetJournal()
- * returns a journal of operations performed and final error if a failure
- * caused a bad status
- */
-
-const std::vector<std::string>& EvmProcessContext::GetJournal() const {
-  return m_journal;
-}
-
-/*
- * GetGasDeposit()
- * returns the GasDeposit calculated from the input parameters
- * for transactions :
- * txn.GetGasLimitZil() * txn.GetGasPriceWei();
- *
- * for direct :
- */
-
-const uint256_t& EvmProcessContext::GetGasDeposit() const {
-  return m_gasDepositWei;
-}
-
-/*
- * GetBlockNumber()
- *
- * returns the Block number as passed in by the EvmMessage
- */
-
-const uint64_t& EvmProcessContext::GetBlockNumber() const {
-  return m_innerData.m_blkNum;
-}
-
-/*
- * GetSenderAddress()
- *
- * returns the Address of the Sender of The message passed in by the
- * EvmMessage
- */
-
-const Address& EvmProcessContext::GetSenderAddress() const {
-  return m_innerData.m_caller;
-}
-
-/*
- * GetGasLimit()
- *
- * return GasLimit in Eth
- */
-
-uint64_t EvmProcessContext::GetGasLimitEth() const {
-  if (m_ethTransaction) {
-    return m_innerData.m_gas;
-  }
-  return GasConv::GasUnitsFromCoreToEth(m_innerData.m_gas);
-}
-
-uint64_t EvmProcessContext::GetGasLimitRaw() const {
-  return this->m_innerData.m_gas;
-}
-
-/*
- * GetGasLimitZil()
- *
- * limit in zil as the name suggests
- */
-
-uint64_t EvmProcessContext::GetGasLimitZil() const {
-  if (m_ethTransaction) {
-    return GasConv::GasUnitsFromEthToCore(m_innerData.m_gas);
-  }
-  return m_innerData.m_gas;
-}
-
-/*
- * GetAmountWei()
- *
- * as name implies
- */
-
-const uint256_t EvmProcessContext::GetAmountWei() const {
-  if (m_ethTransaction) {
-    return m_innerData.m_amount;
-  } else {
-    // We know the amounts in transactions are capped, so it won't overlow.
-    return m_innerData.m_amount * EVM_ZIL_SCALING_FACTOR;
-  }
-}
-
-const uint128_t& EvmProcessContext::GetGasPriceRaw() const {
-  return m_gasPrice;
-}
-
-/*
- * GetGasPriceWei()
- */
-
-const uint128_t EvmProcessContext::GetGasPriceWei() const {
-  if (m_ethTransaction) {
-    return m_gasPrice;
-  } else {
-    return m_gasPrice * EVM_ZIL_SCALING_FACTOR / GasConv::GetScalingFactor();
-  }
-}
-
-/*
- * GetAmountQa()
- */
-
-const uint128_t EvmProcessContext::GetAmountQa() const {
-  if (m_ethTransaction) {
-    return m_innerData.m_amount.convert_to<uint128_t>() /
-           EVM_ZIL_SCALING_FACTOR;
-  } else {
-    return m_innerData.m_amount.convert_to<uint128_t>();
-  }
-}
-
-/*
- * GetVersionIdentifier()
- */
-
-const uint32_t& EvmProcessContext::GetVersionIdentifier() const {
-  return m_versionIdentifier;
-}
-
-/*
- * GetBaseFee()
- */
-
-const uint64_t& EvmProcessContext::GetBaseFee() {
-  m_baseFee = Eth::getGasUnitsForContractDeployment(GetCode(), GetData());
-  return m_baseFee;
-}
-
-/*
  * GetEvmArgs()
  *
  * Get the arguments in the format ready for passing to evm
  * must have called generateArgs()
  *
  */
-
-evm::EvmArgs EvmProcessContext::GetEvmArgs() {
-  evm::EvmArgs args;
-  GenerateEvmArgs(args);
-  return args;
-}
 
 /*
  * Return internal structure populated by call to evm
@@ -406,47 +219,4 @@ const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
   return m_evmRcpt;
 }
 
-bool EvmProcessContext::GenerateEvmArgs(evm::EvmArgs& arg) {
-  *arg.mutable_address() = AddressToProto(m_innerData.m_contract);
-  *arg.mutable_origin() = AddressToProto(m_innerData.m_caller);
-  *arg.mutable_code() =
-      DataConversion::CharArrayToString(StripEVM(m_innerData.m_code));
-  *arg.mutable_data() = DataConversion::CharArrayToString(m_innerData.m_data);
-  arg.set_gas_limit(GetGasLimitEth());
-  *arg.mutable_apparent_value() = UIntToProto(GetAmountWei());
-  arg.set_estimate(true);
-  if (!GetEvmEvalExtras(m_innerData.m_blkNum, m_extras,
-                        *arg.mutable_extras())) {
-    std::ostringstream stringStream;
-    stringStream.clear();
-    stringStream << "Call to GetEvmExtraValues has failed";
-    m_journal.push_back(stringStream.str());
-    m_status = false;
-    return false;
-  }
-  return true;
-}
-/*
- * Determine the type of call that is required by Evm Processing
- *
- * This is very similar to the transaction class
- *
- */
-Transaction::ContractType EvmProcessContext::GetInternalType(
-    const Address& contractAddr, const zbytes& code, const zbytes& data) const {
-  auto const nullAddr = IsNullAddress(contractAddr);
-
-  if ((not data.empty() && not nullAddr) && code.empty()) {
-    return Transaction::CONTRACT_CALL;
-  }
-
-  if (not code.empty() && nullAddr) {
-    return Transaction::CONTRACT_CREATION;
-  }
-
-  if ((data.empty() && not nullAddr) && code.empty()) {
-    return Transaction::NON_CONTRACT;
-  }
-
-  return Transaction::ERROR;
-}
+const uint64_t& EvmProcessContext::GetBlockNumber() { return m_blockNumber; }
