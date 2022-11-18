@@ -24,10 +24,10 @@
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
 #include "libServer/ScillaIPCServer.h"
-#include "libUtils/Logger.h"
-#include "libUtils/SysCommand.h"
 #include "libServer/UnixDomainSocketClient.h"
 #include "libServer/UnixDomainSocketServer.h"
+#include "libUtils/Logger.h"
+#include "libUtils/SysCommand.h"
 
 #define BOOST_TEST_MODULE scillaipc
 #define BOOST_TEST_DYN_LINK

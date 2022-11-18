@@ -31,7 +31,7 @@ namespace rpc {
 class UnixDomainSocketServer : public jsonrpc::AbstractServerConnector {
  public:
   explicit UnixDomainSocketServer(const std::string& path)
-      : m_path(path), m_asio(1) {};
+      : m_path(path), m_asio(1){};
 
   ~UnixDomainSocketServer() override;
 

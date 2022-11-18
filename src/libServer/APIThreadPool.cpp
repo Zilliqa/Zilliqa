@@ -137,4 +137,4 @@ void APIThreadPool::ProcessResponseQueue() {
   }
 }
 
-}  // namespace evmproj
+}  // namespace rpc
