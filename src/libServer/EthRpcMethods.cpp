@@ -576,8 +576,6 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
-  std::cout << "Processing start " << std::endl;
-
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
@@ -632,10 +630,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "data argument invalid");
     }
     std::cout << "Set Data" << std::endl;
-  } else {
-    data.clear();
   }
-
   uint256_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
@@ -675,7 +670,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(4 * DS_MICROBLOCK_GAS_LIMIT);
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
 
   // Use gas specified by user
   if (json.isMember("gas")) {
