@@ -98,7 +98,7 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
       m_subscriptions.OnEventLog(event.address, event.topics, event.response);
     }
 
-    auto earliest = epoch <= TXMETADATADEPTH ? 0 : epoch - TXMETADATADEPTH;
+    auto earliest = epoch > TXMETADATADEPTH ? epoch - TXMETADATADEPTH : 1;
     m_filterAPI.SetEpochRange(earliest, epoch);
   }
 

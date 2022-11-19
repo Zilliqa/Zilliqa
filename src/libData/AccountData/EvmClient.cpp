@@ -128,7 +128,6 @@ EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
   bool status{true};
-  LOG_MARKER();
   LOG_GENERAL(INFO, "OpenServer for EVM ");
 
   try {
@@ -157,6 +156,7 @@ bool EvmClient::OpenServer() {
 
 bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
+
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
@@ -168,8 +168,16 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   }
   try {
     const auto replyJson = m_client->CallMethod("run", _json);
+
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING, "EVM reply" << replyJson.toStyledString());
+    }
+
     try {
-      const auto reply = EvmUtils::GetEvmResultFromJson(replyJson, result);
+      EvmUtils::GetEvmResultFromJson(replyJson, result);
+
+      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
