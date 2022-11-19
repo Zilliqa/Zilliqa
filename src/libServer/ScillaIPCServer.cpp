@@ -16,7 +16,7 @@
  */
 
 #include <jsonrpccpp/common/specification.h>
-#include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
+#include <jsonrpccpp/common/exception.h>
 #include <sstream>
 #include "common/Constants.h"
 #include "libUtils/GasConv.h"

@@ -17,7 +17,6 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
 
-#include <jsonrpccpp/server.h>
 #include <jsonrpccpp/server/abstractserver.h>
 
 #include "depends/common/FixedHash.h"
