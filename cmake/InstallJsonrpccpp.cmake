@@ -7,10 +7,6 @@
 # but we need to know the libcurl location for static linking.
 find_package(CURL REQUIRED)
 
-# HTTP server from JSON RPC CPP requires microhttpd library. It can find it itself,
-# but we need to know the MHD location for static linking.
-find_package(MHD REQUIRED)
-
 include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
 include(GNUInstallDirs)
 
@@ -24,20 +20,18 @@ set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=<INSTALL_DIR>
                -DWITH_COVERAGE=Off
                -DBUILD_STATIC_LIBS=On
                -DBUILD_SHARED_LIBS=Off
-               -DUNIX_DOMAIN_SOCKET_SERVER=On
-               -DUNIX_DOMAIN_SOCKET_CLIENT=On
-               -DHTTP_SERVER=On
+               -DUNIX_DOMAIN_SOCKET_SERVER=Off
+               -DUNIX_DOMAIN_SOCKET_CLIENT=Off
+               -DHTTP_SERVER=Off
                -DHTTP_CLIENT=On
                -DCOMPILE_TESTS=Off
                -DREDIS_SERVER=NO
                -DREDIS_CLIENT=NO
-               -DTCP_SOCKET_SERVER=On
+               -DTCP_SOCKET_SERVER=Off
                -DCOMPILE_STUBGEN=Off
                -DCOMPILE_EXAMPLES=Off
                -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
                -DVCPKG_TARGET_TRIPLET=${VCPKG_TARGET_TRIPLET}
-               -DMHD_INCLUDE_DIR=${MHD_INCLUDE_DIR}
-               -DMHD_LIBRARY=${MHD_LIBRARY}
                -DCMAKE_CXX_FLAGS=${JSONRPC_CXX_FLAGS})
 
 ExternalProject_Add(jsonrpc-project
@@ -84,8 +78,7 @@ add_dependencies(jsonrpc::client jsonrpc-project)
 
 add_library(jsonrpc::server STATIC IMPORTED)
 set_property(TARGET jsonrpc::server PROPERTY IMPORTED_LOCATION ${INSTALL_DIR}/${CMAKE_INSTALL_LIBDIR}/${CMAKE_STATIC_LIBRARY_PREFIX}jsonrpccpp-server${CMAKE_STATIC_LIBRARY_SUFFIX})
-set_property(TARGET jsonrpc::server PROPERTY INTERFACE_LINK_LIBRARIES jsonrpc::common ${MHD_LIBRARY})
-set_property(TARGET jsonrpc::server PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${MHD_INCLUDE_DIR})
+set_property(TARGET jsonrpc::server PROPERTY INTERFACE_LINK_LIBRARIES jsonrpc::common)
 add_dependencies(jsonrpc::server jsonrpc-project)
 
 unset(INSTALL_DIR)
