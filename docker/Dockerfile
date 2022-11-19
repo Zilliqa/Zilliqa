@@ -41,7 +41,6 @@ RUN apt-get update \
     # mention again as installation candidate
     rsync \
     libcurl4-openssl-dev \
-    libjsonrpccpp-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
@@ -123,7 +122,6 @@ RUN apt-get update \
     ca-certificates \
     cron \
     libcurl4-openssl-dev \
-    libjsonrpccpp-dev \
     libssl-dev \
     libtool \
     ocl-icd-opencl-dev \
@@ -141,6 +139,10 @@ RUN apt-get update \
     rsyslog \
     trickle \
     vim \
+    htop \
+    strace \
+    nload \
+    iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN apt-get remove -y python3 && apt-get autoremove -y

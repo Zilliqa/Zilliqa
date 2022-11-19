@@ -28,7 +28,6 @@ apt update -y
 apt install -y build-essential \
     libcurl4-openssl-dev \
     libjsoncpp-dev \
-    libjsonrpccpp-dev \
     libssl-dev \
     cargo \
     pkg-config \
