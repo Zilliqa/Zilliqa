@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <jsonrpccpp/common/specification.h>
 #include <jsonrpccpp/common/exception.h>
+#include <jsonrpccpp/common/specification.h>
 #include <sstream>
 #include "common/Constants.h"
 #include "libUtils/GasConv.h"
