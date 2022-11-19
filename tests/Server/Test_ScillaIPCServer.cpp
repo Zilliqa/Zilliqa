@@ -16,7 +16,6 @@
  */
 
 #include <jsonrpccpp/client.h>
-#include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
 #include <thread>
 #include "common/Constants.h"
 #pragma GCC diagnostic push
