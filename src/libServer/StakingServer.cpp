@@ -16,6 +16,7 @@
  */
 #include "StakingServer.h"
 #include "JSONConversion.h"
+#include "libMediator/Mediator.h"
 #include "libUtils/Logger.h"
 
 using namespace jsonrpc;
