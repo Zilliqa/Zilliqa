@@ -16,6 +16,7 @@
  */
 
 #include <leveldb/db.h>
+#include <boost/filesystem/operations.hpp>
 #include <regex>
 
 #include "AccountStore.h"
@@ -45,7 +46,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
 
-  if ((ENABLE_SC && ENABLE_EVM) || ISOLATED_SERVER) {
+  if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
@@ -281,7 +282,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   unordered_map<string, string> initdata_batch;
 
   for (const auto& i : *m_addressToAccount) {
-    if (i.second.isContract()) {
+    if (i.second.isContract() || i.second.IsLibrary()) {
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
               .empty()) {
@@ -519,8 +520,9 @@ bool AccountStore::UpdateAccountsTemp(
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {
     isEvm = EvmUtils::isEvm(transaction.GetCode());
-  } else if (Transaction::GetTransactionType(transaction) ==
-             Transaction::CONTRACT_CALL) {
+  } else {
+    // We need to look at the code for any transaction type. Even if it is a
+    // simple transfer, it might actually be a call.
     Account* contractAccount = this->GetAccountTemp(transaction.GetToAddr());
     if (contractAccount != nullptr) {
       isEvm = EvmUtils::isEvm(contractAccount->GetCode());
@@ -531,13 +533,20 @@ bool AccountStore::UpdateAccountsTemp(
                 "EVM is disabled so not processing this EVM transaction ");
     return false;
   }
+  bool status;
+  LOG_GENERAL(WARNING,
+              "[AS] Starting to Process <" << transaction.GetTranID() << ">");
   if (isEvm) {
-    return m_accountStoreTemp->UpdateAccountsEvm(
+    status = m_accountStoreTemp->UpdateAccountsEvm(
         blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
   } else {
-    return m_accountStoreTemp->UpdateAccounts(blockNum, numShards, isDS,
-                                              transaction, receipt, error_code);
+    status = m_accountStoreTemp->UpdateAccounts(
+        blockNum, numShards, isDS, transaction, receipt, error_code);
   }
+  LOG_GENERAL(WARNING, "[AS] Finished Processing <"
+                           << transaction.GetTranID() << "> ("
+                           << (status ? "Successfully)" : "Failed)"));
+  return status;
 }
 
 bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,

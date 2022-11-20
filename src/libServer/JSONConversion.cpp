@@ -680,11 +680,11 @@ const Json::Value JSONConversion::convertTxtoEthJson(
 
   if (!tx.GetCode().empty()) {
     inputField =
-        "0x" + DataConversion::CharArrayToString(StripEVM(tx.GetCode()));
+        "0x" + DataConversion::Uint8VecToHexStrRet(StripEVM(tx.GetCode()));
   }
 
   if (!tx.GetData().empty()) {
-    const auto callData = DataConversion::CharArrayToString(tx.GetData());
+    const auto callData = DataConversion::Uint8VecToHexStrRet(tx.GetData());
     // Append extra '0x' prefix iff GetCode() gave empty string
     if (inputField.empty()) {
       inputField += "0x" + callData;

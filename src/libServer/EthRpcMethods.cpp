@@ -17,6 +17,7 @@
 #include "EthRpcMethods.h"
 #include <Schnorr.h>
 #include <jsonrpccpp/common/exception.h>
+#include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
 #include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
@@ -24,9 +25,9 @@
 #include "JSONConversion.h"
 #include "LookupServer.h"
 #include "common/Constants.h"
-#include "common/Messages.h"
 #include "common/Serializable.h"
 #include "json/value.h"
+#include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -35,21 +36,16 @@
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
-#include "libPersistence/ContractStorage.h"
-#include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/AddressChecksum.h"
 #include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
@@ -368,6 +364,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     const unsigned int num_shards, const uint128_t& gasPrice,
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
+  std::string ret;
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -379,27 +376,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 
-  Address toAddr{fields.toAddr};
-  zbytes data;
-  zbytes code;
-  if (IsNullAddress(toAddr)) {
-    code = ToEVM(fields.code);
-  } else {
-    data = DataConversion::StringToCharArray(
-        DataConversion::Uint8VecToHexStrRet(fields.code));
-  }
-  Transaction tx{fields.version,
-                 fields.nonce,
-                 Address(fields.toAddr),
-                 PubKey(pubKey, 0),
-                 fields.amount,
-                 fields.gasPrice,
-                 fields.gasLimit,
-                 code,  // either empty or stripped EVM-less code
-                 data,  // either empty or un-hexed byte-stream
-                 Signature(fields.signature, 0)};
-
-  const std::string ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+  auto tx = GetTxFromFields(fields, pubKey, ret);
 
   try {
     const Address fromAddr = tx.GetSenderAddr();
@@ -422,9 +399,8 @@ std::string EthRpcMethods::CreateTransactionEth(
       uint64_t minGasLimit = 0;
       if (Transaction::GetTransactionType(tx) ==
           Transaction::ContractType::CONTRACT_CREATION) {
-        minGasLimit = Eth::getGasUnitsForContractDeployment(
-            DataConversion::CharArrayToString(tx.GetCode()),
-            DataConversion::CharArrayToString(tx.GetData()));
+        minGasLimit =
+            Eth::getGasUnitsForContractDeployment(tx.GetCode(), tx.GetData());
       } else {
         minGasLimit = MIN_ETH_GAS;
       }
@@ -442,21 +418,16 @@ std::string EthRpcMethods::CreateTransactionEth(
         if (ARCHIVAL_LOOKUP) {
           mapIndex = SEND_TYPE::ARCHIVAL_SEND_SHARD;
         }
-        if (toAccountExist) {
-          if (toAccountIsContract) {
-            throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                                   "Contract account won't accept normal txn");
-            return ret;
-          }
+        if (toAccountExist && toAccountIsContract) {
+          // A simple transfer to an account that is a contract
+          // is processed like a CONTRACT_CALL.
+          auto check =
+              CheckContractTxnShards(priority, shard, tx, num_shards,
+                                     toAccountExist, toAccountIsContract);
+          mapIndex = check.second;
         }
-
         break;
-      case Transaction::ContractType::CONTRACT_CREATION: {
-        auto check =
-            CheckContractTxnShards(priority, shard, tx, num_shards,
-                                   toAccountExist, toAccountIsContract);
-        mapIndex = check.second;
-      } break;
+      case Transaction::ContractType::CONTRACT_CREATION:
       case Transaction::ContractType::CONTRACT_CALL: {
         auto check =
             CheckContractTxnShards(priority, shard, tx, num_shards,
@@ -621,7 +592,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     toAddr = Address{toAddrStr};
   }
 
-  std::string code;
+  zbytes code;
   uint256_t accountFunds{};
   bool contractCreation = false;
   {
@@ -629,7 +600,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
         AccountStore::GetInstance().GetPrimaryMutex());
 
     const Account* sender =
-        AccountStore::GetInstance().GetAccount(fromAddr, true);
+        !IsNullAddress(fromAddr)
+            ? AccountStore::GetInstance().GetAccount(fromAddr, true)
+            : nullptr;
     if (sender == nullptr) {
       LOG_GENERAL(WARNING, "Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
@@ -638,10 +611,12 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     accountFunds = sender->GetBalance();
 
     const Account* toAccount =
-        AccountStore::GetInstance().GetAccount(toAddr, true);
+        !IsNullAddress(toAddr)
+            ? AccountStore::GetInstance().GetAccount(toAddr, true)
+            : nullptr;
 
     if (toAccount != nullptr && toAccount->isContract()) {
-      code = DataConversion::CharArrayToString(toAccount->GetCode());
+      code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
       toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
                                               TRANSACTION_VERSION_ETH);
@@ -649,25 +624,26 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     }
   }
 
-  std::string data;
+  zbytes data;
   if (json.isMember("data")) {
-    data = json["data"].asString();
-    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
-      data = data.substr(2);
+    if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "data argument invalid");
     }
   }
 
   uint256_t value = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
-    value = stoull(valueStr.c_str(), nullptr, 0);
+    value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
   if (json.isMember("gasPrice")) {
     const auto gasPriceStr = json["gasPrice"].asString();
-    const uint256_t gasPriceNum = stoull(gasPriceStr.c_str(), nullptr, 0);
-    gasPrice = max(gasPrice, gasPriceNum);
+    uint256_t inputGasPrice =
+        DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
+    gasPrice = max(gasPrice, inputGasPrice);
   }
 
   uint256_t gasDeposit = 0;
@@ -701,8 +677,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   // Use gas specified by user
   if (json.isMember("gas")) {
     const auto gasLimitStr = json["gas"].asString();
-    gas = min(gas,
-              static_cast<uint64_t>(stoull(gasLimitStr.c_str(), nullptr, 0)));
+    const uint64_t userGas =
+        DataConversion::ConvertStrToInt<uint64_t>(gasLimitStr, 0);
+    gas = min(gas, userGas);
   }
 
   const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
@@ -715,28 +692,29 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  EvmCallExtras extras;
-  if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(toAddr);
+  *args.mutable_origin() = AddressToProto(fromAddr);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+  *args.mutable_data() = DataConversion::CharArrayToString(data);
+  args.set_gas_limit(gas);
+  *args.mutable_apparent_value() = UIntToProto(value);
+  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
   }
+  args.set_estimate(true);
 
-  const EvmCallParameters params{
-
-      toAddr.hex(), fromAddr.hex(),    code, data, gas,
-      value,        std::move(extras), true /* only estimate gas */
-  };
-
-  evmproj::CallResponse response;
-  if (AccountStore::GetInstance().ViewAccounts(params, response) &&
-      response.Success()) {
-    const auto gasRemained = response.Gas();
+  evm::EvmResult result;
+  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+      result.exit_reason().exit_reason_case() ==
+          evm::ExitReason::ExitReasonCase::kSucceed) {
+    const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : 0;
-
     const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
 
     // We can't go beyond gas provided by user (or taken from last block)
@@ -744,10 +722,20 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Base fee exceeds gas limit");
     }
-
+    LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
     return (boost::format("0x%x") % retGas).str();
+  } else if (result.exit_reason().exit_reason_case() ==
+             evm::ExitReason::kRevert) {
+    // Error code 3 is a special case. It is practially documented only in geth
+    // and its clones, e.g. here:
+    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
+    std::string return_value;
+    DataConversion::StringToHexStr(result.return_value(), return_value);
+    boost::algorithm::to_lower(return_value);
+    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
   }
 }
 
@@ -770,17 +758,17 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     code = contractAccount->GetCode();
   }
 
-  evmproj::CallResponse response;
+  evm::EvmResult result;
   try {
     Address fromAddr;
     if (_json.isMember(apiKeys.from)) {
       fromAddr = Address(_json[apiKeys.from].asString());
     }
 
-    uint64_t amount{0};
+    uint256_t value = 0;
     if (_json.isMember(apiKeys.value)) {
-      const auto amount_str = _json[apiKeys.value].asString();
-      amount = strtoull(amount_str.c_str(), NULL, 0);
+      const auto valueStr = _json[apiKeys.value].asString();
+      value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
     }
 
     // for now set total gas as twice the ds gas limit
@@ -788,13 +776,16 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
         GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
     if (_json.isMember(apiKeys.gas)) {
       const auto gasLimit_str = _json[apiKeys.gas].asString();
-      gasRemained =
-          min(gasRemained, (uint64_t)stoull(gasLimit_str.c_str(), nullptr, 0));
+      const uint64_t userGas =
+          DataConversion::ConvertStrToInt<uint64_t>(gasLimit_str, 0);
+      gasRemained = min(gasRemained, userGas);
     }
 
-    string data = _json[apiKeys.data].asString();
-    if (data.size() >= 2 && data[0] == '0' && data[1] == 'x') {
-      data = data.substr(2);
+    zbytes data;
+    if (!DataConversion::HexStrToUint8Vec(_json[apiKeys.data].asString(),
+                                          data)) {
+      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                             "data argument invalid");
     }
 
     const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
@@ -807,27 +798,26 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
                             .GetHeader()
                             .GetBlockNum();
-    EvmCallExtras extras;
-    if (!GetEvmCallExtras(blockNum, txnExtras, extras)) {
+    evm::EvmArgs args;
+    *args.mutable_address() = AddressToProto(addr);
+    *args.mutable_origin() = AddressToProto(fromAddr);
+    *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+    *args.mutable_data() = DataConversion::CharArrayToString(data);
+    args.set_gas_limit(gasRemained);
+    *args.mutable_apparent_value() = UIntToProto(value);
+    if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
       throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                              "Failed to get EVM call extras");
     }
 
-    const EvmCallParameters params{addr.hex(),
-                                   fromAddr.hex(),
-                                   DataConversion::CharArrayToString(code),
-                                   data,
-                                   gasRemained,
-                                   amount,
-                                   std::move(extras)};
-
-    if (AccountStore::GetInstance().ViewAccounts(params, response) &&
-        response.Success()) {
+    if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+        result.exit_reason().exit_reason_case() ==
+            evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;
     }
 
     if (LOG_SC) {
-      LOG_GENERAL(INFO, "Called Evm, response:" << response);
+      LOG_GENERAL(INFO, "Called Evm, response:" << result.DebugString());
     }
 
   } catch (const exception& e) {
@@ -835,11 +825,21 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
   }
 
-  if (!success) {
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, response.ExitReason());
+  std::string return_value;
+  DataConversion::StringToHexStr(result.return_value(), return_value);
+  boost::algorithm::to_lower(return_value);
+  if (success) {
+    return "0x" + return_value;
+  } else if (result.exit_reason().exit_reason_case() ==
+             evm::ExitReason::kRevert) {
+    // Error code 3 is a special case. It is practially documented only in geth
+    // and its clones, e.g. here:
+    // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
+    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+  } else {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           EvmUtils::ExitReasonString(result.exit_reason()));
   }
-
-  return "0x" + response.ReturnedBytes();
 }
 
 std::string EthRpcMethods::GetWeb3ClientVersion() {
@@ -876,7 +876,9 @@ Json::Value EthRpcMethods::GetEthMining() {
 
 std::string EthRpcMethods::GetEthCoinbase() {
   LOG_MARKER();
-  return "0x0000000000000000000000000000000000000000";
+  throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                         "Unsupported method: eth_coinbase. Zilliqa mining "
+                         "model is different from that of Etherium");
 }
 
 Json::Value EthRpcMethods::GetNetListening() {
@@ -917,16 +919,16 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
                            "Sent to a non-lookup");
   }
   try {
-    TxBodySharedPtr transactioBodyPtr;
+    TxBodySharedPtr transactionBodyPtr;
     TxnHash tranHash(transactionHash);
     bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactioBodyPtr);
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, transactionBodyPtr);
     if (!isPresent) {
       return Json::nullValue;
     }
 
     const TxBlock EMPTY_BLOCK;
-    const auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    const auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
       return Json::nullValue;
@@ -940,7 +942,7 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
     }
 
     return JSONConversion::convertTxtoEthJson(transactionIndex,
-                                              *transactioBodyPtr, txBlock);
+                                              *transactionBodyPtr, txBlock);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << transactionHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
@@ -991,6 +993,8 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
                              "FetchStateJson failed");
     }
 
+    LOG_GENERAL(INFO, "State JSON: " << root);
+
     // Attempt to get storage at position.
     // Left-pad position with 0s up to 64
     std::string zeroes =
@@ -1013,6 +1017,9 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
                  zeroes.size() - std::distance(positionIter, position.end()));
 
     zeroes.replace(zeroIter, zeroes.end(), positionIter, position.end());
+
+    // Must be uppercase
+    std::transform(zeroes.begin(), zeroes.end(), zeroes.begin(), ::toupper);
 
     auto res = root["_evm_storage"][zeroes];
     zbytes resAsStringBytes;
@@ -1038,25 +1045,25 @@ Json::Value EthRpcMethods::GetEthCode(std::string const& address,
                                       std::string const& /*blockNum*/) {
   LOG_MARKER();
 
-  // Strip off "0x" if exists
-  auto addressCopy = address;
+  zbytes code;
+  try {
+    Address addr{address, Address::FromHex};
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().GetPrimaryWriteAccessCond().wait(lock, [] {
+      return AccountStore::GetInstance().GetPrimaryWriteAccess();
+    });
 
-  if (addressCopy.size() >= 2 && addressCopy[0] == '0' &&
-      addressCopy[1] == 'x') {
-    addressCopy.erase(0, 2);
+    const Account* account = AccountStore::GetInstance().GetAccount(addr, true);
+    if (account) {
+      code = StripEVM(account->GetCode());
+    }
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << address);
   }
-
-  auto code = m_lookupServer->GetSmartContractCode(addressCopy);
-  auto codeStr = code["code"].asString();
-
-  // Erase 'EVM' from beginning, put '0x'
-  if (codeStr.size() > 3) {
-    codeStr[1] = '0';
-    codeStr[2] = 'x';
-    codeStr.erase(0, 1);
-  }
-
-  return codeStr;
+  std::string result{"0x"};
+  boost::algorithm::hex(code.begin(), code.end(), std::back_inserter(result));
+  return result;
 }
 
 Json::Value EthRpcMethods::GetEthBlockNumber() {
@@ -1364,31 +1371,35 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
     return Json::nullValue;
   }
 
-  TxBodySharedPtr transactioBodyPtr;
+  TxBodySharedPtr transactionBodyPtr;
   const auto txHashes = microBlockPtr->GetTranHashes();
   if (!BlockStorage::GetBlockStorage().GetTxBody(txHashes[indexInBlock.value()],
-                                                 transactioBodyPtr)) {
+                                                 transactionBodyPtr)) {
     return Json::nullValue;
   }
 
   return JSONConversion::convertTxtoEthJson(indexInBlock.value(),
-                                            *transactioBodyPtr, txBlock);
+                                            *transactionBodyPtr, txBlock);
 }
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const std::string& txnhash) {
   try {
     TxnHash argHash{txnhash};
-    TxBodySharedPtr transactioBodyPtr;
+    TxBodySharedPtr transactionBodyPtr;
     bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactioBodyPtr);
+        BlockStorage::GetBlockStorage().GetTxBody(argHash, transactionBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
       return Json::nullValue;
     }
+    if (!transactionBodyPtr->GetTransaction().IsEth()) {
+      LOG_GENERAL(WARNING, "No tx receipts for zil txs");
+      return Json::nullValue;
+    }
 
     const TxBlock EMPTY_BLOCK;
-    auto txBlock = GetBlockFromTransaction(*transactioBodyPtr);
+    auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
       LOG_GENERAL(WARNING, "Tx receipt requested but not found in any blocks. "
                                << txnhash);
@@ -1404,8 +1415,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     }
 
     auto const ethResult = JSONConversion::convertTxtoEthJson(
-        transactionIndex, *transactioBodyPtr, txBlock);
-    auto const zilResult = JSONConversion::convertTxtoJson(*transactioBodyPtr);
+        transactionIndex, *transactionBodyPtr, txBlock);
+    auto const zilResult = JSONConversion::convertTxtoJson(*transactionBodyPtr);
 
     auto receipt = zilResult["receipt"];
 
@@ -1416,7 +1427,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     std::string cumGas =
         (boost::format("0x%x") %
          GasConv::GasUnitsFromCoreToEth(
-             transactioBodyPtr->GetTransactionReceipt().GetCumGas()))
+             transactionBodyPtr->GetTransactionReceipt().GetCumGas()))
             .str();
 
     const TxBlockHeader& txHeader = txBlock.GetHeader();
@@ -1429,19 +1440,19 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         ethResult.get("contractAddress", Json::nullValue);
 
     auto logs =
-        Eth::GetLogsFromReceipt(transactioBodyPtr->GetTransactionReceipt());
+        Eth::GetLogsFromReceipt(transactionBodyPtr->GetTransactionReceipt());
 
     const auto baselogIndex =
         Eth::GetBaseLogIndexForReceiptInBlock(argHash, txBlock);
 
     Eth::DecorateReceiptLogs(logs, txnhash, blockHash, blockNumber,
                              transactionIndex, baselogIndex);
-    const auto bloomLogs =
-        Eth::GetBloomFromReceiptHex(transactioBodyPtr->GetTransactionReceipt());
+    const auto bloomLogs = Eth::GetBloomFromReceiptHex(
+        transactionBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
         hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
         contractAddress, logs, bloomLogs, transactionIndex,
-        transactioBodyPtr->GetTransaction());
+        transactionBodyPtr->GetTransaction());
 
     return res;
   } catch (const JsonRpcException& je) {

@@ -15,31 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
-#define ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
+#ifndef ZILLIQA_SRC_COMMON_FATALASSERT_H_
+#define ZILLIQA_SRC_COMMON_FATALASSERT_H_
 
-#include <string>
+#include <g3log/g3log.hpp>
 
-#include "common/BaseType.h"
+#define ZIL_FATAL_ASSERT(cond)        \
+  if (!(cond)) {                      \
+    LOG(FATAL) << "assertion failed"; \
+  }
 
-// input parameters to Json call
-struct EvmCallExtras {
-  uint128_t block_timestamp{};
-  uint64_t block_gas_limit{};
-  uint64_t block_difficulty{};
-  uint64_t block_number{};
-  std::string gas_price{};
-};
-
-struct EvmCallParameters {
-  std::string m_contract;
-  std::string m_caller;
-  std::string m_code;
-  std::string m_data;
-  uint64_t m_available_gas = {0};
-  boost::multiprecision::uint256_t m_apparent_value = {0};
-  EvmCallExtras m_extras;
-  bool m_onlyEstimateGas = false;
-};
-
-#endif  // ZILLIQA_SRC_LIBUTILS_EVMCALLPARAMETERS_H_
+#endif  // ZILLIQA_SRC_COMMON_FATALASSERT_H_

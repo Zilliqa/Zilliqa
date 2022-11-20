@@ -20,7 +20,7 @@
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <thread>
-#include "libUtils/EvmJsonResponse.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
 namespace {
@@ -114,6 +114,8 @@ void EvmClient::Init() {
                                         << " for communication");
   if (LAUNCH_EVM_DAEMON) {
     CleanupPreviousInstances();
+  } else {
+    LOG_GENERAL(INFO, "Not launching evm due to config flag");
   }
 }
 
@@ -126,7 +128,6 @@ EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
   bool status{true};
-  LOG_MARKER();
   LOG_GENERAL(INFO, "OpenServer for EVM ");
 
   try {
@@ -153,9 +154,9 @@ bool EvmClient::OpenServer() {
   return status;
 }
 
-bool EvmClient::CallRunner(const Json::Value& _json,
-                           evmproj::CallResponse& result) {
+bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
+
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
 #endif
@@ -166,9 +167,17 @@ bool EvmClient::CallRunner(const Json::Value& _json,
     }
   }
   try {
-    const auto oldJson = m_client->CallMethod("run", _json);
+    const auto replyJson = m_client->CallMethod("run", _json);
+
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING, "EVM reply" << replyJson.toStyledString());
+    }
+
     try {
-      const auto reply = evmproj::GetReturn(oldJson, result);
+      EvmUtils::GetEvmResultFromJson(replyJson, result);
+
+      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,

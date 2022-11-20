@@ -18,19 +18,18 @@
 #include "IsolatedServer.h"
 #include "JSONConversion.h"
 #include "common/Constants.h"
+#include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/WebsocketServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SetThreadName.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace jsonrpc;
 using namespace std;
-
-const char* ZEROES_HASH =
-    "0x0000000000000000000000000000000000000000000000000000000000000";
 
 IsolatedServer::IsolatedServer(Mediator& mediator,
                                AbstractServerConnector& server,
@@ -390,6 +389,47 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthBlockReceiptsI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_newFilter", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_OBJECT, NULL),
+        &LookupServer::EthNewFilterI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_newBlockFilter", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::EthNewBlockFilterI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_newPendingTransactionFilter",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           NULL),
+        &LookupServer::EthNewPendingTransactionFilterI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_getFilterChanges", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::EthGetFilterChangesI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_uninstallFilter", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::EthUninstallFilterI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_getFilterLogs", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_STRING, NULL),
+        &LookupServer::EthGetFilterLogsI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("eth_getLogs", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_OBJECT, NULL),
+        &LookupServer::EthGetLogsI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_traceTransaction",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, NULL),
@@ -691,34 +731,14 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
 std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                                                  zbytes const& pubKey) {
   // Always return the TX hash or the null hash
-  std::string ret = ZEROES_HASH;
+  std::string ret;
 
   try {
     if (m_pause) {
       throw JsonRpcException(RPC_INTERNAL_ERROR, "IsoServer is paused");
     }
 
-    const Address toAddr{fields.toAddr};
-    zbytes data;
-    zbytes code;
-    if (IsNullAddress(toAddr)) {
-      code = ToEVM(fields.code);
-    } else {
-      data = DataConversion::StringToCharArray(
-          DataConversion::Uint8VecToHexStrRet(fields.code));
-    }
-    Transaction tx{fields.version,
-                   fields.nonce,
-                   toAddr,
-                   PubKey(pubKey, 0),
-                   fields.amount,
-                   fields.gasPrice,
-                   fields.gasLimit,
-                   code,  // either empty or stripped EVM-less code
-                   data,  // either empty or un-hexed byte-stream
-                   Signature(fields.signature, 0)};
-
-    ret = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+    auto tx = GetTxFromFields(fields, pubKey, ret);
 
     uint256_t senderBalance;
 
@@ -740,9 +760,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
       uint64_t minGasLimit = 0;
       if (Transaction::GetTransactionType(tx) ==
           Transaction::ContractType::CONTRACT_CREATION) {
-        minGasLimit = Eth::getGasUnitsForContractDeployment(
-            DataConversion::CharArrayToString(tx.GetCode()),
-            DataConversion::CharArrayToString(tx.GetData()));
+        minGasLimit =
+            Eth::getGasUnitsForContractDeployment(tx.GetCode(), tx.GetData());
       } else {
         minGasLimit = MIN_ETH_GAS;
       }
@@ -801,8 +820,11 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
+    auto const gas_price =
+        m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
+
     TxnExtras extras{
-        GAS_PRICE_MIN_VALUE,          // Default for IsolatedServer.
+        gas_price,
         get_time_as_int() / 1000000,  // Microseconds to seconds.
         40                            // Common value.
     };
@@ -844,6 +866,10 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
 
     const auto& txHash = tx.GetTranID();
+
+    m_mediator.m_filtersAPICache->GetUpdate().AddPendingTransaction(
+        txHash.hex(), m_blocknum);
+
     LookupServer::AddToRecentTransactions(txHash);
     {
       lock_guard<mutex> g(m_txnBlockNumMapMutex);
@@ -975,6 +1001,8 @@ string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 bool IsolatedServer::StartBlocknumIncrement() {
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
   auto incrThread = [this]() mutable -> void {
+    utility::SetThreadName("tx_block_incr");
+
     // start the post tx block directly to prevent a 'dead' period before the
     // first block
     PostTxBlock();
@@ -1050,21 +1078,8 @@ TxBlock IsolatedServer::GenerateTxBlock() {
 
 void IsolatedServer::PostTxBlock() {
   lock_guard<mutex> g(m_blockMutex);
-  const TxBlock& txBlock = GenerateTxBlock();
-  if (ENABLE_WEBSOCKET) {
-    // send tx block and attach txhashes
-    Json::Value j_txnhashes;
-    try {
-      j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
-    } catch (const exception& e) {
-      j_txnhashes = Json::arrayValue;
-    }
-    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
-        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+  TxBlock txBlock = GenerateTxBlock();
 
-    // send event logs
-    WebsocketServer::GetInstance().SendOutMessages();
-  }
   m_mediator.m_txBlockChain.AddBlock(txBlock);
 
   zbytes serializedTxBlock;
@@ -1076,6 +1091,80 @@ void IsolatedServer::PostTxBlock() {
   AccountStore::GetInstance().MoveUpdatesToDisk();
   AccountStore::GetInstance().InitTemp();
 
+  if (ENABLE_WEBSOCKET) {
+    Json::Value j_txnhashes;
+    try {
+      j_txnhashes = GetTransactionsForTxBlock(to_string(m_blocknum));
+    } catch (const exception& e) {
+      j_txnhashes = Json::arrayValue;
+    }
+
+    // send tx block and attach txhashes
+    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+        JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
+
+    // send event logs
+    WebsocketServer::GetInstance().SendOutMessages();
+  }
+
   m_blocknum++;
   m_currEpochGas = 0;
+
+  if (ENABLE_EVM) {
+    auto& cacheUpdate = m_mediator.m_filtersAPICache->GetUpdate();
+    const auto& header = txBlock.GetHeader();
+    uint64_t epoch = header.GetBlockNum();
+    uint32_t numTxns = header.GetNumTxs();
+    auto blockHash = header.GetMyHash().hex();
+
+    if (numTxns == 0) {
+      cacheUpdate.StartEpoch(epoch, blockHash, 0, 0);
+    } else {
+      std::vector<std::string> txnHashes;
+      ExtractTxnHashes(txBlock, txnHashes);
+      if (txnHashes.size() != numTxns) {
+        LOG_GENERAL(WARNING, "Extract txn hashes failed, expected "
+                                 << numTxns << ", got " << txnHashes.size());
+      }
+      cacheUpdate.StartEpoch(epoch, blockHash, 0, txnHashes.size());
+      Json::Value receipt;
+      for (const auto& tx : txnHashes) {
+        TxBodySharedPtr tptr;
+        TxnHash tranHash(tx);
+        BlockStorage::GetBlockStorage().GetTxBody(tranHash, tptr);
+        const auto& transactionReceipt = tptr->GetTransactionReceipt();
+        cacheUpdate.AddCommittedTransaction(epoch, 0, tx,
+                                            transactionReceipt.GetJsonValue());
+      }
+    }
+  }
+}
+
+void IsolatedServer::ExtractTxnHashes(const TxBlock& txBlock,
+                                      std::vector<std::string>& out) {
+  out.reserve(txBlock.GetHeader().GetNumTxs());
+  auto microBlockInfos = txBlock.GetMicroBlockInfos();
+  MicroBlockSharedPtr mbptr;
+  for (auto const& mbInfo : microBlockInfos) {
+    if (!BlockStorage::GetBlockStorage().GetMicroBlock(mbInfo.m_microBlockHash,
+                                                       mbptr)) {
+      LOG_GENERAL(WARNING, "Failed to get Microblock");
+      continue;
+    }
+    const std::vector<TxnHash>& tranHashes = mbptr->GetTranHashes();
+    for (const auto& h : tranHashes) {
+      out.emplace_back(h.hex());
+    }
+  }
+}
+
+bool IsolatedServer::ExtractTxnReceipt(const std::string& txHash,
+                                       Json::Value& receipt) {
+  try {
+    receipt = GetEthTransactionReceipt(txHash);
+    return true;
+  } catch (...) {
+    receipt = Json::objectValue;
+  }
+  return false;
 }

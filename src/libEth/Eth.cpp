@@ -32,6 +32,9 @@
 
 using namespace jsonrpc;
 
+const char *ZEROES_HASH =
+    "0x0000000000000000000000000000000000000000000000000000000000000";
+
 namespace Eth {
 
 Json::Value populateReceiptHelper(
@@ -155,7 +158,9 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
             std::to_string(DataConversion::UnpackB(tx.GetVersion())));
   }
 
-  if (tx.GetCode().size() > MAX_EVM_CONTRACT_SIZE_BYTES) {
+  // While checking the contract size, account for Hex representation
+  // with the 'EVM' prefix.
+  if (tx.GetCode().size() > 2 * MAX_EVM_CONTRACT_SIZE_BYTES + 3) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Code size is too large");
   }
@@ -336,6 +341,36 @@ uint32_t GetBaseLogIndexForReceiptInBlock(const TxnHash &txnHash,
   }
 
   return logIndex;
+}
+
+// Common code to both the isolated server and lookup server - that is,
+// parse the fields into a TX and get its hash
+Transaction GetTxFromFields(Eth::EthFields const &fields, zbytes const &pubKey,
+                            std::string &hash) {
+  hash = ZEROES_HASH;
+
+  Address toAddr{fields.toAddr};
+  zbytes data;
+  zbytes code;
+  if (IsNullAddress(toAddr)) {
+    code = ToEVM(fields.code);
+  } else {
+    data = fields.code;
+  }
+  Transaction tx{fields.version,
+                 fields.nonce,
+                 Address(fields.toAddr),
+                 PubKey(pubKey, 0),
+                 fields.amount,
+                 fields.gasPrice,
+                 fields.gasLimit,
+                 code,  // either empty or stripped EVM-less code
+                 data,  // either empty or un-hexed byte-stream
+                 Signature(fields.signature, 0)};
+
+  hash = DataConversion::AddOXPrefix(tx.GetTranID().hex());
+
+  return tx;
 }
 
 }  // namespace Eth

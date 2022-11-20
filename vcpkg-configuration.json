@@ -3,7 +3,7 @@
     {
       "kind": "filesystem",
       "path": "vcpkg-registry",
-      "packages": [ "python3", "g3log", "schnorr", "libmicrohttpd" ]
+      "packages": [ "python3", "g3log", "g3sinks", "schnorr", "libmicrohttpd", "websocketpp" ]
     }
   ]
 }

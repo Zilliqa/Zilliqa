@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <fstream>
+
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
 
@@ -24,11 +26,15 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(upgradeManager)
 
 BOOST_AUTO_TEST_CASE(test_curl) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Running test_curl");
 
   CURL *curl = curl_easy_init();
@@ -57,8 +63,6 @@ BOOST_AUTO_TEST_CASE(test_curl) {
 }
 
 BOOST_AUTO_TEST_CASE(test_downloadFile_Integrity) {
-  INIT_STDOUT_LOGGER();
-
   if (2 != boost::unit_test::framework::master_test_suite().argc) {
     LOG_GENERAL(WARNING,
                 "Please provide test repo name! ex: ./Test_UpgradeManager "
@@ -84,8 +88,6 @@ BOOST_AUTO_TEST_CASE(test_downloadFile_Integrity) {
 }
 
 BOOST_AUTO_TEST_CASE(test_downloadFile_VERSION) {
-  INIT_STDOUT_LOGGER();
-
   if (2 != boost::unit_test::framework::master_test_suite().argc) {
     LOG_GENERAL(WARNING,
                 "Please provide test repo name! ex: ./Test_UpgradeManager "
@@ -110,8 +112,6 @@ BOOST_AUTO_TEST_CASE(test_downloadFile_VERSION) {
 }
 
 BOOST_AUTO_TEST_CASE(test_downloadFile_pubKeyFile) {
-  INIT_STDOUT_LOGGER();
-
   if (2 != boost::unit_test::framework::master_test_suite().argc) {
     LOG_GENERAL(WARNING,
                 "Please provide test repo name! ex: ./Test_UpgradeManager "
@@ -136,8 +136,6 @@ BOOST_AUTO_TEST_CASE(test_downloadFile_pubKeyFile) {
 }
 
 BOOST_AUTO_TEST_CASE(test_downloadFile_deb) {
-  INIT_STDOUT_LOGGER();
-
   if (2 != boost::unit_test::framework::master_test_suite().argc) {
     LOG_GENERAL(WARNING,
                 "Please provide test repo name! ex: ./Test_UpgradeManager "
@@ -162,8 +160,6 @@ BOOST_AUTO_TEST_CASE(test_downloadFile_deb) {
 }
 
 BOOST_AUTO_TEST_CASE(test_downloadFile_dsnode) {
-  INIT_STDOUT_LOGGER();
-
   LOG_GENERAL(INFO, "Running test_downloadFile_dsnode");
 
   vector<PubKey> dsNode;

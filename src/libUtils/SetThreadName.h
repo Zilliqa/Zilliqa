@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2020 Zilliqa
+ * Copyright (C) 2019 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,22 +15,27 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "BloomFilter.h"
-#include "libMessage/Messenger.h"
+#ifndef ZILLIQA_SRC_LIBUTILS_SETTHREADNAME_H_
+#define ZILLIQA_SRC_LIBUTILS_SETTHREADNAME_H_
 
-bool BloomFilter::Serialize(zbytes& dst, unsigned int offset) const {
-  if (!Messenger::SetBloomFilter(dst, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::SetBloomFilter failed.");
-    return false;
-  }
-  return true;
+#include <thread>
+
+namespace utility {
+
+#ifdef __APPLE__
+
+inline void SetThreadName(const char* threadName) {
+  pthread_setname_np(threadName);
 }
+#elif defined _WIN32 || defined _WIN64 || defined __linux__
 
-bool BloomFilter::Deserialize(const zbytes& src, unsigned int offset) {
-  if (!Messenger::GetBloomFilter(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
-    return false;
-  }
-
-  return true;
+inline void SetThreadName(const char* threadName) {
+  pthread_setname_np(pthread_self(), threadName);
 }
+#else
+inline void SetThreadName(const char*) {}
+#endif
+
+}  // namespace utility
+
+#endif  // ZILLIQA_SRC_LIBUTILS_SETTHREADNAME_H_

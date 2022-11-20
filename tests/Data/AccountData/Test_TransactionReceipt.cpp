@@ -27,6 +27,12 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(accountstoretest)
 
 void setDepth(TransactionReceipt& tr, uint8_t depth) {
@@ -36,8 +42,6 @@ void setDepth(TransactionReceipt& tr, uint8_t depth) {
 }
 
 BOOST_AUTO_TEST_CASE(transactionreceipt) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   TransactionReceipt tr = TransactionReceipt();
@@ -104,8 +108,6 @@ BOOST_AUTO_TEST_CASE(transactionreceipt) {
 }
 
 BOOST_AUTO_TEST_CASE(transactionwithreceipt) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   std::vector<std::string> transactionStrings = {"{\"a\":1}", "{\"b\":2}",

@@ -21,7 +21,6 @@
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
-#include "libUtils/EvmJsonResponse.h"
 #include "libUtils/GasConv.h"
 
 class LookupServer;
@@ -47,6 +46,7 @@ class EthRpcMethods {
 
   virtual void GetEthCallEthI(const Json::Value& request,
                               Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->GetEthCallEth(request[0u], request[1u].asString());
     LOG_GENERAL(DEBUG, "EthCall response:" << response);
@@ -55,17 +55,20 @@ class EthRpcMethods {
   // TODO: remove once we fully move to Eth compatible APIs.
   inline virtual void GetEthCallZilI(const Json::Value& request,
                                      Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthCallZil(request[0u]);
   }
 
   // Eth style functions here
   virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                   Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthBlockNumber();
   }
 
   inline virtual void GetEthBlockByNumberI(const Json::Value& request,
                                            Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response =
         this->GetEthBlockByNumber(request[0u].asString(), request[1u].asBool());
@@ -73,6 +76,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthBlockByHashI(const Json::Value& request,
                                          Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response =
         this->GetEthBlockByHash(request[0u].asString(), request[1u].asBool());
@@ -85,6 +89,7 @@ class EthRpcMethods {
    */
   inline virtual void GetEthGasPriceI(const Json::Value& /*request*/,
                                       Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthGasPrice();
   }
 
@@ -100,12 +105,14 @@ class EthRpcMethods {
    */
   inline virtual void GetEthEstimateGasI(const Json::Value& request,
                                          Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->GetEthEstimateGas(request[0u]);
   }
 
   inline virtual void GetEthTransactionCountI(const Json::Value& request,
                                               Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     try {
       std::string address = request[0u].asString();
       DataConversion::NormalizeHexString(address);
@@ -118,12 +125,14 @@ class EthRpcMethods {
 
   inline virtual void GetEthTransactionReceiptI(const Json::Value& request,
                                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->GetEthTransactionReceipt(request[0u].asString());
   }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
@@ -154,6 +163,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthBalanceI(const Json::Value& request,
                                      Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     auto address{request[0u].asString()};
     DataConversion::NormalizeHexString(address);
 
@@ -169,6 +179,7 @@ class EthRpcMethods {
    */
   inline virtual void GetEthTransactionByHashI(const Json::Value& request,
                                                Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthTransactionByHash(request[0u].asString());
   }
 
@@ -179,6 +190,7 @@ class EthRpcMethods {
    */
   inline virtual void GetWeb3ClientVersionI(const Json::Value& /*request*/,
                                             Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetWeb3ClientVersion();
   }
 
@@ -190,6 +202,7 @@ class EthRpcMethods {
    */
   inline virtual void GetWeb3Sha3I(const Json::Value& request,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = std::string{"0x"} + this->GetWeb3Sha3(request[0u]);
   }
 
@@ -202,6 +215,7 @@ class EthRpcMethods {
    */
   inline virtual void GetEthUncleCountI(const Json::Value& /*request*/,
                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthUncleCount();
   }
 
@@ -214,6 +228,7 @@ class EthRpcMethods {
    */
   inline virtual void GetEthUncleBlockI(const Json::Value& /*request*/,
                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthUncleBlock();
   }
 
@@ -226,6 +241,7 @@ class EthRpcMethods {
    */
   inline virtual void GetEthMiningI(const Json::Value& /*request*/,
                                     Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthMining();
   }
 
@@ -239,6 +255,7 @@ class EthRpcMethods {
    */
   virtual void GetEthCoinbaseI(const Json::Value& /*request*/,
                                Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthCoinbase();
   }
 
@@ -250,6 +267,7 @@ class EthRpcMethods {
    */
   virtual void GetNetVersionI(const Json::Value& /*request*/,
                               Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthChainId();
   }
 
@@ -260,6 +278,7 @@ class EthRpcMethods {
    */
   virtual void GetNetListeningI(const Json::Value& /*request*/,
                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetNetListening();
   }
 
@@ -271,6 +290,7 @@ class EthRpcMethods {
    */
   virtual void GetNetPeerCountI(const Json::Value& /*request*/,
                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetNetPeerCount();
   }
 
@@ -282,6 +302,7 @@ class EthRpcMethods {
    */
   virtual void GetProtocolVersionI(const Json::Value& /*request*/,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetProtocolVersion();
   }
 
@@ -293,6 +314,7 @@ class EthRpcMethods {
    */
   virtual void GetEthChainIdI(const Json::Value& /*request*/,
                               Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthChainId();
   }
 
@@ -312,6 +334,7 @@ class EthRpcMethods {
    */
   virtual void GetEthSyncingI(const Json::Value& /*request*/,
                               Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthSyncing();
   }
 
@@ -323,6 +346,7 @@ class EthRpcMethods {
    */
   virtual void GetEthAccountsI(const Json::Value& /*request*/,
                                Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEmptyResponse();
   }
 
@@ -334,16 +358,19 @@ class EthRpcMethods {
    */
   virtual void GetEthStorageAtI(const Json::Value& request,
                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthStorageAt(
         request[0u].asString(), request[1u].asString(), request[2u].asString());
   }
 
   virtual void GetEthCodeI(const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthCode(request[0u].asString(), request[1u].asString());
   }
 
   inline virtual void GetEthFeeHistoryI(const Json::Value& /*request*/,
                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEmptyResponse();
   }
 
@@ -357,6 +384,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthBlockTransactionCountByHashI(
       const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthBlockTransactionCountByHash(request[0u].asString());
   }
 
@@ -370,6 +398,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthBlockTransactionCountByNumberI(
       const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response =
         this->GetEthBlockTransactionCountByNumber(request[0u].asString());
   }
@@ -384,6 +413,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthTransactionByBlockHashAndIndexI(
       const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthTransactionByBlockHashAndIndex(
         request[0u].asString(), request[1u].asString());
   }
@@ -398,6 +428,7 @@ class EthRpcMethods {
 
   inline virtual void GetEthTransactionByBlockNumberAndIndexI(
       const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthTransactionByBlockNumberAndIndex(
         request[0u].asString(), request[1u].asString());
   }
@@ -410,6 +441,7 @@ class EthRpcMethods {
    */
   virtual void EthNewFilterI(const Json::Value& request,
                              Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthNewFilter(request[0u]);
   }
@@ -422,6 +454,7 @@ class EthRpcMethods {
    */
   virtual void EthNewBlockFilterI(const Json::Value& /*request*/,
                                   Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthNewBlockFilter();
   }
@@ -434,6 +467,7 @@ class EthRpcMethods {
    */
   virtual void EthNewPendingTransactionFilterI(const Json::Value& /*request*/,
                                                Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthNewPendingTransactionFilter();
   }
@@ -446,6 +480,7 @@ class EthRpcMethods {
    */
   virtual void EthGetFilterChangesI(const Json::Value& request,
                                     Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthGetFilterChanges(request[0u].asString());
   }
@@ -458,6 +493,7 @@ class EthRpcMethods {
    */
   virtual void EthUninstallFilterI(const Json::Value& request,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthUninstallFilter(request[0u].asString());
   }
@@ -470,6 +506,7 @@ class EthRpcMethods {
    */
   virtual void EthGetFilterLogsI(const Json::Value& request,
                                  Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthGetFilterLogs(request[0u].asString());
   }
@@ -481,6 +518,7 @@ class EthRpcMethods {
    * @param response : Json array of items applicable to the filter
    */
   virtual void EthGetLogsI(const Json::Value& request, Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthGetLogs(request[0u]);
   }
@@ -493,6 +531,7 @@ class EthRpcMethods {
    */
   virtual void EthRecoverTransactionI(const Json::Value& request,
                                       Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     EnsureEvmAndLookupEnabled();
     response = this->EthRecoverTransaction(request[0u].asString());
   }
@@ -505,6 +544,7 @@ class EthRpcMethods {
    */
   inline virtual void GetEthBlockReceiptsI(const Json::Value& request,
                                            Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthBlockReceipts(request[0u].asString());
   }
 
@@ -515,6 +555,7 @@ class EthRpcMethods {
    */
   inline virtual void DebugTraceTransactionI(const Json::Value& request,
                                              Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->DebugTraceTransaction(request[0u].asString());
   }
 

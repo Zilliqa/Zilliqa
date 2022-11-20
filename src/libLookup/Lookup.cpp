@@ -5212,7 +5212,6 @@ bool Lookup::AddToTxnShardMap(const Transaction& tx, uint32_t shardId,
                               TxnShardMap& txnShardMap,
                               mutex& txnShardMapMutex) {
   lock_guard<mutex> g(txnShardMapMutex);
-
   uint32_t size = 0;
 
   for (const auto& x : txnShardMap) {

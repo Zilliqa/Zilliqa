@@ -26,13 +26,17 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(address_conversion)
 
 using namespace std;
 
 BOOST_AUTO_TEST_CASE(testAddrBech32Decode) {
-  INIT_STDOUT_LOGGER();
-
   using strPairs = std::pair<std::string, std::string>;
 
   std::vector<strPairs> testPairs;
@@ -111,8 +115,6 @@ BOOST_AUTO_TEST_CASE(testAddrBech32Decode) {
 }
 
 BOOST_AUTO_TEST_CASE(testAddrDecodeNegativeCase1) {
-  INIT_STDOUT_LOGGER();
-
   std::vector<string> testStrings{
       "zil", "z", "asdc", "1234567890abcdef1234567890abcdef1234567890abcdef"};
 
@@ -125,8 +127,6 @@ BOOST_AUTO_TEST_CASE(testAddrDecodeNegativeCase1) {
 }
 
 BOOST_AUTO_TEST_CASE(testAddrDecodeNegativeCase2) {
-  INIT_STDOUT_LOGGER();
-
   std::vector<string> testStrings{
       "zil1", "zil1abc", "zil1T413131515AWMRSVVEHN8U5FM0AAWSG89DY25JA46NDSRHQ"};
 
@@ -139,8 +139,6 @@ BOOST_AUTO_TEST_CASE(testAddrDecodeNegativeCase2) {
 }
 
 BOOST_AUTO_TEST_CASE(testAddrDecodeNegativeCase3) {
-  INIT_STDOUT_LOGGER();
-
   std::vector<string> testStrings{"xxx8055ea3bc78d759d10663da40d171dec992aa"};
 
   for (const auto& input : testStrings) {

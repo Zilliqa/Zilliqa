@@ -1,3 +1,4 @@
+pub mod blake2;
 mod ec;
 pub mod ecrecover;
 pub mod identity;
@@ -46,6 +47,10 @@ pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
         (
             H160::from_str("0000000000000000000000000000000000000008").unwrap(),
             ec::ec_pairing as PrecompileFn,
+        ),
+        (
+            H160::from_str("0000000000000000000000000000000000000009").unwrap(),
+            blake2::blake2 as PrecompileFn,
         ),
     ])
 }

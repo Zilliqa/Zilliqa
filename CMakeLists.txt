@@ -32,6 +32,7 @@ find_package(bsoncxx REQUIRED)
 find_package(websocketpp REQUIRED)
 find_package(leveldb REQUIRED)
 find_package(g3log REQUIRED)
+find_package(g3sinks REQUIRED)
 #TODO: upgrade to OpenSSL 1.1.1a
 find_package(OpenSSL REQUIRED)
 
@@ -205,7 +206,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # customize the flags for RELWITHDEBINFO
 set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-O2 -ggdb -DNDEBUG")
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 

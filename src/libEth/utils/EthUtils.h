@@ -23,8 +23,8 @@
 
 namespace Eth {
 
-uint64_t getGasUnitsForContractDeployment(const std::string& code,
-                                          const std::string& data);
+uint64_t getGasUnitsForContractDeployment(const zbytes& code,
+                                          const zbytes& data);
 
 }  // namespace Eth
 

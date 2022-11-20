@@ -15,8 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <jsonrpccpp/common/exception.h>
+#include <boost/test/tools/old/interface.hpp>
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libUtils/Evm.pb.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK
 
@@ -30,7 +33,8 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
-#include "libUtils/EvmJsonResponse.h"
+#include "libUtils/Evm.pb.h"
+#include "libUtils/EvmUtils.h"
 
 class AbstractServerConnectorMock : public jsonrpc::AbstractServerConnector {
  public:
@@ -45,7 +49,7 @@ class EvmClientMock : public EvmClient {
  public:
   EvmClientMock() = default;
 
-  bool CallRunner(const Json::Value& request, evmproj::CallResponse&) override {
+  bool CallRunner(const Json::Value& request, evm::EvmResult&) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
     return true;
   };
@@ -160,6 +164,12 @@ TxBlock buildCommonEthBlockCase(
   return txBlock;
 }
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(BOOST_TEST_MODULE)
 
 #ifdef __clang__
@@ -184,16 +194,16 @@ class GetEthCallEvmClientMock : public EvmClient {
         m_DefaultWaitTime(defaultWaitTime)  // default waittime
         {};
 
-  bool CallRunner(const Json::Value& request,
-                  evmproj::CallResponse& response) override {
+  bool CallRunner(const Json::Value& request, evm::EvmResult& result) override {
     LOG_GENERAL(DEBUG, "CallRunner json request:" << request);
 
     Json::Reader _reader;
     Json::Value responseJson;
 
+    LOG_GENERAL(DEBUG, "CallRunner unparsed response:" << m_ExpectedResponse);
     BOOST_CHECK(_reader.parse(m_ExpectedResponse, responseJson));
     LOG_GENERAL(DEBUG, "CallRunner json response:" << responseJson);
-    evmproj::GetReturn(responseJson, response);
+    EvmUtils::GetEvmResultFromJson(responseJson, result);
     std::this_thread::sleep_for(m_DefaultWaitTime);
     return true;
   };
@@ -207,18 +217,18 @@ class GetEthCallEvmClientMock : public EvmClient {
 };
 
 BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
   const std::string evmResponseString =
-      "{\"apply\":[],"
-      "\"exit_reason\":{\"Fatal\":\"Returned\"},"
-      "\"logs\":[],"
-      "\"remaining_gas\":77371,"
-      "\"return_value\":\"\""
-      "}";
+      EvmUtils::GetEvmResultJsonFromTextProto(R"""(
+      exit_reason {
+        fatal { kind: NOT_SUPPORTED }
+      }
+      remaining_gas: 77371
+      return_value: ""
+  )""");
 
   const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
   const auto lookupServer =
@@ -232,7 +242,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -256,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
-    BOOST_CHECK_EQUAL(e.GetMessage(), "Returned");
+    BOOST_CHECK_EQUAL(e.GetMessage(), "Fatal: not supported");
   }
 
   const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
@@ -266,19 +276,21 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
   const std::string evmResponseString =
-      "{\"apply\":[],"
-      "\"exit_reason\":{\"Fatal\":{\"Error\":\"fatal error, unkown object "
-      "type\"}},"
-      "\"logs\":[],"
-      "\"remaining_gas\":77371,"
-      "\"return_value\":\"\""
-      "}";
+      EvmUtils::GetEvmResultJsonFromTextProto(R"""(
+      exit_reason {
+        fatal {
+           kind: OTHER,
+           error_string: "foo error"
+        }
+      }
+      remaining_gas: 77371
+      return_value: ""
+  )""");
 
   const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
   const auto lookupServer =
@@ -292,7 +304,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -316,15 +328,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
-
-    Json::Value expectedExitReason;
-    expectedExitReason["Error"] = "fatal error, unkown object type";
-
-    Json::Reader reader;
-    Json::Value result;
-
-    BOOST_REQUIRE(reader.parse(e.GetMessage(), result));
-    BOOST_CHECK_EQUAL(result, expectedExitReason);
+    BOOST_CHECK_EQUAL(e.GetMessage(), "Fatal: foo error");
   }
 
   const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
@@ -334,18 +338,18 @@ BOOST_AUTO_TEST_CASE(test_eth_call_failure_return_with_object) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
   const std::string evmResponseString =
-      "{\"apply\":[],"
-      "\"exit_reason\":{\"Revert\":\"Reverted\"},"
-      "\"logs\":[],"
-      "\"remaining_gas\":77371,"
-      "\"return_value\":\"\""
-      "}";
+      EvmUtils::GetEvmResultJsonFromTextProto(R"""(
+      exit_reason {
+        revert: REVERTED
+      }
+      remaining_gas: 77371
+      return_value: ""
+  )""");
 
   const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
   const auto lookupServer =
@@ -359,7 +363,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -382,9 +386,9 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
     lookupServer.lookupServer->GetEthCallEthI(paramsRequest, response);
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
-    BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
+    BOOST_CHECK_EQUAL(e.GetCode(), 3);
     LOG_GENERAL(DEBUG, e.GetMessage());
-    BOOST_CHECK_EQUAL(e.GetMessage(), "Reverted");
+    BOOST_CHECK_EQUAL(e.GetMessage(), "execution reverted");
   }
 
   const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
@@ -394,18 +398,17 @@ BOOST_AUTO_TEST_CASE(test_eth_call_revert) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
+
+  // Unspecified exit reason means unknown.
   const std::string evmResponseString =
-      "{\"apply\":[],"
-      "\"exit_reason\":{\"Unknown\":\"???\"},"
-      "\"logs\":[],"
-      "\"remaining_gas\":77371,"
-      "\"return_value\":\"\""
-      "}";
+      EvmUtils::GetEvmResultJsonFromTextProto(R"""(
+      remaining_gas: 77371
+      return_value: ""
+  )""");
 
   const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
   const auto lookupServer =
@@ -419,7 +422,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -443,7 +446,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
     BOOST_FAIL("Expect exception, but did not catch");
   } catch (const jsonrpc::JsonRpcException& e) {
     BOOST_CHECK_EQUAL(e.GetCode(), ServerBase::RPC_MISC_ERROR);
-    BOOST_CHECK_EQUAL(e.GetMessage(), "Unable to process");
+    BOOST_CHECK_EQUAL(e.GetMessage(), "Unknown failure");
   }
 
   const auto balance = AccountStore::GetInstance().GetBalance(accountAddress);
@@ -452,19 +455,21 @@ BOOST_AUTO_TEST_CASE(test_eth_call_exit_reason_unknown) {
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
+// This test is disabled, as we not handling timeouts here.
+// TODO: enable again once we do handle the timeouts.
 BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
-  INIT_STDOUT_LOGGER();
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
   const std::string evmResponseString =
-      "{\"apply\":[],"
-      "\"exit_reason\":{\"Fatal\":\"Returned\"},"
-      "\"logs\":[],"
-      "\"remaining_gas\":77371,"
-      "\"return_value\":\"\""
-      "}";
+      EvmUtils::GetEvmResultJsonFromTextProto(R"""(
+      exit_reason {
+        succeed: RETURNED
+      }
+      remaining_gas: 77371
+      return_value: ""
+  )""");
 
   const std::string address{"b744160c3de133495ab9f9d77ea54b325b045670"};
   const auto lookupServer =
@@ -479,7 +484,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -511,60 +516,19 @@ BOOST_AUTO_TEST_CASE(test_eth_call_timeout, *boost::unit_test::disabled()) {
   BOOST_CHECK_EQUAL(static_cast<uint64_t>(balance), initialBalance);
 }
 
-BOOST_AUTO_TEST_CASE(test_eth_call_success) {
-  INIT_STDOUT_LOGGER();
+BOOST_AUTO_TEST_CASE(test_eth_call_success, *boost::unit_test::disabled()) {
   LOG_MARKER();
 
   const auto gasLimit{2 * DS_MICROBLOCK_GAS_LIMIT};
   const auto amount{4200U};
   const std::string evmResponseString =
-      "{\"apply\":"
-      "["
-      "{\"modify\":"
-      "{\"address\":\"0x4b68ebd5c54ae9ad1f069260b4c89f0d3be70a45\","
-      "\"balance\":\"0x0\","
-      "\"code\":null,"
-      "\"nonce\":\"0x0\","
-      "\"reset_storage\":false,"
-      "\"storage\":[ ["
-      "\"CgxfZXZtX3N0b3JhZ2UQARpAMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD"
-      "AwMD"
-      "AwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMA==\","
-      "\"CiAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAA==\" ] ]"
-      "}"
-      "}"
-      "],"
-      "\"exit_reason\":"
-      "{"
-      " \"Succeed\":\"Returned\""
-      "},"
-      "\"logs\":[],"
-      "\"remaining_gas\":77371,"
-      "\"return_value\":"
-      "\"608060405234801561001057600080fd5b50600436106100415760003560e0"
-      "1c80"
-      "632e64cec11461004657806336b62288146100645780636057361d1461006e57"
-      "5b60"
-      "0080fd5b61004e61008a565b60405161005b91906100d0565b60405180910390"
-      "f35b"
-      "61006c610093565b005b6100886004803603810190610083919061011c565b61"
-      "00ad"
-      "565b005b60008054905090565b600073ffffffffffffffffffffffffffffffff"
-      "ffff"
-      "ffff16ff5b8060008190555050565b6000819050919050565b6100ca816100b7"
-      "565b"
-      "82525050565b60006020820190506100e560008301846100c1565b9291505056"
-      "5b60"
-      "0080fd5b6100f9816100b7565b811461010457600080fd5b50565b6000813590"
-      "5061"
-      "0116816100f0565b92915050565b600060208284031215610132576101316100"
-      "eb56"
-      "5b5b600061014084828501610107565b9150509291505056fea2646970667358"
-      "2212"
-      "202ea2150908951ac2bb5f9e1fe7663301a0be11ecdc6d8fc9f49333262e264d"
-      "b564"
-      "736f6c634300080f0033\""
-      "}";
+      EvmUtils::GetEvmResultJsonFromTextProto(R"""(
+      exit_reason {
+        succeed: RETURNED
+      }
+      remaining_gas: 77371"
+      return_value: ""
+  )""");
 
   const std::string address{"a744160c3de133495ab9f9d77ea54b325b045670"};
   const auto lookupServer =
@@ -578,7 +542,7 @@ BOOST_AUTO_TEST_CASE(test_eth_call_success) {
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
   Json::Value values;
   values["data"] =
-      "ffa1caa0000000000000000000000000000000000000000000000000000000000000"
+      "ffa1caa00000000000000000000000000000000000000000000000000000000000000"
       "014";
   values["to"] = address;
   values["gas"] = gasLimit;
@@ -628,8 +592,6 @@ BOOST_AUTO_TEST_CASE(test_eth_call_success) {
 }
 
 BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   Json::Value response;
@@ -644,8 +606,6 @@ BOOST_AUTO_TEST_CASE(test_web3_clientVersion) {
 }
 
 BOOST_AUTO_TEST_CASE(test_web3_sha3) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -673,8 +633,6 @@ BOOST_AUTO_TEST_CASE(test_web3_sha3) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_mining) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -689,8 +647,6 @@ BOOST_AUTO_TEST_CASE(test_eth_mining) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -706,17 +662,12 @@ BOOST_AUTO_TEST_CASE(test_eth_coinbase) {
   Json::Value response;
   // call the method on the lookup server with params
   Json::Value paramsRequest = Json::Value(Json::arrayValue);
-  lookupServer.lookupServer->GetEthCoinbaseI(paramsRequest, response);
-
-  LOG_GENERAL(DEBUG, response.asString());
-
-  BOOST_CHECK_EQUAL(response.asString(),
-                    "0x0000000000000000000000000000000000000000");
+  BOOST_CHECK_THROW(
+      lookupServer.lookupServer->GetEthCoinbaseI(paramsRequest, response),
+      jsonrpc::JsonRpcException);
 }
 
 BOOST_AUTO_TEST_CASE(test_net_version) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -731,8 +682,6 @@ BOOST_AUTO_TEST_CASE(test_net_version) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_listening) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -747,8 +696,6 @@ BOOST_AUTO_TEST_CASE(test_net_listening) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_peer_count) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -764,8 +711,6 @@ BOOST_AUTO_TEST_CASE(test_net_peer_count) {
 }
 
 BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -781,8 +726,6 @@ BOOST_AUTO_TEST_CASE(test_net_protocol_version) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -798,8 +741,6 @@ BOOST_AUTO_TEST_CASE(test_eth_chain_id) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_syncing) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -815,8 +756,6 @@ BOOST_AUTO_TEST_CASE(test_eth_syncing) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_accounts) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -831,8 +770,6 @@ BOOST_AUTO_TEST_CASE(test_eth_accounts) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -850,8 +787,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_hash_and_idx) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -869,8 +804,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_by_num_and_idx) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -887,8 +820,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   const auto lookupServer = getLookupServer();
@@ -905,8 +836,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_uncle_count_by_number) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_net_version) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -927,8 +856,6 @@ BOOST_AUTO_TEST_CASE(test_eth_net_version) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   Json::Value response;
@@ -961,8 +888,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_balance) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1104,8 +1029,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_number) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1167,8 +1090,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1192,8 +1113,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_gas_price) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1226,8 +1145,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count) {
 
 /*
 BOOST_AUTO_TEST_CASE(test_eth_send_raw_transaction) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1254,8 +1171,6 @@ true);
 */
 
 BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1279,8 +1194,6 @@ BOOST_AUTO_TEST_CASE(test_eth_blockNumber) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1318,8 +1231,6 @@ BOOST_AUTO_TEST_CASE(test_eth_estimate_gas) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   EvmClient::GetInstance([]() { return std::make_shared<EvmClientMock>(); },
@@ -1388,8 +1299,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_hash) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1516,8 +1425,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_count_by_hash_or_num) {
 }
 
 BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1635,8 +1542,6 @@ BOOST_AUTO_TEST_CASE(test_eth_get_transaction_by_block_and_index) {
 }
 
 BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1675,8 +1580,6 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 }
 
 BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   BlockStorage::GetBlockStorage().ResetAll();
@@ -1718,8 +1621,6 @@ BOOST_AUTO_TEST_CASE(test_ethGasPriceRounding) {
 }
 
 BOOST_AUTO_TEST_CASE(test_bloomFilters) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   // Various test cases captured from etherscan

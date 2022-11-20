@@ -42,6 +42,12 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(lookupnodetxblocktest)
 
 BOOST_AUTO_TEST_CASE(init) { TestUtils::Initialize(); }
@@ -96,8 +102,6 @@ void SendDSBlockFirstToMatchDSBlockNum(Peer& lookup_node) {
 }
 
 BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   uint32_t listen_port = 5000;
@@ -139,8 +143,6 @@ BOOST_AUTO_TEST_CASE(testTxBlockStoring) {
 }
 
 BOOST_AUTO_TEST_CASE(testTxBlockRetrieval) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   long long i = 0;

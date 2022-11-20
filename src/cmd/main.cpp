@@ -15,14 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <execinfo.h>  // for backtrace
 #include <signal.h>
 
-#include <arpa/inet.h>
 #include <algorithm>
 #include <iostream>
 
-#include <boost/lexical_cast.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
@@ -167,13 +165,14 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
+    boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
       INIT_STDOUT_LOGGER();
     } else {
-      INIT_FILE_LOGGER("zilliqa", logpath.c_str());
+      INIT_FILE_LOGGER("zilliqa", logBasePath);
     }
-    INIT_STATE_LOGGER("state", logpath.c_str());
-    INIT_EPOCHINFO_LOGGER("epochinfo", logpath.c_str());
+    INIT_STATE_LOGGER("state", logBasePath);
+    INIT_EPOCHINFO_LOGGER("epochinfo", logBasePath);
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 
@@ -230,10 +229,11 @@ int main(int argc, const char* argv[]) {
                     (SyncType)syncType, vm.count("recovery"),
                     vm.count("l2lsyncmode") <= 0,
                     make_pair(extSeedPrivKey, extSeedPubKey));
-    auto dispatcher =
-        [&zilliqa](
-            pair<zbytes, std::pair<Peer, const unsigned char>>* message) mutable
-        -> void { zilliqa.Dispatch(message); };
+
+    auto dispatcher = [&zilliqa](Zilliqa::Msg message) mutable -> void {
+      zilliqa.Dispatch(std::move(message));
+    };
+
     // Only start the incoming message queue
     P2PComm::GetInstance().StartMessagePump(dispatcher);
 

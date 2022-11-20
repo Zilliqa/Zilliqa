@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_
 
 #include <event2/util.h>
-#include <boost/lockfree/queue.hpp>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -31,49 +30,14 @@
 #include "common/BaseType.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
-#include "libUtils/ThreadPool.h"
 
 struct evconnlistener;
+class SendJobs;
 
 extern const unsigned char START_BYTE_NORMAL;
 extern const unsigned char START_BYTE_GOSSIP;
 extern const unsigned char START_BYTE_SEED_TO_SEED_REQUEST;
 extern const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE;
-
-class SendJob {
- protected:
-  static uint32_t writeMsg(const void* buf, int cli_sock, const Peer& from,
-                           const uint32_t message_length);
-  static bool SendMessageSocketCore(const Peer& peer, const zbytes& message,
-                                    unsigned char start_byte,
-                                    const zbytes& msg_hash);
-
- public:
-  Peer m_selfPeer;
-  unsigned char m_startbyte{};
-  zbytes m_message;
-  zbytes m_hash;
-  bool m_allowSendToRelaxedBlacklist{};
-
-  static void SendMessageCore(const Peer& peer, const zbytes& message,
-                              unsigned char startbyte, const zbytes& hash);
-
-  virtual ~SendJob() {}
-  virtual void DoSend() = 0;
-};
-
-class SendJobPeer : public SendJob {
- public:
-  Peer m_peer;
-  void DoSend();
-};
-
-template <class T>
-class SendJobPeers : public SendJob {
- public:
-  T m_peers;
-  void DoSend();
-};
 
 /// Provides network layer functionality.
 class P2PComm {
@@ -84,8 +48,6 @@ class P2PComm {
       m_broadcastToRemove;
   std::mutex m_broadcastToRemoveMutex;
   RumorManager m_rumorManager;
-
-  const static uint32_t MAXPUMPMESSAGE = 128;
 
   struct event_base* m_base{};
 
@@ -112,10 +74,7 @@ class P2PComm {
   static std::mutex m_mutexPeerConnectionCount;
   static std::map<uint128_t, uint16_t> m_peerConnectionCount;
 
-  ThreadPool m_SendPool{MAXSENDMESSAGE, "SendPool"};
-
-  boost::lockfree::queue<SendJob*> m_sendQueue;
-  void ProcessSendJob(SendJob* job);
+  std::shared_ptr<SendJobs> m_sendJobs;
 
   static void ProcessBroadCastMsg(zbytes& message, const Peer& from);
   static void ProcessGossipMsg(zbytes& message, Peer& from);
@@ -149,8 +108,8 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Dispatcher = std::function<void(
-      std::pair<zbytes, std::pair<Peer, const unsigned char>>*)>;
+  using Msg = std::pair<zbytes, std::pair<Peer, const unsigned char>>;
+  using Dispatcher = std::function<void(std::shared_ptr<Msg> msg)>;
 
   using BroadcastListFunc = std::function<VectorOfPeer(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
@@ -160,8 +119,6 @@ class P2PComm {
 
   void UpdatePeerInfoInRumorManager(const Peer& peers, const PubKey& pubKey);
 
-  inline static bool IsHostHavingNetworkIssue();
-  inline static bool IsNodeNotRunning();
   static void ClearPeerConnectionCount();
   static void RemoveBevFromMap(const Peer& peer);
   static void RemoveBevAndCloseP2PConnServer(const Peer& peer,

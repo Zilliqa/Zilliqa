@@ -16,325 +16,264 @@
  */
 
 #include "Logger.h"
+#include "libUtils/TimeUtils.h"
 
-#include <pthread.h>
-#include <sys/syscall.h>
-#include <unistd.h>
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-#include <cstring>
-#include <iostream>
+#include <g3sinks/LogRotate.h>
+
+#include <boost/filesystem/operations.hpp>
 
 using namespace std;
 using namespace g3;
 
-inline string MyCustomFormatting(const LogMessage& msg) {
-  return string("[") + msg.level().substr(0, 4) + "]";
-}
-
 namespace {
-/// helper function to get tid with better cross-platform support
-inline pid_t getCurrentPid() {
-#if defined(__linux__)
-  return syscall(SYS_gettid);
-#elif defined(__APPLE__) && defined(__MACH__)
-  uint64_t tid64;
-  pthread_threadid_np(NULL, &tid64);
-  return static_cast<pid_t>(tid64);
-#else
-#error  // not implemented in this platform
-  return 0;
-#endif
-}
+
+#define LIMIT(s, len)                              \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << std::string(s).substr(0, len)
+
+#define LIMIT_RIGHT(s, len)                        \
+  std::setw(len) << std::setfill(' ') << std::left \
+                 << s.substr(std::max<int>((int)s.size() - len, 0))
+
+// Auxiliary class to write manipulators for log message formatting.
+template <std::ostream& (*FuncT)(std::ostream&, const LogMessage&)>
+struct LoggerManip {
+  LoggerManip(const LogMessage& message) : m_message{message} {}
+
+  std::ostream& operator()(std::ostream& stream) const {
+    return FuncT(stream, m_message);
+  }
+
+ private:
+  const LogMessage& m_message;
+};
 }  // namespace
 
-const streampos Logger::MAX_FILE_SIZE =
-    1024 * 1024 * 100;  // 100MB per log file
+namespace std {
+// Output operator to be able to use LoggerManip manipulators.
+template <std::ostream& (*FuncT)(std::ostream&, const LogMessage&)>
+inline ostream& operator<<(std::ostream& stream,
+                           const LoggerManip<FuncT>& manip) {
+  return manip(stream);
+}
+}  // namespace std
 
-Logger::Logger(const char* prefix, bool log_to_file, const char* logpath,
-               streampos max_file_size) {
-  this->m_logToFile = log_to_file;
-  this->m_maxFileSize = max_file_size;
-  this->m_logPath = logpath;
+namespace {
+std::ostream& logThreadId(std::ostream& stream, const LogMessage& message) {
+  stream << '[' << std::hex
+         << PAD(message._call_thread_id, Logger::TID_LEN, ' ') << std::dec
+         << ']';
+  return stream;
+}
 
+std::ostream& logTimestamp(std::ostream& stream, const LogMessage& message) {
+  // The following is taken from g3log's localtime_formatted; we're changing
+  // it here to show our own time format in UTC instead of localtime.
+  // (License is completely free; see:
+  // https://github.com/KjellKod/g3log/blob/master/LICENSE)
+  auto ts = to_system_time(message._timestamp);
+  auto format_buffer =
+      internal::localtime_formatted_fractions(ts, "%y-%m-%dT%T.%f3");
+  auto time_point = std::chrono::system_clock::to_time_t(ts);
+  auto t = std::gmtime(&time_point);
+
+  stream << '[' << g3::put_time(t, format_buffer.c_str()) << ']';
+  return stream;
+}
+
+std::ostream& logCodeLocation(std::ostream& stream, const LogMessage& message) {
+  auto fileAndLine = message._file + ':' + std::to_string(message._line);
+  stream << '[' << LIMIT_RIGHT(fileAndLine, Logger::MAX_FILEANDLINE_LEN) << "]["
+         << LIMIT(message._function, Logger::MAX_FUNCNAME_LEN) << ']';
+  return stream;
+}
+
+std::ostream& logLevel(std::ostream& stream, const LogMessage& message) {
+  stream << '[' + message.level().substr(0, 4) + ']';
+  return stream;
+}
+
+std::ostream& logMessage(std::ostream& stream, const LogMessage& message) {
+  stream << message.message();
+  return stream;
+}
+
+using ThreadId = LoggerManip<&logThreadId>;
+using Timestamp = LoggerManip<&logTimestamp>;
+using CodeLocation = LoggerManip<&logCodeLocation>;
+using Message = LoggerManip<&logMessage>;
+using Level = LoggerManip<&logLevel>;
+
+std::ostream& logMessageCommon(std::ostream& stream,
+                               const LogMessage& message) {
+  stream << ThreadId(message) << Timestamp(message) << CodeLocation(message)
+         << Message(message) << std::endl;
+  return stream;
+}
+
+class CustomLogRotate {
+ public:
+  virtual ~CustomLogRotate() noexcept = default;
+
+  template <typename... ArgsT>
+  CustomLogRotate(ArgsT&&... args)
+      : m_logRotate(std::forward<ArgsT>(args)...) {}
+
+  void setMaxLogSize(int max_file_size_in_bytes) {
+    m_logRotate.setMaxLogSize(max_file_size_in_bytes);
+  }
+
+  void setMaxArchiveLogCount(int max_size) {
+    m_logRotate.setMaxArchiveLogCount(max_size);
+  }
+
+  void receiveLogMessage(LogMessageMover logEntry) {
+    logMessageCommon(m_stream, logEntry.get());
+    m_logRotate.save(m_stream.str());
+    m_stream.str("");
+  }
+
+ protected:
+  std::ostringstream m_stream;
+  LogRotate m_logRotate;
+};
+
+class GeneralLogSink : public CustomLogRotate {
+ public:
+  using CustomLogRotate::CustomLogRotate;
+
+  void receiveLogMessage(LogMessageMover logEntry) {
+    m_stream << Level(logEntry.get());
+    logMessageCommon(m_stream, logEntry.get());
+    m_logRotate.save(m_stream.str());
+    m_stream.str("");
+  }
+};
+
+class StateLogSink : public CustomLogRotate {
+ public:
+  using CustomLogRotate::CustomLogRotate;
+};
+
+class EpochInfoLogSink : public CustomLogRotate {
+ public:
+  using CustomLogRotate::CustomLogRotate;
+};
+
+class StdoutSink {
+ public:
+  void forwardLogToStdout(LogMessageMover logEntry) {
+    logMessageCommon(m_stream, logEntry.get());
+    std::cout << m_stream.str();
+    m_stream.str("");
+  }
+
+ private:
+  std::ostringstream m_stream;
+};
+
+template <typename LogRotateSinkT>
+void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
+                 const boost::filesystem::path& filePath, int maxLogFileSizeKB,
+                 int maxArchivedLogCount) {
+  auto logFileRoot = boost::filesystem::absolute(filePath);
+  bool useDefaultLocation = false;
   try {
-    if (!boost::filesystem::create_directory(this->m_logPath)) {
-      if ((boost::filesystem::status(this->m_logPath).permissions() &
+    if (!boost::filesystem::create_directory(logFileRoot)) {
+      if ((boost::filesystem::status(logFileRoot).permissions() &
            boost::filesystem::perms::owner_write) ==
           boost::filesystem::perms::no_perms) {
-        std::cout << this->m_logPath
+        useDefaultLocation = true;
+        std::cout << logFileRoot
                   << " already existed but no writing permission!" << endl;
-        this->m_logPath = boost::filesystem::absolute("./").string();
-        std::cout << "Use default log folder " << this->m_logPath << " instead."
-                  << endl;
       }
     }
   } catch (const boost::filesystem::filesystem_error& e) {
-    std::cout << "Cannot create log folder in " << this->m_logPath
+    std::cout << "Cannot create log folder in " << logFileRoot
               << ", error code: " << e.code() << endl;
-    this->m_logPath = boost::filesystem::absolute("./").string();
-    std::cout << "Use default log folder " << this->m_logPath << " instead."
+    useDefaultLocation = true;
+  }
+
+  if (useDefaultLocation) {
+    logFileRoot = boost::filesystem::absolute("./");
+    std::cout << "Use default log folder " << logFileRoot << " instead."
               << endl;
   }
 
-  if (log_to_file) {
-    m_fileNamePrefix = prefix ? prefix : "common";
-    m_seqNum = 0;
-    newLog();
-  }
+  auto sinkHandle = logWorker.addSink(
+      std::make_unique<LogRotateSinkT>(
+          filePrefix.empty() ? "common" : filePrefix, logFileRoot.c_str()),
+      &LogRotateSinkT::receiveLogMessage);
+  sinkHandle->call(&LogRotateSinkT::setMaxLogSize, maxLogFileSizeKB * 1024)
+      .wait();
+  sinkHandle->call(&LogRotateSinkT::setMaxArchiveLogCount, maxArchivedLogCount)
+      .wait();
 }
 
-Logger::~Logger() { m_logFile.close(); }
+}  // namespace
 
-void Logger::checkLog() {
-  std::ifstream in(m_fileName.c_str(),
-                   std::ifstream::ate | std::ifstream::binary);
-
-  if (in.tellg() >= m_maxFileSize) {
-    m_logFile.close();
-    newLog();
-  }
+Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
+  initializeLogging(m_logWorker.get());
 }
 
-void Logger::newLog() {
-  m_seqNum++;
-  m_bRefactor = (m_fileNamePrefix == "zilliqa");
-
-  using boost::format;
-  // Filename = m_fileNamePrefix + 5-digit sequence number + timestamp + ".log"
-  m_fileName = m_fileNamePrefix + str(format("-%05d") % m_seqNum);
-
-  if (m_bRefactor) {
-    m_logWorker = LogWorker::createLogWorker();
-    auto sinkHandle = m_logWorker->addSink(
-        std::make_unique<FileSink>(m_fileName.c_str(), m_logPath, ""),
-        &FileSink::fileWrite);
-    sinkHandle->call(&g3::FileSink::overrideLogDetails, &MyCustomFormatting)
-        .wait();
-    sinkHandle->call(&g3::FileSink::overrideLogHeader, "").wait();
-    initializeLogging(m_logWorker.get());
-  } else {
-    m_fileName += ".log";
-    m_logFile.open(m_logPath + m_fileName, ios_base::app);
-  }
+void Logger::AddGeneralSink(
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
+    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath,
+                              maxLogFileSizeKB, maxArchivedLogCount);
 }
 
-Logger& Logger::GetLogger(const char* fname_prefix, bool log_to_file,
-                          const char* logpath, streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
+void Logger::AddStateSink(
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
+    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath,
+                            maxLogFileSizeKB, maxArchivedLogCount);
+}
+
+void Logger::AddEpochInfoSink(
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
+    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath,
+                                maxLogFileSizeKB, maxArchivedLogCount);
+}
+
+void Logger::AddStdoutSink() {
+  m_logWorker->addSink(std::make_unique<StdoutSink>(),
+                       &StdoutSink::forwardLogToStdout);
+}
+
+bool Logger::IsGeneralSink(internal::SinkWrapper& sink, LogMessage&) {
+  return typeid(sink) == typeid(internal::Sink<GeneralLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
+}
+
+bool Logger::IsStateSink(internal::SinkWrapper& sink, LogMessage&) {
+  return typeid(sink) == typeid(internal::Sink<StateLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
+}
+
+bool Logger::IsEpochInfoSink(internal::SinkWrapper& sink, LogMessage&) {
+  return typeid(sink) == typeid(internal::Sink<EpochInfoLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
+}
+
+Logger& Logger::GetLogger() {
+  static Logger logger;
   return logger;
-}
-
-Logger& Logger::GetStateLogger(const char* fname_prefix, bool log_to_file,
-                               const char* logpath, streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
-  return logger;
-}
-
-Logger& Logger::GetEpochInfoLogger(const char* fname_prefix, bool log_to_file,
-                                   const char* logpath,
-                                   streampos max_file_size) {
-  static Logger logger(fname_prefix, log_to_file, logpath, max_file_size);
-  return logger;
-}
-
-void Logger::LogState(const char* msg) {
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    m_logFile << msg << endl << flush;
-  } else {
-    cout << msg << endl << flush;
-  }
-}
-
-void Logger::LogGeneral(const LEVELS& level, const char* msg,
-                        const unsigned int linenum, const char* filename,
-                        const char* function) {
-  if (IsG3Log()) {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    LOG(level) << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-               << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-               << PAD(get_ms(cur), 3, '0') << "]["
-               << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)
-               << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg;
-    return;
-  }
-
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-              << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-              << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-              << flush;
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-         << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg << endl
-         << flush;
-  }
-}
-
-void Logger::LogEpoch([[gnu::unused]] const LEVELS& level, const char* msg,
-                      const char* epoch, const unsigned int linenum,
-                      const char* filename, const char* function) {
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-              << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-              << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-              << "] " << msg << endl
-              << flush;
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-         << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-         << msg << endl
-         << flush;
-  }
-}
-
-void Logger::LogPayload([[gnu::unused]] const LEVELS& level, const char* msg,
-                        const zbytes& payload, size_t max_bytes_to_display,
-                        const unsigned int linenum, const char* filename,
-                        const char* function) {
-  std::unique_ptr<char[]> payload_string;
-  GetPayloadS(payload, max_bytes_to_display, payload_string);
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-
-    if (payload.size() > max_bytes_to_display) {
-      m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-                << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-                << PAD(get_ms(cur), 3, '0') << "]["
-                << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)
-                << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                << " (Len=" << payload.size() << "): " << payload_string.get()
-                << "..." << endl
-                << flush;
-    } else {
-      m_logFile << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-                << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-                << PAD(get_ms(cur), 3, '0') << "]["
-                << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN)
-                << "][" << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-                << " (Len=" << payload.size() << "): " << payload_string.get()
-                << endl
-                << flush;
-    }
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-
-    if (payload.size() > max_bytes_to_display) {
-      cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-           << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-           << PAD(get_ms(cur), 3, '0') << "]["
-           << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-           << " (Len=" << payload.size() << "): " << payload_string.get()
-           << "..." << endl
-           << flush;
-    } else {
-      cout << "[" << PAD(GetPid(), TID_LEN, ' ') << "]["
-           << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-           << PAD(get_ms(cur), 3, '0') << "]["
-           << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-           << LIMIT(function, MAX_FUNCNAME_LEN) << "] " << msg
-           << " (Len=" << payload.size() << "): " << payload_string.get()
-           << endl
-           << flush;
-    }
-  }
-}
-
-void Logger::LogEpochInfo(const char* msg, const unsigned int linenum,
-                          const char* filename, const char* function,
-                          const char* epoch) {
-  pid_t tid = getCurrentPid();
-  lock_guard<mutex> guard(m);
-
-  if (m_logToFile) {
-    checkLog();
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    m_logFile << "[" << PAD(tid, TID_LEN, ' ') << "]["
-              << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-              << PAD(get_ms(cur), 3, '0') << "]["
-              << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-              << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch
-              << "] " << msg << endl
-              << flush;
-  } else {
-    auto cur = chrono::system_clock::now();
-    auto cur_time_t = chrono::system_clock::to_time_t(cur);
-    auto file_and_line =
-        std::string(std::string(filename) + ":" + std::to_string(linenum));
-    cout << "[" << PAD(tid, TID_LEN, ' ') << "]["
-         << put_time(gmtime(&cur_time_t), "%y-%m-%dT%T.")
-         << PAD(get_ms(cur), 3, '0') << "]["
-         << LIMIT_RIGHT(file_and_line, Logger::MAX_FILEANDLINE_LEN) << "]["
-         << LIMIT(function, MAX_FUNCNAME_LEN) << "] [Epoch " << epoch << "] "
-         << msg << endl
-         << flush;
-  }
 }
 
 void Logger::DisplayLevelAbove(const LEVELS& level) {
   if (level != INFO && level != WARNING && level != FATAL) return;
 
-  g3::log_levels::setHighest(level);
+  log_levels::setHighest(level);
 }
 
-void Logger::EnableLevel(const LEVELS& level) { g3::log_levels::enable(level); }
+void Logger::EnableLevel(const LEVELS& level) { log_levels::enable(level); }
 
-void Logger::DisableLevel(const LEVELS& level) {
-  g3::log_levels::disable(level);
-}
-
-pid_t Logger::GetPid() { return getCurrentPid(); }
+void Logger::DisableLevel(const LEVELS& level) { log_levels::disable(level); }
 
 void Logger::GetPayloadS(const zbytes& payload, size_t max_bytes_to_display,
                          std::unique_ptr<char[]>& res) {
@@ -359,17 +298,20 @@ void Logger::GetPayloadS(const zbytes& payload, size_t max_bytes_to_display,
   res.get()[payload_string_len - 1] = '\0';
 }
 
-ScopeMarker::ScopeMarker(const unsigned int linenum, const char* filename,
-                         const char* function)
-    : m_linenum(linenum), m_filename(filename), m_function(function) {
-  Logger& logger = Logger::GetLogger(
-      NULL, true, boost::filesystem::absolute("./").string().c_str());
-  logger.LogGeneral(INFO, "BEG", linenum, filename, function);
+Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
+                                 bool should_print)
+    : m_file{file}, m_line{line}, m_func{func}, should_print{should_print} {
+  LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
+             &Logger::IsGeneralSink)
+          .stream()
+      << " BEG";
 }
 
-ScopeMarker::~ScopeMarker() {
-  Logger& logger = Logger::GetLogger(
-      NULL, true, boost::filesystem::absolute("./").string().c_str());
-  logger.LogGeneral(INFO, "END", m_linenum, m_filename.c_str(),
-                    m_function.c_str());
+Logger::ScopeMarker::~ScopeMarker() {
+  if (should_print) {
+    LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
+               &Logger::IsGeneralSink)
+            .stream()
+        << " END";
+  }
 }
