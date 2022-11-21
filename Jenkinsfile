@@ -65,7 +65,13 @@ timestamps {
                 stage('Build') {
                     sh "update-alternatives --install /usr/bin/python python \$(which python3) 1"
                     sh "git config --global --add safe.directory '*'"
-                    sh "VCPKG_ROOT=${env.VCPKG_ROOT} CCACHE_BASEDIR=\"\$(pwd)\" ./scripts/ci_build.sh"
+                    // Hack: since Jenkins checks out the branch to a different directory each time and given
+                    //       that ccache is very sensitive to code coverage & debug info, we checkout out
+                    //       to the same directoy as the ccache compilation and build there to benefit from the cache. 
+                    sh "git clone file://\"\$(pwd)\" /root/zilliqa"
+                    sh "git -C /root/zilliqa checkout \$(git rev-parse HEAD)"
+                    sh "ln -s /root/zilliqa/build build"
+                    sh "cd /root/zilliqa && VCPKG_ROOT=${env.VCPKG_ROOT} CCACHE_BASEDIR=\"\$(pwd)\" ./scripts/ci_build.sh"
                 }
                 stage('Integration test') {
                     sh "scripts/integration_test.sh --setup-env"
@@ -75,7 +81,7 @@ timestamps {
                 }
                 stage('Report coverage') {
                     // Code coverage is currently only implemented for GCC builds, so OSX is currently excluded from reporting
-                    sh "./scripts/ci_report_coverage.sh"
+                    sh "cd /root/zilliqa && scripts/ci_report_coverage.sh"
                 }
             }
           } catch (err) {

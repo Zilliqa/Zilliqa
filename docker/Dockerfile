@@ -91,11 +91,11 @@ ARG INSTALL_DIR=/usr/local
 ARG SOURCE_DIR=/root/zilliqa
 
 # pour in scilla binaries
-COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
+COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 # pour in scilla conntract stdlibs
-COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
+COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
 # pour in zilliqa scripts
-COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
+COPY --from=builder ${SOURCE_DIR}/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/

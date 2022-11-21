@@ -269,5 +269,5 @@ if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
 
 if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-tidy-fix; fi
 if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-format-fix; fi
-if [ ${run_code_coverage} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target Zilliqa_coverage -j${n_parallel}; fi
+if [ ${run_code_coverage} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target Zilliqa_coverage; fi
 

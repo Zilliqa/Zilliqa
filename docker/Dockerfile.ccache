@@ -13,6 +13,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
+
+# The purpose of this image is to warm up ccache's cache directory so we get
+# more hits when building Dockerfile and have it build faster.
 ARG ZILLIQA_DEVBASE_VERSION=
 ARG ZILLIQA_DEPS_VERSION=
 
