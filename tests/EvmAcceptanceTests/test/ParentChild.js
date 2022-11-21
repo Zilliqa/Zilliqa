@@ -5,31 +5,32 @@ const helper = require("../helper/GeneralHelper");
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 1_000_000;
-  let parentContract;
   before(async function () {
     const Contract = await ethers.getContractFactory("ParentContract");
-    parentContract = await Contract.deploy({value: INITIAL_FUND});
+    this.parentContract = await Contract.deploy({value: INITIAL_FUND});
   });
 
   describe("General", function () {
     it(`Should return ${INITIAL_FUND} when getPaidValue is called`, async function () {
-      expect(await parentContract.getPaidValue()).to.be.equal(INITIAL_FUND);
+      expect(await parentContract.getPaidValue(), `Contract Address: ${this.parentContract.address}`).to.be.equal(
+        INITIAL_FUND
+      );
     });
 
     it(`Should return ${INITIAL_FUND} as the balance of the parent contract`, async function () {
-      expect(await ethers.provider.getBalance(parentContract.address)).to.be.eq(INITIAL_FUND);
+      expect(
+        await ethers.provider.getBalance(parentContract.address),
+        `Contract Address: ${this.parentContract.address}`
+      ).to.be.eq(INITIAL_FUND);
     });
   });
 
   describe("Install Child", function () {
-    let childContract;
-    let childContractAddress;
-    let installedChild;
     const CHILD_CONTRACT_VALUE = 12345;
     before(async function () {
       // Because childContractAddress is used in almost all of the following tests, it should be done in `before` block.
-      installedChild = await parentContract.installChild(CHILD_CONTRACT_VALUE, {gasLimit: 25000000});
-      childContractAddress = await parentContract.childAddress();
+      this.installedChild = await parentContract.installChild(CHILD_CONTRACT_VALUE);
+      this.childContractAddress = await parentContract.childAddress();
     });
 
     it("Should instantiate a new child if installChild is called", async function () {
@@ -37,7 +38,10 @@ describe("Parent Child Contract Functionality", function () {
     });
 
     it(`Should return ${INITIAL_FUND} as the balance of the child contract`, async function () {
-      expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(INITIAL_FUND);
+      expect(
+        await ethers.provider.getBalance(childContractAddress),
+        `Contract Address: ${this.childContractAddress}`
+      ).to.be.eq(INITIAL_FUND);
     });
 
     it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {

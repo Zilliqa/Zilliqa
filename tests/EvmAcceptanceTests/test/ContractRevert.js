@@ -14,12 +14,15 @@ describe("Revert Contract Call", function () {
 
   it("Should revert transaction with a custom message if the called function reverts with custom message", async function () {
     const REVERT_MESSAGE = "reverted!!";
-    await expect(contract.revertCallWithMessage(REVERT_MESSAGE, {value: 1000})).to.be.revertedWith(REVERT_MESSAGE);
+    await expect(
+      contract.revertCallWithMessage(REVERT_MESSAGE, {value: 1000}),
+      `Contract Address: ${contract.address}`
+    ).to.be.revertedWith(REVERT_MESSAGE);
   });
 
   it("Should revert with an error object if the called function reverts with custom error", async function () {
     const [owner] = await ethers.getSigners();
-    await expect(contract.revertCallWithCustomError({value: 1000}))
+    await expect(contract.revertCallWithCustomError({value: 1000}), `Contract Address: ${contract.address}`)
       .to.be.revertedWithCustomError(contract, "FakeError")
       .withArgs(1000, owner.address);
   });

@@ -1,41 +1,46 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
 
-describe("Openzeppelin ownable contract functionality", function () {
-  let contract;
+describe("Openzeppelin ownable this.contract functionality", function () {
   before(async function () {
     const Contract = await ethers.getContractFactory("OwnableBox");
-    contract = await Contract.deploy();
-    await contract.deployed();
+    this.contract = await Contract.deploy();
+    await this.contract.deployed();
   });
 
   it("should return the deployer as the owner", async function () {
     const [owner] = await ethers.getSigners();
-    expect(await contract.owner()).to.be.equal(owner.address);
+    expect(await this.contract.owner(), `Transaction Address: ${this.contract.address}`).to.be.equal(owner.address);
   });
 
   it("should be possible to call a restricted function using the owner account", async function () {
-    expect(await contract.store(123))
-      .to.emit(contract, "ValueChanged")
+    expect(await this.contract.store(123), `Transaction Address: ${this.contract.address}`)
+      .to.emit(this.contract, "ValueChanged")
       .withArgs(123);
   });
 
   it("should not be possible to call a restricted function using an arbitrary account", async function () {
     const [_, notOwner] = await ethers.getSigners();
 
-    await expect(contract.connect(notOwner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
+    await expect(
+      this.contract.connect(notOwner).store(123),
+      `Transaction Address: ${this.contract.address}`
+    ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 
   it("should be possible to call a unrestricted function", async function () {
     const [_, notOwner] = await ethers.getSigners();
-    expect(await contract.connect(notOwner).retrieve()).to.be.equal(123);
+    expect(
+      await this.contract.connect(notOwner).retrieve(),
+      `Transaction Address: ${this.contract.address}`
+    ).to.be.equal(123);
   });
 
   it("should be possible to transfer ownership", async function () {
     const [prevOwner, newOwner] = await ethers.getSigners();
 
-    await expect(contract.transferOwnership(newOwner.address))
-      .to.emit(contract, "OwnershipTransferred")
+    await expect(this.contract.transferOwnership(newOwner.address), `Transaction Address: ${this.contract.address}`)
+      .to.emit(this.contract, "OwnershipTransferred")
       .withArgs(prevOwner.address, newOwner.address);
   });
 
@@ -44,9 +49,12 @@ describe("Openzeppelin ownable contract functionality", function () {
     const [_, owner] = await ethers.getSigners();
 
     // Sanity check
-    expect(await contract.owner()).to.be.eq(owner.address);
+    expect(await this.contract.owner()).to.be.eq(owner.address);
 
-    await contract.connect(owner).renounceOwnership();
-    await expect(contract.connect(owner).store(123)).to.be.revertedWith("Ownable: caller is not the owner");
+    const txn = await this.contract.connect(owner).renounceOwnership();
+    await expect(
+      this.contract.connect(owner).store(123),
+      `Transaction Address: ${this.contract.address}, Txn Hash: ${txn.hash}`
+    ).to.be.revertedWith("Ownable: caller is not the owner");
   });
 });
