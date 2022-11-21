@@ -24,6 +24,7 @@ use futures::FutureExt;
 
 use log::{debug, error, info};
 use std::fmt::Debug;
+//use evm::runtime::tracing::EventListener;
 
 use jsonrpc_core::{BoxFuture, Error, IoHandler, Result};
 use jsonrpc_server_utils::codecs;
@@ -164,7 +165,7 @@ async fn run_evm_impl(
         // the unwind.
         let result = panic::catch_unwind(AssertUnwindSafe(|| {
             if tracing {
-                evm::tracing::using(&mut listener, || executor.execute(&mut runtime))
+                evm::gasometer::tracing::using(&mut listener, || executor.execute(&mut runtime))
             } else {
                 executor.execute(&mut runtime)
             }
@@ -253,8 +254,9 @@ struct LoggingEventListener {
     pub traces: Vec<String>,
 }
 
-impl tracing::EventListener for LoggingEventListener {
-    fn event(&mut self, event: tracing::Event) {
+impl evm::gasometer::tracing::EventListener for LoggingEventListener {
+    fn event(&mut self, event: evm::gasometer::tracing::Event) {
+        println!("Event: {:?}", event);
         self.traces.push(format!("{:?}", event));
     }
 }
