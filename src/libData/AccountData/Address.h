@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
 
-#include <array>
 #include <unordered_set>
 #include <vector>
 

@@ -36,11 +36,15 @@ using namespace boost::multiprecision;
 
 jmp_buf JumpBuffer;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(circulararraytest)
 
 BOOST_AUTO_TEST_CASE(CircularArray_test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
 
   CircularArray<int> arr;
@@ -76,8 +80,6 @@ BOOST_AUTO_TEST_CASE(CircularArray_test) {
 }
 
 BOOST_AUTO_TEST_CASE(CircularArray_Empty_Index_Test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
   CircularArray<int> arr;
 
@@ -89,8 +91,6 @@ BOOST_AUTO_TEST_CASE(CircularArray_Empty_Index_Test) {
 }
 
 BOOST_AUTO_TEST_CASE(CircularArray_Empty_Insert_new_Test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
   CircularArray<int> arr;
 
@@ -103,8 +103,6 @@ BOOST_AUTO_TEST_CASE(CircularArray_Empty_Insert_new_Test) {
 }
 
 BOOST_AUTO_TEST_CASE(CircularArray_Empty_Back_Test) {
-  INIT_STDOUT_LOGGER();
-
   LOG_MARKER();
   CircularArray<int> arr;
 

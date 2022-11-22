@@ -20,6 +20,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 
 #include <jsonrpccpp/client.h>
 #include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>

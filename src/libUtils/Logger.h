@@ -19,8 +19,7 @@
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
 #include <boost/filesystem/path.hpp>
-#include "common/BaseType.h"
-#include "g3log/g3log.hpp"
+#include "common/Constants.h"
 #include "g3log/logworker.hpp"
 
 #define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
@@ -54,13 +53,19 @@ class Logger {
   //@{
   /// @name Sink addition.
   void AddGeneralSink(const std::string& filePrefix,
-                      const boost::filesystem::path& filePath);
+                      const boost::filesystem::path& filePath,
+                      int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
+                      int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStateSink(const std::string& filePrefix,
-                    const boost::filesystem::path& filePath);
+                    const boost::filesystem::path& filePath,
+                    int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
+                    int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddEpochInfoSink(const std::string& filePrefix,
-                        const boost::filesystem::path& filePath);
+                        const boost::filesystem::path& filePath,
+                        int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
+                        int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStdoutSink();
   //@}
@@ -93,13 +98,15 @@ class Logger {
 
   // Auxiliary class to mark the beginning & end of a scope.
   struct ScopeMarker final {
-    ScopeMarker(const char* file, int line, const char* func);
+    ScopeMarker(const char* file, int line, const char* func,
+                bool should_print = true);
     ~ScopeMarker();
 
    private:
     std::string m_file;
     int m_line;
     std::string m_func;
+    bool should_print;
 
     ScopeMarker(const ScopeMarker&) = delete;
     ScopeMarker& operator=(const ScopeMarker&) = delete;
@@ -125,6 +132,9 @@ class Logger {
 
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
+
+#define LOG_MARKER_CONTITIONAL(conditional) \
+  Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__, conditional};
 
 #define LOG_EPOCH(level, epoch, msg)                                  \
   {                                                                   \

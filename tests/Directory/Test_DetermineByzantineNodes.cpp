@@ -43,6 +43,12 @@
 
 using namespace std;
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(determinebyzantinenodes)
 
 struct F {
@@ -78,8 +84,6 @@ struct F {
 
 // Test that performance is not taken into account on epoch 1.
 BOOST_FIXTURE_TEST_CASE(test_EpochOne, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the member performance.
   std::map<PubKey, uint32_t> dsMemberPerformance;
   for (const auto& member : dsComm) {
@@ -105,8 +109,6 @@ BOOST_FIXTURE_TEST_CASE(test_EpochOne, F) {
 
 // Test the case when there are no Byzantine nodes.
 BOOST_FIXTURE_TEST_CASE(test_NoByzantineNodes, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the member performance.
   std::map<PubKey, uint32_t> dsMemberPerformance;
   for (const auto& member : dsComm) {
@@ -132,8 +134,6 @@ BOOST_FIXTURE_TEST_CASE(test_NoByzantineNodes, F) {
 
 // Test the case when the number of Byzantine nodes is < maxByzantineRemoved.
 BOOST_FIXTURE_TEST_CASE(test_LessThanByzantineNodes, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the expected removed node list.
   std::vector<PubKey> expectedRemoveDSNodePubkeys;
 
@@ -184,8 +184,6 @@ BOOST_FIXTURE_TEST_CASE(test_LessThanByzantineNodes, F) {
 
 // Test the case when the number of Byzantine nodes is > maxByzantineRemoved.
 BOOST_FIXTURE_TEST_CASE(test_MoreThanByzantineNodes, F) {
-  INIT_STDOUT_LOGGER();
-
   // Create the expected removed node list.
   std::vector<PubKey> expectedRemoveDSNodePubkeys;
 

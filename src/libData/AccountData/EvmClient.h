@@ -29,6 +29,7 @@
 #include "common/Constants.h"
 #include "common/Singleton.h"
 #include "libUtils/Evm.pb.h"
+#include "libUtils/Logger.h"
 
 // EvmDsDomainSocketClient
 //
@@ -55,15 +56,14 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
         unixDomainSocket.connect(stream_protocol::endpoint(m_path));
       } catch (std::exception& e) {
         if (LOG_SC) {
-          LOG_GENERAL(INFO, "Exception calling connect " << e.what());
+          LOG_GENERAL(INFO, "Exception calling connect "
+                                << e.what() << " to path: " << m_path
+                                << " to send msg: " << message);
         }
         throw e;
       }
       std::string toSend = message + DEFAULT_DELIMITER_CHAR;
-      if (LOG_SC) {
-        LOG_GENERAL(INFO, "Writing to socket " << toSend);
-      }
-      //
+
       // Write the JsonRpc
       try {
         boost::asio::write(unixDomainSocket,
@@ -88,9 +88,6 @@ class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
       std::istream is(&streamBuffer);
       // transfer it into the users object
       std::getline(is, result);
-      if (LOG_SC) {
-        LOG_GENERAL(INFO, "reading from socket " << result);
-      }
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception caught in custom SendRPCMessage " << e.what());

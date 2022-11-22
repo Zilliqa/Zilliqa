@@ -42,6 +42,12 @@ static auto makeBCInfo() {
 }
 }  // namespace
 
+struct Fixture {
+  Fixture() { INIT_STDOUT_LOGGER() }
+};
+
+BOOST_GLOBAL_FIXTURE(Fixture);
+
 BOOST_AUTO_TEST_SUITE(scillaipc)
 
 // NOTE: Remember to use unique field names for different tests
@@ -49,7 +55,6 @@ BOOST_AUTO_TEST_SUITE(scillaipc)
 
 // Connection sanity test.
 BOOST_AUTO_TEST_CASE(test_connection) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
   ScillaIPCServer server(s);
@@ -63,7 +68,6 @@ BOOST_AUTO_TEST_CASE(test_connection) {
 
 // Simple non-map query.
 BOOST_AUTO_TEST_CASE(test_query_simple) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -112,7 +116,6 @@ BOOST_AUTO_TEST_CASE(test_query_simple) {
 
 // Simple map query.
 BOOST_AUTO_TEST_CASE(test_query_map_1) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -195,7 +198,6 @@ BOOST_AUTO_TEST_CASE(test_query_map_1) {
 
 // insert, delete and query empty string key.
 BOOST_AUTO_TEST_CASE(test_query_empty_key) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -267,7 +269,6 @@ BOOST_AUTO_TEST_CASE(test_query_empty_key) {
 
 // Nested map queries.
 BOOST_AUTO_TEST_CASE(test_query_map_2) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -491,7 +492,6 @@ BOOST_AUTO_TEST_CASE(test_query_map_2) {
 
 // Add an empty map, and then replace it with a non-empty map.
 BOOST_AUTO_TEST_CASE(test_query_empty_map) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -577,7 +577,6 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map) {
 
 // Delete key in a map to make it empty and then query the map.
 BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -642,7 +641,6 @@ BOOST_AUTO_TEST_CASE(test_query_delete_to_empty) {
 
 // Tests updating empty nested maps.
 BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -733,7 +731,6 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_2) {
 // map whose name is a prefix of the first map.
 // This test is extracted from Scilla's in-place map contract.
 BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -820,7 +817,6 @@ BOOST_AUTO_TEST_CASE(test_query_empty_map_3) {
 // Update and fetch nested map, in full.
 // This test is extracted from Scilla's earmarked coin contract.
 BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
-  INIT_STDOUT_LOGGER();
   UnixDomainSocketServer s(SCILLA_IPC_SOCKET_PATH);
   ScillaIPCServer server(s);
   s.SetWaitTime(SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
@@ -926,8 +922,6 @@ BOOST_AUTO_TEST_CASE(test_query_update_fetch_nested) {
 // This test launches a server, invokes `make test_extipcserver`
 // in the Scilla testsuite and checks if it finished successfully.
 BOOST_AUTO_TEST_CASE(test_scillatestsuite) {
-  INIT_STDOUT_LOGGER();
-
   if (SCILLA_ROOT.empty()) {
     LOG_GENERAL(INFO, "SCILLA_ROOT not provided. Not running Scilla testsuite");
     return;
