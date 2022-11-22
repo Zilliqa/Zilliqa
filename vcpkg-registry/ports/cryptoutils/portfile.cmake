@@ -38,13 +38,12 @@ endif()
 vcpkg_cmake_configure(
     SOURCE_PATH ${SOURCE_PATH}
     OPTIONS
-      -DCMAKE_CXX_FLAGS=\"-std=c++20\"
       # FIXME: currently, compile Release like RelWithDebInfo as this the only
       #        configuration that's been used & tested so far. A standard Release
       #        configuration fails on array boundaries warning (which turns into an
       #        error due to -Werror) and must be investigated separately.
       #        See ZIL-5019.
-      -DCMAKE_CXX_FLAGS_RELEASE=\"-std=c++20 -O2 -ggdb -DNDEBUG\"
+      -DCMAKE_CXX_FLAGS_RELEASE=\"-O2 -ggdb -DNDEBUG\"
 )
 
 vcpkg_cmake_install()

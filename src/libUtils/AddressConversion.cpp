@@ -16,8 +16,8 @@
  */
 
 #include "AddressConversion.h"
-#include "DataConversion.h"
 #include "Bech32/segwit_addr.h"
+#include "DataConversion.h"
 
 using namespace std;
 
