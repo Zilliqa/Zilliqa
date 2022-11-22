@@ -2122,6 +2122,8 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
     return;
   }
 
+  LOG_GENERAL(WARNING, "MAX_TX_BLOCK_NUM_KEY found: " << maxKnownBlockNumStr);
+
   const auto maxKnownBlock = stoull(maxKnownBlockNumStr);
   // Iterate over a range of (maxKnownBlock + 1, maxTxBlockMined) and fill
   // missing gap if needed. Block Numbers are guaranteed to be increasing
@@ -2142,7 +2144,11 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   // Update max known block number if there was anything to process
   currBlock -= 1;
   if (currBlock > maxKnownBlock) {
+    LOG_GENERAL(WARNING,
+                "Finished catchup with diff: " << currBlock - maxKnownBlock);
     m_txBlockchainAuxDB->Insert(leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
                                 leveldb::Slice(std::to_string(currBlock)));
+  } else {
+    LOG_GENERAL(WARNING, "There was nothing to catchup");
   }
 }
