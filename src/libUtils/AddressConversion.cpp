@@ -17,7 +17,7 @@
 
 #include "AddressConversion.h"
 #include "DataConversion.h"
-#include "depends/cryptoutils/include/Bech32/segwit_addr.h"
+#include "Bech32/segwit_addr.h"
 
 using namespace std;
 
