@@ -67,6 +67,11 @@ class Logger {
                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
+  void AddOpenSearchSink(const std::string& filePrefix,
+                         const boost::filesystem::path& filePath,
+                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
+                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
+
   void AddStdoutSink();
   //@}
 
