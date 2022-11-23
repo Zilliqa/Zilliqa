@@ -166,10 +166,10 @@ class EpochInfoLogSink : public CustomLogRotate {
   using CustomLogRotate::CustomLogRotate;
 };
 
-class OpenSearchLogSink : public CustomLogRotate {
+class JsonLogSink : public CustomLogRotate {
  public:
   template <typename... ArgsT>
-  OpenSearchLogSink(ArgsT&&... args)
+  JsonLogSink(ArgsT&&... args)
       : CustomLogRotate(std::forward<ArgsT>(args)...),
         m_builder{},
         m_writer{m_builder.newStreamWriter()} {}
@@ -276,12 +276,12 @@ void Logger::AddEpochInfoSink(
                                 maxLogFileSizeKB, maxArchivedLogCount);
 }
 
-void Logger::AddOpenSearchSink(
-    const std::string& filePrefix, const boost::filesystem::path& filePath,
-    int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
-    int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
-  AddFileSink<OpenSearchLogSink>(*m_logWorker, filePrefix, filePath,
-                                 maxLogFileSizeKB, maxArchivedLogCount);
+void Logger::AddJsonSink(const std::string& filePrefix,
+                         const boost::filesystem::path& filePath,
+                         int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+                         int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<JsonLogSink>(*m_logWorker, filePrefix, filePath, maxLogFileSizeKB,
+                           maxArchivedLogCount);
 }
 
 void Logger::AddStdoutSink() {
@@ -291,19 +291,19 @@ void Logger::AddStdoutSink() {
 
 bool Logger::IsGeneralSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<GeneralLogSink>) ||
-         typeid(sink) == typeid(internal::Sink<OpenSearchLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
          typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
 bool Logger::IsStateSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<StateLogSink>) ||
-         typeid(sink) == typeid(internal::Sink<OpenSearchLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
          typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
 bool Logger::IsEpochInfoSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<EpochInfoLogSink>) ||
-         typeid(sink) == typeid(internal::Sink<OpenSearchLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
          typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 

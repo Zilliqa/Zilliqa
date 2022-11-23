@@ -162,7 +162,7 @@ extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
-extern const bool OPENSEARCH_LOGGING;
+extern const bool JSON_LOGGING;
 
 // Version constants
 extern const unsigned int MSG_VERSION;

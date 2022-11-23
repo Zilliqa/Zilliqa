@@ -174,8 +174,8 @@ int main(int argc, const char* argv[]) {
     INIT_STATE_LOGGER("state", logBasePath);
     INIT_EPOCHINFO_LOGGER("epochinfo", logBasePath);
 
-    if (OPENSEARCH_LOGGING) {
-      INIT_OPENSEARCH_LOGGER("zilliqa-opensearch", logBasePath);
+    if (JSON_LOGGING) {
+      INIT_JSON_LOGGER("zilliqa-json", logBasePath);
     }
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);

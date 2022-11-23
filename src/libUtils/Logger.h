@@ -67,10 +67,10 @@ class Logger {
                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
-  void AddOpenSearchSink(const std::string& filePrefix,
-                         const boost::filesystem::path& filePath,
-                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
-                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
+  void AddJsonSink(const std::string& filePrefix,
+                   const boost::filesystem::path& filePath,
+                   int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
+                   int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStdoutSink();
   //@}
@@ -129,8 +129,8 @@ class Logger {
 #define INIT_EPOCHINFO_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddEpochInfoSink(filePrefix, filePath);
 
-#define INIT_OPENSEARCH_LOGGER(filePrefix, filePath) \
-  Logger::GetLogger().AddOpenSearchSink(filePrefix, filePath);
+#define INIT_JSON_LOGGER(filePrefix, filePath) \
+  Logger::GetLogger().AddJsonSink(filePrefix, filePath);
 
 #define LOG_STATE(msg) \
   { FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
