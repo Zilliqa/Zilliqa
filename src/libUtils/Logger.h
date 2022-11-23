@@ -129,6 +129,9 @@ class Logger {
 #define INIT_EPOCHINFO_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddEpochInfoSink(filePrefix, filePath);
 
+#define INIT_OPENSEARCH_LOGGER(filePrefix, filePath) \
+  Logger::GetLogger().AddOpenSearchSink(filePrefix, filePath);
+
 #define LOG_STATE(msg) \
   { FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
 
