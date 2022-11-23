@@ -379,14 +379,6 @@ const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
     ReadConstantNumeric("GLOBAL_WORK_SIZE_MULTIPLIER", "node.gpu.opencl.")};
 const unsigned int OPENCL_START_EPOCH{
     ReadConstantNumeric("START_EPOCH", "node.gpu.opencl.")};
-const unsigned int CUDA_BLOCK_SIZE{
-    ReadConstantNumeric("BLOCK_SIZE", "node.gpu.cuda.")};
-const unsigned int CUDA_GRID_SIZE{
-    ReadConstantNumeric("GRID_SIZE", "node.gpu.cuda.")};
-const unsigned int CUDA_STREAM_NUM{
-    ReadConstantNumeric("STREAM_NUM", "node.gpu.cuda.")};
-const unsigned int CUDA_SCHEDULE_FLAG{
-    ReadConstantNumeric("SCHEDULE_FLAG", "node.gpu.cuda.")};
 
 // Guard mode constants
 const bool GUARD_MODE{ReadConstantString("GUARD_MODE", "node.guard_mode.") ==
@@ -496,8 +488,6 @@ const unsigned int SENDJOBPEERS_TIMEOUT{
     ReadConstantNumeric("SENDJOBPEERS_TIMEOUT", "node.p2pcomm.")};
 
 // PoW constants
-const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
-                         "true"};
 const bool FULL_DATASET_MINE{
     ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
 const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
