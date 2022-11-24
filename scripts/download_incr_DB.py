@@ -80,6 +80,18 @@ def RsyncBlockChainData(source,destination):
 	print("Copied local historical-data persistence to main persistence!")
 
 def GetAllObjectsFromS3(url, folderName=""):
+	excludes = ["diff_persistence"]
+	if Exclude_txnBodies:
+		excludes.append("txEpochs")
+		excludes.append("txBodies")
+	if Exclude_microBlocks:
+		excludes.append("microBlock")
+	if Exclude_minerInfo:
+		excludes.append("minerInfo")
+	exclude_args = []
+	for exclude in excludes:
+		exclude_args.extend(["--exclude", f"*{exclude}*"])
+
 	attempts = 3
 	download_path = f"s3://{BUCKET_NAME}/{folderName}/{TESTNET_NAME}"
 	# We can usually expect a single failure during a large sync, because a file will disappear between the start and
@@ -88,7 +100,11 @@ def GetAllObjectsFromS3(url, folderName=""):
 	for i in range(attempts):
 		print(f"Downloading {download_path} (attempt {i}/{attempts})")
 		try:
-			subprocess.run(["aws", "s3", "sync", "--no-sign-request", "--delete", download_path, "."], check=True)
+			command = ["aws", "s3", "sync", "--no-sign-request", "--delete"]
+			command.extend(exclude_args)
+			command.extend([download_path, "."])
+			print(" ".join(command))
+			subprocess.run(command, check=True)
 			break
 		except Exception as e:
 			print(f"Download failed: {e}")
