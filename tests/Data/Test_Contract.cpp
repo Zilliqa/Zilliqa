@@ -39,6 +39,7 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"

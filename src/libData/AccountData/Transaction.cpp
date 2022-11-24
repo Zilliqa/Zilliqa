@@ -22,6 +22,7 @@
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/Logger.h"
 
 using namespace std;

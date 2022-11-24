@@ -28,6 +28,8 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
+const int EVM_ZIL_SCALING_FACTOR = 1'000'000;
+
 class EvmUtils {
  public:
   /// get the command for invoking the evm_runner while calling

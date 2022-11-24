@@ -26,6 +26,7 @@
 #include "libData/AccountData/AccountStoreSC.h"
 #include "libData/AccountData/Address.h"
 #include "libTestUtils/TestUtils.h"
+#include "libUtils/EvmUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
 

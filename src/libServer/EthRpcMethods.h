@@ -22,6 +22,7 @@
 #include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/EvmUtils.h"
 
 class LookupServer;
 

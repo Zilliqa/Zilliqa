@@ -758,8 +758,6 @@ const std::string EVM_SERVER_BINARY{ReadConstantString(
 const std::string EVM_LOG_CONFIG{ReadConstantString(
     "EVM_LOG_CONFIG", "node.jsonrpc.", "/usr/local/etc/log4rs.yml")};
 const uint64_t ETH_CHAINID{ReadConstantNumeric("CHAIN_ID") + 0x8000};
-const uint64_t EVM_ZIL_SCALING_FACTOR{
-    ReadConstantUInt64("EVM_ZIL_SCALING_FACTOR", "node.jsonrpc.", 1)};
 const uint64_t EVM_BLOCK_LOOKUP_LIMIT{
     ReadConstantUInt64("EVM_BLOCK_LOOKUP_LIMIT", "node.jsonrpc.", 50)};
 const uint64_t EVM_RPC_TIMEOUT_SECONDS{
