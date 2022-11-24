@@ -28,7 +28,6 @@ RUN apt-get install -y \
     lcov \
     libcurl4-openssl-dev \
     libjsonrpccpp-dev \
-    libsecp256k1-dev \
     libssl-dev \
     libtool \
     libxml2-utils \
