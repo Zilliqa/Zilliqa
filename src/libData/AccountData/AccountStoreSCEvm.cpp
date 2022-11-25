@@ -225,9 +225,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     TransactionReceipt& receipt, TxnStatus& error_code) {
   LOG_MARKER();
 
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
-  }
+  LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_curIsDS = isDS;
