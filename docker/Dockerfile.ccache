@@ -22,7 +22,7 @@ ARG ZILLIQA_DEPS_VERSION=
 FROM zilliqa/zilliqa-deps:${ZILLIQA_DEPS_VERSION} AS deps
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=master
+ARG COMMIT_OR_TAG=v8.4.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG VCPKG_ROOT=/vcpkg
 

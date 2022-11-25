@@ -1,8 +1,8 @@
 
-.PHONY: all k8s release release-cuda
+.PHONY: all k8s release
 
 # build the default zilliqa docker image same as the one on Docker Hub
-all: release release-cuda
+all: release
 
 len=$(shell echo "$(COMMIT_OR_TAG)" | wc -c)
 commit_or_tag=$(shell git rev-parse --short=7 "$(COMMIT_OR_TAG)")
