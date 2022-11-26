@@ -744,7 +744,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     const uint128_t gasPriceWei =
         (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice() *
-         EVM_ZIL_SCALING_FACTOR) /
+         evm::EVM_ZIL_SCALING_FACTOR) /
         GasConv::GetScalingFactor();
 
     const Address fromAddr = tx.GetSenderAddr();
@@ -771,7 +771,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         return ret;
       }
 
-      senderBalance = uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+      senderBalance = uint256_t{sender->GetBalance()} * evm::EVM_ZIL_SCALING_FACTOR;
     }
 
     switch (Transaction::GetTransactionType(tx)) {

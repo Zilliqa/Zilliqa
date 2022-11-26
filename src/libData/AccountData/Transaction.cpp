@@ -190,7 +190,7 @@ const uint128_t& Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
 
 const uint128_t Transaction::GetAmountQa() const {
   if (IsEth()) {
-    return m_coreInfo.amount / EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.amount / evm::EVM_ZIL_SCALING_FACTOR;
   } else {
     return m_coreInfo.amount;
   }
@@ -201,7 +201,7 @@ const uint128_t Transaction::GetAmountWei() const {
     return m_coreInfo.amount;
   } else {
     // We know the amounts in transactions are capped, so it won't overlow.
-    return m_coreInfo.amount * EVM_ZIL_SCALING_FACTOR;
+    return m_coreInfo.amount * evm::EVM_ZIL_SCALING_FACTOR;
   }
 }
 
@@ -211,7 +211,7 @@ const uint128_t& Transaction::GetGasPriceRaw() const {
 
 const uint128_t Transaction::GetGasPriceQa() const {
   if (IsEth()) {
-    return m_coreInfo.gasPrice / EVM_ZIL_SCALING_FACTOR *
+    return m_coreInfo.gasPrice / evm::EVM_ZIL_SCALING_FACTOR *
            GasConv::GetScalingFactor();
   } else {
     return m_coreInfo.gasPrice;
@@ -223,7 +223,7 @@ const uint128_t Transaction::GetGasPriceWei() const {
     return m_coreInfo.gasPrice;
   } else {
     // We know the amounts in transactions are capped, so it won't overlow.
-    return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR /
+    return m_coreInfo.gasPrice * evm::EVM_ZIL_SCALING_FACTOR /
            GasConv::GetScalingFactor();
   }
 }

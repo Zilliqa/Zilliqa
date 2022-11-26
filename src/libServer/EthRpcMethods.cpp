@@ -652,10 +652,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                            "gasPrice * MIN_ETH_GAS overflow!");
   }
   uint256_t balance = 0;
-  if (!SafeMath<uint256_t>::mul(accountFunds, EVM_ZIL_SCALING_FACTOR,
+  if (!SafeMath<uint256_t>::mul(accountFunds, evm::EVM_ZIL_SCALING_FACTOR,
                                 balance)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                           "accountFunds * EVM_ZIL_SCALING_FACTOR overflow!");
+                           "accountFunds * evm::EVM_ZIL_SCALING_FACTOR overflow!");
   }
 
   if (balance < gasDeposit) {
@@ -1197,7 +1197,7 @@ Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
                              "Invalid account balance number");
     }
     uint256_t ethBalanceScaled;
-    if (!SafeMath<uint256_t>::mul(ethBalance, EVM_ZIL_SCALING_FACTOR,
+    if (!SafeMath<uint256_t>::mul(ethBalance, evm::EVM_ZIL_SCALING_FACTOR,
                                   ethBalanceScaled)) {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "GetEthBalance overflow");
@@ -1218,7 +1218,7 @@ uint256_t EthRpcMethods::GetEthGasPriceNum() const {
   uint256_t gasPrice =
       m_sharedMediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
   // Make gas price in wei
-  gasPrice = (gasPrice * EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
+  gasPrice = (gasPrice * evm::EVM_ZIL_SCALING_FACTOR) / GasConv::GetScalingFactor();
 
   // The following ensures we get 'at least' that high price as it was before
   // dividing by GasScalingFactor

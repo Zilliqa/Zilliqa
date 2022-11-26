@@ -28,7 +28,9 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
-const int EVM_ZIL_SCALING_FACTOR = 1'000'000;
+namespace evm {
+  const int EVM_ZIL_SCALING_FACTOR = 1'000'000;
+}
 
 class EvmUtils {
  public:

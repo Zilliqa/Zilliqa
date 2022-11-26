@@ -270,7 +270,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       // Check if the sender has enough balance to pay gasDeposit
       const uint256_t fromAccountBalance =
-          uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+          uint256_t{fromAccount->GetBalance()} * evm::EVM_ZIL_SCALING_FACTOR;
       if (fromAccountBalance < gasDepositWei + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING,
                     "The account doesn't have enough gas to create a contract");
@@ -312,7 +312,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         // TODO verify this line is needed, suspect it is a scilla thing
         m_curBlockNum = blockNum;
         const uint128_t decreaseAmount =
-            uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
+            uint128_t{gasDepositWei / evm::EVM_ZIL_SCALING_FACTOR};
         if (!this->DecreaseBalance(fromAddr, decreaseAmount)) {
           LOG_GENERAL(WARNING, "Evm Decrease Balance has failed");
           error_code = TxnStatus::FAIL_CONTRACT_INIT;
@@ -405,7 +405,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       }
 
       if (!this->IncreaseBalance(fromAddr,
-                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
+                                 gasRefund / evm::EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
       if (evm_call_run_succeeded) {
@@ -471,7 +471,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       LOG_GENERAL(INFO, "Call contract");
 
       const uint256_t fromAccountBalance =
-          uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+          uint256_t{fromAccount->GetBalance()} * evm::EVM_ZIL_SCALING_FACTOR;
       if (fromAccountBalance < gasDepositWei + transaction.GetAmountWei()) {
         LOG_GENERAL(WARNING, "The account (balance: "
                                  << fromAccountBalance
@@ -503,7 +503,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       DiscardAtomics();
       const uint128_t amountToDecrease =
-          uint128_t{gasDepositWei / EVM_ZIL_SCALING_FACTOR};
+          uint128_t{gasDepositWei / evm::EVM_ZIL_SCALING_FACTOR};
       if (!this->DecreaseBalance(fromAddr, amountToDecrease)) {
         LOG_GENERAL(WARNING, "DecreaseBalance failed");
         error_code = TxnStatus::MATH_ERROR;
@@ -584,7 +584,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
       if (!this->IncreaseBalance(fromAddr,
 
-                                 gasRefund / EVM_ZIL_SCALING_FACTOR)) {
+                                 gasRefund / evm::EVM_ZIL_SCALING_FACTOR)) {
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 

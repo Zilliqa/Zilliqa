@@ -155,7 +155,7 @@ class EthRpcMethods {
     const auto gasPrice = (m_sharedMediator.m_dsBlockChain.GetLastBlock()
                                .GetHeader()
                                .GetGasPrice() *
-                           EVM_ZIL_SCALING_FACTOR) /
+                           evm::EVM_ZIL_SCALING_FACTOR) /
                           GasConv::GetScalingFactor();
 
     response = CreateTransactionEth(fields, pubKey, shards, gasPrice,

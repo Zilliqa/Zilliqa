@@ -1574,7 +1574,7 @@ BOOST_AUTO_TEST_CASE(test_ethGasPrice) {
 
   lookupServer.GetEthGasPriceI({}, response);
 
-  const auto EXPECTED_NUM = ((GAS_PRICE_CORE * EVM_ZIL_SCALING_FACTOR) /
+  const auto EXPECTED_NUM = ((GAS_PRICE_CORE * evm::EVM_ZIL_SCALING_FACTOR) /
                              GasConv::GetScalingFactor()) +
                             1000000;
 

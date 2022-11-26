@@ -219,7 +219,7 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   const uint256_t accountBalance =
-      uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
+      uint256_t{sender->GetBalance()} * evm::EVM_ZIL_SCALING_FACTOR;
   if (accountBalance < debt) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Insufficient funds in source account, wants: " +

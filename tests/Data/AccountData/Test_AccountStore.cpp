@@ -33,7 +33,7 @@
 #include "../ScillaTestUtil.h"
 
 TxnExtras GetDefaultTxnExtras() {
-  TxnExtras extras{GAS_PRICE_MIN_VALUE * EVM_ZIL_SCALING_FACTOR, 1664226846,
+  TxnExtras extras{GAS_PRICE_MIN_VALUE * evm::EVM_ZIL_SCALING_FACTOR, 1664226846,
                    42};
   return extras;
 }
