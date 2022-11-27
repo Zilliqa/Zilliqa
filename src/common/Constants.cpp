@@ -140,6 +140,7 @@ const unsigned int MAX_ARCHIVED_LOG_COUNT{
     ReadConstantNumeric("MAX_ARCHIVED_LOG_COUNT")};
 const unsigned int MAX_LOG_FILE_SIZE_KB{
     ReadConstantNumeric("MAX_LOG_FILE_SIZE_KB")};
+const bool JSON_LOGGING{ReadConstantString("JSON_LOGGING") == "true"};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -596,10 +597,9 @@ const bool ENABLE_SC{ReadConstantString("ENABLE_SC", "node.smart_contract.") ==
                      "true"};
 string scilla_root_raw{
     ReadConstantString("SCILLA_ROOT", "node.smart_contract.")};
-const string SCILLA_ROOT{
-    scilla_root_raw.back() == '/'
-        ? scilla_root_raw.substr(0, scilla_root_raw.size() - 1)
-        : scilla_root_raw};
+string SCILLA_ROOT{scilla_root_raw.back() == '/'
+                       ? scilla_root_raw.substr(0, scilla_root_raw.size() - 1)
+                       : scilla_root_raw};
 const string SCILLA_CHECKER{
     ReadConstantString("SCILLA_CHECKER", "node.smart_contract.")};
 const string SCILLA_BINARY{
@@ -644,7 +644,7 @@ const bool DISABLE_SCILLA_LIB{
     ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_PENDING_IN_MS{
     ReadConstantNumeric("SCILLA_SERVER_PENDING_IN_MS", "node.smart_contract.")};
-const unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS{ReadConstantNumeric(
+unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS{ReadConstantNumeric(
     "SCILLA_SERVER_LOOP_WAIT_MICROSECONDS", "node.smart_contract.")};
 
 // Test constants

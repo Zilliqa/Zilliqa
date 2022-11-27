@@ -27,7 +27,8 @@
     "libffi",
     "g3log",
     "g3sinks",
-    "schnorr"
+    "schnorr",
+    "cryptoutils"
   ],
   "builtin-baseline": "6ca56aeb457f033d344a7106cb3f9f1abf8f4e98",
   "overrides": [
@@ -62,6 +63,14 @@
     {
       "name": "g3sinks",
       "version": "2.0.1"
+    },
+    {
+      "name": "cryptoutils",
+      "version": "8.3.0#1"
+    },
+    {
+      "name": "websocketpp",
+      "version": "0.8.2#3"
     }
   ]
 }

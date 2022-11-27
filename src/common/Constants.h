@@ -162,6 +162,7 @@ extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
+extern const bool JSON_LOGGING;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -414,7 +415,7 @@ extern const unsigned int DIRBLOCK_FETCH_LIMIT;
 
 // Smart contract constants
 extern const bool ENABLE_SC;
-extern const std::string SCILLA_ROOT;
+extern std::string SCILLA_ROOT;
 extern const std::string SCILLA_CHECKER;
 extern const std::string SCILLA_BINARY;
 extern const std::string SCILLA_FILES;
@@ -435,7 +436,7 @@ extern bool ENABLE_SCILLA;
 extern const bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;
-extern const unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS;
+extern unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS;
 const std::string FIELDS_MAP_DEPTH_INDICATOR = "_fields_map_depth";
 const std::string MAP_DEPTH_INDICATOR = "_depth";
 const std::string SCILLA_VERSION_INDICATOR = "_version";

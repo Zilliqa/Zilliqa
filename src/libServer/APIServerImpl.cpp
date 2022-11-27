@@ -167,6 +167,7 @@ class APIServerImpl::Connection
             "origin, content-type, accept");
     res.set(http::field::dav, "1");
     res.keep_alive(keepAlive);
+    res.prepare_payload();
     m_writeQueue.emplace_back(std::move(res));
     StartWriting();
   }
@@ -179,8 +180,8 @@ class APIServerImpl::Connection
     if (!description.empty()) {
       res.set(http::field::content_type, "text/plain");
       res.body() = std::move(description);
-      res.prepare_payload();
     }
+    res.prepare_payload();
     m_writeQueue.emplace_back(std::move(res));
     StartWriting();
   }

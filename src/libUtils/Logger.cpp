@@ -18,6 +18,9 @@
 #include "Logger.h"
 #include "libUtils/TimeUtils.h"
 
+#include <json/value.h>
+#include <json/writer.h>
+
 #include <g3sinks/LogRotate.h>
 
 #include <boost/filesystem/operations.hpp>
@@ -66,7 +69,7 @@ std::ostream& logThreadId(std::ostream& stream, const LogMessage& message) {
   return stream;
 }
 
-std::ostream& logTimestamp(std::ostream& stream, const LogMessage& message) {
+std::string timestampToString(const LogMessage& message) {
   // The following is taken from g3log's localtime_formatted; we're changing
   // it here to show our own time format in UTC instead of localtime.
   // (License is completely free; see:
@@ -76,8 +79,11 @@ std::ostream& logTimestamp(std::ostream& stream, const LogMessage& message) {
       internal::localtime_formatted_fractions(ts, "%y-%m-%dT%T.%f3");
   auto time_point = std::chrono::system_clock::to_time_t(ts);
   auto t = std::gmtime(&time_point);
+  return g3::put_time(t, format_buffer.c_str());
+}
 
-  stream << '[' << g3::put_time(t, format_buffer.c_str()) << ']';
+std::ostream& logTimestamp(std::ostream& stream, const LogMessage& message) {
+  stream << '[' << timestampToString(message) << ']';
   return stream;
 }
 
@@ -160,6 +166,36 @@ class EpochInfoLogSink : public CustomLogRotate {
   using CustomLogRotate::CustomLogRotate;
 };
 
+class JsonLogSink : public CustomLogRotate {
+ public:
+  template <typename... ArgsT>
+  JsonLogSink(ArgsT&&... args)
+      : CustomLogRotate(std::forward<ArgsT>(args)...),
+        m_builder{},
+        m_writer{m_builder.newStreamWriter()} {}
+
+  void receiveLogMessage(LogMessageMover logEntry) {
+    const auto& message = logEntry.get();
+
+    Json::Value value;
+    value["timestamp"] = timestampToString(message);
+    value["thread_id"] = message.threadID();
+    value["level"] = message.level();
+    value["file"] = message.file();
+    value["line"] = message._line;
+    value["func"] = message.function();
+    value["message"] = message.message();
+
+    m_writer->write(value, &m_stream);
+    m_logRotate.save(m_stream.str());
+    m_stream.str("");
+  }
+
+ private:
+  Json::StreamWriterBuilder m_builder;
+  std::unique_ptr<Json::StreamWriter> m_writer;
+};
+
 class StdoutSink {
  public:
   void forwardLogToStdout(LogMessageMover logEntry) {
@@ -240,6 +276,14 @@ void Logger::AddEpochInfoSink(
                                 maxLogFileSizeKB, maxArchivedLogCount);
 }
 
+void Logger::AddJsonSink(const std::string& filePrefix,
+                         const boost::filesystem::path& filePath,
+                         int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
+                         int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
+  AddFileSink<JsonLogSink>(*m_logWorker, filePrefix, filePath, maxLogFileSizeKB,
+                           maxArchivedLogCount);
+}
+
 void Logger::AddStdoutSink() {
   m_logWorker->addSink(std::make_unique<StdoutSink>(),
                        &StdoutSink::forwardLogToStdout);
@@ -247,16 +291,19 @@ void Logger::AddStdoutSink() {
 
 bool Logger::IsGeneralSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<GeneralLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
          typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
 bool Logger::IsStateSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<StateLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
          typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
 bool Logger::IsEpochInfoSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<EpochInfoLogSink>) ||
+         typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
          typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
@@ -298,8 +345,9 @@ void Logger::GetPayloadS(const zbytes& payload, size_t max_bytes_to_display,
   res.get()[payload_string_len - 1] = '\0';
 }
 
-Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func)
-    : m_file{file}, m_line{line}, m_func{func} {
+Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
+                                 bool should_print)
+    : m_file{file}, m_line{line}, m_func{func}, should_print{should_print} {
   LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
              &Logger::IsGeneralSink)
           .stream()
@@ -307,8 +355,10 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func)
 }
 
 Logger::ScopeMarker::~ScopeMarker() {
-  LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-             &Logger::IsGeneralSink)
-          .stream()
-      << " END";
+  if (should_print) {
+    LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
+               &Logger::IsGeneralSink)
+            .stream()
+        << " END";
+  }
 }

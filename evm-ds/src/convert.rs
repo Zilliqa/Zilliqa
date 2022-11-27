@@ -331,3 +331,58 @@ fn as_string(opcode: &Opcode) -> String {
         _ => format!("UNKNOWNOP: {:?}", opcode),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_address_to_proto() {
+        let addr: H160 = "000102030405060708090A0B0C0D0E0F10111213".parse().unwrap();
+        let addr_proto: EvmProto::Address = addr.into();
+        assert_eq!(addr_proto.x0, 0x00010203);
+        assert_eq!(addr_proto.x1, 0x0405060708090A0B);
+        assert_eq!(addr_proto.x2, 0x0C0D0E0F10111213);
+    }
+
+    #[test]
+    fn test_proto_to_address() {
+        let mut addr_proto = EvmProto::Address::new();
+        addr_proto.set_x0(0x00010203);
+        addr_proto.set_x1(0x0405060708090A0B);
+        addr_proto.set_x2(0x0C0D0E0F10111213);
+        let addr: H160 = (&addr_proto).into();
+        assert_eq!(
+            addr,
+            "000102030405060708090A0B0C0D0E0F10111213".parse().unwrap(),
+        );
+    }
+
+    #[test]
+    fn test_proto_to_u256() {
+        let mut u256_proto = EvmProto::UInt256::new();
+        u256_proto.set_x0(0x0001020304050607);
+        u256_proto.set_x1(0x08090a0b0c0d0e0f);
+        u256_proto.set_x2(0x1011121314151617);
+        u256_proto.set_x3(0x18191a1b1c1d1e1f);
+        let result: U256 = (&u256_proto).into();
+        assert_eq!(
+            result,
+            "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+                .parse()
+                .unwrap()
+        );
+    }
+
+    #[test]
+    fn test_u256_to_proto() {
+        let input: U256 = "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+            .parse()
+            .unwrap();
+        let u256_proto: EvmProto::UInt256 = input.into();
+        assert_eq!(u256_proto.x0, 0x0001020304050607);
+        assert_eq!(u256_proto.x1, 0x08090a0b0c0d0e0f);
+        assert_eq!(u256_proto.x2, 0x1011121314151617);
+        assert_eq!(u256_proto.x3, 0x18191a1b1c1d1e1f);
+    }
+}

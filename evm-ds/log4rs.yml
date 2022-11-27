@@ -1,13 +1,15 @@
 appenders:
-  stderr:
+  stdout:
     kind: console
     target: stderr
+    encoder:
+      kind: json
 
   filelog:
     kind: rolling_file
     path: "/run/zilliqa/evm.log"
     encoder:
-      pattern: "{d} {l} - {m}{n}"
+      kind: json
     policy:
       trigger:
         kind: size
@@ -22,4 +24,3 @@ root:
   appenders:
     - stderr
     - filelog
-

@@ -173,7 +173,6 @@ const PubKey& Transaction::GetSenderPubKey() const {
 Address Transaction::GetSenderAddr() const {
   // If a V2 Tx
   if (IsEth()) {
-    LOG_GENERAL(WARNING, "Getting eth style address from pub key");
     return Account::GetAddressFromPublicKeyEth(GetSenderPubKey());
   }
 

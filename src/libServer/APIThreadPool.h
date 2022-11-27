@@ -92,7 +92,7 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   void WorkerThread(size_t threadNo);
 
   /// Threads push a response for the main thread to send to the wire
-  void PushResponse(Response response);
+  void PushResponse(Response&& response);
 
   /// Main thread processes response queue (TODO maybe revise its logic).
   void ProcessResponseQueue();
