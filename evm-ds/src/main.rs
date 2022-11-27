@@ -3,8 +3,6 @@
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
 
-extern crate core;
-
 mod convert;
 mod ipc_connect;
 mod precompiles;
