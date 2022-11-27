@@ -47,6 +47,7 @@ class IsolatedServer : public LookupServer,
 
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->CreateTransaction(request[0u]);
   }
 
@@ -54,6 +55,7 @@ class IsolatedServer : public LookupServer,
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
@@ -73,40 +75,48 @@ class IsolatedServer : public LookupServer,
 
   inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                          Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthBlockNumber();
   }
 
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->IncreaseBlocknum(request[0u].asUInt());
   }
   inline virtual void GetMinimumGasPriceI(const Json::Value& request,
                                           Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     (void)request;
     response = this->GetMinimumGasPrice();
   }
   inline virtual void SetMinimumGasPriceI(const Json::Value& request,
                                           Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->SetMinimumGasPrice(request[0u].asString());
   }
   inline virtual void GetBlocknumI(const Json::Value& request,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     (void)request;
     response = this->GetBlocknum();
   }
 
   inline virtual void GetTransactionsForTxBlockI(const Json::Value& request,
                                                  Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
 
   inline virtual void CheckPauseI(const Json::Value& request,
                                   Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->CheckPause(request[0u].asString());
   }
 
   inline virtual void TogglePauseI(const Json::Value& request,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->TogglePause(request[0u].asString());
   }
 

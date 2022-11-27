@@ -167,16 +167,22 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     }
   }
   try {
-    const auto replyJson = m_client->CallMethod("run", _json);
+    //if (LOG_SC) {
+    //  LOG_GENERAL(WARNING, "EVM call" << _json.asString());
+    //}
 
-    if (LOG_SC) {
-      LOG_GENERAL(WARNING, "EVM reply" << replyJson.toStyledString());
-    }
+    const auto replyJson = m_client->CallMethod("run", _json);
 
     try {
       EvmUtils::GetEvmResultFromJson(replyJson, result);
 
-      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "Call runner result: ");
+        LOG_GENERAL(INFO, "All value: " << result.DebugString());
+        LOG_GENERAL(INFO, "Return value: " << result.return_value());
+        LOG_GENERAL(INFO, "Remaining gas: " << result.remaining_gas());
+        //LOG_GENERAL(INFO, "Remaining gas: " << result.apply());
+      }
 
       return true;
     } catch (std::exception& e) {

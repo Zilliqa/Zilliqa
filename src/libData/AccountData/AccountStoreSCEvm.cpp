@@ -102,6 +102,12 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       logJson["topics"] = topics_array;
       entry.append(logJson);
     }
+
+    if (LOG_SC) {
+      std::cerr << "LOGGINGK: " << std::endl;
+      //std::cerr << "LOG: " << entry.asString() << std::endl;
+    }
+
     receipt.AddJsonEntry(entry);
   }
 
@@ -123,6 +129,11 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
       case evm::Apply::ApplyCase::kModify: {
         // Get the account that this apply instruction applies to
         address = ProtoToAddress(it.modify().address());
+
+        if (LOG_SC) {
+          std::cerr << "KMODIFY ADDR IS: " << address << std::endl;
+        }
+
         targetAccount = this->GetAccountAtomic(address);
         if (targetAccount == nullptr) {
           if (!this->AddAccountAtomic(address, {0, 0})) {
@@ -639,7 +650,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
                                    m_storageRootUpdateBufferAtomic.end());
 
   if (LOG_SC) {
-    LOG_GENERAL(INFO, "Executing contract transaction finished");
+    LOG_GENERAL(INFO, "Executing contract transaction finished.");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 

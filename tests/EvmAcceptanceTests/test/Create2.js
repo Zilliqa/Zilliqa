@@ -1,63 +1,47 @@
 const {expect} = require("chai");
 const {web3} = require("hardhat");
 const web3_helper = require("../helper/Web3Helper");
+const helper = require("../helper/GeneralHelper");
 
 // Reference: https://dev.to/yongchanghe/tutorial-using-create2-to-predict-the-contract-address-before-deploying-12cb
 
 describe("Create2 instruction", function () {
   const INITIAL_FUND = 1_000_000;
   let contract;
-  let createContract;
 
   before(async function () {
     const Contract = await ethers.getContractFactory("Create2Factory");
     contract = await Contract.deploy();
   });
 
-////  before(async function () {
-//    //const Contract = await ethers.getContractFactory("Create2");
-//    //createContract = await Contract.deploy({value: INITIAL_FUND});
-//  //});
-//
-  describe("Should be able to call create2 contract", function () {
-    // Make sure parent contract is available for child to be called
-    before(async function () {
-      //const gasLimit = "750000";
-      //const amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
+  describe("Should be able to predict and call create2 contract", function () {
 
-      //const amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
-      //contract = await web3_helper.deploy("Create2Factory", {gasLimit, value: amountPaid});
-      //contract = await web3_helper.deploy("Create2Factory", {gasLimit});
-        //
-      createContract = await web3_helper.deploy("Create2Factory");
-    });
-
-    it("Should return proper gas estimation [@transactional]", async function () {
-      console.log("EEE");
+    it("Should predict and deploy create2 contract", async function () {
 
       const [owner] = await ethers.getSigners();
       const SALT = 1;
 
+      const ownerAddr = owner.address;
 
-      const byteCode = await createContract.methods.getBytecode(owner.address);
+      // Use view function to get the bytecode
+      const byteCode = await contract.getBytecode(ownerAddr);
+      // Ask the contract what the deployed address would be for this salt and owner
+      const addrDerived = await contract.getAddress(byteCode, SALT);
 
-      console.log("Bytecode: ", byteCode);
-
-      console.log(createContract.methods);
-      const addr = await createContract.methods.getAddress(byteCode, SALT);
-
-      console.log("new addr: ", addr);
-      console.log("methods", createContract.methods);
-
-      const deployResult = await createContract.methods.deploy(SALT).call();
-
+      const deployResult = await contract.deploy(SALT, {gasLimit: 25000000});
       console.log("deploy result: ", deployResult);
 
-      const answer = await createContract.methods.getTestmeTwo().call();
-      console.log("the anser is: ", answer);
+      // Using the address we calculated, point at the deployed contract
+      deployedContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("DeployWithCreate2").abi, addrDerived, {
+        from: owner.address
+      });
 
-      //const answer2 = await createContract.methods.getTestmeTwo().call();
-      //console.log("the anser is: ", answer2);
+      // Check the owner is correct
+      const ownerTest = await deployedContract.methods.getOwner().call();
+      console.log("the FINAL anser is: ", ownerTest);
+
+      expect(ownerTest).to.be.properAddress;
+      expect(ownerTest).to.be.eq(ownerAddr);
     });
   });
 

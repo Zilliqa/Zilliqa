@@ -47,6 +47,26 @@ using namespace boost::multiprecision;
 Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   Json::Value arr_ret(Json::arrayValue);
 
+  if (LOG_SC) {
+    //std::cerr << "EVM CALL ARGS: " << args.DebugString() << std::endl;
+    //args.PrintDebugString();
+
+    //std::cerr << "EVM CALL 000: " << ProtoToAddress(args.address()) << std::endl;
+    //std::cerr << "EVM CALL 001: " << ProtoToAddress(args.origin()) << std::endl;
+    //std::cerr << "EVM CALL 002: " << DataConversion::Uint8VecToHexStrRet(toZbytes(args.code())) << std::endl;
+    //std::cerr << "EVM CALL 003: " << DataConversion::Uint8VecToHexStrRet(toZbytes(args.data())) << std::endl;
+    //args.PrintDebugString();
+
+    LOG_GENERAL(WARNING, "Debug. Calling the EVM:");
+    LOG_GENERAL(WARNING, "Address: " << ProtoToAddress(args.address()));
+    LOG_GENERAL(WARNING, "Origin: " << ProtoToAddress(args.origin()));
+    LOG_GENERAL(WARNING, "Code: " << DataConversion::Uint8VecToHexStrRet(toZbytes(args.code())));
+    LOG_GENERAL(WARNING, "Data: " << DataConversion::Uint8VecToHexStrRet(toZbytes(args.data())));
+    LOG_GENERAL(WARNING, "Value: " << args.apparent_value().DebugString());
+    LOG_GENERAL(WARNING, "Estimating gas: " << args.estimate());
+    LOG_GENERAL(WARNING, "Extras: \n" << args.extras().DebugString());
+  }
+
   std::string output;
   args.SerializeToString(&output);
   // Output can contain non-UTF8, so must be wrapped in base64.
