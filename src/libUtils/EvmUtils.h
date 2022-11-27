@@ -29,7 +29,7 @@
 #include "libUtils/TxnExtras.h"
 
 namespace evm {
-  const int EVM_ZIL_SCALING_FACTOR = 1'000'000;
+const int EVM_ZIL_SCALING_FACTOR = 1'000'000;
 }
 
 class EvmUtils {

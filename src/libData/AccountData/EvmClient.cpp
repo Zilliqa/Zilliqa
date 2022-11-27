@@ -30,13 +30,14 @@ bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& socketPath) {
   LOG_MARKER();
 
-  const std::vector<std::string> args = {"--socket",
-                                         EVM_SERVER_SOCKET_PATH,
-                                         "--tracing",
-                                         "--zil-scaling-factor",
-                                         std::to_string(evm::EVM_ZIL_SCALING_FACTOR),
-                                         "--log4rs",
-                                         EVM_LOG_CONFIG};
+  const std::vector<std::string> args = {
+      "--socket",
+      EVM_SERVER_SOCKET_PATH,
+      "--tracing",
+      "--zil-scaling-factor",
+      std::to_string(evm::EVM_ZIL_SCALING_FACTOR),
+      "--log4rs",
+      EVM_LOG_CONFIG};
 
   boost::filesystem::path bin_path(binaryPath);
   boost::filesystem::path socket_path(socketPath);

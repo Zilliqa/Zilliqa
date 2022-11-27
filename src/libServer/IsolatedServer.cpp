@@ -771,7 +771,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
         return ret;
       }
 
-      senderBalance = uint256_t{sender->GetBalance()} * evm::EVM_ZIL_SCALING_FACTOR;
+      senderBalance =
+          uint256_t{sender->GetBalance()} * evm::EVM_ZIL_SCALING_FACTOR;
     }
 
     switch (Transaction::GetTransactionType(tx)) {
