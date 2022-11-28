@@ -62,7 +62,7 @@ def GetCurrentTxBlkNum():
 
 def GetEntirePersistenceFromS3():
 	CreateAndChangeDir(STORAGE_PATH)
-	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
+	if GetAllObjectsFromS3(getURL(), PERSISTENCE_SNAPSHOT_NAME, "persistence") == 1 :
 		exit(1)
 
 def GetStateDeltaFromS3():
@@ -79,7 +79,7 @@ def RsyncBlockChainData(source,destination):
 	output, error = process.communicate()
 	print("Copied local historical-data persistence to main persistence!")
 
-def GetAllObjectsFromS3(url, folderName=""):
+def GetAllObjectsFromS3(url, folderName="", subfolder=None):
 	excludes = ["diff_persistence"]
 	if Exclude_txnBodies:
 		excludes.append("txEpochs")
@@ -94,6 +94,9 @@ def GetAllObjectsFromS3(url, folderName=""):
 
 	attempts = 3
 	download_path = f"s3://{BUCKET_NAME}/{folderName}/{TESTNET_NAME}"
+	if subfolder:
+		download_path += f"/{subfolder}"
+	dest = f"./{subfolder}" if subfolder is not None else "."
 	# We can usually expect a single failure during a large sync, because a file will disappear between the start and
 	# end of the invocation. There's no harm in retrying a few times, since we'll only download the delta between the
 	# each attempt.
@@ -102,7 +105,7 @@ def GetAllObjectsFromS3(url, folderName=""):
 		try:
 			command = ["aws", "s3", "sync", "--no-sign-request", "--delete"]
 			command.extend(exclude_args)
-			command.extend([download_path, "."])
+			command.extend([download_path, dest])
 			print(" ".join(command))
 			subprocess.run(command, check=True)
 			break
@@ -166,6 +169,7 @@ def run():
 			if(UploadLock() == False):
 				currTxBlk = GetCurrentTxBlkNum()
 				if(currTxBlk < 0): # wait until current txblk is known
+					print("Current TX block unknown, sleeping")
 					time.sleep(1)
 					continue
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
