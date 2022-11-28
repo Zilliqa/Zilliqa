@@ -157,6 +157,5 @@ class POW {
   void MineFullGPUThread(uint64_t blockNum, ethash_hash256 const& headerHash,
                          uint8_t difficulty, uint64_t nonce, int timeWindow);
   void InitOpenCL();
-  void InitCUDA();
 };
 #endif  // ZILLIQA_SRC_LIBPOW_POW_H_
