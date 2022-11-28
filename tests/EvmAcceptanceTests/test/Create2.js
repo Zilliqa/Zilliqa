@@ -26,7 +26,6 @@ describe("Create2 instruction", function () {
       const addrDerived = await this.contract.getAddress(byteCode, SALT);
 
       const deployResult = await this.contract.deploy(SALT, {gasLimit: 25000000});
-      console.log("deploy result: ", deployResult);
 
       // Using the address we calculated, point at the deployed contract
       deployedContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("DeployWithCreate2").abi, addrDerived, {
@@ -35,7 +34,6 @@ describe("Create2 instruction", function () {
 
       // Check the owner is correct
       const ownerTest = await deployedContract.methods.getOwner().call();
-      console.log("the FINAL anser is: ", ownerTest);
 
       expect(ownerTest).to.be.properAddress;
       expect(ownerTest).to.be.eq(ownerAddr);
