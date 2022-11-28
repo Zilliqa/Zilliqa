@@ -432,9 +432,9 @@ void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
   auto from = ep.address().to_string() + ":" + std::to_string(ep.port());
 
   ++m_counter;
-  auto conn =
-      std::make_shared<Connection>(weak_from_this(), m_counter, from,
-                                   std::move(socket), m_options.inputBodyLimit);
+  auto conn = std::make_shared<Connection>(weak_from_this(), m_counter, from,
+                                           std::move(socket),
+                                           m_options.inputBodyLimitBytes);
   conn->StartReading();
   m_connections[m_counter] = std::move(conn);
 

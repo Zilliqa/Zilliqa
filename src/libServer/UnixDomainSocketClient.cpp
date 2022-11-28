@@ -40,7 +40,7 @@ void UnixDomainSocketClient::SendRPCMessage(const std::string& message,
       if (LOG_SC) {
         LOG_GENERAL(INFO, "Exception calling connect " << e.what());
       }
-      throw e;
+      throw;
     }
     std::string toSend = message + DEFAULT_DELIMITER_CHAR;
 
@@ -52,7 +52,7 @@ void UnixDomainSocketClient::SendRPCMessage(const std::string& message,
       if (LOG_SC) {
         LOG_GENERAL(INFO, "Exception calling write " << e.what());
       }
-      throw e;
+      throw;
     }
     //
     // Read the Response
@@ -63,7 +63,7 @@ void UnixDomainSocketClient::SendRPCMessage(const std::string& message,
       if (LOG_SC) {
         LOG_GENERAL(INFO, "Exception calling read " << e.what());
       }
-      throw e;
+      throw;
     }
     std::istream is(&streamBuffer);
     // transfer it into the users object

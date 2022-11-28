@@ -52,7 +52,7 @@ class APIServer {
     bool bindToLocalhost = false;
 
     /// Limit in bytes for POST bodies of incoming requests (security)
-    size_t inputBodyLimit = 5 * 1024 * 1024;
+    size_t inputBodyLimitBytes = 5 * 1024 * 1024;
 
     /// Prefix for thread names in threadpool
     std::string threadPoolName;

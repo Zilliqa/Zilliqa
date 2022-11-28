@@ -26,8 +26,8 @@
 #include "libServer/UnixDomainSocketClient.h"
 
 class ScillaClient {
-  std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
-  std::map<uint32_t, std::shared_ptr<rpc::UnixDomainSocketClient>> m_connectors;
+  std::map<uint32_t, std::unique_ptr<jsonrpc::Client>> m_clients;
+  std::map<uint32_t, std::unique_ptr<rpc::UnixDomainSocketClient>> m_connectors;
 
   std::mutex m_mutexMain;
 

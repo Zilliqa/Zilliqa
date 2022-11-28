@@ -60,7 +60,6 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   void Write(OutMessage msg) {
     if (!msg || msg->empty() || m_owner.expired()) {
-      // XXX warn
       return;
     }
 

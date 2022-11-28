@@ -27,7 +27,7 @@ namespace rpc {
 
 class UnixDomainSocketClient : public jsonrpc::IClientConnector {
  public:
-  UnixDomainSocketClient(const std::string& path) : m_path(path){};
+  explicit UnixDomainSocketClient(const std::string& path) : m_path(path){};
 
   void SendRPCMessage(const std::string& message, std::string& result) override;
 
