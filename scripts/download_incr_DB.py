@@ -97,6 +97,7 @@ def GetAllObjectsFromS3(url, folderName="", subfolder=None):
 	if subfolder:
 		download_path += f"/{subfolder}"
 	dest = f"./{subfolder}" if subfolder is not None else "."
+	latest_exception = None
 	# We can usually expect a single failure during a large sync, because a file will disappear between the start and
 	# end of the invocation. There's no harm in retrying a few times, since we'll only download the delta between the
 	# each attempt.
@@ -107,13 +108,17 @@ def GetAllObjectsFromS3(url, folderName="", subfolder=None):
 			command.extend(exclude_args)
 			command.extend([download_path, dest])
 			print(" ".join(command))
-			subprocess.run(command, check=True)
-			break
+			process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			for line in iter(process.stdout.readline, b''):
+				print(line.rstrip().decode("utf-8"))
+			if process.returncode:
+				raise Exception(f"sync failed with return code {process.returncode}")
+			print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
+			return
 		except Exception as e:
 			print(f"Download failed: {e}")
-			pass
-	print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
-	return 0
+			latest_exception = e
+	raise Exception(f"Download failed {attempts} times: {latest_exception}")
 
 
 def CleanupDir(folderName):
