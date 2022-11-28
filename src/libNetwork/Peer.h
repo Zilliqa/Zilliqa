@@ -18,10 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBNETWORK_PEER_H_
 #define ZILLIQA_SRC_LIBNETWORK_PEER_H_
 
-#include <cstdint>
 #include <functional>
 
-#include "common/BaseType.h"
 #include "common/Serializable.h"
 
 /// Stores IP information on a single Zilliqa peer.
