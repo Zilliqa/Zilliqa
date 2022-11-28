@@ -1049,7 +1049,13 @@ BOOST_AUTO_TEST_CASE(test_eth_get_block_by_hash) {
 
   constexpr uint32_t TRANSACTIONS_COUNT = 2;
   for (uint32_t i = 0; i < TRANSACTIONS_COUNT; ++i) {
-    transactions.emplace_back(constructTxWithReceipt(i, pairOfKey));
+    TransactionWithReceipt twr = constructTxWithReceipt(i, pairOfKey);
+    transactions.emplace_back(twr);
+
+    zbytes body;
+    transactions.back().Serialize(body, 0);
+    BlockStorage::GetBlockStorage().PutTxBody(
+        1, transactions.back().GetTransaction().GetTranID(), body);
   }
 
   constexpr auto BLOCK_NUM = 1;

@@ -23,12 +23,18 @@
 
 #include "common/Serializable.h"
 #include "ethash/ethash.hpp"
-// TODO: Move contents of internal to ethash.hpp
-#include "depends/cryptoutils/lib/ethash/ethash-internal.hpp"
 #include "libCrypto/Sha2.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "pow.h"
+
+namespace ethash {
+
+// Prototype taken from lib/ethash/ethash-internal.hpp in CryptoUtils.
+// We just declare it here since we use this internal function below.
+hash256 calculate_seed(int epoch_number) noexcept;
+
+}  // namespace ethash
 
 #ifdef OPENCL_MINE
 #include "depends/libethash-cl/CLMiner.h"

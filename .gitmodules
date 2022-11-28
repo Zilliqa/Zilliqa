@@ -1,4 +1,0 @@
-[submodule "src/depends/cryptoutils"]
-	path = src/depends/cryptoutils
-	url = https://github.com/Zilliqa/cryptoutils.git
-	branch = main

@@ -1,0 +1,61 @@
+# Copyright (C) 2022 Zilliqa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+ARG ZILLIQA_BASE_VERSION=
+
+FROM zilliqa/zilliqa-base:${ZILLIQA_BASE_VERSION}
+
+RUN apt-get install -y \
+    autoconf \
+    build-essential \
+    ccache \
+    clang-format-7 \
+    clang-tidy \
+    git \
+    lcov \
+    libcurl4-openssl-dev \
+    libsecp256k1-dev \
+    libssl-dev \
+    libtool \
+    libxml2-utils \
+    ninja-build \
+    ocl-icd-opencl-dev \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    && apt-get remove -y cmake python2  && apt-get autoremove -y
+
+# Cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
+    sh install_script.sh -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# CMake 3.24
+ARG CMAKE_VERSION=3.24.2
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+    && mkdir -p "${HOME}"/.local \
+    && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
+    && "${HOME}"/.local/bin/cmake --version \
+    && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Setup ccache
+RUN ln -s "$(which ccache)" /usr/local/bin/gcc \
+  && ln -s "$(which ccache)" /usr/local/bin/g++ \
+  && ln -s "$(which ccache)" /usr/local/bin/cc \
+  && ln -s "$(which ccache)" /usr/local/bin/c++
+

@@ -1152,7 +1152,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
       txBlock.GetHeader().GetDSBlockNum());
 
   std::vector<TxBodySharedPtr> transactions;
-  std::vector<TxnHash> transactionHashes;
 
   // Gather either transaction hashes or full transactions
   const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
@@ -1169,11 +1168,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
     }
 
     const auto& currTranHashes = microBlockPtr->GetTranHashes();
-    if (!includeFullTransactions) {
-      transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
-                               currTranHashes.end());
-      continue;
-    }
+
     for (const auto& transactionHash : currTranHashes) {
       TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
@@ -1185,7 +1180,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
   }
 
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 transactionHashes,
                                                  includeFullTransactions);
 }
 
@@ -1621,27 +1615,11 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
   return res;
 }
 
-Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
+Json::Value EthRpcMethods::DebugTraceTransaction(
+    const std::string& /*txHash*/) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
   }
-  std::string trace;
-
-  try {
-    TxnHash tranHash(txHash);
-
-    bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
-
-    if (!isPresent) {
-      return Json::nullValue;
-    }
-
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
-  }
-
-  return trace;
+  return Json::nullValue;
 }
