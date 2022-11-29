@@ -67,9 +67,9 @@ void Metrics::Init(){
 }
 
 
-metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,const std::string& name) {
+metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,const std::string& name, const std::string& desc) {
   nostd::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "0.0.1");
-  return meter->CreateUInt64Counter(family + "_" + name );
+  return meter->CreateUInt64Counter(family + "_" + name ,desc );
 }
 
 metrics::double_t Metrics::CreateDoubleMetric(const std::string& family,const std::string& name) {

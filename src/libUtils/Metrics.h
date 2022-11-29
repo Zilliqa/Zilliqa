@@ -43,7 +43,7 @@ class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
 
-  metrics::int64_t CreateInt64Metric(const std::string& family,const std::string& name);
+  metrics::int64_t CreateInt64Metric(const std::string& family,const std::string& name,const std::string& desc);
   metrics::double_t CreateDoubleMetric(const std::string& family,const std::string& name);
 
  private:
