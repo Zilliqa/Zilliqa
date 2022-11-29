@@ -100,15 +100,15 @@ void APIThreadPool::WorkerThread(size_t threadNo) {
   size_t queueSize = 0;
   while (m_requestQueue.pop(request, queueSize)) {
     LOG_GENERAL(DEBUG, threadName << " processes job #" << request.id
-                                 << ", Q=" << queueSize);
+                                  << ", Q=" << queueSize);
     sw.Start();
     auto response = m_processRequest(request);
     sw.Stop();
 
     LOG_GENERAL(DEBUG, threadName << ": " << sw.Microseconds()
-                                 << " microsec, request=\n"
-                                 << request.body << "\nresponse=\n"
-                                 << response.body);
+                                  << " microsec, request=\n"
+                                  << request.body << "\nresponse=\n"
+                                  << response.body);
     PushResponse(std::move(response));
   }
 }

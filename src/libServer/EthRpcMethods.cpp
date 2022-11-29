@@ -707,7 +707,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   evm::EvmResult result;
 
-  //std::cerr << "marker" << std::endl;
   LOG_GENERAL(WARNING, "Estimating evm gas");
 
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
@@ -821,9 +820,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       success = true;
     }
 
-    //if (LOG_SC) {
-    //  LOG_GENERAL(INFO, "Called Evm, response:" << result.DebugString());
-    //}
+    if (LOG_SC) {
+      LOG_GENERAL(INFO, "XXXXX Called Evm, response:" << result.DebugString());
+    }
 
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
@@ -904,9 +903,6 @@ std::string EthRpcMethods::GetProtocolVersion() {
 std::string EthRpcMethods::GetEthChainId() {
   LOG_MARKER();
   return (boost::format("0x%x") % ETH_CHAINID).str();
-  //auto const testme = (boost::format("0x%x") % ETH_CHAINID).str();
-  //std::cerr << "chainid: " << testme << "!" << std::endl;
-  //return testme;
 }
 
 Json::Value EthRpcMethods::GetEthSyncing() {
