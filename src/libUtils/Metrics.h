@@ -29,14 +29,13 @@ namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace common = opentelemetry::common;
 namespace metrics_exporter = opentelemetry::exporter::metrics;
 namespace metrics_api = opentelemetry::metrics;
-namespace nostd = opentelemetry::nostd;
 namespace metrics_api = opentelemetry::metrics;
 
 namespace metrics {
 using int64_t =
-    nostd::unique_ptr<metrics_api::Counter<uint64_t>>;
+    std::unique_ptr<metrics_api::Counter<uint64_t>>;
 using double_t =
-    nostd::unique_ptr<metrics_api::Counter<double_t>>;
+    std::unique_ptr<metrics_api::Counter<double_t>>;
 }
 
 class Metrics : public Singleton<Metrics> {
