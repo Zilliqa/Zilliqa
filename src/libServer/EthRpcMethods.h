@@ -22,6 +22,7 @@
 #include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/Metrics.h"
 
 class LookupServer;
 
@@ -32,6 +33,55 @@ class EthRpcMethods {
  public:
   EthRpcMethods(Mediator& mediator)
       : m_sharedMediator(mediator), m_lookupServer(nullptr) {}
+
+  metrics::int64_t   m_ctrCallZil = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_call");
+  metrics::int64_t   m_ctrBlockNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_blockNumber");
+  metrics::int64_t   m_ctrGetUncleCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleCount");
+  metrics::int64_t   m_ctrGetBalance = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBalance");
+  metrics::int64_t   m_ctrGetBlockByNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockByNumber");
+  metrics::int64_t   m_ctrGetBlockByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockByHash");
+  metrics::int64_t   m_ctrGetBlockTransactionCountByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockTransactionCountByHash");
+  metrics::int64_t   m_ctrGetBlockTransactionCountByNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockTransactionCountByNumber");
+  metrics::int64_t   m_ctrGetTransactionByBlockHashAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByBlockHashAndIndex");
+  metrics::int64_t   m_ctrGetTransactionByBlockNumberAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByBlockNumberAndIndex");
+  metrics::int64_t   m_ctrGasPrice = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_gasPrice");
+  metrics::int64_t   m_ctrGetCode = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getCode");
+  metrics::int64_t   m_ctrEstimateGas = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_estimateGas");
+  metrics::int64_t   m_ctrGetTransactionCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionCount");
+  metrics::int64_t   m_ctrSendRawTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_sendRawTransaction");
+  metrics::int64_t   m_ctrGetTransactionByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByHash");
+  metrics::int64_t   m_ctrWeb3_clientVersion = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "web3_clientVersion");
+  metrics::int64_t   m_ctrWeb3_sha3 = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "web3_sha3");
+  metrics::int64_t   m_ctrMining = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_mining");
+  metrics::int64_t   m_ctrCoinbase = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_coinbase");
+  metrics::int64_t   m_ctrGetUncleByBlockHashAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleByBlockHashAndIndex");
+  metrics::int64_t   m_ctrGetUncleCountByBlockHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleCountByBlockHash");
+  metrics::int64_t   m_ctrGetUncleCountByBlockNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleCountByBlockNumber");
+  metrics::int64_t   m_ctrNet_version = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "net_version");
+  metrics::int64_t   m_ctrNet_listening = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "net_listening");
+  metrics::int64_t   m_ctrProtocolVersion = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_protocolVersion");
+  metrics::int64_t   m_CtrNet_peerCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "net_peerCount");
+  metrics::int64_t   m_ctrChainId = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_chainId");
+  metrics::int64_t   m_ctrSyncing = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_syncing");
+  metrics::int64_t   m_ctrAccounts = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_accounts");
+  metrics::int64_t   m_ctrGetStorageAt = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getStorageAt");
+  metrics::int64_t   m_ctrGetTransactionReceipt = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionReceipt");
+  metrics::int64_t   m_ctrNewFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_newFilter");
+  metrics::int64_t   m_ctrRewBlockFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_newBlockFilter");
+  metrics::int64_t   m_ctrGetFilterChanges = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getFilterChanges");
+  metrics::int64_t   m_ctrUninstallFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_uninstallFilter");
+  metrics::int64_t   m_ctrGetFilterLogs = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getFilterLogs");
+  metrics::int64_t   m_ctrGetLogs = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getLogs");
+  metrics::int64_t   m_ctrRecoverTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_recoverTransaction");
+  metrics::int64_t   m_ctrGetBlockReceipts = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockReceipts");
+  metrics::int64_t   m_ctrDebug_traceTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "debug_traceTransaction");
+  metrics::int64_t   m_ctrCreateTransactionEth = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "CreateTransactionEth");
+  metrics::int64_t   m_ctrCheckContractTxnShards = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "CheckContractTxnShards");
+  metrics::int64_t   m_GetBalanceAndNonce = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "GetBalanceAndNonce");
+  metrics::int64_t   m_ctrNewBlockFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "NewBlockFilter");
+  metrics::int64_t   m_ctrNewPendingTransactionFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "ewPendingTransactionFilter");
+  metrics::int64_t   m_ctrFilterChanges = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "FilterChanges");
+
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,

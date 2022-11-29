@@ -354,6 +354,16 @@
         <BLOOM_FILTER_FALSE_RATE>0.000001</BLOOM_FILTER_FALSE_RATE>
         <TXN_DISPATCH_ATTEMPT_LIMIT>3</TXN_DISPATCH_ATTEMPT_LIMIT>
     </transactions>
+    <metric>
+        <zilliqa>
+            <HOSTNAME>localhost</HOSTNAME>
+            <PORT>8081</PORT>
+            <READER_EXPORT_MS>1000</READER_EXPORT_MS>
+            <READER_TIMEOUT_MS>500</READER_TIMEOUT_MS>
+            <SCHEMA>https://opentelemetry.io/schemas/1.2.0</SCHEMA>
+            <VERSION>1.2.0</VERSION>
+        </zilliqa>
+    </metric>
     <verifier>
         <exclusion_list>
             <entry>
