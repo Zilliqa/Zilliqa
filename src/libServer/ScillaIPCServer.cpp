@@ -164,8 +164,8 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   value = DataConversion::CharArrayToString(destination);
 
   if(LOG_SC) {
-    std::cerr << "Request for state val: " << addr << " query: " << query << std::endl;
-    std::cerr << "Response: " << DataConversion::Uint8VecToHexStrRet(destination) << std::endl;
+    LOG_GENERAL(WARNING, "Request for state val: " << addr << " with query: " << query);
+    LOG_GENERAL(WARNING, "Resp for state val:    " << DataConversion::Uint8VecToHexStrRet(destination));
   }
 
   return true;

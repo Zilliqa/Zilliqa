@@ -713,7 +713,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
-    std::cerr << "viewed account.jA <<" << std::endl;
+
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
