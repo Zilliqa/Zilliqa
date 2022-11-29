@@ -97,6 +97,7 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
 void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
   m_ctrScilla->Add(1 ,{{"External","Calls"},{"Method","fetchExternalStateValueB64I"}});
+  m_ctrScilla->Add(10 ,{{"External","Test"},{"Message type",5}});
   std::string value, type;
   bool found;
   string query = base64_decode(request["query"].asString());
@@ -185,7 +186,9 @@ bool ScillaIPCServer::updateStateValue(const string &query,
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
+
   m_ctrScilla->Add(1 ,{{"External","Calls"},{"Method","fetchBlockchainInfo"}});
+
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo.getCurBlockNum());
     return true;
