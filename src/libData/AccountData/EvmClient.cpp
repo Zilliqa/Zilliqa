@@ -76,6 +76,7 @@ bool LaunchEvmDaemon(boost::process::child& child,
 
 bool CleanupPreviousInstances() {
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
+  LOG_GENERAL(INFO, "Here comes the sun 6 EVM_SERVER_BINARY = " << s);
   int sysRep = std::system(s.c_str());
   if (sysRep != -1) {
     LOG_GENERAL(INFO, "system call return value " << sysRep);
@@ -113,6 +114,7 @@ void EvmClient::Init() {
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
   if (LAUNCH_EVM_DAEMON) {
+    LOG_GENERAL("Here comes the sun5");
     CleanupPreviousInstances();
   } else {
     LOG_GENERAL(INFO, "Not launching evm due to config flag");
