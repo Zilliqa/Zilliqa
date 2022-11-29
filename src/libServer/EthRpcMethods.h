@@ -46,7 +46,7 @@ class EthRpcMethods {
   metrics::int64_t   m_ctrGetTransactionByBlockNumberAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByBlockNumberAndIndex","Get transaction by Block number and Index");
   metrics::int64_t   m_ctrGasPrice = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_gasPrice", "Get Gas price");
   metrics::int64_t   m_ctrGetCode = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getCode","Get Smart Contract Code");
-  metrics::int64_t   m_ctrEstimateGas = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_estimateGas","Estimate Gast for a smart contract creation or call");
+  metrics::int64_t   m_ctrEstimateGas = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_estimateGas","Estimate Gas for an Ethereum smart contract creation or call");
   metrics::int64_t   m_ctrGetTransactionCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionCount","Get transaction count");
   metrics::int64_t   m_ctrSendRawTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_sendRawTransaction","Send a raw transaction");
   metrics::int64_t   m_ctrGetTransactionByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByHash","Get transaction by hash");
