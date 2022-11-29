@@ -48,7 +48,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
   bool ipcScillaInit = false;
 
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
-    LOG_GENERAL("Here comes the sun1");
+    LOG_GENERAL(INFO, "Here comes the sun1");
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
@@ -60,7 +60,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
-      LOG_GENERAL("Here comes the sun2");
+      LOG_GENERAL(INFO, "Here comes the sun2");
       ScillaClient::GetInstance().Init();
       ipcScillaInit = true;
     }
@@ -81,10 +81,10 @@ AccountStore::AccountStore() : m_externalWriters{0} {
     // TODO lookup nodes may also need it
     if (not ipcScillaInit /*&& !LOOKUP_NODE_MODE*/) {
       ScillaClient::GetInstance().Init();
-      LOG_GENERAL("Here comes the sun3");
+      LOG_GENERAL(INFO, "Here comes the sun3");
     }
     EvmClient::GetInstance().Init();
-    LOG_GENERAL("Here comes the sun4");
+    LOG_GENERAL(INFO, "Here comes the sun4");
   }
 }
 
