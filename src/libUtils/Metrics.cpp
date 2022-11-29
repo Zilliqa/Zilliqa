@@ -15,15 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#define ENABLE_METRICS_PREVIEW true
-
 #include "Metrics.h"
+#include "Logger.h"
+#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include <chrono>
 #include <map>
 #include <memory>
 #include <thread>
 #include <vector>
-#include "Logger.h"
 
 Metrics::Metrics(){
   Init();

@@ -1,28 +1,35 @@
 find_package(CURL REQUIRED)
+find_package(opentelemetry-cpp REQUIRED)
+
+# A workaround for incorrect link libraries in vcpkg's opentelemtry-cpp-target.cmake
+# which includes non-existent target (i.e. opentelemetry-cpp::pull & opentelemetry-cpp::core).
+set_target_properties(opentelemetry-cpp::prometheus_exporter PROPERTIES
+  INTERFACE_LINK_LIBRARIES "opentelemetry-cpp::metrics"
+)
 
 protobuf_generate_cpp(PROTO_SRC PROTO_HEADER Evm.proto)
 
-find_package(opentelemetry-cpp REQUIRED)
-
 add_library(Utils AddressConversion.cpp BitVector.cpp DataConversion.cpp Logger.cpp SanityChecks.cpp Scheduler.cpp ShardSizeCalculator.cpp TimeUtils.cpp RandomGenerator.cpp RootComputation.cpp IPConverter.cpp UpgradeManager.cpp SWInfo.cpp FileSystem.cpp ScillaUtils.cpp MemoryStats.cpp CommonUtils.cpp EvmUtils.cpp EvmUtils.h Metrics.h Metrics.cpp ${PROTO_SRC})
-target_include_directories(Utils PUBLIC ${PROJECT_SOURCE_DIR}/src ${CURL_INCLUDE_DIRS} PUBLIC ${OPENTELEMETRY_CPP_INCLUDE_DIRS})
+target_include_directories(Utils PUBLIC ${PROJECT_SOURCE_DIR}/src ${CURL_INCLUDE_DIRS})
 target_link_libraries(Utils
-        INTERFACE
-        Threads::Threads
-        CURL::libcurl
-        Python3::Python
-        PUBLIC
-        g3log
-        Constants
-        MessageSWInfo
-        websocketpp::websocketpp
-        jsonrpc::common
-        jsoncpp_lib
-        protobuf::libprotobuf
-        PRIVATE
-        ${CryptoUtils_LIBRARY}
-        ${g3sinks_LOGROTATE_LIBRARY}
-        opentelemetry_exporter_prometheus prometheus-cpp-core prometheus-cpp-pull
-        ${OPENTELEMETRY_CPP_LIBRARIES}
-        )
+  INTERFACE
+    Threads::Threads
+    CURL::libcurl
+    Python3::Python
+  PUBLIC
+    g3log
+    Constants
+    MessageSWInfo
+    websocketpp::websocketpp
+    jsonrpc::common
+    jsoncpp_lib
+    protobuf::libprotobuf
+    opentelemetry-cpp::api
+    opentelemetry-cpp::sdk
+    opentelemetry-cpp::logs
+    opentelemetry-cpp::prometheus_exporter
+  PRIVATE
+    ${CryptoUtils_LIBRARY}
+    ${g3sinks_LOGROTATE_LIBRARY}
+  )
 
