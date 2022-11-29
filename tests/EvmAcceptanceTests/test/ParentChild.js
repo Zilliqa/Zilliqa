@@ -34,41 +34,40 @@ describe("Parent Child Contract Functionality", function () {
 
     it("Should instantiate a new child if installChild is called", async function () {
       expect(childContractAddress).to.be.properAddress;
-      console.log("child contract addr: ", childContractAddress);
     });
 
-    //it(`Should return ${INITIAL_FUND} as the balance of the child contract`, async function () {
-    //  expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(INITIAL_FUND);
-    //});
+    it(`Should return ${INITIAL_FUND} as the balance of the child contract`, async function () {
+      expect(await ethers.provider.getBalance(childContractAddress)).to.be.eq(INITIAL_FUND);
+    });
 
-    //it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
-    //  const [owner] = await ethers.getSigners();
-    //  childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
-    //    from: owner.address
-    //  });
-    //  expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
-    //});
+    it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
+      const [owner] = await ethers.getSigners();
+      childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
+        from: owner.address
+      });
+      expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
+    });
 
-    //it("Should create a transaction trace after child creation", async function () {
-    //  const METHOD = "debug_traceTransaction";
+    xit("Should create a transaction trace after child creation", async function () {
+      const METHOD = "debug_traceTransaction";
 
-    //  await helper.callEthMethod(METHOD, 1, [installedChild.hash], (result, status) => {
-    //    hre.logDebug(result);
+      await helper.callEthMethod(METHOD, 1, [installedChild.hash], (result, status) => {
+        hre.logDebug(result);
 
-    //    assert.equal(status, 200, "has status code");
-    //    assert.isString(result.result, "Expected to be populated");
-    //  });
-    //});
+        assert.equal(status, 200, "has status code");
+        assert.isString(result.result, "Expected to be populated");
+      });
+    });
 
-    //it("Should return parent address if sender function of child is called", async function () {
-    //  expect(await childContract.methods.sender().call()).to.be.eq(parentContract.address);
-    //});
+    it("Should return parent address if sender function of child is called", async function () {
+      expect(await childContract.methods.sender().call()).to.be.eq(parentContract.address);
+    });
 
-    //it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
-    //  const [owner] = await ethers.getSigners();
-    //  expect(
-    //    await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address})
-    //  ).to.changeEtherBalances([childContractAddress, parentContract.address], [-INITIAL_FUND, +INITIAL_FUND]);
-    //});
+    it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
+      const [owner] = await ethers.getSigners();
+      expect(
+        await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address})
+      ).to.changeEtherBalances([childContractAddress, parentContract.address], [-INITIAL_FUND, +INITIAL_FUND]);
+    });
   });
 });

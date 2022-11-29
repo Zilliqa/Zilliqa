@@ -174,6 +174,10 @@ int main(int argc, const char* argv[]) {
     INIT_STATE_LOGGER("state", logBasePath);
     INIT_EPOCHINFO_LOGGER("epochinfo", logBasePath);
 
+    if (JSON_LOGGING) {
+      INIT_JSON_LOGGER("zilliqa-json", logBasePath);
+    }
+
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 
     if (SyncType::NEW_SYNC == syncType && CHAIN_ID == MAINNET_CHAIN_ID) {

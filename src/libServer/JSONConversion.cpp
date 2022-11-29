@@ -30,6 +30,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
+#include "libEth/Eth.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
@@ -126,7 +127,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 const Json::Value JSONConversion::convertTxBlocktoEthJson(
     const TxBlock& txblock, const DSBlock& dsBlock,
     const std::vector<TxBodySharedPtr>& transactions,
-    const std::vector<TxnHash>& transactionHashes,
     bool includeFullTransactions) {
   const TxBlockHeader& txheader = txblock.GetHeader();
   Json::Value retJson;
@@ -137,16 +137,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   // sha3Uncles is calculated as Keccak256(RLP([]))
   retJson["sha3Uncles"] =
       "0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347";
-  // Todo: research and possibly implement logs bloom filter
-  retJson["logsBloom"] =
-      "0x0000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "000000000000000000000000000000000000000000000000000000000000000000000000"
-      "0000000000";
   retJson["stateRoot"] = std::string{"0x"} + txheader.GetStateRootHash().hex();
   retJson["miner"] =
       std::string{"0x"} +
@@ -174,16 +164,21 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   retJson["receiptsRoot"] = "0x0";
   retJson["transactionsRoot"] = "0x0";
 
+  Eth::LogBloom logBloom{};
+
   auto transactionsJson = Json::Value{Json::arrayValue};
-  if (!includeFullTransactions) {
-    for (const auto& hash : transactionHashes) {
-      transactionsJson.append("0x" + hash.hex());
-    }
-  } else {
-    for (size_t i = 0; i < transactions.size(); ++i) {
+  for (size_t i = 0; i < transactions.size(); ++i) {
+    const auto& receipt = transactions[i]->GetTransactionReceipt();
+    logBloom |= Eth::GetBloomFromReceipt(receipt);
+    if (includeFullTransactions) {
       transactionsJson.append(convertTxtoEthJson(i, *transactions[i], txblock));
+    } else {
+      transactionsJson.append(
+          "0x" + transactions[i]->GetTransaction().GetTranID().hex());
     }
   }
+
+  retJson["logsBloom"] = "0x" + logBloom.hex();
   retJson["transactions"] = transactionsJson;
   retJson["uncles"] = Json::arrayValue;
   return retJson;

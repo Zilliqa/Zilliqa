@@ -1,0 +1,10 @@
+{
+  "versions": [
+    {
+      "path": "$/ports/cryptoutils",
+      "version": "8.3.0",
+      "port-version": 1
+    }
+  ]
+}
+

@@ -63,8 +63,8 @@ endif()
 include_directories(${JSONRPC_INCLUDE_DIR})
 
 find_package(Schnorr REQUIRED)
+find_package(CryptoUtils REQUIRED)
 
-include(InstallCryptoUtils)
 include(ProjectSecp256k1)
 
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
@@ -307,7 +307,7 @@ set_target_properties(buildTxBlockHashesToNums genaccounts genkeypair genTxnBodi
                       getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(Common Trie CryptoUtils NAT
+set_target_properties(Common Trie NAT
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 if(OPENCL_MINE)

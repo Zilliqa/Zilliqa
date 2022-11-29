@@ -44,16 +44,16 @@ static const std::chrono::seconds FILTER_EXPIRE_TIME(86400);
 }  // namespace
 
 void FilterAPIBackendImpl::SetEpochRange(uint64_t earliest, uint64_t latest) {
-  assert(earliest <= latest);
-
   UniqueLock lock(m_installMutex);
 
-  if (m_earliestEpoch >= static_cast<EpochNumber>(earliest) ||
-      m_latestEpoch >= static_cast<EpochNumber>(latest)) {
-    LOG_GENERAL(WARNING, "Inconsistency in epochs");
+  auto a = static_cast<EpochNumber>(earliest);
+  auto b = static_cast<EpochNumber>(latest);
+
+  if (a < 1 || b < 1 || a > b || a < m_earliestEpoch || b < m_latestEpoch) {
+    LOG_GENERAL(WARNING, "Inconsistency in epochs (" << a << ".." << b << ")");
   } else {
-    m_earliestEpoch = static_cast<EpochNumber>(earliest);
-    m_latestEpoch = static_cast<EpochNumber>(latest);
+    m_earliestEpoch = a;
+    m_latestEpoch = b;
   }
 
   auto now = Now();

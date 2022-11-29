@@ -33,6 +33,6 @@ file(GLOB headers "*.h" "*.cuh")
 include_directories(..)
 
 cuda_add_library(ethash-cuda SHARED ${sources} ${headers})
-target_link_libraries(ethash-cuda Common CryptoUtils)
+target_link_libraries(ethash-cuda Common ${CryptoUtils_LIBRARY})
 target_include_directories(ethash-cuda PUBLIC ${CUDA_INCLUDE_DIRS})
 target_include_directories(ethash-cuda PRIVATE .. ${CMAKE_CURRENT_BINARY_DIR})
