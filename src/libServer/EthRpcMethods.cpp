@@ -819,11 +819,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
             evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;
     }
-
-    if (LOG_SC) {
-      LOG_GENERAL(INFO, "XXXXX Called Evm, response:" << result.DebugString());
-    }
-
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
