@@ -20,6 +20,7 @@
 
 #include "EthRpcMethods.h"
 #include "Server.h"
+#include "libUtils/Metrics.h"
 
 class Mediator;
 
@@ -42,6 +43,7 @@ class LookupServer : public Server,
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
+  metrics::int64_t   m_ctrLookupCall = Metrics::GetInstance().CreateInt64Metric( "RPC", "LookupServer" , "Calls to Lookup Server");
 
   CreateTransactionTargetFunc m_createTransactionTarget =
       [this](const Transaction& tx, uint32_t shardId) -> bool {

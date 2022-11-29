@@ -24,6 +24,7 @@
 #include "depends/common/FixedHash.h"
 
 #include "libData/AccountData/Account.h"
+#include "libUtils/Metrics.h"
 
 class ScillaBCInfo {
  public:
@@ -58,6 +59,7 @@ class ScillaBCInfo {
   Address m_originAddr{};
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
+
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
@@ -92,6 +94,8 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    const std::string& query_args,
                                    std::string& value);
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
+
+  metrics::int64_t   m_ctrScilla = Metrics::GetInstance().CreateInt64Metric( "RPC", "ScillaIPCServer" , "ScillaIPCServer");
 
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,

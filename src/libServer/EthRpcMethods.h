@@ -34,53 +34,8 @@ class EthRpcMethods {
   EthRpcMethods(Mediator& mediator)
       : m_sharedMediator(mediator), m_lookupServer(nullptr) {}
 
-  metrics::int64_t   m_ctrCallZil = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_call" , "# of eth_calls invoked");
-  metrics::int64_t   m_ctrBlockNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_blockNumber", "Current block number");
-  metrics::int64_t   m_ctrGetUncleCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleCount","Eth Uncle Count");
-  metrics::int64_t   m_ctrGetBalance = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBalance","Get Balance");
-  metrics::int64_t   m_ctrGetBlockByNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockByNumber","Get Block ny Number");
-  metrics::int64_t   m_ctrGetBlockByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockByHash","Get Block by Hash");
-  metrics::int64_t   m_ctrGetBlockTransactionCountByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockTransactionCountByHash","Get transaction count by hash value");
-  metrics::int64_t   m_ctrGetBlockTransactionCountByNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockTransactionCountByNumber","Get Transaction count by number");
-  metrics::int64_t   m_ctrGetTransactionByBlockHashAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByBlockHashAndIndex","Get transaction count by block hash and number");
-  metrics::int64_t   m_ctrGetTransactionByBlockNumberAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByBlockNumberAndIndex","Get transaction by Block number and Index");
-  metrics::int64_t   m_ctrGasPrice = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_gasPrice", "Get Gas price");
-  metrics::int64_t   m_ctrGetCode = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getCode","Get Smart Contract Code");
-  metrics::int64_t   m_ctrEstimateGas = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_estimateGas","Estimate Gas for an Ethereum smart contract creation or call");
-  metrics::int64_t   m_ctrGetTransactionCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionCount","Get transaction count");
-  metrics::int64_t   m_ctrSendRawTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_sendRawTransaction","Send a raw transaction");
-  metrics::int64_t   m_ctrGetTransactionByHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionByHash","Get transaction by hash");
-  metrics::int64_t   m_ctrWeb3_clientVersion = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "web3_clientVersion","Get Client Version number");
-  metrics::int64_t   m_ctrWeb3_sha3 = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "web3_sha3","Get Web3 Sha");
-  metrics::int64_t   m_ctrMining = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_mining","Get Mining info");
-  metrics::int64_t   m_ctrCoinbase = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_coinbase","Get Coinbase");
-  metrics::int64_t   m_ctrGetUncleByBlockHashAndIndex = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleByBlockHashAndIndex","Get Uncle by Block hash and index");
-  metrics::int64_t   m_ctrGetUncleCountByBlockHash = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleCountByBlockHash","Get Uncle by Hash");
-  metrics::int64_t   m_ctrGetUncleCountByBlockNumber = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getUncleCountByBlockNumber","Get Uncle by block number");
-  metrics::int64_t   m_ctrNet_version = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "net_version","Get network version number");
-  metrics::int64_t   m_ctrNet_listening = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "net_listening","get number of listeners");
-  metrics::int64_t   m_ctrProtocolVersion = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_protocolVersion","get protocol version");
-  metrics::int64_t   m_CtrNet_peerCount = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "net_peerCount","Get peer count");
-  metrics::int64_t   m_ctrChainId = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_chainId","Get chainid");
-  metrics::int64_t   m_ctrSyncing = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_syncing","if the node is syncing");
-  metrics::int64_t   m_ctrAccounts = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_accounts","number of accounts");
-  metrics::int64_t   m_ctrGetStorageAt = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getStorageAt","# get Storage at calls");
-  metrics::int64_t   m_ctrGetTransactionReceipt = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getTransactionReceipt","Get transaction receipt");
-  metrics::int64_t   m_ctrNewFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_newFilter","# calls to new filter");
-  metrics::int64_t   m_ctrRewBlockFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_newBlockFilter","# calls to new block filter");
-  metrics::int64_t   m_ctrGetFilterChanges = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getFilterChanges","# calls to get filter change");
-  metrics::int64_t   m_ctrUninstallFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_uninstallFilter","# calls to uninstall filter");
-  metrics::int64_t   m_ctrGetFilterLogs = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getFilterLogs","# calls to get filter log");
-  metrics::int64_t   m_ctrGetLogs = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getLogs","# of calls to get logs");
-  metrics::int64_t   m_ctrRecoverTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_recoverTransaction","# of calls to recover transaction");
-  metrics::int64_t   m_ctrGetBlockReceipts = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_getBlockReceipts","# of calls to get block recipts");
-  metrics::int64_t   m_ctrDebug_traceTransaction = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "debug_traceTransaction","# of calls to debug_trace transaction");
-  metrics::int64_t   m_ctrCreateTransactionEth = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "CreateTransactionEth","# of calls to CrceateTrnasctionEth");
-  metrics::int64_t   m_ctrCheckContractTxnShards = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "CheckContractTxnShards","# of calls to Create transaction Shards");
-  metrics::int64_t   m_GetBalanceAndNonce = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "GetBalanceAndNonce","# of calls to GetBalance and Nonce");
-  metrics::int64_t   m_ctrNewBlockFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "NewBlockFilter","# of calls to New Block Filter");
-  metrics::int64_t   m_ctrNewPendingTransactionFilter = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "ewPendingTransactionFilter","No of calls to Pending Transaction Filter");
-  metrics::int64_t   m_ctrFilterChanges = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "FilterChanges","# of calls to Filter Change");
+
+  metrics::int64_t   m_ethApiCall = Metrics::GetInstance().CreateInt64Metric( "ETH_METHOD", "eth_call" , "Calls to ethereum API");
 
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
