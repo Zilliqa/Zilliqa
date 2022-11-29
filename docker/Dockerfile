@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-ARG SCILLA_VERSION=v0.13.0
+ARG SCILLA_VERSION=v0.13.1-alpha
 ARG ZILLIQA_BASE_VERSION=
 ARG ZILLIQA_CCACHE_VERSION=
 
