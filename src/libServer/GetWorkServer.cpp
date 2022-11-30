@@ -66,8 +66,8 @@ bool GetWorkServer::StartServer() {
   if (FULL_DATASET_MINE) {
     LOG_GENERAL(WARNING, "FULL_DATASET_MINE will be disabled");
   }
-  if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
-    LOG_GENERAL(WARNING, "OPENCL_GPU_MINE and CUDA_GPU_MINE will be disabled");
+  if (OPENCL_GPU_MINE) {
+    LOG_GENERAL(WARNING, "OPENCL_GPU_MINE will be disabled");
   }
   return StartListening();
 }

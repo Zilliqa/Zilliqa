@@ -28,6 +28,7 @@ RUN apt-get update \
     dnsutils \
     gawk \
     gdb \
+    libsecp256k1-dev \
     libtool \
     logrotate \
     net-tools \
