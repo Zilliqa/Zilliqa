@@ -13,7 +13,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-ARG SCILLA_VERSION=v0.13.0
+ARG SCILLA_VERSION=v0.13.1-alpha
 ARG ZILLIQA_BASE_VERSION=
 ARG ZILLIQA_CCACHE_VERSION=
 
@@ -25,7 +25,7 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 FROM zilliqa/zilliqa-ccache:${ZILLIQA_CCACHE_VERSION} AS builder
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=master
+ARG COMMIT_OR_TAG=v8.4.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG SOURCE_DIR=/root/zilliqa
 ARG BUILD_DIR=/root/zilliqa/build
