@@ -82,9 +82,9 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
 
 ## Build from Source Code
 
-The officially supported operating system is **Ubuntu 20.04**.
+Starting with Zilliqa [v8.4.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.4.0), the officially supported operating system is **Ubuntu 20.04**.
 
-Effective Zilliqa [v7.0.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.3.0), the officially supported operating system is **Ubuntu 20.04**. Although Zilliqa continues to be backward compatible with Ubuntu 18.04, we recommend users to upgrade to Ubuntu 20.04 moving forward.
+If you'd like to experiment with a different distro (including the previously supported Ubuntu 18.04), please make sure to install gcc >= 9.4.
 
 Run the following to install the build dependencies:
 
