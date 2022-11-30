@@ -515,7 +515,7 @@ bool AccountStore::UpdateAccountsTemp(
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
 
-  bool isEvm = transaction.IsEvm();
+  bool isEvm = transaction.IsEth();
 
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {
