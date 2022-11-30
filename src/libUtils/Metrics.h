@@ -51,6 +51,7 @@ using doubleHistogram_t =
 class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
+  virtual ~Metrics(){};
 
   metrics::int64_t CreateInt64Metric(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
   metrics::int64Observable_t CreateInt64UpDownMetric(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");

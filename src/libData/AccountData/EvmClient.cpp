@@ -110,6 +110,7 @@ bool Terminate(boost::process::child& child,
 
 void EvmClient::Init() {
   LOG_MARKER();
+  m_ctrClient->Add(1 ,{{"method","Init"}});
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
   if (LAUNCH_EVM_DAEMON) {
@@ -120,6 +121,7 @@ void EvmClient::Init() {
 }
 
 void EvmClient::Reset() {
+  m_ctrClient->Add(1 ,{{"method","Reset"}});
   Terminate(m_child, m_client);
   CleanupPreviousInstances();
 }
@@ -128,6 +130,7 @@ EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
   bool status{true};
+  m_ctrClient->Add(1 ,{{"method","OpenServer"}});
   LOG_GENERAL(INFO, "OpenServer for EVM ");
 
   try {
@@ -137,9 +140,11 @@ bool EvmClient::OpenServer() {
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
+    m_ctrClient->Add(1 ,{{"Exception#1","OpenServer"}});
     return false;
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
+    m_ctrClient->Add(1 ,{{"Exception#1","OpenServer"}});
     return false;
   }
   try {
@@ -149,13 +154,15 @@ bool EvmClient::OpenServer() {
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception initialising client");
+    m_ctrClient->Add(1 ,{{"Exception#3","OpenServer"}});
     return false;
   }
   return status;
 }
 
 bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
-  LOG_MARKER();
+   LOG_MARKER();
+   m_ctrClient->Add(1 ,{{"method","CallRunner"}});
 
 #ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
@@ -182,12 +189,14 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception out of parsing json response " << e.what());
+      m_ctrClient->Add(1 ,{{"error","CallRunner"}});
       return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
     throw e;
   } catch (...) {
     LOG_GENERAL(WARNING, "Exception caught executing run ");
+    m_ctrClient->Add(1 ,{{"RPCException","CallRunner"}});
     return false;
   }
 }
