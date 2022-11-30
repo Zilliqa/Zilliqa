@@ -24,6 +24,8 @@
 #include "Logger.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 
+// The OpenTelemetry Metrics Interface.
+
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
