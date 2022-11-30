@@ -32,44 +32,60 @@ namespace metrics_api = opentelemetry::metrics;
 namespace metrics_api = opentelemetry::metrics;
 
 namespace metrics {
-using int64_t =
-    std::unique_ptr<metrics_api::Counter<uint64_t>>;
-using double_t =
-    std::unique_ptr<metrics_api::Counter<double_t>>;
-using int64Observable_t =
-    std::shared_ptr<metrics_api::ObservableInstrument>;
-using doubleObservable_t =
-    std::shared_ptr<metrics_api::ObservableInstrument>;
-using int64Historgram_t =
-    std::unique_ptr<metrics_api::Histogram<uint64_t>>;
-using doubleHistogram_t =
-    std::unique_ptr<metrics_api::Histogram<double>>;
+using int64_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
+using double_t = std::unique_ptr<metrics_api::Counter<double_t>>;
+using int64Observable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
+using doubleObservable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
+using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
+using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
-
-}
+}  // namespace metrics
 
 class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
   virtual ~Metrics(){};
 
-  metrics::int64_t CreateInt64Metric(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::int64Observable_t CreateInt64UpDownMetric(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::int64Observable_t CreateInt64Gauge(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::doubleObservable_t CreateDoubleUpDownMetric(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::int64Observable_t CreateDoubleGauge(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::double_t CreateDoubleMetric(const std::string& family,const std::string& name,std::string_view unit="");
-  metrics::doubleHistogram_t CreateDoubleHistogram(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::int64Historgram_t CreateUInt64Histogram(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::int64Observable_t CreateInt64ObservableCounter(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
-  metrics::doubleObservable_t CreateDoubleObservableCounter(const std::string& family,const std::string& name,const std::string& desc,std::string_view unit="");
+  metrics::int64_t CreateInt64Metric(const std::string& family,
+                                     const std::string& name,
+                                     const std::string& desc,
+                                     std::string_view unit = "");
+  metrics::int64Observable_t CreateInt64UpDownMetric(
+      const std::string& family, const std::string& name,
+      const std::string& desc, std::string_view unit = "");
+  metrics::int64Observable_t CreateInt64Gauge(const std::string& family,
+                                              const std::string& name,
+                                              const std::string& desc,
+                                              std::string_view unit = "");
+  metrics::doubleObservable_t CreateDoubleUpDownMetric(
+      const std::string& family, const std::string& name,
+      const std::string& desc, std::string_view unit = "");
+  metrics::int64Observable_t CreateDoubleGauge(const std::string& family,
+                                               const std::string& name,
+                                               const std::string& desc,
+                                               std::string_view unit = "");
+  metrics::double_t CreateDoubleMetric(const std::string& family,
+                                       const std::string& name,
+                                       std::string_view unit = "");
+  metrics::doubleHistogram_t CreateDoubleHistogram(const std::string& family,
+                                                   const std::string& name,
+                                                   const std::string& desc,
+                                                   std::string_view unit = "");
+  metrics::int64Historgram_t CreateUInt64Histogram(const std::string& family,
+                                                   const std::string& name,
+                                                   const std::string& desc,
+                                                   std::string_view unit = "");
+  metrics::int64Observable_t CreateInt64ObservableCounter(
+      const std::string& family, const std::string& name,
+      const std::string& desc, std::string_view unit = "");
+  metrics::doubleObservable_t CreateDoubleObservableCounter(
+      const std::string& family, const std::string& name,
+      const std::string& desc, std::string_view unit = "");
+
  private:
   void Init();
-  std::shared_ptr<metrics_api::MeterProvider>   m_provider;
-  bool m_status {false};
+  std::shared_ptr<metrics_api::MeterProvider> m_provider;
+  bool m_status{false};
 };
 
-
-
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_
-

@@ -521,5 +521,4 @@ extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
 extern const std::string METRIC_ZILLIQA_SCHEMA;
 extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
 
-
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

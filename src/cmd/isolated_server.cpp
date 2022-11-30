@@ -107,8 +107,7 @@ int main(int argc, const char* argv[]) {
     SCILLA_ROOT = "/tmp";
   }
 
-  //Metrics::GetInstance().Test("STEVE_METRIC");
-
+  // Metrics::GetInstance().Test("STEVE_METRIC");
 
   try {
     po::options_description desc("Options");

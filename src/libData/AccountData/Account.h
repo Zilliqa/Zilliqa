@@ -34,12 +34,9 @@
 #include <Schnorr.h>
 #include "depends/libTrie/TrieDB.h"
 
-
 /// DB storing trie storage information for all accounts.
 template <class KeyType, class DB>
 using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
-
-
 
 class AccountBase : public SerializableDataBlock {
  protected:
@@ -54,7 +51,6 @@ class AccountBase : public SerializableDataBlock {
 
   AccountBase(const uint128_t& balance, const uint64_t& nonce,
               const uint32_t& version);
-
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(zbytes& dst, unsigned int offset) const;
@@ -213,7 +209,6 @@ class Account : public AccountBase {
   static Address GetAddressForContract(const Address& sender,
                                        const uint64_t& nonce,
                                        unsigned int version);
-
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNT_H_

@@ -39,47 +39,46 @@ using namespace dev;
 
 using namespace Contract;
 
-
 // =======================================
 // AccountBase
 
 AccountBase::AccountBase(const uint128_t &balance, const uint64_t &nonce,
                          const uint32_t &version)
-        : m_version(version),
-          m_balance(balance),
-          m_nonce(nonce),
-          m_storageRoot(h256()),
-          m_codeHash(h256()) {}
+    : m_version(version),
+      m_balance(balance),
+      m_nonce(nonce),
+      m_storageRoot(h256()),
+      m_codeHash(h256()) {}
 
 bool AccountBase::Serialize(zbytes &dst, unsigned int offset) const {
-    if (!Messenger::SetAccountBase(dst, offset, *this)) {
-        LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
-        return false;
-    }
+  if (!Messenger::SetAccountBase(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 bool AccountBase::Deserialize(const zbytes &src, unsigned int offset) {
-    // LOG_MARKER();
+  // LOG_MARKER();
 
-    if (!Messenger::GetAccountBase(src, offset, *this)) {
-        LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
-        return false;
-    }
+  if (!Messenger::GetAccountBase(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 bool AccountBase::Deserialize(const string &src, unsigned int offset) {
-    // LOG_MARKER();
+  // LOG_MARKER();
 
-    if (!Messenger::GetAccountBase(src, offset, *this)) {
-        LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
-        return false;
-    }
+  if (!Messenger::GetAccountBase(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 void AccountBase::SetVersion(const uint32_t &version) { m_version = version; }
@@ -87,20 +86,20 @@ void AccountBase::SetVersion(const uint32_t &version) { m_version = version; }
 const uint32_t &AccountBase::GetVersion() const { return m_version; }
 
 bool AccountBase::IncreaseBalance(const uint128_t &delta) {
-    return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
+  return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
 }
 
 bool AccountBase::DecreaseBalance(const uint128_t &delta) {
-    if (m_balance < delta) {
-        return false;
-    }
+  if (m_balance < delta) {
+    return false;
+  }
 
-    return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
+  return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
 }
 
 bool AccountBase::ChangeBalance(const int256_t &delta) {
-    return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
-                        : DecreaseBalance(uint128_t(-delta));
+  return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
+                      : DecreaseBalance(uint128_t(-delta));
 }
 
 void AccountBase::SetBalance(const uint128_t &balance) { m_balance = balance; }
@@ -108,11 +107,11 @@ void AccountBase::SetBalance(const uint128_t &balance) { m_balance = balance; }
 const uint128_t &AccountBase::GetBalance() const { return m_balance; }
 
 bool AccountBase::IncreaseNonce() {
-    return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
+  return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
 }
 
 bool AccountBase::IncreaseNonceBy(const uint64_t &nonceDelta) {
-    return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
+  return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
 }
 
 void AccountBase::SetNonce(const uint64_t &nonce) { m_nonce = nonce; }
@@ -120,9 +119,9 @@ void AccountBase::SetNonce(const uint64_t &nonce) { m_nonce = nonce; }
 const uint64_t &AccountBase::GetNonce() const { return m_nonce; }
 
 void Account::SetAddress(const Address &addr) {
-    if (!m_address) {
-        m_address = addr;
-    }
+  if (!m_address) {
+    m_address = addr;
+  }
 }
 
 const Address &Account::GetAddress() const { return m_address; }
@@ -132,323 +131,323 @@ void AccountBase::SetStorageRoot(const h256 &root) { m_storageRoot = root; }
 const dev::h256 &AccountBase::GetStorageRoot() const { return m_storageRoot; }
 
 void AccountBase::SetCodeHash(const dev::h256 &codeHash) {
-    m_codeHash = codeHash;
+  m_codeHash = codeHash;
 }
 
 const dev::h256 &AccountBase::GetCodeHash() const { return m_codeHash; }
 
 bool Account::isContract() const {
-    return (!m_is_library && m_codeHash != dev::h256());
+  return (!m_is_library && m_codeHash != dev::h256());
 }
 
 bool Account::IsLibrary() const {
-    return (m_is_library && m_codeHash != dev::h256());
+  return (m_is_library && m_codeHash != dev::h256());
 }
 
 // =======================================
 // Account
 Account::Account(const zbytes &src, unsigned int offset) {
-    if (!Deserialize(src, offset)) {
-        LOG_GENERAL(WARNING, "We failed to init Account.");
-    }
+  if (!Deserialize(src, offset)) {
+    LOG_GENERAL(WARNING, "We failed to init Account.");
+  }
 }
 
 Account::Account(const uint128_t &balance, const uint64_t &nonce,
                  const uint32_t &version)
-        : AccountBase(balance, nonce, version) {}
+    : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const zbytes &code, const zbytes &initData,
                            const Address &addr, const uint64_t &blockNum) {
-    LOG_MARKER();
-//  // s_ctrAccount->Add(1, {{"method", "InitContract"}});
-    bool isScilla = !EvmUtils::isEvm(code);
+  LOG_MARKER();
+  //  // s_ctrAccount->Add(1, {{"method", "InitContract"}});
+  bool isScilla = !EvmUtils::isEvm(code);
 
-    if (isContract() || IsLibrary()) {
-        LOG_GENERAL(WARNING, "Already Initialized");
-        return false;
+  if (isContract() || IsLibrary()) {
+    LOG_GENERAL(WARNING, "Already Initialized");
+    return false;
+  }
+
+  if (isScilla &&
+      !PrepareInitDataJson(initData, addr, blockNum, m_initDataJson,
+                           m_scilla_version, m_is_library, m_extlibs)) {
+    LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
+    return false;
+  }
+
+  if (isScilla) {
+    if (!SetImmutable(code, DataConversion::StringToCharArray(
+                                JSONUtils::GetInstance().convertJsontoStr(
+                                    m_initDataJson)))) {
+      LOG_GENERAL(WARNING, "SetImmutable failed");
     }
+  } else {
+    if (!SetImmutable(code, initData))
+      LOG_GENERAL(WARNING,
+                  "EVM SetImmutable warned us that code or data is "
+                  "empty");
+  }
 
-    if (isScilla &&
-        !PrepareInitDataJson(initData, addr, blockNum, m_initDataJson,
-                             m_scilla_version, m_is_library, m_extlibs)) {
-        LOG_GENERAL(WARNING, "PrepareInitDataJson failed");
-        return false;
-    }
-
-    if (isScilla) {
-        if (!SetImmutable(code, DataConversion::StringToCharArray(
-                JSONUtils::GetInstance().convertJsontoStr(
-                        m_initDataJson)))) {
-            LOG_GENERAL(WARNING, "SetImmutable failed");
-        }
-    } else {
-        if (!SetImmutable(code, initData)) LOG_GENERAL(WARNING,
-                                                       "EVM SetImmutable warned us that code or data is "
-                                                       "empty");
-    }
-
-    SetAddress(addr);
-    return true;
+  SetAddress(addr);
+  return true;
 }
 
 bool Account::Serialize(zbytes &dst, unsigned int offset) const {
-    // s_ctrAccount->Add(1, {{"method", "Serialize"}});
-    if (!Messenger::SetAccount(dst, offset, *this)) {
-        LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
-        return false;
-    }
+  // s_ctrAccount->Add(1, {{"method", "Serialize"}});
+  if (!Messenger::SetAccount(dst, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 bool Account::Deserialize(const zbytes &src, unsigned int offset) {
-    // LOG_MARKER();
-    // This function is depreciated.
-    // s_ctrAccount->Add(1, {{"method", "DeSerialize"}});
-    if (!Messenger::GetAccount(src, offset, *this)) {
-        LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
-        return false;
-    }
+  // LOG_MARKER();
+  // This function is depreciated.
+  // s_ctrAccount->Add(1, {{"method", "DeSerialize"}});
+  if (!Messenger::GetAccount(src, offset, *this)) {
+    LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 bool Account::SerializeBase(zbytes &dst, unsigned int offset) const {
-    return AccountBase::Serialize(dst, offset);
+  return AccountBase::Serialize(dst, offset);
 }
 
 bool Account::DeserializeBase(const zbytes &src, unsigned int offset) {
-    // LOG_MARKER();
+  // LOG_MARKER();
 
-    return AccountBase::Deserialize(src, offset);
+  return AccountBase::Deserialize(src, offset);
 }
 
 bool Account::ParseInitData(const Json::Value &root, uint32_t &scilla_version,
                             bool &is_library, vector<Address> &extlibs) {
-    is_library = false;
-    extlibs.clear();
-    // s_ctrAccount->Add(1, {{"method", "ParseInitData"}});
-    bool found_scilla_version = false;
-    bool found_library = false;
-    bool found_extlibs = false;
+  is_library = false;
+  extlibs.clear();
+  // s_ctrAccount->Add(1, {{"method", "ParseInitData"}});
+  bool found_scilla_version = false;
+  bool found_library = false;
+  bool found_extlibs = false;
 
-    for (const auto &entry: root) {
-        if (entry.isMember("vname") && entry.isMember("type") &&
-            entry.isMember("value")) {
-            if (entry["vname"].asString() == "_scilla_version" &&
-                entry["type"].asString() == "Uint32") {
-                if (found_scilla_version) {
-                    LOG_GENERAL(WARNING, "Got multiple field of \"_scilla_version\"");
-                    return false;
-                }
-                try {
-                    scilla_version =
-                            boost::lexical_cast<uint32_t>(entry["value"].asString());
-                    found_scilla_version = true;
-                } catch (...) {
-                    LOG_GENERAL(WARNING,
-                                "invalid value for _scilla_version " << entry["value"]);
-                    return false;
-                }
-                // break;
-                if (found_library && found_extlibs) {
-                    break;
-                }
-            }
-            if (entry["vname"].asString() == "_library" &&
-                entry["type"].asString() == "Bool") {
-                if (found_library) {
-                    LOG_GENERAL(WARNING, "Got multiple field of \"_library\"");
-                    return false;
-                }
-                if (entry["value"].isMember("constructor") &&
-                    entry["value"]["constructor"] == "True") {
-                    is_library = true;
-                }
-                found_library = true;
-                if (found_scilla_version && found_extlibs) {
-                    break;
-                }
-            }
-
-            if (entry["vname"].asString() == "_extlibs") {
-                if (found_extlibs) {
-                    LOG_GENERAL(WARNING, "Got multiple field of \"_extlibs\"");
-                    return false;
-                }
-
-                if (entry["value"].type() != Json::arrayValue) {
-                    LOG_GENERAL(WARNING, "entry value is not array type");
-                    return false;
-                }
-
-                for (const auto &lib_entry: entry["value"]) {
-                    if (lib_entry.isMember("arguments") &&
-                        lib_entry["arguments"].type() == Json::arrayValue &&
-                        lib_entry["arguments"].size() == 2) {
-                        bool foundAddr = false;
-                        for (const auto &arg: lib_entry["arguments"]) {
-                            if (arg.asString().size() == ((ACC_ADDR_SIZE * 2) + 2) &&
-                                arg.asString().find("0x") != std::string::npos) {
-                                try {
-                                    Address addr(arg.asString());
-                                    extlibs.emplace_back(addr);
-                                    foundAddr = true;
-                                    break;
-                                } catch (...) {
-                                    LOG_GENERAL(WARNING, "invalid to convert string to address: "
-                                            << arg.asString());
-                                    continue;
-                                }
-                            }
-                        }
-
-                        if (!foundAddr) {
-                            LOG_GENERAL(WARNING, "Didn't find address for extlib");
-                            return false;
-                        }
-                    }
-                }
-
-                found_extlibs = true;
-
-                if (found_scilla_version && found_library) {
-                    break;
-                }
-            }
-        } else {
-            LOG_GENERAL(WARNING, "Wrong data format spotted");
-            return false;
+  for (const auto &entry : root) {
+    if (entry.isMember("vname") && entry.isMember("type") &&
+        entry.isMember("value")) {
+      if (entry["vname"].asString() == "_scilla_version" &&
+          entry["type"].asString() == "Uint32") {
+        if (found_scilla_version) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_scilla_version\"");
+          return false;
         }
-    }
+        try {
+          scilla_version =
+              boost::lexical_cast<uint32_t>(entry["value"].asString());
+          found_scilla_version = true;
+        } catch (...) {
+          LOG_GENERAL(WARNING,
+                      "invalid value for _scilla_version " << entry["value"]);
+          return false;
+        }
+        // break;
+        if (found_library && found_extlibs) {
+          break;
+        }
+      }
+      if (entry["vname"].asString() == "_library" &&
+          entry["type"].asString() == "Bool") {
+        if (found_library) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_library\"");
+          return false;
+        }
+        if (entry["value"].isMember("constructor") &&
+            entry["value"]["constructor"] == "True") {
+          is_library = true;
+        }
+        found_library = true;
+        if (found_scilla_version && found_extlibs) {
+          break;
+        }
+      }
 
-    if (!found_scilla_version) {
-        LOG_GENERAL(WARNING, "scilla_version not found in init data");
-        return false;
-    }
+      if (entry["vname"].asString() == "_extlibs") {
+        if (found_extlibs) {
+          LOG_GENERAL(WARNING, "Got multiple field of \"_extlibs\"");
+          return false;
+        }
 
-    return true;
+        if (entry["value"].type() != Json::arrayValue) {
+          LOG_GENERAL(WARNING, "entry value is not array type");
+          return false;
+        }
+
+        for (const auto &lib_entry : entry["value"]) {
+          if (lib_entry.isMember("arguments") &&
+              lib_entry["arguments"].type() == Json::arrayValue &&
+              lib_entry["arguments"].size() == 2) {
+            bool foundAddr = false;
+            for (const auto &arg : lib_entry["arguments"]) {
+              if (arg.asString().size() == ((ACC_ADDR_SIZE * 2) + 2) &&
+                  arg.asString().find("0x") != std::string::npos) {
+                try {
+                  Address addr(arg.asString());
+                  extlibs.emplace_back(addr);
+                  foundAddr = true;
+                  break;
+                } catch (...) {
+                  LOG_GENERAL(WARNING, "invalid to convert string to address: "
+                                           << arg.asString());
+                  continue;
+                }
+              }
+            }
+
+            if (!foundAddr) {
+              LOG_GENERAL(WARNING, "Didn't find address for extlib");
+              return false;
+            }
+          }
+        }
+
+        found_extlibs = true;
+
+        if (found_scilla_version && found_library) {
+          break;
+        }
+      }
+    } else {
+      LOG_GENERAL(WARNING, "Wrong data format spotted");
+      return false;
+    }
+  }
+
+  if (!found_scilla_version) {
+    LOG_GENERAL(WARNING, "scilla_version not found in init data");
+    return false;
+  }
+
+  return true;
 }
 
 bool Account::PrepareInitDataJson(const zbytes &initData, const Address &addr,
                                   const uint64_t &blockNum, Json::Value &root,
                                   uint32_t &scilla_version, bool &is_library,
                                   vector<Address> &extlibs) {
-    if (initData.empty()) {
-        LOG_GENERAL(WARNING, "Init data for the contract is empty");
-        return false;
-    }
+  if (initData.empty()) {
+    LOG_GENERAL(WARNING, "Init data for the contract is empty");
+    return false;
+  }
 
-    if (!JSONUtils::GetInstance().convertStrtoJson(
-            DataConversion::CharArrayToString(initData), root)) {
-        return false;
-    }
+  if (!JSONUtils::GetInstance().convertStrtoJson(
+          DataConversion::CharArrayToString(initData), root)) {
+    return false;
+  }
 
-    if (!ParseInitData(root, scilla_version, is_library, extlibs)) {
-        LOG_GENERAL(WARNING, "ParseInitData failed");
-        return false;
-    }
+  if (!ParseInitData(root, scilla_version, is_library, extlibs)) {
+    LOG_GENERAL(WARNING, "ParseInitData failed");
+    return false;
+  }
 
-    // Append createBlockNum
-    Json::Value createBlockNumObj;
-    createBlockNumObj["vname"] = "_creation_block";
-    createBlockNumObj["type"] = "BNum";
-    createBlockNumObj["value"] = to_string(blockNum);
-    root.append(createBlockNumObj);
+  // Append createBlockNum
+  Json::Value createBlockNumObj;
+  createBlockNumObj["vname"] = "_creation_block";
+  createBlockNumObj["type"] = "BNum";
+  createBlockNumObj["value"] = to_string(blockNum);
+  root.append(createBlockNumObj);
 
-    // Append _this_address
-    Json::Value thisAddressObj;
-    thisAddressObj["vname"] = "_this_address";
-    thisAddressObj["type"] = "ByStr20";
-    thisAddressObj["value"] = "0x" + addr.hex();
-    root.append(thisAddressObj);
+  // Append _this_address
+  Json::Value thisAddressObj;
+  thisAddressObj["vname"] = "_this_address";
+  thisAddressObj["type"] = "ByStr20";
+  thisAddressObj["value"] = "0x" + addr.hex();
+  root.append(thisAddressObj);
 
-    return true;
+  return true;
 }
 
 bool Account::GetUpdatedStates(std::map<std::string, zbytes> &t_states,
                                std::set<std::string> &toDeleteIndices,
                                bool temp) const {
-    // s_ctrAccount->Add(1, {{"method", "GetUpdateStates"}});
-    ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(
-            GetAddress(), t_states, toDeleteIndices, temp);
+  // s_ctrAccount->Add(1, {{"method", "GetUpdateStates"}});
+  ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(
+      GetAddress(), t_states, toDeleteIndices, temp);
 
-    return true;
+  return true;
 }
 
 bool Account::UpdateStates(const Address &addr,
                            const std::map<std::string, zbytes> &t_states,
                            const std::vector<std::string> &toDeleteIndices,
                            bool temp, bool revertible) {
-    // s_ctrAccount->Add(1, {{"method", "GetUpdateStates"}});
-    ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
-            addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
-            revertible);
+  // s_ctrAccount->Add(1, {{"method", "GetUpdateStates"}});
+  ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
+      addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
+      revertible);
 
-    if (!m_address) {
-        SetAddress(addr);
-    }
+  if (!m_address) {
+    SetAddress(addr);
+  }
 
-    return true;
+  return true;
 }
 
 bool Account::FetchStateJson(Json::Value &root, const string &vname,
                              const vector<string> &indices, bool temp) const {
+  // s_ctrAccount->Add(1, {{"method", "FetchStateJson"}});
+  if (!isContract()) {
+    LOG_GENERAL(WARNING,
+                "Not contract account, why call Account::FetchStateJson!");
+    return false;
+  }
+  int64_t startMem = 0;
+  if (ENABLE_MEMORY_STATS) {
+    startMem = DisplayPhysicalMemoryStats("Before FetchStateJson", 0);
+  }
 
-    // s_ctrAccount->Add(1, {{"method", "FetchStateJson"}});
-    if (!isContract()) {
-        LOG_GENERAL(WARNING,
-                    "Not contract account, why call Account::FetchStateJson!");
-        return false;
+  if (vname != "_balance") {
+    if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
+            root, GetAddress(), vname, indices, temp)) {
+      LOG_GENERAL(WARNING, "ContractStorage::FetchStateJsonForContract failed");
+      return false;
     }
-    int64_t startMem = 0;
     if (ENABLE_MEMORY_STATS) {
-        startMem = DisplayPhysicalMemoryStats("Before FetchStateJson", 0);
+      startMem = DisplayPhysicalMemoryStats("After FetchStateJson", startMem);
     }
+    // Clear STL memory cache
+    DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
+  }
 
-    if (vname != "_balance") {
-        if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
-                root, GetAddress(), vname, indices, temp)) {
-            LOG_GENERAL(WARNING, "ContractStorage::FetchStateJsonForContract failed");
-            return false;
-        }
-        if (ENABLE_MEMORY_STATS) {
-            startMem = DisplayPhysicalMemoryStats("After FetchStateJson", startMem);
-        }
-        // Clear STL memory cache
-        DetachedFunction(1, CommonUtils::ReleaseSTLMemoryCache);
-    }
+  if ((vname.empty() && indices.empty()) || vname == "_balance") {
+    root["_balance"] = GetBalance().convert_to<string>();
+  }
 
-    if ((vname.empty() && indices.empty()) || vname == "_balance") {
-        root["_balance"] = GetBalance().convert_to<string>();
-    }
+  if (LOG_SC) {
+    LOG_GENERAL(INFO,
+                "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
+  }
 
-    if (LOG_SC) {
-        LOG_GENERAL(INFO,
-                    "States: " << JSONUtils::GetInstance().convertJsontoStr(root));
-    }
-
-    return true;
+  return true;
 }
 
 Address Account::GetAddressFromPublicKey(const PubKey &pubKey) {
-    Address address;
+  Address address;
 
-    zbytes vec;
-    pubKey.Serialize(vec, 0);
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-    sha2.Update(vec);
+  zbytes vec;
+  pubKey.Serialize(vec, 0);
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(vec);
 
-    const zbytes &output = sha2.Finalize();
+  const zbytes &output = sha2.Finalize();
 
-    if (output.size() != 32) {
-        LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                                  << ": " << __FUNCTION__ << ")");
-    }
+  if (output.size() != 32) {
+    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                              << ": " << __FUNCTION__ << ")");
+  }
 
-    copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
+  copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
 
-    return address;
+  return address;
 }
 
 // Get Address from public key, eth stye.
@@ -458,154 +457,154 @@ Address Account::GetAddressFromPublicKey(const PubKey &pubKey) {
 // 3. Keccak256 on remaining
 // 4. Last 20 bytes is result
 Address Account::GetAddressFromPublicKeyEth(const PubKey &pubKey) {
-    // The public key must be uncompressed!
-    auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
+  // The public key must be uncompressed!
+  auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
-    auto const address = CreateAddr(publicKey);
+  auto const address = CreateAddr(publicKey);
 
-    return address;
+  return address;
 }
 
 Address Account::GetAddressForContract(const Address &sender,
                                        const uint64_t &nonce,
                                        unsigned int version) {
-    Address address;
+  Address address;
 
-    // Zil-style TXs
-    if (version == TRANSACTION_VERSION) {
-        SHA2<HashType::HASH_VARIANT_256> sha2;
-        zbytes conBytes;
-        copy(sender.asArray().begin(), sender.asArray().end(),
-             back_inserter(conBytes));
-        SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
-        sha2.Update(conBytes);
+  // Zil-style TXs
+  if (version == TRANSACTION_VERSION) {
+    SHA2<HashType::HASH_VARIANT_256> sha2;
+    zbytes conBytes;
+    copy(sender.asArray().begin(), sender.asArray().end(),
+         back_inserter(conBytes));
+    SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
+    sha2.Update(conBytes);
 
-        const zbytes &output = sha2.Finalize();
+    const zbytes &output = sha2.Finalize();
 
-        if (output.size() != 32) {
-            LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                                      << ": " << __FUNCTION__ << ")");
-        }
-
-        copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
-    } else if (version == TRANSACTION_VERSION_ETH) {
-        // Note the nonce accounting for Zil TXs is always 1 ahead so we decrement
-        // here
-        auto output = CreateContractAddr(sender.asBytes(), nonce);
-
-        copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
-    } else {
-        LOG_GENERAL(
-                WARNING,
-                "Unsupported TX type when generating contract address! " << version);
+    if (output.size() != 32) {
+      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
+                                                << ": " << __FUNCTION__ << ")");
     }
 
-    return address;
+    copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
+  } else if (version == TRANSACTION_VERSION_ETH) {
+    // Note the nonce accounting for Zil TXs is always 1 ahead so we decrement
+    // here
+    auto output = CreateContractAddr(sender.asBytes(), nonce);
+
+    copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
+  } else {
+    LOG_GENERAL(
+        WARNING,
+        "Unsupported TX type when generating contract address! " << version);
+  }
+
+  return address;
 }
 
 bool Account::SetCode(const zbytes &code) {
-    // LOG_MARKER();
-    // s_ctrAccount->Add(1, {{"method", "SetCode"}});
-    if (code.size() == 0) {
-        LOG_GENERAL(WARNING, "Code for this contract is empty");
-        return false;
-    }
+  // LOG_MARKER();
+  // s_ctrAccount->Add(1, {{"method", "SetCode"}});
+  if (code.size() == 0) {
+    LOG_GENERAL(WARNING, "Code for this contract is empty");
+    return false;
+  }
 
-    m_codeCache = code;
-    return true;
+  m_codeCache = code;
+  return true;
 }
 
 const zbytes Account::GetCode() const {
-    // s_ctrAccount->Add(1, {{"method", "GetCode"}});
-    if (!isContract() && !IsLibrary()) {
-        return {};
-    }
+  // s_ctrAccount->Add(1, {{"method", "GetCode"}});
+  if (!isContract() && !IsLibrary()) {
+    return {};
+  }
 
-    if (m_codeCache.empty()) {
-        return ContractStorage::GetContractStorage().GetContractCode(m_address);
-    }
-    return m_codeCache;
+  if (m_codeCache.empty()) {
+    return ContractStorage::GetContractStorage().GetContractCode(m_address);
+  }
+  return m_codeCache;
 }
 
 bool Account::GetContractCodeHash(dev::h256 &contractCodeHash) const {
-    const auto &codeCache = GetCode();
-    if (codeCache.empty()) {
-        return false;
-    }
+  const auto &codeCache = GetCode();
+  if (codeCache.empty()) {
+    return false;
+  }
 
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-    sha2.Update(codeCache);
-    contractCodeHash = dev::h256(sha2.Finalize());
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(codeCache);
+  contractCodeHash = dev::h256(sha2.Finalize());
 
-    return true;
+  return true;
 }
 
 bool Account::GetContractAuxiliaries(bool &is_library, uint32_t &scilla_version,
                                      std::vector<Address> &extlibs) {
-    if (!isContract() && !IsLibrary()) {
-        LOG_GENERAL(INFO, "Not a contract or library");
-        return false;
-    }
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(INFO, "Not a contract or library");
+    return false;
+  }
 
-    if (m_initDataJson == Json::nullValue) {
-        if (!RetrieveContractAuxiliaries()) {
-            LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
-            return false;
-        }
+  if (m_initDataJson == Json::nullValue) {
+    if (!RetrieveContractAuxiliaries()) {
+      LOG_GENERAL(WARNING, "RetrieveContractAuxiliaries failed");
+      return false;
     }
-    is_library = m_is_library;
-    scilla_version = m_scilla_version;
-    extlibs = m_extlibs;
-    return true;
+  }
+  is_library = m_is_library;
+  scilla_version = m_scilla_version;
+  extlibs = m_extlibs;
+  return true;
 }
 
 bool Account::RetrieveContractAuxiliaries() {
-    if (!isContract() && !IsLibrary()) {
-        LOG_GENERAL(WARNING, "Not a contract or library");
-        return false;
-    }
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(WARNING, "Not a contract or library");
+    return false;
+  }
 
-    zbytes initData = GetInitData();
-    if (!JSONUtils::GetInstance().convertStrtoJson(
-            DataConversion::CharArrayToString(initData), m_initDataJson)) {
-        LOG_GENERAL(WARNING, "Convert InitData to Json failed"
-                << endl
-                << DataConversion::CharArrayToString(initData));
-        return false;
-    }
+  zbytes initData = GetInitData();
+  if (!JSONUtils::GetInstance().convertStrtoJson(
+          DataConversion::CharArrayToString(initData), m_initDataJson)) {
+    LOG_GENERAL(WARNING, "Convert InitData to Json failed"
+                             << endl
+                             << DataConversion::CharArrayToString(initData));
+    return false;
+  }
 
-    return ParseInitData(m_initDataJson, m_scilla_version, m_is_library,
-                         m_extlibs);
+  return ParseInitData(m_initDataJson, m_scilla_version, m_is_library,
+                       m_extlibs);
 }
 
 bool Account::SetInitData(const zbytes &initData) {
-    // LOG_MARKER();
-    m_initDataCache = initData;
-    return true;
+  // LOG_MARKER();
+  m_initDataCache = initData;
+  return true;
 }
 
 const zbytes Account::GetInitData() const {
-    if (!isContract() && !IsLibrary()) {
-        LOG_GENERAL(INFO, "Not a contract or library");
-        return {};
-    }
+  if (!isContract() && !IsLibrary()) {
+    LOG_GENERAL(INFO, "Not a contract or library");
+    return {};
+  }
 
-    if (m_initDataCache.empty()) {
-        return ContractStorage::GetContractStorage().GetInitData(m_address);
-    }
-    return m_initDataCache;
+  if (m_initDataCache.empty()) {
+    return ContractStorage::GetContractStorage().GetInitData(m_address);
+  }
+  return m_initDataCache;
 }
 
 bool Account::SetImmutable(const zbytes &code, const zbytes &initData) {
-    // s_ctrAccount->Add(1, {{"method", "SetImmutable"}});
-    if (!SetCode(code) || !SetInitData(initData)) {
-        return false;
-    }
+  // s_ctrAccount->Add(1, {{"method", "SetImmutable"}});
+  if (!SetCode(code) || !SetInitData(initData)) {
+    return false;
+  }
 
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-    sha2.Update(StripEVM(code));
-    sha2.Update(initData);
-    SetCodeHash(dev::h256(sha2.Finalize()));
-    // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
-    return true;
+  SHA2<HashType::HASH_VARIANT_256> sha2;
+  sha2.Update(StripEVM(code));
+  sha2.Update(initData);
+  SetCodeHash(dev::h256(sha2.Finalize()));
+  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
+  return true;
 }
