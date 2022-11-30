@@ -6148,7 +6148,12 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  LOG_GENERAL(INFO, "Signature: " << signature);
+
   zbytes tmp(result.data().ByteSize());
+
+  LOG_GENERAL(INFO, "Data: " << DataConversion::Uint8VecToHexStrRet(tmp));
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetDSBlockFromL2l signature wrong");
