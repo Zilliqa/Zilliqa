@@ -515,18 +515,14 @@ bool AccountStore::UpdateAccountsTemp(
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
 
-  bool isEvm{false};
+  bool isEvm = transaction.IsEvm();
 
   if (Transaction::GetTransactionType(transaction) ==
       Transaction::CONTRACT_CREATION) {
-    isEvm = EvmUtils::isEvm(transaction.GetCode());
   } else {
     // We need to look at the code for any transaction type. Even if it is a
     // simple transfer, it might actually be a call.
     Account* contractAccount = this->GetAccountTemp(transaction.GetToAddr());
-    if (contractAccount != nullptr) {
-      isEvm = EvmUtils::isEvm(contractAccount->GetCode());
-    }
   }
   if (ENABLE_EVM == false && isEvm) {
     LOG_GENERAL(WARNING,
