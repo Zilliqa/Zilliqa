@@ -18,7 +18,7 @@
 #ifndef ZILLIQA_SRC_COMMON_BASETYPE_H_
 #define ZILLIQA_SRC_COMMON_BASETYPE_H_
 
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 #include <utility>
 #include <vector>

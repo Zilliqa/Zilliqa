@@ -78,10 +78,6 @@ build_type="RelWithDebInfo"
 for option in "$@"
 do
     case $option in
-    cuda)
-        CMAKE_EXTRA_OPTIONS="-DCUDA_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with CUDA"
-    ;;
     opencl)
         CMAKE_EXTRA_OPTIONS="-DOPENCL_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with OpenCL"
@@ -225,7 +221,7 @@ do
         echo "Build with code coverage"
     ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>] [ninja] [debug]"
+        echo "Usage $0 [opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>] [ninja] [debug]"
         exit 1
     ;;
     esac

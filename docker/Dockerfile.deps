@@ -24,7 +24,7 @@ ARG VCPKG_COMMIT_OR_TAG=2022.09.27
 ARG VCPKG_ROOT=/vcpkg
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=master
+ARG COMMIT_OR_TAG=v8.4.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
 ARG BUILD_TRIPLET=x64-linux-dynamic
 

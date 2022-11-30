@@ -32,4 +32,3 @@ target_link_libraries(Utils
     ${CryptoUtils_LIBRARY}
     ${g3sinks_LOGROTATE_LIBRARY}
   )
-
