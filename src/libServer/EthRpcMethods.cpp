@@ -366,7 +366,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","CreateTransactionEth"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","CreateTransactionEth"}});
 
   std::string ret;
 
@@ -472,7 +472,7 @@ std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","CheckContractTxnShards"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","CheckContractTxnShards"}});
 
 
   unsigned int mapIndex = shard;
@@ -536,7 +536,7 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string& address) {
                            "Sent to a non-lookup");
   }
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetBalanceAndNonce"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetBalanceAndNonce"}});
 
 
   try {
@@ -572,7 +572,7 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string& address) {
 }
 
 string EthRpcMethods::GetEthCallZil(const Json::Value& _json) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthCallZil"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthCallZil"}});
   return this->GetEthCallImpl(
       _json, {"fromAddr", "toAddr", "amount", "gasLimit", "data"});
 }
@@ -580,7 +580,7 @@ string EthRpcMethods::GetEthCallZil(const Json::Value& _json) {
 string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
                                     const string& block_or_tag) {
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthCallEth"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthCallEth"}});
 
   if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
@@ -593,7 +593,7 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   Address fromAddr;
 
-  m_ethApiCall->Add(1 ,{{"EthAPI","Calls"},{"Method","GetEthEstimateGas"}});
+  m_ethApiCall->Add(1 ,{{"EthAPI","calls"},{"method","GetEthEstimateGas"}});
 
   if (!json.isMember("from")) {
     LOG_GENERAL(WARNING, "Missing from account");
@@ -762,7 +762,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthCallImpl"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthCallImpl"}});
 
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   zbytes code{};
@@ -865,14 +865,14 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
 
 std::string EthRpcMethods::GetWeb3ClientVersion() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetWeb3ClientVersion"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetWeb3ClientVersion"}});
 
   return "Zilliqa/v8.2";
 }
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value& _json) {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetWeb3Sha3"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetWeb3Sha3"}});
 
 
   zbytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
@@ -882,7 +882,7 @@ string EthRpcMethods::GetWeb3Sha3(const Json::Value& _json) {
 
 Json::Value EthRpcMethods::GetEthUncleCount() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthUncleCount"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthUncleCount"}});
 
 
   // There's no concept of longest chain hence there will be no uncles
@@ -892,7 +892,7 @@ Json::Value EthRpcMethods::GetEthUncleCount() {
 
 Json::Value EthRpcMethods::GetEthUncleBlock() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthUncleBlock"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthUncleBlock"}});
 
   // There's no concept of longest chain hence there will be no uncles
   // Return null instead
@@ -901,14 +901,14 @@ Json::Value EthRpcMethods::GetEthUncleBlock() {
 
 Json::Value EthRpcMethods::GetEthMining() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthMining"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthMining"}});
 
   return Json::Value(false);
 }
 
 std::string EthRpcMethods::GetEthCoinbase() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthCoinbase"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthCoinbase"}});
 
   throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                          "Unsupported method: eth_coinbase. Zilliqa mining "
@@ -917,49 +917,49 @@ std::string EthRpcMethods::GetEthCoinbase() {
 
 Json::Value EthRpcMethods::GetNetListening() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetNetListening"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetNetListening"}});
 
   return Json::Value(true);
 }
 
 std::string EthRpcMethods::GetNetPeerCount() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetNetPeerCount"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetNetPeerCount"}});
 
   return "0x0";
 }
 
 std::string EthRpcMethods::GetProtocolVersion() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetProtocolVersion"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetProtocolVersion"}});
 
   return "0x41";  // Similar to Infura, Alchemy
 }
 
 std::string EthRpcMethods::GetEthChainId() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthChainId"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthChainId"}});
 
   return (boost::format("0x%x") % ETH_CHAINID).str();
 }
 
 Json::Value EthRpcMethods::GetEthSyncing() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthSyncing"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthSyncing"}});
 
   return Json::Value(false);
 }
 
 Json::Value EthRpcMethods::GetEmptyResponse() {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEmptyResponse"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEmptyResponse"}});
   const Json::Value expectedResponse = Json::arrayValue;
   return expectedResponse;
 }
 
 Json::Value EthRpcMethods::GetEthTransactionByHash(
     const std::string& transactionHash) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthTransactionByHash"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthTransactionByHash"}});
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -1000,7 +1000,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
                                            std::string const& position,
                                            std::string const& /*blockNum*/) {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthStorageAt"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthStorageAt"}});
 
 
 
@@ -1094,7 +1094,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
 Json::Value EthRpcMethods::GetEthCode(std::string const& address,
                                       std::string const& /*blockNum*/) {
   LOG_MARKER();
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthCode"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthCode"}});
 
 
   zbytes code;
@@ -1120,7 +1120,7 @@ Json::Value EthRpcMethods::GetEthCode(std::string const& address,
 
 Json::Value EthRpcMethods::GetEthBlockNumber() {
   Json::Value ret;
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockNumber"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockNumber"}});
 
 
   try {
@@ -1144,7 +1144,7 @@ Json::Value EthRpcMethods::GetEthBlockNumber() {
 
 Json::Value EthRpcMethods::GetEthBlockByNumber(
     const std::string& blockNumberStr, const bool includeFullTransactions) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockByNumber"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockByNumber"}});
 
   try {
     TxBlock txBlock;
@@ -1184,7 +1184,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 
 Json::Value EthRpcMethods::GetEthBlockByHash(
     const std::string& inputHash, const bool includeFullTransactions) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockByHash"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockByHash"}});
 
   try {
     const BlockHash blockHash{inputHash};
@@ -1206,7 +1206,7 @@ Json::Value EthRpcMethods::GetEthBlockByHash(
 
 Json::Value EthRpcMethods::GetEthBlockCommon(
     const TxBlock& txBlock, const bool includeFullTransactions) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockCommon"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockCommon"}});
 
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
       txBlock.GetHeader().GetDSBlockNum());
@@ -1246,7 +1246,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
 Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
                                          const std::string& tag) {
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBalance"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBalance"}});
 
   if (isSupportedTag(tag)) {
     uint256_t ethBalance{0};
@@ -1279,7 +1279,7 @@ Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
 
 uint256_t EthRpcMethods::GetEthGasPriceNum() const {
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthGasPriceNum"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthGasPriceNum"}});
 
   uint256_t gasPrice =
       m_sharedMediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
@@ -1294,7 +1294,7 @@ uint256_t EthRpcMethods::GetEthGasPriceNum() const {
 
 Json::Value EthRpcMethods::GetEthGasPrice() const {
 
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthGasPrice"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthGasPrice"}});
 
   try {
     std::ostringstream strm;
@@ -1310,7 +1310,7 @@ Json::Value EthRpcMethods::GetEthGasPrice() const {
 
 Json::Value EthRpcMethods::GetEthBlockTransactionCountByHash(
     const std::string& inputHash) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockTransactionCountByHash"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockTransactionCountByHash"}});
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock =
@@ -1330,7 +1330,7 @@ Json::Value EthRpcMethods::GetEthBlockTransactionCountByHash(
 
 Json::Value EthRpcMethods::GetEthBlockTransactionCountByNumber(
     const std::string& blockNumberStr) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockTransactionCountByNumber"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockTransactionCountByNumber"}});
   try {
     TxBlock txBlock;
 
@@ -1360,7 +1360,7 @@ Json::Value EthRpcMethods::GetEthBlockTransactionCountByNumber(
 
 Json::Value EthRpcMethods::GetEthTransactionByBlockHashAndIndex(
     const std::string& inputHash, const std::string& indexStr) const {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthTransactionByBlockHashAndIndex"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthTransactionByBlockHashAndIndex"}});
   try {
     const BlockHash blockHash{inputHash};
     const auto txBlock =
@@ -1377,7 +1377,7 @@ Json::Value EthRpcMethods::GetEthTransactionByBlockHashAndIndex(
 
 Json::Value EthRpcMethods::GetEthTransactionByBlockNumberAndIndex(
     const std::string& blockNumberStr, const std::string& indexStr) const {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthTransactionByBlockNumberAndIndex"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthTransactionByBlockNumberAndIndex"}});
   try {
     TxBlock txBlock;
     if (blockNumberStr == "latest") {
@@ -1403,7 +1403,7 @@ Json::Value EthRpcMethods::GetEthTransactionByBlockNumberAndIndex(
 
 Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
     const TxBlock& txBlock, uint64_t index) const {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthTransactionFromBlockByIndex"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthTransactionFromBlockByIndex"}});
 
   const TxBlock EMPTY_BLOCK;
   constexpr auto WRONG_INDEX = std::numeric_limits<uint64_t>::max();
@@ -1453,7 +1453,7 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
 
 Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const std::string& txnhash) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthTransactionReceipt"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthTransactionReceipt"}});
   try {
     TxnHash argHash{txnhash};
     TxBodySharedPtr transactionBodyPtr;
@@ -1536,7 +1536,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 }
 
 std::string EthRpcMethods::EthNewFilter(const Json::Value& param) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthNewFilter"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthNewFilter"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.InstallNewEventFilter(param);
   if (!result.success) {
@@ -1546,7 +1546,7 @@ std::string EthRpcMethods::EthNewFilter(const Json::Value& param) {
 }
 
 std::string EthRpcMethods::EthNewBlockFilter() {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthNewBlockFilter"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthNewBlockFilter"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.InstallNewBlockFilter();
   if (!result.success) {
@@ -1556,7 +1556,7 @@ std::string EthRpcMethods::EthNewBlockFilter() {
 }
 
 std::string EthRpcMethods::EthNewPendingTransactionFilter() {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthNewPendingTransactionFilter"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthNewPendingTransactionFilter"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.InstallNewPendingTxnFilter();
   if (!result.success) {
@@ -1566,7 +1566,7 @@ std::string EthRpcMethods::EthNewPendingTransactionFilter() {
 }
 
 Json::Value EthRpcMethods::EthGetFilterChanges(const std::string& filter_id) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthGetFilterChanges"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthGetFilterChanges"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.GetFilterChanges(filter_id);
   if (!result.success) {
@@ -1576,13 +1576,13 @@ Json::Value EthRpcMethods::EthGetFilterChanges(const std::string& filter_id) {
 }
 
 bool EthRpcMethods::EthUninstallFilter(const std::string& filter_id) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthUninstallFilter"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthUninstallFilter"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   return api.UninstallFilter(filter_id);
 }
 
 Json::Value EthRpcMethods::EthGetFilterLogs(const std::string& filter_id) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthGetFilterLogs"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthGetFilterLogs"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.GetFilterLogs(filter_id);
   if (!result.success) {
@@ -1592,7 +1592,7 @@ Json::Value EthRpcMethods::EthGetFilterLogs(const std::string& filter_id) {
 }
 
 Json::Value EthRpcMethods::EthGetLogs(const Json::Value& param) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthGetLogs"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthGetLogs"}});
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.GetLogs(param);
   if (!result.success) {
@@ -1602,7 +1602,7 @@ Json::Value EthRpcMethods::EthGetLogs(const Json::Value& param) {
 }
 
 void EthRpcMethods::EnsureEvmAndLookupEnabled() {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EnsureEvmAndLookupEnabled"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EnsureEvmAndLookupEnabled"}});
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
@@ -1615,7 +1615,7 @@ void EthRpcMethods::EnsureEvmAndLookupEnabled() {
 
 TxBlock EthRpcMethods::GetBlockFromTransaction(
     const TransactionWithReceipt& transaction) const {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetBlockFromTransaction"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetBlockFromTransaction"}});
 
   const TxBlock EMPTY_BLOCK;
   const auto txReceipt = transaction.GetTransactionReceipt();
@@ -1640,7 +1640,7 @@ TxBlock EthRpcMethods::GetBlockFromTransaction(
 
 uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
     const TxBlock& txBlock, const std::string& txnhash) const {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetTransactionIndexFromBlock"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetTransactionIndexFromBlock"}});
 
   TxnHash argHash{txnhash};
   const TxBlock EMPTY_BLOCK;
@@ -1675,7 +1675,7 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
 // Given a transmitted RLP, return checksum-encoded original sender address
 std::string EthRpcMethods::EthRecoverTransaction(
     const std::string& txnRpc) const {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","EthRecoverTransaction"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","EthRecoverTransaction"}});
 
   auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
 
@@ -1691,7 +1691,7 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
   // The easiest way to do this:
   // Get the block + transactions
   // Call TX receipt function
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","GetEthBlockReceipts"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","GetEthBlockReceipts"}});
 
   auto const block = GetEthBlockByHash(blockId, false);
   auto const txs = block["transactions"];
@@ -1708,7 +1708,7 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& /*txHash*/) {
-  m_ethApiCall->Add(1 ,{{"Eth API","Calls"},{"Method","DebugTraceTransaction"}});
+  m_ethApiCall->Add(1 ,{{"api","calls"},{"method","DebugTraceTransaction"}});
 
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,

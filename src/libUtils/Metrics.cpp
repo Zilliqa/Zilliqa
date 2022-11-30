@@ -65,16 +65,52 @@ void Metrics::Init(){
   metrics_api::Provider::SetMeterProvider(m_provider);
 }
 
-
-metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,const std::string& name, const std::string& desc) {
-  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "0.0.1");
-  return meter->CreateUInt64Counter(family + "_" + name ,desc );
+metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,const std::string& name, const std::string& desc, std::string_view unit) {
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateUInt64Counter(family + "_" + name ,desc , unit);
 }
 
-metrics::double_t Metrics::CreateDoubleMetric(const std::string& family,const std::string& name) {
-  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "0.0.1");
-  return meter->CreateDoubleCounter(family + "_" + name );
+metrics::double_t Metrics::CreateDoubleMetric(const std::string& family,const std::string& name, std::string_view unit) {
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateDoubleCounter(family + "_" + name  , unit);
 }
 
+metrics::int64Observable_t Metrics::CreateInt64UpDownMetric(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateInt64ObservableUpDownCounter(family + "_" + name, desc , unit);
+}
 
+metrics::doubleObservable_t Metrics::CreateDoubleUpDownMetric(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateDoubleObservableUpDownCounter(family + "_" + name, desc , unit);
+}
 
+metrics::int64Observable_t Metrics::CreateInt64Gauge(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateInt64ObservableUpDownCounter(family + "_" + name, desc , unit);
+}
+
+metrics::doubleObservable_t Metrics::CreateDoubleGauge(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateDoubleObservableUpDownCounter(family + "_" + name, desc , unit);
+}
+
+metrics::doubleHistogram_t Metrics::CreateDoubleHistogram(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateDoubleHistogram(family + "_" + name, desc , unit);
+}
+
+metrics::int64Historgram_t Metrics::CreateUInt64Histogram(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateUInt64Histogram(family + "_" + name, desc , unit);
+}
+
+metrics::int64Observable_t Metrics::CreateInt64ObservableCounter(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateInt64ObservableCounter(family + "_" + name, desc , unit);
+}
+
+metrics::doubleObservable_t Metrics::CreateDoubleObservableCounter(const std::string& family,const std::string& name,const std::string& desc, std::string_view unit){
+  std::shared_ptr<metrics_api::Meter> meter = m_provider->GetMeter(family , "1.2.0");
+  return meter->CreateDoubleObservableCounter(family + "_" + name, desc , unit);
+}

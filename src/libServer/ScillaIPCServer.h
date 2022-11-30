@@ -95,7 +95,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    std::string& value);
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
-  metrics::int64_t   m_ctrScilla = Metrics::GetInstance().CreateInt64Metric( "RPC", "ScillaIPCServer" , "Metrics for ScillaIPCServer");
+  metrics::int64_t   m_ctrScilla = Metrics::GetInstance().CreateInt64Metric( "zilliqa", "scillipc" , "Metrics for ScillaIPCServer");
 
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
