@@ -41,6 +41,8 @@ using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
 }  // namespace metrics
 
+// Class metrics
+
 class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
