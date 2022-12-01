@@ -41,7 +41,7 @@ using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
 }  // namespace metrics
 
-// Class metrics updated to OpenTelemetry 1.8.0#1 x
+// Class metrics updated to OpenTelemetry 1.8.0#1
 
 class Metrics : public Singleton<Metrics> {
  public:
