@@ -133,8 +133,9 @@ SubscriptionsImpl::~SubscriptionsImpl() {
   }
 }
 
-void SubscriptionsImpl::Start(std::shared_ptr<WebsocketServer> websocketServer,
-                              APICache::BlockByHash blockByHash) {
+void SubscriptionsImpl::Start(
+    std::shared_ptr<rpc::WebsocketServer> websocketServer,
+    APICache::BlockByHash blockByHash) {
   assert(websocketServer);
   assert(blockByHash);
 
@@ -142,11 +143,11 @@ void SubscriptionsImpl::Start(std::shared_ptr<WebsocketServer> websocketServer,
   m_blockByHash = std::move(blockByHash);
 
   m_websocketServer->SetOptions(
-      [this](Id conn_id, const WebsocketServer::InMessage& msg,
+      [this](Id conn_id, const rpc::WebsocketServer::InMessage& msg,
              bool& methodAccepted) {
         return OnIncomingMessage(conn_id, msg, methodAccepted);
       },
-      WebsocketServer::DEF_MAX_INCOMING_MSG_SIZE);
+      rpc::WebsocketServer::DEF_MAX_INCOMING_MSG_SIZE);
 
   m_pendingTxnTemplate["jsonrpc"] = "2.0";
   m_pendingTxnTemplate["method"] = "eth_subscription";
@@ -222,9 +223,9 @@ void SubscriptionsImpl::OnEventLog(const Address& address,
   }
 }
 
-bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
-                                          const WebsocketServer::InMessage& msg,
-                                          bool& unknownMethodFound) {
+bool SubscriptionsImpl::OnIncomingMessage(
+    Id conn_id, const rpc::WebsocketServer::InMessage& msg,
+    bool& unknownMethodFound) {
   assert(m_websocketServer);
 
   if (msg.empty()) {
@@ -256,7 +257,7 @@ bool SubscriptionsImpl::OnIncomingMessage(Id conn_id,
 
   const auto& conn = it->second;
 
-  WebsocketServer::OutMessage response;
+  OutMessage response;
   switch (req.action) {
     case Request::UNSUBSCRIBE:
       response =
@@ -306,7 +307,7 @@ void SubscriptionsImpl::OnSessionDisconnected(Id conn_id) {
   m_connections.erase(it);
 }
 
-WebsocketServer::OutMessage SubscriptionsImpl::OnUnsubscribe(
+SubscriptionsImpl::OutMessage SubscriptionsImpl::OnUnsubscribe(
     const ConnectionPtr& conn, Json::Value&& request_id,
     std::string&& subscription_id) {
   bool result = false;
@@ -341,7 +342,7 @@ WebsocketServer::OutMessage SubscriptionsImpl::OnUnsubscribe(
   return std::make_shared<std::string>(JsonWrite(json));
 }
 
-WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
+SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
     const ConnectionPtr& conn, Json::Value&& request_id) {
   if (!conn->subscribedToNewHeads) {
     conn->subscribedToNewHeads = true;
@@ -355,7 +356,7 @@ WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToNewHeads(
   return std::make_shared<std::string>(JsonWrite(json));
 }
 
-WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
+SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
     const ConnectionPtr& conn, Json::Value&& request_id) {
   if (!conn->subscribedToPendingTxns) {
     conn->subscribedToPendingTxns = true;
@@ -369,7 +370,7 @@ WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToPendingTxns(
   return std::make_shared<std::string>(JsonWrite(json));
 }
 
-WebsocketServer::OutMessage SubscriptionsImpl::OnSubscribeToEvents(
+SubscriptionsImpl::OutMessage SubscriptionsImpl::OnSubscribeToEvents(
     const ConnectionPtr& conn, Json::Value&& request_id,
     EventFilterParams&& filter) {
   auto subscriptionId = NumberAsString(++m_eventSubscriptionCounter);
