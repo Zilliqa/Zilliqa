@@ -90,7 +90,7 @@ Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
 }  // namespace
 
 int main(int argc, const char* argv[]) {
-  using namespace evmproj;
+  using namespace rpc;
 
   string accountJsonFilePath;
   uint port{5555};
@@ -214,9 +214,11 @@ int main(int argc, const char* argv[]) {
     auto ctx = std::make_shared<boost::asio::io_context>(1);
 
     APIServer::Options options;
+    options.asio = ctx;
+    options.threadPoolName = "API";
     options.port = static_cast<uint16_t>(port);
 
-    auto apiServer = APIServer::CreateAndStart(ctx, std::move(options));
+    auto apiServer = APIServer::CreateAndStart(std::move(options));
     if (!apiServer) {
       cerr << "Server failed to listen" << endl;
       return ERROR_UNHANDLED_EXCEPTION;

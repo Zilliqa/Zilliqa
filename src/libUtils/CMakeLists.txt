@@ -21,7 +21,7 @@ target_link_libraries(Utils
     Constants
     MessageSWInfo
     websocketpp::websocketpp
-    jsonrpc::common
+    jsonrpc
     jsoncpp_lib
     protobuf::libprotobuf
     opentelemetry-cpp::api

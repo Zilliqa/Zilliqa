@@ -148,8 +148,8 @@ bool EvmClient::OpenServer() {
     return false;
   }
   try {
-    m_connector = std::make_unique<evmdsrpc::EvmDsDomainSocketClient>(
-        EVM_SERVER_SOCKET_PATH);
+    m_connector =
+        std::make_unique<rpc::UnixDomainSocketClient>(EVM_SERVER_SOCKET_PATH);
     m_client = std::make_unique<jsonrpc::Client>(*m_connector,
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {

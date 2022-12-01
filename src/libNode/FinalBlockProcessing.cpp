@@ -1641,7 +1641,7 @@ bool Node::ProcessPendingTxn(const zbytes& message, unsigned int cur_offset,
   LOG_GENERAL(INFO, "Received PENDINGTXN for epoch "
                         << epochNum << " and shard " << shardId
                         << " id=" << hashCodeMap.begin()->first
-                        << " s=" << hashCodeMap.begin()->second);  // XXX
+                        << " s=" << hashCodeMap.begin()->second);
 
   AddPendingTxn(hashCodeMap, pubkey, shardId, txnListHash);
 

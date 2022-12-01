@@ -12,18 +12,17 @@ add_library(Server
     EthRpcMethods.cpp
     APIServerImpl.cpp
     APIThreadPool.cpp
-    WebsocketServerImpl.cpp)
+    WebsocketServerImpl.cpp
+    UnixDomainSocketClient.cpp
+    UnixDomainSocketServer.cpp
+    LocalAPIServer.cpp)
 
-add_dependencies(Server jsonrpc-project)
+target_include_directories(Server PUBLIC
+    ${PROJECT_SOURCE_DIR}/src)
 
-target_include_directories(Server PUBLIC 
-                                  ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(Server PUBLIC
+    jsonrpc
+    AccountData
+    Validator
+    Eth)
 
-target_link_libraries (Server PUBLIC
-                              jsonrpc::server
-                              AccountData
-                              Validator
-                              Eth)
-
-target_link_libraries (Server PRIVATE 
-                              SafeServer)
