@@ -53,19 +53,19 @@ class IsolatedServer : public LookupServer,
 
   void BindAllEvmMethods();
 
-  inline virtual void GetEvmMineI(const Json::Value&,
-                                                Json::Value&) {
+  inline virtual void GetEvmMineI(const Json::Value&, Json::Value&) {
     PostTxBlock();
   }
 
   inline virtual void GetEvmSetIntervalMiningI(const Json::Value& request,
-                                                Json::Value&) {
+                                               Json::Value&) {
     m_timeDelta = request[0u].asUInt();
 
-    // If this the first time we're going to use interval mining, initialize the block num thread.
+    // If this the first time we're going to use interval mining, initialize the
+    // block num thread.
     if (!m_intervalMiningInitialized && m_timeDelta > 0) {
       StartBlocknumIncrement();
-    } 
+    }
 
     // If new interval is 0, stop interval mining.
     m_pause = m_timeDelta == 0;
