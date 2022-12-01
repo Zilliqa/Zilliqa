@@ -2,8 +2,7 @@ add_subdirectory (common)
 add_subdirectory (libDatabase)
 add_subdirectory (libTrie)
 add_subdirectory (NAT)
-add_subdirectory (safeserver)
-
+add_subdirectory (jsonrpccpp)
 
 if(OPENCL_MINE)
     add_subdirectory (libethash-cl)

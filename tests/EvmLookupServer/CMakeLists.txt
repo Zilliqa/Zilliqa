@@ -16,7 +16,7 @@ target_link_libraries(Test_EvmLookupServer
                       AccountData
                       Message
                       Server
-                      jsonrpc::client
+                      jsonrpc
 )
 
 add_test(NAME Test_EvmLookupServer COMMAND Test_EvmLookupServer)

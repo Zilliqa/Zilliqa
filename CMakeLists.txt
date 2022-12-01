@@ -57,11 +57,6 @@ find_package(Threads REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
-if(NOT TARGET jsonrpc-project)
-   include(InstallJsonrpccpp)
-endif()
-include_directories(${JSONRPC_INCLUDE_DIR})
-
 find_package(Schnorr REQUIRED)
 find_package(CryptoUtils REQUIRED)
 
@@ -280,7 +275,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # using internal jsonrpc variant
-include_directories(${CMAKE_BINARY_DIR}/src/depends/jsonrpc/include)
+include_directories(BEFORE ${CMAKE_SOURCE_DIR}/src/depends)
 
 add_subdirectory(src)
 add_subdirectory(daemon)

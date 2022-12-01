@@ -184,7 +184,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    // XXX
     LOG_GENERAL(INFO, "Connecting to " << m_peer);
 
     m_socket.async_connect(m_endpoint,
@@ -213,7 +212,6 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-    // XXX
     LOG_GENERAL(INFO, "Sending " << msg.size << " bytes to " << m_peer);
 
     boost::asio::async_write(

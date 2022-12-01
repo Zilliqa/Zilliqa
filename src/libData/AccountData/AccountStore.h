@@ -37,12 +37,16 @@
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
-#include "libServer/ScillaIPCServer.h"
 #include "libUtils/TxnExtras.h"
 
 using StateHash = dev::h256;
 
 class AccountStore;
+class ScillaIPCServer;
+
+namespace rpc {
+class UnixDomainSocketServer;
+}
 
 class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   AccountStore& m_parent;
@@ -95,7 +99,7 @@ class AccountStore
 
   /// Scilla IPC server related
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
-  std::unique_ptr<jsonrpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
+  std::unique_ptr<rpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
   AccountStore();
   ~AccountStore();

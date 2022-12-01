@@ -22,7 +22,7 @@
 #include <memory>
 #include <string>
 
-namespace evmproj {
+namespace rpc {
 
 /// Websocket server: owner's interface
 class WebsocketServer {
@@ -65,6 +65,6 @@ class WebsocketServer {
   virtual void CloseAll() = 0;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_NEWWEBSOCKETSERVER_H_

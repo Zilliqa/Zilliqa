@@ -23,7 +23,6 @@
       ]
     },
     "curl",
-    "libmicrohttpd",
     "libffi",
     "g3log",
     "g3sinks",
@@ -45,20 +44,12 @@
       "version": "3.9.1"
     },
     {
-      "name": "libmicrohttpd",
-      "version-string": "0.9.63#8"
-    },
-    {
       "name": "g3log",
       "version-string": "1.3.4#4"
     },
     {
       "name": "schnorr",
       "version": "8.2.0"
-    },
-    {
-      "name": "g3log",
-      "version": "1.3.4#4"
     },
     {
       "name": "g3sinks",
