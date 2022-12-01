@@ -770,8 +770,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     Account* contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
     if (contractAccount == nullptr) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
-                             "Account does not exist");
+      return "0x";
     }
     code = contractAccount->GetCode();
   }
