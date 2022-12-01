@@ -3,7 +3,7 @@ find_package(opentelemetry-cpp REQUIRED)
 
 # A workaround for incorrect link libraries in vcpkg's opentelemtry-cpp-target.cmake
 # which includes non-existent target (i.e. opentelemetry-cpp::pull & opentelemetry-cpp::core).
-set_target_properties(opentelemetry-cpp::prometheus_exporter PROPERTIES
+set_target_properties(opentelemetry-cpp::opentelemetry_exporter_prometheus PROPERTIES
   INTERFACE_LINK_LIBRARIES "opentelemetry-cpp::metrics"
 )
 
@@ -27,7 +27,7 @@ target_link_libraries(Utils
     opentelemetry-cpp::api
     opentelemetry-cpp::sdk
     opentelemetry-cpp::logs
-    opentelemetry-cpp::prometheus_exporter
+    opentelemetry-cpp::opentelemetry_exporter_prometheus
   PRIVATE
     ${CryptoUtils_LIBRARY}
     ${g3sinks_LOGROTATE_LIBRARY}
