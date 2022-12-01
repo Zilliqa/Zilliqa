@@ -6,7 +6,7 @@ spec:
     beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
-    image: "zilliqa/scilla:v0.13.0"
+    image: "zilliqa/scilla:v0.13.0-alpha"
     command:
     - cat
     tty: true
