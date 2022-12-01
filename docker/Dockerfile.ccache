@@ -53,6 +53,5 @@ COPY --from=deps  ${VCPKG_ROOT}/triplets   ${VCPKG_ROOT}/triplets
 COPY --from=deps  ${VCPKG_ROOT}/versions   ${VCPKG_ROOT}/versions
 COPY --from=deps  ${VCPKG_ROOT}/.vcpkg-root   ${VCPKG_ROOT}/.vcpkg-root
 COPY --from=deps  ${VCPKG_ROOT}/vcpkg   ${VCPKG_ROOT}/vcpkg
-COPY --from=deps  ${VCPKG_ROOT}/.git   ${VCPKG_ROOT}/.git
 
 WORKDIR /
