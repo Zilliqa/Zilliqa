@@ -106,7 +106,6 @@ add_custom_command(TARGET zilliqa
 target_include_directories(isolatedServer PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator)
 
-
 add_executable(websocketsubscriber websocketsubscriber.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD

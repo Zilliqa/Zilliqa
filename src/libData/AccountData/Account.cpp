@@ -42,15 +42,15 @@ using namespace Contract;
 // =======================================
 // AccountBase
 
-AccountBase::AccountBase(const uint128_t &balance, const uint64_t &nonce,
-                         const uint32_t &version)
+AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
+                         const uint32_t& version)
     : m_version(version),
       m_balance(balance),
       m_nonce(nonce),
       m_storageRoot(h256()),
       m_codeHash(h256()) {}
 
-bool AccountBase::Serialize(zbytes &dst, unsigned int offset) const {
+bool AccountBase::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccountBase(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
     return false;
@@ -59,7 +59,7 @@ bool AccountBase::Serialize(zbytes &dst, unsigned int offset) const {
   return true;
 }
 
-bool AccountBase::Deserialize(const zbytes &src, unsigned int offset) {
+bool AccountBase::Deserialize(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   if (!Messenger::GetAccountBase(src, offset, *this)) {
@@ -70,7 +70,7 @@ bool AccountBase::Deserialize(const zbytes &src, unsigned int offset) {
   return true;
 }
 
-bool AccountBase::Deserialize(const string &src, unsigned int offset) {
+bool AccountBase::Deserialize(const string& src, unsigned int offset) {
   // LOG_MARKER();
 
   if (!Messenger::GetAccountBase(src, offset, *this)) {
@@ -81,15 +81,15 @@ bool AccountBase::Deserialize(const string &src, unsigned int offset) {
   return true;
 }
 
-void AccountBase::SetVersion(const uint32_t &version) { m_version = version; }
+void AccountBase::SetVersion(const uint32_t& version) { m_version = version; }
 
-const uint32_t &AccountBase::GetVersion() const { return m_version; }
+const uint32_t& AccountBase::GetVersion() const { return m_version; }
 
-bool AccountBase::IncreaseBalance(const uint128_t &delta) {
+bool AccountBase::IncreaseBalance(const uint128_t& delta) {
   return SafeMath<uint128_t>::add(m_balance, delta, m_balance);
 }
 
-bool AccountBase::DecreaseBalance(const uint128_t &delta) {
+bool AccountBase::DecreaseBalance(const uint128_t& delta) {
   if (m_balance < delta) {
     return false;
   }
@@ -97,44 +97,44 @@ bool AccountBase::DecreaseBalance(const uint128_t &delta) {
   return SafeMath<uint128_t>::sub(m_balance, delta, m_balance);
 }
 
-bool AccountBase::ChangeBalance(const int256_t &delta) {
+bool AccountBase::ChangeBalance(const int256_t& delta) {
   return (delta >= 0) ? IncreaseBalance(uint128_t(delta))
                       : DecreaseBalance(uint128_t(-delta));
 }
 
-void AccountBase::SetBalance(const uint128_t &balance) { m_balance = balance; }
+void AccountBase::SetBalance(const uint128_t& balance) { m_balance = balance; }
 
-const uint128_t &AccountBase::GetBalance() const { return m_balance; }
+const uint128_t& AccountBase::GetBalance() const { return m_balance; }
 
 bool AccountBase::IncreaseNonce() {
   return SafeMath<uint64_t>::add(m_nonce, 1, m_nonce);
 }
 
-bool AccountBase::IncreaseNonceBy(const uint64_t &nonceDelta) {
+bool AccountBase::IncreaseNonceBy(const uint64_t& nonceDelta) {
   return SafeMath<uint64_t>::add(m_nonce, nonceDelta, m_nonce);
 }
 
-void AccountBase::SetNonce(const uint64_t &nonce) { m_nonce = nonce; }
+void AccountBase::SetNonce(const uint64_t& nonce) { m_nonce = nonce; }
 
-const uint64_t &AccountBase::GetNonce() const { return m_nonce; }
+const uint64_t& AccountBase::GetNonce() const { return m_nonce; }
 
-void Account::SetAddress(const Address &addr) {
+void Account::SetAddress(const Address& addr) {
   if (!m_address) {
     m_address = addr;
   }
 }
 
-const Address &Account::GetAddress() const { return m_address; }
+const Address& Account::GetAddress() const { return m_address; }
 
-void AccountBase::SetStorageRoot(const h256 &root) { m_storageRoot = root; }
+void AccountBase::SetStorageRoot(const h256& root) { m_storageRoot = root; }
 
-const dev::h256 &AccountBase::GetStorageRoot() const { return m_storageRoot; }
+const dev::h256& AccountBase::GetStorageRoot() const { return m_storageRoot; }
 
-void AccountBase::SetCodeHash(const dev::h256 &codeHash) {
+void AccountBase::SetCodeHash(const dev::h256& codeHash) {
   m_codeHash = codeHash;
 }
 
-const dev::h256 &AccountBase::GetCodeHash() const { return m_codeHash; }
+const dev::h256& AccountBase::GetCodeHash() const { return m_codeHash; }
 
 bool Account::isContract() const {
   return (!m_is_library && m_codeHash != dev::h256());
@@ -146,20 +146,20 @@ bool Account::IsLibrary() const {
 
 // =======================================
 // Account
-Account::Account(const zbytes &src, unsigned int offset) {
+Account::Account(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init Account.");
   }
 }
 
-Account::Account(const uint128_t &balance, const uint64_t &nonce,
-                 const uint32_t &version)
+Account::Account(const uint128_t& balance, const uint64_t& nonce,
+                 const uint32_t& version)
     : AccountBase(balance, nonce, version) {}
 
-bool Account::InitContract(const zbytes &code, const zbytes &initData,
-                           const Address &addr, const uint64_t &blockNum) {
+bool Account::InitContract(const zbytes& code, const zbytes& initData,
+                           const Address& addr, const uint64_t& blockNum) {
   LOG_MARKER();
-  //  // s_ctrAccount->Add(1, {{"method", "InitContract"}});
+
   bool isScilla = !EvmUtils::isEvm(code);
 
   if (isContract() || IsLibrary()) {
@@ -191,8 +191,7 @@ bool Account::InitContract(const zbytes &code, const zbytes &initData,
   return true;
 }
 
-bool Account::Serialize(zbytes &dst, unsigned int offset) const {
-  // s_ctrAccount->Add(1, {{"method", "Serialize"}});
+bool Account::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetAccount(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccount failed.");
     return false;
@@ -201,10 +200,9 @@ bool Account::Serialize(zbytes &dst, unsigned int offset) const {
   return true;
 }
 
-bool Account::Deserialize(const zbytes &src, unsigned int offset) {
+bool Account::Deserialize(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
   // This function is depreciated.
-  // s_ctrAccount->Add(1, {{"method", "DeSerialize"}});
   if (!Messenger::GetAccount(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccount failed.");
     return false;
@@ -213,26 +211,26 @@ bool Account::Deserialize(const zbytes &src, unsigned int offset) {
   return true;
 }
 
-bool Account::SerializeBase(zbytes &dst, unsigned int offset) const {
+bool Account::SerializeBase(zbytes& dst, unsigned int offset) const {
   return AccountBase::Serialize(dst, offset);
 }
 
-bool Account::DeserializeBase(const zbytes &src, unsigned int offset) {
+bool Account::DeserializeBase(const zbytes& src, unsigned int offset) {
   // LOG_MARKER();
 
   return AccountBase::Deserialize(src, offset);
 }
 
-bool Account::ParseInitData(const Json::Value &root, uint32_t &scilla_version,
-                            bool &is_library, vector<Address> &extlibs) {
+bool Account::ParseInitData(const Json::Value& root, uint32_t& scilla_version,
+                            bool& is_library, vector<Address>& extlibs) {
   is_library = false;
   extlibs.clear();
-  // s_ctrAccount->Add(1, {{"method", "ParseInitData"}});
+
   bool found_scilla_version = false;
   bool found_library = false;
   bool found_extlibs = false;
 
-  for (const auto &entry : root) {
+  for (const auto& entry : root) {
     if (entry.isMember("vname") && entry.isMember("type") &&
         entry.isMember("value")) {
       if (entry["vname"].asString() == "_scilla_version" &&
@@ -282,12 +280,12 @@ bool Account::ParseInitData(const Json::Value &root, uint32_t &scilla_version,
           return false;
         }
 
-        for (const auto &lib_entry : entry["value"]) {
+        for (const auto& lib_entry : entry["value"]) {
           if (lib_entry.isMember("arguments") &&
               lib_entry["arguments"].type() == Json::arrayValue &&
               lib_entry["arguments"].size() == 2) {
             bool foundAddr = false;
-            for (const auto &arg : lib_entry["arguments"]) {
+            for (const auto& arg : lib_entry["arguments"]) {
               if (arg.asString().size() == ((ACC_ADDR_SIZE * 2) + 2) &&
                   arg.asString().find("0x") != std::string::npos) {
                 try {
@@ -330,10 +328,10 @@ bool Account::ParseInitData(const Json::Value &root, uint32_t &scilla_version,
   return true;
 }
 
-bool Account::PrepareInitDataJson(const zbytes &initData, const Address &addr,
-                                  const uint64_t &blockNum, Json::Value &root,
-                                  uint32_t &scilla_version, bool &is_library,
-                                  vector<Address> &extlibs) {
+bool Account::PrepareInitDataJson(const zbytes& initData, const Address& addr,
+                                  const uint64_t& blockNum, Json::Value& root,
+                                  uint32_t& scilla_version, bool& is_library,
+                                  vector<Address>& extlibs) {
   if (initData.empty()) {
     LOG_GENERAL(WARNING, "Init data for the contract is empty");
     return false;
@@ -366,21 +364,19 @@ bool Account::PrepareInitDataJson(const zbytes &initData, const Address &addr,
   return true;
 }
 
-bool Account::GetUpdatedStates(std::map<std::string, zbytes> &t_states,
-                               std::set<std::string> &toDeleteIndices,
+bool Account::GetUpdatedStates(std::map<std::string, zbytes>& t_states,
+                               std::set<std::string>& toDeleteIndices,
                                bool temp) const {
-  // s_ctrAccount->Add(1, {{"method", "GetUpdateStates"}});
   ContractStorage::GetContractStorage().FetchUpdatedStateValuesForAddress(
       GetAddress(), t_states, toDeleteIndices, temp);
 
   return true;
 }
 
-bool Account::UpdateStates(const Address &addr,
-                           const std::map<std::string, zbytes> &t_states,
-                           const std::vector<std::string> &toDeleteIndices,
+bool Account::UpdateStates(const Address& addr,
+                           const std::map<std::string, zbytes>& t_states,
+                           const std::vector<std::string>& toDeleteIndices,
                            bool temp, bool revertible) {
-  // s_ctrAccount->Add(1, {{"method", "GetUpdateStates"}});
   ContractStorage::GetContractStorage().UpdateStateDatasAndToDeletes(
       addr, GetStorageRoot(), t_states, toDeleteIndices, m_storageRoot, temp,
       revertible);
@@ -392,9 +388,8 @@ bool Account::UpdateStates(const Address &addr,
   return true;
 }
 
-bool Account::FetchStateJson(Json::Value &root, const string &vname,
-                             const vector<string> &indices, bool temp) const {
-  // s_ctrAccount->Add(1, {{"method", "FetchStateJson"}});
+bool Account::FetchStateJson(Json::Value& root, const string& vname,
+                             const vector<string>& indices, bool temp) const {
   if (!isContract()) {
     LOG_GENERAL(WARNING,
                 "Not contract account, why call Account::FetchStateJson!");
@@ -430,7 +425,7 @@ bool Account::FetchStateJson(Json::Value &root, const string &vname,
   return true;
 }
 
-Address Account::GetAddressFromPublicKey(const PubKey &pubKey) {
+Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
   Address address;
 
   zbytes vec;
@@ -438,7 +433,7 @@ Address Account::GetAddressFromPublicKey(const PubKey &pubKey) {
   SHA2<HashType::HASH_VARIANT_256> sha2;
   sha2.Update(vec);
 
-  const zbytes &output = sha2.Finalize();
+  const zbytes& output = sha2.Finalize();
 
   if (output.size() != 32) {
     LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -456,7 +451,7 @@ Address Account::GetAddressFromPublicKey(const PubKey &pubKey) {
 // 2. Remove first byte (compression indicator byte)
 // 3. Keccak256 on remaining
 // 4. Last 20 bytes is result
-Address Account::GetAddressFromPublicKeyEth(const PubKey &pubKey) {
+Address Account::GetAddressFromPublicKeyEth(const PubKey& pubKey) {
   // The public key must be uncompressed!
   auto const publicKey = ToUncompressedPubKey(std::string(pubKey));
 
@@ -465,8 +460,8 @@ Address Account::GetAddressFromPublicKeyEth(const PubKey &pubKey) {
   return address;
 }
 
-Address Account::GetAddressForContract(const Address &sender,
-                                       const uint64_t &nonce,
+Address Account::GetAddressForContract(const Address& sender,
+                                       const uint64_t& nonce,
                                        unsigned int version) {
   Address address;
 
@@ -479,7 +474,7 @@ Address Account::GetAddressForContract(const Address &sender,
     SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
     sha2.Update(conBytes);
 
-    const zbytes &output = sha2.Finalize();
+    const zbytes& output = sha2.Finalize();
 
     if (output.size() != 32) {
       LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
@@ -502,9 +497,9 @@ Address Account::GetAddressForContract(const Address &sender,
   return address;
 }
 
-bool Account::SetCode(const zbytes &code) {
+bool Account::SetCode(const zbytes& code) {
   // LOG_MARKER();
-  // s_ctrAccount->Add(1, {{"method", "SetCode"}});
+
   if (code.size() == 0) {
     LOG_GENERAL(WARNING, "Code for this contract is empty");
     return false;
@@ -515,7 +510,6 @@ bool Account::SetCode(const zbytes &code) {
 }
 
 const zbytes Account::GetCode() const {
-  // s_ctrAccount->Add(1, {{"method", "GetCode"}});
   if (!isContract() && !IsLibrary()) {
     return {};
   }
@@ -526,8 +520,8 @@ const zbytes Account::GetCode() const {
   return m_codeCache;
 }
 
-bool Account::GetContractCodeHash(dev::h256 &contractCodeHash) const {
-  const auto &codeCache = GetCode();
+bool Account::GetContractCodeHash(dev::h256& contractCodeHash) const {
+  const auto& codeCache = GetCode();
   if (codeCache.empty()) {
     return false;
   }
@@ -539,8 +533,8 @@ bool Account::GetContractCodeHash(dev::h256 &contractCodeHash) const {
   return true;
 }
 
-bool Account::GetContractAuxiliaries(bool &is_library, uint32_t &scilla_version,
-                                     std::vector<Address> &extlibs) {
+bool Account::GetContractAuxiliaries(bool& is_library, uint32_t& scilla_version,
+                                     std::vector<Address>& extlibs) {
   if (!isContract() && !IsLibrary()) {
     LOG_GENERAL(INFO, "Not a contract or library");
     return false;
@@ -577,7 +571,7 @@ bool Account::RetrieveContractAuxiliaries() {
                        m_extlibs);
 }
 
-bool Account::SetInitData(const zbytes &initData) {
+bool Account::SetInitData(const zbytes& initData) {
   // LOG_MARKER();
   m_initDataCache = initData;
   return true;
@@ -595,8 +589,7 @@ const zbytes Account::GetInitData() const {
   return m_initDataCache;
 }
 
-bool Account::SetImmutable(const zbytes &code, const zbytes &initData) {
-  // s_ctrAccount->Add(1, {{"method", "SetImmutable"}});
+bool Account::SetImmutable(const zbytes& code, const zbytes& initData) {
   if (!SetCode(code) || !SetInitData(initData)) {
     return false;
   }

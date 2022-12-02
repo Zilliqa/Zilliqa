@@ -7,13 +7,11 @@ spec:
   containers:
   - name: "scilla"
     image: "zilliqa/scilla:v0.13.1-alpha"
-    imagePullPolicy: Always
     command:
     - cat
     tty: true
   - name: "ubuntu"
     image: "zilliqa/zilliqa-ccache:v8.4.0"
-    imagePullPolicy: Always
     command:
     - cat
     tty: true
@@ -60,12 +58,12 @@ timestamps {
                     sh "apt update -y && apt install -y patchelf chrpath"
                     sh "chmod u+w /scilla/0/_build/install/default/bin/*" 
                     sh "patchelf --set-rpath \"\$(pwd)/build/vcpkg_installed/x64-linux-dynamic/lib\" /scilla/0/_build/install/default/bin/*" 
+                    sh "ldd /scilla/0/_build/install/default/bin/*"
                 }
             }
             container('ubuntu') {
                 env.VCPKG_ROOT="/vcpkg"
                 stage('Build') {
-                    sh "ls -la /lib/x86_64-linux-gnu/libsec*"
                     sh "apt update -y && apt install -y libsecp256k1-dev"
                     sh "update-alternatives --install /usr/bin/python python \$(which python3) 1"
                     sh "git config --global --add safe.directory '*'"
@@ -75,6 +73,7 @@ timestamps {
                     sh "git clone file://\"\$(pwd)\" /root/zilliqa"
                     sh "git -C /root/zilliqa checkout \$(git rev-parse HEAD)"
                     sh "ln -s /root/zilliqa/build build"
+                    sh "ldd /scilla/0/_build/install/default/bin/*"
                     sh "cd /root/zilliqa && VCPKG_ROOT=${env.VCPKG_ROOT} CCACHE_BASEDIR=\"\$(pwd)\" ./scripts/ci_build.sh"
                 }
                 stage('Integration test') {

@@ -25,7 +25,6 @@
 #include "libServer/IsolatedServer.h"
 #include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
-#include "libUtils/Metrics.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
@@ -106,8 +105,6 @@ int main(int argc, const char* argv[]) {
   if (SCILLA_ROOT == "/scilla") {
     SCILLA_ROOT = "/tmp";
   }
-
-  // Metrics::GetInstance().Test("STEVE_METRIC");
 
   try {
     po::options_description desc("Options");
