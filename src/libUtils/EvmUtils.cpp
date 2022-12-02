@@ -47,6 +47,17 @@ using namespace boost::multiprecision;
 Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   Json::Value arr_ret(Json::arrayValue);
 
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING, "============> Calling the EVM:");
+    LOG_GENERAL(WARNING, "Address: " << ProtoToAddress(args.address()));
+    LOG_GENERAL(WARNING, "Origin: " << ProtoToAddress(args.origin()));
+    LOG_GENERAL(WARNING, "Code: " << DataConversion::Uint8VecToHexStrRet(toZbytes(args.code())));
+    LOG_GENERAL(WARNING, "Data: " << DataConversion::Uint8VecToHexStrRet(toZbytes(args.data())));
+    LOG_GENERAL(WARNING, "Value: " << args.apparent_value().DebugString());
+    LOG_GENERAL(WARNING, "Estimating gas: " << args.estimate());
+    LOG_GENERAL(WARNING, "Extras: \n" << args.extras().DebugString());
+  }
+
   std::string output;
   args.SerializeToString(&output);
   // Output can contain non-UTF8, so must be wrapped in base64.
@@ -61,6 +72,53 @@ evm::EvmResult& EvmUtils::GetEvmResultFromJson(const Json::Value& json,
     throw std::runtime_error("Cannot parse EVM result protobuf");
   }
   return result;
+}
+
+void EvmUtils::PrintDebugEvmResult(evm::EvmResult& result) {
+
+  auto exitReason = result.exit_reason().DebugString();
+  std::replace(exitReason.begin(), exitReason.end(), '\n', ' ');
+  LOG_GENERAL(INFO, "Exit code: " << exitReason);
+  LOG_GENERAL(INFO, "Return value: " << DataConversion::Uint8VecToHexStrRet(toZbytes(result.return_value())));
+  LOG_GENERAL(INFO, "Remaining gas: " << result.remaining_gas());
+
+  for (const auto& it : result.apply()) {
+
+    LOG_GENERAL(INFO, "apply case: " << it.apply_case())
+
+    switch (it.apply_case()) {
+      case evm::Apply::ApplyCase::kDelete:
+      LOG_GENERAL(INFO, "Delete address: " << ProtoToAddress(it.delete_().address()));
+        break;
+      case evm::Apply::ApplyCase::kModify:
+      LOG_GENERAL(INFO, "Modify address: " << ProtoToAddress(it.modify().address()));
+        LOG_GENERAL(INFO, "Code: " << DataConversion::Uint8VecToHexStrRet(toZbytes(it.modify().code())));
+        LOG_GENERAL(INFO, "Modify reset storage: " << it.modify().reset_storage());
+        LOG_GENERAL(INFO, "Modify nonce: " << ProtoToUint(it.modify().nonce()));
+        LOG_GENERAL(INFO, "Modify balance: " << ProtoToUint(it.modify().balance()));
+
+        for (const auto& sit : it.modify().storage()) {
+          LOG_GENERAL(INFO, "Modify storage. Key: " << sit.key() << " Val: " << sit.value());
+        }
+        break;
+      case evm::Apply::ApplyCase::APPLY_NOT_SET:
+      LOG_GENERAL(INFO, "None");
+        break;
+    }
+  }
+
+  for (const auto& it : result.logs()) {
+    LOG_GENERAL(INFO, "LOG: " << ProtoToAddress(it.address()));
+    for (const auto& itt : it.topics()) {
+      auto const topic = DataConversion::Uint8VecToHexStrRet(ProtoToH256(itt).asBytes());
+      LOG_GENERAL(INFO, "LOG TOPIC: " << topic.data());
+    }
+    auto logData = it.data();
+    if(!logData.empty()) {
+      std::replace(logData.begin(), logData.end()-1, '\0', ' ');
+    }
+    LOG_GENERAL(INFO, "LOG data: " << logData);
+  }
 }
 
 bool EvmUtils::isEvm(const zbytes& code) {
