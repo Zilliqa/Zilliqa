@@ -20,6 +20,7 @@
 
 #include "common/Constants.h"
 #include "common/Singleton.h"
+#include "common/MetricNames.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
@@ -32,12 +33,17 @@ namespace metrics_api = opentelemetry::metrics;
 namespace metrics_api = opentelemetry::metrics;
 
 namespace metrics {
+
 using int64_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
 using double_t = std::unique_ptr<metrics_api::Counter<double_t>>;
 using int64Observable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
 using doubleObservable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
 using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
+
+inline bool  IsEnabled(const int& to_test) {
+  return METRIC_ZILLIQA_MASK & to_test;
+}
 
 }  // namespace metrics
 
@@ -89,5 +95,18 @@ class Metrics : public Singleton<Metrics> {
   std::shared_ptr<metrics_api::MeterProvider> m_provider;
   bool m_status{false};
 };
+
+// A short hand test to save some repetitive coding.
+// This macro works in conjunction with the constants value METRIC_ZILLIQA_MASK
+// the mask is a 64 bit value each bit is reserved for a definition of value in
+// common/MetricNames.h
+// For the bit map to work a definiton should be a power of 2 in hex.
+// 0 means nothing is set
+// FFFF FFFF FFFF FFFF meaans all are set. by having each value as a
+// power of 2 one can have 64x64 permuttions od the flags
+
+#define     IF_MET_ENABLED(a) \
+  if (METRIC_ZILLIQA_MASK & a)
+
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_

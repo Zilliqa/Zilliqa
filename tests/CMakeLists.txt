@@ -19,6 +19,7 @@ add_subdirectory (Server)
 add_subdirectory (EvmLookupServer)
 add_subdirectory (EvmFiltersAPI)
 add_subdirectory (Utils)
+add_subdirectory (observability)
 add_subdirectory (Zilliqa)
 #add_subdirectory (RemoteStorageDB) Works only if you have a local mongo server running
 
@@ -27,4 +28,3 @@ file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR
 # presently, it's a workaround to silence the error thrown by tests_zilliqa_local.py
 file(COPY ${CMAKE_SOURCE_DIR}/constants.xml DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY Node DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
