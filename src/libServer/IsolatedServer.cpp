@@ -498,12 +498,12 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
             ")");
   }
 
-  //if (sender->GetNonce() >= tx.GetNonce()) {
-  //  throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-  //                         "Nonce (" + to_string(tx.GetNonce()) +
-  //                             ") lower than current (" +
-  //                             to_string(sender->GetNonce()) + ")");
-  //}
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
+  }
 
   return true;
 }
