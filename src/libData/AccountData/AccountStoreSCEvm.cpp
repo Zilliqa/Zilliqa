@@ -85,6 +85,7 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   if (result.exit_reason().exit_reason_case() !=
       evm::ExitReason::ExitReasonCase::kSucceed) {
     LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(result.exit_reason()));
+    ret = false;
   }
 
   if (result.logs_size() > 0) {
