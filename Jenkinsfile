@@ -6,12 +6,14 @@ spec:
     beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
-    image: "zilliqa/scilla:v0.13.0"
+    image: "zilliqa/scilla:v0.13.1-alpha"
+    imagePullPolicy: Always
     command:
     - cat
     tty: true
   - name: "ubuntu"
     image: "zilliqa/zilliqa-ccache:v8.4.0"
+    imagePullPolicy: Always
     command:
     - cat
     tty: true
@@ -63,6 +65,8 @@ timestamps {
             container('ubuntu') {
                 env.VCPKG_ROOT="/vcpkg"
                 stage('Build') {
+                    sh "ls -la /lib/x86_64-linux-gnu/libsec*"
+                    sh "apt update -y && apt install -y libsecp256k1-dev"
                     sh "update-alternatives --install /usr/bin/python python \$(which python3) 1"
                     sh "git config --global --add safe.directory '*'"
                     // Hack: since Jenkins checks out the branch to a different directory each time and given
