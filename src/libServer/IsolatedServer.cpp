@@ -498,12 +498,12 @@ bool IsolatedServer::ValidateTxn(const Transaction& tx, const Address& fromAddr,
             ")");
   }
 
-  //if (sender->GetNonce() >= tx.GetNonce()) {
-  //  throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-  //                         "Nonce (" + to_string(tx.GetNonce()) +
-  //                             ") lower than current (" +
-  //                             to_string(sender->GetNonce()) + ")");
-  //}
+  if (sender->GetNonce() >= tx.GetNonce()) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
+                           "Nonce (" + to_string(tx.GetNonce()) +
+                               ") lower than current (" +
+                               to_string(sender->GetNonce()) + ")");
+  }
 
   return true;
 }
@@ -817,6 +817,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     TransactionReceipt txreceipt;
 
     TxnStatus error_code;
+    bool throwError = false;
     txreceipt.SetEpochNum(m_blocknum);
 
     auto const gas_price =
@@ -832,6 +833,7 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
             3,  // Arbitrary values
             true, tx, extras, txreceipt, error_code)) {
       LOG_GENERAL(WARNING, "failed to update accounts!!!");
+      throwError = true;
     }
     LOG_GENERAL(INFO, "Processing On the isolated server...");
 
@@ -843,6 +845,11 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
 
     if (!m_timeDelta) {
       AccountStore::GetInstance().InitTemp();
+    }
+
+    if (throwError) {
+      throw JsonRpcException(RPC_INVALID_PARAMETER,
+                             "Error Code: " + to_string(error_code));
     }
 
     TransactionWithReceipt twr(tx, txreceipt);
