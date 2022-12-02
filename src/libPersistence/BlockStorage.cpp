@@ -120,6 +120,10 @@ bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
     m_txBlockchainAuxDB->Insert(
         leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
         leveldb::Slice(std::to_string(blockHeader.GetBlockNum())));
+    const auto maxKnownBlockNumStr =
+        m_txBlockchainAuxDB->Lookup(MAX_TX_BLOCK_NUM_KEY);
+    LOG_GENERAL(WARNING,
+                "MAX_TX_BLOCK_NUM_KEY found 1: " << maxKnownBlockNumStr);
   }
   return status;
 }
