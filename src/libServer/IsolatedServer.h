@@ -27,6 +27,7 @@ class IsolatedServer : public LookupServer,
                        public jsonrpc::AbstractServer<IsolatedServer> {
   uint64_t m_blocknum;
   bool m_pause{false};
+  bool m_intervalMiningInitialized{false};
   uint128_t m_gasPrice{GAS_PRICE_MIN_VALUE};
   std::atomic<uint32_t> m_timeDelta;
   std::unordered_map<uint64_t, std::vector<TxnHash>> m_txnBlockNumMap;
@@ -51,6 +52,24 @@ class IsolatedServer : public LookupServer,
   }
 
   void BindAllEvmMethods();
+
+  inline virtual void GetEvmMineI(const Json::Value&, Json::Value&) {
+    PostTxBlock();
+  }
+
+  inline virtual void GetEvmSetIntervalMiningI(const Json::Value& request,
+                                               Json::Value&) {
+    m_timeDelta = request[0u].asUInt();
+
+    // If this the first time we're going to use interval mining, initialize the
+    // block num thread.
+    if (!m_intervalMiningInitialized && m_timeDelta > 0) {
+      StartBlocknumIncrement();
+    }
+
+    // If new interval is 0, stop interval mining.
+    m_pause = m_timeDelta == 0;
+  }
 
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
