@@ -68,6 +68,8 @@ void Metrics::Init() {
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(m_provider);
   p->AddMetricReader(std::move(reader));
   metrics_api::Provider::SetMeterProvider(m_provider);
+  // Initialise the powers of 2 array;
+  m_tester.init();
 }
 
 zil::metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,

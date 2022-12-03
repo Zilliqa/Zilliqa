@@ -18,10 +18,19 @@
 #ifndef ZILLIQA_SRC_COMMON_METRICNAMES_H_
 #define ZILLIQA_SRC_COMMON_METRICNAMES_H_
 
-const int TRACE_OFF = 0;
-const int TRACE_P2P = 0x1;
-const int TRACE_DATABASE = 0x2;
-const int METRICS_EVM_RPC = 0x4;
-const int TRACE_SOME_SMELLY_CODE = 0x8;
+// Warning the code depends on this being a linear enum with no overriding the numeric sequencing
+// this use a c++ template trick to navigate the enum at compile time.
+
+namespace zil {
+namespace metrics {
+enum InstrumentationClass {
+  TRACE_P2P,
+  TRACE_DATABASE,
+  METRICS_EVM_RPC,
+  TRACE_SOME_SMELLY_CODE,
+};
+}
+}
+
 
 #endif  // ZILLIQA_SRC_COMMON_METRICNAMES_H_

@@ -34,15 +34,15 @@ int main() {
 
   std::cout << "value of mask " << METRIC_ZILLIQA_MASK << std::endl;
 
-  if (zil::metrics::IsEnabled(TRACE_OFF)) std::cout << "No tracing is set" << std::endl;
-  if (zil::metrics::IsEnabled(TRACE_P2P)) std::cout << "P2P tracing on" << std::endl;
-  if (zil::metrics::IsEnabled(TRACE_DATABASE)) std::cout << "DB tracing on" << std::endl;
-  if (zil::metrics::IsEnabled(METRICS_EVM_RPC)) std::cout << "evm tracing on" << std::endl;
-  if (zil::metrics::IsEnabled(TRACE_SOME_SMELLY_CODE)) std::cout << "smelly code trace is on" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_OFF)) std::cout << "No tracing is set" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_P2P)) std::cout << "P2P tracing on" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) std::cout << "DB tracing on" << std::endl;
+  if (zil::metrics::Test::Enabled(METRICS_EVM_RPC)) std::cout << "evm tracing on" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_SOME_SMELLY_CODE)) std::cout << "smelly code trace is on" << std::endl;
 
   std::cout << "val of counter " << counter << std::endl;
 
-  if (zil::metrics::IsEnabled(TRACE_DATABASE)) {
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) {
     counter++;
   }
 
@@ -51,11 +51,11 @@ int main() {
   // some code later on or deeper in a function call.
   // these should be noops.
 
-  if (zil::metrics::IsEnabled(TRACE_DATABASE)) {
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) {
     counter++;
   }
-  if (zil::metrics::IsEnabled(TRACE_DATABASE)) { counter++; }
-  if (zil::metrics::IsEnabled(TRACE_DATABASE)) { counter++; }
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) { counter++; }
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) { counter++; }
 
   std::cout << "val of counter " << counter << std::endl;
 
