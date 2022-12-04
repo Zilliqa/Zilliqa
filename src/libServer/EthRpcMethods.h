@@ -34,8 +34,8 @@ class EthRpcMethods {
   EthRpcMethods(Mediator& mediator)
       : m_sharedMediator(mediator), m_lookupServer(nullptr) {}
 
-  zil::metrics::int64_t m_ethApiCall = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa", "eth", "Calls to ethereum API");
+  zil::metrics::int64_t m_apiCallCount = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa", "eth_call_count", "Calls to ethereum API","Calls");
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,

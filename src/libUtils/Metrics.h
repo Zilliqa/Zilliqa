@@ -44,17 +44,24 @@ using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
 
-class Test : public Singleton<Test> {
+class Filter {
  public:
   static void init() {
+    // Pre cache powers of 2, this saves the developer having to work out what
+    // is the value of each bit position, and only costs one indirection on test.
     int j = 0;
-    for (auto& i : m_powers) i = pow(2, j++);
+    for (auto& i : m_powers) {
+      i = pow(2, j++);
+      if (j==64){ // extend this if the mask increases in size
+        break;
+      }
+    }
   }
-  static inline bool Enabled(InstrumentationClass to_test) {
+  static bool Enabled(FilterClass to_test) {
     return METRIC_ZILLIQA_MASK & m_powers[to_test];
   }
  private:
-  static std::array<int, magic_enum::enum_count<zil::metrics::InstrumentationClass>()>
+  static std::array<int, magic_enum::enum_count<zil::metrics::FilterClass>()>
       m_powers;
 };
 }  // namespace metrics
@@ -118,7 +125,7 @@ class Metrics : public Singleton<Metrics> {
 
   std::shared_ptr<metrics_api::MeterProvider> m_provider;
   bool m_status{false};
-  zil::metrics::Test  m_tester;
+  zil::metrics::Filter m_tester;
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_

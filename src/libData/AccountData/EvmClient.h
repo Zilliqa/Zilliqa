@@ -74,8 +74,8 @@ class EvmClient : public Singleton<EvmClient> {
   boost::process::child m_child;
   // In case we need to protect unsafe code in future.
   std::mutex m_mutexMain;
-  zil::metrics::int64_t m_ctrClient = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa", "evm_client", "Calls to EVM-DS");
+  zil::metrics::int64_t m_evmClientCount = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_evm_client_count", "method", "Calls to EVM-DS","Calls");
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_

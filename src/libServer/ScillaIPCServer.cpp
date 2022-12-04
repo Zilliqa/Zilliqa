@@ -57,13 +57,19 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
 }
 
 void ScillaIPCServer::setBCInfoProvider(const ScillaBCInfo &bcInfo) {
-  m_ctrScilla->Add(1, {{"External", "Calls"}, {"Method", "setBCInfoProvider"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "setBCInfoProvider"}});
+  }
   m_BCInfo = bcInfo;
 }
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
                                        Json::Value &response) {
-  m_ctrScilla->Add(1, {{"External", "Calls"}, {"Method", "fetchStateValueI"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchStateValueI"}});
+  }
   std::string value;
   bool found;
   if (!fetchStateValue(request["query"].asString(), value, found)) {
@@ -78,8 +84,10 @@ void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
                                                Json::Value &response) {
-  m_ctrScilla->Add(
-      1, {{"External", "Calls"}, {"Method", "fetchExternalStateValueI"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchExternalStateValueI"}});
+  }
   std::string value, type;
   bool found;
   if (!fetchExternalStateValue(request["addr"].asString(),
@@ -97,9 +105,11 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
-  m_ctrScilla->Add(
-      1, {{"External", "Calls"}, {"Method", "fetchExternalStateValueB64I"}});
-  m_ctrScilla->Add(10, {{"External", "Test"}, {"Message type", 5}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchExternalStateValueB64I"}});
+  }
+  m_scillaIPCCount->Add(10, {{"External", "Test"}, {"Message type", 5}});
   std::string value, type;
   bool found;
   string query = base64_decode(request["query"].asString());
@@ -117,7 +127,10 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
 
 void ScillaIPCServer::updateStateValueI(const Json::Value &request,
                                         Json::Value &response) {
-  m_ctrScilla->Add(1, {{"External", "Calls"}, {"Method", "updateStateValueI"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "updateStateValueI"}});
+  }
   if (!updateStateValue(request["query"].asString(),
                         request["value"].asString())) {
     throw JsonRpcException("Updating state value failed");
@@ -129,8 +142,10 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
                                            Json::Value &response) {
-  m_ctrScilla->Add(1,
-                   {{"External", "Calls"}, {"Method", "fetchBlockchainInfoI"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchBlockchainInfoI"}});
+  }
   std::string value;
   if (!fetchBlockchainInfo(request["query_name"].asString(),
                            request["query_args"].asString(), value)) {
@@ -145,7 +160,10 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
 
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
-  m_ctrScilla->Add(1, {{"External", "Calls"}, {"Method", "fetchStateValue"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchStateValue"}});
+  }
   zbytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchStateValue(
@@ -163,8 +181,10 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
                                               const string &query,
                                               string &value, bool &found,
                                               string &type) {
-  m_ctrScilla->Add(
-      1, {{"External", "Calls"}, {"Method", "fetchExternalStateValue"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchExternalStateValue"}});
+  }
   zbytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
@@ -181,7 +201,10 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
-  m_ctrScilla->Add(1, {{"External", "Calls"}, {"Method", "updateStateValue"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "updateStateValue"}});
+  }
   return ContractStorage::GetContractStorage().UpdateStateValue(
       m_BCInfo.getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
@@ -190,8 +213,10 @@ bool ScillaIPCServer::updateStateValue(const string &query,
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
-  m_ctrScilla->Add(1,
-                   {{"External", "Calls"}, {"Method", "fetchBlockchainInfo"}});
+  if (zil::metrics::Filter::Enabled(
+        zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchBlockchainInfo"}});
+  }
 
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo.getCurBlockNum());

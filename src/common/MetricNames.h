@@ -18,19 +18,24 @@
 #ifndef ZILLIQA_SRC_COMMON_METRICNAMES_H_
 #define ZILLIQA_SRC_COMMON_METRICNAMES_H_
 
-// Warning the code depends on this being a linear enum with no overriding the numeric sequencing
-// this use a c++ template trick to navigate the enum at compile time.
+// Currently maxes out at 64 filters, in order to increase developer should
+// change the type of the mask from uint64_t to uint128_t or uint256_t if
+// the number of filters ever increases beyond 64.
+//
+// Do not override the default numbering of these items, the algorithms rely
+// upon these definitions being consecutive, so no assigning new numbers.
 
 namespace zil {
 namespace metrics {
-enum InstrumentationClass {
-  TRACE_P2P,
-  TRACE_DATABASE,
-  METRICS_EVM_RPC,
-  TRACE_SOME_SMELLY_CODE,
+enum FilterClass {
+  EVM_CLIENT,
+  EVM_CLIENT_LOW_LEVEL,
+  SCILLA_IPC,
+  EVM_RPC,
+  LOOKUP_SERVER,
+  ANYTHING_YOU_LIKE_LEASE_EXTEND_JUST_ADD_ANY_FILTER_YOU_LIKE_UP_TO_64_OF_THEM
 };
 }
-}
-
+}  // namespace zil
 
 #endif  // ZILLIQA_SRC_COMMON_METRICNAMES_H_

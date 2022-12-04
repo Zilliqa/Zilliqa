@@ -43,8 +43,9 @@ class LookupServer : public Server,
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
-  zil::metrics::int64_t m_ctrLookupCall = Metrics::GetInstance().CreateInt64Metric(
-      "ZILLIQA", "LookupServer", "Calls to Lookup Server");
+
+  zil::metrics::int64_t m_callCount = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa", "lookupServer_call_count", "Calls to Lookup Server","Calls");
 
   CreateTransactionTargetFunc m_createTransactionTarget =
       [this](const Transaction& tx, uint32_t shardId) -> bool {
