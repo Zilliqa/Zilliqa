@@ -15,28 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "JSONConversion.h"
-
-#include <boost/multiprecision/cpp_dec_float.hpp>
-#include <iostream>
-#include "depends/jsonrpc/include/jsonrpccpp/server.h"
-
-#include <Schnorr.h>
 #include "Server.h"
-#include "common/Messages.h"
-#include "common/Serializable.h"
-#include "common/TxnStatus.h"
-#include "libCrypto/Sha2.h"
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/Blacklist.h"
-#include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
-#include "libPersistence/BlockStorage.h"
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/TimeUtils.h"
 

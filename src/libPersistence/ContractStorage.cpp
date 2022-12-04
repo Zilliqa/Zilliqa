@@ -401,7 +401,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 }
 
 bool ContractStorage::FetchExternalStateValue(
-    const dev::h160& caller, const dev::h160& target, const zbytes& src,
+    const dev::h160& /*caller*/, const dev::h160& target, const zbytes& src,
     unsigned int s_offset, zbytes& dst, unsigned int d_offset, bool& foundVal,
     string& type, uint32_t caller_version) {
   if (s_offset > src.size() || d_offset > dst.size()) {
@@ -932,11 +932,12 @@ bool ContractStorage::CleanEmptyMapPlaceholders(const string& key) {
 void ContractStorage::UpdateStateData(const string& key, const zbytes& value,
                                       bool cleanEmpty) {
   if (LOG_SC) {
+    LOG_GENERAL(INFO, "updating state data..");
     LOG_GENERAL(INFO, "key: " << key);
     string hex;
     DataConversion::StringToHexStr(DataConversion::CharArrayToString(value),
                                    hex);
-    LOG_GENERAL(INFO, " value: " << hex);
+    LOG_GENERAL(INFO, "value: " << hex);
   }
 
   if (cleanEmpty) {

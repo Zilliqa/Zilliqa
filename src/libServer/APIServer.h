@@ -31,7 +31,7 @@ namespace jsonrpc {
 class AbstractServerConnector;
 }
 
-namespace evmproj {
+namespace rpc {
 
 class WebsocketServer;
 
@@ -41,6 +41,10 @@ class APIServer {
  public:
   /// Server start parameters
   struct Options {
+    /// External Asio context. If nullptr, the server will run event loop in its
+    /// private dedicated thread
+    std::shared_ptr<boost::asio::io_context> asio;
+
     /// Listen port
     uint16_t port = 8080;
 
@@ -48,7 +52,10 @@ class APIServer {
     bool bindToLocalhost = false;
 
     /// Limit in bytes for POST bodies of incoming requests (security)
-    size_t inputBodyLimit = 5 * 1024 * 1024;
+    size_t inputBodyLimitBytes = 5 * 1024 * 1024;
+
+    /// Prefix for thread names in threadpool
+    std::string threadPoolName;
 
     /// Number of threads in thread pool
     size_t numThreads = 6;
@@ -66,9 +73,8 @@ class APIServer {
   /// \param options Server options
   /// \param startListening Start listening immediately
   /// \return APIServer instance on success, empty shared_ptr on failure
-  static std::shared_ptr<APIServer> CreateAndStart(
-      std::shared_ptr<boost::asio::io_context> asio, Options options,
-      bool startListening = true);
+  static std::shared_ptr<APIServer> CreateAndStart(Options options,
+                                                   bool startListening = true);
 
   virtual ~APIServer() = default;
 
@@ -82,6 +88,6 @@ class APIServer {
   virtual void Close() = 0;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_APISERVER_H_
