@@ -206,9 +206,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
 
-  // /// Deletes the requested Micro block
-  // bool DeleteMicroBlock(const dev::h256 & key);
-
   /// Deletes the requested transaction body
   bool DeleteTxBody(const dev::h256& key);
 
@@ -348,8 +345,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Refresh a DB
   bool RefreshDB(DBTYPE type);
-
-  std::vector<std::string> GetDBName(DBTYPE type);
 
   /// Clean all DB
   bool ResetAll();
