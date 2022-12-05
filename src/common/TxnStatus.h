@@ -18,9 +18,7 @@
 #ifndef ZILLIQA_SRC_COMMON_TXNSTATUS_H_
 #define ZILLIQA_SRC_COMMON_TXNSTATUS_H_
 
-#include "depends/common/FixedHash.h"
-
-using TxnHash = dev::h256;
+#include "Hashes.h"
 
 enum TxnStatus : uint8_t {
 

@@ -19,6 +19,7 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/RootComputation.h"
+#include "libUtils/DataConversion.h"
 
 #include <cstdint>
 #include <vector>

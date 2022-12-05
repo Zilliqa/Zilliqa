@@ -31,15 +31,13 @@
 #include "Address.h"
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
+#include "common/Hashes.h"
 #include "common/Singleton.h"
-#include "depends/common/FixedHash.h"
 #include "depends/libDatabase/MemoryDB.h"
 #include "depends/libDatabase/OverlayDB.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/TxnExtras.h"
-
-using StateHash = dev::h256;
 
 class AccountStore;
 class ScillaIPCServer;

@@ -32,8 +32,8 @@
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
 #include "EvmClient.h"
-#include "libServer/ScillaIPCServer.h"
-#include "libServer/UnixDomainSocketServer.h"
+#include "libScilla/ScillaIPCServer.h"
+#include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"

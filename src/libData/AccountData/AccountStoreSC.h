@@ -24,7 +24,7 @@
 #include <functional>
 #include <mutex>
 
-#include <libServer/ScillaIPCServer.h>
+#include <libScilla/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"

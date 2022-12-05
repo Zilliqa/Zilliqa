@@ -20,6 +20,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
+#include <boost/exception/diagnostic_information.hpp>
 
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/BlockStorage.h"

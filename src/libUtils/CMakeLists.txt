@@ -9,8 +9,8 @@ set_target_properties(opentelemetry-cpp::opentelemetry_exporter_prometheus PROPE
 
 protobuf_generate_cpp(PROTO_SRC PROTO_HEADER Evm.proto)
 
-add_library(Utils AddressConversion.cpp BitVector.cpp DataConversion.cpp Logger.cpp SanityChecks.cpp Scheduler.cpp ShardSizeCalculator.cpp TimeUtils.cpp RandomGenerator.cpp RootComputation.cpp IPConverter.cpp UpgradeManager.cpp SWInfo.cpp FileSystem.cpp ScillaUtils.cpp MemoryStats.cpp CommonUtils.cpp EvmUtils.cpp EvmUtils.h Metrics.h Metrics.cpp ${PROTO_SRC})
-target_include_directories(Utils PUBLIC ${PROJECT_SOURCE_DIR}/src ${CURL_INCLUDE_DIRS})
+add_library(Utils AddressConversion.cpp BitVector.cpp DataConversion.cpp Logger.cpp SanityChecks.cpp Scheduler.cpp ShardSizeCalculator.cpp TimeUtils.cpp RandomGenerator.cpp RootComputation.cpp IPConverter.cpp UpgradeManager.cpp SWInfo.cpp FileSystem.cpp ScillaUtils.cpp MemoryStats.cpp CommonUtils.cpp EvmUtils.cpp Metrics.cpp ${PROTO_SRC})
+target_include_directories(Utils PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS})
 target_link_libraries(Utils
   INTERFACE
     Threads::Threads

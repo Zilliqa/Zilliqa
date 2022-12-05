@@ -24,7 +24,7 @@
 #include "ScillaClient.h"
 
 #include "libPersistence/ContractStorage.h"
-#include "libServer/ScillaIPCServer.h"
+#include "libScilla/ScillaIPCServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"

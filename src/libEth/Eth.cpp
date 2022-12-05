@@ -24,6 +24,7 @@
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
 #include "libCrypto/EthCrypto.h"
+#include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/Server.h"
