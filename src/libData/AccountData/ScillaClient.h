@@ -31,7 +31,7 @@ class ScillaClient {
 
   std::mutex m_mutexMain;
 
-  ScillaClient(){};
+  ScillaClient() = default;
   ~ScillaClient();
 
   bool OpenServer(uint32_t version);

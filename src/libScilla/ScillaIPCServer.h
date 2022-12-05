@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
-#define ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
+#ifndef ZILLIQA_SRC_LIBSCILLA_SCILLAIPCSERVER_H_
+#define ZILLIQA_SRC_LIBSCILLA_SCILLAIPCSERVER_H_
 
 #include <jsonrpccpp/server/abstractserver.h>
 
@@ -104,4 +104,4 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   ScillaBCInfo m_BCInfo;
 };
 
-#endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
+#endif  // ZILLIQA_SRC_LIBSCILLA_SCILLAIPCSERVER_H_

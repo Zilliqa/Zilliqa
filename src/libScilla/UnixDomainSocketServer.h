@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETSERVER_H_
-#define ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETSERVER_H_
+#ifndef ZILLIQA_SRC_LIBSCILLA_UNIXDOMAINSOCKETSERVER_H_
+#define ZILLIQA_SRC_LIBSCILLA_UNIXDOMAINSOCKETSERVER_H_
 
 #include <atomic>
 #include <optional>
@@ -55,4 +55,4 @@ class UnixDomainSocketServer : public jsonrpc::AbstractServerConnector {
 
 }  // namespace rpc
 
-#endif  // ZILLIQA_SRC_LIBSERVER_UNIXDOMAINSOCKETSERVER_H_
+#endif  // ZILLIQA_SRC_LIBSCILLA_UNIXDOMAINSOCKETSERVER_H_
