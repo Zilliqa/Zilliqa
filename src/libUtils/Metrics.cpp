@@ -29,17 +29,6 @@
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
-  try {
-    unsigned int x;
-    x = METRIC_ZILLIQA_PORT;
-    x++;
-  } catch (...) {
-    LOG_GENERAL(WARNING,
-                "Failed to read Metrics specific setting in Constants.XML to "
-                "disabling metrics");
-    m_status = false;
-    return;
-  }
 
   std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT)};
@@ -69,7 +58,7 @@ void Metrics::Init() {
   p->AddMetricReader(std::move(reader));
   metrics_api::Provider::SetMeterProvider(m_provider);
   // Initialise the powers of 2 array;
-  m_tester.init();
+  zil::metrics::Filter::GetInstance().init();
 }
 
 zil::metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,

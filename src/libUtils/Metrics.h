@@ -21,7 +21,6 @@
 #include "common/Constants.h"
 #include "common/MetricFilterss.h"
 #include "common/Singleton.h"
-#include "magic_enum.hpp"
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
@@ -43,25 +42,17 @@ using doubleObservable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
 using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
-class Filter {
+class Filter : public Singleton<Filter>{
  public:
-  static void init() {
-    // Pre cache powers of 2, this saves the developer having to work out what
-    // is the value of each bit position, and only costs one indirection on test.
-    int j = 0;
-    for (auto& i : m_powers) {
-      i = pow(2, j++);
-      if (j==64){ // extend this if the mask increases in size
-        break;
-      }
-    }
+  void init() {
+    m_power[0]=1;
+    for (int i=1;i<65;i++) m_power[i] = pow(2, i);
   }
-  static bool Enabled(FilterClass to_test) {
-    return METRIC_ZILLIQA_MASK & m_powers[to_test];
+  bool Enabled(FilterClass to_test) {
+    return METRIC_ZILLIQA_MASK & m_power[to_test];
   }
  private:
-  static std::array<int, magic_enum::enum_count<zil::metrics::FilterClass>()>
-      m_powers;
+  uint64_t m_power[65];
 };
 }  // namespace metrics
 }  // namespace zil
@@ -124,7 +115,6 @@ class Metrics : public Singleton<Metrics> {
 
   std::shared_ptr<metrics_api::MeterProvider> m_provider;
   bool m_status{false};
-  zil::metrics::Filter m_tester;
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_

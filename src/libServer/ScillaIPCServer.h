@@ -55,6 +55,8 @@ class ScillaBCInfo {
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
 
+  zil::metrics::int64Observable_t m_bcInfoCount { Metrics::GetInstance().CreateInt64Gauge(
+          "zilliqa", "scilla_bcinfo_count", "Metrics for ScillaBCInfo", "Blocks") };
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
