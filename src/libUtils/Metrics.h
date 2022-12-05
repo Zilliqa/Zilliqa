@@ -43,7 +43,6 @@ using doubleObservable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
 using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
-
 class Filter {
  public:
   static void init() {

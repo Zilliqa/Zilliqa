@@ -36,7 +36,7 @@ using websocketpp::base64_encode;
 namespace {
 
 static zil::metrics::int64Observable_t bcInfoCount =
-    Metrics::GetInstance().CreateInt64ObservableCounter(
+    Metrics::GetInstance().CreateInt64Gauge(
         "zilliqa", "scilla_bcinfo_count", "Metrics for ScillaBCInfo", "Blocks");
 
 static void instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,
