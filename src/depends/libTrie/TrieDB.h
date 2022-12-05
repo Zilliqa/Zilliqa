@@ -23,9 +23,9 @@
 #include <memory>
 
 #include "TrieCommon.h"
+#include "libUtils/Logger.h"
 #include "depends/common/Exceptions.h"
 #include "depends/common/SHA3.h"
-#include "libUtils/DataConversion.h"
 
 namespace dev {
 struct InvalidTrie : virtual dev::Exception {};
@@ -72,10 +72,7 @@ class GenericTrieDB {
   void init() const {
     setRoot(forceInsertNode(&RLPNull));
 
-    if (node(m_root).size() == 0) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT(node(m_root).size() != 0);
   }
 
   void setRoot(h256 const& _root,
@@ -171,7 +168,7 @@ class GenericTrieDB {
     struct Node {
       std::string rlp;
       std::string key;  // as hexPrefixEncoding.
-      zbyte child;       // 255 -> entering, 16 -> actually at the node, 17 ->
+      zbyte child;      // 255 -> entering, 16 -> actually at the node, 17 ->
                         // exiting, 0-15 -> actual children.
 
       // 255 -> 16 -> 0 -> 1 -> ... -> 15 -> 17
@@ -278,9 +275,9 @@ class GenericTrieDB {
   void mergeAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key,
                   zbytesConstRef _value);
   zbytes mergeAt(RLP const& _replace, NibbleSlice _k, zbytesConstRef _v,
-                bool _inLine = false);
+                 bool _inLine = false);
   zbytes mergeAt(RLP const& _replace, h256 const& _replaceHash, NibbleSlice _k,
-                zbytesConstRef _v, bool _inLine = false);
+                 zbytesConstRef _v, bool _inLine = false);
 
   bool deleteAtAux(RLPStream& _out, RLP const& _replace, NibbleSlice _key);
   zbytes deleteAt(RLP const& _replace, NibbleSlice _k);
@@ -379,7 +376,8 @@ class SpecificTrieDB : public Generic {
   std::string operator[](KeyType _k) const { return at(_k); }
 
   bool contains(KeyType _k) const {
-    return Generic::contains(zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
+    return Generic::contains(
+        zbytesConstRef((zbyte const*)&_k, sizeof(KeyType)));
   }
 
   std::string at(KeyType _k) const {
@@ -607,21 +605,11 @@ GenericTrieDB<DB>::iterator::iterator(GenericTrieDB const* _db,
 template <class DB>
 typename GenericTrieDB<DB>::iterator::value_type
 GenericTrieDB<DB>::iterator::at() const {
-  if (m_trail.size() == 0) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(!m_trail.empty());
 
   Node const& b = m_trail.back();
-  if (b.key.size() == 0) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
-
-  if ((b.key[0] & 0x10) != 0) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(!b.key.empty());
+  ZIL_FATAL_ASSERT((b.key[0] & 0x10) == 0);
 
   RLP rlp(b.rlp);
   return std::make_pair(zbytesConstRef(b.key).cropped(1),
@@ -712,10 +700,7 @@ void GenericTrieDB<DB>::iterator::next(NibbleSlice _key) {
     }
 
     // ...here. should only get here if we're a list.
-    if (!rlp.isList() || rlp.itemCount() != 17) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT(rlp.isList() && rlp.itemCount() == 17);
 
     for (;; m_trail.back().incrementChild()) {
       if (m_trail.back().child == 17) {
@@ -797,10 +782,7 @@ void GenericTrieDB<DB>::iterator::next() {
     }
 
     // ...here. should only get here if we're a list.
-    if (!rlp.isList() || rlp.itemCount() != 17) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT(rlp.isList() && rlp.itemCount() == 17);
 
     for (;; m_trail.back().incrementChild()) {
       if (m_trail.back().child == 17) {
@@ -834,10 +816,7 @@ SpecificTrieDB<KeyType, DB>::iterator::at() const {
   auto p = Super::at();
   value_type ret;
 
-  if (p.first.size() != sizeof(KeyType)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(p.first.size() == sizeof(KeyType));
 
   memcpy(&ret.first, p.first.data(), sizeof(KeyType));
   ret.second = p.second;
@@ -850,10 +829,7 @@ void GenericTrieDB<DB>::insert(zbytesConstRef _key, zbytesConstRef _value) {
   //        _key << " : " << _value);
   std::string rootValue = node(m_root);
 
-  if (rootValue.size() == 0) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(!rootValue.empty());
 
   zbytes b = mergeAt(RLP(rootValue), m_root, NibbleSlice(_key), _value);
 
@@ -877,10 +853,7 @@ std::string GenericTrieDB<DB>::atAux(RLP const& _here, NibbleSlice _key) const {
     return std::string();
   unsigned itemCount = _here.itemCount();
 
-  if (!_here.isList() || (itemCount != 2 && itemCount != 17)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_here.isList() && !(itemCount != 2 && itemCount != 17));
 
   if (itemCount == 2) {
     auto k = keyOf(_here);
@@ -922,10 +895,7 @@ std::string GenericTrieDB<DB>::getProof(RLP const& _here, NibbleSlice _key,
   }
   unsigned itemCount = _here.itemCount();
 
-  if (!_here.isList() || (itemCount != 2 && itemCount != 17)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_here.isList() && !(itemCount != 2 && itemCount != 17));
 
   if (itemCount == 2) {
     nodes.emplace(_here.data().toString());
@@ -960,14 +930,14 @@ std::string GenericTrieDB<DB>::getProof(RLP const& _here, NibbleSlice _key,
 
 template <class DB>
 zbytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, NibbleSlice _k,
-                                 zbytesConstRef _v, bool _inLine) {
+                                  zbytesConstRef _v, bool _inLine) {
   return mergeAt(_orig, sha3(_orig.data()), _k, _v, _inLine);
 }
 
 template <class DB>
 zbytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 const& _origHash,
-                                 NibbleSlice _k, zbytesConstRef _v,
-                                 bool _inLine) {
+                                  NibbleSlice _k, zbytesConstRef _v,
+                                  bool _inLine) {
   // The caller will make sure that the bytes are inserted properly.
   // - This might mean inserting an entry into m_over
   // We will take care to ensure that (our reference to) _orig is killed.
@@ -977,10 +947,7 @@ zbytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 const& _origHash,
 
   unsigned itemCount = _orig.itemCount();
 
-  if (!_orig.isList() || (itemCount != 2 && itemCount != 17)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && !(itemCount != 2 && itemCount != 17));
 
   if (itemCount == 2) {
     // pair...
@@ -1043,10 +1010,7 @@ void GenericTrieDB<DB>::mergeAtAux(RLPStream& _out, RLP const& _orig,
     s = node(_orig.toHash<h256>());
     r = RLP(s);
 
-    if (r.isNull()) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT(!r.isNull());
 
     isRemovable = true;
   }
@@ -1085,10 +1049,7 @@ zbytes GenericTrieDB<DB>::deleteAt(RLP const& _orig, NibbleSlice _k) {
   // Empty - not found - no change.
   if (_orig.isEmpty()) return zbytes();
 
-  if (!_orig.isList() || (_orig.itemCount() != 2 && _orig.itemCount() != 17)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && !(_orig.itemCount() != 2 && _orig.itemCount() != 17));
 
   if (_orig.itemCount() == 2) {
     // pair...
@@ -1189,14 +1150,11 @@ bool GenericTrieDB<DB>::deleteAtAux(RLPStream& _out, RLP const& _orig,
 
 template <class DB>
 zbytes GenericTrieDB<DB>::place(RLP const& _orig, NibbleSlice _k,
-                               zbytesConstRef _s) {
+                                zbytesConstRef _s) {
   killNode(_orig);
   if (_orig.isEmpty()) return rlpList(hexPrefixEncode(_k, true), _s);
 
-  if (!_orig.isList() || (_orig.itemCount() != 2 && _orig.itemCount() != 17)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && !(_orig.itemCount() != 2 && _orig.itemCount() != 17));
 
   if (_orig.itemCount() == 2) return rlpList(_orig[0], _s);
 
@@ -1214,10 +1172,7 @@ template <class DB>
 zbytes GenericTrieDB<DB>::remove(RLP const& _orig) {
   killNode(_orig);
 
-  if (!_orig.isList() || (_orig.itemCount() != 2 && _orig.itemCount() != 17)) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && !(_orig.itemCount() != 2 && _orig.itemCount() != 17));
 
   if (_orig.itemCount() == 2) return RLPNull;
   RLPStream r(17);
@@ -1239,17 +1194,11 @@ template <class DB>
 zbytes GenericTrieDB<DB>::cleve(RLP const& _orig, unsigned _s) {
   killNode(_orig);
 
-  if (!_orig.isList() || _orig.itemCount() != 2) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && _orig.itemCount() == 2);
 
   auto k = keyOf(_orig);
 
-  if (!_s || _s > k.size()) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_s && _s <= k.size());
 
   RLPStream bottom(2);
   bottom << hexPrefixEncode(k, isLeaf(_orig), /*ugh*/ (int)_s) << _orig[1];
@@ -1263,10 +1212,7 @@ zbytes GenericTrieDB<DB>::cleve(RLP const& _orig, unsigned _s) {
 
 template <class DB>
 zbytes GenericTrieDB<DB>::graft(RLP const& _orig) {
-  if (!_orig.isList() || _orig.itemCount() != 2) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && _orig.itemCount() == 2);
 
   std::string s;
   RLP n;
@@ -1280,30 +1226,21 @@ zbytes GenericTrieDB<DB>::graft(RLP const& _orig) {
     n = RLP(s);
   }
 
-  if (n.itemCount() != 2) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(n.itemCount() == 2);
 
   return rlpList(hexPrefixEncode(keyOf(_orig), keyOf(n), isLeaf(n)), n[1]);
   //	auto ret =
   //	std::cout << keyOf(_orig) << " ++ " << keyOf(n) << " == " <<
-  //keyOf(RLP(ret)) << std::endl; 	return ret;
+  // keyOf(RLP(ret)) << std::endl; 	return ret;
 }
 
 template <class DB>
 zbytes GenericTrieDB<DB>::merge(RLP const& _orig, zbyte _i) {
-  if (!_orig.isList() || _orig.itemCount() != 17) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && _orig.itemCount() == 17);
 
   RLPStream s(2);
   if (_i != 16) {
-    if (_orig[_i].isEmpty()) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT(!_orig[_i].isEmpty());
 
     s << hexPrefixEncode(zbytesConstRef(&_i, 1), false, 1, 2, 0);
   } else
@@ -1314,20 +1251,14 @@ zbytes GenericTrieDB<DB>::merge(RLP const& _orig, zbyte _i) {
 
 template <class DB>
 zbytes GenericTrieDB<DB>::branch(RLP const& _orig) {
-  if (!_orig.isList() || _orig.itemCount() != 2) {
-    LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                            << ": " << __FUNCTION__ << ")");
-  }
+  ZIL_FATAL_ASSERT(_orig.isList() && _orig.itemCount() == 2);
 
   killNode(_orig);
 
   auto k = keyOf(_orig);
   RLPStream r(17);
   if (k.size() == 0) {
-    if (!isLeaf(_orig)) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT(isLeaf(_orig));
 
     for (unsigned i = 0; i < 16; ++i) r << "";
     r << _orig[1];

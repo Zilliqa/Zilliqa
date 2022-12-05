@@ -24,7 +24,6 @@
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/RandomGenerator.h"

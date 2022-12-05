@@ -28,7 +28,6 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 

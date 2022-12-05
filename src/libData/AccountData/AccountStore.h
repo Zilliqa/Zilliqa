@@ -33,9 +33,6 @@
 #include "common/Constants.h"
 #include "common/Hashes.h"
 #include "common/Singleton.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libDatabase/OverlayDB.h"
-#include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/TxnExtras.h"
 
