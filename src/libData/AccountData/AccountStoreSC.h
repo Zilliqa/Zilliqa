@@ -115,9 +115,9 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// Metrics callback for block number
   zil::metrics::int64Observable_t m_accountStoreCount { Metrics::GetInstance().CreateInt64Gauge(
-      "zilliqa", "accountstore_blocks_count", "Metrics for AccountStore", "Blocks") };
+      "zilliqa_accountstore", "blockchain_gauge", "Metrics for AccountStore", "blocks") };
   zil::metrics::int64_t m_accStoreProcees { Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa", "accountstore_blocks_count", "Metrics for AccountStore", "Blocks") };
+      "zilliqa_accountstroe", "invocations_count", "Metrics for AccountStore", "Blocks") };
 
   static void instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,void *state);
 

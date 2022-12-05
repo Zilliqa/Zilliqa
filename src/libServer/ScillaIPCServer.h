@@ -56,7 +56,7 @@ class ScillaBCInfo {
   uint32_t m_scillaVersion{};
 
   zil::metrics::int64Observable_t m_bcInfoCount { Metrics::GetInstance().CreateInt64Gauge(
-          "zilliqa", "scilla_bcinfo_count", "Metrics for ScillaBCInfo", "Blocks") };
+          "zilliqa_scill_bcinfo", "invocations_count", "Metrics for ScillaBCInfo", "Blocks") };
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
@@ -93,7 +93,7 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
   zil::metrics::int64_t m_scillaIPCCount =
-      Metrics::GetInstance().CreateInt64Metric("zilliqa", "scilla_ipc_count",
+      Metrics::GetInstance().CreateInt64Metric("zilliqa_scillaipc", "scilla_ipc_count",
                                                "Metrics for ScillaIPCServer",
                                                "Calls");
 
