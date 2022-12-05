@@ -20,6 +20,7 @@
 
 #include "depends/common/FixedHash.h"
 
+using BlockHash = dev::h256;
 using TxnHash = dev::h256;
 using StateHash = dev::h256;
 

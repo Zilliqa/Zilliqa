@@ -25,8 +25,6 @@ std::chrono::system_clock::time_point r_timer_start();
 double r_timer_end(std::chrono::system_clock::time_point start_time);
 
 uint64_t get_time_as_int();
-struct tm* gmtime_safe(const time_t* timer);
-long int get_ms(const std::chrono::time_point<std::chrono::system_clock> time);
 
 std::string microsec_timestamp_to_readable(const uint64_t timestamp);
 long int microsec_to_sec(const uint64_t timestamp);

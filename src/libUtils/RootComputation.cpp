@@ -24,8 +24,6 @@ using namespace std;
 using namespace dev;
 
 namespace {
-template <typename T, typename R>
-const R& GetHash(const T& item);
 
 inline const TxnHash& GetHash(const TxnHash& item) { return item; }
 

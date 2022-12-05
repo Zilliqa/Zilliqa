@@ -21,7 +21,6 @@
 #include "BaseType.h"
 #include "depends/common/FixedHash.h"
 
-using BlockHash = dev::h256;
 const size_t BLOCK_NUMERIC_DIGITS =
     std::to_string(std::numeric_limits<uint64_t>::max()).size();
 

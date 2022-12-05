@@ -58,21 +58,7 @@ inline bool IsTxnDropped(TxnStatus code) {
   return (static_cast<uint8_t>(code) >= 10);
 }
 
+// TODO: only used in libNode. consider moving.
 using HashCodeMap = std::unordered_map<TxnHash, TxnStatus>;
-
-class TTLTxns {
- private:
-  std::unordered_map<uint64_t, std::unordered_set<TxnHash>> m_txnHashExpiration;
-  HashCodeMap m_txnCode;
-
- public:
-  bool insert(const TxnHash& txhash, const TxnStatus status,
-              const uint64_t& epochNum);
-  void clear(const uint64_t& epochNum, const unsigned int& TTL);
-  const HashCodeMap& GetHashCodeMap() const;
-  void clearAll();
-};
-
-enum PendingData { HASH_CODE_MAP, PUBKEY, SHARD_ID };
 
 #endif  // ZILLIQA_SRC_COMMON_TXNSTATUS_H_
