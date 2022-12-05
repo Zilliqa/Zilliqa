@@ -21,10 +21,8 @@
 
 #include "depends/common/FixedHash.h"
 
-#include "libData/AccountData/Account.h"
+#include "libData/AccountData/Address.h"
 #include "libUtils/Metrics.h"
-#include <variant>
-
 
 class ScillaBCInfo {
  public:
@@ -55,8 +53,10 @@ class ScillaBCInfo {
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
 
-  zil::metrics::int64Observable_t m_bcInfoCount { Metrics::GetInstance().CreateInt64Gauge(
-          "zilliqa_scill_bcinfo", "invocations_count", "Metrics for ScillaBCInfo", "Blocks") };
+  zil::metrics::int64Observable_t m_bcInfoCount{
+      Metrics::GetInstance().CreateInt64Gauge(
+          "zilliqa_scill_bcinfo", "invocations_count",
+          "Metrics for ScillaBCInfo", "Blocks")};
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
@@ -93,9 +93,9 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
   zil::metrics::int64_t m_scillaIPCCount =
-      Metrics::GetInstance().CreateInt64Metric("zilliqa_scillaipc", "scilla_ipc_count",
-                                               "Metrics for ScillaIPCServer",
-                                               "Calls");
+      Metrics::GetInstance().CreateInt64Metric(
+          "zilliqa_scillaipc", "scilla_ipc_count",
+          "Metrics for ScillaIPCServer", "Calls");
 
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,

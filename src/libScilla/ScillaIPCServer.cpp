@@ -15,10 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "ScillaIPCServer.h"
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/common/specification.h>
 #include <sstream>
-#include "common/Constants.h"
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
@@ -230,9 +230,12 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
   value = DataConversion::CharArrayToString(destination);
 
-  if(LOG_SC) {
-    LOG_GENERAL(WARNING, "Request for state val: " << addr << " with query: " << query);
-    LOG_GENERAL(WARNING, "Resp for state val:    " << DataConversion::Uint8VecToHexStrRet(destination));
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING,
+                "Request for state val: " << addr << " with query: " << query);
+    LOG_GENERAL(WARNING,
+                "Resp for state val:    "
+                    << DataConversion::Uint8VecToHexStrRet(destination));
   }
 
   return true;
