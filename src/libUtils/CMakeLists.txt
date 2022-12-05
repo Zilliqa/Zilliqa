@@ -30,4 +30,5 @@ target_link_libraries(Utils
     opentelemetry-cpp::opentelemetry_exporter_prometheus
   PRIVATE
     ${CryptoUtils_LIBRARY}
-    ${g3sinks_LOGROTATE_LIBRARY})
+    ${g3sinks_LOGROTATE_LIBRARY}
+    Boost::filesystem)

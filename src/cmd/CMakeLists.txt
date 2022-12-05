@@ -13,14 +13,14 @@ add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:sendcmd> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(sendcmd PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(sendcmd PUBLIC Network Utils -s)
+target_link_libraries(sendcmd PUBLIC Network Utils Boost::program_options)
 
 add_executable(genaccounts genaccounts.cpp)
 add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genaccounts> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(genaccounts PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(genaccounts PUBLIC AccountData ${Schnorr_LIBRARY} Utils -s)
+target_link_libraries(genaccounts PUBLIC AccountData ${Schnorr_LIBRARY} Utils Boost::program_options)
 
 add_executable(genkeypair genkeypair.cpp)
 add_custom_command(TARGET zilliqa
@@ -34,28 +34,28 @@ add_custom_command(TARGET zilliqa
     POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gentxn> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(gentxn PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gentxn PUBLIC AccountData Message Network -s)
+target_link_libraries(gentxn PUBLIC AccountData Message Network Boost::program_options)
 
 add_executable(signmultisig signmultisig.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:signmultisig> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(signmultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(signmultisig PUBLIC ${Schnorr_LIBRARY} Utils -s)
+target_link_libraries(signmultisig PUBLIC ${Schnorr_LIBRARY} Utils Boost::program_options)
 
 add_executable(verifymultisig verifymultisig.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:verifymultisig> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(verifymultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(verifymultisig PUBLIC ${Schnorr_LIBRARY} Utils -s)
+target_link_libraries(verifymultisig PUBLIC ${Schnorr_LIBRARY} Utils Boost::program_options)
 
 add_executable(gensigninitialds gen_sign_initial_ds.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gensigninitialds> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gensigninitialds PUBLIC Utils Persistence ${Schnorr_LIBRARY} -s)
+target_link_libraries(gensigninitialds PUBLIC Utils Persistence ${Schnorr_LIBRARY} Boost::program_options)
 
 
 add_executable(grepperf grepperf.cpp)
@@ -67,14 +67,14 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getaddr> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getaddr PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(getaddr PUBLIC ${Schnorr_LIBRARY} Utils OpenSSL::Crypto -s)
+target_link_libraries(getaddr PUBLIC ${Schnorr_LIBRARY} Utils OpenSSL::Crypto Boost::program_options)
 
 add_executable(getpub GetPubKeyFromPrivKey.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:getpub> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(getpub PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(getpub PUBLIC ${Schnorr_LIBRARY} Utils OpenSSL::Crypto -s)
+target_link_libraries(getpub PUBLIC ${Schnorr_LIBRARY} Utils OpenSSL::Crypto Boost::program_options)
 
 add_executable(validateDB validateDB.cpp)
 add_custom_command(TARGET zilliqa
@@ -95,23 +95,21 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genTxnBodiesFromS3> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(genTxnBodiesFromS3 PUBLIC ${CMAKE_SOURCE_DIR}/src)
-
-target_link_libraries(genTxnBodiesFromS3 PUBLIC AccountData Utils Persistence
-    Server -s)
+target_link_libraries(genTxnBodiesFromS3 PUBLIC AccountData Utils Persistence Server Boost::program_options)
 
 add_executable(isolatedServer isolated_server.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:isolatedServer> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(isolatedServer PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator)
+target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator Boost::program_options)
 
 add_executable(websocketsubscriber websocketsubscriber.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:websocketsubscriber> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(websocketsubscriber PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(websocketsubscriber PUBLIC Utils Server)
+target_link_libraries(websocketsubscriber PUBLIC Utils Server Boost::program_options)
 
 add_executable(buildTxBlockHashesToNums buildTxBlockHashesToNums.cpp)
 add_custom_command(TARGET zilliqa
