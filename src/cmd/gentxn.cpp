@@ -24,7 +24,6 @@
 #include <boost/program_options.hpp>
 
 #include <Schnorr.h>
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"

@@ -18,8 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
 
-#include <array>
-
 #include <Schnorr.h>
 #include "Address.h"
 #include "common/Constants.h"

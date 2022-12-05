@@ -25,7 +25,7 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/Logger.h"
+#include "libCrypto/Sha2.h"
 
 struct Fixture {
   Fixture() { INIT_STDOUT_LOGGER() }
