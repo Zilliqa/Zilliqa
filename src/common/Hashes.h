@@ -27,4 +27,4 @@ using StateHash = dev::h256;
 // Hash for the committee that generated the block
 using CommitteeHash = dev::h256;
 
-#endif // ZILLIQA_SRC_COMMON_HASHES_H_
+#endif  // ZILLIQA_SRC_COMMON_HASHES_H_
