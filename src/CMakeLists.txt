@@ -21,4 +21,3 @@ add_subdirectory (libValidator)
 add_subdirectory (libZilliqa)
 add_subdirectory (libPythonRunner)
 add_subdirectory (libRemoteStorageDB)
-

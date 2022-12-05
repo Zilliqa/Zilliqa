@@ -4,7 +4,7 @@
     <general>
         <DEBUG_LEVEL>3</DEBUG_LEVEL>
         <ENABLE_DO_REJOIN>false</ENABLE_DO_REJOIN>
-        <LOOKUP_NODE_MODE>true</LOOKUP_NODE_MODE>
+        <LOOKUP_NODE_MODE>false</LOOKUP_NODE_MODE>
         <MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>25</MAX_ENTRIES_FOR_DIAGNOSTIC_DATA>
         <CHAIN_ID>1</CHAIN_ID>
         <NETWORK_ID>3</NETWORK_ID>
@@ -194,7 +194,7 @@
         <!-- Timeout in seconds for ONLY connection that reach our callback function, 0 means no timeout-->
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
         <ENABLE_EVM>false</ENABLE_EVM>
-        <EVM_SERVER_BINARY>/home/stephen/observability/Zilliqa/evm-ds/target/debug/evm-ds</EVM_SERVER_BINARY>
+        <EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
         <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
@@ -309,7 +309,7 @@
         <CONTRACT_FILE_EXTENSION>.scilla</CONTRACT_FILE_EXTENSION>
         <LIBRARY_CODE_EXTENSION>.scillib</LIBRARY_CODE_EXTENSION>
         <EXTLIB_FOLDER>scilla_libs</EXTLIB_FOLDER>
-        <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
+        <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
         <LOG_SC>false</LOG_SC>
         <DISABLE_SCILLA_LIB>false</DISABLE_SCILLA_LIB>
         <SCILLA_SERVER_PENDING_IN_MS>1500</SCILLA_SERVER_PENDING_IN_MS>

@@ -43,8 +43,6 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-
-
 AccountStore::AccountStore() : m_externalWriters{0} {
   m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
   bool ipcScillaInit = false;
@@ -81,7 +79,6 @@ AccountStore::AccountStore() : m_externalWriters{0} {
       ScillaClient::GetInstance().Init();
     }
     EvmClient::GetInstance().Init();
-
   }
 }
 
