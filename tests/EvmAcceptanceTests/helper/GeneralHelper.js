@@ -38,6 +38,10 @@ var general_helper = {
     return hre.network.config.miningState;
   },
 
+  advanceBlock: async function () {
+    return this.callEthMethod("evm_mine", 1, []);
+  },
+
   callEthMethod: async function (method, id, params, callback) {
     const data = {
       id: id,
