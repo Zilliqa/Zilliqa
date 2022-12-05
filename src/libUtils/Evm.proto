@@ -74,7 +74,7 @@ message EvmArgs {
   EvmEvalExtras extras = 7;
   bool estimate = 8;
   bool cps_mode = 9;
-  optional Continuation continuation = 10;
+  Continuation continuation = 10;
 }
 
 message EvmLog {
@@ -144,5 +144,5 @@ message EvmResult {
   repeated EvmLog logs = 4;
   repeated string trace = 5;
   uint64 remaining_gas = 6;
-  optional Continuation continuation = 8;
+  Continuation continuation = 8;
 }
