@@ -368,8 +368,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
-  if (zil::metrics::Filter::Enabled(
-          zil::metrics::FilterClass::EVM_RPC)) {
+  if (zil::metrics::Filter::Enabled(zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1,
                       { {"method", "CreateTransactionEth"}});
   }

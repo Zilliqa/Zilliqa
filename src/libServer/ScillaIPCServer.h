@@ -23,20 +23,17 @@
 
 #include "libData/AccountData/Account.h"
 #include "libUtils/Metrics.h"
+#include <variant>
+
 
 class ScillaBCInfo {
  public:
   ScillaBCInfo(const uint64_t curBlockNum, const uint64_t curDSBlockNum,
                const Address& originAddr, const Address& curContrAddr,
-               const dev::h256& rootHash, const uint32_t scillaVersion)
-      : m_curBlockNum(curBlockNum),
-        m_curDSBlockNum(curDSBlockNum),
-        m_curContrAddr(curContrAddr),
-        m_originAddr(originAddr),
-        m_rootHash(rootHash),
-        m_scillaVersion(scillaVersion) {}
+               const dev::h256& rootHash, const uint32_t scillaVersion);
 
   ScillaBCInfo() = default;
+
   ~ScillaBCInfo() = default;
   ScillaBCInfo(const ScillaBCInfo&) = default;
   ScillaBCInfo(ScillaBCInfo&&) = default;
@@ -57,6 +54,7 @@ class ScillaBCInfo {
   Address m_originAddr{};
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
+
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
@@ -92,8 +90,10 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    std::string& value);
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
-  zil::metrics::int64_t m_scillaIPCCount = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa", "scilla_ipc_count", "Metrics for ScillaIPCServer","Calls");
+  zil::metrics::int64_t m_scillaIPCCount =
+      Metrics::GetInstance().CreateInt64Metric("zilliqa", "scilla_ipc_count",
+                                               "Metrics for ScillaIPCServer",
+                                               "Calls");
 
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
