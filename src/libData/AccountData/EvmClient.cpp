@@ -25,15 +25,16 @@
 
 namespace {
 
-//zil::metrics::int64_t counter = Metrics::GetInstance().CreateInt64Metric(
-//    "zilliqa_evm_client_ll_count", "method", "local code");
-
+#if OUTSIDE_CLASS_SCOPE
+zil::metrics::int64_t counter = Metrics::GetInstance().CreateInt64Metric(
+    "zilliqa_evm_client_ll_count", "method", "local code");
+#endif
 bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& binaryPath,
                      const std::string& socketPath) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-  //  counter->Add(1, {{"method", "LaunchEvmDaemon"}});
+    //counter->Add(1, {{"method", "LaunchEvmDaemon"}});
   }
   LOG_MARKER();
 

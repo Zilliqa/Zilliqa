@@ -43,6 +43,10 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         evm::EvmResult& result) {
   //
   // create a worker to be executed in the async method
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+    m_accStoreProcees->Add(1, {{"method", "EvmCallRunner"}});
+  }
   const auto worker = [&args, &ret, &result]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
@@ -59,17 +63,23 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
+      if (zil::metrics::Filter::GetInstance().Enabled(
+              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+        m_accStoreProcees->Add(1, {{"lock", "release-normal"}});
+      }
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
+      m_accStoreProcees->Add(1, {{"lock", "release-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
+      m_accStoreProcees->Add(1, {{"lock", "release-deferred"}});
       ret = false;
     }
   }
@@ -247,6 +257,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::CONTRACT_CREATION: {
+      if (zil::metrics::Filter::GetInstance().Enabled(
+              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+        m_accStoreProcees->Add(1, {{"Transaction", "Create"}});
+      }
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
       }
@@ -437,6 +451,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
+      if (zil::metrics::Filter::GetInstance().Enabled(
+              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+        m_accStoreProcees->Add(1, {{"Transaction", "Contract-Call/Non Contract"}});
+      }
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
       }

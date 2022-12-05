@@ -479,7 +479,7 @@ std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1,
-                      {{"api", "calls"}, {"method", "CheckContractTxnShards"}});
+                      {{"method", "CheckContractTxnShards"}});
   }
 
   unsigned int mapIndex = shard;
@@ -545,7 +545,7 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string& address) {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetBalanceAndNonce"}});
+    m_apiCallCount->Add(1, {{"method", "GetBalanceAndNonce"}});
   }
 
   try {
@@ -583,7 +583,7 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string& address) {
 string EthRpcMethods::GetEthCallZil(const Json::Value& _json) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthCallZil"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthCallZil"}});
   }
 
   return this->GetEthCallImpl(
@@ -594,7 +594,7 @@ string EthRpcMethods::GetEthCallEth(const Json::Value& _json,
                                     const string& block_or_tag) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthCallEth"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthCallEth"}});
   }
   if (!isSupportedTag(block_or_tag)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
@@ -610,7 +610,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1,
-                      {{"EthAPI", "calls"}, {"method", "GetEthEstimateGas"}});
+                      {{"method", "GetEthEstimateGas"}});
   }
 
   if (!json.isMember("from")) {
@@ -782,7 +782,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthCallImpl"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthCallImpl"}});
   }
 
   const auto& addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
@@ -887,7 +887,7 @@ std::string EthRpcMethods::GetWeb3ClientVersion() {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1,
-                      {{"api", "calls"}, {"method", "GetWeb3ClientVersion"}});
+                      {{"method", "GetWeb3ClientVersion"}});
   }
   LOG_MARKER();
 
@@ -899,7 +899,7 @@ string EthRpcMethods::GetWeb3Sha3(const Json::Value& _json) {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetWeb3Sha3"}});
+    m_apiCallCount->Add(1, {{"method", "GetWeb3Sha3"}});
   }
   zbytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
   return POW::BlockhashToHexString(
@@ -911,7 +911,7 @@ Json::Value EthRpcMethods::GetEthUncleCount() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthUncleCount"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthUncleCount"}});
   }
 
   // There's no concept of longest chain hence there will be no uncles
@@ -924,7 +924,7 @@ Json::Value EthRpcMethods::GetEthUncleBlock() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthUncleBlock"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthUncleBlock"}});
   }
   // There's no concept of longest chain hence there will be no uncles
   // Return null instead
@@ -936,7 +936,7 @@ Json::Value EthRpcMethods::GetEthMining() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthMining"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthMining"}});
   }
   return Json::Value(false);
 }
@@ -946,7 +946,7 @@ std::string EthRpcMethods::GetEthCoinbase() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthCoinbase"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthCoinbase"}});
   }
   throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                          "Unsupported method: eth_coinbase. Zilliqa mining "
@@ -958,7 +958,7 @@ Json::Value EthRpcMethods::GetNetListening() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetNetListening"}});
+    m_apiCallCount->Add(1, {{"method", "GetNetListening"}});
   }
   return Json::Value(true);
 }
@@ -968,7 +968,7 @@ std::string EthRpcMethods::GetNetPeerCount() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetNetPeerCount"}});
+    m_apiCallCount->Add(1, {{"method", "GetNetPeerCount"}});
   }
   return "0x0";
 }
@@ -978,7 +978,7 @@ std::string EthRpcMethods::GetProtocolVersion() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetProtocolVersion"}});
+    m_apiCallCount->Add(1, {{"method", "GetProtocolVersion"}});
   }
   return "0x41";  // Similar to Infura, Alchemy
 }
@@ -988,7 +988,7 @@ std::string EthRpcMethods::GetEthChainId() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthChainId"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthChainId"}});
   }
   return (boost::format("0x%x") % ETH_CHAINID).str();
 }
@@ -998,7 +998,7 @@ Json::Value EthRpcMethods::GetEthSyncing() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthSyncing"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthSyncing"}});
   }
   return Json::Value(false);
 }
@@ -1008,7 +1008,7 @@ Json::Value EthRpcMethods::GetEmptyResponse() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEmptyResponse"}});
+    m_apiCallCount->Add(1, {{"method", "GetEmptyResponse"}});
   }
   const Json::Value expectedResponse = Json::arrayValue;
   return expectedResponse;
@@ -1019,7 +1019,7 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "GetEthTransactionByHash"}});
+        1, {{"method", "GetEthTransactionByHash"}});
   }
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -1063,7 +1063,7 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const& address,
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthStorageAt"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthStorageAt"}});
   }
   Json::Value indices = Json::arrayValue;
 
@@ -1156,7 +1156,7 @@ Json::Value EthRpcMethods::GetEthCode(std::string const& address,
                                       std::string const& /*blockNum*/) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthCode"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthCode"}});
   }
   LOG_MARKER();
 
@@ -1186,7 +1186,7 @@ Json::Value EthRpcMethods::GetEthBlockNumber() {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthBlockNumber"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthBlockNumber"}});
   }
   try {
     const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
@@ -1211,7 +1211,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
     const std::string& blockNumberStr, const bool includeFullTransactions) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthBlockByNumber"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthBlockByNumber"}});
   }
   try {
     TxBlock txBlock;
@@ -1253,7 +1253,7 @@ Json::Value EthRpcMethods::GetEthBlockByHash(
     const std::string& inputHash, const bool includeFullTransactions) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthBlockByHash"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthBlockByHash"}});
   }
   try {
     const BlockHash blockHash{inputHash};
@@ -1277,7 +1277,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
     const TxBlock& txBlock, const bool includeFullTransactions) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthBlockCommon"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthBlockCommon"}});
   }
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
       txBlock.GetHeader().GetDSBlockNum());
@@ -1318,7 +1318,7 @@ Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
                                          const std::string& tag) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthBalance"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthBalance"}});
   }
   if (isSupportedTag(tag)) {
     uint256_t ethBalance{0};
@@ -1352,7 +1352,7 @@ Json::Value EthRpcMethods::GetEthBalance(const std::string& address,
 uint256_t EthRpcMethods::GetEthGasPriceNum() const {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthGasPriceNum"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthGasPriceNum"}});
   }
   uint256_t gasPrice =
       m_sharedMediator.m_dsBlockChain.GetLastBlock().GetHeader().GetGasPrice();
@@ -1368,7 +1368,7 @@ uint256_t EthRpcMethods::GetEthGasPriceNum() const {
 Json::Value EthRpcMethods::GetEthGasPrice() const {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthGasPrice"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthGasPrice"}});
   }
   try {
     std::ostringstream strm;
@@ -1387,7 +1387,7 @@ Json::Value EthRpcMethods::GetEthBlockTransactionCountByHash(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "GetEthBlockTransactionCountByHash"}});
+        1, {{"method", "GetEthBlockTransactionCountByHash"}});
   }
   try {
     const BlockHash blockHash{inputHash};
@@ -1497,7 +1497,7 @@ Json::Value EthRpcMethods::GetEthTransactionFromBlockByIndex(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "GetEthTransactionFromBlockByIndex"}});
+        1, {{"method", "GetEthTransactionFromBlockByIndex"}});
   }
 
   const TxBlock EMPTY_BLOCK;
@@ -1551,7 +1551,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "GetEthTransactionReceipt"}});
+        1, {{"method", "GetEthTransactionReceipt"}});
   }
   try {
     TxnHash argHash{txnhash};
@@ -1637,7 +1637,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
 std::string EthRpcMethods::EthNewFilter(const Json::Value& param) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "EthNewFilter"}});
+    m_apiCallCount->Add(1, {{"method", "EthNewFilter"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.InstallNewEventFilter(param);
@@ -1650,7 +1650,7 @@ std::string EthRpcMethods::EthNewFilter(const Json::Value& param) {
 std::string EthRpcMethods::EthNewBlockFilter() {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "EthNewBlockFilter"}});
+    m_apiCallCount->Add(1, {{"method", "EthNewBlockFilter"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.InstallNewBlockFilter();
@@ -1664,7 +1664,7 @@ std::string EthRpcMethods::EthNewPendingTransactionFilter() {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "EthNewPendingTransactionFilter"}});
+        1, {{"method", "EthNewPendingTransactionFilter"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.InstallNewPendingTxnFilter();
@@ -1677,7 +1677,7 @@ std::string EthRpcMethods::EthNewPendingTransactionFilter() {
 Json::Value EthRpcMethods::EthGetFilterChanges(const std::string& filter_id) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "EthGetFilterChanges"}});
+    m_apiCallCount->Add(1, {{"method", "EthGetFilterChanges"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.GetFilterChanges(filter_id);
@@ -1690,7 +1690,7 @@ Json::Value EthRpcMethods::EthGetFilterChanges(const std::string& filter_id) {
 bool EthRpcMethods::EthUninstallFilter(const std::string& filter_id) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "EthUninstallFilter"}});
+    m_apiCallCount->Add(1, {{"method", "EthUninstallFilter"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   return api.UninstallFilter(filter_id);
@@ -1699,7 +1699,7 @@ bool EthRpcMethods::EthUninstallFilter(const std::string& filter_id) {
 Json::Value EthRpcMethods::EthGetFilterLogs(const std::string& filter_id) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "EthGetFilterLogs"}});
+    m_apiCallCount->Add(1, {{"method", "EthGetFilterLogs"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.GetFilterLogs(filter_id);
@@ -1712,7 +1712,7 @@ Json::Value EthRpcMethods::EthGetFilterLogs(const std::string& filter_id) {
 Json::Value EthRpcMethods::EthGetLogs(const Json::Value& param) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "EthGetLogs"}});
+    m_apiCallCount->Add(1, {{"method", "EthGetLogs"}});
   }
   auto& api = m_sharedMediator.m_filtersAPICache->GetFilterAPI();
   auto result = api.GetLogs(param);
@@ -1726,7 +1726,7 @@ void EthRpcMethods::EnsureEvmAndLookupEnabled() {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "EnsureEvmAndLookupEnabled"}});
+        1, {{"method", "EnsureEvmAndLookupEnabled"}});
   }
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -1743,7 +1743,7 @@ TxBlock EthRpcMethods::GetBlockFromTransaction(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "GetBlockFromTransaction"}});
+        1, {{"method", "GetBlockFromTransaction"}});
   }
 
   const TxBlock EMPTY_BLOCK;
@@ -1772,7 +1772,7 @@ uint64_t EthRpcMethods::GetTransactionIndexFromBlock(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(
-        1, {{"api", "calls"}, {"method", "GetTransactionIndexFromBlock"}});
+        1, {{"method", "GetTransactionIndexFromBlock"}});
   }
 
   TxnHash argHash{txnhash};
@@ -1811,7 +1811,7 @@ std::string EthRpcMethods::EthRecoverTransaction(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1,
-                      {{"api", "calls"}, {"method", "EthRecoverTransaction"}});
+                      {{"method", "EthRecoverTransaction"}});
   }
 
   auto const pubKeyBytes = RecoverECDSAPubKey(txnRpc, ETH_CHAINID);
@@ -1831,7 +1831,7 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"api", "calls"}, {"method", "GetEthBlockReceipts"}});
+    m_apiCallCount->Add(1, {{"method", "GetEthBlockReceipts"}});
   }
 
   auto const block = GetEthBlockByHash(blockId, false);
@@ -1852,7 +1852,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1,
-                      {{"api", "calls"}, {"method", "DebugTraceTransaction"}});
+                      {{"method", "DebugTraceTransaction"}});
   }
 
   if (!LOOKUP_NODE_MODE) {
