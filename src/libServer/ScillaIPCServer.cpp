@@ -73,6 +73,10 @@ ScillaBCInfo::ScillaBCInfo(const uint64_t curBlockNum, const uint64_t curDSBlock
   bcInfoCount->AddCallback(instFetchInfo,this);
 }
 
+ScillaBCInfo::~ScillaBCInfo(){
+  bcInfoCount->RemoveCallback(instFetchInfo,this);
+}
+
 
 ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
     : AbstractServer<ScillaIPCServer>(conn, JSONRPC_SERVER_V2) {

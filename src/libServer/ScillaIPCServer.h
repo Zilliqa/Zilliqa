@@ -34,7 +34,7 @@ class ScillaBCInfo {
 
   ScillaBCInfo() = default;
 
-  ~ScillaBCInfo() = default;
+  ~ScillaBCInfo();
   ScillaBCInfo(const ScillaBCInfo&) = default;
   ScillaBCInfo(ScillaBCInfo&&) = default;
   ScillaBCInfo& operator=(const ScillaBCInfo&) = default;
