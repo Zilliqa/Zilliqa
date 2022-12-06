@@ -88,7 +88,7 @@ task("test")
           if (info.request) {
             console.log("Request:", info.request);
           }
-          if (info.request) {
+          if (info.response) {
             console.log("Response:", info.response);
           }
         }
