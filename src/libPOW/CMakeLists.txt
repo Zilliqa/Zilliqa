@@ -1,9 +1,7 @@
 add_library (POW pow.cpp)
 
-include_directories(${CMAKE_SOURCE_DIR}/src/depends/)
-add_dependencies(POW jsonrpc-project)
-target_include_directories (POW PUBLIC ${PROJECT_SOURCE_DIR}/src ${JSONRPC_INCLUDE_DIR})
-target_link_libraries (POW PRIVATE Constants Common Server ${JSONCPP_LINK_TARGETS} jsonrpc::client)
+target_include_directories (POW PUBLIC ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries (POW PRIVATE Constants Common Server ${JSONCPP_LINK_TARGETS} jsonrpc)
 
 if(OPENCL_MINE)
     find_library(OPENCL_LIBRARIES OpenCL ENV LD_LIBRARY_PATH)

@@ -27,7 +27,7 @@
 
 #include "NewWebsocketServer.h"
 
-namespace evmproj {
+namespace rpc {
 
 namespace asio = boost::asio;
 namespace beast = boost::beast;
@@ -95,6 +95,6 @@ class WebsocketServerImpl
 };
 
 }  // namespace ws
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVERIMPL_H_

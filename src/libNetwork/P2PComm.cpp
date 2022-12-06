@@ -958,7 +958,6 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
-  // XXX
   LOG_GENERAL(INFO, "Connection from " << from);
 
   {

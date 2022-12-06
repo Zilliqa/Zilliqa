@@ -127,14 +127,6 @@ namespace dev
 
     // Fixed-length string types.
     using string32 = std::array<char, 32>;
-
-    // Null/Invalid values for convenience.
-    extern zbytes const NullBytes;
-    extern u128 const Invalid128;
-    extern u256 const Invalid256;
-
-    /// Get the current time in seconds since the epoch in UTC
-    uint64_t utcTime();
 }
 
 namespace std

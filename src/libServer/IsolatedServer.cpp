@@ -181,6 +181,17 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthCallEthI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("evm_mine", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, NULL),
+        &IsolatedServer::GetEvmMineI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("evm_setIntervalMining", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_INTEGER, NULL),
+        &IsolatedServer::GetEvmSetIntervalMiningI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("web3_clientVersion", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &LookupServer::GetWeb3ClientVersionI);
@@ -999,6 +1010,8 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
 string IsolatedServer::GetMinimumGasPrice() { return m_gasPrice.str(); }
 
 bool IsolatedServer::StartBlocknumIncrement() {
+  m_intervalMiningInitialized = true;
+
   LOG_GENERAL(INFO, "Starting automatic increment " << m_timeDelta);
   auto incrThread = [this]() mutable -> void {
     utility::SetThreadName("tx_block_incr");

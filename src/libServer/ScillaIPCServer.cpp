@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/common/specification.h>
-#include <jsonrpccpp/server/connectors/unixdomainsocketserver.h>
 #include <sstream>
 #include "common/Constants.h"
 #include "libUtils/GasConv.h"
@@ -162,6 +162,11 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   }
 
   value = DataConversion::CharArrayToString(destination);
+
+  if(LOG_SC) {
+    LOG_GENERAL(WARNING, "Request for state val: " << addr << " with query: " << query);
+    LOG_GENERAL(WARNING, "Resp for state val:    " << DataConversion::Uint8VecToHexStrRet(destination));
+  }
 
   return true;
 }

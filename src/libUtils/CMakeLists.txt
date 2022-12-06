@@ -14,10 +14,9 @@ target_link_libraries(Utils
     Constants
     MessageSWInfo
     websocketpp::websocketpp
-    jsonrpc::common
+    jsonrpc
     jsoncpp_lib
     protobuf::libprotobuf
   PRIVATE
-    CryptoUtils
+    ${CryptoUtils_LIBRARY}
     ${g3sinks_LOGROTATE_LIBRARY})
-

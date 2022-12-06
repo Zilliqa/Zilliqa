@@ -21,14 +21,14 @@
 #include "APIServer.h"
 
 #include <atomic>
-#include <boost/optional.hpp>
+#include <optional>
 
 #include <jsonrpccpp/server/abstractserverconnector.h>
 
 #include "APIThreadPool.h"
 #include "WebsocketServerImpl.h"
 
-namespace evmproj {
+namespace rpc {
 
 class APIServerImpl : public APIServer,
                       public jsonrpc::AbstractServerConnector,
@@ -38,7 +38,7 @@ class APIServerImpl : public APIServer,
   using ConnectionId = uint64_t;
 
   /// Ctor
-  APIServerImpl(std::shared_ptr<AsioCtx> asio, Options options);
+  explicit APIServerImpl(Options options);
 
   /// Called from server's owner. Cannot put everything into the ctor because of
   /// shared_from_this() usage
@@ -80,11 +80,14 @@ class APIServerImpl : public APIServer,
   /// Processes responses from thread pool in the main thread
   void OnResponseFromThreadPool(APIThreadPool::Response&& response);
 
-  /// Asio context
-  std::shared_ptr<AsioCtx> m_asio;
+  /// Event loop thread
+  void EventLoopThread();
 
   /// Server options
   Options m_options;
+
+  /// If true, dedicated event loop will be running
+  bool m_ownEventLoop = false;
 
   /// Started flag
   std::atomic<bool> m_started{};
@@ -96,15 +99,18 @@ class APIServerImpl : public APIServer,
   std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
 
   /// Listening socket
-  boost::optional<tcp::acceptor> m_acceptor;
+  std::optional<tcp::acceptor> m_acceptor;
 
   /// Incremental counter
   ConnectionId m_counter = 0;
 
   /// Active connections
   std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
+
+  /// Event loop thread (if internal loop enabled)
+  std::optional<std::thread> m_eventLoopThread;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_APISERVERIMPL_H_

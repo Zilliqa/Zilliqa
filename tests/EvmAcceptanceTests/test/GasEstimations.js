@@ -46,7 +46,7 @@ describe("Gas estimation with web3.js", function () {
       const actualGas = result.gasUsed;
 
       expect(gasAmountEst).to.be.at.least(actualGas * 0.9);
-      expect(gasAmountEst).to.be.at.most(actualGas * 2.1);
+      expect(gasAmountEst).to.be.at.most(actualGas * 1.1);
     });
   });
 });

@@ -706,9 +706,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   args.set_estimate(true);
 
   evm::EvmResult result;
+
+  LOG_GENERAL(WARNING, "Estimating evm gas");
+
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
+
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
@@ -752,8 +756,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     Account* contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
     if (contractAccount == nullptr) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMS,
-                             "Account does not exist");
+      return "0x";
     }
     code = contractAccount->GetCode();
   }
@@ -815,11 +818,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
             evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;
     }
-
-    if (LOG_SC) {
-      LOG_GENERAL(INFO, "Called Evm, response:" << result.DebugString());
-    }
-
   } catch (const exception& e) {
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
@@ -1152,7 +1150,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
       txBlock.GetHeader().GetDSBlockNum());
 
   std::vector<TxBodySharedPtr> transactions;
-  std::vector<TxnHash> transactionHashes;
 
   // Gather either transaction hashes or full transactions
   const auto& microBlockInfos = txBlock.GetMicroBlockInfos();
@@ -1169,11 +1166,7 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
     }
 
     const auto& currTranHashes = microBlockPtr->GetTranHashes();
-    if (!includeFullTransactions) {
-      transactionHashes.insert(transactionHashes.end(), currTranHashes.begin(),
-                               currTranHashes.end());
-      continue;
-    }
+
     for (const auto& transactionHash : currTranHashes) {
       TxBodySharedPtr transactionBodyPtr;
       if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
@@ -1185,7 +1178,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
   }
 
   return JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
-                                                 transactionHashes,
                                                  includeFullTransactions);
 }
 
@@ -1621,27 +1613,11 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
   return res;
 }
 
-Json::Value EthRpcMethods::DebugTraceTransaction(const std::string& txHash) {
+Json::Value EthRpcMethods::DebugTraceTransaction(
+    const std::string& /*txHash*/) {
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
   }
-  std::string trace;
-
-  try {
-    TxnHash tranHash(txHash);
-
-    bool isPresent =
-        BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
-
-    if (!isPresent) {
-      return Json::nullValue;
-    }
-
-  } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
-    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
-  }
-
-  return trace;
+  return Json::nullValue;
 }

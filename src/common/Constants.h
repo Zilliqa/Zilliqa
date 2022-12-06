@@ -162,6 +162,7 @@ extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
+extern const bool JSON_LOGGING;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -289,10 +290,6 @@ extern const std::string GPU_TO_USE;
 extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
 extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
 extern const unsigned int OPENCL_START_EPOCH;
-extern const unsigned int CUDA_BLOCK_SIZE;
-extern const unsigned int CUDA_GRID_SIZE;
-extern const unsigned int CUDA_STREAM_NUM;
-extern const unsigned int CUDA_SCHEDULE_FLAG;
 
 // Guard mode constants
 extern const bool GUARD_MODE;
@@ -364,7 +361,6 @@ extern const unsigned int MAX_WHITELISTREQ_LIMIT;
 extern const unsigned int SENDJOBPEERS_TIMEOUT;
 
 // PoW constants
-extern const bool CUDA_GPU_MINE;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;

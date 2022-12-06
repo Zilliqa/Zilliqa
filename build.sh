@@ -56,18 +56,28 @@ case $os in
 esac
 
 echo "n_parallel=${n_parallel}"
-dir=build
+
+if ! command -v ccache &> /dev/null; then
+  echo "ccache isn't installed"
+else
+  echo "ccache configuration"
+  ccache --version
+  ccache -p
+
+  ccache -z
+  echo "ccache status"
+  ccache -s
+fi
 
 run_clang_format_fix=0
 run_clang_tidy_fix=0
+run_code_coverage=0
+parallelize=1
+build_type="RelWithDebInfo"
 
 for option in "$@"
 do
     case $option in
-    cuda)
-        CMAKE_EXTRA_OPTIONS="-DCUDA_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
-        echo "Build with CUDA"
-    ;;
     opencl)
         CMAKE_EXTRA_OPTIONS="-DOPENCL_MINE=1 ${CMAKE_EXTRA_OPTIONS}"
         echo "Build with OpenCL"
@@ -191,16 +201,69 @@ do
 	evm_build_result=$(cd evm-ds; cargo build --release)
 	exit $evm_build_result
     ;;
+    ninja)
+        CMAKE_EXTRA_OPTIONS="-G Ninja ${CMAKE_EXTRA_OPTIONS}"
+        # Ninja is parallelized by default
+        parallelize=0
+        echo "Build using Ninja"
+    ;;
+    debug)
+        build_type="Debug"
+        echo "Build debug"
+    ;;
+    tests)
+        CMAKE_EXTRA_OPTIONS="-DTESTS=ON ${CMAKE_EXTRA_OPTIONS}"
+        echo "Build tests"
+    ;;
+    coverage)
+        CMAKE_EXTRA_OPTIONS="-DLLVM_EXTRA_TOOLS=ON -DENABLE_COVERAGE=ON ${CMAKE_EXTRA_OPTIONS}"
+        run_code_coverage=1
+        echo "Build with code coverage"
+    ;;
     *)
-        echo "Usage $0 [cuda|opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>]"
+        echo "Usage $0 [opencl] [tsan|asan] [style] [heartbeattest] [vc<1-9>] [dm<1-9>] [sj<1-2>] [ninja] [debug]"
         exit 1
     ;;
     esac
 done
 
-cmake -H. -B${dir} ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DTESTS=ON -DCMAKE_INSTALL_PREFIX=.. -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
-cmake --build ${dir} -- -j${n_parallel}
+# TODO: ideally these should be passed into the command line but at the
+#       moment the script doesn't accept argument value so for simplicity
+#       we use environment variables at the moment.
+if [ -z ${BUILD_DIR} ]; then
+  build_dir=build
+else
+  build_dir="${BUILD_DIR}"
+fi
+
+if [ -z ${INSTALL_DIR} ]; then
+  install_dir="${BUILD_DIR}/install"
+else
+  install_dir="${INSTALL_DIR}"
+fi
+
+echo "Currenct directory: $(pwd)"
+echo "Build directory: ${build_dir}"
+echo "Install directory: ${install_dir}"
+
+cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+if [ ${parallelize} -ne 0 ]; then
+  cmake --build "${build_dir}" --config ${build_type} -j${n_parallel}
+else
+  cmake --build "${build_dir}" --config ${build_type}
+fi
+
+if command -v ccache &> /dev/null; then
+  echo "ccache status"
+  ccache -s
+fi
+
 ./scripts/license_checker.sh
+./scripts/ci_xml_checker.sh constants.xml
+./scripts/ci_xml_checker.sh constants_local.xml
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
-if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build ${dir} --target clang-tidy-fix; fi
-if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build ${dir} --target clang-format-fix; fi
+
+if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-tidy-fix; fi
+if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-format-fix; fi
+if [ ${run_code_coverage} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target Zilliqa_coverage; fi
+
