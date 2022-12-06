@@ -68,6 +68,7 @@ message EvmArgs {
   uint64 gas_limit = 6;
   EvmEvalExtras extras = 7;
   bool estimate = 8;
+  string context = 9;
 }
 
 message EvmLog {

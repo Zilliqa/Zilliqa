@@ -25,10 +25,13 @@ pub(crate) fn modexp(
     }
 
     match run_inner(input) {
-        Ok(out) => Ok((PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
-            output: out,
-        }, cost)),
+        Ok(out) => Ok((
+            PrecompileOutput {
+                exit_status: ExitSucceed::Returned,
+                output: out,
+            },
+            cost,
+        )),
         Err(err) => Err(PrecompileFailure::Error { exit_status: err }),
     }
 }

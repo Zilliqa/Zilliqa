@@ -218,6 +218,12 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
                                              result);
 }
 
+static std::string txnIdToString(const TxnHash& txn) {
+  std::ostringstream str;
+  str << "0x" << txn;
+  return str.str();
+}
+
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
@@ -357,6 +363,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       args.set_gas_limit(transaction.GetGasLimitEth());
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      *args.mutable_context() = txnIdToString(transaction.GetTranID());
       if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
@@ -535,6 +542,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       args.set_gas_limit(transaction.GetGasLimitEth());
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      *args.mutable_context() = txnIdToString(transaction.GetTranID());
+
       if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
