@@ -781,6 +781,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       const uint64_t userGas =
           DataConversion::ConvertStrToInt<uint64_t>(gasLimit_str, 0);
       gasRemained = min(gasRemained, userGas);
+      if (gasRemained < MIN_ETH_GAS) {
+        throw JsonRpcException(3, "execution reverted", "0x");
+      }
     }
 
     zbytes data;
