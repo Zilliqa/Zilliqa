@@ -19,7 +19,7 @@
 #define ZILLIQA_SRC_LIBUTILS_METRICS_H_
 
 #include "common/Constants.h"
-#include "common/MetricFilterss.h"
+#include "common/MetricFilters.h"
 #include "common/Singleton.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/provider.h"
