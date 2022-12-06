@@ -40,7 +40,7 @@ describe("Gas estimation with web3.js", function () {
 
       const result = await contract.methods
         .installChild(123)
-        .send({gasLimit: 420000000, from: web3_helper.getPrimaryAccountAddress()});
+        .send({from: web3_helper.getPrimaryAccountAddress()});
 
       expect(result).to.be.not.null;
       const actualGas = result.gasUsed;
