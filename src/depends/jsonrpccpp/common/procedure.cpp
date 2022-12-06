@@ -13,8 +13,10 @@
 #include <cstdarg>
 #include <vector>
 
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wvarargs"
+#endif
 using namespace std;
 using namespace jsonrpc;
 
@@ -160,4 +162,6 @@ bool Procedure::ValidateSingleParameter(jsontype_t expectedType,
   return ok;
 }
 
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
