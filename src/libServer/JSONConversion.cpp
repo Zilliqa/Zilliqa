@@ -665,7 +665,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
        GasConv::GasUnitsFromCoreToEth(txn.GetTransactionReceipt().GetCumGas()))
           .str();
   // ethers also expectes gasLimit and ChainId
-  retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitRaw()).str();
+  retJson["gasLimit"] = (boost::format("0x%x") % tx.GetGasLimitEth()).str();
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
   retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
   retJson["hash"] = "0x" + tx.GetTranID().hex();
