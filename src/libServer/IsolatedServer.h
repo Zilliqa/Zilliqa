@@ -27,6 +27,7 @@ class IsolatedServer : public LookupServer,
                        public jsonrpc::AbstractServer<IsolatedServer> {
   uint64_t m_blocknum;
   bool m_pause{false};
+  bool m_intervalMiningInitialized{false};
   uint128_t m_gasPrice{GAS_PRICE_MIN_VALUE};
   std::atomic<uint32_t> m_timeDelta;
   std::unordered_map<uint64_t, std::vector<TxnHash>> m_txnBlockNumMap;
@@ -47,13 +48,33 @@ class IsolatedServer : public LookupServer,
 
   inline virtual void CreateTransactionI(const Json::Value& request,
                                          Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->CreateTransaction(request[0u]);
   }
 
   void BindAllEvmMethods();
 
+  inline virtual void GetEvmMineI(const Json::Value&, Json::Value&) {
+    PostTxBlock();
+  }
+
+  inline virtual void GetEvmSetIntervalMiningI(const Json::Value& request,
+                                               Json::Value&) {
+    m_timeDelta = request[0u].asUInt();
+
+    // If this the first time we're going to use interval mining, initialize the
+    // block num thread.
+    if (!m_intervalMiningInitialized && m_timeDelta > 0) {
+      StartBlocknumIncrement();
+    }
+
+    // If new interval is 0, stop interval mining.
+    m_pause = m_timeDelta == 0;
+  }
+
   inline virtual void GetEthSendRawTransactionI(const Json::Value& request,
                                                 Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     auto rawTx = request[0u].asString();
 
     // Erase '0x' at the beginning if it exists
@@ -73,40 +94,48 @@ class IsolatedServer : public LookupServer,
 
   inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,
                                          Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthBlockNumber();
   }
 
   inline virtual void IncreaseBlocknumI(const Json::Value& request,
                                         Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->IncreaseBlocknum(request[0u].asUInt());
   }
   inline virtual void GetMinimumGasPriceI(const Json::Value& request,
                                           Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     (void)request;
     response = this->GetMinimumGasPrice();
   }
   inline virtual void SetMinimumGasPriceI(const Json::Value& request,
                                           Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->SetMinimumGasPrice(request[0u].asString());
   }
   inline virtual void GetBlocknumI(const Json::Value& request,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     (void)request;
     response = this->GetBlocknum();
   }
 
   inline virtual void GetTransactionsForTxBlockI(const Json::Value& request,
                                                  Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetTransactionsForTxBlock(request[0u].asString());
   }
 
   inline virtual void CheckPauseI(const Json::Value& request,
                                   Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->CheckPause(request[0u].asString());
   }
 
   inline virtual void TogglePauseI(const Json::Value& request,
                                    Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->TogglePause(request[0u].asString());
   }
 

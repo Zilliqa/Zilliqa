@@ -20,6 +20,7 @@
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <thread>
+#include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
@@ -204,14 +205,13 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   try {
     const auto replyJson = m_client->CallMethod("run", _json);
 
-    if (LOG_SC) {
-      LOG_GENERAL(WARNING, "EVM reply" << replyJson.toStyledString());
-    }
-
     try {
       EvmUtils::GetEvmResultFromJson(replyJson, result);
 
-      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "<============ Call EVM result: ");
+        EvmUtils::PrintDebugEvmResult(result);
+      }
 
       return true;
     } catch (std::exception& e) {
