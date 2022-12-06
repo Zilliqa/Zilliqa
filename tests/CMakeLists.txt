@@ -19,7 +19,6 @@ add_subdirectory (Server)
 add_subdirectory (EvmLookupServer)
 add_subdirectory (EvmFiltersAPI)
 add_subdirectory (Utils)
-add_subdirectory (observability)
 add_subdirectory (Zilliqa)
 #add_subdirectory (RemoteStorageDB) Works only if you have a local mongo server running
 
