@@ -5,14 +5,13 @@ assert = require("chai").assert;
 var METHOD = "eth_getStorageAt";
 
 describe("Calling " + METHOD, function () {
-  let contract;
   before(async function () {
     const Contract = await ethers.getContractFactory("Storage");
-    contract = await Contract.deploy();
+    this.contract = await Contract.deploy();
   });
 
   it("should return proper storage value when the defaultBlock is 'latest' for storage position 0 at address of contract", async function () {
-    await helper.callEthMethod(METHOD, 1, [contract.address, "0x0", "latest"], (result, status) => {
+    await helper.callEthMethod(METHOD, 1, [this.contract.address, "0x0", "latest"], (result, status) => {
       hre.logDebug("Result:", result);
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
@@ -32,7 +31,7 @@ describe("Calling " + METHOD, function () {
     // Compute the actual storage slot of the value associated with the key
     const balanceSlot = web3.utils.soliditySha3({t: "bytes", v: KEY + MAPPING_SLOT});
 
-    await helper.callEthMethod(METHOD, 1, [contract.address, balanceSlot, "latest"], (result, status) => {
+    await helper.callEthMethod(METHOD, 1, [this.contract.address, balanceSlot, "latest"], (result, status) => {
       hre.logDebug("Result:", result);
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
@@ -44,7 +43,7 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return proper storage value when the defaultBlock is '0x0' for storage position 0 at address of contract", async function () {
-    await helper.callEthMethod(METHOD, 1, [contract.address, "0x0", "0x0"], (result, status) => {
+    await helper.callEthMethod(METHOD, 1, [this.contract.address, "0x0", "0x0"], (result, status) => {
       hre.logDebug("Result:", result);
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");

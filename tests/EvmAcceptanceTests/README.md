@@ -170,7 +170,7 @@ it("Should return correct value for string [@transactional, @ethers_js]", async 
 
 - `@transactional` tag is used for those tests which generate ethereum transactions. Calling pure functions or view functions doesn't generate a transaction for example. Transactional tests may use for populating an empty testnet with some transactions.
 
-- Second parameter to `expect` function is used to log in the case of test failure. We use it to debug failing test on devnet or testnet easier.
+- Second parameter to `expect` function is used to log in the case of test failure. We use it to debug failing tests on devnet or testnet easier.
 
 ```javascript
     const txn = await payer.sendTransaction({
