@@ -17,9 +17,9 @@ describe("Gas estimation with web3.js", function () {
 
       const [payer] = await ethers.getSigners();
       const txSend = await payer.sendTransaction({
-          to: web3_helper.getSecondaryAccountAddress(),
-          value: web3.utils.toWei("300", "gwei")
-        })
+        to: web3_helper.getSecondaryAccountAddress(),
+        value: web3.utils.toWei("300", "gwei")
+      });
 
       const gasAmount = await web3.eth.getTransaction(txSend.hash);
       expect(gasAmountEst).to.be.equal(gasAmount.gas);

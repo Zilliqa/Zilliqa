@@ -6,8 +6,11 @@ const general_helper = require("../helper/GeneralHelper");
 describe("Contract destruction with web3.js", function () {
   let contract;
   const gasLimit = "750000";
-  const amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
+  let amountPaid;
   let options;
+  before(function () {
+    amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
+  });
 
   describe("When a user method call", function () {
     before(async function () {
