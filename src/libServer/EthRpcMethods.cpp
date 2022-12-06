@@ -713,14 +713,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
-
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
-                             : 0;
-    const auto retGas = std::max(baseFee + consumedEvmGas, MIN_ETH_GAS);
+                             : MIN_ETH_GAS;
+    const auto retGas = baseFee + consumedEvmGas;
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
@@ -783,6 +782,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
       const uint64_t userGas =
           DataConversion::ConvertStrToInt<uint64_t>(gasLimit_str, 0);
       gasRemained = min(gasRemained, userGas);
+      if (gasRemained < MIN_ETH_GAS) {
+        throw JsonRpcException(3, "execution reverted", "0x");
+      }
     }
 
     zbytes data;

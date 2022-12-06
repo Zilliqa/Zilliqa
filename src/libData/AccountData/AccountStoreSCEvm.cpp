@@ -360,7 +360,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           DataConversion::CharArrayToString(StripEVM(transaction.GetCode()));
       *args.mutable_data() =
           DataConversion::CharArrayToString(transaction.GetData());
-      args.set_gas_limit(transaction.GetGasLimitEth());
+      // Give EVM only gas provided for code execution excluding constant fees
+      args.set_gas_limit(transaction.GetGasLimitEth() - baseFee);
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
       *args.mutable_context() = txnIdToString(transaction.GetTranID());
@@ -387,10 +388,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       auto gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, result);
-
-      // Decrease remained gas by baseFee (which is not taken into account by
-      // EVM)
-      gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
@@ -467,6 +464,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         return false;
       }
 
+      // Check if gaslimit meets the minimum requirement for contract call (at
+      // least const fee)
+      if (transaction.GetGasLimitEth() < MIN_ETH_GAS) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitEth()
+                                          << " less than " << MIN_ETH_GAS);
+        error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
+        return false;
+      }
+
       LOG_GENERAL(INFO, "Call contract");
 
       const uint256_t fromAccountBalance =
@@ -539,7 +545,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           StripEVM(contractAccount->GetCode()));
       *args.mutable_data() =
           DataConversion::CharArrayToString(transaction.GetData());
-      args.set_gas_limit(transaction.GetGasLimitEth());
+      // Give EVM only gas provided for code execution excluding constant fee
+      args.set_gas_limit(transaction.GetGasLimitEth() - MIN_ETH_GAS);
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
       *args.mutable_context() = txnIdToString(transaction.GetTranID());
