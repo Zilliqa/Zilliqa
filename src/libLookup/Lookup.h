@@ -29,13 +29,12 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "common/Executable.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
+#include "libNetwork/Executable.h"
 #include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"

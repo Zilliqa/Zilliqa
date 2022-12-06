@@ -24,12 +24,8 @@
 #include <mutex>
 #include <shared_mutex>
 #include <unordered_map>
-#include <vector>
 
-#include "common/Constants.h"
-#include "common/Executable.h"
 #include "common/TxnStatus.h"
-#include "depends/common/FixedHash.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
@@ -38,6 +34,7 @@
 #include "libData/BlockData/Block.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
+#include "libNetwork/Executable.h"
 #include "libNetwork/P2PComm.h"
 #include "libPersistence/BlockStorage.h"
 

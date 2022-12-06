@@ -15,7 +15,6 @@ target_link_libraries(Utils
   INTERFACE
     Threads::Threads
     CURL::libcurl
-    Python3::Python
   PUBLIC
     g3log
     Constants
