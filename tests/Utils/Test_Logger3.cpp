@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE utils
@@ -45,7 +44,8 @@ BOOST_AUTO_TEST_CASE(testLogger3) {
               4);  // use max payload length < payload length
 
   // Try in different thread
-  JoinableFunction(1, test);
+  std::thread thread{test};
+  thread.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

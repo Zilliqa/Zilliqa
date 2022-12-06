@@ -41,8 +41,6 @@
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/JoinableFunction.h"
-#include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
 using namespace std;
