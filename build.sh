@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
+echo "Finding secp file..."
+find / -name libsecp256k1.so*
+
 set -e
 
 if [ -z ${VCPKG_ROOT} ]; then
