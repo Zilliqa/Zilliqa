@@ -336,6 +336,20 @@ unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
   return GetShardIndex(fromAddr, numShards);
 }
 
+bool Transaction::Verify(const Transaction& tran) {
+  zbytes txnData;
+  tran.SerializeCoreFields(txnData, 0);
+
+  auto result = tran.IsSigned(txnData);
+
+  if (!result) {
+    LOG_GENERAL(WARNING,
+                "Failed to verify transaction signature - will delete");
+  }
+
+  return result;
+}
+
 bool Transaction::operator==(const Transaction& tran) const {
   return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
 }

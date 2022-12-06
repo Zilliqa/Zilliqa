@@ -14,4 +14,4 @@ add_library(AccountData
     InvokeType.h
     AccountStoreSCEvm.cpp)
 target_include_directories(AccountData PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(AccountData PUBLIC Utils Scilla Server Block BlockHeader Message Trie TraceableDB EthCrypto PRIVATE EthUtils)
+target_link_libraries(AccountData PUBLIC Utils Scilla Block BlockHeader Message Trie TraceableDB EthCrypto PRIVATE EthUtils)

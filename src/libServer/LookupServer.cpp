@@ -457,7 +457,7 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
         "GasPrice " + tx.GetGasPriceQa().convert_to<string>() +
             " lower than minimum allowable " + gasPrice.convert_to<string>());
   }
-  if (!Validator::VerifyTransaction(tx)) {
+  if (!Transaction::Verify(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Unable to verify transaction");
   }

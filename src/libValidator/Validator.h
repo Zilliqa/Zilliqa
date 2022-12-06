@@ -31,12 +31,9 @@ class Mediator;
 
 class Validator {
  public:
-  enum TxBlockValidationMsg { VALID = 0, STALEDSINFO, INVALID };
   Validator(Mediator& mediator);
   ~Validator();
   std::string name() const { return "Validator"; }
-
-  static bool VerifyTransaction(const Transaction& tran);
 
   bool CheckCreatedTransaction(const Transaction& tx,
                                TransactionReceipt& receipt,
@@ -60,10 +57,6 @@ class Validator {
       const DequeOfNode& initDsComm, const uint64_t& index_num,
       DequeOfNode& newDSComm);
 
-  // TxBlocks must be in increasing order or it will fail
-  TxBlockValidationMsg CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
-                                     const DequeOfNode& dsComm,
-                                     const BlockLink& latestBlockLink);
   Mediator& m_mediator;
 };
 

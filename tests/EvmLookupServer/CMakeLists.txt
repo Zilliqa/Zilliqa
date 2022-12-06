@@ -15,6 +15,7 @@ target_link_libraries(Test_EvmLookupServer
                       PUBLIC
                       AccountData
                       Message
+                      Mediator
                       Server
                       jsonrpc
                       Boost::unit_test_framework

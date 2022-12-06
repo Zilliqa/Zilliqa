@@ -26,15 +26,15 @@
 #include "Server.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
-#include "libData/AccountData/Address.h"
+#include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockData/Block.h"
 #include "libEth/Eth.h"
-#include "libMediator/Mediator.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/Logger.h"
+#include "libUtils/TimeUtils.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -72,8 +72,7 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
 
   const TxBlockHeader& txheader = txblock.GetHeader();
 
-  bool isVacuous =
-      Mediator::GetIsVacuousEpoch(txblock.GetHeader().GetBlockNum());
+  bool isVacuous = CommonUtils::IsVacuousEpoch(txheader.GetBlockNum());
 
   ret_head["Version"] = txheader.GetVersion();
   ret_head["GasLimit"] = to_string(txheader.GetGasLimit());

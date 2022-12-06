@@ -212,6 +212,8 @@ class Transaction : public SerializableDataBlock {
     return ERROR;
   }
 
+  static bool Verify(const Transaction& tx);
+
   /// Equality comparison operator.
   bool operator==(const Transaction& tran) const;
 

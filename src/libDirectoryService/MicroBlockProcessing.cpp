@@ -28,6 +28,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -649,7 +650,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
       }
 
-      if (!m_mediator.GetIsVacuousEpoch(epochNumber)) {
+      if (!CommonUtils::IsVacuousEpoch(epochNumber)) {
         if (!ProcessStateDelta(
                 stateDeltas.at(i),
                 microBlocks.at(i).GetHeader().GetStateDeltaHash(),

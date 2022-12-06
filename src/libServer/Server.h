@@ -21,8 +21,6 @@
 #include <mutex>
 #include <random>
 #include "jsonrpccpp/server.h"
-#include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
-#include "libData/DataStructures/CircularArray.h"
 
 class Mediator;
 
