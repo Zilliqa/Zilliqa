@@ -27,4 +27,8 @@ using StateHash = dev::h256;
 // Hash for the committee that generated the block
 using CommitteeHash = dev::h256;
 
+// Hashes for DSBlockHashSet
+using ShardingHash = dev::h256;
+using TxSharingHash = dev::h256;
+
 #endif  // ZILLIQA_SRC_COMMON_HASHES_H_

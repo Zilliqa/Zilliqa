@@ -22,10 +22,6 @@
 #include "common/Hashes.h"
 #include "libUtils/DataConversion.h"
 
-// Hashes for DSBlockHashSet
-using ShardingHash = dev::h256;
-using TxSharingHash = dev::h256;
-
 struct DSBlockHashSet {
   ShardingHash m_shardingHash;  // Hash of sharding structure
   std::array<unsigned char, RESERVED_FIELD_SIZE>

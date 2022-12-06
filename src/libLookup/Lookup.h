@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <map>
@@ -37,13 +36,6 @@
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"
-#include "libUtils/Logger.h"
-
-#include <condition_variable>
-#include <map>
-#include <mutex>
-#include <set>
-#include <vector>
 
 class Mediator;
 class Synchronizer;

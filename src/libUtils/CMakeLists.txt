@@ -19,7 +19,6 @@ target_link_libraries(Utils
     g3log
     Constants
     MessageSWInfo
-    websocketpp::websocketpp
     jsonrpc
     jsoncpp_lib
     protobuf::libprotobuf
@@ -30,4 +29,5 @@ target_link_libraries(Utils
   PRIVATE
     ${CryptoUtils_LIBRARY}
     ${g3sinks_LOGROTATE_LIBRARY}
+    websocketpp::websocketpp
     Boost::filesystem)

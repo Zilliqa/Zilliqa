@@ -18,15 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_DSBLOCKHEADER_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_DSBLOCKHEADER_H_
 
-#include <array>
-#include <map>
-
 #include <Schnorr.h>
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
 #include "libUtils/SWInfo.h"
 
