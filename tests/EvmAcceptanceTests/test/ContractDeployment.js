@@ -18,7 +18,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should return 123 when number view function is called", async function () {
-        expect(await contract.number(), `Contract Address: ${contract.address}`).to.be.eq(123);
+        expect(await contract.number()).to.be.eq(123);
       });
     });
 
@@ -37,9 +37,7 @@ describe("Contract Deployment", function () {
       });
 
       it("Should return 123 when number view function is called", async function () {
-        expect(await contract.methods.number().call(), `Contract Address: ${contract._address}`).to.be.eq(
-          ethers.BigNumber.from(123)
-        );
+        expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(123));
       });
     });
 
@@ -74,7 +72,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return 100 when number view function is called", async function () {
-          expect(await contract.number(), `Contract Address: ${contract.address}`).to.be.eq(INITIAL_NUMBER);
+          expect(await contract.number()).to.be.eq(INITIAL_NUMBER);
         });
       });
 
@@ -91,7 +89,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return Zilliqa when name view function is called", async function () {
-          expect(await contract.name(), `Contract Address: ${contract.address}`).to.be.eq(INITIAL_NAME);
+          expect(await contract.name()).to.be.eq(INITIAL_NAME);
         });
       });
 
@@ -108,7 +106,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return the address state correctly", async function () {
-          expect(await contract.someAddress(), `Contract Address: ${contract.address}`).to.be.eq(ADDRESS);
+          expect(await contract.someAddress()).to.be.eq(ADDRESS);
         });
       });
 
@@ -125,7 +123,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return enum state correctly", async function () {
-          expect(await contract.someEnum(), `Contract Address: ${contract.address}`).to.be.eq(ENUM);
+          expect(await contract.someEnum()).to.be.eq(ENUM);
         });
       });
     });
@@ -151,9 +149,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return 100 when number view function is called", async function () {
-          expect(await contract.methods.number().call(), `Contract Address: ${contract._address}`).to.be.eq(
-            ethers.BigNumber.from(INITIAL_NUMBER)
-          );
+          expect(await contract.methods.number().call()).to.be.eq(ethers.BigNumber.from(INITIAL_NUMBER));
         });
       });
 
@@ -171,7 +167,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return Zilliqa when name view function is called", async function () {
-          expect(await contract.methods.name().call(), `Contract Address: ${contract._address}`).to.be.eq(INITIAL_NAME);
+          expect(await contract.methods.name().call()).to.be.eq(INITIAL_NAME);
         });
       });
 
@@ -189,9 +185,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return address value correctly", async function () {
-          expect(await contract.methods.someAddress().call(), `Contract Address: ${contract._address}`).to.be.eq(
-            ADDRESS
-          );
+          expect(await contract.methods.someAddress().call()).to.be.eq(ADDRESS);
         });
       });
 
@@ -210,7 +204,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return state accordingly", async function () {
-          expect(await contract.methods.someEnum().call(), `Contract Address: ${contract._address}`).to.be.eq(ENUM);
+          expect(await contract.methods.someEnum().call()).to.be.eq(ENUM);
         });
       });
     });
@@ -230,9 +224,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return 100 when number view function is called", async function () {
-          expect(await contract.methods.number().call(), `Contract Address: ${contract._address}`).to.be.eq(
-            web3.utils.toBN(INITIAL_NUMBER)
-          );
+          expect(await contract.methods.number().call()).to.be.eq(web3.utils.toBN(INITIAL_NUMBER));
         });
       });
       describe("When constructor parameter is a string", function () {
@@ -248,9 +240,7 @@ describe("Contract Deployment", function () {
         });
 
         it("Should return Zilliqa when name view function is called", async function () {
-          expect(await contract.methods.name().call(), `Contract Address: ${contract.options.address}`).to.be.eq(
-            INITIAL_NAME
-          );
+          expect(await contract.methods.name().call()).to.be.eq(INITIAL_NAME);
         });
       });
       describe("When constructor parameter is an address", function () {

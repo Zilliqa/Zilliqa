@@ -8,10 +8,12 @@ describe("Contract destruction with web3.js", function () {
   const gasLimit = "750000";
   let amountPaid;
   let options;
+  before(function () {
+    amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
+  });
 
   describe("When a user method call", function () {
     before(async function () {
-      amountPaid = web3.utils.toBN(web3.utils.toWei("300", "gwei"));
       contract = await web3_helper.deploy("ParentContract", {gasLimit, value: amountPaid});
       options = await web3_helper.getCommonOptions();
     });
