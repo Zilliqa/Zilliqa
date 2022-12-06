@@ -177,10 +177,13 @@ pub(crate) fn blake2(
     let finished = input[212] != 0;
 
     let output = f(h, m, t, finished, rounds);
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output,
-    }, cost))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output,
+        },
+        cost,
+    ))
 }
 
 pub(super) const F_ROUND: u64 = 1;

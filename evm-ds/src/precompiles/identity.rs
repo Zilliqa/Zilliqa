@@ -26,10 +26,13 @@ pub(crate) fn identity(
         }
     }
 
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output: input.to_vec(),
-    }, gas_needed))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output: input.to_vec(),
+        },
+        gas_needed,
+    ))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {

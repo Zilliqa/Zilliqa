@@ -1,10 +1,10 @@
 use crate::protos::Evm as EvmProto;
 use byteorder::{BigEndian, ByteOrder};
 use bytes::Bytes;
+use evm::backend::Log;
+use evm::Opcode;
 use primitive_types::*;
 use std::ops::Shr;
-use evm::backend::{Log};
-use evm::Opcode;
 
 impl From<H160> for EvmProto::Address {
     fn from(address: H160) -> Self {

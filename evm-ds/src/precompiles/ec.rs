@@ -49,10 +49,13 @@ pub(crate) fn ec_add(
     sum.x().to_big_endian(&mut output[0..32]).unwrap();
     sum.y().to_big_endian(&mut output[32..64]).unwrap();
 
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output: output.to_vec(),
-    }, ADD_COST))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output: output.to_vec(),
+        },
+        ADD_COST,
+    ))
 }
 
 pub(crate) fn ec_mul(
@@ -89,10 +92,13 @@ pub(crate) fn ec_mul(
     result.x().to_big_endian(&mut output[0..32]).unwrap();
     result.y().to_big_endian(&mut output[32..64]).unwrap();
 
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output: output.to_vec(),
-    }, MUL_COST))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output: output.to_vec(),
+        },
+        MUL_COST,
+    ))
 }
 
 pub(crate) fn ec_pairing(
@@ -135,10 +141,13 @@ pub(crate) fn ec_pairing(
     }
     // Otherwise, return 0.
 
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output: output.to_vec(),
-    }, cost))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output: output.to_vec(),
+        },
+        cost,
+    ))
 }
 
 fn pair_cost(num_points: usize) -> u64 {

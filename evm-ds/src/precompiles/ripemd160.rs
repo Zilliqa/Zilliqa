@@ -30,10 +30,13 @@ pub(crate) fn ripemd160(
     let mut output = vec![0u8; 32];
     output[12..].copy_from_slice(&hash);
 
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output,
-    }, cost))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output,
+        },
+        cost,
+    ))
 }
 
 fn internal_impl(input: &[u8]) -> [u8; 20] {

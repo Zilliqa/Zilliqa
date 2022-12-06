@@ -28,10 +28,13 @@ pub(crate) fn sha2_256(
 
     use sha2::Digest;
     let output = sha2::Sha256::digest(input).to_vec();
-    Ok((PrecompileOutput {
-        exit_status: ExitSucceed::Returned,
-        output,
-    }, cost))
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output,
+        },
+        cost,
+    ))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
