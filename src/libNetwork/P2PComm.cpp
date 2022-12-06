@@ -669,7 +669,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
-  LOG_GENERAL(INFO, "Connection from " << from);
+  LOG_GENERAL(DEBUG, "Connection from " << from);
 
   if (Blacklist::GetInstance().Exist(from.m_ipAddress,
                                      false /* for incoming message */)) {
@@ -958,7 +958,7 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
-  LOG_GENERAL(INFO, "Connection from " << from);
+  LOG_GENERAL(DEBUG, "Connection from " << from);
 
   {
     std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
