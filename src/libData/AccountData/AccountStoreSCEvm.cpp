@@ -417,7 +417,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(INFO,
                     "Executing contract Creation transaction finished "
                     "unsuccessfully");
-        return false;
+        return true;
       }
 
       if (transaction.GetGasLimitZil() < gasRemainedCore) {
@@ -592,8 +592,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         if (!this->IncreaseNonce(fromAddr)) {
           error_code = TxnStatus::MATH_ERROR;
           LOG_GENERAL(WARNING, "Increase Nonce failed on bad txn");
+          return false;
         }
-        return false;
+        return true;
       }
     } break;
 
