@@ -184,6 +184,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
+    LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
+
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
                              if (ec != OPERATION_ABORTED) {
@@ -209,6 +211,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
 
     auto& msg = m_queue.front().msg;
+
+    LOG_GENERAL(DEBUG, "Sending " << msg.size << " bytes to " << m_peer);
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -355,6 +359,8 @@ class SendJobsImpl : public SendJobs,
       LOG_GENERAL(INFO, "Ignoring message to peer " << peer);
       return;
     }
+
+    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread

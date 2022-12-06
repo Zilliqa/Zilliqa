@@ -438,6 +438,9 @@ void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
   conn->StartReading();
   m_connections[m_counter] = std::move(conn);
 
+  LOG_GENERAL(DEBUG, "Connection #" << m_counter << " from " << from
+                                    << ", total=" << m_connections.size());
+
   AcceptNext();
 }
 
