@@ -26,7 +26,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
@@ -77,10 +76,6 @@ int main(int argc, const char* argv[]) {
       cerr << "ERROR: " << e.what() << endl << endl;
       return ERROR_IN_COMMAND_LINE;
     }
-
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-    sha2.Reset();
-    zbytes message;
 
     PrivKey privKey;
 

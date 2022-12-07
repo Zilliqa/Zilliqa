@@ -21,10 +21,8 @@
 #include <Schnorr.h>
 #include "Address.h"
 #include "common/Constants.h"
+#include "common/Hashes.h"
 #include "common/Serializable.h"
-#include "depends/common/FixedHash.h"
-
-using TxnHash = dev::h256;
 
 struct TransactionCoreInfo {
   TransactionCoreInfo() = default;

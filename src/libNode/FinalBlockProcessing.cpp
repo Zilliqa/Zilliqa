@@ -15,14 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include <chrono>
-#include <functional>
-#include <limits>
-#include <thread>
 
 #include "Node.h"
+#include "RootComputation.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
@@ -48,7 +44,6 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/MemoryStats.h"
-#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"

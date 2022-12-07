@@ -18,7 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBREMOTESTORAGEDB_REMOTESTORAGEDB_H_
 #define ZILLIQA_SRC_LIBREMOTESTORAGEDB_REMOTESTORAGEDB_H_
 
-#include "common/Singleton.h"
 #include "common/TxnStatus.h"
 #include "libData/AccountData/Transaction.h"
 
@@ -61,7 +60,7 @@ struct PendingTxnStatusHash {
   }
 };
 
-class RemoteStorageDB : public Singleton<RemoteStorageDB> {
+class RemoteStorageDB : boost::noncopyable {
   std::unique_ptr<mongocxx::pool> m_pool;
   std::unique_ptr<mongocxx::instance> m_inst;
   bool m_initialized;

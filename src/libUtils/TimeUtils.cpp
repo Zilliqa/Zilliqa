@@ -30,12 +30,6 @@ double r_timer_end(system_clock::time_point start_time) {
   return difference.count();
 }
 
-uint64_t get_time_as_int() {
-  microseconds microsecs =
-      duration_cast<microseconds>(system_clock::now().time_since_epoch());
-  return static_cast<uint64_t>(microsecs.count());
-}
-
 std::string microsec_timestamp_to_readable(const uint64_t timestamp) {
   std::chrono::microseconds dur(timestamp);
   std::chrono::time_point<std::chrono::system_clock> dt(dur);
