@@ -23,7 +23,7 @@
 #include <mutex>
 
 #include "common/Constants.h"
-#include "libServer/UnixDomainSocketClient.h"
+#include "libScilla/UnixDomainSocketClient.h"
 
 class ScillaClient {
   std::map<uint32_t, std::unique_ptr<jsonrpc::Client>> m_clients;
@@ -31,7 +31,7 @@ class ScillaClient {
 
   std::mutex m_mutexMain;
 
-  ScillaClient(){};
+  ScillaClient() = default;
   ~ScillaClient();
 
   bool OpenServer(uint32_t version);

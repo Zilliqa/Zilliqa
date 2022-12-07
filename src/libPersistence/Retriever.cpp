@@ -22,6 +22,8 @@
 #include <exception>
 #include <vector>
 
+#include <boost/filesystem/operations.hpp>
+
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"

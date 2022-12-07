@@ -18,14 +18,16 @@
 #ifndef ZILLIQA_SRC_LIBREMOTESTORAGEDB_REMOTESTORAGEDB_H_
 #define ZILLIQA_SRC_LIBREMOTESTORAGEDB_REMOTESTORAGEDB_H_
 
-#include "common/Singleton.h"
 #include "common/TxnStatus.h"
-#include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 
 #include <mongocxx/client.hpp>
 #include <mongocxx/instance.hpp>
 #include <mongocxx/pool.hpp>
+
+#include <json/value.h>
+
+#include <mutex>
 
 using mongoConnection = mongocxx::pool::entry;
 
@@ -58,7 +60,7 @@ struct PendingTxnStatusHash {
   }
 };
 
-class RemoteStorageDB : public Singleton<RemoteStorageDB> {
+class RemoteStorageDB : boost::noncopyable {
   std::unique_ptr<mongocxx::pool> m_pool;
   std::unique_ptr<mongocxx::instance> m_inst;
   bool m_initialized;
@@ -78,7 +80,6 @@ class RemoteStorageDB : public Singleton<RemoteStorageDB> {
         m_txnCollectionName(std::move(txnCollectionName)) {}
 
   void Init(bool reset = false);
-  bool InsertJson(const Json::Value& _json, const std::string& collectionName);
   bool InsertTxn(const Transaction& txn, const TxnStatus status,
                  const uint64_t& epoch, const bool success = false);
   bool UpdateTxn(const std::string& txnhash, const TxnStatus status,

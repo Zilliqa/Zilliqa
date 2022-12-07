@@ -18,6 +18,8 @@
 /// Should be run from a folder with constants.xml with LOOKUP_NODE_MODE set to
 /// true
 
+#include <boost/exception/diagnostic_information.hpp>
+#include <boost/filesystem/operations.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/program_options.hpp>
 

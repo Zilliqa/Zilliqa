@@ -26,7 +26,6 @@
 #include "depends/common/RLP.h"
 #include "LevelDB.h"
 #include "MemoryDB.h"
-#include "libUtils/DataConversion.h"
 
 namespace dev
 {

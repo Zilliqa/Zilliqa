@@ -22,6 +22,7 @@
 #include "libCrypto/Sha2.h"
 #include "libEth/Filters.h"
 #include "libServer/GetWorkServer.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/ShardSizeCalculator.h"
@@ -138,11 +139,7 @@ std::string Mediator::GetNodeMode(const Peer& peer) {
 void Mediator::IncreaseEpochNum() {
   std::lock_guard<mutex> lock(m_mutexVacuousEpoch);
   m_currentEpochNum++;
-  if ((m_currentEpochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW == 0) {
-    m_isVacuousEpoch = true;
-  } else {
-    m_isVacuousEpoch = false;
-  }
+  m_isVacuousEpoch = CommonUtils::IsVacuousEpoch(m_currentEpochNum);
 
   // Update GetWork Server info for nodes in shard
   if (GETWORK_SERVER_MINE) {
@@ -166,10 +163,6 @@ void Mediator::IncreaseEpochNum() {
 }
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
-
-bool Mediator::GetIsVacuousEpoch(const uint64_t& epochNum) {
-  return ((epochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW) == 0;
-}
 
 uint32_t Mediator::GetShardSize(const bool& useShardStructure) const {
   if (COMM_SIZE > 0) {

@@ -47,20 +47,22 @@ class Guard {
 
   void ValidateRunTimeEnvironment();
 
- public:
-  /// Returns the singleton Guard instance.
-  static Guard& GetInstance();
   void UpdateDSGuardlist();
   void UpdateShardGuardlist();
 
   void AddToDSGuardlist(const PubKey& dsGuardPubKey);
   void AddToShardGuardlist(const PubKey& shardGuardPubKey);
 
+  unsigned int GetNumOfShardGuard();
+
+  public:
+  /// Returns the singleton Guard instance.
+  static Guard& GetInstance();
+
   bool IsNodeInDSGuardList(const PubKey& nodePubKey);
   bool IsNodeInShardGuardList(const PubKey& nodePubKey);
 
   unsigned int GetNumOfDSGuard();
-  unsigned int GetNumOfShardGuard();
   void AddDSGuardToBlacklistExcludeList(const DequeOfNode& dsComm);
 
   // To check if IP is a valid v4 IP and not belongs to exclusion list

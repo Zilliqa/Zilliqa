@@ -24,7 +24,7 @@
 #include <memory>
 #include "common/Constants.h"
 #include "common/Singleton.h"
-#include "libServer/UnixDomainSocketClient.h"
+#include "libScilla/UnixDomainSocketClient.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/Logger.h"
 #include "libUtils/Metrics.h"

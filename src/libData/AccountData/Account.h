@@ -19,24 +19,12 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNT_H_
 
 #include <json/json.h>
-#include <leveldb/db.h>
-#include <array>
 
 #include "Address.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "depends/libDatabase/OverlayDB.h"
-#pragma GCC diagnostic pop
-
 #include <Schnorr.h>
-#include "depends/libTrie/TrieDB.h"
-
-/// DB storing trie storage information for all accounts.
-template <class KeyType, class DB>
-using AccountTrieDB = dev::SpecificTrieDB<dev::GenericTrieDB<DB>, KeyType>;
 
 class AccountBase : public SerializableDataBlock {
  protected:
@@ -129,8 +117,6 @@ class Account : public AccountBase {
 
   bool ParseInitData(const Json::Value& root, uint32_t& scilla_version,
                      bool& is_library, std::vector<Address>& extlibs);
-
-  AccountTrieDB<dev::h256, dev::OverlayDB> m_storage;
 
  public:
   Account() {}

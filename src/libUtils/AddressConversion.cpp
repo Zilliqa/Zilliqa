@@ -21,6 +21,9 @@
 
 using namespace std;
 
+namespace {
+const unsigned int HEX_ADDR_SIZE = ACC_ADDR_SIZE * 2;
+
 inline bool HasZilHrp(const string& input) {
   return input.substr(0, 4) == string("zil1");
 }
@@ -45,6 +48,8 @@ AddressConversionCode ToAddressStructure(const string& input_addr,
   retAddr = Address{tmpaddr};
   return AddressConversionCode::OK;
 }
+
+}  // namespace
 
 AddressConversionCode ToBase16Addr(const string& addr, Address& retAddr) {
   // Accept both bech32 or base16 string, and convert to our structure

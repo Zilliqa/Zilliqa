@@ -30,23 +30,6 @@ double r_timer_end(system_clock::time_point start_time) {
   return difference.count();
 }
 
-uint64_t get_time_as_int() {
-  microseconds microsecs =
-      duration_cast<microseconds>(system_clock::now().time_since_epoch());
-  return static_cast<uint64_t>(microsecs.count());
-}
-
-struct tm* gmtime_safe(const time_t* timer) {
-  std::lock_guard<std::mutex> guard(gmtimeMutex);
-  return gmtime(timer);
-}
-
-long int get_ms(const time_point<system_clock> time) {
-  return duration_cast<milliseconds>(
-             time - system_clock::from_time_t(system_clock::to_time_t(time)))
-      .count();
-}
-
 std::string microsec_timestamp_to_readable(const uint64_t timestamp) {
   std::chrono::microseconds dur(timestamp);
   std::chrono::time_point<std::chrono::system_clock> dt(dur);

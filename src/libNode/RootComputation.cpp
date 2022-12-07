@@ -17,13 +17,13 @@
 
 #include "RootComputation.h"
 #include "libCrypto/Sha2.h"
+#include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 
 using namespace std;
 using namespace dev;
 
 namespace {
-template <typename T, typename R>
-const R& GetHash(const T& item);
 
 inline const TxnHash& GetHash(const TxnHash& item) { return item; }
 
@@ -39,7 +39,6 @@ inline const TxnHash& GetHash(
 inline const TxnHash& GetHash(const TransactionWithReceipt& item) {
   return item.GetTransaction().GetTranID();
 }
-}  // namespace
 
 template <typename... Container>
 TxnHash ConcatTranAndHash(const Container&... conts) {
@@ -63,6 +62,8 @@ TxnHash ConcatTranAndHash(const Container&... conts) {
 
   return hasValue ? TxnHash{sha2.Finalize()} : TxnHash();
 }
+
+}  // namespace
 
 h256 ComputeRoot(const vector<h256>& hashes) {
   LOG_MARKER();

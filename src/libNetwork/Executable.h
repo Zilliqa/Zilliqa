@@ -15,11 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_EXECUTABLE_H_
-#define ZILLIQA_SRC_COMMON_EXECUTABLE_H_
+#ifndef ZILLIQA_SRC_LIBNETWORK_EXECUTABLE_H_
+#define ZILLIQA_SRC_LIBNETWORK_EXECUTABLE_H_
 
-#include <vector>
-#include "libNetwork/Peer.h"
+#include "common/BaseType.h"
+
+class Peer;
 
 /// Specifies the interface required for classes that process messages.
 class Executable {
@@ -29,7 +30,7 @@ class Executable {
                        const Peer& from, const unsigned char& startByte) = 0;
 
   /// Virtual destructor.
-  virtual ~Executable() {}
+  virtual ~Executable() = default;
 };
 
-#endif  // ZILLIQA_SRC_COMMON_EXECUTABLE_H_
+#endif  // ZILLIQA_SRC_LIBNETWORK_EXECUTABLE_H_

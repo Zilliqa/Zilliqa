@@ -21,7 +21,7 @@
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#include "libUtils/Logger.h"
+#include "libCrypto/Sha2.h"
 #include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>

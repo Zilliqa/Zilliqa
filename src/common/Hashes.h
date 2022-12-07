@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,17 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
+#ifndef ZILLIQA_SRC_COMMON_HASHES_H_
+#define ZILLIQA_SRC_COMMON_HASHES_H_
 
-#include "common/Constants.h"
 #include "depends/common/FixedHash.h"
 
-using Address = dev::h160;  // earlier it was std::array<unsigned char,
-                            // ACC_ADDR_SIZE>; ACC_ADDR_SIZE = 20
+using BlockHash = dev::h256;
+using TxnHash = dev::h256;
+using StateHash = dev::h256;
 
-const Address NullAddress;
+// Hash for the committee that generated the block
+using CommitteeHash = dev::h256;
 
-inline bool IsNullAddress(const Address& address) { return !address; }
+// Hashes for DSBlockHashSet
+using ShardingHash = dev::h256;
+using TxSharingHash = dev::h256;
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_
+#endif  // ZILLIQA_SRC_COMMON_HASHES_H_

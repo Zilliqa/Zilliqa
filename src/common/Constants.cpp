@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Constants.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
