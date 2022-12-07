@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_NETWORK_EXECUTABLE_H_
-#define ZILLIQA_SRC_NETWORK_EXECUTABLE_H_
+#ifndef ZILLIQA_SRC_LIBNETWORK_EXECUTABLE_H_
+#define ZILLIQA_SRC_LIBNETWORK_EXECUTABLE_H_
 
 #include "common/BaseType.h"
 
@@ -33,4 +33,4 @@ class Executable {
   virtual ~Executable() = default;
 };
 
-#endif  // ZILLIQA_SRC_NETWORK_EXECUTABLE_H_
+#endif  // ZILLIQA_SRC_LIBNETWORK_EXECUTABLE_H_

@@ -33,7 +33,6 @@
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
 #include "libNetwork/Executable.h"
-#include "libNetwork/P2PComm.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"
 
