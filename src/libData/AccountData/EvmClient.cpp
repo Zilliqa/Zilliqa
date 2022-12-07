@@ -193,9 +193,8 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     m_evmClientCount->Add(1, {{"method", "CallRunner"}});
   }
 
-#ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
-#endif
+
   if (not m_child.running()) {
     if (not EvmClient::OpenServer()) {
       LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
