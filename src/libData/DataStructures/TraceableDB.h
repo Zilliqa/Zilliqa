@@ -18,7 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_TRACEABLEDB_H_
 #define ZILLIQA_SRC_LIBDATA_DATASTRUCTURES_TRACEABLEDB_H_
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "depends/libDatabase/OverlayDB.h"
+#pragma GCC diagnostic pop
 
 class TraceableDB : public dev::OverlayDB {
  public:

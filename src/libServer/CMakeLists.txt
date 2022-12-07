@@ -1,6 +1,5 @@
 add_library(Server
     Server.cpp
-    ScillaIPCServer.cpp
     JSONConversion.cpp
     GetWorkServer.cpp
     LookupServer.cpp
@@ -13,8 +12,6 @@ add_library(Server
     APIServerImpl.cpp
     APIThreadPool.cpp
     WebsocketServerImpl.cpp
-    UnixDomainSocketClient.cpp
-    UnixDomainSocketServer.cpp
     LocalAPIServer.cpp)
 
 target_include_directories(Server PUBLIC
@@ -23,6 +20,5 @@ target_include_directories(Server PUBLIC
 target_link_libraries(Server PUBLIC
     jsonrpc
     AccountData
-    Validator
     Eth)
 

@@ -143,8 +143,6 @@ class Mediator {
 
   bool GetIsVacuousEpoch();
 
-  static bool GetIsVacuousEpoch(const uint64_t& epochNum);
-
   uint32_t GetShardSize(const bool& useShardStructure) const;
 
   bool CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,

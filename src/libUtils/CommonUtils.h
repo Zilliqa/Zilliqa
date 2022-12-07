@@ -18,8 +18,12 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_COMMONUTILS_H_
 #define ZILLIQA_SRC_LIBUTILS_COMMONUTILS_H_
 
+#include "common/BaseType.h"
+
 namespace CommonUtils {
 void ReleaseSTLMemoryCache();
+
+bool IsVacuousEpoch(const uint64_t& epochNum);
 }  // namespace CommonUtils
 
 #endif  // ZILLIQA_SRC_LIBUTILS_COMMONUTILS_H_

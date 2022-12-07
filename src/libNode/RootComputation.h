@@ -15,20 +15,17 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_ROOTCOMPUTATION_H_
-#define ZILLIQA_SRC_LIBUTILS_ROOTCOMPUTATION_H_
+#ifndef ZILLIQA_SRC_LIBNODE_ROOTCOMPUTATION_H_
+#define ZILLIQA_SRC_LIBNODE_ROOTCOMPUTATION_H_
 
 #include <list>
 #include <unordered_map>
 #include <vector>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "depends/libDatabase/MemoryDB.h"
-#pragma GCC diagnostic pop
+#include "common/Hashes.h"
 
-#include "depends/libTrie/TrieDB.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+class Transaction;
+class TransactionWithReceipt;
 
 dev::h256 ComputeRoot(const std::vector<dev::h256>& hashes);
 
@@ -44,4 +41,4 @@ TxnHash ComputeRoot(
 
 TxnHash ComputeRoot(const std::vector<TransactionWithReceipt>& transactions);
 
-#endif  // ZILLIQA_SRC_LIBUTILS_ROOTCOMPUTATION_H_
+#endif  // ZILLIQA_SRC_LIBNODE_ROOTCOMPUTATION_H_

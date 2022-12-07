@@ -6,6 +6,7 @@
     "schnorr": { "baseline": "8.2.0", "port-version": 0 },
     "cryptoutils": { "baseline": "8.3.0", "port-version": 1 },
     "libmicrohttpd": { "baseline": "0.9.63", "port-version": 8 },
-    "websocketpp": { "baseline": "0.8.2", "port-version": 3 }
+    "websocketpp": { "baseline": "0.8.2", "port-version": 3 },
+    "opentelemetry-cpp": { "baseline": "1.8.0", "port-version": 1 }
   }
 }

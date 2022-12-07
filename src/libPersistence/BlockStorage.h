@@ -32,6 +32,9 @@
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;
 
+class TransactionWithReceipt;
+class Account;
+
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
 typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;

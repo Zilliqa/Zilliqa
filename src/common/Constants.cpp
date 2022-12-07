@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Constants.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -757,3 +756,19 @@ const uint64_t EVM_RPC_TIMEOUT_SECONDS{
     ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
 const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
+
+const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
+    "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
+const unsigned int METRIC_ZILLIQA_PORT{
+    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.")};
+const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(
+    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.")};
+const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS{ReadConstantNumeric(
+    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.")};
+const std::string METRIC_ZILLIQA_SCHEMA{
+    ReadConstantString("METRIC_ZILLIQA_SCHEMA", "node.metric.zilliqa.",
+                       "https://opentelemetry.io/schemas/1.2.0")};
+const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
+    "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
+
+const uint64_t METRIC_ZILLIQA_MASK{ReadConstantUInt64("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", 0)};

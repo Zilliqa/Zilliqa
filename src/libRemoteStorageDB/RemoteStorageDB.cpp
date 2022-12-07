@@ -23,6 +23,7 @@
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/stdx/make_unique.hpp>
 #include "libServer/JSONConversion.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/HashUtils.h"
 #include "libUtils/TimeUtils.h"
 
@@ -245,26 +246,6 @@ bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
     return false;
   }
   return true;
-}
-
-bool RemoteStorageDB::InsertJson(const Json::Value& _json,
-                                 const string& collectionName) {
-  if (!m_initialized) {
-    LOG_GENERAL(WARNING, "DB not initialized");
-    return false;
-  }
-  try {
-    const auto& conn = GetConnection();
-    auto txnCollection = conn->database(m_dbName)[collectionName];
-    bsoncxx::document::value doc_val =
-        bsoncxx::from_json(_json.toStyledString());
-    txnCollection.insert_one(move(doc_val));
-    return true;
-  } catch (exception& e) {
-    LOG_GENERAL(WARNING, "Failed to Insert " << _json.toStyledString() << endl
-                                             << e.what());
-    return false;
-  }
 }
 
 Json::Value RemoteStorageDB::QueryTxnHash(const std::string& txnhash) {

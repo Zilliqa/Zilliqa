@@ -25,7 +25,6 @@
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"

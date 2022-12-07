@@ -27,11 +27,6 @@ enum class AddressConversionCode {
   WRONG_ADDR_SIZE,
 };
 
-const unsigned int HEX_ADDR_SIZE = ACC_ADDR_SIZE * 2;
-
-inline bool HasZilHrp(const std::string& input);
-AddressConversionCode ToAddressStructure(const std::string& addr,
-                                         Address& retAddr);
 AddressConversionCode ToBase16Addr(const std::string& addr, Address& retAddr);
 
 #endif  // ZILLIQA_SRC_LIBUTILS_ADDRESSCONVERSION_H_

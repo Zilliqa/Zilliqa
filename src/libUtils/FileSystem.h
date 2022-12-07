@@ -18,8 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
 #define ZILLIQA_SRC_LIBUTILS_FILESYSTEM_H_
 
-#include <boost/filesystem.hpp>
-#include <iostream>
+#include <boost/filesystem/path.hpp>
 #include <string>
 #include <vector>
 

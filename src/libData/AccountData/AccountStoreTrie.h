@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 
 #include "AccountStoreSC.h"
+#include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
 
 template <class MAP>

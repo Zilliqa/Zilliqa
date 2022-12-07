@@ -14,29 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
-#define ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
+#ifndef ZILLIQA_SRC_LIBSCILLA_SCILLAIPCSERVER_H_
+#define ZILLIQA_SRC_LIBSCILLA_SCILLAIPCSERVER_H_
 
 #include <jsonrpccpp/server/abstractserver.h>
 
 #include "depends/common/FixedHash.h"
 
-#include "libData/AccountData/Account.h"
+#include "libData/AccountData/Address.h"
+#include "libUtils/Metrics.h"
 
 class ScillaBCInfo {
  public:
   ScillaBCInfo(const uint64_t curBlockNum, const uint64_t curDSBlockNum,
                const Address& originAddr, const Address& curContrAddr,
-               const dev::h256& rootHash, const uint32_t scillaVersion)
-      : m_curBlockNum(curBlockNum),
-        m_curDSBlockNum(curDSBlockNum),
-        m_curContrAddr(curContrAddr),
-        m_originAddr(originAddr),
-        m_rootHash(rootHash),
-        m_scillaVersion(scillaVersion) {}
+               const dev::h256& rootHash, const uint32_t scillaVersion);
 
   ScillaBCInfo() = default;
-  ~ScillaBCInfo() = default;
+
+  ~ScillaBCInfo();
   ScillaBCInfo(const ScillaBCInfo&) = default;
   ScillaBCInfo(ScillaBCInfo&&) = default;
   ScillaBCInfo& operator=(const ScillaBCInfo&) = default;
@@ -56,6 +52,11 @@ class ScillaBCInfo {
   Address m_originAddr{};
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
+
+  zil::metrics::int64Observable_t m_bcInfoCount{
+      Metrics::GetInstance().CreateInt64Gauge(
+          "zilliqa_scill_bcinfo", "invocations_count",
+          "Metrics for ScillaBCInfo", "Blocks")};
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
@@ -91,6 +92,11 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    std::string& value);
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
+  zil::metrics::int64_t m_scillaIPCCount =
+      Metrics::GetInstance().CreateInt64Metric(
+          "zilliqa_scillaipc", "scilla_ipc_count",
+          "Metrics for ScillaIPCServer", "Calls");
+
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
   //                              bool& found, std::string& type);
@@ -98,4 +104,4 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   ScillaBCInfo m_BCInfo;
 };
 
-#endif  // ZILLIQA_SRC_LIBSERVER_SCILLAIPCSERVER_H_
+#endif  // ZILLIQA_SRC_LIBSCILLA_SCILLAIPCSERVER_H_

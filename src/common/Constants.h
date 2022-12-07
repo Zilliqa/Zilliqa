@@ -21,7 +21,6 @@
 #include "BaseType.h"
 #include "depends/common/FixedHash.h"
 
-using BlockHash = dev::h256;
 const size_t BLOCK_NUMERIC_DIGITS =
     std::to_string(std::numeric_limits<uint64_t>::max()).size();
 
@@ -507,5 +506,14 @@ extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 extern const bool IGNORE_BLOCKCOSIG_CHECK;
 extern const std::vector<std::pair<uint64_t, uint32_t>>
     VERIFIER_MICROBLOCK_EXCLUSION_LIST;
+
+// Metrics constants
+extern const std::string METRIC_ZILLIQA_HOSTNAME;
+extern const unsigned int METRIC_ZILLIQA_PORT;
+extern const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS;
+extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
+extern const std::string METRIC_ZILLIQA_SCHEMA;
+extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
+extern const uint64_t  METRIC_ZILLIQA_MASK;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

@@ -22,9 +22,9 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
-#include "libServer/ScillaIPCServer.h"
-#include "libServer/UnixDomainSocketClient.h"
-#include "libServer/UnixDomainSocketServer.h"
+#include "libScilla/ScillaIPCServer.h"
+#include "libScilla/UnixDomainSocketClient.h"
+#include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"
 

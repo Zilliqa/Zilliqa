@@ -18,7 +18,6 @@
 #define ZILLIQA_SRC_LIBMESSAGE_MESSENGERACCOUNTSTOREBASE_H_
 
 #include "common/BaseType.h"
-#include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Address.h"
 
 // This class is only used by AccountStoreBase template class

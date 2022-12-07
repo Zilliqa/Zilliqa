@@ -19,12 +19,8 @@
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_
 
 #include "common/BaseType.h"
-#include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
-
-// Hashes for DSBlockHashSet
-using ShardingHash = dev::h256;
-using TxSharingHash = dev::h256;
+#include "common/Hashes.h"
+#include "libUtils/DataConversion.h"
 
 struct DSBlockHashSet {
   ShardingHash m_shardingHash;  // Hash of sharding structure

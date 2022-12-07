@@ -18,7 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSCOMMON_H_
 #define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSCOMMON_H_
 
-#include <deque>
+#include <atomic>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -27,7 +27,6 @@
 
 #include <MultiSig.h>
 #include "libNetwork/ShardStruct.h"
-#include "libUtils/TimeLockedFunction.h"
 
 struct CommitInfo {
   CommitPoint commit;

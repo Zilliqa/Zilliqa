@@ -16,8 +16,8 @@
  */
 
 #include "DSBlockHeader.h"
+#include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;

@@ -27,7 +27,14 @@
     "g3log",
     "g3sinks",
     "schnorr",
-    "cryptoutils"
+    "cryptoutils",
+    {
+      "name": "opentelemetry-cpp",
+      "default-features": false,
+      "features": [
+        "prometheus"
+      ]
+    }
   ],
   "builtin-baseline": "6ca56aeb457f033d344a7106cb3f9f1abf8f4e98",
   "overrides": [
@@ -62,6 +69,10 @@
     {
       "name": "websocketpp",
       "version": "0.8.2#3"
+    },
+    {
+      "name": "opentelemetry-cpp",
+      "version": "1.8.0#1"
     }
   ]
 }

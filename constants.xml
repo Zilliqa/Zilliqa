@@ -353,6 +353,18 @@
         <BLOOM_FILTER_FALSE_RATE>0.000001</BLOOM_FILTER_FALSE_RATE>
         <TXN_DISPATCH_ATTEMPT_LIMIT>3</TXN_DISPATCH_ATTEMPT_LIMIT>
     </transactions>
+    <metric>
+        <zilliqa>
+            <METRIC_ZILLIQA_HOSTNAME>localhost</METRIC_ZILLIQA_HOSTNAME>
+            <METRIC_ZILLIQA_PORT>8081</METRIC_ZILLIQA_PORT>
+            <METRIC_ZILLIQA_READER_EXPORT_MS>1000</METRIC_ZILLIQA_READER_EXPORT_MS>
+            <METRIC_ZILLIQA_READER_TIMEOUT_MS>500</METRIC_ZILLIQA_READER_TIMEOUT_MS>
+            <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
+            <METRIC_ZILLIQA_VERSION>1.2.0</METRIC_ZILLIQA_VERSION>
+            <!-- All bits on in the mask means all metrics are enabled ffff ffff ffff ffff 64bit max -->
+            <METRIC_ZILLIQA_MASK>0xffffffffffffffff</METRIC_ZILLIQA_MASK>
+        </zilliqa>
+    </metric>
     <verifier>
         <exclusion_list>
             <entry>

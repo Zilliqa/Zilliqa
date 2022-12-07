@@ -32,10 +32,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -47,14 +43,13 @@
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libPythonRunner/PythonRunner.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/ThreadPool.h"
-#include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
-#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -925,7 +920,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
       SyncType::RECOVERY_ALL_SYNC != syncType &&
       (m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
            NUM_FINAL_BLOCK_PER_POW ||
-       m_mediator.GetIsVacuousEpoch(
+       CommonUtils::IsVacuousEpoch(
            m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
            1))) {
     LOG_GENERAL(WARNING,
@@ -1492,7 +1487,7 @@ bool Node::ProcessSubmitMissingTxn(const zbytes& message, unsigned int offset,
                   << " , local: " << m_mediator.m_currentEpochNum);
   }
 
-  if (m_mediator.GetIsVacuousEpoch(msgBlockNum)) {
+  if (CommonUtils::IsVacuousEpoch(msgBlockNum)) {
     LOG_GENERAL(WARNING, "Get missing txn from vacuous epoch, why?");
     return false;
   }
@@ -2856,14 +2851,15 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
       }
 
       // Process and update ds committee network info
-      replace_if(m_mediator.m_DSCommittee->begin(),
-                 m_mediator.m_DSCommittee->begin() +
-                     Guard::GetInstance().GetNumOfDSGuard(),
-                 [&dsguardupdate](const PairOfNode& element) {
-                   return element.first == dsguardupdate.m_dsGuardPubkey;
-                 },
-                 make_pair(dsguardupdate.m_dsGuardPubkey,
-                           dsguardupdate.m_dsGuardNewNetworkInfo));
+      replace_if(
+          m_mediator.m_DSCommittee->begin(),
+          m_mediator.m_DSCommittee->begin() +
+              Guard::GetInstance().GetNumOfDSGuard(),
+          [&dsguardupdate](const PairOfNode& element) {
+            return element.first == dsguardupdate.m_dsGuardPubkey;
+          },
+          make_pair(dsguardupdate.m_dsGuardPubkey,
+                    dsguardupdate.m_dsGuardNewNetworkInfo));
       LOG_GENERAL(INFO, "[update ds guard] "
                             << dsguardupdate.m_dsGuardPubkey
                             << " new network info is "

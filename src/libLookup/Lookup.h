@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBLOOKUP_LOOKUP_H_
 
 #include <atomic>
-#include <chrono>
 #include <condition_variable>
 #include <cstdlib>
 #include <map>
@@ -29,22 +28,13 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "common/Executable.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block/DSBlock.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 #include "libData/BlockData/Block/TxBlock.h"
-#include "libNetwork/P2PComm.h"
-#include "libNetwork/Peer.h"
+#include "libNetwork/Executable.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"
-#include "libUtils/Logger.h"
-
-#include <condition_variable>
-#include <map>
-#include <mutex>
-#include <set>
-#include <vector>
 
 class Mediator;
 class Synchronizer;

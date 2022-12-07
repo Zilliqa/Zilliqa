@@ -18,7 +18,8 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
-#include "libUtils/RootComputation.h"
+#include "libNode/RootComputation.h"
+#include "libUtils/DataConversion.h"
 
 #include <cstdint>
 #include <vector>

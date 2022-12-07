@@ -1,7 +1,7 @@
 add_library (POW pow.cpp)
 
 target_include_directories (POW PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries (POW PRIVATE Constants Common Server ${JSONCPP_LINK_TARGETS} jsonrpc)
+target_link_libraries (POW PRIVATE Constants Common jsonrpc)
 
 if(OPENCL_MINE)
     find_library(OPENCL_LIBRARIES OpenCL ENV LD_LIBRARY_PATH)

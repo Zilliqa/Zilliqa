@@ -18,6 +18,8 @@
 /// Should be run from a folder with dsnodes.xml and constants.xml and a folder
 /// named "persistence" consisting of the persistence
 
+#include <boost/filesystem/operations.hpp>
+
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
 #include "libPersistence/BlockStorage.h"
