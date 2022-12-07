@@ -27,6 +27,7 @@
 #include "libServer/UnixDomainSocketClient.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/Logger.h"
+#include "libUtils/Metrics.h"
 
 /*
  * EvmClient
@@ -73,6 +74,8 @@ class EvmClient : public Singleton<EvmClient> {
   boost::process::child m_child;
   // In case we need to protect unsafe code in future.
   std::mutex m_mutexMain;
+  zil::metrics::int64_t m_evmClientCount = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_evm", "invocations_count", "Calls to EVM-DS","Calls");
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
