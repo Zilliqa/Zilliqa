@@ -7,11 +7,13 @@ spec:
   containers:
   - name: "scilla"
     image: "zilliqa/scilla:v0.13.1-alpha"
+    imagePullPolicy: Always
     command:
     - cat
     tty: true
   - name: "ubuntu"
     image: "zilliqa/zilliqa-ccache:v8.4.0"
+    imagePullPolicy: Always
     command:
     - cat
     tty: true
