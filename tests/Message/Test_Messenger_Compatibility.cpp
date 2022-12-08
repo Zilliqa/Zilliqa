@@ -41,8 +41,8 @@ BOOST_AUTO_TEST_CASE(test_optionalfield) {
   oneField.set_field1(12345);
   BOOST_CHECK(oneField.IsInitialized());
   LOG_GENERAL(INFO, "oneField.field1 = " << oneField.field1());
-  tmp.resize(oneField.ByteSize());
-  oneField.SerializeToArray(tmp.data(), oneField.ByteSize());
+  tmp.resize(oneField.ByteSizeLong());
+  oneField.SerializeToArray(tmp.data(), oneField.ByteSizeLong());
 
   // Try to deserialize it as a OneField
   OneField oneFieldDeserialized;
