@@ -26,6 +26,8 @@
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
 
+// a blank line.
+
 namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace common = opentelemetry::common;
 namespace metrics_exporter = opentelemetry::exporter::metrics;
