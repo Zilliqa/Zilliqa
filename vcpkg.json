@@ -33,7 +33,8 @@
       "default-features": false,
       "features": [
         "prometheus",
-        "otlp"
+        "otlp",
+        "elasticsearch"
       ]
     }
   ],
