@@ -1,9 +1,14 @@
 link_directories(${CMAKE_BINARY_DIR}/lib)
 configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
-add_executable(Test_Sha2 Test_Sha2.cpp)
-target_link_libraries(Test_Sha2 PUBLIC OpenSSL::Crypto Utils Boost::unit_test_framework)
-add_test(NAME Test_Sha2 COMMAND Test_Sha2)
+# add_executable(Test_Sha2 Test_Sha2.cpp)
+# target_link_libraries(Test_Sha2 PUBLIC OpenSSL::Crypto Utils Boost::unit_test_framework)
+# add_test(NAME Test_Sha2 COMMAND Test_Sha2)
+
+add_executable(Test_HashCalculator Test_HashCalculator.cpp)
+target_include_directories(Test_HashCalculator PRIVATE ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries(Test_HashCalculator PRIVATE Utils OpenSSL::Crypto Boost::unit_test_framework)
+add_test(NAME Test_HashCalculator COMMAND Test_HashCalculator)
 
 add_executable(Test_EthCrypto Test_EthCrypto.cpp)
 target_link_libraries(Test_EthCrypto PUBLIC Utils Boost::unit_test_framework)
