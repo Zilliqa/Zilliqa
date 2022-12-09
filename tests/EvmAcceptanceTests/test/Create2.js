@@ -12,9 +12,7 @@ describe("Create2 instruction", function () {
   });
 
   describe("Should be able to predict and call create2 contract", function () {
-
     it("Should predict and deploy create2 contract", async function () {
-
       const [owner] = await ethers.getSigners();
       const SALT = 1;
 
@@ -39,5 +37,4 @@ describe("Create2 instruction", function () {
       expect(ownerTest).to.be.eq(ownerAddr);
     });
   });
-
 });
