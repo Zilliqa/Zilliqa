@@ -1,14 +1,14 @@
 const {expect} = require("chai");
 const {ethers, web3} = require("hardhat");
 const hre = require("hardhat");
+const ethers_helper = require("../helper/EthersHelper");
 const helper = require("../helper/GeneralHelper");
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 1_000_000;
   let parentContract;
   before(async function () {
-    const Contract = await ethers.getContractFactory("ParentContract");
-    parentContract = await Contract.deploy({value: INITIAL_FUND});
+    parentContract = await ethers_helper.deployContract("ParentContract", {value: INITIAL_FUND});
   });
 
   describe("General", function () {
@@ -41,9 +41,9 @@ describe("Parent Child Contract Functionality", function () {
     });
 
     it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
-      const [owner] = await ethers.getSigners();
+      const signer = await ethers_helper.signer();
       childContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("ChildContract").abi, childContractAddress, {
-        from: owner.address
+        from: signer.address
       });
       expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
     });
@@ -64,7 +64,7 @@ describe("Parent Child Contract Functionality", function () {
     });
 
     it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
-      const [owner] = await ethers.getSigners();
+      const owner = await ethers_helper.signer();
       expect(
         await childContract.methods.returnToSender().send({gasLimit: 1000000, from: owner.address})
       ).to.changeEtherBalances([childContractAddress, parentContract.address], [-INITIAL_FUND, +INITIAL_FUND]);

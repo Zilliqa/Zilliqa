@@ -1,14 +1,14 @@
 const {ethers} = require("hardhat");
 
 var ethers_helper = {
-  deployContract: async function (contractName) {
+  deployContract: async function (contractName, ...args) {
     const signers = await ethers.getSigners();
     const signerIndex = process.env.MOCHA_WORKER_ID % signers.length || 0;
     const signer = signers[signerIndex];
     console.log(`ID: ${signerIndex}, Address: ${signer.address}`);
 
     const Contract = await ethers.getContractFactory(contractName);
-    return Contract.connect(signer).deploy();
+    return Contract.connect(signer).deploy(...args);
   },
   signer: async function () {
     const owners = await ethers.getSigners();
