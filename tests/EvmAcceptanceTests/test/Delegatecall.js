@@ -1,20 +1,18 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
+const ethers_helper = require("../helper/EthersHelper");
 
 describe("Delegatecall functionality", function () {
   before(async function () {
-    const Contract = await ethers.getContractFactory("Delegatecall");
-    this.delegateContract = await Contract.deploy();
-
-    const TestContract = await ethers.getContractFactory("TestDelegatecall");
-    this.testDelegateContract = await TestContract.deploy();
+    this.delegateContract = await ethers_helper.deployContract("Delegatecall");
+    this.testDelegateContract = await ethers_helper.deployContract("TestDelegatecall");
   });
 
   it("should delegate function call correctly", async function () {
     const VALUE = 1000000;
     const NUM = 123;
 
-    const [owner] = await ethers.getSigners();
+    const owner = this.delegateContract.signer;
     await this.delegateContract.setVars(this.testDelegateContract.address, NUM, {value: VALUE});
     expect(await this.delegateContract.num()).to.be.eq(NUM);
     expect(await this.delegateContract.value()).to.be.eq(VALUE);
