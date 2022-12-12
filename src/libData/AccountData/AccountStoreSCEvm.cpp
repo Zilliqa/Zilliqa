@@ -35,18 +35,27 @@
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
 
+namespace {
+
+zil::metrics::uint64Counter_t& GetInvocationsCounter() {
+  static auto counter = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
+      "Blocks");
+  return counter;
+}
+
+}  // namespace
+
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         const evm::EvmArgs& args,           //
                                         bool& ret,                          //
                                         TransactionReceipt& receipt,        //
                                         evm::EvmResult& result) {
+  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+
   //
   // create a worker to be executed in the async method
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-    m_accStoreProcees->Add(1, {{"method", "EvmCallRunner"}});
-  }
   const auto worker = [&args, &ret, &result]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
@@ -63,23 +72,29 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        m_accStoreProcees->Add(1, {{"lock", "release-normal"}});
-      }
+
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+                              "release-normal");
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
+
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      m_accStoreProcees->Add(1, {{"lock", "release-timeout"}});
+
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+                              "release-timeout");
+
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      m_accStoreProcees->Add(1, {{"lock", "release-deferred"}});
+
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+                              "release-deferred");
+
       ret = false;
     }
   }
@@ -263,10 +278,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::CONTRACT_CREATION: {
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        m_accStoreProcees->Add(1, {{"Transaction", "Create"}});
-      }
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM,
+                              "Transaction", "Create");
+
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
       }
@@ -455,10 +469,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        m_accStoreProcees->Add(1, {{"Transaction", "Contract-Call/Non Contract"}});
-      }
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM,
+                              "Transaction", "Contract-Call/Non Contract");
+
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
       }

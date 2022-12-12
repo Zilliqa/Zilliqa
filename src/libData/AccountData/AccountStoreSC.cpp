@@ -37,36 +37,14 @@
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
-
-template <class MAP>
-void AccountStoreSC<MAP>::instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,
-                   void * state) {
-
-  AccountStoreSC<MAP>* that = reinterpret_cast<AccountStoreSC<MAP>*>(state);
-
-  // This looks like a bug in openTelemetry, need to investigate, clash between
-  // uint64_t amd long int should be unsigned, losing precision.
-
-  if (std::holds_alternative<std::shared_ptr<
-          opentelemetry::v1::metrics::ObserverResultT<long int>>>(
-          observer_result)) {
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
-        observer_result)
-        ->Observe(that->m_curBlockNum, {{"counter", "BlockNumber"}});
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
-        observer_result)
-        ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
-  }
-}
-
-
 template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic<MAP>>(*this);
   m_txnProcessTimeout = false;
-  m_accountStoreCount->AddCallback(instFetchInfo, this);
+  m_accountStoreCount.SetCallback([this](auto&& result) {
+    result.Set(m_curBlockNum, {{"counter", "BlockNumber"}});
+    result.Set(m_curBlockNum, {{"counter", "DSBlockNumber"}});
+  });
 }
 
 template <class MAP>
@@ -345,8 +323,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (m_scillaIPCServer) {
         m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
-             toAccount->GetStorageRoot(), scilla_version});
+            m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
+            toAccount->GetStorageRoot(), scilla_version);
       } else {
         LOG_GENERAL(
             WARNING,
@@ -629,8 +607,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // prepare IPC with current blockchain info provider.
       if (m_scillaIPCServer) {
         m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-             toAccount->GetStorageRoot(), scilla_version});
+            m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
+            toAccount->GetStorageRoot(), scilla_version);
       } else {
         LOG_GENERAL(WARNING, "m_scillaIPCServer not Initialised");
       }
@@ -1494,8 +1472,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
+          account->GetStorageRoot(), scilla_version);
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -1532,8 +1510,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
+          account->GetStorageRoot(), scilla_version);
 
       std::string runnerPrint;
       bool result = true;

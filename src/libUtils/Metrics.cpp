@@ -16,20 +16,16 @@
  */
 
 #include "Metrics.h"
-#include <chrono>
-#include <map>
-#include <memory>
-#include <thread>
-#include <vector>
-#include "Logger.h"
+
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
+
+#include "libUtils/Logger.h"
 
 // The OpenTelemetry Metrics Interface.
 
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
-
   std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT)};
 
@@ -61,88 +57,162 @@ void Metrics::Init() {
   zil::metrics::Filter::GetInstance().init();
 }
 
-zil::metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,
-                                            const std::string& name,
-                                            const std::string& desc,
-                                            std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateUInt64Counter(family + "_" + name, desc, unit);
+namespace {
+
+inline auto GetMeter(std::shared_ptr<metrics_api::MeterProvider>& provider,
+                     const std::string& family) {
+  return provider->GetMeter(family, "1.2.0");
 }
 
-zil::metrics::double_t Metrics::CreateDoubleMetric(const std::string& family,
-                                              const std::string& name,
-                                              std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateDoubleCounter(family + "_" + name, unit);
+inline std::string GetFullName(const std::string& family,
+                               const std::string& name) {
+  std::string full_name;
+  full_name.reserve(family.size() + name.size() + 1);
+  full_name += family;
+  full_name += "_";
+  full_name += name;
+  return full_name;
 }
 
-zil::metrics::int64Observable_t Metrics::CreateInt64UpDownMetric(
+}  // namespace
+
+zil::metrics::uint64Counter_t Metrics::CreateInt64Metric(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateInt64ObservableUpDownCounter(family + "_" + name, desc,
-                                                   unit);
+  return GetMeter(m_provider, family)
+      ->CreateUInt64Counter(GetFullName(family, name), desc, unit);
 }
 
-zil::metrics::doubleObservable_t Metrics::CreateDoubleUpDownMetric(
+zil::metrics::doubleCounter_t Metrics::CreateDoubleMetric(
+    const std::string& family, const std::string& name, const std::string& desc, std::string_view unit) {
+  return GetMeter(m_provider, family)
+      ->CreateDoubleCounter(GetFullName(family, name), desc, unit);
+}
+
+zil::metrics::Observable Metrics::CreateInt64UpDownMetric(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateDoubleObservableUpDownCounter(family + "_" + name, desc,
-                                                    unit);
+  return GetMeter(m_provider, family)
+      ->CreateInt64ObservableUpDownCounter(GetFullName(family, name), desc,
+                                           unit);
 }
 
-zil::metrics::int64Observable_t Metrics::CreateInt64Gauge(const std::string& family,
-                                                     const std::string& name,
-                                                     const std::string& desc,
-                                                     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateInt64ObservableUpDownCounter(family + "_" + name, desc,
-                                                   unit);
-}
-
-zil::metrics::doubleObservable_t Metrics::CreateDoubleGauge(
+zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateDoubleObservableUpDownCounter(family + "_" + name, desc,
-                                                    unit);
+  return GetMeter(m_provider, family)
+      ->CreateDoubleObservableUpDownCounter(GetFullName(family, name), desc,
+                                            unit);
+}
+
+zil::metrics::Observable Metrics::CreateInt64Gauge(
+    const std::string& family, const std::string& name, const std::string& desc,
+    std::string_view unit) {
+  return GetMeter(m_provider, family)
+      ->CreateInt64ObservableGauge(GetFullName(family, name), desc, unit);
+}
+
+zil::metrics::Observable Metrics::CreateDoubleGauge(
+    const std::string& family, const std::string& name, const std::string& desc,
+    std::string_view unit) {
+  return GetMeter(m_provider, family)
+      ->CreateDoubleObservableGauge(GetFullName(family, name), desc, unit);
 }
 
 zil::metrics::doubleHistogram_t Metrics::CreateDoubleHistogram(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateDoubleHistogram(family + "_" + name, desc, unit);
+  return GetMeter(m_provider, family)
+      ->CreateDoubleHistogram(GetFullName(family, name), desc, unit);
 }
 
-zil::metrics::int64Historgram_t Metrics::CreateUInt64Histogram(
+zil::metrics::uint64Historgram_t Metrics::CreateUInt64Histogram(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateUInt64Histogram(family + "_" + name, desc, unit);
+  return GetMeter(m_provider, family)
+      ->CreateUInt64Histogram(GetFullName(family, name), desc, unit);
 }
 
-zil::metrics::int64Observable_t Metrics::CreateInt64ObservableCounter(
+zil::metrics::Observable Metrics::CreateInt64ObservableCounter(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateInt64ObservableCounter(family + "_" + name, desc, unit);
+  return GetMeter(m_provider, family)
+      ->CreateInt64ObservableCounter(GetFullName(family, name), desc, unit);
 }
 
-zil::metrics::doubleObservable_t Metrics::CreateDoubleObservableCounter(
+zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
     const std::string& family, const std::string& name, const std::string& desc,
     std::string_view unit) {
-  std::shared_ptr<metrics_api::Meter> meter =
-      m_provider->GetMeter(family, "1.2.0");
-  return meter->CreateDoubleObservableCounter(family + "_" + name, desc, unit);
+  return GetMeter(m_provider, family)
+      ->CreateDoubleObservableCounter(GetFullName(family, name), desc, unit);
 }
+
+namespace zil::metrics {
+
+namespace {
+
+template <typename T>
+using ObserverResult =
+    std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<T>>;
+
+template <typename T>
+void SetT(auto& result, T value, const common::KeyValueIterable& attributes) {
+  bool holds_double = std::holds_alternative<ObserverResult<double>>(result);
+
+  if constexpr (std::is_integral_v<T>) {
+    assert(!holds_double);
+
+    if (holds_double) {
+      // ignore assert in release mode
+      LOG_GENERAL(WARNING, "Integer metric expected");
+      return;
+    }
+  } else {
+    assert(holds_double);
+
+    if (!holds_double) {
+      // ignore assert in release mode
+      LOG_GENERAL(WARNING, "Floating point metric expected");
+      return;
+    }
+  }
+
+  std::get<ObserverResult<T>>(result)->Observe(value, attributes);
+}
+
+}  // namespace
+
+void Observable::Result::SetImpl(long value,
+                                 const common::KeyValueIterable& attributes) {
+  SetT<long>(m_result, value, attributes);
+}
+
+void Observable::Result::SetImpl(double value,
+                                 const common::KeyValueIterable& attributes) {
+  SetT<double>(m_result, value, attributes);
+}
+
+void Observable::SetCallback(Callback cb) {
+  assert(cb);
+  m_callback = std::move(cb);
+  m_observable->AddCallback(&Observable::RawCallback, this);
+}
+
+Observable::~Observable() {
+  if (m_callback) {
+    m_observable->RemoveCallback(&Observable::RawCallback, this);
+  }
+}
+
+void Observable::RawCallback(
+    opentelemetry::metrics::ObserverResult observer_result, void* state) {
+  assert(state);
+
+  auto *self = static_cast<Observable *>(state);
+
+  assert(self->m_callback);
+
+  self->m_callback(Result(observer_result));
+}
+
+}  // namespace zil::metrics
