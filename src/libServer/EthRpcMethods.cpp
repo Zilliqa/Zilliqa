@@ -1484,10 +1484,6 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
       return Json::nullValue;
     }
-    if (!transactionBodyPtr->GetTransaction().IsEth()) {
-      LOG_GENERAL(WARNING, "No tx receipts for zil txs");
-      return Json::nullValue;
-    }
 
     const TxBlock EMPTY_BLOCK;
     auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
