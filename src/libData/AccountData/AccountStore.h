@@ -62,7 +62,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount->insert_or_assign(address, account);
   }
 };
 
@@ -204,13 +204,13 @@ class AccountStore
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
                                        const bool revertible = false) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount->insert_or_assign(address, account);
 
     if (revertible) {
       if (fullCopy) {
-        m_addressToAccountRevCreated[address] = account;
+        m_addressToAccountRevCreated.insert_or_assign(address, account);
       } else {
-        m_addressToAccountRevChanged[address] = oriAccount;
+        m_addressToAccountRevChanged.insert_or_assign(address, oriAccount);
       }
     }
 

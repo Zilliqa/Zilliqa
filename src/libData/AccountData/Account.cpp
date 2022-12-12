@@ -144,14 +144,6 @@ bool Account::IsLibrary() const {
   return (m_is_library && m_codeHash != dev::h256());
 }
 
-// =======================================
-// Account
-Account::Account(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init Account.");
-  }
-}
-
 Account::Account(const uint128_t& balance, const uint64_t& nonce,
                  const uint32_t& version)
     : AccountBase(balance, nonce, version) {}

@@ -614,7 +614,7 @@ bool AccountStore::RevertCommitTemp() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
   for (auto const& entry : m_addressToAccountRevChanged) {
-    (*m_addressToAccount)[entry.first] = entry.second;
+    m_addressToAccount->insert_or_assign(entry.first, entry.second);
     UpdateStateTrie(entry.first, entry.second);
   }
   for (auto const& entry : m_addressToAccountRevCreated) {

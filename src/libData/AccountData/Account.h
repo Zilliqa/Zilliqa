@@ -35,8 +35,8 @@ class AccountBase : public SerializableDataBlock {
   dev::h256 m_codeHash;
 
  public:
-  AccountBase() {}
 
+  AccountBase() = default;
   AccountBase(const uint128_t& balance, const uint64_t& nonce,
               const uint32_t& version);
 
@@ -119,10 +119,7 @@ class Account : public AccountBase {
                      bool& is_library, std::vector<Address>& extlibs);
 
  public:
-  Account() {}
-
-  /// Constructor for loading account information from a byte stream.
-  Account(const zbytes& src, unsigned int offset);
+  Account() = default;
 
   /// Constructor for a account.
   Account(const uint128_t& balance, const uint64_t& nonce,
