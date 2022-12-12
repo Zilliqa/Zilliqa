@@ -23,7 +23,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
@@ -154,10 +154,7 @@ bool DirectoryService::ProcessStateDelta(
     LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(stateDelta);
-  StateHash stateDeltaHash(sha2.Finalize());
-
+  StateHash stateDeltaHash = zil::CalculateSHA256<StateHash>(stateDelta);
   LOG_GENERAL(INFO, "Calculated StateHash: " << stateDeltaHash);
 
   if (stateDeltaHash != microBlockStateDeltaHash) {

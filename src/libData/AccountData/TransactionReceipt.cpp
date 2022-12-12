@@ -16,7 +16,7 @@
  */
 
 #include "TransactionReceipt.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/JsonUtils.h"
 
@@ -233,12 +233,16 @@ TxnHash TransactionWithReceipt::ComputeTransactionReceiptsHash(
     return TxnHash();
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  TxnHash result;
+  zil::SHA256Calculator hashCalculator{result.asArray()};
+
   for (const auto& tr : txrs) {
-    sha2.Update(DataConversion::StringToCharArray(
+    hashCalculator.Update(DataConversion::StringToCharArray(
         tr.GetTransactionReceipt().GetString()));
   }
-  return TxnHash(sha2.Finalize());
+
+  hashCalculator.Finalize();
+  return result;
 }
 
 bool TransactionWithReceipt::ComputeTransactionReceiptsHash(

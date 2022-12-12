@@ -38,7 +38,7 @@
 #include "Blacklist.h"
 #include "P2PComm.h"
 #include "SendJobs.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SafeMath.h"
@@ -150,10 +150,9 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
         (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
-      SHA2<HashType::HASH_VARIANT_256> sha256;
-      sha256.Update(message, HDR_LEN + HASH_LEN,
-                    message.size() - HDR_LEN - HASH_LEN);
-      zbytes this_msg_hash = sha256.Finalize();
+      zbytes this_msg_hash =
+          zil::CalculateSHA256<zbytes>(message.data() + HDR_LEN + HASH_LEN,
+                                       message.size() - HDR_LEN - HASH_LEN);
 
       if (this_msg_hash == msg_hash) {
         p2p.m_broadcastHashes.insert(this_msg_hash);
@@ -1270,10 +1269,7 @@ void SendBroadcastMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
     return;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
-  sha256.Update(message);
-  hash = sha256.Finalize();
-
+  hash = zil::CalculateSHA256<zbytes>(message);
   auto raw_msg = sendJobs->CreateMessage(message, hash, START_BYTE_BROADCAST);
 
   string hashStr;

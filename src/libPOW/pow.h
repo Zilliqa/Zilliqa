@@ -92,10 +92,6 @@ class POW {
                  const ethash_hash256& headerHash, uint64_t winning_nonce,
                  const std::string& winning_result,
                  const std::string& winning_mixhash);
-  static zbytes ConcatAndhash(
-      const std::array<unsigned char, UINT256_SIZE>& rand1,
-      const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
-      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);
   static ethash_hash256 DifficultyLevelInInt(uint8_t difficulty);
   static ethash_hash256 DifficultyLevelInIntDevided(uint8_t difficulty);
   static uint8_t DevidedBoundaryToDifficulty(ethash_hash256 boundary);
@@ -140,6 +136,11 @@ class POW {
   std::condition_variable m_cvMiningResult;
   std::mutex m_mutexMiningResult;
   std::unique_ptr<jsonrpc::HttpClient> m_httpClient;
+
+  static zbytes ConcatAndhash(
+      const std::array<unsigned char, UINT256_SIZE>& rand1,
+      const std::array<unsigned char, UINT256_SIZE>& rand2, const Peer& peer,
+      const PubKey& pubKey, uint32_t lookupId, const uint128_t& gasPrice);
 
   ethash_mining_result_t MineLight(ethash_hash256 const& headerHash,
                                    ethash_hash256 const& boundary,

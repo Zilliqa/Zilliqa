@@ -19,7 +19,7 @@
 #include <algorithm>
 #include "Account.h"
 #include "libCrypto/EthCrypto.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
@@ -285,16 +285,7 @@ bool Transaction::SetHash(zbytes const& txnData) {
     return true;
   }
 
-  // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(txnData);
-  const zbytes& output = sha2.Finalize();
-  if (output.size() != TRAN_HASH_SIZE) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    return false;
-  }
-
-  copy(output.begin(), output.end(), m_tranID.asArray().begin());
+  m_tranID = zil::CalculateSHA256<TxnHash>(txnData);
   return true;
 }
 

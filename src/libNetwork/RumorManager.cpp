@@ -25,7 +25,6 @@
 
 #include "P2PComm.h"
 #include "common/Messages.h"
-#include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/HashUtils.h"
 

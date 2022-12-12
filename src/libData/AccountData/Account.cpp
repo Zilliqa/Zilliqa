@@ -22,7 +22,7 @@
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "libCrypto/EthCrypto.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/CommonUtils.h"
@@ -425,21 +425,15 @@ bool Account::FetchStateJson(Json::Value& root, const string& vname,
   return true;
 }
 
+// FIXME: this looks almost identical to the implementation in
+// libUtils/CryptoUtils.h.
+//        consider combining into one implementation.
 Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
   Address address;
 
   zbytes vec;
   pubKey.Serialize(vec, 0);
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(vec);
-
-  const zbytes& output = sha2.Finalize();
-
-  if (output.size() != 32) {
-    LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-  }
-
+  const zbytes& output = zil::CalculateSHA256<zbytes>(vec);
   copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
 
   return address;
@@ -467,20 +461,12 @@ Address Account::GetAddressForContract(const Address& sender,
 
   // Zil-style TXs
   if (version == TRANSACTION_VERSION) {
-    SHA2<HashType::HASH_VARIANT_256> sha2;
     zbytes conBytes;
     copy(sender.asArray().begin(), sender.asArray().end(),
          back_inserter(conBytes));
     SetNumber<uint64_t>(conBytes, conBytes.size(), nonce, sizeof(uint64_t));
-    sha2.Update(conBytes);
 
-    const zbytes& output = sha2.Finalize();
-
-    if (output.size() != 32) {
-      LOG_GENERAL(WARNING, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                                << ": " << __FUNCTION__ << ")");
-    }
-
+    const zbytes& output = zil::CalculateSHA256<zbytes>(conBytes);
     copy(output.end() - ACC_ADDR_SIZE, output.end(), address.asArray().begin());
   } else if (version == TRANSACTION_VERSION_ETH) {
     // Note the nonce accounting for Zil TXs is always 1 ahead so we decrement
@@ -526,10 +512,7 @@ bool Account::GetContractCodeHash(dev::h256& contractCodeHash) const {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(codeCache);
-  contractCodeHash = dev::h256(sha2.Finalize());
-
+  contractCodeHash = zil::CalculateSHA256<dev::h256>(codeCache);
   return true;
 }
 
@@ -594,10 +577,11 @@ bool Account::SetImmutable(const zbytes& code, const zbytes& initData) {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(StripEVM(code));
-  sha2.Update(initData);
-  SetCodeHash(dev::h256(sha2.Finalize()));
-  // LOG_GENERAL(INFO, "m_codeHash: " << m_codeHash);
+  dev::h256 result;
+  zil::SHA256Calculator hashCalculator{result.asArray()};
+  hashCalculator.Update(StripEVM(code));
+  hashCalculator.Update(initData);
+  hashCalculator.Finalize();
+  SetCodeHash(result);
   return true;
 }

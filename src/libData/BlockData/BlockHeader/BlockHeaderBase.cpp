@@ -16,7 +16,7 @@
  */
 
 #include "BlockHeaderBase.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
@@ -32,14 +32,9 @@ BlockHeaderBase::BlockHeaderBase(const uint32_t& version,
       m_prevHash(prevHash) {}
 
 BlockHash BlockHeaderBase::GetMyHash() const {
-  SHA2<HashType::HASH_VARIANT_256> sha2;
   zbytes vec;
   Serialize(vec, 0);
-  sha2.Update(vec);
-  const zbytes& resVec = sha2.Finalize();
-  BlockHash blockHash;
-  std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
-  return blockHash;
+  return zil::CalculateSHA256<BlockHash>(vec);
 }
 
 const uint32_t& BlockHeaderBase::GetVersion() const { return m_version; }

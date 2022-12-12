@@ -19,7 +19,6 @@
 
 #include "Mediator.h"
 #include "common/Constants.h"
-#include "libCrypto/Sha2.h"
 #include "libEth/Filters.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/CommonUtils.h"

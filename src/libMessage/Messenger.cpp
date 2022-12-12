@@ -21,7 +21,6 @@
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#include "libCrypto/Sha2.h"
 #include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -749,7 +748,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                          DataConversion::StringToCharArray(entry.data()));
         if (LOG_SC) {
           LOG_GENERAL(INFO, "Key: " << entry.key() << "  "
-                                    << "Data: " << DataConversion::Uint8VecToHexStrRet(toZbytes(entry.data())));
+                                    << "Data: "
+                                    << DataConversion::Uint8VecToHexStrRet(
+                                           toZbytes(entry.data())));
         }
       }
 
@@ -2285,12 +2286,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(tmp);
-  tmp = sha2.Finalize();
-
-  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
-
+  dst = zil::CalculateSHA256<CommitteeHash>(tmp);
   return true;
 }
 
@@ -2311,12 +2307,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(tmp);
-  tmp = sha2.Finalize();
-
-  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
-
+  dst = zil::CalculateSHA256<CommitteeHash>(tmp);
   return true;
 }
 
@@ -2339,12 +2330,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(tmp);
-  tmp = sha2.Finalize();
-
-  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
-
+  dst = zil::CalculateSHA256<ShardingHash>(tmp);
   return true;
 }
 
@@ -2821,12 +2807,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
     return true;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(tmp);
-  tmp = sha2.Finalize();
-
-  copy(tmp.begin(), tmp.end(), dst.asArray().begin());
-
+  dst = zil::CalculateSHA256<MBInfoHash>(tmp);
   return true;
 }
 
@@ -4814,7 +4795,7 @@ bool Messenger::SetNodePendingTxn(
   result.mutable_data()->set_epochnumber(epochnum);
   result.mutable_data()->set_shardid(shardId);
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  zil::SHA256Calculator hashCalculator;
 
   for (const auto& hashCodePair : hashCodeMap) {
     auto protoHashCodePair = result.mutable_data()->add_hashcodepair();
@@ -4822,11 +4803,11 @@ bool Messenger::SetNodePendingTxn(
                                    hashCodePair.first.size);
     protoHashCodePair->set_code(hashCodePair.second);
 
-    sha2.Update(hashCodePair.first.data(), hashCodePair.first.size);
-    sha2.Update(to_string(hashCodePair.second));
+    hashCalculator.Update(hashCodePair.first.data(), hashCodePair.first.size);
+    hashCalculator.Update(to_string(hashCodePair.second));
   }
 
-  const zbytes& txnlisthash = sha2.Finalize();
+  const auto& txnlisthash = hashCalculator.Finalize();
   result.mutable_data()->set_txnlisthash(txnlisthash.data(),
                                          txnlisthash.size());
 
@@ -4887,7 +4868,8 @@ bool Messenger::GetNodePendingTxn(
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  txnListHash.resize(zil::SHA256Calculator::DigestByteCount());
+  zil::SHA256Calculator hashCalculator{txnListHash};
 
   for (const auto& codeHashPair : result.data().hashcodepair()) {
     TxnHash txhash;
@@ -4897,11 +4879,10 @@ bool Messenger::GetNodePendingTxn(
          txhash.asArray().begin());
     hashCodeMap.emplace(txhash, static_cast<TxnStatus>(codeHashPair.code()));
 
-    sha2.Update(txhash.data(), txhash.size);
+    hashCalculator.Update(txhash.data(), txhash.size);
   }
 
-  txnListHash = sha2.Finalize();
-
+  hashCalculator.Finalize();
   epochnum = result.data().epochnumber();
   shardId = result.data().shardid();
 

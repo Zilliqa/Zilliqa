@@ -26,7 +26,6 @@
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Address.h"
 #include "libEth/Filters.h"
 #include "libNetwork/Guard.h"

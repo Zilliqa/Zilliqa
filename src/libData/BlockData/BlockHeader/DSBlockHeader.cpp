@@ -16,7 +16,7 @@
  */
 
 #include "DSBlockHeader.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libMessage/Messenger.h"
 
 using namespace std;
@@ -75,7 +75,6 @@ bool DSBlockHeader::Serialize(zbytes& dst, unsigned int offset) const {
 }
 
 BlockHash DSBlockHeader::GetHashForRandom() const {
-  SHA2<HashType::HASH_VARIANT_256> sha2;
   zbytes vec;
 
   if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {
@@ -83,11 +82,7 @@ BlockHash DSBlockHeader::GetHashForRandom() const {
     return BlockHash();
   }
 
-  sha2.Update(vec);
-  const zbytes& resVec = sha2.Finalize();
-  BlockHash blockHash;
-  std::copy(resVec.begin(), resVec.end(), blockHash.asArray().begin());
-  return blockHash;
+  return zil::CalculateSHA256<BlockHash>(vec);
 }
 
 bool DSBlockHeader::Deserialize(const zbytes& src, unsigned int offset) {

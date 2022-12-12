@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBCRYPTO_HASH_CALCULATOR_H_
 #define ZILLIQA_SRC_LIBCRYPTO_HASH_CALCULATOR_H_
 
+#include "depends/common/FixedHash.h"
+
 #include <openssl/evp.h>
 
 #include <cassert>
@@ -81,8 +83,8 @@ class HashCalculator final {
    * the storage and it's the user's responsiblity to manage the memory.
    */
   template <typename IterT>
-    requires std::contiguous_iterator<IterT>
-  HashCalculator(IterT outputFirst, IterT outputLast)
+  requires std::contiguous_iterator<IterT> HashCalculator(IterT outputFirst,
+                                                          IterT outputLast)
       : HashCalculator{&(*outputFirst), &(*outputLast)} {}
 
   /**
@@ -129,9 +131,9 @@ class HashCalculator final {
    * @param last An iterator to the end of the input.
    */
   template <typename IterT>
-    requires std::contiguous_iterator<IterT>
+  requires std::contiguous_iterator<IterT>
   constexpr void Update(IterT first, IterT last) {
-    EVP_DigestUpdate(context(), &(*first), std::distance(first, last));
+    EVP_DigestUpdate(Context(), &(*first), std::distance(first, last));
   }
 
   /**
@@ -140,10 +142,20 @@ class HashCalculator final {
    */
   template <typename ArrayLikeT>
   constexpr void Update(const ArrayLikeT& input) {
-    // Don't allow C-style arrays because they will have a null-terminating character
-    // at the end which will be used in the calculation (which is error-prone).
+    // Don't allow C-style arrays because they will have a null-terminating
+    // character at the end which will be used in the calculation (which is
+    // error-prone).
     static_assert(!std::is_array_v<ArrayLikeT>, "input mustn't be an array");
     Update(std::ranges::begin(input), std::ranges::end(input));
+  }
+
+  /**
+   * @brief Updates the input to the hash.
+   * @param data A pointer to the data.
+   * @param size The size of the data.
+   */
+  constexpr void Update(const unsigned char* data, std::size_t size) {
+    Update(data, data + size);
   }
 
   /**
@@ -152,7 +164,7 @@ class HashCalculator final {
    */
   constexpr auto Finalize() {
     unsigned int outputLength = 0;
-    EVP_DigestFinal_ex(context(), m_ptr, &outputLength);
+    EVP_DigestFinal_ex(Context(), m_ptr, &outputLength);
     return std::ranges::views::counted(m_ptr, DigestByteCount());
   }
 
@@ -161,29 +173,78 @@ class HashCalculator final {
   unsigned char* m_ptr = nullptr;
   bool m_owned = false;
 
-  static auto evp() noexcept { return detail::EVPDigest<N>::impl(); }
-  auto context() noexcept { return m_context.get(); }
+  static auto EVP() noexcept { return detail::EVPDigest<N>::impl(); }
+  auto Context() noexcept { return m_context.get(); }
 
   HashCalculator(unsigned char* first, unsigned char* last)
       : m_context{EVP_MD_CTX_new(), &EVP_MD_CTX_free},
         m_owned{first == nullptr} {
-    assert(EVP_MD_size(evp()) == DigestByteCount());
+    assert(EVP_MD_size(EVP()) == DigestByteCount());
 
     if (first) {
-      if (std::distance(first, last) < EVP_MD_size(evp()))
+      if (std::distance(first, last) < EVP_MD_size(EVP()))
         throw std::runtime_error{"bad storage size"};
 
       m_ptr = first;
     } else {
       m_ptr =
-          reinterpret_cast<unsigned char*>(OPENSSL_malloc(EVP_MD_size(evp())));
+          reinterpret_cast<unsigned char*>(OPENSSL_malloc(EVP_MD_size(EVP())));
     }
 
-    EVP_DigestInit_ex(context(), evp(), nullptr);
+    EVP_DigestInit_ex(Context(), EVP(), nullptr);
   }
 };
 
 using SHA256Calculator = HashCalculator<256>;
+
+namespace detail {
+
+template <typename ResultT, std::size_t N, typename... ArgsT>
+struct HashCalculationHelper {
+  static ResultT Calculate(ArgsT&&... args) {
+    HashCalculator<N> hashCalculator;
+    hashCalculator.Update(std::forward<ArgsT>(args)...);
+    ResultT result = hashCalculator.Finalize();
+    return result;
+  }
+};
+
+template <std::size_t N, typename... ArgsT>
+struct HashCalculationHelper<std::vector<unsigned char>, N, ArgsT...> {
+  static std::vector<unsigned char> Calculate(ArgsT&&... args) {
+    std::vector<unsigned char> result(HashCalculator<N>::DigestByteCount(), 0);
+    HashCalculator<N> hashCalculator{result};
+    hashCalculator.Update(std::forward<ArgsT>(args)...);
+    hashCalculator.Finalize();
+    return result;
+  }
+};
+
+template <std::size_t N, typename... ArgsT>
+struct HashCalculationHelper<
+    dev::FixedHash<HashCalculator<N>::DigestByteCount()>, N, ArgsT...> {
+  static dev::FixedHash<HashCalculator<N>::DigestByteCount()> Calculate(
+      ArgsT&&... args) {
+    dev::FixedHash<HashCalculator<N>::DigestByteCount()> result;
+    HashCalculator<N> hashCalculator{result.asArray()};
+    hashCalculator.Update(std::forward<ArgsT>(args)...);
+    hashCalculator.Finalize();
+    return result;
+  }
+};
+
+}  // namespace detail
+
+template <typename ResultT, std::size_t N, typename... ArgsT>
+ResultT CalculateHash(ArgsT... args) {
+  return detail::HashCalculationHelper<ResultT, N, ArgsT...>::Calculate(
+      std::forward<ArgsT>(args)...);
+}
+
+template <typename ResultT, typename... ArgsT>
+ResultT CalculateSHA256(ArgsT... args) {
+  return CalculateHash<ResultT, 256, ArgsT...>(std::forward<ArgsT>(args)...);
+}
 
 }  // namespace zil
 

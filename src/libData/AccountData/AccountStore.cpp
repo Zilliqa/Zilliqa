@@ -23,7 +23,7 @@
 #include "EvmClient.h"
 #include "ScillaClient.h"
 
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
@@ -587,9 +587,7 @@ StateHash AccountStore::GetStateDeltaHash() {
     return StateHash();
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(m_stateDeltaSerialized);
-  return StateHash(sha2.Finalize());
+  return zil::CalculateSHA256<StateHash>(m_stateDeltaSerialized);
 }
 
 void AccountStore::CommitTemp() {

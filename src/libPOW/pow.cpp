@@ -23,7 +23,7 @@
 
 #include "common/Serializable.h"
 #include "ethash/ethash.hpp"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "pow.h"
@@ -749,10 +749,7 @@ zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                                     sizeof(uint32_t));
   Serializable::SetNumber<uint128_t>(vec, vec.size(), gasPrice, UINT128_SIZE);
 
-  SHA2<256> sha2;
-  sha2.Update(vec);
-  zbytes sha2_result = sha2.Finalize();
-  return sha2_result;
+  return zil::CalculateSHA256<zbytes>(vec);
 }
 
 ethash_hash256 POW::GenHeaderHash(

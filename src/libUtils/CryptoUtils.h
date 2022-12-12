@@ -19,17 +19,17 @@
 #define ZILLIQA_SRC_LIBUTILS_CRYPTOUTILS_H_
 
 #include <Schnorr.h>
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 #include "libData/AccountData/Address.h"
 
 namespace CryptoUtils {
 Address GetAddressFromPubKey(const PubKey& pubKey) {
   zbytes addr_ser;
   pubKey.Serialize(addr_ser, 0);
-  SHA2<HashType::HASH_VARIANT_256> sha2;
-  sha2.Update(addr_ser, 0, PUB_KEY_SIZE);
-  const zbytes& tmp = sha2.Finalize();
+
   Address ret;
+  const zbytes& tmp =
+      zil::CalculateSHA256<zbytes>(addr_ser.data(), PUB_KEY_SIZE);
   copy(tmp.end() - ACC_ADDR_SIZE, tmp.end(), ret.asArray().begin());
   return ret;
 }

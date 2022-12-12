@@ -16,9 +16,9 @@
  */
 
 #include "RootComputation.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace dev;

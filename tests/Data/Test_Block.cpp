@@ -18,7 +18,6 @@
 #include <array>
 #include <string>
 
-#include "libCrypto/Sha2.h"
 #include "libData/Block.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"

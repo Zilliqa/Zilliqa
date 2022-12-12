@@ -20,7 +20,7 @@
 
 #include <string>
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
+#include "libCrypto/HashCalculator.h"
 
 class HashUtils {
  public:
@@ -35,13 +35,8 @@ class HashUtils {
     sz.Serialize(vec, 0);
     return BytesToHash(vec);
   }
-  static const zbytes BytesToHash(const zbytes& vec) {
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-
-    sha2.Update(vec);
-    const zbytes& resVec = sha2.Finalize();
-
-    return resVec;
+  static zbytes BytesToHash(const zbytes& vec) {
+    return zil::CalculateSHA256<zbytes>(vec);
   }
   static uint16_t SerializableToHash16Bits(const Serializable& sz) {
     const zbytes& vec = SerializableToHash(sz);

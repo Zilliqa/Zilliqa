@@ -24,7 +24,6 @@
 #include "depends/common/FixedHash.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libPersistence/ContractStorage.h"
