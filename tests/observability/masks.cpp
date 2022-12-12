@@ -20,13 +20,13 @@
 #include "common/MetricFilters.h"
 #include "libUtils/Metrics.h"
 
-
-
 int main() {
-  std::cout << "Hello, World here is an example of bit testing for the metrics flag" << std::endl;
+  std::cout
+      << "Hello, World here is an example of bit testing for the metrics flag"
+      << std::endl;
 
-
-  // read trace_configured_value from constants for a 64 bit vale that is the trace_flag
+  // read trace_configured_value from constants for a 64 bit vale that is the
+  // trace_flag
   /// eventually make this settable dynamically through a control plane or cmd.
 
   int counter = 0;
@@ -35,11 +35,16 @@ int main() {
 
   std::cout << "value of mask " << METRIC_ZILLIQA_MASK << std::endl;
 
-  if (zil::metrics::Test::Enabled(TRACE_OFF)) std::cout << "No tracing is set" << std::endl;
-  if (zil::metrics::Test::Enabled(TRACE_P2P)) std::cout << "P2P tracing on" << std::endl;
-  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) std::cout << "DB tracing on" << std::endl;
-  if (zil::metrics::Test::Enabled(METRICS_EVM_RPC)) std::cout << "evm tracing on" << std::endl;
-  if (zil::metrics::Test::Enabled(TRACE_SOME_SMELLY_CODE)) std::cout << "smelly code trace is on" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_OFF))
+    std::cout << "No tracing is set" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_P2P))
+    std::cout << "P2P tracing on" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE))
+    std::cout << "DB tracing on" << std::endl;
+  if (zil::metrics::Test::Enabled(METRICS_EVM_RPC))
+    std::cout << "evm tracing on" << std::endl;
+  if (zil::metrics::Test::Enabled(TRACE_SOME_SMELLY_CODE))
+    std::cout << "smelly code trace is on" << std::endl;
 
   std::cout << "val of counter " << counter << std::endl;
 
@@ -55,11 +60,14 @@ int main() {
   if (zil::metrics::Test::Enabled(TRACE_DATABASE)) {
     counter++;
   }
-  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) { counter++; }
-  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) { counter++; }
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) {
+    counter++;
+  }
+  if (zil::metrics::Test::Enabled(TRACE_DATABASE)) {
+    counter++;
+  }
 
   std::cout << "val of counter " << counter << std::endl;
 
   return 0;
 }
-

@@ -84,7 +84,8 @@ zil::metrics::uint64Counter_t Metrics::CreateInt64Metric(
 }
 
 zil::metrics::doubleCounter_t Metrics::CreateDoubleMetric(
-    const std::string& family, const std::string& name, const std::string& desc, std::string_view unit) {
+    const std::string& family, const std::string& name, const std::string& desc,
+    std::string_view unit) {
   return GetMeter(m_provider, family)
       ->CreateDoubleCounter(GetFullName(family, name), desc, unit);
 }
@@ -105,16 +106,18 @@ zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
                                             unit);
 }
 
-zil::metrics::Observable Metrics::CreateInt64Gauge(
-    const std::string& family, const std::string& name, const std::string& desc,
-    std::string_view unit) {
+zil::metrics::Observable Metrics::CreateInt64Gauge(const std::string& family,
+                                                   const std::string& name,
+                                                   const std::string& desc,
+                                                   std::string_view unit) {
   return GetMeter(m_provider, family)
       ->CreateInt64ObservableGauge(GetFullName(family, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateDoubleGauge(
-    const std::string& family, const std::string& name, const std::string& desc,
-    std::string_view unit) {
+zil::metrics::Observable Metrics::CreateDoubleGauge(const std::string& family,
+                                                    const std::string& name,
+                                                    const std::string& desc,
+                                                    std::string_view unit) {
   return GetMeter(m_provider, family)
       ->CreateDoubleObservableGauge(GetFullName(family, name), desc, unit);
 }
@@ -208,7 +211,7 @@ void Observable::RawCallback(
     opentelemetry::metrics::ObserverResult observer_result, void* state) {
   assert(state);
 
-  auto *self = static_cast<Observable *>(state);
+  auto* self = static_cast<Observable*>(state);
 
   assert(self->m_callback);
 

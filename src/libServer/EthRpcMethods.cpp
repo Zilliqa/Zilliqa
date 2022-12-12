@@ -59,7 +59,7 @@ namespace {
 
 zil::metrics::uint64Counter_t& GetInvocationsCounter() {
   static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_ethrpc", "invocation_count", "Calls to ethereum API","Calls");
+      "zilliqa_ethrpc", "invocation_count", "Calls to ethereum API", "Calls");
   return counter;
 }
 
@@ -480,7 +480,6 @@ std::string EthRpcMethods::CreateTransactionEth(
 std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), EVM_RPC);
 
   unsigned int mapIndex = shard;
