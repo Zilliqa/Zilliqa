@@ -32,7 +32,8 @@
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
 #include "EvmClient.h"
-#include "libServer/ScillaIPCServer.h"
+#include "libScilla/ScillaIPCServer.h"
+#include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
@@ -51,9 +52,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServerConnector =
-        make_unique<jsonrpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServerConnector->SetWaitTime(
-        SCILLA_SERVER_LOOP_WAIT_MICROSECONDS);
+        make_unique<rpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
     m_scillaIPCServer =
         make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
 

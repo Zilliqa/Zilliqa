@@ -15,21 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
 #include <boost/multiprecision/cpp_dec_float.hpp>
-#include <chrono>
-#include <functional>
-#include <limits>
-#include <thread>
 
 #include "Node.h"
+#include "RootComputation.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
@@ -52,9 +44,7 @@
 #include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/MemoryStats.h"
-#include "libUtils/RootComputation.h"
 #include "libUtils/SanityChecks.h"
-#include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
@@ -1641,7 +1631,7 @@ bool Node::ProcessPendingTxn(const zbytes& message, unsigned int cur_offset,
   LOG_GENERAL(INFO, "Received PENDINGTXN for epoch "
                         << epochNum << " and shard " << shardId
                         << " id=" << hashCodeMap.begin()->first
-                        << " s=" << hashCodeMap.begin()->second);  // XXX
+                        << " s=" << hashCodeMap.begin()->second);
 
   AddPendingTxn(hashCodeMap, pubkey, shardId, txnListHash);
 

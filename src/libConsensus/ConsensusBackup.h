@@ -18,16 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSBACKUP_H_
 #define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSBACKUP_H_
 
-#include <condition_variable>
-#include <deque>
-#include <functional>
-#include <memory>
-#include <mutex>
-#include <vector>
-
-#include <MultiSig.h>
 #include "ConsensusCommon.h"
-#include "libUtils/TimeLockedFunction.h"
 
 typedef std::function<bool(const zbytes& input, unsigned int offset,
                            zbytes& errorMsg, const uint32_t consensusID,

@@ -47,7 +47,7 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
 
   APICacheUpdate& GetUpdate() override { return *this; }
 
-  void EnableWebsocketAPI(std::shared_ptr<WebsocketServer> ws,
+  void EnableWebsocketAPI(std::shared_ptr<rpc::WebsocketServer> ws,
                           BlockByHash blockByHash) override {
     m_subscriptions.Start(std::move(ws), std::move(blockByHash));
   }

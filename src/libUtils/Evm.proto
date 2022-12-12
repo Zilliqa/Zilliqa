@@ -73,8 +73,9 @@ message EvmArgs {
   uint64 gas_limit = 6;
   EvmEvalExtras extras = 7;
   bool estimate = 8;
-  bool cps_mode = 9;
-  Continuation continuation = 10;
+  string context = 9;
+  bool cps_mode = 10;
+  Continuation continuation = 11;
 }
 
 message EvmLog {

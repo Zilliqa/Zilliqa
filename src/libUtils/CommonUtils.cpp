@@ -21,12 +21,13 @@
 #include <chrono>
 #include <mutex>
 
+#include "common/Constants.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/Logger.h"
 
 using namespace std;
 
-void CommonUtils ::ReleaseSTLMemoryCache() {
+void CommonUtils::ReleaseSTLMemoryCache() {
 #ifdef __linux__
   LOG_MARKER();
 
@@ -38,4 +39,8 @@ void CommonUtils ::ReleaseSTLMemoryCache() {
     LOG_GENERAL(WARNING, "MemoryCache cleanup already in progress!");
   }
 #endif
+}
+
+bool CommonUtils::IsVacuousEpoch(const uint64_t& epochNum) {
+  return ((epochNum + NUM_VACUOUS_EPOCHS) % NUM_FINAL_BLOCK_PER_POW) == 0;
 }

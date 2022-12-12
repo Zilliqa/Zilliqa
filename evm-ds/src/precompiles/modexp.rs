@@ -10,7 +10,7 @@ pub(crate) fn modexp(
     target_gas: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {
         Ok(i) => i,
         Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
@@ -25,12 +25,13 @@ pub(crate) fn modexp(
     }
 
     match run_inner(input) {
-        Ok(out) => Ok(PrecompileOutput {
+        Ok(out) => Ok((
+            PrecompileOutput {
+                exit_status: ExitSucceed::Returned,
+                output: out,
+            },
             cost,
-            exit_status: ExitSucceed::Returned,
-            logs: vec![],
-            output: out,
-        }),
+        )),
         Err(err) => Err(PrecompileFailure::Error { exit_status: err }),
     }
 }

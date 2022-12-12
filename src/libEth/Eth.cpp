@@ -24,10 +24,10 @@
 #include "json/value.h"
 #include "jsonrpccpp/server.h"
 #include "libCrypto/EthCrypto.h"
-#include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/Account.h"
+#include "libPersistence/BlockStorage.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
 using namespace jsonrpc;
@@ -180,7 +180,7 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                                std::to_string(minGasLimit));
   }
 
-  if (!Validator::VerifyTransaction(tx)) {
+  if (!Transaction::Verify(tx)) {
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Unable to verify transaction");
   }

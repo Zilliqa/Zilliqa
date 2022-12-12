@@ -420,8 +420,8 @@ BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
 // Please enable the OPENCL_GPU_MINE option in constants.xml to run this test
 // case
 BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
-  if (!OPENCL_GPU_MINE && !CUDA_GPU_MINE) {
-    std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
+  if (!OPENCL_GPU_MINE) {
+    std::cout << "OPENCL_GPU_MINE option is not "
                  "enabled, skip test case "
                  "gpu_mining_and_verification_1"
               << std::endl;
@@ -430,8 +430,6 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
 
   if (OPENCL_GPU_MINE) {
     std::cout << "OPENCL_GPU_MINE enabled, test with OpenCL GPU" << std::endl;
-  } else if (CUDA_GPU_MINE) {
-    std::cout << "CUDA_GPU_MINE enabled, test with CUDA GPU" << std::endl;
   }
 
   POW& POWClient = POW::GetInstance();
@@ -476,11 +474,11 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
-// Please enable the OPENCL_GPU_MINE or CUDA_GPU_MINE option in constants.xml to
+// Please enable the OPENCL_GPU_MINE option in constants.xml to
 // run this test case
 BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
-  if (!OPENCL_GPU_MINE && !CUDA_GPU_MINE) {
-    std::cout << "OPENCL_GPU_MINE and CUDA_GPU_MINE option are not "
+  if (!OPENCL_GPU_MINE) {
+    std::cout << "OPENCL_GPU_MINE option is not "
                  "enabled, skip test case "
                  "gpu_mining_and_verification_2"
               << std::endl;
@@ -489,8 +487,6 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
 
   if (OPENCL_GPU_MINE) {
     std::cout << "OPENCL_GPU_MINE enabled, test with OpenCL GPU" << std::endl;
-  } else if (CUDA_GPU_MINE) {
-    std::cout << "CUDA_GPU_MINE enabled, test with CUDA GPU" << std::endl;
   }
 
   POW& POWClient = POW::GetInstance();

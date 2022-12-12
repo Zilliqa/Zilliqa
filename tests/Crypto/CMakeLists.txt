@@ -7,7 +7,7 @@ add_test(NAME Test_Sha2 COMMAND Test_Sha2)
 
 add_executable(Test_EthCrypto Test_EthCrypto.cpp)
 target_link_libraries(Test_EthCrypto PUBLIC Utils Boost::unit_test_framework)
-target_link_libraries(Test_EthCrypto PUBLIC EthCrypto Eth OpenSSL::Crypto Common jsonrpc::client)
+target_link_libraries(Test_EthCrypto PUBLIC EthCrypto Eth OpenSSL::Crypto Common jsonrpc)
 add_test(NAME Test_EthCrypto COMMAND Test_EthCrypto)
 
 #add_executable(Test_Schnorr Test_Schnorr.cpp)

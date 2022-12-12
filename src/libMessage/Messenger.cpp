@@ -21,7 +21,7 @@
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#include "libUtils/Logger.h"
+#include "libCrypto/Sha2.h"
 #include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -749,7 +749,7 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                          DataConversion::StringToCharArray(entry.data()));
         if (LOG_SC) {
           LOG_GENERAL(INFO, "Key: " << entry.key() << "  "
-                                    << "Data: " << entry.data());
+                                    << "Data: " << DataConversion::Uint8VecToHexStrRet(toZbytes(entry.data())));
         }
       }
 

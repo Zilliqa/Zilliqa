@@ -3,12 +3,6 @@ const {ethers} = require("hardhat");
 
 const general_helper = require("../helper/GeneralHelper");
 
-// Ensures all events in current eventloop run are dispatched
-async function waitForEvents(events, timeout = 0) {
-  await new Promise((r) => setTimeout(r, timeout));
-  return events;
-}
-
 describe("Subscriptions functionality", function () {
   let contract;
   let eventsContract;
@@ -18,12 +12,22 @@ describe("Subscriptions functionality", function () {
     const Contract = await ethers.getContractFactory("Subscriptions");
     senderAddress = (await ethers.getSigner()).address;
     contract = await Contract.deploy();
+  });
+
+  beforeEach(async function () {
     provider = new ethers.providers.WebSocketProvider(general_helper.getWebsocketUrl());
     eventsContract = new ethers.Contract(contract.address, contract.interface, provider);
   });
+
   afterEach(async function () {
     eventsContract.removeAllListeners();
   });
+
+  // Ensures all events in current eventloop run are dispatched
+  async function waitForEvents(events, timeout = 5000) {
+    await new Promise((r) => setTimeout(r, timeout));
+    return events;
+  }
 
   describe("When event is triggered with zero indexed parameters", function () {
     it("Should receive event regardless of provided filters", async function () {
@@ -615,7 +619,7 @@ describe("Subscriptions functionality", function () {
       expect(receivedEvents).to.have.length(1);
     });
 
-    it("Should receive event with complex scenario - 2 aaa", async function () {
+    it("Should receive event with complex scenario - 2", async function () {
       let receivedEvents = [];
       const filter = eventsContract.filters.Event3(senderAddress, "0x6e2Cf2789c5B705E0990C05Ca959B5001c70BA87", [
         new ethers.BigNumber.from(300),

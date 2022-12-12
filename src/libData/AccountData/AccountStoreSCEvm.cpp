@@ -23,10 +23,10 @@
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "common/Constants.h"
+#include "libCrypto/EthCrypto.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
-#include "libServer/EthRpcMethods.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
@@ -43,6 +43,10 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         evm::EvmResult& result) {
   //
   // create a worker to be executed in the async method
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+    m_accStoreProcees->Add(1, {{"method", "EvmCallRunner"}});
+  }
   const auto worker = [&args, &ret, &result]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
@@ -59,17 +63,23 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
+      if (zil::metrics::Filter::GetInstance().Enabled(
+              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+        m_accStoreProcees->Add(1, {{"lock", "release-normal"}});
+      }
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
+      m_accStoreProcees->Add(1, {{"lock", "release-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
+      m_accStoreProcees->Add(1, {{"lock", "release-deferred"}});
       ret = false;
     }
   }
@@ -218,6 +228,12 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
                                              result);
 }
 
+static std::string txnIdToString(const TxnHash& txn) {
+  std::ostringstream str;
+  str << "0x" << txn;
+  return str.str();
+}
+
 template <class MAP>
 bool AccountStoreSC<MAP>::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
@@ -247,6 +263,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::CONTRACT_CREATION: {
+      if (zil::metrics::Filter::GetInstance().Enabled(
+              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+        m_accStoreProcees->Add(1, {{"Transaction", "Create"}});
+      }
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
       }
@@ -354,9 +374,11 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           DataConversion::CharArrayToString(StripEVM(transaction.GetCode()));
       *args.mutable_data() =
           DataConversion::CharArrayToString(transaction.GetData());
-      args.set_gas_limit(transaction.GetGasLimitEth());
+      // Give EVM only gas provided for code execution excluding constant fees
+      args.set_gas_limit(transaction.GetGasLimitEth() - baseFee);
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      *args.mutable_context() = txnIdToString(transaction.GetTranID());
       if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
@@ -380,18 +402,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       auto gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CREATE, args,
                                evm_call_run_succeeded, receipt, result);
-
-      // Decrease remained gas by baseFee (which is not taken into account by
-      // EVM)
-      gasRemained = gasRemained > baseFee ? gasRemained - baseFee : 0;
-
-      if (result.trace_size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
-                                                        result.trace(0))) {
-          LOG_GENERAL(INFO,
-                      "FAIL: Put TX trace failed " << transaction.GetTranID());
-        }
-      }
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
@@ -425,7 +435,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         LOG_GENERAL(INFO,
                     "Executing contract Creation transaction finished "
                     "unsuccessfully");
-        return false;
+        return true;
       }
 
       if (transaction.GetGasLimitZil() < gasRemainedCore) {
@@ -445,6 +455,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
+      if (zil::metrics::Filter::GetInstance().Enabled(
+              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+        m_accStoreProcees->Add(1, {{"Transaction", "Contract-Call/Non Contract"}});
+      }
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
       }
@@ -465,6 +479,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "The target contract account doesn't exist");
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
+        return false;
+      }
+
+      // Check if gaslimit meets the minimum requirement for contract call (at
+      // least const fee)
+      if (transaction.GetGasLimitEth() < MIN_ETH_GAS) {
+        LOG_GENERAL(WARNING, "Gas limit " << transaction.GetGasLimitEth()
+                                          << " less than " << MIN_ETH_GAS);
+        error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
         return false;
       }
 
@@ -540,9 +563,12 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
           StripEVM(contractAccount->GetCode()));
       *args.mutable_data() =
           DataConversion::CharArrayToString(transaction.GetData());
-      args.set_gas_limit(transaction.GetGasLimitEth());
+      // Give EVM only gas provided for code execution excluding constant fee
+      args.set_gas_limit(transaction.GetGasLimitEth() - MIN_ETH_GAS);
       *args.mutable_apparent_value() =
           UIntToProto(transaction.GetAmountWei().convert_to<uint256_t>());
+      *args.mutable_context() = txnIdToString(transaction.GetTranID());
+
       if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
         LOG_GENERAL(WARNING, "Failed to get EVM call extras");
         error_code = TxnStatus::ERROR;
@@ -556,14 +582,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
       const uint64_t gasRemained =
           InvokeEvmInterpreter(contractAccount, RUNNER_CALL, args,
                                evm_call_succeeded, receipt, result);
-
-      if (result.trace_size() > 0) {
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(transaction.GetTranID(),
-                                                        result.trace(0))) {
-          LOG_GENERAL(INFO,
-                      "FAIL: Put TX trace failed " << transaction.GetTranID());
-        }
-      }
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
@@ -608,8 +626,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
         if (!this->IncreaseNonce(fromAddr)) {
           error_code = TxnStatus::MATH_ERROR;
           LOG_GENERAL(WARNING, "Increase Nonce failed on bad txn");
+          return false;
         }
-        return false;
+        return true;
       }
     } break;
 

@@ -20,12 +20,14 @@
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 
-namespace evmproj {
+namespace rpc {
 
-APIThreadPool::APIThreadPool(boost::asio::io_context& asio, size_t numThreads,
-                             size_t maxQueueSize, ProcessRequest processRequest,
+APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
+                             size_t numThreads, size_t maxQueueSize,
+                             ProcessRequest processRequest,
                              OwnerFeedback ownerFeedback)
     : m_asio(asio),
+      m_name(std::move(name)),
       m_processRequest(std::move(processRequest)),
       m_ownerFeedback(std::move(ownerFeedback)),
       m_requestQueue(maxQueueSize) {
@@ -92,7 +94,7 @@ class StopWatch {
 }  // namespace
 
 void APIThreadPool::WorkerThread(size_t threadNo) {
-  auto threadName = std::string("APIWorker-") + std::to_string(threadNo + 1);
+  auto threadName = m_name + "-" + std::to_string(threadNo + 1);
   utility::SetThreadName(threadName.c_str());
   StopWatch sw;
 
@@ -135,4 +137,4 @@ void APIThreadPool::ProcessResponseQueue() {
   }
 }
 
-}  // namespace evmproj
+}  // namespace rpc

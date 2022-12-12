@@ -17,6 +17,7 @@
 
 #include <iostream>
 
+#include "depends/libDatabase/LevelDB.h"
 #include <common/Constants.h>
 #include <libData/BlockData/Block/TxBlock.h>
 

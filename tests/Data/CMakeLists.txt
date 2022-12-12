@@ -9,17 +9,17 @@ add_test(NAME Test_LogEntry COMMAND Test_LogEntry)
 
 add_executable(Test_CircularArray Test_CircularArray.cpp)
 target_include_directories(Test_CircularArray PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_CircularArray PUBLIC Utils)
+target_link_libraries(Test_CircularArray PUBLIC Utils Boost::unit_test_framework)
 add_test(NAME Test_CircularArray COMMAND Test_CircularArray)
 
 add_executable(Test_TransactionPerformance Test_TransactionPerformance.cpp)
 target_include_directories(Test_TransactionPerformance PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils Message)
+target_link_libraries(Test_TransactionPerformance PUBLIC AccountData Utils Message Boost::unit_test_framework)
 add_test(NAME Test_TransactionPerformance COMMAND Test_TransactionPerformance)
 
 add_executable(Test_TxnOrder Test_TxnOrder.cpp)
 target_include_directories(Test_TxnOrder PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_TxnOrder PUBLIC AccountData Utils Message)
+target_link_libraries(Test_TxnOrder PUBLIC AccountData Utils Message Boost::unit_test_framework)
 add_test(NAME Test_TxnOrder COMMAND Test_TxnOrder)
 
 #add_executable(Test_Get_Txn Test_Get_Txn.cpp)
@@ -29,12 +29,12 @@ add_test(NAME Test_TxnOrder COMMAND Test_TxnOrder)
 
 add_executable(Test_Contract Test_Contract.cpp ScillaTestUtil.cpp)
 target_include_directories(Test_Contract PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_Contract PUBLIC AccountData Trie Utils Persistence Message)
+target_link_libraries(Test_Contract PUBLIC AccountData Trie Utils Persistence Message Boost::unit_test_framework)
 add_test(NAME Test_Contract COMMAND Test_Contract)
 
 add_executable(Test_EIP Test_EIP.cpp)
 target_include_directories(Test_EIP PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(Test_EIP PUBLIC AccountData Trie Utils Persistence)
+target_link_libraries(Test_EIP PUBLIC AccountData Trie Utils Persistence Boost::unit_test_framework)
 add_test(NAME Test_EIP COMMAND Test_EIP)
 
 add_executable(Test_DSPowSolution Test_DSPowSolution.cpp)

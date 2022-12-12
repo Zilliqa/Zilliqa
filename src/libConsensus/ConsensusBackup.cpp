@@ -23,7 +23,6 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 
 using namespace std;

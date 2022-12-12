@@ -60,7 +60,74 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+namespace {
+
 const int32_t MAX_FETCH_BLOCK_RETRIES = 5;
+
+enum TxBlockValidationMsg { VALID = 0, STALEDSINFO, INVALID };
+
+// TxBlocks must be in increasing order or it will fail
+TxBlockValidationMsg CheckTxBlocks(const std::vector<TxBlock>& txBlocks,
+                                   const DequeOfNode& /*dsComm*/,
+                                   const BlockLink& latestBlockLink) {
+  // Verify the last Tx Block
+  uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
+
+  if (get<BlockLinkIndex::BLOCKTYPE>(latestBlockLink) != BlockType::DS) {
+    if (latestDSIndex == 0) {
+      LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
+      return TxBlockValidationMsg::INVALID;
+    }
+    latestDSIndex--;
+  }
+
+  const TxBlock& latestTxBlock = txBlocks.back();
+
+  if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
+    if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
+      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
+                               << latestDSIndex << " "
+                               << latestTxBlock.GetHeader().GetDSBlockNum());
+      return TxBlockValidationMsg::INVALID;
+    }
+
+    LOG_GENERAL(WARNING,
+                "The latest DS index does not match that of the latest tx "
+                "block ds num, try fetching Tx and Dir Blocks again "
+                    << latestTxBlock.GetHeader().GetDSBlockNum() << " "
+                    << latestDSIndex);
+    return TxBlockValidationMsg::STALEDSINFO;
+  }
+
+#if 0
+  if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
+    return TxBlockValidationMsg::INVALID;
+  }
+#endif
+
+  if (txBlocks.size() < 2) {
+    return TxBlockValidationMsg::VALID;
+  }
+
+  BlockHash prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
+  unsigned int sIndex = txBlocks.size() - 2;
+
+  for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
+    if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
+      LOG_GENERAL(WARNING,
+                  "Prev hash "
+                      << prevBlockHash << " and hash of blocknum "
+                      << txBlocks.at(sIndex).GetHeader().GetBlockNum());
+      return TxBlockValidationMsg::INVALID;
+    }
+    prevBlockHash = txBlocks.at(sIndex).GetHeader().GetPrevHash();
+    sIndex--;
+  }
+
+  return TxBlockValidationMsg::VALID;
+}
+
+}  // namespace
 
 Lookup::Lookup(Mediator& mediator, SyncType syncType, bool multiplierSyncMode,
                PairOfKey extSeedKey)
@@ -2778,7 +2845,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(
       *m_mediator.m_DSCommittee);
 
   //    Data::GetInstance().SetDSPeers(dsPeers);
-  //#endif // IS_LOOKUP_NODE
+  // #endif // IS_LOOKUP_NODE
 
   if (m_dsInfoWaitingNotifying &&
       (m_syncType != NO_SYNC ||
@@ -2934,7 +3001,7 @@ bool Lookup::ProcessSetMinerInfoFromSeed(
 bool Lookup::ProcessSetTxBlockFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-  //#ifndef IS_LOOKUP_NODE
+  // #ifndef IS_LOOKUP_NODE
   LOG_MARKER();
 
   if (AlreadyJoinedNetwork()) {
@@ -3039,11 +3106,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       return false;
     }
 
-    auto res = m_mediator.m_validator->CheckTxBlocks(
+    auto res = CheckTxBlocks(
         txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
-      case Validator::TxBlockValidationMsg::VALID: {
+      case TxBlockValidationMsg::VALID: {
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW
         if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP) {
           LOG_GENERAL(INFO,
@@ -3061,11 +3128,11 @@ bool Lookup::ProcessSetTxBlockFromSeed(
         }
         break;
       }
-      case Validator::TxBlockValidationMsg::INVALID:
+      case TxBlockValidationMsg::INVALID:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Invalid blocks");
         break;
-      case Validator::TxBlockValidationMsg::STALEDSINFO:
+      case TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(INFO, "[TxBlockVerif]"
                               << "Saved to buffer");
         m_txBlockBuffer.clear();
@@ -5034,27 +5101,27 @@ bool Lookup::ProcessSetDirectoryBlocksFromSeed(
 
 void Lookup::CheckBufferTxBlocks() {
   if (!m_txBlockBuffer.empty()) {
-    Validator::TxBlockValidationMsg res = m_mediator.m_validator->CheckTxBlocks(
+    TxBlockValidationMsg res = CheckTxBlocks(
         m_txBlockBuffer, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
         m_mediator.m_blocklinkchain.GetLatestBlockLink());
 
     switch (res) {
-      case Validator::TxBlockValidationMsg::VALID:
+      case TxBlockValidationMsg::VALID:
         CommitTxBlocks(m_txBlockBuffer);
         m_txBlockBuffer.clear();
         break;
-      case Validator::TxBlockValidationMsg::STALEDSINFO:
+      case TxBlockValidationMsg::STALEDSINFO:
         LOG_GENERAL(WARNING,
                     "Even after the recving latest ds info, the information "
                     "is stale ");
         break;
-      case Validator::TxBlockValidationMsg::INVALID:
+      case TxBlockValidationMsg::INVALID:
         LOG_GENERAL(WARNING, "The blocks in buffer are invalid ");
         m_txBlockBuffer.clear();
         break;
       default:
         LOG_GENERAL(WARNING,
-                    "The return value of Validator::CheckTxBlocks does not "
+                    "The return value of CheckTxBlocks does not "
                     "match any type");
     }
   }

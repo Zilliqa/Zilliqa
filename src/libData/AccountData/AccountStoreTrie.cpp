@@ -17,6 +17,7 @@
 
 #include "AccountStoreTrie.h"
 #include "libMessage/MessengerAccountStoreTrie.h"
+#include "libUtils/DataConversion.h"
 
 template <class MAP>
 AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}

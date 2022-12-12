@@ -17,7 +17,9 @@
 
 #include "StatusServer.h"
 #include "JSONConversion.h"
+#include "libMediator/Mediator.h"
 #include "libNetwork/Blacklist.h"
+#include "libPersistence/BlockStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 
 using namespace jsonrpc;

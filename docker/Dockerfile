@@ -13,65 +13,33 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
-ARG REGISTRY=
+ARG SCILLA_VERSION=v0.13.1-alpha
+ARG ZILLIQA_BASE_VERSION=
+ARG ZILLIQA_CCACHE_VERSION=
 
-ARG BASE=zilliqa/scilla:v0.13.0-alpha.0
-FROM ${BASE} AS scilla
+FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
+
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-# start from a new ubuntu environment as builder for zilliqa, make sure the deps is consistent with those in the runner image
-FROM ${REGISTRY}zilliqa:v8.3.0-deps AS builder
-# Format guideline: one package per line and keep them alphabetically sorted
-RUN apt-get update \
-    && apt-get install -y software-properties-common \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    autoconf \
-    bison \
-    cron \
-    build-essential \
-    ca-certificates \
-    gawk \
-    wget \
-    # curl is not a build dependency
-    curl \
-    git \
-    golang \
-    # rysnc bydefault gets installed with opam package of scilla.Better to explicitly
-    # mention again as installation candidate
-    rsync \
-    libcurl4-openssl-dev \
-    libjsonrpccpp-dev \
-    libssl-dev \
-    libtool \
-    ocl-icd-opencl-dev \
-    pkg-config \
-    libsecp256k1-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
-    sh install_script.sh -y
-ENV PATH="/root/.cargo/bin:${PATH}"
-
-# Prepare a (vcpkg) python environment separate from the system-wide one
-RUN apt-get remove -y python3 cmake && apt-get autoremove -y
+FROM zilliqa/zilliqa-ccache:${ZILLIQA_CCACHE_VERSION} AS builder
 
 # Manually input tag or commit, can be overwritten by docker build-args
-ARG COMMIT_OR_TAG=master
+ARG COMMIT_OR_TAG=v8.4.0
 ARG REPO=https://github.com/Zilliqa/Zilliqa.git
-ARG SOURCE_DIR=/zilliqa
-ARG BUILD_DIR=/build
+ARG SOURCE_DIR=/root/zilliqa
+ARG BUILD_DIR=/root/zilliqa/build
 ARG INSTALL_DIR=/usr/local
-ARG BUILD_TYPE=RelWithDebInfo
-ARG EXTRA_CMAKE_ARGS=
 ARG VCPKG_ROOT=/vcpkg
 
-RUN git clone ${REPO} ${SOURCE_DIR}
-RUN git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG}
-RUN cmake -H${SOURCE_DIR} -B${BUILD_DIR} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} -DCMAKE_INSTALL_PREFIX=${INSTALL_DIR} -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=x64-linux-dynamic ${EXTRA_CMAKE_ARGS} 
-RUN cmake --build ${BUILD_DIR} -- -j$(nproc)
-RUN cmake --build ${BUILD_DIR} --target install
-RUN cd $SOURCE_DIR/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
+# Build & install Zilliqa
+RUN (( git clone -b ${COMMIT_OR_TAG} --depth 1 ${REPO} ${SOURCE_DIR} || git clone ${REPO} ${SOURCE_DIR} )) \
+  && git -C ${SOURCE_DIR} checkout ${COMMIT_OR_TAG} \
+  && cd ${SOURCE_DIR} && CCACHE_BASEDIR="${SOURCE_DIR}" ./build.sh ninja \
+  && cmake --build "${BUILD_DIR}" --target install \
+  && cd ${SOURCE_DIR}/evm-ds && PATH=${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
+
+# Make sure all DLLs / shared libraries are installed
 RUN ldd ${INSTALL_DIR}/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} ${INSTALL_DIR}/lib \
   && cp ${BUILD_DIR}/vcpkg_installed/x64-linux-dynamic/lib/libffi.so ${INSTALL_DIR}/lib 
 RUN echo "built files:" && ls -lh ${BUILD_DIR} && echo "installed libs:" && ls -lh ${INSTALL_DIR}/lib
@@ -112,38 +80,7 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
 
-# start from a new ubuntu as the runner image
-FROM ${REGISTRY}zilliqa:v8.3.0-deps
-
-# install all necessary libraries
-RUN apt-get update \
-    && apt-get install -y software-properties-common \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    # libs
-    ca-certificates \
-    cron \
-    libcurl4-openssl-dev \
-    libjsonrpccpp-dev \
-    libssl-dev \
-    libtool \
-    ocl-icd-opencl-dev \
-    pkg-config \
-    libsecp256k1-dev \
-    # tools
-    curl \
-    dnsutils \
-    gdb \
-    git \
-    less \
-    logrotate \
-    net-tools \
-    rsync \
-    rsyslog \
-    trickle \
-    vim \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN apt-get remove -y python3 && apt-get autoremove -y
+FROM zilliqa/zilliqa-base:${ZILLIQA_BASE_VERSION}
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
@@ -151,15 +88,14 @@ RUN mkdir -p \
     /zilliqa/scripts
 
 ARG INSTALL_DIR=/usr/local
-ARG SOURCE_DIR=/zilliqa
-ARG VCPKG_ROOT=/vcpkg
+ARG SOURCE_DIR=/root/zilliqa
 
 # pour in scilla binaries
-COPY --from=scilla  /scilla/0/bin2            /scilla/0/bin
+COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 # pour in scilla conntract stdlibs
-COPY --from=scilla  /scilla/0/src/stdlib     /scilla/0/src/stdlib
+COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
 # pour in zilliqa scripts
-COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
+COPY --from=builder ${SOURCE_DIR}/scripts         /zilliqa/scripts
 # pour in zilliqa binaries and dynnamic libs
 COPY --from=builder ${INSTALL_DIR}/bin/*     ${INSTALL_DIR}/bin/
 COPY --from=builder ${INSTALL_DIR}/lib/*.so* ${INSTALL_DIR}/lib/
@@ -173,7 +109,6 @@ ARG PYTHON3_ENV_PATH=${INSTALL_DIR}
 COPY requirements3.txt ./
 RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
   && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
-RUN rm -rf ${VCPKG_ROOT}
 
 ENV LD_LIBRARY_PATH=${INSTALL_DIR}/lib
 

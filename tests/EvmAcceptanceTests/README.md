@@ -5,6 +5,7 @@
     npx hardhat test    # to run tests
     npx hardhat test --network devnet    # to run tests against the devnet
     npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
+    npx hardhat test --log-txnid    # to run tests and print transaction ids.
     npx hardhat test --debug    # to run tests and print log messages
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
@@ -96,6 +97,7 @@ npx hardhat test --network ganache
 
 # How to debug
 
+- Use `--log-txnid` to print out the transaction IDs.
 - Use `--log-jsonrpc` option to enable Json-RPC requests/responses logging. It only works with ethers.js currently.
 - Use `hre.logDebug`
 - Use vscode debugger
@@ -169,6 +171,18 @@ it("Should return correct value for string [@transactional, @ethers_js]", async 
 ```
 
 - `@transactional` tag is used for those tests which generate ethereum transactions. Calling pure functions or view functions doesn't generate a transaction for example. Transactional tests may use for populating an empty testnet with some transactions.
+
+- Second parameter to `expect` function is used to log in the case of test failure. We use it to debug failing tests on devnet or testnet easier.
+
+```javascript
+    const txn = await payer.sendTransaction({
+      to: payee.address,
+      value: FUND
+    });
+
+    expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`).to.be.eq(FUND);
+```
+
 
 # miscellaneous
 

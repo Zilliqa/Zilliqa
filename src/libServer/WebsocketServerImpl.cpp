@@ -22,7 +22,7 @@
 #include "APIThreadPool.h"
 #include "libUtils/Logger.h"
 
-namespace evmproj {
+namespace rpc {
 namespace ws {
 
 using CloseReason = websocket::close_code;
@@ -60,7 +60,6 @@ class Connection : public std::enable_shared_from_this<Connection> {
 
   void Write(OutMessage msg) {
     if (!msg || msg->empty() || m_owner.expired()) {
-      // XXX warn
       return;
     }
 
@@ -318,4 +317,4 @@ void WebsocketServerImpl::CloseConnection(ConnectionId conn_id) {
 }
 
 }  // namespace ws
-}  // namespace evmproj
+}  // namespace rpc

@@ -18,9 +18,6 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 
-#include <array>
-#include "common/BaseType.h"
-
 #include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/Serializable.h"

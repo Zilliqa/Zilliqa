@@ -38,6 +38,8 @@ class EvmUtils {
   static std::string GetEvmResultJsonFromTextProto(
       const std::string& text_proto);
 
+  static void PrintDebugEvmResult(evm::EvmResult& result);
+
   static bool isEvm(const zbytes& code);
 
   static std::string ExitReasonString(const evm::ExitReason& exit_reason);

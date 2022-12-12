@@ -32,6 +32,9 @@
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;
 
+class TransactionWithReceipt;
+class Account;
+
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
 typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;
@@ -85,7 +88,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
-  std::shared_ptr<LevelDB> m_txTraceDB;
   std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
@@ -200,10 +202,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
-
-  /// Retrieves the requested transaction trace.
-  bool PutTxTrace(const dev::h256& key, const std::string& trace);
-  bool GetTxTrace(const dev::h256& key, std::string& trace);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);

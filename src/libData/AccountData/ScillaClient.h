@@ -22,19 +22,16 @@
 #include <memory>
 #include <mutex>
 
-#include <jsonrpccpp/client.h>
-#include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
-
 #include "common/Constants.h"
+#include "libScilla/UnixDomainSocketClient.h"
 
 class ScillaClient {
-  std::map<uint32_t, std::shared_ptr<jsonrpc::Client>> m_clients;
-  std::map<uint32_t, std::shared_ptr<jsonrpc::UnixDomainSocketClient>>
-      m_connectors;
+  std::map<uint32_t, std::unique_ptr<jsonrpc::Client>> m_clients;
+  std::map<uint32_t, std::unique_ptr<rpc::UnixDomainSocketClient>> m_connectors;
 
   std::mutex m_mutexMain;
 
-  ScillaClient(){};
+  ScillaClient() = default;
   ~ScillaClient();
 
   bool OpenServer(uint32_t version);

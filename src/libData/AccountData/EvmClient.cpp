@@ -20,14 +20,23 @@
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <thread>
+#include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
 namespace {
 
+#if OUTSIDE_CLASS_SCOPE
+zil::metrics::int64_t counter = Metrics::GetInstance().CreateInt64Metric(
+    "zilliqa_evm_client_ll_count", "method", "local code");
+#endif
 bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& binaryPath,
                      const std::string& socketPath) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
+    //counter->Add(1, {{"method", "LaunchEvmDaemon"}});
+  }
   LOG_MARKER();
 
   const std::vector<std::string> args = {"--socket",
@@ -75,6 +84,10 @@ bool LaunchEvmDaemon(boost::process::child& child,
 }
 
 bool CleanupPreviousInstances() {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
+    //counter->Add(1, {{"method", "CleanupPreviousInstances"}});
+  }
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
   int sysRep = std::system(s.c_str());
   if (sysRep != -1) {
@@ -85,6 +98,10 @@ bool CleanupPreviousInstances() {
 
 bool Terminate(boost::process::child& child,
                const std::unique_ptr<jsonrpc::Client>& client) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
+    //counter->Add(1, {{"method", "Terminate"}});
+  }
   LOG_MARKER();
   Json::Value _json;
   LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
@@ -109,6 +126,10 @@ bool Terminate(boost::process::child& child,
 }  // namespace
 
 void EvmClient::Init() {
+
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+    m_evmClientCount->Add(1, {{"method", "Init"}});
+  }
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
@@ -120,6 +141,9 @@ void EvmClient::Init() {
 }
 
 void EvmClient::Reset() {
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+    m_evmClientCount->Add(1, {{"method", "Reset"}});
+  }
   Terminate(m_child, m_client);
   CleanupPreviousInstances();
 }
@@ -127,6 +151,9 @@ void EvmClient::Reset() {
 EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+    m_evmClientCount->Add(1, {{"method", "OpenServer"}});
+  }
   bool status{true};
   LOG_GENERAL(INFO, "OpenServer for EVM ");
 
@@ -137,18 +164,24 @@ bool EvmClient::OpenServer() {
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
+    m_evmClientCount->Add(
+        1, {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
+    m_evmClientCount->Add(
+        1, {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   }
   try {
-    m_connector = std::make_unique<evmdsrpc::EvmDsDomainSocketClient>(
-        EVM_SERVER_SOCKET_PATH);
+    m_connector =
+        std::make_unique<rpc::UnixDomainSocketClient>(EVM_SERVER_SOCKET_PATH);
     m_client = std::make_unique<jsonrpc::Client>(*m_connector,
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception initialising client");
+    m_evmClientCount->Add(
+        1, {{"Error", "Serious"},  {"Exception#3", "OpenServer"}});
     return false;
   }
   return status;
@@ -156,10 +189,12 @@ bool EvmClient::OpenServer() {
 
 bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+    m_evmClientCount->Add(1, {{"method", "CallRunner"}});
+  }
 
-#ifdef USE_LOCKING_EVM
   std::lock_guard<std::mutex> g(m_mutexMain);
-#endif
+
   if (not m_child.running()) {
     if (not EvmClient::OpenServer()) {
       LOG_GENERAL(INFO, "Failed to establish connection to evmd-ds");
@@ -169,25 +204,26 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   try {
     const auto replyJson = m_client->CallMethod("run", _json);
 
-    if (LOG_SC) {
-      LOG_GENERAL(WARNING, "EVM reply" << replyJson.toStyledString());
-    }
-
     try {
       EvmUtils::GetEvmResultFromJson(replyJson, result);
 
-      LOG_GENERAL(INFO, "EvmResults: " << result.DebugString());
+      if (LOG_SC) {
+        LOG_GENERAL(INFO, "<============ Call EVM result: ");
+        EvmUtils::PrintDebugEvmResult(result);
+      }
 
       return true;
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception out of parsing json response " << e.what());
+      m_evmClientCount->Add(1, {{"error", "CallRunner"}});
       return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
     throw e;
   } catch (...) {
     LOG_GENERAL(WARNING, "Exception caught executing run ");
+    m_evmClientCount->Add(1, {{"RPCException", "CallRunner"}});
     return false;
   }
 }

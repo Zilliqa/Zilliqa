@@ -1,3 +1,5 @@
+const clc = require("cli-color");
+
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomiclabs/hardhat-web3");
 
@@ -37,6 +39,21 @@ module.exports = {
       protocolVersion: 0x41,
       miningState: false
     },
+    public_testnet: {
+      url: "https://evm-api-dev.zilliqa.com",
+      websocketUrl: "https://evm-api-dev.zilliqa.com",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45"
+      ],
+      chainId: 33101,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
     isolated_server: {
       url: "http://localhost:5555/",
       websocketUrl: "ws://localhost:5555/",
@@ -61,18 +78,26 @@ module.exports = {
 task("test")
   .addFlag("debug", "Print debugging logs")
   .addFlag("logJsonrpc", "Log JSON RPC ")
+  .addFlag("logTxnid", "Log JSON RPC ")
   .setAction(async (taskArgs, hre, runSuper) => {
     hre.debugMode = taskArgs.debug ?? false;
     hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
-    if (taskArgs.logJsonrpc) {
+    if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
       hre.ethers.provider.on("debug", (info) => {
-        if (info.request) {
-          console.log("Request:", info.request);
+        if (taskArgs.logJsonrpc) {
+          if (info.request) {
+            console.log("Request:", info.request);
+          }
+          if (info.response) {
+            console.log("Response:", info.response);
+          }
         }
-        if (info.request) {
-          console.log("Response:", info.response);
+
+        if (taskArgs.logTxnid) {
+          if (info.request.method == "eth_sendTransaction" || info.request.method == "eth_sendRawTransaction") {
+            console.log(clc.whiteBright.bold(`    📜 Txn ID: ${info.response}`));
+          }
         }
-        console.log("=========================================================");
       });
     }
     return runSuper();

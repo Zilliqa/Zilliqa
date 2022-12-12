@@ -21,7 +21,6 @@
 #include "BaseType.h"
 #include "depends/common/FixedHash.h"
 
-using BlockHash = dev::h256;
 const size_t BLOCK_NUMERIC_DIGITS =
     std::to_string(std::numeric_limits<uint64_t>::max()).size();
 
@@ -162,6 +161,7 @@ extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
+extern const bool JSON_LOGGING;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -289,10 +289,6 @@ extern const std::string GPU_TO_USE;
 extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
 extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
 extern const unsigned int OPENCL_START_EPOCH;
-extern const unsigned int CUDA_BLOCK_SIZE;
-extern const unsigned int CUDA_GRID_SIZE;
-extern const unsigned int CUDA_STREAM_NUM;
-extern const unsigned int CUDA_SCHEDULE_FLAG;
 
 // Guard mode constants
 extern const bool GUARD_MODE;
@@ -364,7 +360,6 @@ extern const unsigned int MAX_WHITELISTREQ_LIMIT;
 extern const unsigned int SENDJOBPEERS_TIMEOUT;
 
 // PoW constants
-extern const bool CUDA_GPU_MINE;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
@@ -511,5 +506,14 @@ extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 extern const bool IGNORE_BLOCKCOSIG_CHECK;
 extern const std::vector<std::pair<uint64_t, uint32_t>>
     VERIFIER_MICROBLOCK_EXCLUSION_LIST;
+
+// Metrics constants
+extern const std::string METRIC_ZILLIQA_HOSTNAME;
+extern const unsigned int METRIC_ZILLIQA_PORT;
+extern const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS;
+extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
+extern const std::string METRIC_ZILLIQA_SCHEMA;
+extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
+extern const uint64_t  METRIC_ZILLIQA_MASK;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

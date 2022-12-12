@@ -16,7 +16,7 @@ add_subdirectory (Persistence)
 add_subdirectory (POW)
 add_subdirectory (RumorSpreading)
 add_subdirectory (Server)
-add_subdirectory (EvmLookupServer)
+#add_subdirectory (EvmLookupServer)
 add_subdirectory (EvmFiltersAPI)
 add_subdirectory (Utils)
 add_subdirectory (Zilliqa)
@@ -27,4 +27,3 @@ file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR
 # presently, it's a workaround to silence the error thrown by tests_zilliqa_local.py
 file(COPY ${CMAKE_SOURCE_DIR}/constants.xml DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY Node DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-

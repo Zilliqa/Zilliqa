@@ -19,6 +19,7 @@
 
 #include "Validator.h"
 #include "libData/AccountData/Account.h"
+#include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/BitVector.h"
@@ -31,20 +32,6 @@ using ShardingHash = dev::h256;
 Validator::Validator(Mediator& mediator) : m_mediator(mediator) {}
 
 Validator::~Validator() {}
-
-bool Validator::VerifyTransaction(const Transaction& tran) {
-  zbytes txnData;
-  tran.SerializeCoreFields(txnData, 0);
-
-  auto result = tran.IsSigned(txnData);
-
-  if (!result) {
-    LOG_GENERAL(WARNING,
-                "Failed to verify transaction signature - will delete");
-  }
-
-  return result;
-}
 
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
                                         TransactionReceipt& receipt,
@@ -226,7 +213,7 @@ bool Validator::CheckCreatedTransactionFromLookup(const Transaction& tx,
     return false;
   }
 
-  if (!VerifyTransaction(tx)) {
+  if (!Transaction::Verify(tx)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
               "Signature incorrect: " << fromAddr << ". Transaction rejected: "
                                       << tx.GetTranID());
@@ -548,64 +535,6 @@ bool Validator::CheckDirBlocksNoUpdate(
 
   newDSComm = move(mutable_ds_comm);
   return ret;
-}
-
-Validator::TxBlockValidationMsg Validator::CheckTxBlocks(
-    const std::vector<TxBlock>& txBlocks, const DequeOfNode& dsComm,
-    const BlockLink& latestBlockLink) {
-  // Verify the last Tx Block
-  uint64_t latestDSIndex = get<BlockLinkIndex::DSINDEX>(latestBlockLink);
-
-  if (get<BlockLinkIndex::BLOCKTYPE>(latestBlockLink) != BlockType::DS) {
-    if (latestDSIndex == 0) {
-      LOG_GENERAL(WARNING, "The latestDSIndex is 0 and blocktype not DS");
-      return TxBlockValidationMsg::INVALID;
-    }
-    latestDSIndex--;
-  }
-
-  const TxBlock& latestTxBlock = txBlocks.back();
-
-  if (latestTxBlock.GetHeader().GetDSBlockNum() != latestDSIndex) {
-    if (latestDSIndex > latestTxBlock.GetHeader().GetDSBlockNum()) {
-      LOG_GENERAL(WARNING, "Latest Tx Block fetched is stale "
-                               << latestDSIndex << " "
-                               << latestTxBlock.GetHeader().GetDSBlockNum());
-      return TxBlockValidationMsg::INVALID;
-    }
-
-    LOG_GENERAL(WARNING,
-                "The latest DS index does not match that of the latest tx "
-                "block ds num, try fetching Tx and Dir Blocks again "
-                    << latestTxBlock.GetHeader().GetDSBlockNum() << " "
-                    << latestDSIndex);
-    return TxBlockValidationMsg::STALEDSINFO;
-  }
-
-  if (!CheckBlockCosignature(latestTxBlock, dsComm)) {
-    return TxBlockValidationMsg::INVALID;
-  }
-
-  if (txBlocks.size() < 2) {
-    return TxBlockValidationMsg::VALID;
-  }
-
-  BlockHash prevBlockHash = latestTxBlock.GetHeader().GetPrevHash();
-  unsigned int sIndex = txBlocks.size() - 2;
-
-  for (unsigned int i = 0; i < txBlocks.size() - 1; i++) {
-    if (prevBlockHash != txBlocks.at(sIndex).GetHeader().GetMyHash()) {
-      LOG_GENERAL(WARNING,
-                  "Prev hash "
-                      << prevBlockHash << " and hash of blocknum "
-                      << txBlocks.at(sIndex).GetHeader().GetBlockNum());
-      return TxBlockValidationMsg::INVALID;
-    }
-    prevBlockHash = txBlocks.at(sIndex).GetHeader().GetPrevHash();
-    sIndex--;
-  }
-
-  return TxBlockValidationMsg::VALID;
 }
 
 template bool Validator::CheckBlockCosignature<

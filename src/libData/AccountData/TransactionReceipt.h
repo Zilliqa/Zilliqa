@@ -18,16 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_
 
-#include <json/json.h>
-
 #include <unordered_map>
 
 #include "LogEntry.h"
 #include "Transaction.h"
-#include "depends/common/FixedHash.h"
-#include "libCrypto/Sha2.h"
-#include "libUtils/DataConversion.h"
-#include "libUtils/Logger.h"
 
 enum ReceiptError : unsigned int {
   CHECKER_FAILED = 0,
@@ -121,37 +115,12 @@ class TransactionWithReceipt : public SerializableDataBlock {
   }
 
   static TxnHash ComputeTransactionReceiptsHash(
-      const std::vector<TransactionWithReceipt>& txrs) {
-    if (txrs.empty()) {
-      LOG_GENERAL(INFO, "txrs is empty");
-      return TxnHash();
-    }
-
-    SHA2<HashType::HASH_VARIANT_256> sha2;
-    for (const auto& tr : txrs) {
-      sha2.Update(DataConversion::StringToCharArray(
-          tr.GetTransactionReceipt().GetString()));
-    }
-    return TxnHash(sha2.Finalize());
-  }
+      const std::vector<TransactionWithReceipt>& txrs);
 
   static bool ComputeTransactionReceiptsHash(
       const std::vector<TxnHash>& txnOrder,
       std::unordered_map<TxnHash, TransactionWithReceipt>& txrs,
-      TxnHash& trHash) {
-    std::vector<TransactionWithReceipt> vec;
-
-    for (const auto& th : txnOrder) {
-      auto it = txrs.find(th);
-      if (it == txrs.end()) {
-        LOG_GENERAL(WARNING, "Missing txnHash " << th);
-        return false;
-      }
-      vec.emplace_back(it->second);
-    }
-    trHash = ComputeTransactionReceiptsHash(vec);
-    return true;
-  }
+      TxnHash& trHash);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTIONRECEIPT_H_

@@ -18,13 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
 
-#include <array>
-
-#include <Schnorr.h>
 #include "BlockBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
 
 /// Stores the DS header and signature.

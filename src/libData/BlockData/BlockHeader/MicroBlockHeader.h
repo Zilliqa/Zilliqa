@@ -18,13 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_
 
-#include <array>
-
 #include <Schnorr.h>
 #include "BlockHashSet.h"
 #include "BlockHeaderBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
 
 /// Stores information on the header part of the microblock.
 class MicroBlockHeader : public BlockHeaderBase {

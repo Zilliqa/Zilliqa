@@ -48,7 +48,7 @@ describe("Parent Child Contract Functionality", function () {
       expect(await childContract.methods.read().call()).to.be.eq(ethers.BigNumber.from(CHILD_CONTRACT_VALUE));
     });
 
-    it("Should create a transaction trace after child creation", async function () {
+    xit("Should create a transaction trace after child creation", async function () {
       const METHOD = "debug_traceTransaction";
 
       await helper.callEthMethod(METHOD, 1, [installedChild.hash], (result, status) => {
