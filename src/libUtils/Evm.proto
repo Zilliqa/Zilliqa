@@ -60,8 +60,15 @@ message Apply {
 }
 
 message Continuation {
+  enum Type {
+    CALL = 0;
+    CREATE = 1;
+  }
+
   uint32 id = 1;
-  bytes continuation_blob = 2;
+  Type feedback_type = 2;
+  bytes feedback_data = 3;
+  
 }
 
 message EvmArgs {
@@ -74,8 +81,7 @@ message EvmArgs {
   EvmEvalExtras extras = 7;
   bool estimate = 8;
   string context = 9;
-  bool cps_mode = 10;
-  Continuation continuation = 11;
+  Continuation continuation = 10;
 }
 
 message EvmLog {

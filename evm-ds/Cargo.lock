@@ -511,7 +511,7 @@ version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "23750149fe8834c0e24bb9adcbacbe06c45b9861f15df53e09f26cb7c4ab91ef"
 dependencies = [
- "bytes 1.1.0",
+ "bytes 1.2.1",
  "ethereum-types 0.13.1",
  "hash-db",
  "hash256-std-hasher",
@@ -530,7 +530,7 @@ version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6a89fb87a9e103f71b903b80b670200b54cc67a07578f070681f1fffb7396fb7"
 dependencies = [
- "bytes 1.1.0",
+ "bytes 1.2.1",
  "ethereum-types 0.14.0",
  "hash-db",
  "hash256-std-hasher",
@@ -2212,7 +2212,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb919243f34364b6bd2fc10ef797edbfa75f33c252e7998527479c6d6b47e1ec"
 dependencies = [
- "bytes 1.1.0",
+ "bytes 1.2.1",
  "rlp-derive",
  "rustc-hex",
 ]
