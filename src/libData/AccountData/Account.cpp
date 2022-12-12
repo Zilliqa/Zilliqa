@@ -42,8 +42,8 @@ using namespace Contract;
 // =======================================
 // AccountBase
 
-AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
-                         const uint32_t& version)
+AccountBase::AccountBase(const uint128_t& balance, uint64_t nonce,
+                         uint32_t version)
     : m_version(version),
       m_balance(balance),
       m_nonce(nonce),
@@ -144,8 +144,8 @@ bool Account::IsLibrary() const {
   return (m_is_library && m_codeHash != dev::h256());
 }
 
-Account::Account(const uint128_t& balance, const uint64_t& nonce,
-                 const uint32_t& version)
+Account::Account(const uint128_t& balance, uint64_t nonce,
+                 uint32_t version /* = VERSION*/)
     : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const zbytes& code, const zbytes& initData,

@@ -16,12 +16,12 @@
  */
 
 #include "Messenger.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#include "libCrypto/Sha2.h"
 #include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -676,9 +676,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     return false;
   }
 
-  if (accbase.GetVersion() != ACCOUNT_VERSION) {
+  if (accbase.GetVersion() != Account::VERSION) {
     LOG_GENERAL(WARNING, "Account delta version doesn't match, expected "
-                             << ACCOUNT_VERSION << " received "
+                             << Account::VERSION << " received "
                              << accbase.GetVersion());
     return false;
   }
@@ -749,7 +749,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                          DataConversion::StringToCharArray(entry.data()));
         if (LOG_SC) {
           LOG_GENERAL(INFO, "Key: " << entry.key() << "  "
-                                    << "Data: " << DataConversion::Uint8VecToHexStrRet(toZbytes(entry.data())));
+                                    << "Data: "
+                                    << DataConversion::Uint8VecToHexStrRet(
+                                           toZbytes(entry.data())));
         }
       }
 
