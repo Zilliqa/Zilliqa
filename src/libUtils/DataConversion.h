@@ -157,14 +157,6 @@ class DataConversion {
   /// Add '0x' to string if it does not exist already
   static std::string AddOXPrefix(std::string&& s);
 
-  static size_t clz(uint8_t x) {
-    static constexpr std::uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1,
-                                                    0, 0, 0, 0, 0, 0, 0, 0};
-    auto upper = (x >> 4) & 0x0F;
-    auto lower = x & 0x0F;
-    return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
-  }
-
   template <typename T>
   static std::string IntToHexString(T number, bool withX = true) {
     std::stringstream stream;

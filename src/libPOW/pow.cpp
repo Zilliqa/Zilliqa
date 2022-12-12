@@ -42,6 +42,16 @@ hash256 calculate_seed(int epoch_number) noexcept;
 
 using namespace boost::multiprecision;
 
+namespace {
+size_t clz(uint8_t x) {
+  static constexpr std::uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1,
+                                                  0, 0, 0, 0, 0, 0, 0, 0};
+  auto upper = (x >> 4) & 0x0F;
+  auto lower = x & 0x0F;
+  return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+}
+}  // namespace
+
 POW::POW() {
   m_currentBlockNum = 0;
   m_epochContextLight =
@@ -142,7 +152,7 @@ size_t POW::CountLeadingZeros(const ethash_hash256& boundary) {
 
   for (unsigned char b : boundary.bytes) {
     if (b != 0x00) {
-      count += DataConversion::clz(b);
+      count += clz(b);
       break;
     }
     count += 8;
