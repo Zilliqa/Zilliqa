@@ -32,7 +32,6 @@
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Hashes.h"
-#include "common/Singleton.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/TxnExtras.h"
 
@@ -68,8 +67,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 
 // Singleton class for providing interface related Account System
 class AccountStore
-    : public AccountStoreTrie<std::unordered_map<Address, Account>>,
-      Singleton<AccountStore> {
+    : public AccountStoreTrie<std::unordered_map<Address, Account>> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;

@@ -84,8 +84,6 @@ class AccountBase : public SerializableDataBlock {
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
 
-  bool isContract() const;
-
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);
 };

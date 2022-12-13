@@ -60,7 +60,7 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
-void Node::PopulateAccounts(bool temp) {
+void Node::PopulateAccounts() {
   if (!ENABLE_ACCOUNTS_POPULATING) {
     LOG_GENERAL(INFO, "Accounts Pregen is not enabled");
     return;
@@ -88,13 +88,7 @@ void Node::PopulateAccounts(bool temp) {
       boost::algorithm::split(key_pair, line, boost::algorithm::is_any_of(" "));
       Address t_addr = Account::GetAddressFromPublicKey(
           PubKey::GetPubKeyFromString(key_pair[0]));
-      if (temp) {
-        AccountStore::GetInstance().AddAccountTemp(t_addr,
-                                                   {TOTAL_GENESIS_TOKEN, 0});
-      } else {
-        AccountStore::GetInstance().AddAccount(t_addr,
-                                               {TOTAL_GENESIS_TOKEN, 0});
-      }
+      AccountStore::GetInstance().AddAccount(t_addr, {TOTAL_GENESIS_TOKEN, 0});
       m_populatedAddresses.emplace_back(t_addr);
     }
 
