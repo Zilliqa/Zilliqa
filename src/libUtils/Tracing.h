@@ -20,6 +20,7 @@
 
 class Tracing {
  public:
+ private:
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_MTRACING_H_
