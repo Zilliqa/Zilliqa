@@ -32,7 +32,9 @@
       "name": "opentelemetry-cpp",
       "default-features": false,
       "features": [
-        "prometheus"
+        "prometheus",
+        "otlp",
+        "elasticsearch"
       ]
     }
   ],
@@ -45,10 +47,6 @@
     {
       "name": "openssl",
       "version-string": "1.1.1n"
-    },
-    {
-      "name": "protobuf",
-      "version": "3.9.1"
     },
     {
       "name": "g3log",
