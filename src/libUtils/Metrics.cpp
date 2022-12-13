@@ -17,8 +17,12 @@
 
 #include "Metrics.h"
 
+#include <vector>
+
+#include <boost/algorithm/string.hpp>
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 
+#include "common/Constants.h"
 #include "libUtils/Logger.h"
 
 // The OpenTelemetry Metrics Interface.
@@ -53,7 +57,6 @@ void Metrics::Init() {
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(m_provider);
   p->AddMetricReader(std::move(reader));
   metrics_api::Provider::SetMeterProvider(m_provider);
-  // Initialise the powers of 2 array;
   zil::metrics::Filter::GetInstance().init();
 }
 
@@ -216,6 +219,44 @@ void Observable::RawCallback(
   assert(self->m_callback);
 
   self->m_callback(Result(observer_result));
+}
+
+namespace {
+
+constexpr uint64_t ALL = std::numeric_limits<uint64_t>::max();
+
+void UpdateMetricsMask(uint64_t& mask, const std::string& filter) {
+  if (filter.empty()) {
+    return;
+  }
+
+  if (filter == "ALL") {
+    mask = ALL;
+    return;
+  }
+
+#define CHECK_FILTER(FILTER)                              \
+  if (filter == #FILTER) {                                \
+    mask |= (1 << static_cast<int>(FilterClass::FILTER)); \
+    return;                                               \
+  }
+
+  METRICS_FILTER_CLASSES(CHECK_FILTER)
+
+#undef CHECK_FILTER
+}
+
+}  // namespace
+
+void Filter::init() {
+  std::vector<std::string> flags;
+  boost::split(flags, METRIC_ZILLIQA_MASK, boost::is_any_of(","));
+  for (const auto& f : flags) {
+    UpdateMetricsMask(m_mask, f);
+    if (m_mask == ALL) {
+      break;
+    }
+  }
 }
 
 }  // namespace zil::metrics

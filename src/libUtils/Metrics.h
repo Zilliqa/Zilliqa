@@ -18,9 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_METRICS_H_
 #define ZILLIQA_SRC_LIBUTILS_METRICS_H_
 
-#include <concepts>
+#include <cassert>
 
-#include "common/Constants.h"
 #include "common/MetricFilters.h"
 #include "common/Singleton.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
@@ -46,33 +45,32 @@ using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
 class Filter : public Singleton<Filter> {
  public:
-  void init() {
-    m_power[0] = 1;
-    for (int i = 1; i < 65; i++) m_power[i] = pow(2, i);
-  }
+  void init();
+
   bool Enabled(FilterClass to_test) {
-    return METRIC_ZILLIQA_MASK & m_power[to_test];
+    return m_mask & (1 << static_cast<int>(to_test));
   }
 
  private:
-  uint64_t m_power[65];
+  uint64_t m_mask{};
 };
 
 class Observable {
  public:
   class Result {
    public:
-    template <std::integral T>
+    template <class T>
     void Set(T value, const common::KeyValueIterable& attributes) {
-      // This looks like a bug in openTelemetry, need to investigate, clash
-      // between uint64_t amd long int should be unsigned, losing precision.
+      static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
 
-      SetImpl(static_cast<long>(value), attributes);
-    }
+      if constexpr (std::is_integral_v<T>) {
+        // This looks like a bug in openTelemetry, need to investigate, clash
+        // between uint64_t and long int should be unsigned, losing precision.
 
-    template <std::floating_point T>
-    void Set(T value, const common::KeyValueIterable& attributes) {
-      SetImpl(static_cast<double>(value), attributes);
+        SetImpl(static_cast<long>(value), attributes);
+      } else {
+        SetImpl(static_cast<double>(value), attributes);
+      }
     }
 
     template <class T, class U,
@@ -216,7 +214,5 @@ class Metrics : public Singleton<Metrics> {
           zil::metrics::FilterClass::FILTER_CLASS)) {                  \
     COUNTER->Add(1, {{"Method", METHOD}});                             \
   }
-
-// template <
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_
