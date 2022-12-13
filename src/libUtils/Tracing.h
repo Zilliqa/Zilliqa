@@ -15,12 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_MTRACING_H_
-#define ZILLIQA_SRC_LIBUTILS_MTRACING_H_
+#ifndef ZILLIQA_SRC_LIBUTILS_TRACING_H_
+#define ZILLIQA_SRC_LIBUTILS_TRACING_H_
 
 class Tracing {
  public:
  private:
 };
 
-#endif  // ZILLIQA_SRC_LIBUTILS_MTRACING_H_
+#endif  // ZILLIQA_SRC_LIBUTILS_TRACING_H_
