@@ -111,6 +111,13 @@ class SHA2 {
     }
     return output;
   }
+
+  static zbytes FromBytes(const zbytes& vec) {
+    SHA2<SIZE> sha2;
+
+    sha2.Update(vec);
+    return sha2.Finalize();
+  }
 };
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_SHA2_H_

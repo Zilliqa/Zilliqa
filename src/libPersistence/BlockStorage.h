@@ -24,7 +24,6 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 #include "libData/MiningData/MinerInfo.h"
@@ -79,7 +78,7 @@ struct DiagnosticDataCoinbase {
 };
 
 /// Manages persistent storage of DS and Tx blocks.
-class BlockStorage : public Singleton<BlockStorage> {
+class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> m_metadataDB;
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
@@ -148,9 +147,6 @@ class BlockStorage : public Singleton<BlockStorage> {
                                        bool diagnostic = false);
 
   void Initialize(const std::string& path = "", bool diagnostic = false);
-
-  /// Get the size of current TxBodyDB
-  unsigned int GetTxBodyDBSize();
 
   /// Adds a DS block to storage.
   bool PutDSBlock(const uint64_t& blockNum, const zbytes& body);

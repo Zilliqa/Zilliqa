@@ -33,7 +33,6 @@
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SanityChecks.h"
 #include "libUtils/ShardSizeCalculator.h"
@@ -166,7 +165,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     const auto& powHash = kv.first;
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
-    const zbytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+    const zbytes& sortHashVec = SHA2<HashType::HASH_VARIANT_256>::FromBytes(hashVec);
     array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
@@ -591,7 +590,7 @@ bool DirectoryService::VerifyPoWOrdering(
       }
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-      const zbytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+      const zbytes& sortHashVec = SHA2<HashType::HASH_VARIANT_256>::FromBytes(hashVec);
 
       if (DEBUG_LEVEL >= 5) {
         string sortHashVecStr;

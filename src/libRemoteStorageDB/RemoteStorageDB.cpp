@@ -24,7 +24,6 @@
 #include <bsoncxx/stdx/make_unique.hpp>
 #include "libServer/JSONConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
