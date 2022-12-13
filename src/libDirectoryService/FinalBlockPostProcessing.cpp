@@ -32,7 +32,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 
 using namespace std;
 using namespace boost::multiprecision;
