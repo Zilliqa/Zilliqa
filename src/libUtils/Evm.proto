@@ -95,6 +95,7 @@ message ExitReason {
     STOPPED = 0;
     RETURNED = 1;
     SUICIDED = 2;
+    TRAPPED = 3;
   }
 
   message Error {

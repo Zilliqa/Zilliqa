@@ -1,11 +1,23 @@
-use evm::executor::stack::{PrecompileSet, StackExecutor, StackState};
+use std::collections::BTreeMap;
+use std::convert::Infallible;
+
+use evm::executor::stack::{
+    MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor, StackState,
+};
 use evm::{
-    Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Stack, Transfer,
+    Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Runtime, Stack,
+    Transfer,
 };
 use primitive_types::{H160, H256, U256};
 
-pub struct CpsExecutor<'config, 'precompiles, S, P> {
-    stack_executor: StackExecutor<'config, 'precompiles, S, P>,
+use crate::scillabackend::ScillaBackend;
+type PrecompileMap = BTreeMap<
+    H160,
+    fn(&[u8], Option<u64>, &Context, bool) -> Result<(PrecompileOutput, u64), PrecompileFailure>,
+>;
+
+pub struct CpsExecutor<'a> {
+    stack_executor: StackExecutor<'a, 'a, MemoryStackState<'a, 'a, ScillaBackend>, PrecompileMap>,
 }
 
 pub struct CpsCreateInterrupt {
@@ -29,28 +41,42 @@ pub struct CpsCallInterrupt {
 
 pub struct CpsCallFeedback {}
 
-impl<'config, 'precompiles, S, P: PrecompileSet> CpsExecutor<'config, 'precompiles, S, P>
-where
-    S: StackState<'config>,
-    P: PrecompileSet,
-{
+pub enum CpsReason {
+    NormalExit(evm::ExitReason),
+    Other,
+}
+
+impl<'a> CpsExecutor<'a> {
     /// Create a new stack-based executor with given precompiles.
-    pub fn new_with_precompiles<'backend, B>(
-        state: S,
-        config: &'config Config,
-        precompile_set: &'precompiles P,
+    pub fn new_with_precompiles(
+        state: MemoryStackState<'a, 'a, ScillaBackend>,
+        config: &'a Config,
+        precompile_set: &'a PrecompileMap,
     ) -> Self {
         Self {
             stack_executor: StackExecutor::new_with_precompiles(state, config, precompile_set),
         }
     }
+
+    /// Execute the runtime until it returns.
+    pub fn execute(&mut self, runtime: &mut Runtime) -> CpsReason {
+        match runtime.run(self) {
+            Capture::Exit(s) => CpsReason::NormalExit(s),
+            Capture::Trap(_) => CpsReason::Other,
+        }
+    }
+
+    /// Get remaining gas.
+    pub fn gas(&self) -> u64 {
+        self.stack_executor.gas()
+    }
+
+    pub fn into_state(self) -> MemoryStackState<'a, 'a, ScillaBackend> {
+        self.stack_executor.into_state()
+    }
 }
 
-impl<'config, 'precompiles, S, P> Handler for CpsExecutor<'config, 'precompiles, S, P>
-where
-    S: StackState<'config>,
-    P: PrecompileSet,
-{
+impl<'a> Handler for CpsExecutor<'a> {
     type CreateInterrupt = CpsCreateInterrupt;
     type CreateFeedback = CpsCreateFeedback;
     type CallInterrupt = CpsCallInterrupt;
@@ -185,15 +211,19 @@ where
         init_code: Vec<u8>,
         target_gas: Option<u64>,
     ) -> Capture<(ExitReason, Option<H160>, Vec<u8>), Self::CreateInterrupt> {
-        // TODO: pre interrrupt processing.
-        // this is where we'll return the interrupt!
-        Capture::Trap(Self::CreateInterrupt {
-            caller,
-            scheme,
-            value,
-            init_code,
-            target_gas,
-        })
+        let result =
+            self.stack_executor
+                .create(caller, scheme, value, init_code.clone(), target_gas);
+        match result {
+            Capture::Exit(s) => Capture::Exit(s),
+            Capture::Trap(_) => Capture::Trap(Self::CreateInterrupt {
+                caller,
+                scheme,
+                value,
+                init_code,
+                target_gas,
+            }),
+        }
     }
 
     /// Feed in create feedback.
@@ -212,16 +242,26 @@ where
         is_static: bool,
         context: Context,
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
-        // TODO: pre-call processing.
-        // this is where we return the interpreter!
-        Capture::Trap(Self::CallInterrupt {
+        let result = self.stack_executor.call(
             code_address,
-            transfer,
-            input,
+            transfer.clone(),
+            input.clone(),
             target_gas,
             is_static,
-            context,
-        })
+            context.clone(),
+        );
+
+        match result {
+            Capture::Exit(s) => Capture::Exit(s),
+            Capture::Trap(_) => Capture::Trap(Self::CallInterrupt {
+                code_address,
+                transfer,
+                input,
+                target_gas,
+                is_static,
+                context,
+            }),
+        }
     }
 
     /// Feed in call feedback.
