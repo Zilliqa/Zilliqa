@@ -180,7 +180,7 @@ void DirectoryService::SendDSBlockToShardNodes(
     }
 
     // Send the message
-    SHA2<HashType::HASH_VARIANT_256> sha256;
+    SHA256Calculator sha256;
     sha256.Update(dsblock_message_to_shard);
     auto this_msg_hash = sha256.Finalize();
 

@@ -48,7 +48,7 @@ class AddressChecksum {
       LOG_GENERAL(WARNING, "DataConversion::HexStrToUint8Vec Failed");
       return "";
     }
-    zbytes hash_s = SHA2<HashType::HASH_VARIANT_256>::FromBytes(tmpaddr);
+    zbytes hash_s = SHA256Calculator::FromBytes(tmpaddr);
 
     uint256_t temp_1 = 1;
     std::string ret = "";

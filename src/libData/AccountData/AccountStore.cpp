@@ -587,7 +587,7 @@ StateHash AccountStore::GetStateDeltaHash() {
     return StateHash();
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(m_stateDeltaSerialized);
   return StateHash(sha2.Finalize());
 }

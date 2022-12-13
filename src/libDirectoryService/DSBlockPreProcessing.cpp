@@ -165,7 +165,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     const auto& powHash = kv.first;
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
-    const zbytes& sortHashVec = SHA2<HashType::HASH_VARIANT_256>::FromBytes(hashVec);
+    const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
     array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
@@ -236,7 +236,7 @@ void DirectoryService::InjectPoWForDSNode(
 
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   zbytes serializedPubK;
 
   // Iterate through the current DS committee from the back, add a PoW
@@ -590,7 +590,7 @@ bool DirectoryService::VerifyPoWOrdering(
       }
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-      const zbytes& sortHashVec = SHA2<HashType::HASH_VARIANT_256>::FromBytes(hashVec);
+      const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
 
       if (DEBUG_LEVEL >= 5) {
         string sortHashVecStr;

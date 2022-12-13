@@ -1321,7 +1321,7 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HashType::HASH_VARIANT_256> sha2;
+      SHA256Calculator sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1349,7 +1349,7 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HashType::HASH_VARIANT_256> sha2;
+      SHA256Calculator sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1644,7 +1644,7 @@ bool Node::ProcessTxnPacketFromLookup(
         ((m_mediator.m_currentEpochNum == 1) &&
          (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() ==
           0))) {
-      SHA2<HashType::HASH_VARIANT_256> sha256;
+      SHA256Calculator sha256;
       sha256.Update(message);  // message hash
       zbytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
@@ -1699,7 +1699,7 @@ bool Node::ProcessTxnPacketFromLookup(
                 << string(lookupPubKey).substr(0, 6) << "][" << message.size()
                 << "] RECVFROMLOOKUP");
     }
-    SHA2<HashType::HASH_VARIANT_256> sha256;
+    SHA256Calculator sha256;
     sha256.Update(message);  // message hash
     zbytes msg_hash = sha256.Finalize();
     m_txnPacketBuffer.emplace(msg_hash, message);
@@ -1733,7 +1733,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes& message,
     return true;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
+  SHA256Calculator sha256;
   sha256.Update(message);  // message hash
   zbytes msg_hash = sha256.Finalize();
 
@@ -2953,7 +2953,7 @@ void Node::SendBlockToOtherShardNodes(const zbytes& message,
 
   uint32_t nodes_lo, nodes_hi;
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
+  SHA256Calculator sha256;
   sha256.Update(message);  // raw_message hash
   zbytes this_msg_hash = sha256.Finalize();
 

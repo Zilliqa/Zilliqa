@@ -150,7 +150,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
         (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
-      SHA2<HashType::HASH_VARIANT_256> sha256;
+      SHA256Calculator sha256;
       sha256.Update(message, HDR_LEN + HASH_LEN,
                     message.size() - HDR_LEN - HASH_LEN);
       zbytes this_msg_hash = sha256.Finalize();
@@ -1270,7 +1270,7 @@ void SendBroadcastMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
     return;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
+  SHA256Calculator sha256;
   sha256.Update(message);
   hash = sha256.Finalize();
 

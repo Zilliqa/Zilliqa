@@ -21,73 +21,44 @@
 #include <openssl/sha.h>
 #include <string>
 #include <vector>
-#include "libUtils/Logger.h"
-
-/// List of supported hash variants.
-class HashType {
- public:
-  static const unsigned int HASH_VARIANT_256 = 256;
-  static const unsigned int HASH_VARIANT_512 = 512;
-};
+#include "common/BaseType.h"
+#include "common/FatalAssert.h"
 
 /// Implements SHA2 hash algorithm.
 template <unsigned int SIZE>
 class SHA2 {
-  static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
+  static const constexpr unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
   SHA256_CTX m_context{};
   zbytes output;
 
  public:
   /// Constructor.
   SHA2() : output(HASH_OUTPUT_SIZE) {
-    if (SIZE != HashType::HASH_VARIANT_256) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
-
+    static_assert(SIZE == 256, "Only SHA256 is currently supported");
     Reset();
   }
 
-  /// Destructor.
-  ~SHA2() {}
-
   /// Hash update function.
   void Update(const zbytes& input) {
-    if (input.size() == 0) {
-      LOG_GENERAL(WARNING, "Nothing to update");
-      return;
-    }
-
-    SHA256_Update(&m_context, input.data(), input.size());
+    if (!input.empty()) SHA256_Update(&m_context, input.data(), input.size());
   }
 
   /// Hash update function.
   void Update(const zbytes& input, unsigned int offset, unsigned int size) {
-    if ((offset + size) > input.size()) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT((offset + size) <= input.size());
 
     SHA256_Update(&m_context, input.data() + offset, size);
   }
 
   /// Hash update function.
   void Update(const std::string& input) {
-    if (input.size() == 0) {
-      LOG_GENERAL(WARNING, "Nothing to update");
-      return;
-    }
-
-    SHA256_Update(&m_context, input.data(), input.size());
+    if (!input.empty()) Update(input, 0, input.size());
   }
 
   /// Hash update function.
   void Update(const std::string& input, unsigned int offset,
               unsigned int size) {
-    if ((offset + size) > input.size()) {
-      LOG_GENERAL(FATAL, "assertion failed (" << __FILE__ << ":" << __LINE__
-                                              << ": " << __FUNCTION__ << ")");
-    }
+    ZIL_FATAL_ASSERT((offset + size) <= input.size());
 
     SHA256_Update(&m_context, input.data() + offset, size);
   }
@@ -102,13 +73,7 @@ class SHA2 {
 
   /// Hash finalize function.
   zbytes Finalize() {
-    switch (SIZE) {
-      case 256:
-        SHA256_Final(output.data(), &m_context);
-        break;
-      default:
-        break;
-    }
+    SHA256_Final(output.data(), &m_context);
     return output;
   }
 
@@ -119,5 +84,7 @@ class SHA2 {
     return sha2.Finalize();
   }
 };
+
+using SHA256Calculator = SHA2<256>;
 
 #endif  // ZILLIQA_SRC_LIBCRYPTO_SHA2_H_

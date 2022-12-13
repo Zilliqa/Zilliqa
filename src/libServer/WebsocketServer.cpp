@@ -21,7 +21,6 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"

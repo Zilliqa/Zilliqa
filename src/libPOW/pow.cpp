@@ -759,7 +759,7 @@ zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                                     sizeof(uint32_t));
   Serializable::SetNumber<uint128_t>(vec, vec.size(), gasPrice, UINT128_SIZE);
 
-  SHA2<256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(vec);
   zbytes sha2_result = sha2.Finalize();
   return sha2_result;

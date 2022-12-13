@@ -2287,7 +2287,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2313,7 +2313,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2341,7 +2341,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2823,7 +2823,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
     return true;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -4816,7 +4816,7 @@ bool Messenger::SetNodePendingTxn(
   result.mutable_data()->set_epochnumber(epochnum);
   result.mutable_data()->set_shardid(shardId);
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   for (const auto& hashCodePair : hashCodeMap) {
     auto protoHashCodePair = result.mutable_data()->add_hashcodepair();
@@ -4889,7 +4889,7 @@ bool Messenger::GetNodePendingTxn(
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   for (const auto& codeHashPair : result.data().hashcodepair()) {
     TxnHash txhash;

@@ -22,10 +22,10 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
-#include "libCrypto/Sha2.h"
 
 struct Fixture {
   Fixture() { INIT_STDOUT_LOGGER() }
@@ -117,7 +117,7 @@ BOOST_AUTO_TEST_CASE(transactionwithreceipt) {
   TransactionReceipt tr;
   std::vector<TransactionWithReceipt> txrs;
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   for (const auto& ts : transactionStrings) {
     sha2.Update(DataConversion::StringToCharArray(ts.c_str()));
