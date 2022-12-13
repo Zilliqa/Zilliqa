@@ -18,6 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_MTRACING_H_
 #define ZILLIQA_SRC_LIBUTILS_MTRACING_H_
 
-class Tracing {};
+class Tracing {
+ public:
+};
 
 #endif  // ZILLIQA_SRC_LIBUTILS_MTRACING_H_
