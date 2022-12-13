@@ -84,9 +84,9 @@ class Observable {
     void Set(T value, std::initializer_list<
                           std::pair<std::string_view, common::AttributeValue>>
                           attributes) noexcept {
-      Set(value,
-          std::span<const std::pair<std::string_view, common::AttributeValue>>{
-              attributes.begin(), attributes.end()});
+      Set(value, opentelemetry::nostd::span<
+                     const std::pair<std::string_view, common::AttributeValue>>{
+                     attributes.begin(), attributes.end()});
     }
 
    private:

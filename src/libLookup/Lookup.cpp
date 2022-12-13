@@ -3106,9 +3106,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       return false;
     }
 
-    auto res = CheckTxBlocks(
-        txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-        m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    auto res =
+        CheckTxBlocks(txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+                      m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
       case TxBlockValidationMsg::VALID: {
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW

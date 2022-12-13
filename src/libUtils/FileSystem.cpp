@@ -17,8 +17,8 @@
 
 #include "FileSystem.h"
 
-#include <boost/filesystem/operations.hpp>
 #include <algorithm>
+#include <boost/filesystem/operations.hpp>
 #include <iostream>
 
 void recursive_copy_dir(const bfs::path& src, const bfs::path& dst) {

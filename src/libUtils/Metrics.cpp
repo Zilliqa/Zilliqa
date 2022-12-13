@@ -162,7 +162,8 @@ using ObserverResult =
     std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<T>>;
 
 template <typename T>
-void SetT(auto& result, T value, const common::KeyValueIterable& attributes) {
+void SetT(opentelemetry::metrics::ObserverResult& result, T value,
+          const common::KeyValueIterable& attributes) {
   bool holds_double = std::holds_alternative<ObserverResult<double>>(result);
 
   if constexpr (std::is_integral_v<T>) {
