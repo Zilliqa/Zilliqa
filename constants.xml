@@ -198,7 +198,7 @@
         <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
-        <EVM_ZIL_SCALING_FACTOR>10000</EVM_ZIL_SCALING_FACTOR>
+        <EVM_ZIL_SCALING_FACTOR>1000000</EVM_ZIL_SCALING_FACTOR>
         <!-- blocking Call to read socket from evm-ds timeout -->
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
