@@ -472,7 +472,6 @@ bool Node::ProcessVCDSBlocksMessage(
     return false;
   }
 
-  uint32_t expectedViewChangeCounter = 1;
   for (const auto& vcBlock : vcBlocks) {
     if (!ProcessVCBlockCore(vcBlock)) {
       LOG_GENERAL(WARNING, "Checking for error when processing vc blocknum "
@@ -482,7 +481,6 @@ bool Node::ProcessVCDSBlocksMessage(
 
     LOG_GENERAL(INFO, "view change completed for vc blocknum "
                           << vcBlock.GetHeader().GetViewChangeCounter());
-    expectedViewChangeCounter++;
   }
 
   // Verify the CommitteeHash member of the BlockHeaderBase
@@ -528,7 +526,7 @@ bool Node::ProcessVCDSBlocksMessage(
 
   {
     lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
-    m_mediator.m_ds->m_shards = move(t_shards);
+    m_mediator.m_ds->m_shards = std::move(t_shards);
   }
 
   MinerInfoDSComm minerInfoDSComm;

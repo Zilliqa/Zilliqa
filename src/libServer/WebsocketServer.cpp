@@ -575,7 +575,7 @@ void WebsocketServer::SendOutMessages() {
                   _json["log"] = entry.second;
                   j_txnlogs.append(_json);
                 }
-                value["value"] = move(j_txnlogs);
+                value["value"] = std::move(j_txnlogs);
               }
               break;
             }

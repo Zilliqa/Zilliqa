@@ -4065,7 +4065,7 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
   for (const auto& powSubmission : result.data().dspowsubmissions()) {
     DSPowSolution sol;
     ProtobufToDSPowSolution(powSubmission, sol);
-    dsPowSolutions.emplace_back(move(sol));
+    dsPowSolutions.emplace_back(std::move(sol));
   }
 
   return true;
@@ -4153,7 +4153,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   for (const auto& proto_mb : result.data().microblocks()) {
     MicroBlock microBlock;
     ProtobufToMicroBlock(proto_mb, microBlock);
-    microBlocks.emplace_back(move(microBlock));
+    microBlocks.emplace_back(std::move(microBlock));
   }
 
   for (const auto& proto_delta : result.data().statedeltas()) {
@@ -4643,7 +4643,7 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
       return false;
     }
-    vcBlocks.emplace_back(move(vcblock));
+    vcBlocks.emplace_back(std::move(vcblock));
   }
 
   return ProtobufToShardingStructure(result.sharding(),
@@ -4714,7 +4714,7 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
       return false;
     }
-    vcBlocks.emplace_back(move(vcblock));
+    vcBlocks.emplace_back(std::move(vcblock));
   }
   return true;
 }

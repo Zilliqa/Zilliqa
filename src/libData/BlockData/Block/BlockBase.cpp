@@ -71,5 +71,5 @@ void BlockBase::SetCoSignatures(const ConsensusCommon& src) {
 void BlockBase::SetCoSignatures(CoSignatures& cosigs) { m_cosigs = cosigs; }
 
 void BlockBase::SetCoSignatures(CoSignatures&& cosigs) {
-  m_cosigs = move(cosigs);
+  m_cosigs = std::move(cosigs);
 }

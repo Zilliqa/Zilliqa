@@ -2302,7 +2302,7 @@ bool Lookup::ProcessSetShardFromSeed(
   }
   lock_guard<mutex> g(m_mediator.m_ds->m_mutexShards);
 
-  m_mediator.m_ds->m_shards = move(shards);
+  m_mediator.m_ds->m_shards = std::move(shards);
 
   cv_shardStruct.notify_all();
 
@@ -2838,7 +2838,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(
   LOG_GENERAL(INFO, "[DSINFOVERIF] Success");
 
   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
-  *m_mediator.m_DSCommittee = move(dsNodes);
+  *m_mediator.m_DSCommittee = std::move(dsNodes);
 
   // Add ds guard to exclude list for lookup at bootstrap
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(
@@ -5407,11 +5407,11 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
       tempTxnShardMap[fromShard].emplace_back(tx_and_count);
     }
   }
-  tempTxnShardMap[newNumShards] = move(m_txnShardMap[oldNumShards]);
+  tempTxnShardMap[newNumShards] = std::move(m_txnShardMap[oldNumShards]);
 
   m_txnShardMap.clear();
 
-  m_txnShardMap = move(tempTxnShardMap);
+  m_txnShardMap = std::move(tempTxnShardMap);
 
   auto t_end = std::chrono::high_resolution_clock::now();
 
