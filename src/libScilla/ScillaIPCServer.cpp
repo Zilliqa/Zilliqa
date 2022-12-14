@@ -42,14 +42,14 @@ void instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,
   // uint64_t amd long int should be unsigned, losing precision.
 
   if (std::holds_alternative<std::shared_ptr<
-          opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+          opentelemetry::v1::metrics::ObserverResultT<int64_t>>>(
           observer_result)) {
     std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<int64_t>>>(
         observer_result)
         ->Observe(that->getCurBlockNum(), {{"counter", "BlockNumber"}});
     std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<int64_t>>>(
         observer_result)
         ->Observe(that->getCurDSBlockNum(), {{"counter", "DSBlockNumber"}});
   }

@@ -1866,7 +1866,7 @@ Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum,
   // For GetTxnBodiesForTxBlockEx: return map{Transactions:[], CurrPage:int,
   // NumPages:int}
   Json::Value _json2;
-  _json2["Transactions"] = move(_json);
+  _json2["Transactions"] = std::move(_json);
   _json2["CurrPage"] = pageNum;
   _json2["NumPages"] = (numTransactions / NUM_TXNS_PER_PAGE) +
                        ((numTransactions % NUM_TXNS_PER_PAGE) ? 1 : 0);
@@ -1956,7 +1956,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
   // For GetTransactionsForTxBlockEx and GetTxnBodiesForTxBlockEx: return
   // map{Transactions:[], CurrPage:int, NumPages:int}
   Json::Value _json2;
-  _json2["Transactions"] = move(_json);
+  _json2["Transactions"] = std::move(_json);
   _json2["CurrPage"] = pageNumber;
   _json2["NumPages"] =
       (txBlock.GetHeader().GetNumTxs() / NUM_TXNS_PER_PAGE) +

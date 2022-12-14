@@ -743,9 +743,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
     if (m_mode == BACKUP_DS) {
-      m_shards = move(m_tempShards);
-      m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
-      m_mapNodeReputation = move(m_tempMapNodeReputation);
+      m_shards = std::move(m_tempShards);
+      m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
+      m_mapNodeReputation = std::move(m_tempMapNodeReputation);
     } else if (m_mode == PRIMARY_DS) {
       RemoveReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
     }

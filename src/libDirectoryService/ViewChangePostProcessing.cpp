@@ -79,13 +79,11 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   m_pendingVCBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
   unsigned int index = 0;
-  unsigned int count = 0;
 
   vector<PubKey> keys;
   for (auto const& kv : *m_mediator.m_DSCommittee) {
     if (m_pendingVCBlock->GetB2().at(index)) {
       keys.emplace_back(kv.first);
-      count++;
     }
     index++;
   }

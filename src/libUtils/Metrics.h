@@ -114,7 +114,6 @@ class Metrics : public Singleton<Metrics> {
   void Init();
 
   std::shared_ptr<metrics_api::MeterProvider> m_provider;
-  bool m_status{false};
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_

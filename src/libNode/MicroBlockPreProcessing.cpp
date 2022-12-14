@@ -377,7 +377,7 @@ void Node::ProcessTransactionWhenShardLeader(
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = move(it->second.begin()->second);
+        t = std::move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {
@@ -640,7 +640,7 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_createdTxns = move(t_createdTxns);
+    m_createdTxns = std::move(t_createdTxns);
     t_createdTxns.clear();
   }
   if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
@@ -651,7 +651,7 @@ void Node::UpdateProcessedTransactions() {
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =
-        move(t_processedTransactions);
+        std::move(t_processedTransactions);
     t_processedTransactions.clear();
   }
 }
@@ -698,7 +698,7 @@ void Node::ProcessTransactionWhenShardBackup(
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = move(it->second.begin()->second);
+        t = std::move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {
