@@ -47,12 +47,6 @@ ContractStorage::ContractStorage()
 // Code
 //=================================
 
-bool ContractStorage::PutContractCode(const dev::h160& address,
-                                      const zbytes& code) {
-  lock_guard<mutex> g(m_codeMutex);
-  return m_codeDB.Insert(address.hex(), code) == 0;
-}
-
 bool ContractStorage::PutContractCodeBatch(
     const unordered_map<string, string>& batch) {
   lock_guard<mutex> g(m_codeMutex);
@@ -71,11 +65,6 @@ bool ContractStorage::DeleteContractCode(const dev::h160& address) {
 
 // InitData
 // ========================================
-bool ContractStorage::PutInitData(const dev::h160& address,
-                                  const zbytes& initData) {
-  lock_guard<mutex> g(m_initDataMutex);
-  return m_initDataDB.Insert(address.hex(), initData) == 0;
-}
 
 bool ContractStorage::PutInitDataBatch(
     const unordered_map<string, string>& batch) {
@@ -88,10 +77,6 @@ zbytes ContractStorage::GetInitData(const dev::h160& address) {
   return DataConversion::StringToCharArray(m_initDataDB.Lookup(address.hex()));
 }
 
-bool ContractStorage::DeleteInitData(const dev::h160& address) {
-  lock_guard<mutex> g(m_initDataMutex);
-  return m_initDataDB.DeleteKey(address.hex()) == 0;
-}
 // State
 // ========================================
 template <class T>
