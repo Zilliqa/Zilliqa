@@ -122,7 +122,7 @@ impl ScillaBackend {
         key: Option<H256>,
         use_default: bool,
     ) -> Result<Option<ScillaMessage::ProtoScillaVal>> {
-        debug!(
+        println!(
             "query_state_value: {} {} {:?} {}",
             address, query_name, key, use_default
         );
@@ -144,6 +144,8 @@ impl ScillaBackend {
 
         // If the RPC call failed, something is wrong, and it is better to crash.
         let result = self.call_ipc_server_api("fetchExternalStateValueB64", args);
+
+        println!("result is {:?}", result);
         // If the RPC was okay, but we didn't get a value, that's
         // normal, just return empty code.
         match result {
@@ -260,7 +262,9 @@ impl Backend for ScillaBackend {
     }
 
     fn chain_id(&self) -> U256 {
+        println!("The returned chaind id is {:}", 1);
         self.extras.get_chain_id().into()
+        //1.into()
     }
 
     fn exists(&self, address: H160) -> bool {
@@ -293,6 +297,7 @@ impl Backend for ScillaBackend {
             .expect("query_state_value(_code)")
             .map(|value| value.as_bytes())
             .unwrap_or_default();
+        println!("code bytes: '{:?}'", bytes);
         if bytes.len() > 2 && bytes[0] == b'E' && bytes[1] == b'V' && bytes[2] == b'M' {
             (&bytes[3..]).to_vec()
         } else {

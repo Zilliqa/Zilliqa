@@ -15,6 +15,10 @@ pub(crate) fn ecrecover(
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = ECRECOVER_BASE;
+    println!("HERE WE AREEEE!!! ");
+    println!("{:x?}", input);
+    println!("{:?}", _is_static);
+
     if let Some(gas_limit) = gas_limit {
         if cost > gas_limit {
             return Err(PrecompileFailure::Error {
@@ -36,6 +40,7 @@ pub(crate) fn ecrecover(
     signature[0..32].copy_from_slice(&input[64..96]); // r
     signature[32..64].copy_from_slice(&input[96..128]); // s
 
+    println!("Here...");
     let v_bit = match v[31] {
         27 | 28 if v[..31] == [0; 31] => v[31] - 27,
         _ => {
@@ -49,16 +54,34 @@ pub(crate) fn ecrecover(
         }
     };
     signature[64] = v_bit; // v
+    println!("also here...");
 
     let address_res = ecrecover_impl(H256::from_slice(&hash), &signature);
-    let output = match address_res {
+    println!("called ecrecover with:");
+
+    println!("{:x?}", hash);
+    println!("{:x?}", signature);
+
+    let mut output = match address_res {
         Ok(a) => {
             let mut output = [0u8; 32];
             output[12..32].copy_from_slice(a.as_bytes());
+            println!("with output: ");
+            println!("{:x?}", output);
             output.to_vec()
         }
         Err(_) => Vec::new(),
     };
+
+    println!("so here we are!");
+    //0x00000000000000000000000005a321d0b9541ca08d7e32315ca186cc67a1602c,
+    //0x0000000000000000000000005a321d0b9541ca08d7e32315ca186cc67a1602c8
+
+    //output = vec![0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x05, 0xa3, 0x21, 0xd0, 0xb9, 0x54, 0x1c, 0xa0, 0x8d, 0x7e, 0x32, 0x31, 0x5c, 0xa1, 0x86, 0xcc, 0x67, 0xa1, 0x60, 0x2c];
+    //println!("{:x?}", output);
+
+    //0x05, 0xa3, 0x21, 0xd0, 0xb9, 0x54, 0x1c, 0xa0, 0x8d, 0x7e, 0x32, 0x31, 0x5c, 0xa1, 0x86, 0xcc, 0x67, 0xa1, 0x60, 0x2c
+    //85 e5 34 71 8d 80 9d 49 f4 f1 74 4c af 86 7d 70 2c 45 d6 3
 
     Ok((
         PrecompileOutput {

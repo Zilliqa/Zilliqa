@@ -69,6 +69,15 @@ void EvmUtils::PrintDebugEvmResult(evm::EvmResult& result) {
   auto exitReason = result.exit_reason().DebugString();
   std::replace(exitReason.begin(), exitReason.end(), '\n', ' ');
   LOG_GENERAL(INFO, "Exit code: " << exitReason);
+
+  if(exitReason.find("REVERTED") != std::string::npos) {
+    std::cerr << "REVVVV !!!" << std::endl;
+    auto returnString = result.return_value();
+    std::cerr << returnString << std::endl;
+    std::replace(returnString.begin(), returnString.end(), '\0', ' ');
+    std::cerr << returnString << std::endl;
+  }
+
   LOG_GENERAL(INFO, "Return value: " << DataConversion::Uint8VecToHexStrRet(
                         toZbytes(result.return_value())));
   LOG_GENERAL(INFO, "Remaining gas: " << result.remaining_gas());
@@ -216,10 +225,14 @@ std::string EvmUtils::GetEvmResultJsonFromTextProto(
 
 bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
                       evm::EvmEvalExtras& extras_out) {
+  std::cerr << "Setting chain id... " << ETH_CHAINID << std::endl;
+  extras_out.set_chain_id(ETH_CHAINID);
   extras_out.set_block_timestamp(
       extras_in.block_timestamp.convert_to<uint64_t>());
   extras_out.set_block_gas_limit(DS_MICROBLOCK_GAS_LIMIT *
                                  GasConv::GetScalingFactor());
+
+  std::cerr << "microblock gas limit: " << DS_MICROBLOCK_GAS_LIMIT << std::endl;
   extras_out.set_block_difficulty(extras_in.block_difficulty);
   extras_out.set_block_number(blockNum);
   uint256_t gasPrice = (extras_in.gas_price * EVM_ZIL_SCALING_FACTOR) /

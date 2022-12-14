@@ -77,6 +77,8 @@ class IsolatedServer : public LookupServer,
     LOG_MARKER_CONTITIONAL(LOG_SC);
     auto rawTx = request[0u].asString();
 
+    std::cerr << "sending raw tx: " << rawTx << std::endl;
+
     // Erase '0x' at the beginning if it exists
     if (rawTx.size() >= 2 && rawTx[1] == 'x') {
       rawTx.erase(0, 2);

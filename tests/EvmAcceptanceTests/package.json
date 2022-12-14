@@ -42,6 +42,9 @@
     "web3": "^1.7.5"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.0",
+    "@openzeppelin/hardhat-upgrades": "^1.21.0",
     "@zilliqa-js/zilliqa": "^3.3.4",
     "cli-color": "^2.0.3"
   },
