@@ -388,33 +388,6 @@ bool AccountStore::UpdateStateTrieFromTempStateDB() {
   return true;
 }
 
-void AccountStore::DiscardUnsavedUpdates() {
-  LOG_MARKER();
-
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
-  unique_lock<mutex> g2(m_mutexDB, defer_lock);
-  lock(g, g2);
-
-  try {
-    {
-      lock_guard<mutex> g(m_mutexTrie);
-      m_state.db()->rollback();
-      if (m_prevRoot != dev::h256()) {
-        try {
-          m_state.setRoot(m_prevRoot);
-        } catch (...) {
-          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
-          return;
-        }
-      }
-    }
-    m_addressToAccount->clear();
-  } catch (const boost::exception& e) {
-    LOG_GENERAL(WARNING, "Error with AccountStore::DiscardUnsavedUpdates. "
-                             << boost::diagnostic_information(e));
-  }
-}
-
 bool AccountStore::RetrieveFromDisk() {
   InitSoft();
 
