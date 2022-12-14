@@ -1,12 +1,11 @@
 const {expect} = require("chai");
-const {ethers} = require("hardhat");
-const ethers_helper = require("../helper/EthersHelper");
+const parallelizer = require("../helper/Parallelizer");
 
 // TODO: Change the description to something more meaningful.
 describe("Blockchain Instructions contract", function () {
   let contract;
   before(async function () {
-    this.contract = await ethers_helper.deployContract("BlockchainInstructions");
+    this.contract = await parallelizer.deployContract("BlockchainInstructions");
   });
 
   it("Should be deployed successfully", async function () {

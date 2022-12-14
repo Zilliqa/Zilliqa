@@ -1,10 +1,9 @@
 const {expect} = require("chai");
-const ethers_helper = require("../helper/EthersHelper");
+const parallelizer = require("../helper/Parallelizer");
 
 describe("Revert Contract Call", function () {
-  let contract;
   before(async function () {
-    this.contract = await ethers_helper.deployContract("Revert");
+    this.contract = await parallelizer.deployContract("Revert");
   });
 
   it("Will revert the transaction when revert is called", async function () {

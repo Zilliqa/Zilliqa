@@ -1,12 +1,12 @@
 const {expect} = require("chai");
 const {web3} = require("hardhat");
-const ethers_helper = require("../helper/EthersHelper");
+const parallelizer = require("../helper/Parallelizer");
 
 // Reference: https://dev.to/yongchanghe/tutorial-using-create2-to-predict-the-contract-address-before-deploying-12cb
 
 describe("Create2 instruction", function () {
   before(async function () {
-    this.contract = await ethers_helper.deployContract("Create2Factory");
+    this.contract = await parallelizer.deployContract("Create2Factory");
   });
 
   describe("Should be able to predict and call create2 contract", function () {

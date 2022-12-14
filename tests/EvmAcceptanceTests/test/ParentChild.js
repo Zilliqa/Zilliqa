@@ -1,14 +1,14 @@
 const {expect} = require("chai");
 const {ethers, web3} = require("hardhat");
 const hre = require("hardhat");
-const ethers_helper = require("../helper/EthersHelper");
 const helper = require("../helper/GeneralHelper");
+const parallelizer = require("../helper/Parallelizer");
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 1_000_000;
   let parentContract;
   before(async function () {
-    parentContract = await ethers_helper.deployContract("ParentContract", {value: INITIAL_FUND});
+    parentContract = await parallelizer.deployContract("ParentContract", {value: INITIAL_FUND});
   });
 
   describe("General", function () {

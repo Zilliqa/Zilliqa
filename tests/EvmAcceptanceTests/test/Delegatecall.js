@@ -1,11 +1,11 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
-const ethers_helper = require("../helper/EthersHelper");
+const parallelizer = require("../helper/Parallelizer");
 
 describe("Delegatecall functionality", function () {
   before(async function () {
-    this.delegateContract = await ethers_helper.deployContract("Delegatecall");
-    this.testDelegateContract = await ethers_helper.deployContract("TestDelegatecall");
+    this.delegateContract = await parallelizer.deployContract("Delegatecall");
+    this.testDelegateContract = await parallelizer.deployContract("TestDelegatecall");
   });
 
   it("should delegate function call correctly", async function () {

@@ -1,6 +1,6 @@
 const {expect} = require("chai");
 const {ethers} = require("hardhat");
-const ethers_helper = require("../helper/EthersHelper");
+const parallelizer = require("../helper/Parallelizer");
 
 const FUND = ethers.utils.parseUnits("2", "ether");
 
@@ -8,7 +8,7 @@ describe("ForwardZil contract functionality", function () {
   let contract;
 
   before(async function () {
-    this.contract = await ethers_helper.deployContract("ForwardZil");
+    this.contract = await parallelizer.deployContract("ForwardZil");
     this.signer = this.contract.signer;
   });
 
