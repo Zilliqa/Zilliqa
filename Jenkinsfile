@@ -12,7 +12,7 @@ spec:
     - cat
     tty: true
   - name: "ubuntu"
-    image: "zilliqa/zilliqa-ccache:v0.0.0"
+    image: "zilliqa/zilliqa-ccache:v8.5.0"
     imagePullPolicy: Always
     command:
     - cat
