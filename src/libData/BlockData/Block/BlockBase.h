@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 
 #include <Schnorr.h>
-#include "libConsensus/ConsensusCommon.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 
 struct CoSignatures {
@@ -80,7 +79,6 @@ class BlockBase : public SerializableDataBlock {
   const std::vector<bool>& GetB2() const;
 
   /// Sets the co-sig members.
-  void SetCoSignatures(const ConsensusCommon& src);
   void SetCoSignatures(CoSignatures& cosigs);
   void SetCoSignatures(CoSignatures&& cosigs);
 

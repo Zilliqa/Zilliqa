@@ -76,7 +76,7 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "View change consensus DONE");
-  m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
+  m_pendingVCBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
   unsigned int index = 0;
   unsigned int count = 0;

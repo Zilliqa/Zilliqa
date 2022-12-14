@@ -61,12 +61,14 @@ const Signature& BlockBase::GetCS2() const { return m_cosigs.m_CS2; }
 
 const vector<bool>& BlockBase::GetB2() const { return m_cosigs.m_B2; }
 
+#if 0
 void BlockBase::SetCoSignatures(const ConsensusCommon& src) {
   m_cosigs.m_CS1 = src.GetCS1();
   m_cosigs.m_B1 = src.GetB1();
   m_cosigs.m_CS2 = src.GetCS2();
   m_cosigs.m_B2 = src.GetB2();
 }
+#endif
 
 void BlockBase::SetCoSignatures(CoSignatures& cosigs) { m_cosigs = cosigs; }
 

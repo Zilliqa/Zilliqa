@@ -1279,3 +1279,9 @@ bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
 
   return false;
 }
+
+CoSignatures DirectoryService::ConsensusObjectToCoSig(
+    const ConsensusCommon& consensusObject) {
+  return CoSignatures{consensusObject.GetCS1(), consensusObject.GetB1(),
+                      consensusObject.GetCS2(), consensusObject.GetB2()};
+}

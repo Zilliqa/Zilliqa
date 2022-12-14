@@ -709,7 +709,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     }
 
     // Update the DS Block with the co-signatures from the consensus
-    m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
+    m_pendingDSBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
     if (m_pendingDSBlock->GetHeader().GetBlockNum() >
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
