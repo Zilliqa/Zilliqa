@@ -56,7 +56,8 @@ describe("Transfer ethers", function () {
 
   it("should be possible to batch transfer using a smart contract", async function () {
     const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_234_567;
+    //const ACCOUNT_VALUE = 1_234_567;
+    const ACCOUNT_VALUE = 1_000_000;
 
     const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
       ethers.Wallet.createRandom().connect(ethers.provider)
