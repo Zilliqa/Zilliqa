@@ -37,15 +37,16 @@ class VCBlock : public BlockBase {
 
   /// Implements the Serialize function inherited from Serializable.
   /// Return size of serialized structure
-  bool Serialize(zbytes& dst, unsigned int offset) const;
+  virtual bool Serialize(zbytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
   /// Return 0 if successed, -1 if failed
-  bool Deserialize(const zbytes& src, unsigned int offset);
+  virtual bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
   /// Return 0 if successed, -1 if failed
-  bool Deserialize(const std::string& src, unsigned int offset);
+  virtual bool Deserialize(const std::string& src,
+                           unsigned int offset) override;
 
   /// Returns the reference to the VCBlockHeader part of the VC block.
   const VCBlockHeader& GetHeader() const;
