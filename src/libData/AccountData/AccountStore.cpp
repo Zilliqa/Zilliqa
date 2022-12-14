@@ -33,9 +33,9 @@
 #pragma GCC diagnostic pop
 #include "EvmClient.h"
 #include "libScilla/ScillaIPCServer.h"
+#include "libScilla/ScillaUtils.h"
 #include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;

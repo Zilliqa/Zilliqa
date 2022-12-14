@@ -25,10 +25,10 @@
 
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
 
@@ -37,11 +37,9 @@
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
-
 template <class MAP>
-void AccountStoreSC<MAP>::instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,
-                   void * state) {
-
+void AccountStoreSC<MAP>::instFetchInfo(
+    opentelemetry::metrics::ObserverResult observer_result, void* state) {
   AccountStoreSC<MAP>* that = reinterpret_cast<AccountStoreSC<MAP>*>(state);
 
   // This looks like a bug in openTelemetry, need to investigate, clash between
@@ -60,7 +58,6 @@ void AccountStoreSC<MAP>::instFetchInfo(opentelemetry::metrics::ObserverResult o
         ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
   }
 }
-
 
 template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {

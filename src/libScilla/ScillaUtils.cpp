@@ -17,10 +17,10 @@
 
 #include "ScillaUtils.h"
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
-#include "Logger.h"
 #include "common/Constants.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
