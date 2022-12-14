@@ -18,15 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
 
-#include <array>
-
-#include <Schnorr.h>
 #include "BlockBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
-#include "libNetwork/Peer.h"
 
 struct MicroBlockInfo {
   BlockHash m_microBlockHash;

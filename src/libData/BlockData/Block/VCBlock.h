@@ -18,11 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
 
-#include <Schnorr.h>
 #include "BlockBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/VCBlockHeader.h"
 
 /// Stores the VC header and signatures.
