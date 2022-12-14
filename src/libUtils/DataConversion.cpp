@@ -112,20 +112,6 @@ bool DataConversion::StringToHexStr(const string& hex_str, string& str) {
   return true;
 }
 
-bool DataConversion::Uint8VecToHexStr(const zbytes& hex_vec,
-                                      unsigned int offset, unsigned int len,
-                                      string& str) {
-  try {
-    str = "";
-    boost::algorithm::hex(hex_vec.begin() + offset,
-                          hex_vec.begin() + offset + len, back_inserter(str));
-  } catch (exception& e) {
-    LOG_GENERAL(WARNING, "Failed Uint8VecToHexStr conversion");
-    return false;
-  }
-  return true;
-}
-
 bool DataConversion::SerializableToHexStr(const Serializable& input,
                                           string& str) {
   zbytes tmp;
