@@ -92,9 +92,7 @@ class AccountStore
   std::condition_variable_any m_writeCond;
   static constexpr int NUM_OF_WRITERS_IN_QUEUE = 1;
 
-  /// Scilla IPC server related
-  std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
-  std::unique_ptr<rpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
+    std::unique_ptr<rpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
   AccountStore();
   ~AccountStore();
@@ -254,6 +252,9 @@ class AccountStore
   std::condition_variable_any& GetPrimaryWriteAccessCond() {
     return m_writeCond;
   }
+
+/// Scilla IPC server related
+std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_

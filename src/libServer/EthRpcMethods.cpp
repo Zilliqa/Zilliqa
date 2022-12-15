@@ -672,9 +672,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   uint256_t value = 0;
+  uint128_t valueSmall = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
     value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    valueSmall = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -727,7 +729,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   TxnExtras txnExtras{
       dsBlock.GetHeader().GetGasPrice(),
       txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
-      dsBlock.GetHeader().GetDifficulty()};
+      static_cast<uint8_t>(dsBlock.GetHeader().GetDifficulty() + 40)};
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
@@ -742,14 +744,23 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
                            "Failed to get EVM call extras");
   }
-  args.set_estimate(true);
+  args.set_estimate(false);
   *args.mutable_context() = "eth_estimateGas";
+  //*args.mutable_context() = "0xa6ff2b2384387885f5ad30e21acc2bd7b9cb0911670eb390ff78b184691aff05";
 
   evm::EvmResult result;
 
   LOG_GENERAL(WARNING, "Estimating evm gas");
 
-  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+  //AccountStore::GetInstance().ViewAccounts(args, result);
+  //std::cerr << "doing second time..." << std::endl;
+
+  AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\b_balance", valueSmall);
+  //AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\006_nonce", "0");
+  auto res = AccountStore::GetInstance().ViewAccounts(args, result);
+  AccountStore::GetInstance().m_scillaIPCServer->clearOverrides();
+
+  if (res &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
@@ -778,7 +789,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     //throw JsonRpcException(3, "execution reverted", "0x" + return_value);
 
     std::cerr << "reverted, giving false result..." << std::endl;
-
     return (boost::format("0x%x") % (6003202)).str();
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,

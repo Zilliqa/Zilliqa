@@ -285,6 +285,7 @@ impl Backend for ScillaBackend {
             .expect("query_state_value _nonce")
             .and_then(|x| x.as_uint256())
             .unwrap_or_default();
+        println!("nonce is: {:?}", nonce);
         Basic {
             balance: self.scale_zil_to_eth(balance),
             nonce,
