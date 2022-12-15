@@ -20,10 +20,16 @@
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
+#include "opentelemetry/exporters/prometheus/exporter.h"
+#include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
+#include "opentelemetry/sdk/metrics/meter_provider.h"
 
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
+
+namespace metrics_sdk = opentelemetry::sdk::metrics;
+namespace metrics_exporter = opentelemetry::exporter::metrics;
 
 // The OpenTelemetry Metrics Interface.
 
@@ -52,18 +58,26 @@ void Metrics::Init() {
   std::unique_ptr<metrics_sdk::MetricReader> reader{
       new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
                                                      options)};
-  m_provider = std::shared_ptr<metrics_api::MeterProvider>(
+  m_provider = std::shared_ptr<opentelemetry::metrics::MeterProvider>(
       new metrics_sdk::MeterProvider());
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(m_provider);
   p->AddMetricReader(std::move(reader));
-  metrics_api::Provider::SetMeterProvider(m_provider);
+  opentelemetry::metrics::Provider::SetMeterProvider(m_provider);
   zil::metrics::Filter::GetInstance().init();
+}
+
+void Metrics::Shutdown() {
+  if (m_provider) {
+    auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(m_provider);
+    p->Shutdown();
+  }
 }
 
 namespace {
 
-inline auto GetMeter(std::shared_ptr<metrics_api::MeterProvider>& provider,
-                     const std::string& family) {
+inline auto GetMeter(
+    std::shared_ptr<opentelemetry::metrics::MeterProvider>& provider,
+    const std::string& family) {
   return provider->GetMeter(family, "1.2.0");
 }
 

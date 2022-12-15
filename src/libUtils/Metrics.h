@@ -22,21 +22,21 @@
 
 #include "common/MetricFilters.h"
 #include "common/Singleton.h"
-#include "opentelemetry/exporters/prometheus/exporter.h"
-#include "opentelemetry/metrics/provider.h"
-#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
-#include "opentelemetry/sdk/metrics/meter_provider.h"
 
-namespace metrics_sdk = opentelemetry::sdk::metrics;
-namespace common = opentelemetry::common;
-namespace metrics_exporter = opentelemetry::exporter::metrics;
-namespace metrics_api = opentelemetry::metrics;
-namespace metrics_api = opentelemetry::metrics;
+#include "opentelemetry/metrics/async_instruments.h"
+#include "opentelemetry/metrics/sync_instruments.h"
 
 class Metrics;
 
+namespace opentelemetry::metrics {
+class MeterProvider;
+}
+
 namespace zil {
 namespace metrics {
+
+namespace common = opentelemetry::common;
+namespace metrics_api = opentelemetry::metrics;
 
 using uint64Counter_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
 using doubleCounter_t = std::unique_ptr<metrics_api::Counter<double>>;
@@ -142,7 +142,6 @@ class Observable {
 class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
-  virtual ~Metrics(){};
 
   zil::metrics::uint64Counter_t CreateInt64Metric(const std::string& family,
                                                   const std::string& name,
@@ -190,11 +189,13 @@ class Metrics : public Singleton<Metrics> {
       const std::string& family, const std::string& name,
       const std::string& desc, std::string_view unit = "");
 
+  /// Called on main() exit explicitly
+  void Shutdown();
+
  private:
   void Init();
 
-  std::shared_ptr<metrics_api::MeterProvider> m_provider;
-  bool m_status{false};
+  std::shared_ptr<opentelemetry::metrics::MeterProvider> m_provider;
 };
 
 #define INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE) \

@@ -260,6 +260,9 @@ int main(int argc, const char* argv[]) {
     ctx->run();
     LOG_GENERAL(INFO, "Event loop stopped");
 
+    Metrics::GetInstance().Shutdown();
+    LOG_GENERAL(INFO, "Metrics shut down");
+
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
