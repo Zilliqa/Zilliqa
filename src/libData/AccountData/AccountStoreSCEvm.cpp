@@ -427,7 +427,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       evm::EvmResult result;
       evmContext.SetContractAddress(contractAddress);
-      evmContext.SetCode(contractAccount->GetCode());
       // Give EVM only gas provided for code execution excluding constant fees
       evmContext.SetGasLimit(evmContext.GetTransaction().GetGasLimitEth() -
                              baseFee);
