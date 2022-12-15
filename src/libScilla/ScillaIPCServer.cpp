@@ -131,6 +131,19 @@ void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
   response.append(Json::Value(value));
 }
 
+void ScillaIPCServer::setOverrides(std::string key, uint128_t const&value){
+
+  std::transform(key.begin(), key.end(), key.begin(),
+                 [](unsigned char c){ return std::tolower(c); });
+
+  std::cerr << "Setting override: " << key << " val: " << value << std::endl;
+  overrides[key] = value;
+}
+
+void ScillaIPCServer::clearOverrides(){
+  overrides.clear();
+}
+
 void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
                                                Json::Value &response) {
   if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::SCILLA_IPC)) {
