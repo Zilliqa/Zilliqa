@@ -752,11 +752,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   LOG_GENERAL(WARNING, "Estimating evm gas");
 
-  //AccountStore::GetInstance().ViewAccounts(args, result);
-  //std::cerr << "doing second time..." << std::endl;
-
   AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\b_balance", valueSmall);
-  //AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\006_nonce", "0");
   auto res = AccountStore::GetInstance().ViewAccounts(args, result);
   AccountStore::GetInstance().m_scillaIPCServer->clearOverrides();
 
@@ -786,10 +782,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::string return_value;
     DataConversion::StringToHexStr(result.return_value(), return_value);
     boost::algorithm::to_lower(return_value);
-    //throw JsonRpcException(3, "execution reverted", "0x" + return_value);
+    throw JsonRpcException(3, "execution reverted", "0x" + return_value);
 
-    std::cerr << "reverted, giving false result..." << std::endl;
-    return (boost::format("0x%x") % (6003202)).str();
+    //std::cerr << "reverted, giving false result..." << std::endl;
+    //return (boost::format("0x%x") % (6003202)).str();
   } else {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            EvmUtils::ExitReasonString(result.exit_reason()));
