@@ -22,13 +22,17 @@
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
+#include "libData/AccountData/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
+#include "libMediator/Mediator.h"
+#include "libNode/Node.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
+#include "libValidator/Validator.h"
 
 #define BOOST_TEST_MODULE coinbase
 #define BOOST_TEST_DYN_LINK

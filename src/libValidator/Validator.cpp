@@ -22,6 +22,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNode/Node.h"
 #include "libUtils/BitVector.h"
 
 using namespace std;

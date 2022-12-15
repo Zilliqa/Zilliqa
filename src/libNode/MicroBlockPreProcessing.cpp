@@ -37,6 +37,7 @@
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -285,8 +286,8 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
   return true;
 }
 
-bool Node::OnCommitFailure([
-    [gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
+bool Node::OnCommitFailure(
+    [[gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "
@@ -931,7 +932,7 @@ void Node::SaveTxnsToS3(
                 "upload txns file : " << txns_filename << " successfully");
   }
 
-  !SHARDLDR_SAVE_TXN_LOCALLY && std::remove(txns_filename.c_str());
+  !SHARDLDR_SAVE_TXN_LOCALLY&& std::remove(txns_filename.c_str());
 }
 
 std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {

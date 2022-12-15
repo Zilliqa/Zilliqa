@@ -770,5 +770,5 @@ const std::string METRIC_ZILLIQA_SCHEMA{
                        "https://opentelemetry.io/schemas/1.2.0")};
 const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
     "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
-
-const uint64_t METRIC_ZILLIQA_MASK{ReadConstantUInt64("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", 0)};
+const std::string METRIC_ZILLIQA_MASK{
+    ReadConstantString("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", "NONE")};

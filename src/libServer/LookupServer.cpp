@@ -30,6 +30,7 @@
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/Peer.h"
+#include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -48,6 +49,13 @@ CircularArray<std::string> LookupServer::m_RecentTransactions;
 std::mutex LookupServer::m_mutexRecentTxns;
 
 namespace {
+
+zil::metrics::uint64Counter_t& GetCallsCounter() {
+  static auto count = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_lookup", "invocation_count", "Calls to Lookup Server", "Calls");
+  return count;
+}
+
 const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
@@ -325,9 +333,8 @@ LookupServer::LookupServer(Mediator& mediator,
 }
 
 string LookupServer::GetNetworkId() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetNetworkId"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -335,9 +342,8 @@ string LookupServer::GetNetworkId() {
 }
 
 bool LookupServer::StartCollectorThread() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "StartCollectorThread"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
@@ -546,9 +552,8 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 Json::Value LookupServer::CreateTransaction(
     const Json::Value& _json, const unsigned int num_shards,
     const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "CreateTransaction"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -674,9 +679,8 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetTransaction"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -703,9 +707,8 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
 }
 
 Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetSoftConfirmedTransaction"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -740,9 +743,8 @@ Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
 }
 
 Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetDsBlock"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -780,9 +782,8 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
 
 Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
                                           bool verbose) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetTxBlockByNum"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -809,9 +810,8 @@ Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
 }
 
 string LookupServer::GetMinimumGasPrice() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetMinimumGasPrice"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -823,9 +823,8 @@ string LookupServer::GetMinimumGasPrice() {
 }
 
 Json::Value LookupServer::GetLatestDsBlock() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetLatestDsBlock"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -841,9 +840,8 @@ Json::Value LookupServer::GetLatestDsBlock() {
 }
 
 Json::Value LookupServer::GetLatestTxBlock() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetLatestTxBlock"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -860,9 +858,8 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetBalanceAndNonce"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -902,9 +899,8 @@ Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetSmartContractState"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (Mediator::m_disableGetSmartContractState) {
@@ -953,9 +949,8 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
 }
 
 Json::Value LookupServer::GetSmartContractInit(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetSmartContractInit"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1001,9 +996,8 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
 }
 
 Json::Value LookupServer::GetSmartContractCode(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetSmartContractCode"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1043,9 +1037,8 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
 }
 
 Json::Value LookupServer::GetSmartContracts(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetSmartContracts"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1112,9 +1105,8 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
 }
 
 string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetContractAddressFromTransactionID"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   std::string transactionID{tranID};
   DataConversion::NormalizeHexString(transactionID);
 
@@ -1152,9 +1144,8 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
 }
 
 unsigned int LookupServer::GetNumPeers() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetNumPeers"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1167,9 +1158,8 @@ unsigned int LookupServer::GetNumPeers() {
 }
 
 string LookupServer::GetNumTxBlocks() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetNumTxBlocks"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1180,9 +1170,8 @@ string LookupServer::GetNumTxBlocks() {
 }
 
 string LookupServer::GetNumDSBlocks() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetNumDSBlocks"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1193,9 +1182,8 @@ string LookupServer::GetNumDSBlocks() {
 }
 
 string LookupServer::GetNumTransactions() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetNumTransactions"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1221,9 +1209,8 @@ string LookupServer::GetNumTransactions() {
 }
 
 size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetNumTransactions"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1247,10 +1234,10 @@ size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
 
   return res;
 }
+
 double LookupServer::GetTransactionRate() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetTransactionRate"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1309,9 +1296,8 @@ double LookupServer::GetTransactionRate() {
 }
 
 double LookupServer::GetDSBlockRate() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetDSBlockRate"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1352,9 +1338,8 @@ double LookupServer::GetDSBlockRate() {
 }
 
 double LookupServer::GetTxBlockRate() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetTxBlockRate"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1391,9 +1376,8 @@ double LookupServer::GetTxBlockRate() {
 }
 
 string LookupServer::GetTotalCoinSupply() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetTotalCoinSupply"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
   boost::multiprecision::cpp_dec_float_50 ans(totalSupply.str());
 
@@ -1423,9 +1407,8 @@ string LookupServer::GetTotalCoinSupply() {
 }
 
 Json::Value LookupServer::DSBlockListing(unsigned int page) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "DSBlockListing"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1523,9 +1506,8 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
 }
 
 Json::Value LookupServer::TxBlockListing(unsigned int page) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "TxBlockListing"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1626,9 +1608,8 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
 // TODO - Publish these as Gauges
 
 Json::Value LookupServer::GetBlockchainInfo() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
-    m_callCount->Add(1, {{"Method", "GetBlockchainInfo"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   Json::Value _json;
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1684,7 +1665,9 @@ void LookupServer::AddToRecentTransactions(const TxnHash& txhash) {
 
 Json::Value LookupServer::GetShardingStructure() {
   LOG_MARKER();
-  m_callCount->Add(1, {{"Method", "GetShardingStructure"}});
+
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1710,8 +1693,10 @@ Json::Value LookupServer::GetShardingStructure() {
 }
 
 string LookupServer::GetNumTxnsTxEpoch() {
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
-  m_callCount->Add(1, {{"Method", "GetNumTxnsTxEpoch"}});
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1727,8 +1712,9 @@ string LookupServer::GetNumTxnsTxEpoch() {
 }
 
 string LookupServer::GetNumTxnsDSEpoch() {
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
-  m_callCount->Add(1, {{"Method", "GetNumTxnsDSEpoch"}});
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1780,7 +1766,8 @@ string LookupServer::GetNumTxnsDSEpoch() {
 
 Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum,
                                                     const string& pageNumber) {
-  m_callCount->Add(1, {{"Method", "GetTransactionsForTxBlock"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1801,7 +1788,8 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum,
 
 Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum,
                                                  const string& pageNumber) {
-  m_callCount->Add(1, {{"Method", "GetTxnBodiesForTxBlock"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1995,7 +1983,8 @@ vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
 }
 
 Json::Value LookupServer::GetCurrentDSComm() {
-  m_callCount->Add(1, {{"Method", "GetCurrentDSComm"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -2024,7 +2013,8 @@ Json::Value LookupServer::GetCurrentDSComm() {
 }
 
 Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
-  m_callCount->Add(1, {{"Method", "GetShardMembers"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -2204,7 +2194,8 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
 }
 
 Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
-  m_callCount->Add(1, {{"Method", "GetTransactionStatus"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   try {
     if (!REMOTESTORAGE_DB_ENABLE) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
@@ -2235,7 +2226,8 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
 Json::Value LookupServer::GetStateProof(const string& address,
                                         const string& key,
                                         const string& txBlockNumOrTag) {
-  m_callCount->Add(1, {{"Method", "GetStateProof"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -2360,7 +2352,8 @@ Json::Value LookupServer::GetStateProof(const string& address,
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-  m_callCount->Add(1, {{"Method", "CheckContractTxnShards"}});
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), LOOKUP_SERVER);
+
   unsigned int mapIndex = shard;
   std::string resultStr;
 

@@ -26,17 +26,17 @@
 
 class ScillaBCInfo {
  public:
-  ScillaBCInfo(const uint64_t curBlockNum, const uint64_t curDSBlockNum,
-               const Address& originAddr, const Address& curContrAddr,
-               const dev::h256& rootHash, const uint32_t scillaVersion);
+  ScillaBCInfo();
 
-  ScillaBCInfo() = default;
+  void SetUp(const uint64_t curBlockNum, const uint64_t curDSBlockNum,
+             const Address& originAddr, const Address& curContrAddr,
+             const dev::h256& rootHash, const uint32_t scillaVersion);
 
-  ~ScillaBCInfo();
-  ScillaBCInfo(const ScillaBCInfo&) = default;
-  ScillaBCInfo(ScillaBCInfo&&) = default;
-  ScillaBCInfo& operator=(const ScillaBCInfo&) = default;
-  ScillaBCInfo& operator=(ScillaBCInfo&&) = default;
+  //  ~ScillaBCInfo();
+  //  ScillaBCInfo(const ScillaBCInfo&) = default;
+  //  ScillaBCInfo(ScillaBCInfo&&) = default;
+  //  ScillaBCInfo& operator=(const ScillaBCInfo&) = default;
+  //  ScillaBCInfo& operator=(ScillaBCInfo&&) = default;
 
   const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
   const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
@@ -53,10 +53,10 @@ class ScillaBCInfo {
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
 
-  zil::metrics::int64Observable_t m_bcInfoCount{
+  zil::metrics::Observable m_bcInfoCount{
       Metrics::GetInstance().CreateInt64Gauge(
-          "zilliqa_scill_bcinfo", "invocations_count",
-          "Metrics for ScillaBCInfo", "Blocks")};
+          zil::metrics::FilterClass::SCILLA_IPC, "zilliqa_scilla_bcinfo",
+          "invocations_count", "Metrics for ScillaBCInfo", "Blocks")};
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
@@ -90,9 +90,13 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
   virtual bool fetchBlockchainInfo(const std::string& query_name,
                                    const std::string& query_args,
                                    std::string& value);
-  void setBCInfoProvider(const ScillaBCInfo& bcInfo);
+  void setBCInfoProvider(const uint64_t curBlockNum,
+                         const uint64_t curDSBlockNum,
+                         const Address& originAddr, const Address& curContrAddr,
+                         const dev::h256& rootHash,
+                         const uint32_t scillaVersion);
 
-  zil::metrics::int64_t m_scillaIPCCount =
+  zil::metrics::uint64Counter_t m_scillaIPCCount =
       Metrics::GetInstance().CreateInt64Metric(
           "zilliqa_scillaipc", "scilla_ipc_count",
           "Metrics for ScillaIPCServer", "Calls");
