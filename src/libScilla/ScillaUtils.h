@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_SCILLAUTILS_H_
-#define ZILLIQA_SRC_LIBUTILS_SCILLAUTILS_H_
+#ifndef ZILLIQA_SRC_LIBSCILLA_SCILLAUTILS_H_
+#define ZILLIQA_SRC_LIBSCILLA_SCILLAUTILS_H_
 
 #include <json/json.h>
 
@@ -47,4 +47,4 @@ class ScillaUtils {
   static Json::Value GetDisambiguateJson();
 };
 
-#endif  // ZILLIQA_SRC_LIBUTILS_SCILLAUTILS_H_
+#endif  // ZILLIQA_SRC_LIBSCILLA_SCILLAUTILS_H_

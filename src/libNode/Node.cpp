@@ -47,7 +47,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
 
@@ -60,7 +59,24 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
-void Node::PopulateAccounts(bool temp) {
+bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
+                                unsigned int minLengthNeeded,
+                                unsigned int factor = 0, const string& errMsg = "") {
+  if (minLengthNeeded > messageSize - offset) {
+    LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
+    return true;
+  }
+
+  if (factor != 0 && (messageSize - offset - minLengthNeeded) % factor != 0) {
+    LOG_GENERAL(WARNING,
+                "[Message Size not a proper multiple of factor] " << errMsg);
+    return true;
+  }
+
+  return false;
+}
+
+void Node::PopulateAccounts() {
   if (!ENABLE_ACCOUNTS_POPULATING) {
     LOG_GENERAL(INFO, "Accounts Pregen is not enabled");
     return;
@@ -88,13 +104,7 @@ void Node::PopulateAccounts(bool temp) {
       boost::algorithm::split(key_pair, line, boost::algorithm::is_any_of(" "));
       Address t_addr = Account::GetAddressFromPublicKey(
           PubKey::GetPubKeyFromString(key_pair[0]));
-      if (temp) {
-        AccountStore::GetInstance().AddAccountTemp(t_addr,
-                                                   {TOTAL_GENESIS_TOKEN, 0});
-      } else {
-        AccountStore::GetInstance().AddAccount(t_addr,
-                                               {TOTAL_GENESIS_TOKEN, 0});
-      }
+      AccountStore::GetInstance().AddAccount(t_addr, {TOTAL_GENESIS_TOKEN, 0});
       m_populatedAddresses.emplace_back(t_addr);
     }
 
@@ -1327,7 +1337,7 @@ uint32_t Node::CalculateShardLeaderFromDequeOfNode(
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HashType::HASH_VARIANT_256> sha2;
+      SHA256Calculator sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1355,7 +1365,7 @@ uint32_t Node::CalculateShardLeaderFromShard(uint16_t lastBlockHash,
       LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                 "consensusLeaderIndex " << consensusLeaderIndex
                                         << " is not a shard guard.");
-      SHA2<HashType::HASH_VARIANT_256> sha2;
+      SHA256Calculator sha2;
       sha2.Update(DataConversion::IntegerToBytes<uint16_t, sizeof(uint16_t)>(
           lastBlockHash));
       lastBlockHash = DataConversion::charArrTo16Bits(sha2.Finalize());
@@ -1650,7 +1660,7 @@ bool Node::ProcessTxnPacketFromLookup(
         ((m_mediator.m_currentEpochNum == 1) &&
          (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() ==
           0))) {
-      SHA2<HashType::HASH_VARIANT_256> sha256;
+      SHA256Calculator sha256;
       sha256.Update(message);  // message hash
       zbytes msg_hash = sha256.Finalize();
       lock_guard<mutex> g2(m_mutexTxnPacketBuffer);
@@ -1705,7 +1715,7 @@ bool Node::ProcessTxnPacketFromLookup(
                 << string(lookupPubKey).substr(0, 6) << "][" << message.size()
                 << "] RECVFROMLOOKUP");
     }
-    SHA2<HashType::HASH_VARIANT_256> sha256;
+    SHA256Calculator sha256;
     sha256.Update(message);  // message hash
     zbytes msg_hash = sha256.Finalize();
     m_txnPacketBuffer.emplace(msg_hash, message);
@@ -1739,7 +1749,7 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes& message,
     return true;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
+  SHA256Calculator sha256;
   sha256.Update(message);  // message hash
   zbytes msg_hash = sha256.Finalize();
 
@@ -2959,7 +2969,7 @@ void Node::SendBlockToOtherShardNodes(const zbytes& message,
 
   uint32_t nodes_lo, nodes_hi;
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
+  SHA256Calculator sha256;
   sha256.Update(message);  // raw_message hash
   zbytes this_msg_hash = sha256.Finalize();
 
@@ -3273,3 +3283,4 @@ void Node::CheckPeers(const vector<Peer>& peers) {
   }
   P2PComm::GetInstance().SendMessage(peers, message);
 }
+

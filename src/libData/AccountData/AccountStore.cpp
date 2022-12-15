@@ -33,9 +33,9 @@
 #pragma GCC diagnostic pop
 #include "EvmClient.h"
 #include "libScilla/ScillaIPCServer.h"
+#include "libScilla/ScillaUtils.h"
 #include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
 using namespace std;
@@ -388,33 +388,6 @@ bool AccountStore::UpdateStateTrieFromTempStateDB() {
   return true;
 }
 
-void AccountStore::DiscardUnsavedUpdates() {
-  LOG_MARKER();
-
-  unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
-  unique_lock<mutex> g2(m_mutexDB, defer_lock);
-  lock(g, g2);
-
-  try {
-    {
-      lock_guard<mutex> g(m_mutexTrie);
-      m_state.db()->rollback();
-      if (m_prevRoot != dev::h256()) {
-        try {
-          m_state.setRoot(m_prevRoot);
-        } catch (...) {
-          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
-          return;
-        }
-      }
-    }
-    m_addressToAccount->clear();
-  } catch (const boost::exception& e) {
-    LOG_GENERAL(WARNING, "Error with AccountStore::DiscardUnsavedUpdates. "
-                             << boost::diagnostic_information(e));
-  }
-}
-
 bool AccountStore::RetrieveFromDisk() {
   InitSoft();
 
@@ -587,7 +560,7 @@ StateHash AccountStore::GetStateDeltaHash() {
     return StateHash();
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(m_stateDeltaSerialized);
   return StateHash(sha2.Finalize());
 }
@@ -614,7 +587,7 @@ bool AccountStore::RevertCommitTemp() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
   for (auto const& entry : m_addressToAccountRevChanged) {
-    (*m_addressToAccount)[entry.first] = entry.second;
+    m_addressToAccount->insert_or_assign(entry.first, entry.second);
     UpdateStateTrie(entry.first, entry.second);
   }
   for (auto const& entry : m_addressToAccountRevCreated) {

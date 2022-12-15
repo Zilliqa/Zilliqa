@@ -16,7 +16,6 @@
  */
 #include <Schnorr.h>
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libNode/RootComputation.h"
 #include "libUtils/DataConversion.h"

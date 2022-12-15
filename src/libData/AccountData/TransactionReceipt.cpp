@@ -233,7 +233,7 @@ TxnHash TransactionWithReceipt::ComputeTransactionReceiptsHash(
     return TxnHash();
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   for (const auto& tr : txrs) {
     sha2.Update(DataConversion::StringToCharArray(
         tr.GetTransactionReceipt().GetString()));

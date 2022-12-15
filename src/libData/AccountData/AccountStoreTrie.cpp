@@ -248,38 +248,6 @@ void AccountStoreTrie<MAP>::PrintAccountState() {
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
 
-template <class MAP>
-void AccountStoreTrie<MAP>::PrintTrie() {
-  if (LOOKUP_NODE_MODE) {
-    std::lock_guard<std::mutex> g(m_mutexTrie);
-    if (m_prevRoot != dev::h256()) {
-      try {
-        LOG_GENERAL(INFO, "prevRoot: " << m_prevRoot.hex());
-        m_state.setRoot(m_prevRoot);
-      } catch (...) {
-        LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
-        return;
-      }
-    }
-  }
-
-  LOG_GENERAL(INFO, "setRoot finished");
-
-  for (const auto& i : m_state) {
-    Address address(i.first);
-
-    LOG_GENERAL(INFO, "Address: " << address.hex());
-
-    AccountBase ab;
-    if (!ab.Deserialize(zbytes(i.second.begin(), i.second.end()), 0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      return;
-    }
-
-    LOG_GENERAL(INFO, "Address: " << address.hex() << " AccountBase: " << ab);
-  }
-}
-
 // Explicit instantiations.
 template class AccountStoreTrie<std::map<Address, Account>>;
 template class AccountStoreTrie<std::unordered_map<Address, Account>>;

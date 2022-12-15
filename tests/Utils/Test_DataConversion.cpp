@@ -93,31 +93,29 @@ BOOST_AUTO_TEST_CASE(test_hexstr) {
     };
 
     for (auto& hex_str : pass_vector) {
-      uint64_t value = 0xFFFFFFFF;
-      bool res = DataConversion::HexStringToUint64(hex_str, &value);
+      auto value = DataConversion::HexStringToUint64(hex_str);
 
-      BOOST_CHECK_MESSAGE(res == true, "Test Failed: " << hex_str);
+      BOOST_CHECK_MESSAGE(!!value, "Test Failed: " << hex_str);
       BOOST_CHECK_MESSAGE(value == expected_num,
                           "Test Failed: " << hex_str << "Expected: "
-                                          << expected_num << "Got: " << value);
+                                          << expected_num << "Got: " << *value);
 
       std::string upper_str = boost::to_upper_copy(hex_str);
-      res = DataConversion::HexStringToUint64(hex_str, &value);
+      value = DataConversion::HexStringToUint64(hex_str);
 
-      BOOST_CHECK_MESSAGE(res == true, "Test Failed: " << upper_str);
+      BOOST_CHECK_MESSAGE(!!value, "Test Failed: " << upper_str);
       BOOST_CHECK_MESSAGE(value == expected_num,
                           "Test Failed: " << upper_str << "Expected: "
-                                          << expected_num << "Got: " << value);
+                                          << expected_num << "Got: " << *value);
     }
 
     for (auto& hex_str : fail_vector) {
-      uint64_t value = 0x0000;
-      DataConversion::HexStringToUint64(hex_str, &value);
+      auto value = DataConversion::HexStringToUint64(hex_str);
 
       BOOST_CHECK_MESSAGE(value != expected_num, "Test Failed: " << hex_str);
 
       std::string upper_str = boost::to_upper_copy(hex_str);
-      DataConversion::HexStringToUint64(hex_str, &value);
+      value = DataConversion::HexStringToUint64(hex_str);
 
       BOOST_CHECK_MESSAGE(value != expected_num, "Test Failed: " << upper_str);
     }
