@@ -5,8 +5,6 @@ const parallelizer = require("../helper/Parallelizer");
 const FUND = ethers.utils.parseUnits("2", "ether");
 
 describe("ForwardZil contract functionality", function () {
-  let contract;
-
   before(async function () {
     this.contract = await parallelizer.deployContract("ForwardZil");
     this.signer = this.contract.signer;
@@ -44,9 +42,8 @@ describe("Transfer ethers", function () {
   it("should be possible to transfer ethers to a user account", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    const signer = await ethers_helper.signer();
     expect(
-      await signer.sendTransaction({
+      await parallelizer.sendTransaction({
         to: payee.address,
         value: FUND
       })
