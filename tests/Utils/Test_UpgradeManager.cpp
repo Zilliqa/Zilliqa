@@ -17,6 +17,7 @@
 
 #include <fstream>
 
+#include <Schnorr.h>
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
 

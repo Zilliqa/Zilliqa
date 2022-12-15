@@ -28,7 +28,6 @@
 
 #include "depends/common/Common.h"
 #include "depends/common/FixedHash.h"
-//#include "libUtils/Logger.h"
 
 leveldb::Slice toSlice(boost::multiprecision::uint256_t num);
 

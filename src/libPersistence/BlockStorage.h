@@ -25,7 +25,6 @@
 
 #include <Schnorr.h>
 #include "common/Singleton.h"
-#include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 #include "libData/MiningData/MinerInfo.h"
 
@@ -34,6 +33,7 @@ typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
 
 class TransactionWithReceipt;
 class Account;
+class LevelDB;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;

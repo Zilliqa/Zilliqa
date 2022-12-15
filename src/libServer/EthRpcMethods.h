@@ -20,6 +20,7 @@
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/Eth.h"
+#include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
 #include "libUtils/GasConv.h"
 

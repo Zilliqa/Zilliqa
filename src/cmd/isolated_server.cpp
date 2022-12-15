@@ -20,11 +20,15 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
+#include "libData/AccountData/AccountStore.h"
 #include "libEth/Filters.h"
+#include "libNode/Node.h"
 #include "libServer/APIServer.h"
 #include "libServer/IsolatedServer.h"
 #include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
+#include "libUtils/Metrics.h"
+#include "libValidator/Validator.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
