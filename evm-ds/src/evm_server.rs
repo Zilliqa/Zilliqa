@@ -1,13 +1,14 @@
 use futures::future::FutureExt;
 use std::collections::HashMap;
+use std::sync::atomic::AtomicU64;
 use std::sync::{Arc, Mutex};
 
 use jsonrpc_core::{BoxFuture, Error, Result};
 use primitive_types::*;
 
-type ContinuationId = usize;
+type ContinuationId = u64;
 
-use crate::continuation::Continuation;
+use crate::continuations::Continuations;
 use crate::evm_server_run::run_evm_impl;
 use crate::protos::Evm as EvmProto;
 use crate::scillabackend::{ScillaBackend, ScillaBackendConfig};
@@ -21,7 +22,7 @@ pub(crate) struct EvmServer {
     // By how much to scale gas price.
     gas_scaling_factor: u64,
     // A cache of known continuations.
-    continuations: Arc<Mutex<HashMap<ContinuationId, Continuation>>>,
+    continuations: Arc<Mutex<Continuations>>,
 }
 
 impl EvmServer {
@@ -34,7 +35,7 @@ impl EvmServer {
             tracing,
             backend_config,
             gas_scaling_factor,
-            continuations: Arc::new(Mutex::new(HashMap::new())),
+            continuations: Arc::new(Mutex::new(Continuations::new())),
         }
     }
 
@@ -75,7 +76,7 @@ impl EvmServer {
                     ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
-                let _continuation = args.take_continuation();
+                let cont_id = args.get_continuation() == ;
 
                 run_evm_impl(
                     address,
@@ -88,6 +89,8 @@ impl EvmServer {
                     gas_scaling_factor,
                     estimate,
                     args.get_context().to_string(),
+                    cont_id,
+                    self.continuations.clone(),
                 )
                 .boxed()
             }
@@ -95,31 +98,4 @@ impl EvmServer {
             Err(e) => futures::future::err(e).boxed(),
         }
     }
-
-    fn take_continuation_by_id(&self, continuation_id: ContinuationId) -> Option<Continuation> {
-        if continuation_id > 0 {
-            let mut continuations = self.continuations.lock().unwrap();
-            continuations.remove(&continuation_id)
-        } else {
-            None
-        }
-    }
-    /*/
-    fn export_continuation(
-        &self,
-        _continuation_id: ContinuationId,
-    ) -> Option<ContinuationSerialized> {
-        // TODO: implement serializing and importing
-        None
-    }
-
-    fn import_continuation(
-        &mut self,
-        _continuation_blob: ContinuationSerialized,
-    ) -> Result<ContinuationId> {
-        Err(Error::invalid_params(
-            "continuation deserializaion not implemented",
-        ))
-    }
-    */
 }

@@ -5,8 +5,8 @@ use evm::executor::stack::{
     MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor, StackState,
 };
 use evm::{
-    Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Runtime, Stack,
-    Transfer,
+    Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
+    Runtime, Stack, Transfer,
 };
 use primitive_types::{H160, H256, U256};
 
@@ -21,11 +21,11 @@ pub struct CpsExecutor<'a> {
 }
 
 pub struct CpsCreateInterrupt {
-    caller: H160,
-    scheme: CreateScheme,
-    value: U256,
-    init_code: Vec<u8>,
-    target_gas: Option<u64>,
+    pub caller: H160,
+    pub scheme: CreateScheme,
+    pub value: U256,
+    pub init_code: Vec<u8>,
+    pub target_gas: Option<u64>,
 }
 
 pub struct CpsCreateFeedback {}
@@ -43,7 +43,8 @@ pub struct CpsCallFeedback {}
 
 pub enum CpsReason {
     NormalExit(evm::ExitReason),
-    Other,
+    CallInterrupt(CpsCallInterrupt),
+    CreateInterrupt(CpsCreateInterrupt),
 }
 
 impl<'a> CpsExecutor<'a> {
@@ -62,7 +63,10 @@ impl<'a> CpsExecutor<'a> {
     pub fn execute(&mut self, runtime: &mut Runtime) -> CpsReason {
         match runtime.run(self) {
             Capture::Exit(s) => CpsReason::NormalExit(s),
-            Capture::Trap(_) => CpsReason::Other,
+            Capture::Trap(t) => match t {
+                Resolve::Call(i, _) => CpsReason::CallInterrupt(i),
+                Resolve::Create(i, _) => CpsReason::CreateInterrupt(i),
+            },
         }
     }
 

@@ -3,7 +3,7 @@
 // #![deny(warnings)]
 #![forbid(unsafe_code)]
 
-mod continuation;
+mod continuations;
 mod convert;
 mod cps_executor;
 mod evm_server;
