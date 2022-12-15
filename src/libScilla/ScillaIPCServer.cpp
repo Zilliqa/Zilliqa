@@ -26,14 +26,8 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
-#include <algorithm>
 #include <cctype>
 #include <string>
-
-#ifndef __APPLE__
-#include <bits/stdc++.h>
-#endif
-#include <boost/algorithm/string.hpp>
 
 using namespace std;
 using namespace Contract;
@@ -136,7 +130,6 @@ void ScillaIPCServer::setOverrides(std::string key, uint128_t const&value){
   std::transform(key.begin(), key.end(), key.begin(),
                  [](unsigned char c){ return std::tolower(c); });
 
-  std::cerr << "Setting override: " << key << " val: " << value << std::endl;
   overrides[key] = value;
 }
 
