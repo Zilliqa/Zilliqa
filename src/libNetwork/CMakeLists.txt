@@ -16,4 +16,5 @@ target_link_libraries (Network PUBLIC
         libevent::core
         libevent::pthreads
         RumorSpreading
+        OpenSSL::Crypto
         Utils)
