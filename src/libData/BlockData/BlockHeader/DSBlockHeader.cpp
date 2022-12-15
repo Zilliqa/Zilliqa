@@ -75,7 +75,7 @@ bool DSBlockHeader::Serialize(zbytes& dst, unsigned int offset) const {
 }
 
 BlockHash DSBlockHeader::GetHashForRandom() const {
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   zbytes vec;
 
   if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {

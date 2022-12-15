@@ -16,11 +16,44 @@
  */
 
 #include "IPConverter.h"
+#include "libUtils/SWInfo.h"
+
 #include <boost/algorithm/string.hpp>
+#include <boost/asio.hpp>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 
 namespace IPConverter {
+
+namespace {
+
+void LogUnsupported(const string& ip) {
+  SWInfo::LogBrandBugReport();
+  cerr << "Error: Unknown address type " << ip << ", unsupported protocol\n"
+       << endl;
+}
+
+void LogInvalidIP(const string& ip) {
+  SWInfo::LogBrandBugReport();
+  cerr << "Error: address " << ip
+       << " does not contain a character string "
+          "representing a valid network address\n"
+       << endl;
+}
+
+template <class ip_t>
+uint128_t convertBytesToInt(ip_t ip_v) {
+  uint8_t i = 0;
+  uint128_t ipInt = 0;
+  for (const unsigned char b : ip_v.to_bytes()) {
+    ipInt = ipInt | (uint128_t)b << i * 8;
+    i++;
+  }
+  return ipInt;
+}
+
+}  // namespace
 
 bool GetIPPortFromSocket(string socket, string& ip, int& port) {
   std::vector<std::string> addr_parts;
@@ -63,26 +96,6 @@ const std::string ToStrFromNumericalIP(const uint128_t& ip) {
   serv_addr.sin_addr.s_addr = ip.convert_to<unsigned long>();
   inet_ntop(AF_INET, &(serv_addr.sin_addr), str, INET_ADDRSTRLEN);
   return std::string(str);
-}
-
-void LogUnsupported(const string& ip) {
-  SWInfo::LogBrandBugReport();
-  cerr << "Error: Unknown address type " << ip << ", unsupported protocol\n"
-       << endl;
-}
-
-void LogInvalidIP(const string& ip) {
-  SWInfo::LogBrandBugReport();
-  cerr << "Error: address " << ip
-       << " does not contain a character string "
-          "representing a valid network address\n"
-       << endl;
-}
-
-void LogInternalErr(const string& ip) {
-  SWInfo::LogBrandBugReport();
-  cerr << "Internal Error: cannot process the input IP address " << ip << ".\n"
-       << std::endl;
 }
 
 bool ToNumericalIPFromStr(const std::string& ipStr, uint128_t& ipInt) {

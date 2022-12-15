@@ -1448,7 +1448,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
     try {
       // add the hash of genesis block
       DSBlockHeader dshead = m_mediator.m_dsBlockChain.GetBlock(0).GetHeader();
-      SHA2<HashType::HASH_VARIANT_256> sha2;
+      SHA256Calculator sha2;
       zbytes vec;
       dshead.Serialize(vec, 0);
       sha2.Update(vec);
@@ -1476,7 +1476,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
     // for the latest block
     DSBlockHeader dshead =
         m_mediator.m_dsBlockChain.GetBlock(currBlockNum).GetHeader();
-    SHA2<HashType::HASH_VARIANT_256> sha2;
+    SHA256Calculator sha2;
     zbytes vec;
     dshead.Serialize(vec, 0);
     sha2.Update(vec);
@@ -1548,7 +1548,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     try {
       // add the hash of genesis block
       TxBlockHeader txhead = m_mediator.m_txBlockChain.GetBlock(0).GetHeader();
-      SHA2<HashType::HASH_VARIANT_256> sha2;
+      SHA256Calculator sha2;
       zbytes vec;
       txhead.Serialize(vec, 0);
       sha2.Update(vec);
@@ -1576,7 +1576,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     // for the latest block
     TxBlockHeader txhead =
         m_mediator.m_txBlockChain.GetBlock(currBlockNum).GetHeader();
-    SHA2<HashType::HASH_VARIANT_256> sha2;
+    SHA256Calculator sha2;
     zbytes vec;
     txhead.Serialize(vec, 0);
     sha2.Update(vec);
@@ -1866,7 +1866,7 @@ Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum,
   // For GetTxnBodiesForTxBlockEx: return map{Transactions:[], CurrPage:int,
   // NumPages:int}
   Json::Value _json2;
-  _json2["Transactions"] = move(_json);
+  _json2["Transactions"] = std::move(_json);
   _json2["CurrPage"] = pageNum;
   _json2["NumPages"] = (numTransactions / NUM_TXNS_PER_PAGE) +
                        ((numTransactions % NUM_TXNS_PER_PAGE) ? 1 : 0);
@@ -1956,7 +1956,7 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const TxBlock& txBlock,
   // For GetTransactionsForTxBlockEx and GetTxnBodiesForTxBlockEx: return
   // map{Transactions:[], CurrPage:int, NumPages:int}
   Json::Value _json2;
-  _json2["Transactions"] = move(_json);
+  _json2["Transactions"] = std::move(_json);
   _json2["CurrPage"] = pageNumber;
   _json2["NumPages"] =
       (txBlock.GetHeader().GetNumTxs() / NUM_TXNS_PER_PAGE) +

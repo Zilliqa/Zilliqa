@@ -35,10 +35,8 @@ class AccountBase : public SerializableDataBlock {
   dev::h256 m_codeHash;
 
  public:
-  AccountBase() {}
-
-  AccountBase(const uint128_t& balance, const uint64_t& nonce,
-              const uint32_t& version);
+  AccountBase() = default;
+  AccountBase(const uint128_t& balance, uint64_t nonce, uint32_t version);
 
   /// Implements the Serialize function inherited from Serializable.
   bool Serialize(zbytes& dst, unsigned int offset) const;
@@ -86,8 +84,6 @@ class AccountBase : public SerializableDataBlock {
   /// Returns the code hash.
   const dev::h256& GetCodeHash() const;
 
-  bool isContract() const;
-
   friend inline std::ostream& operator<<(std::ostream& out,
                                          AccountBase const& account);
 };
@@ -119,14 +115,12 @@ class Account : public AccountBase {
                      bool& is_library, std::vector<Address>& extlibs);
 
  public:
-  Account() {}
+  static constexpr const uint32_t VERSION = 1;
 
-  /// Constructor for loading account information from a byte stream.
-  Account(const zbytes& src, unsigned int offset);
+  Account() = default;
 
   /// Constructor for a account.
-  Account(const uint128_t& balance, const uint64_t& nonce,
-          const uint32_t& version = ACCOUNT_VERSION);
+  Account(const uint128_t& balance, uint64_t nonce, uint32_t version = VERSION);
 
   /// Parse the Immutable Data at Constract Initialization Stage
   bool InitContract(const zbytes& code, const zbytes& initData,

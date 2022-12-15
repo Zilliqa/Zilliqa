@@ -20,7 +20,7 @@
 
 #include "common/BaseType.h"
 
-class Peer;
+struct Peer;
 
 /// Specifies the interface required for classes that process messages.
 class Executable {

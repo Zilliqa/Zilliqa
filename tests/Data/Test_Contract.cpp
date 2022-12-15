@@ -31,7 +31,6 @@
 #include "common/Constants.h"
 #include "common/TxnStatus.h"
 #include "depends/common/CommonIO.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -103,7 +102,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
 
   PairOfKey owner = Schnorr::GenKeyPair();
   Address ownerAddr, contrAddr0, contrAddr1, contrAddr2, contrAddr3, contrAddr4;
-  uint64_t nonce;
+  uint64_t nonce = 0;
 
   if (SCILLA_ROOT.empty()) {
     BOOST_FAIL("SCILLA_ROOT not set to run Test_Contract");

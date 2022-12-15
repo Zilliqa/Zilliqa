@@ -28,7 +28,6 @@
 #include "common/Serializable.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -1563,10 +1562,6 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
         BlockStorage::GetBlockStorage().GetTxBody(argHash, transactionBodyPtr);
     if (!isPresent) {
       LOG_GENERAL(WARNING, "Unable to find transaction for given hash");
-      return Json::nullValue;
-    }
-    if (!transactionBodyPtr->GetTransaction().IsEth()) {
-      LOG_GENERAL(WARNING, "No tx receipts for zil txs");
       return Json::nullValue;
     }
 
