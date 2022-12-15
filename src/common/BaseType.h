@@ -18,7 +18,7 @@
 #ifndef ZILLIQA_SRC_COMMON_BASETYPE_H_
 #define ZILLIQA_SRC_COMMON_BASETYPE_H_
 
-#include <stdint.h>
+#include <cstdint>
 #include <map>
 #include <utility>
 #include <vector>
@@ -35,4 +35,8 @@ using GovDSShardVotesMap =
     std::map<uint32_t, std::pair<std::map<uint32_t, uint32_t>,
                                  std::map<uint32_t, uint32_t>>>;
 using GovProposalIdVotePair = std::pair<uint32_t, uint32_t>;
+
+inline zbytes toZbytes(std::string const &input){
+  return zbytes(input.begin(), input.end());
+}
 #endif  // ZILLIQA_SRC_COMMON_BASETYPE_H_

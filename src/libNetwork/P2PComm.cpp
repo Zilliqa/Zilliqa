@@ -41,8 +41,6 @@
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/JoinableFunction.h"
-#include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
 using namespace std;
@@ -152,7 +150,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
         (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
-      SHA2<HashType::HASH_VARIANT_256> sha256;
+      SHA256Calculator sha256;
       sha256.Update(message, HDR_LEN + HASH_LEN,
                     message.size() - HDR_LEN - HASH_LEN);
       zbytes this_msg_hash = sha256.Finalize();
@@ -669,7 +667,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
-  LOG_GENERAL(INFO, "Connection from " << from);
+  LOG_GENERAL(DEBUG, "Connection from " << from);
 
   if (Blacklist::GetInstance().Exist(from.m_ipAddress,
                                      false /* for incoming message */)) {
@@ -958,8 +956,7 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   Peer from(uint128_t(((struct sockaddr_in*)cli_addr)->sin_addr.s_addr),
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
-  // XXX
-  LOG_GENERAL(INFO, "Connection from " << from);
+  LOG_GENERAL(DEBUG, "Connection from " << from);
 
   {
     std::unique_lock<std::mutex> lock(m_mutexPeerConnectionCount);
@@ -1273,7 +1270,7 @@ void SendBroadcastMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
     return;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha256;
+  SHA256Calculator sha256;
   sha256.Update(message);
   hash = sha256.Finalize();
 

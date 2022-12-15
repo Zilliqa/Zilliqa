@@ -15,20 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
-#include <chrono>
-#include <functional>
-#include <thread>
-
 #include "Node.h"
+#include "RootComputation.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -41,10 +32,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/RootComputation.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/SysCommand.h"
-#include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
@@ -389,7 +377,7 @@ void Node::ProcessTransactionWhenShardLeader(
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = move(it->second.begin()->second);
+        t = std::move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {
@@ -652,7 +640,7 @@ void Node::UpdateProcessedTransactions() {
 
   {
     lock_guard<mutex> g(m_mutexCreatedTransactions);
-    m_createdTxns = move(t_createdTxns);
+    m_createdTxns = std::move(t_createdTxns);
     t_createdTxns.clear();
   }
   if (m_mediator.m_currentEpochNum % NUM_STORE_TX_BODIES_INTERVAL == 0) {
@@ -663,7 +651,7 @@ void Node::UpdateProcessedTransactions() {
   {
     lock_guard<mutex> g(m_mutexProcessedTransactions);
     m_processedTransactions[m_mediator.m_currentEpochNum] =
-        move(t_processedTransactions);
+        std::move(t_processedTransactions);
     t_processedTransactions.clear();
   }
 }
@@ -710,7 +698,7 @@ void Node::ProcessTransactionWhenShardBackup(
          it++) {
       if (it->second.begin()->first ==
           AccountStore::GetInstance().GetNonceTemp(it->first) + 1) {
-        t = move(it->second.begin()->second);
+        t = std::move(it->second.begin()->second);
         it->second.erase(it->second.begin());
 
         if (it->second.empty()) {

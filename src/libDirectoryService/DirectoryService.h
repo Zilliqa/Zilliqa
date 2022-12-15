@@ -20,21 +20,19 @@
 
 #include <array>
 #include <condition_variable>
-#include <deque>
-#include <list>
 #include <map>
 #include <set>
 #include <shared_mutex>
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "common/Executable.h"
 #include "libConsensus/Consensus.h"
 #include "libData/BlockData/Block.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
+#include "libNetwork/Executable.h"
 #include "libNetwork/P2PComm.h"
 #include "libNetwork/ShardStruct.h"
 #include "libPersistence/BlockStorage.h"
@@ -742,6 +740,9 @@ class DirectoryService : public Executable {
   bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool CheckIfDSNode(const PubKey& submitterPubKey);
   bool RemoveDSMicroBlock();
+
+  static CoSignatures ConsensusObjectToCoSig(
+      const ConsensusCommon& consensusObject);
 };
 
 #endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_

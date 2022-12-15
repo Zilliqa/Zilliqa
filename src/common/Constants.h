@@ -21,7 +21,6 @@
 #include "BaseType.h"
 #include "depends/common/FixedHash.h"
 
-using BlockHash = dev::h256;
 const size_t BLOCK_NUMERIC_DIGITS =
     std::to_string(std::numeric_limits<uint64_t>::max()).size();
 
@@ -63,9 +62,6 @@ const unsigned int IP_SIZE = 16;
 const unsigned int PORT_SIZE = 4;
 
 const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-
-// Number of initial ds epoch number, including genesis epoch
-const unsigned int INIT_DS_EPOCH_NUM = 2;
 
 const unsigned int MAINNET_CHAIN_ID = 1;
 
@@ -124,10 +120,8 @@ const std::string RAND1_GENESIS =
 const std::string RAND2_GENESIS =
     "e8cc9106f8a28671d91e2de07b57b828934481fadf6956563b963bb8e5c266bf";
 
-const std::string REMOTE_TEST_DIR = "zilliqa-test";
 const std::string PERSISTENCE_PATH = "/persistence";
 const std::string STATEDELTAFROMS3_PATH = "/StateDeltaFromS3";
-const std::string TX_BODY_SUBDIR = "txBodies";
 
 const std::string DS_KICKOUT_MSG = "KICKED OUT FROM DS";
 const std::string DS_LEADER_MSG = "DS LEADER NOW";
@@ -153,7 +147,6 @@ extern const unsigned int MAX_ENTRIES_FOR_DIAGNOSTIC_DATA;
 extern const uint16_t CHAIN_ID;
 extern const uint16_t NETWORK_ID;
 extern const std::string GENESIS_PUBKEY;
-extern const unsigned int UPGRADE_TARGET_DS_NUM;
 extern const std::string STORAGE_PATH;
 extern const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB;
 extern const bool KEEP_HISTORICAL_STATE;
@@ -162,6 +155,7 @@ extern const unsigned int NUM_DS_EPOCHS_STATE_HISTORY;
 extern const uint64_t INIT_TRIE_DB_SNAPSHOT_EPOCH;
 extern const unsigned int MAX_ARCHIVED_LOG_COUNT;
 extern const unsigned int MAX_LOG_FILE_SIZE_KB;
+extern const bool JSON_LOGGING;
 
 // Version constants
 extern const unsigned int MSG_VERSION;
@@ -174,7 +168,6 @@ extern const unsigned int VCBLOCK_VERSION;
 extern const unsigned int BLOCKLINK_VERSION;
 extern const unsigned int DSCOMMITTEE_VERSION;
 extern const unsigned int SHARDINGSTRUCTURE_VERSION;
-extern const unsigned int ACCOUNT_VERSION;
 extern const unsigned int CONTRACT_STATE_VERSION;
 
 // Seed Node
@@ -289,10 +282,6 @@ extern const std::string GPU_TO_USE;
 extern const unsigned int OPENCL_LOCAL_WORK_SIZE;
 extern const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER;
 extern const unsigned int OPENCL_START_EPOCH;
-extern const unsigned int CUDA_BLOCK_SIZE;
-extern const unsigned int CUDA_GRID_SIZE;
-extern const unsigned int CUDA_STREAM_NUM;
-extern const unsigned int CUDA_SCHEDULE_FLAG;
 
 // Guard mode constants
 extern const bool GUARD_MODE;
@@ -364,7 +353,6 @@ extern const unsigned int MAX_WHITELISTREQ_LIMIT;
 extern const unsigned int SENDJOBPEERS_TIMEOUT;
 
 // PoW constants
-extern const bool CUDA_GPU_MINE;
 extern const bool FULL_DATASET_MINE;
 extern const bool OPENCL_GPU_MINE;
 extern const bool REMOTE_MINE;
@@ -511,5 +499,14 @@ extern const std::vector<std::pair<uint64_t, uint32_t>> VERIFIER_EXCLUSION_LIST;
 extern const bool IGNORE_BLOCKCOSIG_CHECK;
 extern const std::vector<std::pair<uint64_t, uint32_t>>
     VERIFIER_MICROBLOCK_EXCLUSION_LIST;
+
+// Metrics constants
+extern const std::string METRIC_ZILLIQA_HOSTNAME;
+extern const unsigned int METRIC_ZILLIQA_PORT;
+extern const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS;
+extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
+extern const std::string METRIC_ZILLIQA_SCHEMA;
+extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
+extern const uint64_t  METRIC_ZILLIQA_MASK;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

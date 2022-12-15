@@ -25,7 +25,6 @@
 
 #include "depends/NAT/nat.h"
 #include "libNetwork/P2PComm.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
@@ -173,6 +172,10 @@ int main(int argc, const char* argv[]) {
     }
     INIT_STATE_LOGGER("state", logBasePath);
     INIT_EPOCHINFO_LOGGER("epochinfo", logBasePath);
+
+    if (JSON_LOGGING) {
+      INIT_JSON_LOGGER("zilliqa-json", logBasePath);
+    }
 
     LOG_GENERAL(INFO, ZILLIQA_BRAND);
 

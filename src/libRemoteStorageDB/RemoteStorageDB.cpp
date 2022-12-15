@@ -23,7 +23,7 @@
 #include <bsoncxx/json.hpp>
 #include <bsoncxx/stdx/make_unique.hpp>
 #include "libServer/JSONConversion.h"
-#include "libUtils/HashUtils.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
@@ -62,7 +62,7 @@ void RemoteStorageDB::Init(bool reset) {
   try {
     if (!reset) {
       auto instance = bsoncxx::stdx::make_unique<mongocxx::instance>();
-      m_inst = move(instance);
+      m_inst = std::move(instance);
     }
 
     auto creds = getCreds();
@@ -99,7 +99,7 @@ void RemoteStorageDB::Init(bool reset) {
       LOG_GENERAL(INFO,
                   "SockeTimeoutInMS: " << URI.socket_timeout_ms().value());
     }
-    m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(move(URI));
+    m_pool = bsoncxx::stdx::make_unique<mongocxx::pool>(std::move(URI));
     mongocxx::options::bulk_write bulk_opts;
     bulk_opts.ordered(false);
     const auto& conn = GetConnection();
@@ -108,7 +108,7 @@ void RemoteStorageDB::Init(bool reset) {
         txnCollection.create_bulk_write(bulk_opts));
     {
       lock_guard<mutex> g(m_mutexBulkWrite);
-      m_bulkWrite = move(bulk);
+      m_bulkWrite = std::move(bulk);
     }
     m_initialized = true;
   } catch (exception& e) {
@@ -170,7 +170,7 @@ bool RemoteStorageDB::ExecuteWrite() {
     auto txnCollection = conn->database(m_dbName)[m_txnCollectionName];
     auto bulk = bsoncxx::stdx::make_unique<mongocxx::bulk_write>(
         txnCollection.create_bulk_write(bulk_opts));
-    m_bulkWrite = move(bulk);
+    m_bulkWrite = std::move(bulk);
     m_bulkWriteEmpty = true;
   };
   lock_guard<mutex> g(m_mutexBulkWrite);
@@ -245,26 +245,6 @@ bool RemoteStorageDB::UpdateTxn(const string& txnhash, const TxnStatus status,
     return false;
   }
   return true;
-}
-
-bool RemoteStorageDB::InsertJson(const Json::Value& _json,
-                                 const string& collectionName) {
-  if (!m_initialized) {
-    LOG_GENERAL(WARNING, "DB not initialized");
-    return false;
-  }
-  try {
-    const auto& conn = GetConnection();
-    auto txnCollection = conn->database(m_dbName)[collectionName];
-    bsoncxx::document::value doc_val =
-        bsoncxx::from_json(_json.toStyledString());
-    txnCollection.insert_one(move(doc_val));
-    return true;
-  } catch (exception& e) {
-    LOG_GENERAL(WARNING, "Failed to Insert " << _json.toStyledString() << endl
-                                             << e.what());
-    return false;
-  }
 }
 
 Json::Value RemoteStorageDB::QueryTxnHash(const std::string& txnhash) {

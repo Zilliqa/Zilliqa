@@ -19,7 +19,6 @@
 #include <array>
 #include <string>
 #include <vector>
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
@@ -76,8 +75,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   BOOST_CHECK_MESSAGE(tx1.GetSenderAddr() == fromCheck,
                       "Address from public key converted not properly.");
 
-  BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx1),
-                      "Signature not verified\n");
+  BOOST_CHECK_MESSAGE(Transaction::Verify(tx1), "Signature not verified\n");
 
   BOOST_CHECK_MESSAGE(0 == tx1.GetShardIndex(fromAddr, 0),
                       "Shard index > 0 when passing zero shards");
@@ -171,8 +169,7 @@ BOOST_AUTO_TEST_CASE(test1) {
   LOG_PAYLOAD(INFO, "Transaction2 data", data2, Logger::MAX_BYTES_TO_DISPLAY);
   BOOST_CHECK_MESSAGE(data2 == tx1.GetData(), "Data not converted properly");
 
-  BOOST_CHECK_MESSAGE(Validator::VerifyTransaction(tx2),
-                      "Signature not verified\n");
+  BOOST_CHECK_MESSAGE(Transaction::Verify(tx2), "Signature not verified\n");
 
   tx2.SetSignature(sign);
 

@@ -25,11 +25,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -40,12 +35,16 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
-#include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
 using namespace boost::multiprecision;
+
+// TODO: only used in libNode. Move somewhere more appropriate.
+extern bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
+                                unsigned int minLengthNeeded,
+                                unsigned int factor = 0,
+                                const std::string& errMsg = "");
 
 bool Node::GetLatestDSBlock() {
   LOG_MARKER();

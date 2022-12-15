@@ -24,9 +24,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
@@ -36,9 +33,7 @@
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/ShardSizeCalculator.h"
 #include "libUtils/TimestampVerifier.h"
 
@@ -169,7 +164,7 @@ void DirectoryService::ComputeSharding(const VectorOfPoWSoln& sortedPoWSolns) {
     const auto& powHash = kv.first;
     copy(powHash.begin(), powHash.end(), hashVec.begin() + BLOCK_HASH_SIZE);
 
-    const zbytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+    const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
     array<unsigned char, BLOCK_HASH_SIZE> sortHash{};
     copy(sortHashVec.begin(), sortHashVec.end(), sortHash.begin());
     sortedPoWs.emplace(sortHash, key);
@@ -240,7 +235,7 @@ void DirectoryService::InjectPoWForDSNode(
 
   // Add the oldest n DS committee member to m_allPoWs and m_allPoWConns so it
   // gets included in sharding structure
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   zbytes serializedPubK;
 
   // Iterate through the current DS committee from the back, add a PoW
@@ -594,7 +589,7 @@ bool DirectoryService::VerifyPoWOrdering(
       }
 
       copy(result.begin(), result.end(), hashVec.begin() + BLOCK_HASH_SIZE);
-      const zbytes& sortHashVec = HashUtils::BytesToHash(hashVec);
+      const zbytes& sortHashVec = SHA256Calculator::FromBytes(hashVec);
 
       if (DEBUG_LEVEL >= 5) {
         string sortHashVecStr;
@@ -1130,7 +1125,7 @@ bool DirectoryService::RunConsensusOnDSBlockWhenDSPrimary() {
   // Refer to Effective mordern C++. Item 32: Use init capture to move objects
   // into closures.
   auto announcementGeneratorFunc =
-      [this, dsWinnerPoWs = move(dsWinnerPoWs)](
+      [this, dsWinnerPoWs = std::move(dsWinnerPoWs)](
           zbytes& dst, unsigned int offset, const uint32_t consensusID,
           const uint64_t blockNumber, const zbytes& blockHash,
           const uint16_t leaderID, const PairOfKey& leaderKey,

@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include "Constants.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/SafeMath.h"
 
 #include <boost/property_tree/ptree.hpp>
@@ -121,8 +120,6 @@ const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
 const uint16_t NETWORK_ID{(uint16_t)ReadConstantNumeric("NETWORK_ID")};
 const string GENESIS_PUBKEY{
     ReadConstantString("GENESIS_PUBKEY", "node.general.")};
-const unsigned int UPGRADE_TARGET_DS_NUM{
-    ReadConstantNumeric("UPGRADE_TARGET_DS_NUM")};
 const string STORAGE_PATH{ReadConstantString("STORAGE_PATH", "node.general.")};
 const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB{
     ReadConstantNumeric("NUM_EPOCHS_PER_PERSISTENT_DB")};
@@ -140,6 +137,7 @@ const unsigned int MAX_ARCHIVED_LOG_COUNT{
     ReadConstantNumeric("MAX_ARCHIVED_LOG_COUNT")};
 const unsigned int MAX_LOG_FILE_SIZE_KB{
     ReadConstantNumeric("MAX_LOG_FILE_SIZE_KB")};
+const bool JSON_LOGGING{ReadConstantString("JSON_LOGGING") == "true"};
 
 // Version constants
 const unsigned int MSG_VERSION{
@@ -161,8 +159,6 @@ const unsigned int DSCOMMITTEE_VERSION{
     ReadConstantNumeric("DSCOMMITTEE_VERSION", "node.version.")};
 const unsigned int SHARDINGSTRUCTURE_VERSION{
     ReadConstantNumeric("SHARDINGSTRUCTURE_VERSION", "node.version.")};
-const unsigned int ACCOUNT_VERSION{
-    ReadConstantNumeric("ACCOUNT_VERSION", "node.version.")};
 const unsigned int CONTRACT_STATE_VERSION{
     ReadConstantNumeric("CONTRACT_STATE_VERSION", "node.version.")};
 
@@ -379,14 +375,6 @@ const unsigned int OPENCL_GLOBAL_WORK_SIZE_MULTIPLIER{
     ReadConstantNumeric("GLOBAL_WORK_SIZE_MULTIPLIER", "node.gpu.opencl.")};
 const unsigned int OPENCL_START_EPOCH{
     ReadConstantNumeric("START_EPOCH", "node.gpu.opencl.")};
-const unsigned int CUDA_BLOCK_SIZE{
-    ReadConstantNumeric("BLOCK_SIZE", "node.gpu.cuda.")};
-const unsigned int CUDA_GRID_SIZE{
-    ReadConstantNumeric("GRID_SIZE", "node.gpu.cuda.")};
-const unsigned int CUDA_STREAM_NUM{
-    ReadConstantNumeric("STREAM_NUM", "node.gpu.cuda.")};
-const unsigned int CUDA_SCHEDULE_FLAG{
-    ReadConstantNumeric("SCHEDULE_FLAG", "node.gpu.cuda.")};
 
 // Guard mode constants
 const bool GUARD_MODE{ReadConstantString("GUARD_MODE", "node.guard_mode.") ==
@@ -496,8 +484,6 @@ const unsigned int SENDJOBPEERS_TIMEOUT{
     ReadConstantNumeric("SENDJOBPEERS_TIMEOUT", "node.p2pcomm.")};
 
 // PoW constants
-const bool CUDA_GPU_MINE{ReadConstantString("CUDA_GPU_MINE", "node.pow.") ==
-                         "true"};
 const bool FULL_DATASET_MINE{
     ReadConstantString("FULL_DATASET_MINE", "node.pow.") == "true"};
 const bool OPENCL_GPU_MINE{ReadConstantString("OPENCL_GPU_MINE", "node.pow.") ==
@@ -766,3 +752,19 @@ const uint64_t EVM_RPC_TIMEOUT_SECONDS{
     ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
 const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
+
+const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
+    "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
+const unsigned int METRIC_ZILLIQA_PORT{
+    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.")};
+const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(
+    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.")};
+const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS{ReadConstantNumeric(
+    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.")};
+const std::string METRIC_ZILLIQA_SCHEMA{
+    ReadConstantString("METRIC_ZILLIQA_SCHEMA", "node.metric.zilliqa.",
+                       "https://opentelemetry.io/schemas/1.2.0")};
+const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
+    "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
+
+const uint64_t METRIC_ZILLIQA_MASK{ReadConstantUInt64("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", 0)};

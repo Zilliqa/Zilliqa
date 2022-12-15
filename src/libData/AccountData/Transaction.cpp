@@ -286,7 +286,7 @@ bool Transaction::SetHash(zbytes const& txnData) {
   }
 
   // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(txnData);
   const zbytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
@@ -334,6 +334,20 @@ unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
   const auto& fromAddr = GetSenderAddr();
 
   return GetShardIndex(fromAddr, numShards);
+}
+
+bool Transaction::Verify(const Transaction& tran) {
+  zbytes txnData;
+  tran.SerializeCoreFields(txnData, 0);
+
+  auto result = tran.IsSigned(txnData);
+
+  if (!result) {
+    LOG_GENERAL(WARNING,
+                "Failed to verify transaction signature - will delete");
+  }
+
+  return result;
 }
 
 bool Transaction::operator==(const Transaction& tran) const {

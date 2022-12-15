@@ -21,7 +21,6 @@
 #include "AddressChecksum.h"
 #include "JSONConversion.h"
 
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
@@ -575,7 +574,7 @@ void WebsocketServer::SendOutMessages() {
                   _json["log"] = entry.second;
                   j_txnlogs.append(_json);
                 }
-                value["value"] = move(j_txnlogs);
+                value["value"] = std::move(j_txnlogs);
               }
               break;
             }

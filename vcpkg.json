@@ -23,11 +23,18 @@
       ]
     },
     "curl",
-    "libmicrohttpd",
     "libffi",
     "g3log",
     "g3sinks",
-    "schnorr"
+    "schnorr",
+    "cryptoutils",
+    {
+      "name": "opentelemetry-cpp",
+      "default-features": false,
+      "features": [
+        "prometheus"
+      ]
+    }
   ],
   "builtin-baseline": "6ca56aeb457f033d344a7106cb3f9f1abf8f4e98",
   "overrides": [
@@ -44,10 +51,6 @@
       "version": "3.9.1"
     },
     {
-      "name": "libmicrohttpd",
-      "version-string": "0.9.63#8"
-    },
-    {
       "name": "g3log",
       "version-string": "1.3.4#4"
     },
@@ -56,16 +59,20 @@
       "version": "8.2.0"
     },
     {
-      "name": "g3log",
-      "version": "1.3.4#4"
-    },
-    {
       "name": "g3sinks",
       "version": "2.0.1"
     },
     {
+      "name": "cryptoutils",
+      "version": "8.3.0#1"
+    },
+    {
       "name": "websocketpp",
       "version": "0.8.2#3"
+    },
+    {
+      "name": "opentelemetry-cpp",
+      "version": "1.8.0#2"
     }
   ]
 }

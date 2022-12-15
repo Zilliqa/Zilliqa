@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
 
 #include "AccountStoreSC.h"
+#include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
 
 template <class MAP>
@@ -56,7 +57,6 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   bool UpdateStateTrieAll();
 
   void PrintAccountState() override;
-  void PrintTrie();
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_

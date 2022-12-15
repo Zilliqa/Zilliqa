@@ -18,87 +18,16 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
 
-#include <jsonrpccpp/client.h>
-#include <jsonrpccpp/client/connectors/unixdomainsocketclient.h>
-#include <jsonrpccpp/common/sharedconstants.h>
-#include <boost/asio.hpp>
 #include <boost/process.hpp>
 #include <boost/process/child.hpp>
 #include <map>
 #include <memory>
 #include "common/Constants.h"
 #include "common/Singleton.h"
+#include "libScilla/UnixDomainSocketClient.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/Logger.h"
-
-// EvmDsDomainSocketClient
-//
-// This is a Custom socket handler using asio
-// for the evmclient connection to evm-ds
-
-namespace evmdsrpc {
-class EvmDsDomainSocketClient : public jsonrpc::IClientConnector {
- public:
-  EvmDsDomainSocketClient(const std::string& path) : m_path(path){};
-
-  virtual ~EvmDsDomainSocketClient(){};
-
-  virtual void SendRPCMessage(const std::string& message, std::string& result) {
-    LOG_MARKER();
-    try {
-      using boost::asio::local::stream_protocol;
-      boost::asio::io_context io_context;
-      stream_protocol::socket unixDomainSocket(io_context);
-      boost::asio::streambuf streamBuffer;
-      //
-      // Connect to the stream
-      try {
-        unixDomainSocket.connect(stream_protocol::endpoint(m_path));
-      } catch (std::exception& e) {
-        if (LOG_SC) {
-          LOG_GENERAL(INFO, "Exception calling connect "
-                                << e.what() << " to path: " << m_path
-                                << " to send msg: " << message);
-        }
-        throw e;
-      }
-      std::string toSend = message + DEFAULT_DELIMITER_CHAR;
-
-      // Write the JsonRpc
-      try {
-        boost::asio::write(unixDomainSocket,
-                           boost::asio::buffer(toSend, toSend.length()));
-      } catch (std::exception& e) {
-        if (LOG_SC) {
-          LOG_GENERAL(INFO, "Exception calling write " << e.what());
-        }
-        throw e;
-      }
-      //
-      // Read the Response
-      try {
-        boost::asio::read_until(unixDomainSocket, streamBuffer,
-                                DEFAULT_DELIMITER_CHAR);
-      } catch (std::exception& e) {
-        if (LOG_SC) {
-          LOG_GENERAL(INFO, "Exception calling read " << e.what());
-        }
-        throw e;
-      }
-      std::istream is(&streamBuffer);
-      // transfer it into the users object
-      std::getline(is, result);
-    } catch (std::exception& e) {
-      LOG_GENERAL(WARNING,
-                  "Exception caught in custom SendRPCMessage " << e.what());
-    }
-  }
-
- private:
-  std::string m_path;
-};
-
-}  // namespace evmdsrpc
+#include "libUtils/Metrics.h"
 
 /*
  * EvmClient
@@ -141,10 +70,12 @@ class EvmClient : public Singleton<EvmClient> {
 
  private:
   std::unique_ptr<jsonrpc::Client> m_client;
-  std::unique_ptr<evmdsrpc::EvmDsDomainSocketClient> m_connector;
+  std::unique_ptr<rpc::UnixDomainSocketClient> m_connector;
   boost::process::child m_child;
   // In case we need to protect unsafe code in future.
   std::mutex m_mutexMain;
+  zil::metrics::int64_t m_evmClientCount = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_evm", "invocations_count", "Calls to EVM-DS","Calls");
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_

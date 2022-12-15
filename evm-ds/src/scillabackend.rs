@@ -10,7 +10,7 @@ use jsonrpc_core::{Error, Result, Value};
 use jsonrpc_core_client::RawClient;
 use primitive_types::{H160, H256, U256};
 
-use log::{debug, info};
+use log::debug;
 
 use protobuf::Message;
 
@@ -95,7 +95,7 @@ impl ScillaBackend {
     }
 
     fn query_jsonrpc(&self, query_name: &str, query_args: Option<&str>) -> Value {
-        info!("query_jsonrpc: {}, {:?}", query_name, query_args);
+        debug!("query_jsonrpc: {}, {:?}", query_name, query_args);
         // Make a JSON Query for fetchBlockchaininfo
         let mut args = serde_json::Map::new();
         args.insert("query_name".into(), query_name.into());
@@ -122,7 +122,7 @@ impl ScillaBackend {
         key: Option<H256>,
         use_default: bool,
     ) -> Result<Option<ScillaMessage::ProtoScillaVal>> {
-        info!(
+        debug!(
             "query_state_value: {} {} {:?} {}",
             address, query_name, key, use_default
         );

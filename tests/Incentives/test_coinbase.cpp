@@ -21,7 +21,6 @@
 #include "common/Constants.h"
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libTestUtils/TestUtils.h"

@@ -29,7 +29,6 @@
 #include "RumorManager.h"
 #include "common/BaseType.h"
 #include "common/Constants.h"
-#include "libUtils/Logger.h"
 
 struct evconnlistener;
 class SendJobs;

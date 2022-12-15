@@ -23,9 +23,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
@@ -35,7 +32,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
@@ -480,7 +476,7 @@ uint16_t DirectoryService::CalculateNewLeaderIndex() {
   // new candidate leader index is
   // H((finalblock or vc block), vc counter) % size
   // of ds committee
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   uint64_t latestIndex = m_mediator.m_blocklinkchain.GetLatestIndex();
   BlockLink bl = m_mediator.m_blocklinkchain.GetBlockLink(latestIndex);

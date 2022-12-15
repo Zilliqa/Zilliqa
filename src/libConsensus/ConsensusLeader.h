@@ -18,15 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_
 #define ZILLIQA_SRC_LIBCONSENSUS_CONSENSUSLEADER_H_
 
-#include <deque>
-#include <functional>
-#include <memory>
-#include <mutex>
-#include <vector>
+#include <condition_variable>
 
-#include <MultiSig.h>
 #include "ConsensusCommon.h"
-#include "libUtils/TimeLockedFunction.h"
 
 typedef std::function<bool(const zbytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;

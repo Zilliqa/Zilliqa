@@ -16,12 +16,12 @@
  */
 
 #include "Messenger.h"
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
-#include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -676,9 +676,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
     return false;
   }
 
-  if (accbase.GetVersion() != ACCOUNT_VERSION) {
+  if (accbase.GetVersion() != Account::VERSION) {
     LOG_GENERAL(WARNING, "Account delta version doesn't match, expected "
-                             << ACCOUNT_VERSION << " received "
+                             << Account::VERSION << " received "
                              << accbase.GetVersion());
     return false;
   }
@@ -749,7 +749,9 @@ bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
                          DataConversion::StringToCharArray(entry.data()));
         if (LOG_SC) {
           LOG_GENERAL(INFO, "Key: " << entry.key() << "  "
-                                    << "Data: " << entry.data());
+                                    << "Data: "
+                                    << DataConversion::Uint8VecToHexStrRet(
+                                           toZbytes(entry.data())));
         }
       }
 
@@ -2285,7 +2287,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2311,7 +2313,7 @@ bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2339,7 +2341,7 @@ bool Messenger::GetShardingStructureHash(const uint32_t& version,
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -2821,7 +2823,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
     return true;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
 
@@ -4065,7 +4067,7 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
   for (const auto& powSubmission : result.data().dspowsubmissions()) {
     DSPowSolution sol;
     ProtobufToDSPowSolution(powSubmission, sol);
-    dsPowSolutions.emplace_back(move(sol));
+    dsPowSolutions.emplace_back(std::move(sol));
   }
 
   return true;
@@ -4153,7 +4155,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   for (const auto& proto_mb : result.data().microblocks()) {
     MicroBlock microBlock;
     ProtobufToMicroBlock(proto_mb, microBlock);
-    microBlocks.emplace_back(move(microBlock));
+    microBlocks.emplace_back(std::move(microBlock));
   }
 
   for (const auto& proto_delta : result.data().statedeltas()) {
@@ -4643,7 +4645,7 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
       return false;
     }
-    vcBlocks.emplace_back(move(vcblock));
+    vcBlocks.emplace_back(std::move(vcblock));
   }
 
   return ProtobufToShardingStructure(result.sharding(),
@@ -4714,7 +4716,7 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
       return false;
     }
-    vcBlocks.emplace_back(move(vcblock));
+    vcBlocks.emplace_back(std::move(vcblock));
   }
   return true;
 }
@@ -4814,7 +4816,7 @@ bool Messenger::SetNodePendingTxn(
   result.mutable_data()->set_epochnumber(epochnum);
   result.mutable_data()->set_shardid(shardId);
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   for (const auto& hashCodePair : hashCodeMap) {
     auto protoHashCodePair = result.mutable_data()->add_hashcodepair();
@@ -4887,7 +4889,7 @@ bool Messenger::GetNodePendingTxn(
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   for (const auto& codeHashPair : result.data().hashcodepair()) {
     TxnHash txhash;

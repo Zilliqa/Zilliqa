@@ -24,13 +24,15 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 #include "libData/MiningData/MinerInfo.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;
+
+class TransactionWithReceipt;
+class Account;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
@@ -76,7 +78,7 @@ struct DiagnosticDataCoinbase {
 };
 
 /// Manages persistent storage of DS and Tx blocks.
-class BlockStorage : public Singleton<BlockStorage> {
+class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> m_metadataDB;
   std::shared_ptr<LevelDB> m_dsBlockchainDB;
   std::shared_ptr<LevelDB> m_txBlockchainDB;
@@ -85,7 +87,6 @@ class BlockStorage : public Singleton<BlockStorage> {
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
-  std::shared_ptr<LevelDB> m_txTraceDB;
   std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
@@ -147,9 +148,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   void Initialize(const std::string& path = "", bool diagnostic = false);
 
-  /// Get the size of current TxBodyDB
-  unsigned int GetTxBodyDBSize();
-
   /// Adds a DS block to storage.
   bool PutDSBlock(const uint64_t& blockNum, const zbytes& body);
   bool PutVCBlock(const BlockHash& blockhash, const zbytes& body);
@@ -200,10 +198,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
-
-  /// Retrieves the requested transaction trace.
-  bool PutTxTrace(const dev::h256& key, const std::string& trace);
-  bool GetTxTrace(const dev::h256& key, std::string& trace);
 
   /// Deletes the requested DS block
   bool DeleteDSBlock(const uint64_t& blocknum);
@@ -353,8 +347,6 @@ class BlockStorage : public Singleton<BlockStorage> {
 
   /// Refresh a DB
   bool RefreshDB(DBTYPE type);
-
-  std::vector<std::string> GetDBName(DBTYPE type);
 
   /// Clean all DB
   bool ResetAll();

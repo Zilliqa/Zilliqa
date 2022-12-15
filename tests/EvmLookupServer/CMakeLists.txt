@@ -15,8 +15,10 @@ target_link_libraries(Test_EvmLookupServer
                       PUBLIC
                       AccountData
                       Message
+                      Mediator
                       Server
-                      jsonrpc::client
+                      jsonrpc
+                      Boost::unit_test_framework
 )
 
 add_test(NAME Test_EvmLookupServer COMMAND Test_EvmLookupServer)

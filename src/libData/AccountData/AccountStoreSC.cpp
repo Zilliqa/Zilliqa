@@ -26,11 +26,11 @@
 #include "AccountStoreSC.h"
 #include "EvmProcessContext.h"
 #include "libPersistence/ContractStorage.h"
-#include "libServer/ScillaIPCServer.h"
+#include "libScilla/ScillaIPCServer.h"
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
 
@@ -38,9 +38,32 @@
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
 template <class MAP>
+void AccountStoreSC<MAP>::instFetchInfo(
+    opentelemetry::metrics::ObserverResult observer_result, void* state) {
+  AccountStoreSC<MAP>* that = reinterpret_cast<AccountStoreSC<MAP>*>(state);
+
+  // This looks like a bug in openTelemetry, need to investigate, clash between
+  // uint64_t amd long int should be unsigned, losing precision.
+
+  if (std::holds_alternative<std::shared_ptr<
+          opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+          observer_result)) {
+    std::get<
+        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+        observer_result)
+        ->Observe(that->m_curBlockNum, {{"counter", "BlockNumber"}});
+    std::get<
+        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+        observer_result)
+        ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
+  }
+}
+
+template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic<MAP>>(*this);
   m_txnProcessTimeout = false;
+  m_accountStoreCount->AddCallback(instFetchInfo, this);
 }
 
 template <class MAP>
@@ -131,9 +154,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
                                          TxnStatus& error_code) {
   LOG_MARKER();
 
-  if (LOG_SC) {
-    LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
-  }
+  LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
@@ -702,11 +723,11 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       /// since txn succeeded, commit the atomic buffer
       m_storageRootUpdateBuffer.insert(m_storageRootUpdateBufferAtomic.begin(),
                                        m_storageRootUpdateBufferAtomic.end());
-      LOG_GENERAL(INFO, "Executing contract transaction finished");
+      LOG_GENERAL(INFO, "Executing contract call transaction finished");
       break;
     }
     case Transaction::CONTRACT_CREATION: {
-      LOG_GENERAL(INFO, "Executing contract transaction finished");
+      LOG_GENERAL(INFO, "Executing contract creation transaction finished");
       break;
     }
     default:

@@ -24,11 +24,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libDatabase/MemoryDB.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
@@ -39,9 +34,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/RootComputation.h"
-#include "libUtils/SanityChecks.h"
-#include "libUtils/TimeLockedFunction.h"
 #include "libUtils/TimeUtils.h"
 
 using namespace std;
@@ -242,7 +234,12 @@ bool Node::ProcessMicroBlockConsensusCore(
 
   if (state == ConsensusCommon::State::DONE) {
     // Update the micro block with the co-signatures from the consensus
-    m_microblock->SetCoSignatures(*m_consensusObject);
+    m_microblock->SetCoSignatures(
+        // FIXME: same implementation as DirectoryService::ConsensusObjectToCoSig; moved from
+        //        BlockBase to remove dependency on libConsensus. Put in a single function and
+        //        reuse.
+        CoSignatures{m_consensusObject->GetCS1(), m_consensusObject->GetB1(),
+                     m_consensusObject->GetCS2(), m_consensusObject->GetB2()});
 
     if (m_isPrimary) {
       LOG_STATE("[MICON-END][" << setw(15) << left

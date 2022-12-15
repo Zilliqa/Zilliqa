@@ -23,18 +23,15 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "depends/common/RLP.h"
-#include "depends/libTrie/TrieDB.h"
-#include "depends/libTrie/TrieHash.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
+#include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
@@ -156,7 +153,7 @@ bool DirectoryService::ProcessStateDelta(
     LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(stateDelta);
   StateHash stateDeltaHash(sha2.Finalize());
 
@@ -652,7 +649,7 @@ bool DirectoryService::ProcessMissingMicroblockSubmission(
         }
       }
 
-      if (!m_mediator.GetIsVacuousEpoch(epochNumber)) {
+      if (!CommonUtils::IsVacuousEpoch(epochNumber)) {
         if (!ProcessStateDelta(
                 stateDeltas.at(i),
                 microBlocks.at(i).GetHeader().GetStateDeltaHash(),

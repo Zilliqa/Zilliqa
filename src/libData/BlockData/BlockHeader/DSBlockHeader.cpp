@@ -16,8 +16,8 @@
  */
 
 #include "DSBlockHeader.h"
+#include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -75,7 +75,7 @@ bool DSBlockHeader::Serialize(zbytes& dst, unsigned int offset) const {
 }
 
 BlockHash DSBlockHeader::GetHashForRandom() const {
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   zbytes vec;
 
   if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {

@@ -108,6 +108,7 @@ impl EvmServer {
                     tracing,
                     gas_scaling_factor,
                     estimate,
+                    args.get_context().to_string(),
                 )
                 .boxed()
             }
@@ -127,14 +128,15 @@ async fn run_evm_impl(
     tracing: bool,
     gas_scaling_factor: u64,
     estimate: bool,
+    evm_context: String,
 ) -> Result<String> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        info!(
-            "Executing EVM runtime: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
+        debug!(
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, hex::encode(&code), hex::encode(&data),
             backend.extras, estimate);
         let code = Rc::new(code);
@@ -146,7 +148,7 @@ async fn run_evm_impl(
             caller: backend.origin,
             apparent_value,
         };
-        let mut runtime = evm::Runtime::new(code, data, context, &config);
+        let mut runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
         // Scale the gas limit.
         let gas_limit = gas_limit * gas_scaling_factor;
         let metadata = StackSubstateMetadata::new(gas_limit, &config);
@@ -226,7 +228,10 @@ async fn run_evm_impl(
                 result.set_trace(listener.traces.into_iter().map(Into::into).collect());
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
-                debug!("Result: {:?}", result);
+                info!(
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}, result: {:?}", evm_context,
+                    backend.origin, address, gas_limit, apparent_value, hex::encode(code.as_ref()), hex::encode(data.as_ref()),
+                    backend.extras, estimate, result);
                 result
             },
             Err(panic) => {

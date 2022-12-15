@@ -18,7 +18,6 @@
 #include <memory>
 #include <mutex>
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/JoinableFunction.h"
 #include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE utils
@@ -55,14 +54,15 @@ BOOST_AUTO_TEST_CASE(testDetachedFunction) {
 
   LOG_MARKER();
 
-  JoinableFunction joinableFunc(
-      1,
-      test1);  // check that test1 can terminate even while test2
-               // threads are still running
+  // check that test1 can terminate even while test2
+  // threads are still running
+  std::thread thread{test1};
 
   this_thread::sleep_for(
       chrono::seconds(2));  // just a short delay so test2 threads can finish
                             // before program terminates
+
+  thread.join();
 }
 
 BOOST_AUTO_TEST_SUITE_END()

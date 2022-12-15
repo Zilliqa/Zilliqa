@@ -69,7 +69,6 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   if (LOOKUP_NODE_MODE) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
-    m_txTraceDB = std::make_shared<LevelDB>("txTraces");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -601,53 +600,6 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   }
 
   return GetTxBodyDB(epochNum)->Exists(keyBytes);
-}
-
-bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
-  const zbytes& keyBytes = key.asBytes();
-
-  lock_guard<mutex> g(m_mutexTxBody);
-
-  if (!m_txTraceDB) {
-    LOG_GENERAL(
-        WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
-    return false;
-  }
-
-  trace = m_txTraceDB->Lookup(keyBytes);
-
-  if (trace.empty()) {
-    return false;
-  }
-  return true;
-}
-
-bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
-    return false;
-  }
-
-  const zbytes& keyBytes = key.asBytes();
-
-  lock_guard<mutex> g(m_mutexTxBody);
-
-  if (!m_txTraceDB) {
-    LOG_GENERAL(
-        WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
-    return false;
-  }
-
-  // Store txn hash and epoch inside txEpochs DB
-  if (m_txTraceDB->Insert(key, trace) != 0) {
-    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
-                             << " key=" << key);
-    return false;
-  }
-
-  return true;
 }
 
 bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
@@ -1874,114 +1826,6 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
   return ret;
 }
 
-std::vector<std::string> BlockStorage::GetDBName(DBTYPE type) {
-  std::vector<std::string> ret;
-  switch (type) {
-    case META: {
-      shared_lock<shared_timed_mutex> g(m_mutexMetadata);
-      ret.push_back(m_metadataDB->GetDBName());
-      break;
-    }
-    case DS_BLOCK: {
-      shared_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
-      ret.push_back(m_dsBlockchainDB->GetDBName());
-      break;
-    }
-    case TX_BLOCK: {
-      shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
-      ret.push_back(m_txBlockchainDB->GetDBName());
-      break;
-    }
-    case TX_BLOCK_AUX: {
-      shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
-      ret.push_back(m_txBlockchainAuxDB->GetDBName());
-      break;
-    }
-    case TX_BLOCK_HASH_TO_NUM: {
-      shared_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
-      ret.push_back(m_txBlockHashToNumDB->GetDBName());
-      break;
-    }
-    case TX_BODY: {
-      lock_guard<mutex> g(m_mutexTxBody);
-      ret.push_back(m_txBodyDBs.at(0)->GetDBName());
-      break;
-    }
-    case MICROBLOCK: {
-      lock_guard<mutex> g(m_mutexMicroBlock);
-      ret.push_back(m_microBlockDBs.at(0)->GetDBName());
-      break;
-    }
-    case DS_COMMITTEE: {
-      shared_lock<shared_timed_mutex> g(m_mutexDsCommittee);
-      ret.push_back(m_dsCommitteeDB->GetDBName());
-      break;
-    }
-    case VC_BLOCK: {
-      shared_lock<shared_timed_mutex> g(m_mutexVCBlock);
-      ret.push_back(m_VCBlockDB->GetDBName());
-      break;
-    }
-    case BLOCKLINK: {
-      shared_lock<shared_timed_mutex> g(m_mutexBlockLink);
-      ret.push_back(m_blockLinkDB->GetDBName());
-      break;
-    }
-    case SHARD_STRUCTURE: {
-      shared_lock<shared_timed_mutex> g(m_mutexShardStructure);
-      ret.push_back(m_shardStructureDB->GetDBName());
-      break;
-    }
-    case STATE_DELTA: {
-      shared_lock<shared_timed_mutex> g(m_mutexStateDelta);
-      ret.push_back(m_stateDeltaDB->GetDBName());
-      break;
-    }
-    case TEMP_STATE: {
-      shared_lock<shared_timed_mutex> g(m_mutexTempState);
-      ret.push_back(m_tempStateDB->GetDBName());
-      break;
-    }
-    case DIAGNOSTIC_NODES: {
-      lock_guard<mutex> g(m_mutexDiagnostic);
-      ret.push_back(m_diagnosticDBNodes->GetDBName());
-      break;
-    }
-    case DIAGNOSTIC_COINBASE: {
-      lock_guard<mutex> g(m_mutexDiagnostic);
-      ret.push_back(m_diagnosticDBCoinbase->GetDBName());
-      break;
-    }
-    case STATE_ROOT: {
-      shared_lock<shared_timed_mutex> g(m_mutexStateRoot);
-      ret.push_back(m_stateRootDB->GetDBName());
-      break;
-    }
-    case PROCESSED_TEMP: {
-      shared_lock<shared_timed_mutex> g(m_mutexProcessTx);
-      ret.push_back(m_processedTxnTmpDB->GetDBName());
-      break;
-    }
-    case MINER_INFO_DSCOMM: {
-      shared_lock<shared_timed_mutex> g(m_mutexMinerInfoDSComm);
-      ret.push_back(m_minerInfoDSCommDB->GetDBName());
-      break;
-    }
-    case MINER_INFO_SHARDS: {
-      shared_lock<shared_timed_mutex> g(m_mutexMinerInfoShards);
-      ret.push_back(m_minerInfoShardsDB->GetDBName());
-      break;
-    }
-    case EXTSEED_PUBKEYS: {
-      shared_lock<shared_timed_mutex> g(m_mutexExtSeedPubKeys);
-      ret.push_back(m_extSeedPubKeysDB->GetDBName());
-      break;
-    }
-  }
-
-  return ret;
-}
-
 // Don't use short-circuit logical AND (&&) here so that we attempt to reset all
 // databases
 bool BlockStorage::ResetAll() {
@@ -2122,6 +1966,8 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
     return;
   }
 
+  LOG_GENERAL(WARNING, "MAX_TX_BLOCK_NUM_KEY found: " << maxKnownBlockNumStr);
+
   const auto maxKnownBlock = stoull(maxKnownBlockNumStr);
   // Iterate over a range of (maxKnownBlock + 1, maxTxBlockMined) and fill
   // missing gap if needed. Block Numbers are guaranteed to be increasing
@@ -2142,7 +1988,11 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
   // Update max known block number if there was anything to process
   currBlock -= 1;
   if (currBlock > maxKnownBlock) {
+    LOG_GENERAL(WARNING,
+                "Finished catchup with diff: " << currBlock - maxKnownBlock);
     m_txBlockchainAuxDB->Insert(leveldb::Slice(MAX_TX_BLOCK_NUM_KEY),
                                 leveldb::Slice(std::to_string(currBlock)));
+  } else {
+    LOG_GENERAL(WARNING, "There was nothing to catchup");
   }
 }

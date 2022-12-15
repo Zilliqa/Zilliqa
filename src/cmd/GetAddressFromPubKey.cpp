@@ -29,7 +29,6 @@
 #include "common/Serializable.h"
 #include "libData/AccountData/Address.h"
 #include "libUtils/CryptoUtils.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 

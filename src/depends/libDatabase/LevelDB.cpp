@@ -17,14 +17,14 @@
 
 #include <string>
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/operations.hpp>
 
 #include "LevelDB.h"
 #include "common/Constants.h"
 #include "depends/common/Common.h"
 #include "depends/common/CommonData.h"
 #include "depends/common/FixedHash.h"
-#include "libUtils/DataConversion.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 

@@ -23,22 +23,34 @@
 
 #include "common/Serializable.h"
 #include "ethash/ethash.hpp"
-// TODO: Move contents of internal to ethash.hpp
-#include "depends/cryptoutils/lib/ethash/ethash-internal.hpp"
 #include "libCrypto/Sha2.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/DataConversion.h"
 #include "pow.h"
 
+namespace ethash {
+
+// Prototype taken from lib/ethash/ethash-internal.hpp in CryptoUtils.
+// We just declare it here since we use this internal function below.
+hash256 calculate_seed(int epoch_number) noexcept;
+
+}  // namespace ethash
+
 #ifdef OPENCL_MINE
 #include "depends/libethash-cl/CLMiner.h"
 #endif
 
-#ifdef CUDA_MINE
-#include "depends/libethash-cuda/CUDAMiner.h"
-#endif
-
 using namespace boost::multiprecision;
+
+namespace {
+size_t clz(uint8_t x) {
+  static constexpr std::uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1,
+                                                  0, 0, 0, 0, 0, 0, 0, 0};
+  auto upper = (x >> 4) & 0x0F;
+  auto lower = x & 0x0F;
+  return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
+}
+}  // namespace
 
 POW::POW() {
   m_currentBlockNum = 0;
@@ -50,8 +62,8 @@ POW::POW() {
     m_httpClient->SetTimeout(MINING_PROXY_TIMEOUT_IN_MS);
   }
 
-  if (!GETWORK_SERVER_MINE && FULL_DATASET_MINE && !CUDA_GPU_MINE &&
-      !OPENCL_GPU_MINE && !REMOTE_MINE) {
+  if (!GETWORK_SERVER_MINE && FULL_DATASET_MINE && !OPENCL_GPU_MINE &&
+      !REMOTE_MINE) {
     m_epochContextFull = ethash::create_epoch_context_full(
         ethash::get_epoch_number(m_currentBlockNum));
   }
@@ -59,8 +71,6 @@ POW::POW() {
   if (!LOOKUP_NODE_MODE) {
     if (OPENCL_GPU_MINE) {
       InitOpenCL();
-    } else if (CUDA_GPU_MINE) {
-      InitCUDA();
     }
   }
 }
@@ -142,7 +152,7 @@ size_t POW::CountLeadingZeros(const ethash_hash256& boundary) {
 
   for (unsigned char b : boundary.bytes) {
     if (b != 0x00) {
-      count += DataConversion::clz(b);
+      count += clz(b);
       break;
     }
     count += 8;
@@ -244,8 +254,8 @@ bool POW::EthashConfigureClient(uint64_t block_number, bool fullDataset) {
     m_epochContextLight = ethash::create_epoch_context(epochNumber);
   }
 
-  bool isMineFullCpu = fullDataset && !CUDA_GPU_MINE && !OPENCL_GPU_MINE &&
-                       !GETWORK_SERVER_MINE && !REMOTE_MINE;
+  bool isMineFullCpu =
+      fullDataset && !OPENCL_GPU_MINE && !GETWORK_SERVER_MINE && !REMOTE_MINE;
 
   if (isMineFullCpu && (m_epochContextFull == nullptr ||
                         ethash::get_epoch_number(block_number) !=
@@ -749,7 +759,7 @@ zbytes POW::ConcatAndhash(const std::array<unsigned char, UINT256_SIZE>& rand1,
                                     sizeof(uint32_t));
   Serializable::SetNumber<uint128_t>(vec, vec.size(), gasPrice, UINT128_SIZE);
 
-  SHA2<256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(vec);
   zbytes sha2_result = sha2.Finalize();
   return sha2_result;
@@ -791,7 +801,7 @@ ethash_mining_result_t POW::PoWMine(uint64_t blockNum, uint8_t difficulty,
     result = RemoteMine(pairOfKey, blockNum, headerHash, boundary, timeWindow);
   } else if (GETWORK_SERVER_MINE) {
     result = MineGetWork(blockNum, headerHash, difficulty, timeWindow);
-  } else if (OPENCL_GPU_MINE || CUDA_GPU_MINE) {
+  } else if (OPENCL_GPU_MINE) {
     result =
         MineFullGPU(blockNum, headerHash, difficulty, startNonce, timeWindow);
   } else if (fullDataset) {
@@ -874,43 +884,6 @@ void POW::InitOpenCL() {
   LOG_GENERAL(FATAL,
               "The software is not build with OpenCL. Please enable the "
               "OpenCL build option and "
-              "and build software again");
-#endif
-}
-
-void POW::InitCUDA() {
-#ifdef CUDA_MINE
-  using namespace dev::eth;
-
-  auto gpuToUse = GetGpuToUse();
-  auto deviceGenerateDag = *gpuToUse.begin();
-  LOG_GENERAL(INFO, "Generate dag Nvidia GPU #" << deviceGenerateDag);
-
-  if (!CUDAMiner::configureGPU(CUDA_BLOCK_SIZE, CUDA_GRID_SIZE, CUDA_STREAM_NUM,
-                               CUDA_SCHEDULE_FLAG, 0, deviceGenerateDag, false,
-                               false)) {
-    LOG_GENERAL(FATAL, "Failed to configure CUDA GPU, please check hardware");
-  }
-
-  CUDAMiner::setNumInstances(gpuToUse.size());
-
-  auto totalGpuDevice = CUDAMiner::getNumDevices();
-  for (const auto gpuIndex : gpuToUse) {
-    if (gpuIndex >= totalGpuDevice) {
-      LOG_GENERAL(FATAL, "Selected GPU "
-                             << gpuIndex
-                             << " exceed the physical Nvidia GPU number "
-                             << totalGpuDevice);
-    }
-
-    m_miners.push_back(std::make_unique<CUDAMiner>(gpuIndex));
-    m_vecMiningResult.push_back(ethash_mining_result_t{"", "", 0, false});
-  }
-  LOG_GENERAL(INFO, "CUDA GPU initialized in POW");
-#else
-  LOG_GENERAL(FATAL,
-              "The software is not build with CUDA. Please enable the CUDA "
-              "build option "
               "and build software again");
 #endif
 }

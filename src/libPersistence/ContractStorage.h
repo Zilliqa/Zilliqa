@@ -19,17 +19,10 @@
 #define ZILLIQA_SRC_LIBPERSISTENCE_CONTRACTSTORAGE_H_
 
 #include <json/json.h>
-#include <leveldb/db.h>
-#include <shared_mutex>
+#include <mutex>
 
 #include "common/Constants.h"
-#include "common/Singleton.h"
 #include "depends/libDatabase/LevelDB.h"
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "depends/libDatabase/OverlayDB.h"
-#pragma GCC diagnostic pop
 
 #include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
@@ -40,10 +33,7 @@ namespace Contract {
 
 static std::string type_placeholder;
 
-enum TERM { TEMPORARY, SHORTTERM, LONGTERM };
-
-Index GetIndex(const dev::h160& address, const std::string& key);
-class ContractStorage : public Singleton<ContractStorage> {
+class ContractStorage : boost::noncopyable {
   LevelDB m_stateDataDB;
   LevelDB m_codeDB;
   LevelDB m_initDataDB;
@@ -103,8 +93,6 @@ class ContractStorage : public Singleton<ContractStorage> {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool PutContractCode(const dev::h160& address, const zbytes& code);
-
   /// Adds contract codes to persistence in batch
   bool PutContractCodeBatch(
       const std::unordered_map<std::string, std::string>& batch);
@@ -116,14 +104,10 @@ class ContractStorage : public Singleton<ContractStorage> {
   bool DeleteContractCode(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
-  bool PutInitData(const dev::h160& address, const zbytes& initData);
-
   bool PutInitDataBatch(
       const std::unordered_map<std::string, std::string>& batch);
 
   zbytes GetInitData(const dev::h160& address);
-
-  bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
   static std::string GenerateStorageKey(

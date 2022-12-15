@@ -22,7 +22,6 @@
 #include "common/Constants.h"
 #include "MemoryDB.h"
 #include "libUtils/Logger.h"
-#include "libUtils/DataConversion.h"
 
 using namespace std;
 using namespace dev;

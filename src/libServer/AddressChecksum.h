@@ -21,8 +21,8 @@
 
 #include <ethash/keccak.hpp>
 #include "common/Constants.h"
+#include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/HashUtils.h"
 
 class AddressChecksum {
  public:
@@ -48,7 +48,7 @@ class AddressChecksum {
       LOG_GENERAL(WARNING, "DataConversion::HexStrToUint8Vec Failed");
       return "";
     }
-    zbytes hash_s = HashUtils::BytesToHash(tmpaddr);
+    zbytes hash_s = SHA256Calculator::FromBytes(tmpaddr);
 
     uint256_t temp_1 = 1;
     std::string ret = "";

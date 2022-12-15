@@ -16,6 +16,7 @@
  */
 
 #include "TransactionReceipt.h"
+#include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/JsonUtils.h"
 
@@ -222,5 +223,38 @@ bool TransactionWithReceipt::Deserialize(const string& src,
     LOG_GENERAL(WARNING, "Messenger::GetTransactionWithReceipt failed.");
     return false;
   }
+  return true;
+}
+
+TxnHash TransactionWithReceipt::ComputeTransactionReceiptsHash(
+    const std::vector<TransactionWithReceipt>& txrs) {
+  if (txrs.empty()) {
+    LOG_GENERAL(INFO, "txrs is empty");
+    return TxnHash();
+  }
+
+  SHA256Calculator sha2;
+  for (const auto& tr : txrs) {
+    sha2.Update(DataConversion::StringToCharArray(
+        tr.GetTransactionReceipt().GetString()));
+  }
+  return TxnHash(sha2.Finalize());
+}
+
+bool TransactionWithReceipt::ComputeTransactionReceiptsHash(
+    const std::vector<TxnHash>& txnOrder,
+    std::unordered_map<TxnHash, TransactionWithReceipt>& txrs,
+    TxnHash& trHash) {
+  std::vector<TransactionWithReceipt> vec;
+
+  for (const auto& th : txnOrder) {
+    auto it = txrs.find(th);
+    if (it == txrs.end()) {
+      LOG_GENERAL(WARNING, "Missing txnHash " << th);
+      return false;
+    }
+    vec.emplace_back(it->second);
+  }
+  trHash = ComputeTransactionReceiptsHash(vec);
   return true;
 }

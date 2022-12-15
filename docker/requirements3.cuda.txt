@@ -1,3 +1,0 @@
-requests==2.24.0
-clint==0.5.1
-future==0.18.2

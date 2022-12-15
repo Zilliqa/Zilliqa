@@ -28,7 +28,7 @@
 
 #include "libUtils/Queue.h"
 
-namespace evmproj {
+namespace rpc {
 
 class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
  public:
@@ -73,9 +73,9 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   using OwnerFeedback = std::function<void(Response&& response)>;
 
   /// Spawns threads
-  APIThreadPool(boost::asio::io_context& asio, size_t numThreads,
-                size_t maxQueueSize, ProcessRequest processRequest,
-                OwnerFeedback ownerFeedback);
+  APIThreadPool(boost::asio::io_context& asio, std::string name,
+                size_t numThreads, size_t maxQueueSize,
+                ProcessRequest processRequest, OwnerFeedback ownerFeedback);
 
   /// Joins the threads
   ~APIThreadPool();
@@ -100,6 +100,9 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   /// Asio context is needed here to send replies to the network thread
   boost::asio::io_context& m_asio;
 
+  /// Threadpool (short) name for logs
+  std::string m_name;
+
   /// Process request callback
   ProcessRequest m_processRequest;
 
@@ -116,6 +119,6 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   utility::Queue<Response> m_responseQueue;
 };
 
-}  // namespace evmproj
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_APITHREADPOOL_H_

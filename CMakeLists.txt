@@ -57,33 +57,18 @@ find_package(Threads REQUIRED)
 
 find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
 
-if(NOT TARGET jsonrpc-project)
-   include(InstallJsonrpccpp)
-endif()
-include_directories(${JSONRPC_INCLUDE_DIR})
-
 find_package(Schnorr REQUIRED)
+find_package(CryptoUtils REQUIRED)
 
-include(InstallCryptoUtils)
 include(ProjectSecp256k1)
 
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 include_directories(${OPENSSL_INCLUDE_DIR})
 
-if(OPENCL_MINE AND CUDA_MINE)
-    message(FATAL_ERROR "Cannot support OpenCL (OPENCL_MINE=ON) and CUDA (CUDA=ON) at the same time")
-endif()
-
 if(OPENCL_MINE)
     message(STATUS "OpenCL enabled")
     find_package(OpenCL REQUIRED)
     add_definitions(-DOPENCL_MINE)
-endif()
-
-if(CUDA_MINE)
-    message(STATUS "CUDA enabled")
-    find_package(CUDA REQUIRED)
-    add_definitions(-DCUDA_MINE)
 endif()
 
 # VC related test scenario
@@ -290,7 +275,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 # using internal jsonrpc variant
-include_directories(${CMAKE_BINARY_DIR}/src/depends/jsonrpc/include)
+include_directories(BEFORE ${CMAKE_SOURCE_DIR}/src/depends)
 
 add_subdirectory(src)
 add_subdirectory(daemon)
@@ -307,15 +292,11 @@ set_target_properties(buildTxBlockHashesToNums genaccounts genkeypair genTxnBodi
                       getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-set_target_properties(Common Trie CryptoUtils NAT
+set_target_properties(Common Trie NAT
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 if(OPENCL_MINE)
     set_target_properties(ethash-cl PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-endif()
-
-if(CUDA_MINE)
-    set_target_properties(ethash-cuda PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 endif()
 
 install(

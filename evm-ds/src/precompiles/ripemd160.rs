@@ -12,7 +12,7 @@ pub(crate) fn ripemd160(
     target_gas: Option<u64>,
     _context: &Context,
     _is_static: bool,
-) -> std::result::Result<PrecompileOutput, PrecompileFailure> {
+) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {
         Ok(i) => i,
         Err(err) => return Err(PrecompileFailure::Error { exit_status: err }),
@@ -30,12 +30,13 @@ pub(crate) fn ripemd160(
     let mut output = vec![0u8; 32];
     output[12..].copy_from_slice(&hash);
 
-    Ok(PrecompileOutput {
+    Ok((
+        PrecompileOutput {
+            exit_status: ExitSucceed::Returned,
+            output,
+        },
         cost,
-        exit_status: ExitSucceed::Returned,
-        logs: vec![],
-        output,
-    })
+    ))
 }
 
 fn internal_impl(input: &[u8]) -> [u8; 20] {

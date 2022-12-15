@@ -18,15 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
 
-#include <array>
-
-#include <Schnorr.h>
 #include "BlockBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
 #include "libData/BlockData/BlockHeader/BlockHashSet.h"
 #include "libData/BlockData/BlockHeader/TxBlockHeader.h"
-#include "libNetwork/Peer.h"
 
 struct MicroBlockInfo {
   BlockHash m_microBlockHash;
@@ -75,13 +69,14 @@ class TxBlock : public BlockBase {
           const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
 
   /// Implements the Serialize function inherited from Serializable.
-  bool Serialize(zbytes& dst, unsigned int offset) const;
+  virtual bool Serialize(zbytes& dst, unsigned int offset) const override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const zbytes& src, unsigned int offset);
+  virtual bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  bool Deserialize(const std::string& src, unsigned int offset);
+  virtual bool Deserialize(const std::string& src,
+                           unsigned int offset) override;
 
   /// Returns the reference to the TxBlockHeader part of the Tx block.
   const TxBlockHeader& GetHeader() const;

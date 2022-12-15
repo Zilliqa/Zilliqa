@@ -18,15 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_TRANSACTION_H_
 
-#include <array>
-
 #include <Schnorr.h>
 #include "Address.h"
 #include "common/Constants.h"
+#include "common/Hashes.h"
 #include "common/Serializable.h"
-#include "depends/common/FixedHash.h"
-
-using TxnHash = dev::h256;
 
 struct TransactionCoreInfo {
   TransactionCoreInfo() = default;
@@ -213,6 +209,8 @@ class Transaction : public SerializableDataBlock {
 
     return ERROR;
   }
+
+  static bool Verify(const Transaction& tx);
 
   /// Equality comparison operator.
   bool operator==(const Transaction& tran) const;
