@@ -30,11 +30,6 @@
 #include <cctype>
 #include <string>
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
-#include "ScillaMessage.pb.h"
-#pragma GCC diagnostic pop
-
 #ifndef __APPLE__
 #include <bits/stdc++.h>
 #endif
