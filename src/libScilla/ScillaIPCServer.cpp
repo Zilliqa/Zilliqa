@@ -147,7 +147,6 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
   if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::SCILLA_IPC)) {
     m_scillaIPCCount->Add(1, {{"Method", "fetchExternalStateValueB64I"}});
   }
-  m_scillaIPCCount->Add(10, {{"External", "Test"}, {"Message type", 5}});
   std::string value, type;
   bool found;
   string query = base64_decode(request["query"].asString());
