@@ -76,8 +76,8 @@ parallelize=1
 build_type="RelWithDebInfo"
 
 ./scripts/license_checker.sh
-./scripts/ci_xml_checker.sh constants.xml
-./scripts/ci_xml_checker.sh constants_local.xml
+#./scripts/ci_xml_checker.sh constants.xml
+#./scripts/ci_xml_checker.sh constants_local.xml
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi
 
 for option in "$@"
@@ -263,6 +263,6 @@ if command -v ccache &> /dev/null; then
   ccache -s
 fi
 
-if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-tidy-fix; fi
-if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-format-fix; fi
-if [ ${run_code_coverage} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target Zilliqa_coverage; fi
+#if [ ${run_clang_tidy_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-tidy-fix; fi
+#if [ ${run_clang_format_fix} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target clang-format-fix; fi
+#if [ ${run_code_coverage} -ne 0 ]; then cmake --build "${build_dir}" --config ${build_type} --target Zilliqa_coverage; fi

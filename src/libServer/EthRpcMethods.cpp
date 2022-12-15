@@ -669,9 +669,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   uint256_t value = 0;
+  uint128_t valueSmall = 0;
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
     value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    valueSmall = DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -746,7 +748,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   LOG_GENERAL(WARNING, "Estimating evm gas");
 
-  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
+  AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\b_balance", valueSmall);
+  auto res = AccountStore::GetInstance().ViewAccounts(args, result);
+  AccountStore::GetInstance().m_scillaIPCServer->clearOverrides();
+
+  if (res &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();

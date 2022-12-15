@@ -22,9 +22,23 @@
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
+#include "libData/AccountData/Account.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include <algorithm>
+#include <cctype>
+#include <string>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include "ScillaMessage.pb.h"
+#pragma GCC diagnostic pop
+
+#ifndef __APPLE__
+#include <bits/stdc++.h>
+#endif
+#include <boost/algorithm/string.hpp>
 
 using namespace std;
 using namespace Contract;
@@ -220,6 +234,24 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
     m_scillaIPCCount->Add(1, {{"Method", "fetchExternalStateValue"}});
   }
   zbytes destination;
+
+  auto combinedKey = addr + query;
+  std::transform(combinedKey.begin(), combinedKey.end(), combinedKey.begin(),
+                 [](unsigned char c){ return std::tolower(c); });
+  std::unique_ptr<Account> injected;
+
+  if(overrides.contains(combinedKey)) {
+    auto const &item = overrides[combinedKey];
+
+    injected = std::make_unique<Account>(item, 0, 0);
+
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING,
+                  "Request for state val: " << addr << " with query: " << query);
+      LOG_GENERAL(WARNING,
+                  "Responding with overridden value: " << item << " AKA " << value);
+    }
+  }
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
           m_BCInfo.getCurContrAddr(), Address(addr),
