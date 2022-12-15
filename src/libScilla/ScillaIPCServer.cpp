@@ -248,20 +248,15 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   }
   zbytes destination;
   
-  //auto addrCopy = addr;
-  //addrCopy.erase(std::remove(addrCopy.begin(), addrCopy.end(), '\n'), addrCopy.cend());
   auto combinedKey = addr + query;
-
   std::transform(combinedKey.begin(), combinedKey.end(), combinedKey.begin(),
                  [](unsigned char c){ return std::tolower(c); });
-  std::cerr << "combi: " << combinedKey << std::endl;
-
   std::unique_ptr<Account> injected;
 
   if(overrides.contains(combinedKey)) {
     auto const &item = overrides[combinedKey];
 
-    injected = std::make_unique<Account>(9999, 0, 0);
+    injected = std::make_unique<Account>(item, 0, 0);
 
     if (LOG_SC) {
       LOG_GENERAL(WARNING,
@@ -275,7 +270,6 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
           m_BCInfo.getCurContrAddr(), Address(addr),
           DataConversion::StringToCharArray(query), 0, destination, 0, found,
           type, std::numeric_limits<uint32_t>::max(), injected.get())) {
-    std::cerr << "wtf" << std::endl;
     return false;
   }
 
