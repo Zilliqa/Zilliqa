@@ -54,6 +54,15 @@
 #include "common/TxnStatus.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
+
+namespace {
+
+std::string txnIdToString(const TxnHash& txn) {
+  std::ostringstream str;
+  str << "0x" << txn;
+  return str.str();
+}
+}  // namespace
 /*
  *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
  *                       const TxnExtras& extras, bool commit = true)
@@ -69,8 +78,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
       m_legacyTxn(txn),
       m_direct(false),
       m_commit(commit),
-      m_blockNumber(blkNum){
-
+      m_blockNumber(blkNum) {
   *m_protoData.mutable_address() = AddressToProto(txn.GetToAddr());
 
   *m_protoData.mutable_origin() = AddressToProto(txn.GetSenderAddr());
@@ -79,7 +87,10 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
   *m_protoData.mutable_data() =
       DataConversion::CharArrayToString(txn.GetData());
   m_protoData.set_gas_limit(txn.GetGasLimitEth());
-  *m_protoData.mutable_apparent_value() = UIntToProto(txn.GetAmountWei().convert_to<uint256_t>());
+  *m_protoData.mutable_apparent_value() =
+      UIntToProto(txn.GetAmountWei().convert_to<uint256_t>());
+
+  *m_protoData.mutable_context() = txnIdToString(txn.GetTranID());
 
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
@@ -99,7 +110,8 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
 EvmProcessContext::EvmProcessContext(
     const Address& caller, const Address& contract, const zbytes& code,
     const zbytes& data, const uint64_t& gas, const uint256_t& amount,
-    const uint64_t& blkNum, const TxnExtras& extras, bool estimate)
+    const uint64_t& blkNum, const TxnExtras& extras, std::string_view context,
+    bool estimate)
     : m_txnCode(code),
       m_txnData(data),
       m_legacyTxn(m_dummyTransaction),
@@ -113,13 +125,13 @@ EvmProcessContext::EvmProcessContext(
   m_protoData.set_gas_limit(gas);
   *m_protoData.mutable_apparent_value() = UIntToProto(amount);
   m_protoData.set_estimate(estimate);
+  *m_protoData.mutable_context() = context;
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
   }
 }
 
 bool EvmProcessContext::GetCommit() const { return m_commit; }
-
 
 /*
  * SetCode(const zbytes& code)
@@ -178,6 +190,10 @@ dev::h256 EvmProcessContext::GetTranID() const {
  * */
 
 const bool& EvmProcessContext::GetStatus() const { return m_status; }
+
+void EvmProcessContext::SetGasLimit(uint64_t gasLimit) {
+  m_protoData.set_gas_limit(gasLimit);
+}
 
 /*
  * GetEvmArgs()

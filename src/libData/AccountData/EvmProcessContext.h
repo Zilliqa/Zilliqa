@@ -72,7 +72,8 @@ struct EvmProcessContext {
   EvmProcessContext(const Address& caller, const Address& contract,
                     const zbytes& code, const zbytes& data, const uint64_t& gas,
                     const uint256_t& amount, const uint64_t& blkNum,
-                    const TxnExtras& extras, bool estimate = false);
+                    const TxnExtras& extras, std::string_view context,
+                    bool estimate = false);
 
   bool GetCommit() const;
 
@@ -127,6 +128,7 @@ struct EvmProcessContext {
 
   const bool& GetStatus() const;
 
+  void SetGasLimit(uint64_t gasLimit);
 
   /*
    * GetEvmArgs()
