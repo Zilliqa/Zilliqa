@@ -120,13 +120,15 @@ class Observable {
   // for ctor.
   friend Metrics;
 
-  Observable(observable_t ob) : m_observable(std::move(ob)) {
+  Observable(zil::metrics::FilterClass filter, observable_t ob)
+      : m_filter(filter), m_observable(std::move(ob)) {
     assert(m_observable);
   }
 
   static void RawCallback(
       opentelemetry::metrics::ObserverResult observer_result, void* state);
 
+  zil::metrics::FilterClass m_filter;
   observable_t m_observable;
   Callback m_callback;
 };
@@ -148,46 +150,50 @@ class Metrics : public Singleton<Metrics> {
                                                   const std::string& desc,
                                                   std::string_view unit = "");
 
-  zil::metrics::Observable CreateInt64UpDownMetric(const std::string& family,
-                                                   const std::string& name,
-                                                   const std::string& desc,
-                                                   std::string_view unit = "");
-
-  zil::metrics::Observable CreateInt64Gauge(const std::string& family,
-                                            const std::string& name,
-                                            const std::string& desc,
-                                            std::string_view unit = "");
-
-  zil::metrics::Observable CreateDoubleUpDownMetric(const std::string& family,
-                                                    const std::string& name,
-                                                    const std::string& desc,
-                                                    std::string_view unit = "");
-
-  zil::metrics::Observable CreateDoubleGauge(const std::string& family,
-                                             const std::string& name,
-                                             const std::string& desc,
-                                             std::string_view unit = "");
-
   zil::metrics::doubleCounter_t CreateDoubleMetric(const std::string& family,
                                                    const std::string& name,
                                                    const std::string& desc,
                                                    std::string_view unit = "");
 
-  zil::metrics::doubleHistogram_t CreateDoubleHistogram(
-      const std::string& family, const std::string& name,
-      const std::string& desc, std::string_view unit = "");
-
   zil::metrics::uint64Historgram_t CreateUInt64Histogram(
       const std::string& family, const std::string& name,
       const std::string& desc, std::string_view unit = "");
 
-  zil::metrics::Observable CreateInt64ObservableCounter(
+  zil::metrics::doubleHistogram_t CreateDoubleHistogram(
       const std::string& family, const std::string& name,
       const std::string& desc, std::string_view unit = "");
 
+  zil::metrics::Observable CreateInt64UpDownMetric(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
+
+  zil::metrics::Observable CreateInt64Gauge(zil::metrics::FilterClass filter,
+                                            const std::string& family,
+                                            const std::string& name,
+                                            const std::string& desc,
+                                            std::string_view unit = "");
+
+  zil::metrics::Observable CreateDoubleUpDownMetric(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
+
+  zil::metrics::Observable CreateDoubleGauge(zil::metrics::FilterClass filter,
+                                             const std::string& family,
+                                             const std::string& name,
+                                             const std::string& desc,
+                                             std::string_view unit = "");
+
+  zil::metrics::Observable CreateInt64ObservableCounter(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
+
   zil::metrics::Observable CreateDoubleObservableCounter(
-      const std::string& family, const std::string& name,
-      const std::string& desc, std::string_view unit = "");
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
 
   /// Called on main() exit explicitly
   void Shutdown();

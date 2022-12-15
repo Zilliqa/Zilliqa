@@ -116,8 +116,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   /// Metrics callback for block number
   zil::metrics::Observable m_accountStoreCount{
       Metrics::GetInstance().CreateInt64Gauge(
-          "zilliqa_accountstore", "blockchain_gauge",
-          "Metrics for AccountStore", "blocks")};
+          zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "zilliqa_accountstore",
+          "blockchain_gauge", "Metrics for AccountStore", "blocks")};
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
