@@ -1,18 +1,12 @@
 # Running a local network
 
 1. Install [kind](https://kind.sigs.k8s.io/#installation-and-usage).
+1. Install [tilt](https://docs.tilt.dev/install.html).
 1. Create and switch to a kind cluster.
 
     ```
     kind create cluster --config infra/kind-cluster.yaml
     kubectl config use-context kind-kind
-    ```
-
-1. (Optionally, if you want to use an image from AWS) create a Kubernetes secret containing the docker registry credentials.
-You may need to authenticate to AWS first.
-
-    ```
-    kubectl create secret docker-registry ecr-creds --docker-server 648273915458.dkr.ecr.us-west-2.amazonaws.com --docker-username AWS --docker-password $(aws ecr get-login-password)
     ```
 
 1. Deploy the nginx ingress controller and wait for it to start up.
@@ -22,11 +16,10 @@ You may need to authenticate to AWS first.
     kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=300s
     ```
 
-1. (Optionally) change the Zilliqa container image in `infra/k8s/base/kustomization.yaml`.
-1. Deploy the network.
+1. Run Tilt to deploy the network.
 
     ```
-    kubectl apply -k infra/k8s/base
+    tilt up
     ```
 
 1. Obtain the IP address of the kind cluster.
