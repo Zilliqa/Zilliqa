@@ -40,9 +40,9 @@ var parallelizer = {
   },
   sendTransaction: async function (txn) {
     const signer = await this.takeSigner();
-    const receipt = await signer.sendTransaction(txn);
+    const response = await signer.sendTransaction(txn);
     this.releaseSigner(signer);
-    return receipt;
+    return {response, signer_address: signer.address};
   },
   createRandomAccount: function () {
     return ethers.Wallet.createRandom().connect(ethers.provider);

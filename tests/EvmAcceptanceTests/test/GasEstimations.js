@@ -16,12 +16,12 @@ describe("Gas estimation with web3.js", function () {
         value: ethers.utils.parseUnits("300", "gwei")
       });
 
-      const txSend = await signer.sendTransaction({
+      const response = await signer.sendTransaction({
         to: to.address,
         value: ethers.utils.parseUnits("300", "gwei")
       });
 
-      const receipt = await ethers.provider.getTransactionReceipt(txSend.hash);
+      const receipt = await ethers.provider.getTransactionReceipt(response.hash);
       expect(gasAmountEst).to.be.equal(receipt.gasUsed);
       parallelizer.releaseSigner(signer);
     });
