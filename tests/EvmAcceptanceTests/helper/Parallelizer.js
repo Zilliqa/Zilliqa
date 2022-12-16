@@ -1,38 +1,66 @@
-const {ethers} = require("hardhat");
+const {ethers, web3} = require("hardhat");
 
 var parallelizer = {
   signers: [],
-  signerAddresses: [],
   initSigners: async function () {
-    this.signers = Array.from({length: 10}, (v, k) => ethers.Wallet.createRandom().connect(ethers.provider));
-    this.signerAddresses = this.signers.map((signer) => signer.address);
+    const signer = await this.getSignerForCurrentWorker();
+    const newSigners = Array.from({length: 10}, (v, k) => ethers.Wallet.createRandom().connect(ethers.provider));
     const BatchTransferContract = await ethers.getContractFactory("BatchTransfer");
-    const batchTransfer = await BatchTransferContract.deploy(this.signerAddresses, {value: 20_000_000});
+    const batchTransfer = await BatchTransferContract.connect(signer).deploy({value: 10_000_000_000_000});
     await batchTransfer.deployed();
+    const addresses = newSigners.map((signer) => signer.address);
+    await batchTransfer.batchTransfer(addresses, 1_000_000_000_000);
 
-    for (let index = 0; index < this.signers.length; index++) {
-      console.log("khar, ", this.signerAddresses[index], await ethers.provider.getBalance(this.signerAddresses[index]));
-    }
+    this.signers.push(...newSigners);
   },
   deployContract: async function (contractName, ...args) {
-    const signers = await ethers.getSigners();
-    const signerIndex = process.env.MOCHA_WORKER_ID % signers.length || 0;
-    const signer = signers[signerIndex];
-    this.xxx.push(signerIndex);
-    console.log(
-      `ContractName: ${contractName}, MochaID: ${process.env.MOCHA_WORKER_ID} ID: ${signerIndex}, Address: ${signer.address}`
-    );
-    console.log("KKKK", this.xxx);
-
+    const signer = await this.takeSigner();
     const Contract = await ethers.getContractFactory(contractName);
     return Contract.connect(signer).deploy(...args);
+  },
+  deployContractWeb3: async function (contractName, options = {}, ...args) {
+    const signer = await this.takeSigner();
+
+    web3.eth.accounts.wallet.add(signer.privateKey);
+    const contractRaw = hre.artifacts.readArtifactSync(contractName);
+    const contract = new web3.eth.Contract(contractRaw.abi);
+    const gasPrice = options.gasPrice || (await web3.eth.getGasPrice());
+    const gasLimit = options.gasLimit || 210_000;
+
+    const deployedContract = await contract.deploy({data: contractRaw.bytecode, arguments: args}).send({
+      from: signer.address,
+      gas: gasLimit,
+      gasPrice: gasPrice,
+      value: options.value ?? 0
+    });
+
+    deployedContract.options.from = signer.address;
+    deployedContract.options.gas = gasLimit;
+    return deployedContract;
+  },
+  sendTransaction: async function (txn) {
+    const signer = await this.takeSigner();
+    const receipt = await signer.sendTransaction(txn);
+    this.releaseSigner(signer);
+    return receipt;
   },
   createRandomAccount: function () {
     return ethers.Wallet.createRandom().connect(ethers.provider);
   },
+  takeSigner: async function () {
+    if (this.signers.length == 0) {
+      // Need to create new signers
+      await this.initSigners();
+    }
+
+    return this.signers.pop();
+  },
+  releaseSigner: function (...signer) {
+    this.signers.push(...signer);
+  },
   getSignerForCurrentWorker: async function () {
     const signers = await ethers.getSigners();
-    return signers[process.env.MOCHA_WORKER_ID % this.signers.length || 0];
+    return signers[(process.env.MOCHA_WORKER_ID || 0) % signers.length];
   }
 };
 
