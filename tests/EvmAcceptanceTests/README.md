@@ -185,6 +185,12 @@ it("Should return correct value for string [@transactional, @ethers_js]", async 
 
 
 # miscellaneous
+## Scripts
+To get the balances of the current accounts, run:
+```bash
+npx hardhat run scripts/Accounts.js
+npx hardhat run scripts/Accounts.js --network public_testnet
+```
 
 ## Setup github pre-commit hook
 
