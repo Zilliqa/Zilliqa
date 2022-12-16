@@ -29,12 +29,14 @@ describe("ForwardZil contract functionality", function () {
   });
 
   it("should be possible to transfer ethers to the contract", async function () {
-    expect(
-      await this.signer.sendTransaction({
-        to: this.contract.address,
-        value: FUND
-      })
-    ).to.changeEtherBalance(this.contract.address, FUND);
+    const prevBalance = await ethers.provider.getBalance(this.contract.address);
+    await parallelizer.sendTransaction({
+      to: this.contract.address,
+      value: FUND
+    });
+
+    const currentBalance = await ethers.provider.getBalance(this.contract.address);
+    expect(currentBalance - prevBalance).to.be.eq(FUND);
   });
 });
 
@@ -42,11 +44,11 @@ describe("Transfer ethers", function () {
   it("should be possible to transfer ethers to a user account", async function () {
     const payee = ethers.Wallet.createRandom();
 
-    expect(
-      await parallelizer.sendTransaction({
-        to: payee.address,
-        value: FUND
-      })
-    ).to.changeEtherBalance(payee.address, FUND);
+    await parallelizer.sendTransaction({
+      to: payee.address,
+      value: FUND
+    });
+
+    expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
 });
