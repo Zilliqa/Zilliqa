@@ -12,6 +12,7 @@ add_library(AccountData
     ScillaClient.cpp
     EvmClient.cpp
     InvokeType.h
-    AccountStoreSCEvm.cpp)
+    AccountStoreSCEvm.cpp
+    EvmProcessContext.cpp)
 target_include_directories(AccountData PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(AccountData PUBLIC Utils Scilla Block BlockHeader Message Trie TraceableDB EthCrypto PRIVATE EthUtils)
