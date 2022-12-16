@@ -25,6 +25,7 @@
 
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
@@ -1471,8 +1472,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
+          account->GetStorageRoot(), scilla_version);
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -1509,8 +1510,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
+          account->GetStorageRoot(), scilla_version);
 
       std::string runnerPrint;
       bool result = true;
