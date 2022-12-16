@@ -42,8 +42,8 @@ using namespace Contract;
 // =======================================
 // AccountBase
 
-AccountBase::AccountBase(const uint128_t& balance, const uint64_t& nonce,
-                         const uint32_t& version)
+AccountBase::AccountBase(const uint128_t& balance, uint64_t nonce,
+                         uint32_t version)
     : m_version(version),
       m_balance(balance),
       m_nonce(nonce),
@@ -144,16 +144,8 @@ bool Account::IsLibrary() const {
   return (m_is_library && m_codeHash != dev::h256());
 }
 
-// =======================================
-// Account
-Account::Account(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init Account.");
-  }
-}
-
-Account::Account(const uint128_t& balance, const uint64_t& nonce,
-                 const uint32_t& version)
+Account::Account(const uint128_t& balance, uint64_t nonce,
+                 uint32_t version /* = VERSION*/)
     : AccountBase(balance, nonce, version) {}
 
 bool Account::InitContract(const zbytes& code, const zbytes& initData,
@@ -430,7 +422,7 @@ Address Account::GetAddressFromPublicKey(const PubKey& pubKey) {
 
   zbytes vec;
   pubKey.Serialize(vec, 0);
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(vec);
 
   const zbytes& output = sha2.Finalize();
@@ -467,7 +459,7 @@ Address Account::GetAddressForContract(const Address& sender,
 
   // Zil-style TXs
   if (version == TRANSACTION_VERSION) {
-    SHA2<HashType::HASH_VARIANT_256> sha2;
+    SHA256Calculator sha2;
     zbytes conBytes;
     copy(sender.asArray().begin(), sender.asArray().end(),
          back_inserter(conBytes));
@@ -526,7 +518,7 @@ bool Account::GetContractCodeHash(dev::h256& contractCodeHash) const {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(codeCache);
   contractCodeHash = dev::h256(sha2.Finalize());
 
@@ -594,7 +586,7 @@ bool Account::SetImmutable(const zbytes& code, const zbytes& initData) {
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(StripEVM(code));
   sha2.Update(initData);
   SetCodeHash(dev::h256(sha2.Finalize()));

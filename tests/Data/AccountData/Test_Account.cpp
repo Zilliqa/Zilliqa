@@ -17,6 +17,7 @@
 
 #include <array>
 #include <string>
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
@@ -217,7 +218,7 @@ BOOST_AUTO_TEST_CASE(testSerialize) {
   zbytes message1;
 
   zbytes code = dev::h256::random().asBytes();
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(code);
   dev::h256 hash = dev::h256(sha2.Finalize());
   acc1.SetCode(code);

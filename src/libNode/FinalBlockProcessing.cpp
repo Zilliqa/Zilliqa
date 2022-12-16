@@ -41,10 +41,8 @@
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/MemoryStats.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
@@ -1158,7 +1156,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(stateDeltaBytes);
   StateHash stateDeltaHash(sha2.Finalize());
 

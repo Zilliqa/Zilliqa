@@ -27,7 +27,6 @@
 #include "common/Messages.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
-#include "libUtils/HashUtils.h"
 
 namespace {
 RRS::Message::Type convertType(uint8_t type) {
@@ -249,7 +248,7 @@ bool RumorManager::AddForeignRumor(const RumorManager::RawBytes& message) {
 bool RumorManager::AddRumor(const RumorManager::RawBytes& message) {
   LOG_MARKER();
   if (message.size() > 0 && message.size() <= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
-    RawBytes hash = HashUtils::BytesToHash(message);
+    RawBytes hash = SHA256Calculator::FromBytes(message);
     std::string output;
     if (!DataConversion::Uint8VecToHexStr(hash, output)) {
       return false;
@@ -543,7 +542,7 @@ std::pair<bool, RumorManager::RawBytes> RumorManager::RumorReceived(
     if (message_wo_keysig.size() >
         0)  // if someone malaciously sends empty message, sha2 will assert fail
     {
-      hash = HashUtils::BytesToHash(message_wo_keysig);
+      hash = SHA256Calculator::FromBytes(message_wo_keysig);
       std::string hashStr;
       DataConversion::Uint8VecToHexStr(hash, hashStr);
 
@@ -726,7 +725,7 @@ void RumorManager::PrintStatistics() {
     uint32_t rumorId = i.first;
     auto it = m_rumorIdHashBimap.left.find(rumorId);
     if (it != m_rumorIdHashBimap.left.end()) {
-      zbytes this_msg_hash = HashUtils::BytesToHash(it->second);
+      zbytes this_msg_hash = SHA256Calculator::FromBytes(it->second);
       const RRS::RumorStateMachine& state = i.second;
       std::string gossipHashStr;
       if (!DataConversion::Uint8VecToHexStr(this_msg_hash, gossipHashStr)) {

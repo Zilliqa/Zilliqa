@@ -25,10 +25,10 @@
 
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
 

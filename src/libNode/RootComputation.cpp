@@ -19,6 +19,7 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace dev;
@@ -44,7 +45,7 @@ template <typename... Container>
 TxnHash ConcatTranAndHash(const Container&... conts) {
   LOG_MARKER();
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   bool hasValue = false;
 
   (void)std::initializer_list<int>{(

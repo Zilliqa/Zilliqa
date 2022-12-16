@@ -434,7 +434,7 @@ bool Validator::CheckDirBlocks(
     }
   }
 
-  newDSComm = move(mutable_ds_comm);
+  newDSComm = std::move(mutable_ds_comm);
   return ret;
 }
 
@@ -534,7 +534,7 @@ bool Validator::CheckDirBlocksNoUpdate(
     }
   }
 
-  newDSComm = move(mutable_ds_comm);
+  newDSComm = std::move(mutable_ds_comm);
   return ret;
 }
 
