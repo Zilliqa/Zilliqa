@@ -7,23 +7,23 @@ describe("Gas estimation with web3.js", function () {
 
   describe("When a fund transfer is made", function () {
     it("should return proper estimation [@transactional]", async function () {
-      const from = await parallelizer.takeSigner();
       const to = parallelizer.createRandomAccount();
+      const signer = await parallelizer.takeSigner();
 
       const gasAmountEst = await ethers.provider.estimateGas({
         to: to.address,
-        from: from.address,
+        from: signer.address,
         value: ethers.utils.parseUnits("300", "gwei")
       });
 
-      const txSend = await from.sendTransaction({
+      const txSend = await signer.sendTransaction({
         to: to.address,
         value: ethers.utils.parseUnits("300", "gwei")
       });
 
       const receipt = await ethers.provider.getTransactionReceipt(txSend.hash);
       expect(gasAmountEst).to.be.equal(receipt.gasUsed);
-      parallelizer.releaseSigner(from);
+      parallelizer.releaseSigner(signer);
     });
   });
 
