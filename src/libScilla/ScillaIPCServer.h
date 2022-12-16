@@ -32,12 +32,6 @@ class ScillaBCInfo {
              const Address& originAddr, const Address& curContrAddr,
              const dev::h256& rootHash, const uint32_t scillaVersion);
 
-  //  ~ScillaBCInfo();
-  //  ScillaBCInfo(const ScillaBCInfo&) = default;
-  //  ScillaBCInfo(ScillaBCInfo&&) = default;
-  //  ScillaBCInfo& operator=(const ScillaBCInfo&) = default;
-  //  ScillaBCInfo& operator=(ScillaBCInfo&&) = default;
-
   const uint64_t& getCurBlockNum() const { return m_curBlockNum; }
   const uint64_t& getCurDSBlockNum() const { return m_curDSBlockNum; }
   const dev::h256& getRootHash() const { return m_rootHash; }

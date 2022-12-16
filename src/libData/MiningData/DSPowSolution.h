@@ -18,10 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBDATA_MININGDATA_DSPOWSOLUTION_H_
 #define ZILLIQA_SRC_LIBDATA_MININGDATA_DSPOWSOLUTION_H_
 
-#include <array>
-
 #include <Schnorr.h>
-#include "common/Constants.h"
+#include "common/BaseType.h"
 #include "libNetwork/Peer.h"
 
 /// Stores information on a single pow solution.

@@ -286,7 +286,7 @@ bool Transaction::SetHash(zbytes const& txnData) {
   }
 
   // Generate the transaction ID
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(txnData);
   const zbytes& output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {

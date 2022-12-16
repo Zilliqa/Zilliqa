@@ -17,7 +17,6 @@
 
 #include "DataSender.h"
 
-#include "libCrypto/Sha2.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"

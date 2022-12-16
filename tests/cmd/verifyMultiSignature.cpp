@@ -27,6 +27,7 @@
 #include <openssl/sha.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/program_options.hpp>
+#include "libCrypto/Sha2.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
@@ -68,52 +69,6 @@ struct Curve {
     if (!EC_GROUP_get_order(m_group.get(), m_order.get(), NULL)) {
       throw "Recover curve order failed";
     }
-  }
-};
-
-#define HASH_VARIANT_256 256
-
-template <unsigned int SIZE>
-class SHA2 {
-  static const unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
-  SHA256_CTX m_context{};
-  zbytes output;
-
- public:
-  /// Constructor.
-  SHA2() : output(HASH_OUTPUT_SIZE) {
-    if (SIZE != HASH_VARIANT_256) {
-      throw "Cannot handle such a hash variant";
-    }
-
-    Reset();
-  }
-
-  /// Destructor.
-  ~SHA2() {}
-
-  /// Hash update function.
-  void Update(const zbytes& input) {
-    if (input.size() == 0) {
-      return;
-    }
-
-    SHA256_Update(&m_context, input.data(), input.size());
-  }
-
-  /// Resets the algorithm.
-  void Reset() { SHA256_Init(&m_context); }
-
-  /// Hash finalize function.
-  zbytes Finalize() {
-    switch (SIZE) {
-      case 256:
-        SHA256_Final(output.data(), &m_context);
-        break;
-      default:
-        break;
-    }
-    return output;
   }
 };
 
@@ -203,7 +158,7 @@ bool verifySig(const zbytes& message, const SignatureL& toverify,
   // 4. r' = H(Q, kpub, m)
   // 5. return r' == r
 
-  SHA2<HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   // The third domain separated hash function.
 
@@ -216,7 +171,7 @@ bool verifySig(const zbytes& message, const SignatureL& toverify,
 
   // Separation for the third hash function is defined by
   // setting the first byte to 0x11.
-  sha2.Update({THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE});
+  sha2.Update(zbytes{THIRD_DOMAIN_SEPARATED_HASH_FUNCTION_BYTE}, 0, 1);
 
   zbytes buf(PUBKEY_COMPRESSED_SIZE_BYTES);
 

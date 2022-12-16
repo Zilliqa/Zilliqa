@@ -23,7 +23,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
@@ -32,7 +31,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 
 using namespace std;
 
@@ -79,16 +77,14 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "View change consensus DONE");
-  m_pendingVCBlock->SetCoSignatures(*m_consensusObject);
+  m_pendingVCBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
   unsigned int index = 0;
-  unsigned int count = 0;
 
   vector<PubKey> keys;
   for (auto const& kv : *m_mediator.m_DSCommittee) {
     if (m_pendingVCBlock->GetB2().at(index)) {
       keys.emplace_back(kv.first);
-      count++;
     }
     index++;
   }

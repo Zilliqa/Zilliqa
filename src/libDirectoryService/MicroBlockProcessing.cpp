@@ -33,7 +33,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
@@ -155,7 +154,7 @@ bool DirectoryService::ProcessStateDelta(
     LOG_GENERAL(INFO, "State Delta size: " << stateDelta.size());
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(stateDelta);
   StateHash stateDeltaHash(sha2.Finalize());
 

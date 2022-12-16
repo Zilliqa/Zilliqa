@@ -32,9 +32,7 @@
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/TimestampVerifier.h"
 
 using namespace std;
@@ -1281,4 +1279,10 @@ bool DirectoryService::CheckIfShardNode(const PubKey& submitterPubKey) {
   }
 
   return false;
+}
+
+CoSignatures DirectoryService::ConsensusObjectToCoSig(
+    const ConsensusCommon& consensusObject) {
+  return CoSignatures{consensusObject.GetCS1(), consensusObject.GetB1(),
+                      consensusObject.GetCS2(), consensusObject.GetB2()};
 }
