@@ -5,7 +5,7 @@ const helper = require("../helper/GeneralHelper");
 const parallelizer = require("../helper/Parallelizer");
 
 describe("Parent Child Contract Functionality", function () {
-  const INITIAL_FUND = 1_000_000;
+  const INITIAL_FUND = 10_000_000;
   before(async function () {
     this.parentContract = await parallelizer.deployContract("ParentContract", {value: INITIAL_FUND});
   });
@@ -37,8 +37,8 @@ describe("Parent Child Contract Functionality", function () {
     });
 
     it(`Should return ${CHILD_CONTRACT_VALUE} when read function of the child is called`, async function () {
-      const Contract = ethers.getContractFactory("ChildContract");
       this.childContract = await hre.ethers.getContractAt("ChildContract", this.childContractAddress);
+      this.childContract = this.childContract.connect(this.parentContract.signer);
       expect(await this.childContract.read()).to.be.eq(CHILD_CONTRACT_VALUE);
     });
 
@@ -58,11 +58,9 @@ describe("Parent Child Contract Functionality", function () {
     });
 
     it("Should return all funds from the child to its sender contract if returnToSender is called", async function () {
-      const owner = this.parentContract.signer;
-      expect(await this.childContract.returnToSender()).to.changeEtherBalances(
-        [this.childContractAddress, this.parentContract.address],
-        [-INITIAL_FUND, +INITIAL_FUND]
-      );
+      await this.childContract.returnToSender();
+      expect(await ethers.provider.getBalance(this.parentContract.address)).to.be.eq(INITIAL_FUND);
+      expect(await ethers.provider.getBalance(this.childContract.address)).to.be.eq(0);
     });
   });
 });
