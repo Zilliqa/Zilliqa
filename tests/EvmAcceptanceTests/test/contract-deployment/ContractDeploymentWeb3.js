@@ -1,14 +1,12 @@
 const {expect} = require("chai");
-const {ethers, web3} = require("hardhat");
-const general_helper = require("../../helper/GeneralHelper");
-const web3_helper = require("../../helper/Web3Helper");
-const zilliqa_helper = require("../../helper/ZilliqaHelper");
+const {web3} = require("hardhat");
+const parallelizer = require("../../helper/Parallelizer");
 
 describe("Contract Deployment", function () {
   describe("Contract with zero parameter constructor", function () {
     let contract;
     before(async function () {
-      contract = await web3_helper.deploy("ZeroParamConstructor", {gasLimit: 220000});
+      contract = await parallelizer.deployContractWeb3("ZeroParamConstructor");
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -24,10 +22,9 @@ describe("Contract Deployment", function () {
     describe("When constructor parameter is a uint256", function () {
       let contract;
       const INITIAL_NUMBER = 100;
-      const gasLimit = 220000;
 
       before(async function () {
-        contract = await web3_helper.deploy("WithUintConstructor", {gasLimit}, INITIAL_NUMBER);
+        contract = await parallelizer.deployContractWeb3("WithUintConstructor", {}, INITIAL_NUMBER);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -41,9 +38,8 @@ describe("Contract Deployment", function () {
     describe("When constructor parameter is a string", function () {
       let contract;
       let INITIAL_NAME = "Zilliqa";
-      const gasLimit = 220000;
       before(async function () {
-        contract = await web3_helper.deploy("WithStringConstructor", {gasLimit}, INITIAL_NAME);
+        contract = await parallelizer.deployContractWeb3("WithStringConstructor", {}, INITIAL_NAME);
       });
 
       it("Should be deployed successfully [@transactional]", async function () {
@@ -57,9 +53,8 @@ describe("Contract Deployment", function () {
     describe("When constructor parameter is an address", function () {
       let contract;
       let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
-      const gasLimit = "220000";
       before(async function () {
-        contract = await web3_helper.deploy("WithAddressConstructor", {gasLimit}, ADDRESS);
+        contract = await parallelizer.deployContractWeb3("WithAddressConstructor", {}, ADDRESS);
       });
       it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
@@ -72,9 +67,8 @@ describe("Contract Deployment", function () {
     describe("When constructor parameter is an enum", function () {
       let contract;
       let ENUM = "1";
-      const gasLimit = "220000";
       before(async function () {
-        contract = await web3_helper.deploy("WithEnumConstructor", {gasLimit}, ENUM);
+        contract = await parallelizer.deployContractWeb3("WithEnumConstructor", {}, ENUM);
       });
       it("Should be deployed successfully [@transactional]", async function () {
         expect(contract.options.address).to.be.properAddress;
@@ -89,10 +83,9 @@ describe("Contract Deployment", function () {
     let contract;
     let NAME = "Zilliqa";
     let NUMBER = 100;
-    const gasLimit = "350000";
 
     before(async function () {
-      contract = await web3_helper.deploy("MultiParamConstructor", {gasLimit}, NAME, NUMBER);
+      contract = await parallelizer.deployContractWeb3("MultiParamConstructor", {}, NAME, NUMBER);
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -114,7 +107,7 @@ describe("Contract Deployment", function () {
     const gasLimit = "350000";
 
     before(async function () {
-      contract = await web3_helper.deploy("WithPayableConstructor", {gasLimit, value: INITIAL_BALANCE});
+      contract = await parallelizer.deployContractWeb3("WithPayableConstructor", {value: INITIAL_BALANCE});
     });
 
     it("Should be deployed successfully [@transactional]", async function () {
@@ -126,7 +119,7 @@ describe("Contract Deployment", function () {
     });
 
     it("Should return Zilliqa when name view function is called", async function () {
-      expect(await contract.methods.owner().call()).to.be.eq(web3_helper.getPrimaryAccountAddress());
+      expect(await contract.methods.owner().call()).to.be.eq(contract.options.from);
     });
   });
 });
