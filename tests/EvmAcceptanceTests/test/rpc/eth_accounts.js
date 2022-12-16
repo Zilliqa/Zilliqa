@@ -1,5 +1,5 @@
 const helper = require("../../helper/GeneralHelper");
-const {expect, assert} = require("chai");
+const {assert} = require("chai");
 
 const METHOD = "eth_accounts";
 

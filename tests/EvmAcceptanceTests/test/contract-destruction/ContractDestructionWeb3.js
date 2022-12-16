@@ -1,7 +1,7 @@
 const {expect} = require("chai");
 const {web3} = require("hardhat");
-const web3_helper = require("../helper/Web3Helper");
-const general_helper = require("../helper/GeneralHelper");
+const web3_helper = require("../../helper/Web3Helper");
+const general_helper = require("../../helper/GeneralHelper");
 
 describe("Contract destruction with web3.js", function () {
   let contract;
@@ -54,16 +54,5 @@ describe("Contract destruction with web3.js", function () {
       // Parent contract should have prevBalance + amountPaid
       expect(web3.utils.toBN(newBalance)).to.be.equal(web3.utils.toBN(prevBalance).add(amountPaid));
     });
-  });
-});
-
-describe("Contract destruction with ethers.js", function () {
-  describe("via user method call", function () {
-    // TODO: Consider adding the test case when the receiving address does not exist.
-    it("should be destructed and coins in the contract should be transferred to the address specified in the method");
-  });
-  describe("through a method call by another contract", function () {
-    // TODO: Consider adding the test case when the receiving address does not exist.
-    it("should be destructed and coins in the contract should be transferred to the address specified in the method");
   });
 });
