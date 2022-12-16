@@ -84,7 +84,7 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    npx hardhat test --debug
+    DEBUG=true npx hardhat test
 
     retVal=$?
     if [ $retVal -ne 0 ]; then

@@ -98,6 +98,7 @@ describe("Subscriptions functionality", function () {
       expect(receivedEvents).to.have.length(2);
       expect(secondContractReceivedEvents).to.have.length(2);
     });
+
     it("Should deliver event to only a valid one", async function () {
       const secondEventsContract = new ethers.Contract(contract.address, contract.interface, provider);
 
