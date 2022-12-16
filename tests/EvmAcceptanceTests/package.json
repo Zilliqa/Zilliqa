@@ -43,7 +43,8 @@
   },
   "dependencies": {
     "@zilliqa-js/zilliqa": "^3.3.4",
-    "cli-color": "^2.0.3"
+    "cli-color": "^2.0.3",
+    "yargs": "^17.6.2"
   },
   "lint-staged": {
     "*.js": [
