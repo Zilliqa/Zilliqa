@@ -192,8 +192,9 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
                                               const string &query,
                                               string &value, bool &found,
                                               string &type) {
-  INCREMENT_METHOD_CALLS_COUNTER(m_scillaIPCCount, SCILLA_IPC);
-
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchExternalStateValue"}});
+  }
   zbytes destination;
 
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
@@ -218,8 +219,9 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
-  INCREMENT_METHOD_CALLS_COUNTER(m_scillaIPCCount, SCILLA_IPC);
-
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "updateStateValue"}});
+  }
   return ContractStorage::GetContractStorage().UpdateStateValue(
       m_BCInfo.getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
       DataConversion::StringToCharArray(value), 0);
@@ -228,7 +230,9 @@ bool ScillaIPCServer::updateStateValue(const string &query,
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
-  INCREMENT_METHOD_CALLS_COUNTER(m_scillaIPCCount, SCILLA_IPC);
+  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::SCILLA_IPC)) {
+    m_scillaIPCCount->Add(1, {{"Method", "fetchBlockchainInfo"}});
+  }
 
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo.getCurBlockNum());
