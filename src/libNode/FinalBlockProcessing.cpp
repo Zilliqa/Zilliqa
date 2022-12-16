@@ -76,7 +76,7 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
 
   // Update average block time except when txblock is first block for the epoch
   if ((txBlock.GetHeader().GetBlockNum() % NUM_FINAL_BLOCK_PER_POW) > 0) {
-    const uint64_t& timestampBef =
+    const uint64_t timestampBef =
         m_mediator.m_txBlockChain
             .GetBlock(txBlock.GetHeader().GetBlockNum() - 1)
             .GetTimestamp();
