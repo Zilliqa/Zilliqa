@@ -1,9 +1,11 @@
 const {expect} = require("chai");
-const parallelizer = require("../helper/Parallelizer");
+const {ethers} = require("hardhat");
 
+// FIXME: Can't be parallelized yet. Needs ZIL-5055
 describe("Revert Contract Call", function () {
   before(async function () {
-    this.contract = await parallelizer.deployContract("Revert");
+    const Contract = await ethers.getContractFactory("Revert");
+    this.contract = await Contract.deploy();
   });
 
   it("Will revert the transaction when revert is called", async function () {
