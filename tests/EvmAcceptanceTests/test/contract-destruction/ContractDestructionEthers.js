@@ -1,6 +1,5 @@
 const {expect} = require("chai");
 const {web3} = require("hardhat");
-const web3_helper = require("../../helper/Web3Helper");
 const general_helper = require("../../helper/GeneralHelper");
 
 describe("Contract destruction with ethers.js", function () {
