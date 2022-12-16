@@ -28,10 +28,10 @@
 #include "common/TxnStatus.h"
 #include "depends/common/FixedHash.h"
 
-template <class MAP>
+
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<MAP> m_addressToAccount;
+  std::shared_ptr<std::unordered_map<Address, Account>> m_addressToAccount;
 
   AccountStoreBase();
 

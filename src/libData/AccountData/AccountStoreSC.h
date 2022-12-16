@@ -31,17 +31,17 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
-template <class MAP>
 class AccountStoreSC;
 class ScillaIPCServer;
 
-template <class MAP>
+
 class AccountStoreAtomic
-    : public AccountStoreBase<std::unordered_map<Address, Account>> {
-  AccountStoreSC<MAP>& m_parent;
+    : public AccountStoreBase {
+  AccountStoreSC& m_parent;
 
  public:
-  AccountStoreAtomic(AccountStoreSC<MAP>& parent);
+  AccountStoreAtomic(AccountStoreSC& parent)
+      : m_parent(parent) {}
 
   Account* GetAccount(const Address& address) override;
 
@@ -49,11 +49,10 @@ class AccountStoreAtomic
   GetAddressToAccount();
 };
 
-template <class MAP>
-class AccountStoreSC : public AccountStoreBase<MAP> {
+class AccountStoreSC : public AccountStoreBase {
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
-  std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
+  std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
 
   /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;

@@ -17,14 +17,9 @@
 
 #include "AccountStoreSC.h"
 
-template <class MAP>
-AccountStoreAtomic<MAP>::AccountStoreAtomic(AccountStoreSC<MAP>& parent)
-    : m_parent(parent) {}
-
-template <class MAP>
-Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address) {
+Account* AccountStoreAtomic::GetAccount(const Address& address) {
   Account* account =
-      AccountStoreBase<std::unordered_map<Address, Account>>::GetAccount(
+      AccountStoreBase::GetAccount(
           address);
   if (account != nullptr) {
     // LOG_GENERAL(INFO, "Got From Temp");
@@ -43,11 +38,8 @@ Account* AccountStoreAtomic<MAP>::GetAccount(const Address& address) {
   return nullptr;
 }
 
-template <class MAP>
+
 const std::shared_ptr<std::unordered_map<Address, Account>>&
-AccountStoreAtomic<MAP>::GetAddressToAccount() {
+AccountStoreAtomic:: GetAddressToAccount() {
   return this->m_addressToAccount;
 }
-
-template class AccountStoreAtomic<std::map<Address, Account>>;
-template class AccountStoreAtomic<std::unordered_map<Address, Account>>;

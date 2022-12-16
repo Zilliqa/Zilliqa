@@ -103,7 +103,7 @@ void AccountStore::Init() {
 void AccountStore::InitSoft() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-  AccountStoreTrie<unordered_map<Address, Account>>::Init();
+  AccountStoreTrie::Init();
 
   m_externalWriters = 0;
 
@@ -147,7 +147,7 @@ AccountStore& AccountStore::GetInstance() {
 bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreTrie<std::unordered_map<Address, Account>>::Serialize(
+  return AccountStoreTrie::Serialize(
       src, offset);
 }
 

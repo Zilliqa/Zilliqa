@@ -22,8 +22,8 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
 
-template <class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP> {
+
+class AccountStoreTrie : public AccountStoreSC {
  protected:
   TraceableDB m_db;
   dev::GenericTrieDB<TraceableDB> m_state;

@@ -42,7 +42,7 @@ namespace rpc {
 class UnixDomainSocketServer;
 }
 
-class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
+class AccountStoreTemp : public AccountStoreSC {
   AccountStore& m_parent;
 
   friend class AccountStore;
@@ -55,7 +55,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   /// Returns the Account associated with the specified address.
   Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount() {
+  const std::shared_ptr<std::unordered_map<Address, Account>>& GetAddressToAccount() {
     return this->m_addressToAccount;
   }
 
@@ -67,7 +67,7 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 
 // Singleton class for providing interface related Account System
 class AccountStore
-    : public AccountStoreTrie<std::unordered_map<Address, Account>> {
+    : public AccountStoreTrie {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;

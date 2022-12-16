@@ -46,8 +46,8 @@ zil::metrics::uint64Counter_t& GetInvocationsCounter() {
 
 }  // namespace
 
-template <class MAP>
-void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
+
+void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         const evm::EvmArgs& args,           //
                                         bool& ret,                          //
                                         TransactionReceipt& receipt,        //
@@ -100,8 +100,8 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   }
 }
 
-template <class MAP>
-uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
+
+uint64_t AccountStoreSC::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
     bool& ret, TransactionReceipt& receipt, evm::EvmResult& result) {
   // call evm-ds
@@ -236,8 +236,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   return result.remaining_gas();
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
+
+bool AccountStoreSC::ViewAccounts(const evm::EvmArgs& args,
                                        evm::EvmResult& result) {
   return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                              result);
@@ -249,8 +249,8 @@ static std::string txnIdToString(const TxnHash& txn) {
   return str.str();
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(
+
+bool AccountStoreSC::UpdateAccountsEvm(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
     const Transaction& transaction, const TxnExtras& txnExtras,
     TransactionReceipt& receipt, TxnStatus& error_code) {
@@ -678,11 +678,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
+
+bool AccountStoreSC::AddAccountAtomic(const Address& address,
                                            const Account& account) {
   return m_accountStoreAtomic->AddAccount(address, account);
 }
-
-template class AccountStoreSC<std::map<Address, Account>>;
-template class AccountStoreSC<std::unordered_map<Address, Account>>;
