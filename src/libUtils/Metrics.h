@@ -67,7 +67,7 @@ class Observable {
         // This looks like a bug in openTelemetry, need to investigate, clash
         // between uint64_t and long int should be unsigned, losing precision.
 
-        SetImpl(static_cast<long>(value), attributes);
+        SetImpl(static_cast<int64_t>(value), attributes);
       } else {
         SetImpl(static_cast<double>(value), attributes);
       }
@@ -94,7 +94,7 @@ class Observable {
 
     Result(opentelemetry::metrics::ObserverResult& r) : m_result(r) {}
 
-    void SetImpl(long value, const common::KeyValueIterable& attributes);
+    void SetImpl(int64_t value, const common::KeyValueIterable& attributes);
 
     void SetImpl(double value, const common::KeyValueIterable& attributes);
 

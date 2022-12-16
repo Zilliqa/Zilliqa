@@ -211,9 +211,9 @@ void SetT(opentelemetry::metrics::ObserverResult& result, T value,
 
 }  // namespace
 
-void Observable::Result::SetImpl(long value,
+void Observable::Result::SetImpl(int64_t value,
                                  const common::KeyValueIterable& attributes) {
-  SetT<long>(m_result, value, attributes);
+  SetT<int64_t>(m_result, value, attributes);
 }
 
 void Observable::Result::SetImpl(double value,
