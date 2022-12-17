@@ -34,6 +34,7 @@
 #include "common/Hashes.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/TxnExtras.h"
+#include "AccountNameSpace.h"
 
 class AccountStore;
 class ScillaIPCServer;
@@ -55,7 +56,7 @@ class AccountStoreTemp : public AccountStoreSC {
   /// Returns the Account associated with the specified address.
   Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::unordered_map<Address, Account>>& GetAddressToAccount() {
+  const std::shared_ptr<zil::accounts::MAP>& GetAddressToAccount() {
     return this->m_addressToAccount;
   }
 

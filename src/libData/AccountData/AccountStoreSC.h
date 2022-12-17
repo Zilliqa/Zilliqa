@@ -45,7 +45,7 @@ class AccountStoreAtomic
 
   Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::unordered_map<Address, Account>>&
+  const std::shared_ptr<zil::accounts::MAP>&
   GetAddressToAccount();
 };
 

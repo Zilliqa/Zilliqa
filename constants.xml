@@ -363,6 +363,18 @@
             <METRIC_ZILLIQA_MASK>ALL</METRIC_ZILLIQA_MASK>
         </zilliqa>
     </metric>
+    <trace>
+        <zilliqa>
+            <TRACE_ZILLIQA_HOSTNAME>localhost</TRACE_ZILLIQA_HOSTNAME>
+            <TRACE_ZILLIQA_PORT>8085</TRACE_ZILLIQA_PORT>
+            <TRACE_ZILLIQA_READER_EXPORT_MS>1000</TRACE_ZILLIQA_READER_EXPORT_MS>
+            <TRACE_ZILLIQA_READER_TIMEOUT_MS>500</TRACE_ZILLIQA_READER_TIMEOUT_MS>
+            <TRACE_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</TRACE_ZILLIQA_SCHEMA>
+            <TRACE_ZILLIQA_VERSION>1.2.0</TRACE_ZILLIQA_VERSION>
+            <!-- ALL means all metrics are enabled -->
+            <TRACE_ZILLIQA_MASK>ALL</TRACE_ZILLIQA_MASK>
+        </zilliqa>
+    </trace>
     <verifier>
         <exclusion_list>
             <entry>

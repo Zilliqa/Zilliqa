@@ -23,6 +23,7 @@
 #include "Address.h"
 #include "Transaction.h"
 #include "TransactionReceipt.h"
+#include "AccountNameSpace.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "common/TxnStatus.h"
@@ -31,7 +32,7 @@
 
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<std::unordered_map<Address, Account>> m_addressToAccount;
+  std::shared_ptr<zil::accounts::MAP> m_addressToAccount;
 
   AccountStoreBase();
 

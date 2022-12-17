@@ -43,6 +43,10 @@ target_link_libraries(Utils
     opentelemetry-cpp::api
     opentelemetry-cpp::sdk
     opentelemetry-cpp::logs
+    opentelemetry-cpp::trace
+    opentelemetry-cpp::ostream_span_exporter
+    opentelemetry-cpp::ostream_metrics_exporter
+    opentelemetry-cpp::otlp_grpc_exporter
     opentelemetry-cpp::opentelemetry_exporter_prometheus
   PRIVATE
     ${CryptoUtils_LIBRARY}

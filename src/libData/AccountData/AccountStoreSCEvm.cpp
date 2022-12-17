@@ -34,6 +34,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
+#include "libUtils/Tracing.h"
 
 namespace {
 
@@ -53,6 +54,8 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         TransactionReceipt& receipt,        //
                                         evm::EvmResult& result) {
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+  auto scoped_span = trace_api::Scope(zil::trace::Tracing::GetInstance().get_tracer()->StartSpan("EvmCallRunner"));
+
 
   //
   // create a worker to be executed in the async method

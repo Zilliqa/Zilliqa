@@ -16,3 +16,48 @@
  */
 
 #include "Tracing.h"
+
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/sdk/trace/simple_processor_factory.h"
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include "opentelemetry/trace/provider.h"
+
+namespace trace_api      = opentelemetry::trace;
+namespace trace_sdk      = opentelemetry::sdk::trace;
+namespace trace_exporter = opentelemetry::exporter::trace;
+
+namespace zil {
+namespace trace {
+
+Tracing::Tracing() { Init(); }
+
+void
+Tracing::Init() {
+  auto exporter  = trace_exporter::OStreamSpanExporterFactory::Create();
+  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
+
+  // Set the global trace provider
+  trace_api::Provider::SetTracerProvider(m_provider);
+}
+
+std::shared_ptr<trace_api::Tracer>
+Tracing::get_tracer()
+{
+  auto provider = trace_api::Provider::GetTracerProvider();
+  return provider->GetTracer("zilliqa", OPENTELEMETRY_SDK_VERSION);
+}
+
+void
+Tracing::Shutdown() {
+  if (m_provider) {
+    std::shared_ptr<opentelemetry::trace::TracerProvider> provider(
+        new opentelemetry::trace::NoopTracerProvider());
+
+    // Set the global tracer provider
+    trace_api::Provider::SetTracerProvider(provider);
+  }
+}
+
+}
+}

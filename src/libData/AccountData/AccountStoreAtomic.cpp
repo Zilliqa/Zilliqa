@@ -16,6 +16,7 @@
  */
 
 #include "AccountStoreSC.h"
+#include "AccountNameSpace.h"
 
 Account* AccountStoreAtomic::GetAccount(const Address& address) {
   Account* account =
@@ -39,7 +40,7 @@ Account* AccountStoreAtomic::GetAccount(const Address& address) {
 }
 
 
-const std::shared_ptr<std::unordered_map<Address, Account>>&
+const std::shared_ptr<zil::accounts::MAP>&
 AccountStoreAtomic:: GetAddressToAccount() {
   return this->m_addressToAccount;
 }

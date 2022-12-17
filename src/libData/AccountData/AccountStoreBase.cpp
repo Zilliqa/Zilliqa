@@ -23,10 +23,11 @@
 #include "libUtils/SafeMath.h"
 
 #include "AccountStoreBase.h"
+#include "AccountNameSpace.h"
 
 
 AccountStoreBase::AccountStoreBase() {
-  m_addressToAccount = std::make_shared<std::unordered_map<Address, Account>>();
+  m_addressToAccount = std::make_shared<zil::accounts::MAP>();
 }
 
 

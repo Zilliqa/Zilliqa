@@ -18,9 +18,50 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_TRACING_H_
 #define ZILLIQA_SRC_LIBUTILS_TRACING_H_
 
-class Tracing {
+#include <opentelemetry/trace/tracer.h>
+#include <opentelemetry/trace/tracer_provider.h>
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/sdk/trace/simple_processor_factory.h"
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include <cassert>
+
+#include "common/Singleton.h"
+#include "common/TraceFilters.h"
+
+namespace trace_api      = opentelemetry::trace;
+namespace trace_sdk      = opentelemetry::sdk::trace;
+namespace trace_exporter = opentelemetry::exporter::trace;
+
+namespace zil {
+namespace trace {
+
+class Filter : public Singleton<Filter> {
  public:
+  void init();
+
+  bool Enabled(FilterClass to_test) {
+    return m_mask & (1 << static_cast<int>(to_test));
+  }
+
  private:
+  uint64_t m_mask{};
 };
 
+
+class Tracing : public Singleton<Tracing> {
+ public:
+  Tracing();
+
+  std::shared_ptr<trace_api::Tracer> get_tracer();
+
+  /// Called on main() exit explicitly
+  void Shutdown();
+
+ private:
+  void Init();
+  std::shared_ptr<opentelemetry::trace::TracerProvider> m_provider;
+};
+
+}  // namespace trace
+}  // namespace zil
 #endif  // ZILLIQA_SRC_LIBUTILS_TRACING_H_
