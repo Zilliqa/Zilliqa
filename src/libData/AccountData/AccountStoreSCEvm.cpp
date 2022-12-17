@@ -60,6 +60,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   //
   // create a worker to be executed in the async method
   const auto worker = [&args, &ret, &result]() -> void {
+    auto scoped_span = trace_api::Scope(zil::trace::Tracing::GetInstance().get_tracer()->StartSpan("Worker"));
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
