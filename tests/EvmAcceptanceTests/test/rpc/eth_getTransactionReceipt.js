@@ -1,5 +1,6 @@
-const zilliqa_helper = require("../../helper/ZilliqaHelper");
 const helper = require("../../helper/GeneralHelper");
+const parallelizer = require("../../helper/Parallelizer");
+const {ethers} = require("hardhat");
 assert = require("chai").assert;
 
 const METHOD = "eth_getTransactionReceipt";
@@ -12,23 +13,15 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return the raw transaction response", async function () {
-    var transactionHash;
-
-    function onMoveFundsFinished(receipt) {
-      hre.logDebug("Moved funds successfully, receipt:", receipt);
-      transactionHash = receipt.transactionHash;
-    }
-
-    function onMoveFundsError(error) {
-      hre.logDebug("Then with Error:", error);
-      assert.fail("Failure: Unexpected return ", error);
-    }
-
     let amount = 10_000;
     // send amount from primary to secondary account
-    await zilliqa_helper
-      .moveFundsTo(amount, zilliqa_helper.getSecondaryAccountAddress(), zilliqa_helper.primaryAccount)
-      .then(onMoveFundsFinished, onMoveFundsError);
+    const to = ethers.Wallet.createRandom();
+    const {response, signer_address} = await parallelizer.sendTransaction({
+      to: to.address,
+      value: amount
+    });
+    const transactionHash = response.hash;
+    await response.wait();
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
       hre.logDebug(result);
@@ -72,8 +65,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.to, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.to.toUpperCase(),
-        zilliqa_helper.getSecondaryAccountAddress().toUpperCase(),
-        "Is not equal to " + zilliqa_helper.getSecondaryAccountAddress().toUpperCase()
+        to.address.toUpperCase(),
+        "Is not equal to " + to.address.toUpperCase()
       );
 
       // from
@@ -81,8 +74,8 @@ describe("Calling " + METHOD, function () {
       assert.match(result.result.from, /^0x/, "Should be HEX starting with 0x");
       assert.equal(
         result.result.from.toUpperCase(),
-        zilliqa_helper.getPrimaryAccountAddress().toUpperCase(),
-        "Is not equal to " + zilliqa_helper.getPrimaryAccountAddress().toUpperCase()
+        signer_address.toUpperCase(),
+        "Is not equal to " + signer_address.toUpperCase()
       );
 
       // blockHash

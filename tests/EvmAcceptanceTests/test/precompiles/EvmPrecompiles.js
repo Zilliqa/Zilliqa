@@ -1,14 +1,11 @@
 const {expect} = require("chai");
 const {web3} = require("hardhat");
-const web3_helper = require("../../helper/Web3Helper");
 const general_helper = require("../../helper/GeneralHelper");
+const parallelizer = require("../../helper/Parallelizer");
 
 describe("Precompile tests with web3.js", function () {
-  let contract;
-  let options;
   before(async function () {
-    options = await web3_helper.getCommonOptions();
-    contract = await web3_helper.deploy("Precompiles", options);
+    this.contract = await parallelizer.deployContractWeb3("Precompiles");
   });
 
   it("should return signer address when recover function is used", async function () {
@@ -18,7 +15,9 @@ describe("Precompile tests with web3.js", function () {
     const accountAddress = web3.eth.accounts.privateKeyToAccount(privKey).address;
 
     const signed = web3.eth.accounts.sign(docHash, privKey);
-    const result = await contract.methods.testRecovery(docHash, signed.v, signed.r, signed.s).call({gasLimit: 7500000});
+    const result = await this.contract.methods
+      .testRecovery(docHash, signed.v, signed.r, signed.s)
+      .call({gasLimit: 7500000});
     expect(result).to.be.eq(accountAddress);
   });
 
@@ -26,11 +25,9 @@ describe("Precompile tests with web3.js", function () {
     const msg = web3.utils.toHex("SomeMessage");
     const hash = web3.utils.keccak256(msg);
 
-    const sendResult = await contract.methods
-      .testIdentity(hash)
-      .send({gasLimit: 500000, from: web3_helper.getPrimaryAccountAddress()});
+    const sendResult = await this.contract.methods.testIdentity(hash).send();
     expect(sendResult).to.be.not.null;
-    const readValue = await contract.methods.idStored().call({gasLimit: 50000});
+    const readValue = await this.contract.methods.idStored().call({gasLimit: 50000});
     expect(readValue).to.be.eq(hash);
   });
 
@@ -38,7 +35,7 @@ describe("Precompile tests with web3.js", function () {
     const msg = "Hello World!";
     const expectedHash = "0x7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069";
 
-    const readValue = await contract.methods.testSHA256(msg).call({gasLimit: 50000});
+    const readValue = await this.contract.methods.testSHA256(msg).call({gasLimit: 50000});
     expect(readValue).to.be.eq(expectedHash);
   });
 
@@ -46,7 +43,7 @@ describe("Precompile tests with web3.js", function () {
     const msg = "Hello World!";
     const expectedHash = "0x8476ee4631b9b30ac2754b0ee0c47e161d3f724c";
 
-    const readValue = await contract.methods.testRipemd160(msg).call({gasLimit: 50000});
+    const readValue = await this.contract.methods.testRipemd160(msg).call({gasLimit: 50000});
     expect(readValue).to.be.eq(expectedHash);
   });
 
@@ -56,17 +53,15 @@ describe("Precompile tests with web3.js", function () {
     const modulus = 10;
     const expectedResult = 8;
 
-    const sendResult = await contract.methods
-      .testModexp(base, exponent, modulus)
-      .send({gasLimit: 700000, from: web3_helper.getPrimaryAccountAddress()});
+    const sendResult = await this.contract.methods.testModexp(base, exponent, modulus).send();
     expect(sendResult).to.be.not.null;
 
-    const readValue = await contract.methods.modExpResult().call({gasLimit: 50000});
+    const readValue = await this.contract.methods.modExpResult().call({gasLimit: 50000});
     expect(web3.utils.toBN(readValue)).to.be.eq(web3.utils.toBN(expectedResult));
   });
 
   it("should return correct result when ecAdd function is used", async function () {
-    const result = await contract.methods.testEcAdd(1, 2, 1, 2).call();
+    const result = await this.contract.methods.testEcAdd(1, 2, 1, 2).call();
     expect(web3.utils.toBN(result[0])).to.be.eq(
       web3.utils.toBN("030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3")
     );
@@ -76,7 +71,7 @@ describe("Precompile tests with web3.js", function () {
   });
 
   it("should return correct result when ecMul function is used", async function () {
-    const result = await contract.methods.testEcMul(1, 2, 2).call();
+    const result = await this.contract.methods.testEcMul(1, 2, 2).call();
     expect(web3.utils.toBN(result[0])).to.be.eq(
       web3.utils.toBN("030644e72e131a029b85045b68181585d97816a916871ca8d3c208c16d87cfd3")
     );
@@ -100,7 +95,7 @@ describe("Precompile tests with web3.js", function () {
       "2a23af9a5ce2ba2796c1f4e453a370eb0af8c212d9dc9acd8fc02c2e907baea2",
       "23a8eb0b0996252cb548a4487da97b02422ebc0e834613f954de6c7e0afdc1fc"
     ].map((n) => web3.utils.toBN(n));
-    const result = await contract.methods.testEcPairing(input).call();
+    const result = await this.contract.methods.testEcPairing(input).call();
     expect(web3.utils.toBN(result)).to.be.eq(1);
   });
 
@@ -124,6 +119,6 @@ describe("Precompile tests with web3.js", function () {
       "0x7d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923"
     ];
 
-    expect(await contract.methods.testBlake2(ROUNDS, H, M, T, F).call()).to.be.deep.eq(EXPECTED);
+    expect(await this.contract.methods.testBlake2(ROUNDS, H, M, T, F).call()).to.be.deep.eq(EXPECTED);
   });
 });
