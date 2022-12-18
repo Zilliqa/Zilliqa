@@ -21,6 +21,7 @@ describe("Calling " + METHOD, function () {
       value: amount
     });
     const transactionHash = response.hash;
+    await response.wait();
 
     await helper.callEthMethod(METHOD, 1, [transactionHash], (result, status) => {
       hre.logDebug(result);
