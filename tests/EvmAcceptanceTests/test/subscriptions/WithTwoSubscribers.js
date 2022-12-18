@@ -30,7 +30,7 @@ describe("Subscriptions functionality", function () {
   }
 
   describe("When two subscribers listen to events", function () {
-    it("Should receive an event comming only from contract it is subscribed to", async function () {
+    it("Should receive an event coming only from contract it is subscribed to", async function () {
       const secondContract = await parallelizer.deployContract("Subscriptions");
       const secondProvider = new ethers.providers.WebSocketProvider(general_helper.getWebsocketUrl());
       const secondEventsContract = new ethers.Contract(
@@ -99,7 +99,8 @@ describe("Subscriptions functionality", function () {
       expect(secondContractReceivedEvents).to.have.length(2);
     });
 
-    it("Should deliver event to only a valid one", async function () {
+    // FIXME: In https://zilliqa-jira.atlassian.net/browse/ZIL-5064
+    xit("Should deliver event to only a valid one", async function () {
       const secondEventsContract = new ethers.Contract(contract.address, contract.interface, provider);
 
       let receivedEvents = [];
