@@ -66,8 +66,10 @@ class Tracing : public Singleton<Tracing> {
   void ZipkinInit();
   void StdOutInit();
   void ZPagesInit();
-  void OtlpInit();
   void JaegerInit();
+  void OtlpGRPCInit();
+  void OtlpHTTPInit();
+
   std::shared_ptr<opentelemetry::trace::TracerProvider> m_provider;
 };
 

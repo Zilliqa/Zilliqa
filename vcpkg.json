@@ -37,6 +37,7 @@
         "otlp",
         "elasticsearch",
         "jaeger",
+        "zipkin",
         "zpages"
       ]
     }

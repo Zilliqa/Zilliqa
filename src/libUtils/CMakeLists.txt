@@ -52,6 +52,7 @@ target_link_libraries(Utils
         opentelemetry-cpp::otlp_http_exporter
         opentelemetry-cpp::opentelemetry_exporter_prometheus
         opentelemetry-cpp::jaeger_trace_exporter
+        opentelemetry-cpp::zpages
         nlohmann_json
         PRIVATE
         ${CryptoUtils_LIBRARY}
