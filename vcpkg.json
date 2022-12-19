@@ -27,6 +27,7 @@
     "g3log",
     "g3sinks",
     "schnorr",
+    "nlohmann-json",
     "cryptoutils",
     {
       "name": "opentelemetry-cpp",
@@ -34,7 +35,9 @@
       "features": [
         "prometheus",
         "otlp",
-        "elasticsearch"
+        "elasticsearch",
+        "jaeger",
+        "zpages"
       ]
     }
   ],

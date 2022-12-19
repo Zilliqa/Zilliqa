@@ -1,5 +1,6 @@
 find_package(CURL REQUIRED)
 find_package(opentelemetry-cpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # A workaround for incorrect link libraries in vcpkg's opentelemtry-cpp-target.cmake
 # which includes non-existent target (i.e. opentelemetry-cpp::pull & opentelemetry-cpp::core).
@@ -40,6 +41,7 @@ target_link_libraries(Utils
         jsonrpc
         jsoncpp_lib
         protobuf::libprotobuf
+        opentelemetry-cpp::zpages
         opentelemetry-cpp::api
         opentelemetry-cpp::sdk
         opentelemetry-cpp::logs
@@ -47,7 +49,10 @@ target_link_libraries(Utils
         opentelemetry-cpp::ostream_span_exporter
         opentelemetry-cpp::ostream_metrics_exporter
         opentelemetry-cpp::otlp_grpc_exporter
+        opentelemetry-cpp::otlp_http_exporter
         opentelemetry-cpp::opentelemetry_exporter_prometheus
+        opentelemetry-cpp::jaeger_trace_exporter
+        nlohmann_json
         PRIVATE
         ${CryptoUtils_LIBRARY}
         ${g3sinks_LOGROTATE_LIBRARY}
