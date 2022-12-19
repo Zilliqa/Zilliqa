@@ -14,8 +14,8 @@ use jsonrpc_core::Result;
 use primitive_types::*;
 use scillabackend::ScillaBackend;
 
-use crate::continuations::{Continuations, Continuation};
-use crate::cps_executor::{CpsCreateInterrupt, CpsExecutor, CpsReason, CpsCallInterrupt};
+use crate::continuations::{Continuation, Continuations};
+use crate::cps_executor::{CpsCallInterrupt, CpsCreateInterrupt, CpsExecutor, CpsReason};
 use crate::precompiles::get_precompiles;
 use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
@@ -32,7 +32,7 @@ pub async fn run_evm_impl(
     gas_scaling_factor: u64,
     estimate: bool,
     evm_context: String,
-    node_continuation: EvmProto::Continuation,
+    node_continuation: Option<EvmProto::Continuation>,
     continuations: Arc<Mutex<Continuations>>,
 ) -> Result<String> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
@@ -54,21 +54,24 @@ pub async fn run_evm_impl(
             apparent_value,
         };
         let mut runtime: Runtime;
-        if node_continuation.get_id() > 0 {
-            let option_cont = continuations.lock().unwrap().get_contination(node_continuation.get_id().into());
-            match option_cont {
-                Some(packed) => {
-                    
-                    //let mut machine = Machine::create_from_state(packed. , data, position, return_range, valids, memory, stack)
-                },
-                None => {
-                    let result = handle_panic(vec![], gas_limit);
-                    return Ok(base64::encode(result.write_to_bytes().unwrap()));
-
-                }
+        let mut feedback_continuation:Option<EvmProto::Continuation> = None;
+        // Check if evm should resume from the point it stopped
+        if let Some(continuation) = node_continuation {
+            let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
+            if let None = recorded_cont {
+                let result = handle_panic(vec![], gas_limit);
+                return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
+            let recorded_cont = recorded_cont.unwrap();
+            let machine = Machine::create_from_state(Rc::new(recorded_cont.code), Rc::new(recorded_cont.data),
+                                                              recorded_cont.position, recorded_cont.return_range, recorded_cont.valids,
+                                                              recorded_cont.memory, recorded_cont.stack);
+            runtime = Runtime::new_from_state(machine, context, &config);
+            feedback_continuation = Some(continuation);
         }
-        let mut runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+        else {
+            runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+        }
         // Scale the gas limit.
         let gas_limit = gas_limit * gas_scaling_factor;
         let metadata = StackSubstateMetadata::new(gas_limit, &config);
@@ -77,6 +80,11 @@ pub async fn run_evm_impl(
         let precompiles = get_precompiles();
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles);
+
+        // Provide feedback from c++ node to EVM through executor
+        if let Some(continuation) = feedback_continuation {
+            provide_feedback(&continuation, &mut executor);
+        }
 
         let mut listener = LoggingEventListener{traces : Default::default()};
 
@@ -199,7 +207,12 @@ fn build_exit_result(
     result
 }
 
-fn build_call_result(interrupt: CpsCallInterrupt, traces: Vec<String>, remaining_gas: u64, cont_id: u64) -> EvmProto::EvmResult {
+fn build_call_result(
+    interrupt: CpsCallInterrupt,
+    traces: Vec<String>,
+    remaining_gas: u64,
+    cont_id: u64,
+) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     result.set_continuation_id(cont_id);
     result
@@ -209,7 +222,7 @@ fn build_crate_result(
     interrupt: CpsCreateInterrupt,
     traces: Vec<String>,
     remaining_gas: u64,
-    cont_id: u64
+    cont_id: u64,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
 
@@ -265,4 +278,11 @@ fn handle_panic(traces: Vec<String>, remaining_gas: u64) -> EvmProto::EvmResult 
     result.set_trace(traces.into_iter().map(Into::into).collect());
     result.set_remaining_gas(remaining_gas);
     result
+}
+
+fn provide_feedback(
+    node_continuation: &EvmProto::Continuation,
+    executor: &mut CpsExecutor,
+) -> bool {
+    return true;
 }

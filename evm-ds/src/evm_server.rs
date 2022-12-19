@@ -76,7 +76,12 @@ impl EvmServer {
                     ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
                 let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
-                let cont_id = args.get_continuation() == ;
+
+                let node_continuation = if args.get_continuation().get_id() == 0 {
+                    None
+                } else {
+                    Some(args.take_continuation())
+                };
 
                 run_evm_impl(
                     address,
@@ -89,7 +94,7 @@ impl EvmServer {
                     gas_scaling_factor,
                     estimate,
                     args.get_context().to_string(),
-                    cont_id,
+                    node_continuation,
                     self.continuations.clone(),
                 )
                 .boxed()
