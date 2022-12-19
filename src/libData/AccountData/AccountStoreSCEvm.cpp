@@ -54,13 +54,13 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         TransactionReceipt& receipt,        //
                                         evm::EvmResult& result) {
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
-  auto scoped_span = trace_api::Scope(zil::trace::Tracing::GetInstance().get_tracer()->StartSpan("EvmCallRunner"));
 
+  auto span = START_SPAN(ACCOUNTSTORE_EVM,{});
+  auto scoped_span = trace_api::Scope(span);
 
   //
   // create a worker to be executed in the async method
   const auto worker = [&args, &ret, &result]() -> void {
-    auto scoped_span = trace_api::Scope(zil::trace::Tracing::GetInstance().get_tracer()->StartSpan("Worker"));
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
@@ -79,6 +79,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
       INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                               "release-normal");
+      span->AddEvent("return", {{"reason","release-normal"}});
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
@@ -90,6 +91,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
       INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                               "release-timeout");
 
+      span->AddEvent("return", {{"reason","lock-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
@@ -98,7 +100,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
       INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                               "release-deferred");
-
+      span->AddEvent("return", {{"reason","illegal future return"}});
       ret = false;
     }
   }
@@ -260,6 +262,13 @@ bool AccountStoreSC::UpdateAccountsEvm(
     TransactionReceipt& receipt, TxnStatus& error_code) {
   LOG_MARKER();
 
+  std::map<std::string, opentelemetry::common::AttributeValue>
+      attribute_map{{"tid",transaction.GetTranID().hex()},{"block",blockNum}};
+
+  auto span = START_SPAN(ACCOUNTSTORE_EVM,attribute_map);
+  trace_api::Scope scope(span);
+
+
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
   }
@@ -292,6 +301,9 @@ bool AccountStoreSC::UpdateAccountsEvm(
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
+        {
+          span->AddEvent("return", {{"fromAddr",fromAddr.hex()},{"reason","Get Account Returned Null"}});
+        }
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }

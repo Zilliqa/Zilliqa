@@ -44,7 +44,7 @@ enum class FilterClass {
 #undef ENUM_FILTER_CLASS
       FILTER_CLASS_END
 };
-}  // namespace metrics
+}  // namespace trace
 }  // namespace zil
 
 #endif  // ZILLIQA_SRC_COMMON_TRACEFILTERS_H_

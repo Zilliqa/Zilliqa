@@ -34,9 +34,11 @@ namespace trace_exporter = opentelemetry::exporter::trace;
 
 namespace zil {
 namespace trace {
-
 class Filter : public Singleton<Filter> {
  public:
+
+  Filter(){ init();}
+
   void init();
 
   bool Enabled(FilterClass to_test) {
@@ -47,6 +49,8 @@ class Filter : public Singleton<Filter> {
   uint64_t m_mask{};
 };
 
+}
+}
 
 class Tracing : public Singleton<Tracing> {
  public:
@@ -59,9 +63,15 @@ class Tracing : public Singleton<Tracing> {
 
  private:
   void Init();
+  void ZipkinInit();
+  void StdOutInit();
+  void ZPagesInit();
+  void OtlpInit();
   std::shared_ptr<opentelemetry::trace::TracerProvider> m_provider;
 };
 
-}  // namespace trace
-}  // namespace zil
+#define START_SPAN(FILTER_CLASS, ATTRIBUTES) \
+    zil::trace::Filter::GetInstance().Enabled(zil::trace::FilterClass::FILTER_CLASS) ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES)  : nullptr
+
+
 #endif  // ZILLIQA_SRC_LIBUTILS_TRACING_H_

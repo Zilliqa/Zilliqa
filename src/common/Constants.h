@@ -509,5 +509,6 @@ extern const std::string METRIC_ZILLIQA_SCHEMA;
 extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
 extern const std::string METRIC_ZILLIQA_MASK;
 extern const std::string TRACE_ZILLIQA_MASK;
+extern const std::string TRACE_ZILLIQA_PROVIDER;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_
