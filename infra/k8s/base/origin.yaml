@@ -146,7 +146,7 @@ spec:
         - |
           set -e
           mkdir /run/zilliqa && cd /run/zilliqa
-          python /etc/zilliqa/init.py --testnet devnet --origin -n 8 -d 4 -l 1 --port 30303 --websocket=  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=76177407-1e06-4e24-85be-7f3071e3e79  
+          python /etc/zilliqa/init.py --testnet devnet --origin -n 8 -d 4 -l 1 --port 30303 --websocket=seedpub  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=76177407-1e06-4e24-85be-7f3071e3e79a  
           cp -v *.txt /tmp/html
           echo "IP list files created"
       containers:
