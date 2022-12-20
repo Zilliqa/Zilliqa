@@ -652,6 +652,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");
     }
+    std::cout << "Set Data" << std::endl;
   }
 
   uint256_t value = 0;

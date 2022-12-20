@@ -21,6 +21,7 @@
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include <boost/format.hpp>
 #ifdef __clang__

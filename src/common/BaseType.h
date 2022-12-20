@@ -22,11 +22,17 @@
 #include <map>
 #include <utility>
 #include <vector>
-
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 using zbytes = std::vector<uint8_t>;
 using uint128_t = boost::multiprecision::uint128_t;
