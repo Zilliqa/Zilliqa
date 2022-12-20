@@ -48,6 +48,15 @@ using namespace std;
 CircularArray<std::string> LookupServer::m_RecentTransactions;
 std::mutex LookupServer::m_mutexRecentTxns;
 
+namespace zil {
+namespace paging {
+const unsigned int PAGE_SIZE = 10;
+const unsigned int NUM_PAGES_CACHE = 2;
+const unsigned int TXN_PAGE_SIZE = 100;
+}
+}
+
+
 namespace {
 
 zil::metrics::uint64Counter_t& GetCallsCounter() {
@@ -56,9 +65,6 @@ zil::metrics::uint64Counter_t& GetCallsCounter() {
   return count;
 }
 
-const unsigned int PAGE_SIZE = 10;
-const unsigned int NUM_PAGES_CACHE = 2;
-const unsigned int TXN_PAGE_SIZE = 100;
 
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
@@ -317,10 +323,10 @@ LookupServer::LookupServer(Mediator& mediator,
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
-  m_DSBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
+  m_DSBlockCache.second.resize(zil::paging::NUM_PAGES_CACHE * zil::paging::PAGE_SIZE);
   m_TxBlockCache.first = 0;
-  m_TxBlockCache.second.resize(NUM_PAGES_CACHE * PAGE_SIZE);
-  m_RecentTransactions.resize(TXN_PAGE_SIZE);
+  m_TxBlockCache.second.resize(zil::paging::NUM_PAGES_CACHE * zil::paging::PAGE_SIZE);
+  m_RecentTransactions.resize(zil::paging::TXN_PAGE_SIZE);
   m_TxBlockCountSumPair.first = 0;
   m_TxBlockCountSumPair.second = 0;
   random_device rd;
@@ -1417,7 +1423,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
       m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum();
   Json::Value _json;
 
-  uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
+  uint maxPages = (currBlockNum / zil::paging::PAGE_SIZE) + 1;
 
   if (currBlockNum == INIT_BLOCK_NUMBER) {
     throw JsonRpcException(RPC_IN_WARMUP, "No DS blocks");
@@ -1471,9 +1477,9 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
     m_DSBlockCache.first = currBlockNum;
   }
 
-  unsigned int offset = PAGE_SIZE * (page - 1);
+  unsigned int offset = zil::paging::PAGE_SIZE * (page - 1);
   Json::Value tmpJson;
-  if (page <= NUM_PAGES_CACHE)  // can use cache
+  if (page <= zil::paging::NUM_PAGES_CACHE)  // can use cache
   {
     uint128_t cacheSize(m_DSBlockCache.second.capacity());
     if (cacheSize > m_DSBlockCache.second.size()) {
@@ -1482,7 +1488,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
 
     uint64_t size = m_DSBlockCache.second.size();
 
-    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
+    for (unsigned int i = offset; i < zil::paging::PAGE_SIZE + offset && i < cacheSize;
          i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_DSBlockCache.second[size - i - 1];
@@ -1490,7 +1496,7 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
       _json["data"].append(tmpJson);
     }
   } else {
-    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum;
+    for (uint64_t i = offset; i < zil::paging::PAGE_SIZE + offset && i <= currBlockNum;
          i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1)
@@ -1520,7 +1526,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     throw JsonRpcException(RPC_IN_WARMUP, "No Tx blocks");
   }
 
-  uint maxPages = (currBlockNum / PAGE_SIZE) + 1;
+  uint maxPages = (currBlockNum / zil::paging::PAGE_SIZE) + 1;
 
   _json["maxPages"] = maxPages;
 
@@ -1570,9 +1576,9 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
     m_TxBlockCache.first = currBlockNum;
   }
 
-  unsigned int offset = PAGE_SIZE * (page - 1);
+  unsigned int offset = zil::paging::PAGE_SIZE * (page - 1);
   Json::Value tmpJson;
-  if (page <= NUM_PAGES_CACHE)  // can use cache
+  if (page <= zil::paging::NUM_PAGES_CACHE)  // can use cache
   {
     uint128_t cacheSize(m_TxBlockCache.second.capacity());
 
@@ -1582,7 +1588,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
 
     uint64_t size = m_TxBlockCache.second.size();
 
-    for (unsigned int i = offset; i < PAGE_SIZE + offset && i < cacheSize;
+    for (unsigned int i = offset; i < zil::paging::PAGE_SIZE + offset && i < cacheSize;
          i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_TxBlockCache.second[size - i - 1];
@@ -1590,7 +1596,7 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
       _json["data"].append(tmpJson);
     }
   } else {
-    for (uint64_t i = offset; i < PAGE_SIZE + offset && i <= currBlockNum;
+    for (uint64_t i = offset; i < zil::paging::PAGE_SIZE + offset && i <= currBlockNum;
          i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1)

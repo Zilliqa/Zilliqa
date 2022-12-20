@@ -23,6 +23,7 @@
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "common/Constants.h"
+#include "common/TraceFilters.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
@@ -34,6 +35,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
+#include "libUtils/Tracing.h"
 
 namespace {
 
@@ -53,6 +55,9 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         TransactionReceipt& receipt,        //
                                         evm::EvmResult& result) {
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+
+  auto span = START_SPAN(ACC_EVM,{});
+  auto scoped_span = trace_api::Scope(span);
 
   //
   // create a worker to be executed in the async method
@@ -75,6 +80,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
       INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                               "release-normal");
+      span->AddEvent("return", {{"reason","release-normal"}});
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
@@ -86,6 +92,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
       INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                               "release-timeout");
 
+      span->AddEvent("return", {{"reason","lock-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
@@ -94,7 +101,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
       INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                               "release-deferred");
-
+      span->AddEvent("return", {{"reason","illegal future return"}});
       ret = false;
     }
   }
@@ -280,6 +287,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
               "Commit Context Mode="
                   << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
 
+  std::map<std::string, opentelemetry::common::AttributeValue>
+      attribute_map{{"tid",evmContext.GetTransaction().GetTranID().hex()},{"block",blockNum}};
+
+  auto span = START_SPAN(ACC_EVM,attribute_map);
+  trace_api::Scope scope(span);
+
+
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
   }
@@ -298,11 +312,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  m_curIsDS = isDS;
-  m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
-
   uint64_t gasLimitEth = evmContext.GetTransaction().GetGasLimitEth();
 
   // Get the amount of deposit for running this txn
@@ -329,6 +340,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
+        {
+          span->AddEvent("return", {{"fromAddr",fromAddr.hex()},{"reason","Get Account Returned Null"}});
+        }
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }

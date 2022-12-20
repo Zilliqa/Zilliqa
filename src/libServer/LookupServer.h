@@ -21,6 +21,7 @@
 #include "EthRpcMethods.h"
 #include "Server.h"
 
+
 class Mediator;
 
 typedef std::function<bool(const Transaction& tx, uint32_t shardId)>

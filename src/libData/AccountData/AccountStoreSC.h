@@ -31,6 +31,7 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
+#include "EvmProcessContext.h"
 
 template <class MAP>
 class AccountStoreSC;

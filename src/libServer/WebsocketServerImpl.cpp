@@ -209,7 +209,7 @@ void WebsocketServerImpl::CloseAll() {
       p.second->Close(CloseReason::going_away);
     }
     self->m_connections.clear();
-    m_totalConnections = 0;
+    self->m_totalConnections = 0;
   });
 }
 
@@ -314,7 +314,7 @@ void WebsocketServerImpl::CloseConnection(ConnectionId conn_id) {
     if (it != self->m_connections.end()) {
       it->second->Close(CloseReason::protocol_error);
       self->m_connections.erase(it);
-      --m_totalConnections;
+      --self->m_totalConnections;
     }
   });
 }

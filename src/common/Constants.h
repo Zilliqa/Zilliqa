@@ -508,5 +508,8 @@ extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
 extern const std::string METRIC_ZILLIQA_SCHEMA;
 extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
 extern const std::string METRIC_ZILLIQA_MASK;
-
+extern const std::string TRACE_ZILLIQA_MASK;
+extern const std::string TRACE_ZILLIQA_PROVIDER;
+extern const std::string TRACE_ZILLIQA_HOSTNAME;
+extern const unsigned int TRACE_ZILLIQA_PORT;
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

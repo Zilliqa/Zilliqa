@@ -212,8 +212,9 @@ add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
 
-if (${CMAKE_CXX_COMPILER_ID} STREQUAL "AppleClang")
-  add_compile_options(-Wno-unused-parameter)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
+    add_compile_options(-Wno-error=deprecated-declarations)
+    add_compile_options(-Wno-unused-parameter)
 endif()
 
 if (THREAD_SANITIZER AND ADDRESS_SANITIZER)
