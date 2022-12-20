@@ -1586,7 +1586,7 @@ bool AccountStoreSC::TransferBalanceAtomic(const Address& from,
 
 void AccountStoreSC::CommitAtomics() {
   LOG_MARKER();
-  auto scoped_span = trace_api::Scope(START_SPAN(ACCOUNTSTORE_EVM,{}));
+  auto scoped_span = trace_api::Scope(START_SPAN(ACC_EVM,{}));
 
   LOG_GENERAL(INFO,"Iterating Accounts");
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {

@@ -776,3 +776,4 @@ const std::string TRACE_ZILLIQA_HOSTNAME{ReadConstantString(
     "TRACE_ZILLIQA_HOSTNAME", "node.trace.zilliqa.", "localhost")};
 const unsigned int TRACE_ZILLIQA_PORT{
     ReadConstantNumeric("TRACE_ZILLIQA_PORT", "node.trace.zilliqa.")};
+

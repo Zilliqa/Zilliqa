@@ -6,7 +6,7 @@
     npx hardhat test --network devnet    # to run tests against the devnet
     npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
     npx hardhat test --log-txnid    # to run tests and print transaction ids.
-    npx hardhat test --debug    # to run tests and print log messages
+    DEBUG=true npx hardhat test    # to run tests and print log messages
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
@@ -107,10 +107,10 @@ npx hardhat test --network ganache
 npx hardhat --verbose test
 ```
 
-- Use `--debug` to print out log messages.
+- Use `DEBUG=true` environment variable to print out log messages.
 
 ```bash
-npx hardhat --debug test
+DEBUG=true npx hardhat test
 ```
 
 # Testing conventions and best practices
@@ -185,6 +185,12 @@ it("Should return correct value for string [@transactional, @ethers_js]", async 
 
 
 # miscellaneous
+## Scripts
+To get the balances of the current accounts, run:
+```bash
+npx hardhat run scripts/Accounts.js
+npx hardhat run scripts/Accounts.js --network public_testnet
+```
 
 ## Setup github pre-commit hook
 
@@ -203,4 +209,11 @@ It's possible to use [FeedDevnet.js](scripts/FeedDevnet.js) to send transactions
 npx hardhat run scripts/FeedDevnet.js --network devnet
 ```
 
-Instead of `devnet` we can pass any other networks in the [config file](hardhat.config.js).
+Instead of `devnet` we can pass any other networks defined in the [config file](hardhat.config.js).
+
+## Increase tests timeout
+
+Set the timeout as a environment variable before running the tests. It's in milliseconds.
+```bash
+MOCHA_TIMEOUT=300000 npx hardhat test
+```

@@ -714,14 +714,25 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
-                                      blockNum, txnExtras, "eth_estimateGas",
-                                      true);
+  evm::EvmArgs args;
+  *args.mutable_address() = AddressToProto(toAddr);
+  *args.mutable_origin() = AddressToProto(fromAddr);
+  *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+  *args.mutable_data() = DataConversion::CharArrayToString(data);
+  args.set_gas_limit(gas);
+  *args.mutable_apparent_value() = UIntToProto(value);
+  if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+    throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                           "Failed to get EVM call extras");
+  }
+  args.set_estimate(true);
+  *args.mutable_context() = "eth_estimateGas";
 
   evm::EvmResult result;
 
-  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
-                                                    result) &&
+  LOG_GENERAL(WARNING, "Estimating evm gas");
+
+  if (AccountStore::GetInstance().ViewAccounts(args, result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
@@ -738,7 +749,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "Base fee exceeds gas limit");
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
-
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
@@ -819,16 +829,20 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
     uint64_t blockNum = m_sharedMediator.m_txBlockChain.GetLastBlock()
                             .GetHeader()
                             .GetBlockNum();
+    evm::EvmArgs args;
+    *args.mutable_address() = AddressToProto(addr);
+    *args.mutable_origin() = AddressToProto(fromAddr);
+    *args.mutable_code() = DataConversion::CharArrayToString(StripEVM(code));
+    *args.mutable_data() = DataConversion::CharArrayToString(data);
+    args.set_gas_limit(gasRemained);
+    *args.mutable_apparent_value() = UIntToProto(value);
+    if (!GetEvmEvalExtras(blockNum, txnExtras, *args.mutable_extras())) {
+      throw JsonRpcException(ServerBase::RPC_INTERNAL_ERROR,
+                             "Failed to get EVM call extras");
+    }
+    *args.mutable_context() = "eth_call";
 
-    /*
-     * EVM estimate only is currently disabled, as per n-hutton advice.
-     */
-    EvmProcessContext evmMessageContext(fromAddr, addr, code, data, gasRemained,
-                                        value, blockNum, txnExtras, "eth_call",
-                                        false);
-
-    if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
-                                                      result) &&
+    if (AccountStore::GetInstance().ViewAccounts(args, result) &&
         result.exit_reason().exit_reason_case() ==
             evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;

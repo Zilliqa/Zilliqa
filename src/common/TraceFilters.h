@@ -34,7 +34,7 @@
   M(EVM_RPC)                      \
   M(LOOKUP_SERVER)                \
   M(QUEUE)                        \
-  M(ACCOUNTSTORE_EVM)
+  M(ACC_EVM)
 
 namespace zil {
 namespace trace {

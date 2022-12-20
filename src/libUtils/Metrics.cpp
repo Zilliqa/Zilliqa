@@ -16,17 +16,13 @@
  */
 
 #include "Metrics.h"
-#include <boost/algorithm/string/classification.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <chrono>
-#include <map>
-#include <memory>
-#include <thread>
-#include <vector>
-#include "Logger.h"
 
-#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
+#include <vector>
+
+#include <boost/algorithm/string.hpp>
 #include "opentelemetry/exporters/prometheus/exporter.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
 
 #include "common/Constants.h"
@@ -40,7 +36,6 @@ namespace metrics_exporter = opentelemetry::exporter::metrics;
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
-
   std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT)};
 

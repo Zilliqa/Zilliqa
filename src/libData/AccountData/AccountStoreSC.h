@@ -26,6 +26,7 @@
 
 #include <libScilla/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
+#include "EvmProcessContext.h"
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"

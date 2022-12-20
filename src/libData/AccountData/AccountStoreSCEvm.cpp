@@ -34,6 +34,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
+#include "common/TraceFilters.h"
 #include "libUtils/Tracing.h"
 
 namespace {
@@ -47,15 +48,15 @@ zil::metrics::uint64Counter_t& GetInvocationsCounter() {
 
 }  // namespace
 
-
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         const evm::EvmArgs& args,           //
                                         bool& ret,                          //
                                         TransactionReceipt& receipt,        //
                                         evm::EvmResult& result) {
+
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
 
-  auto span = START_SPAN(ACCOUNTSTORE_EVM,{});
+  auto span = START_SPAN(ACC_EVM,{});
   auto scoped_span = trace_api::Scope(span);
 
   //
@@ -289,7 +290,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t& blockNum,
   std::map<std::string, opentelemetry::common::AttributeValue>
       attribute_map{{"tid",evmContext.GetTransaction().GetTranID().hex()},{"block",blockNum}};
 
-  auto span = START_SPAN(ACCOUNTSTORE_EVM,attribute_map);
+  auto span = START_SPAN(ACC_EVM,attribute_map);
   trace_api::Scope scope(span);
 
 
