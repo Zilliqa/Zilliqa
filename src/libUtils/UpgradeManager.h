@@ -19,8 +19,11 @@
 #define ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_
 
 #include <curl/curl.h>
+#include <cstring>
+#include <memory>
 #include <string>
-#include <vector>
+#include "libMediator/Mediator.h"
+#include "libUtils/SWInfo.h"
 
 class UpgradeManager {
  private:
@@ -41,7 +44,7 @@ class UpgradeManager {
   std::string DownloadFile(const char* fileTail,
                            const char* releaseUrl = nullptr);
 
-  bool LoadInitialDS(std::vector<class PubKey>& initialDSCommittee);
+  bool LoadInitialDS(std::vector<PubKey>& initialDSCommittee);
   void CleanInitialDS();
 };
 

@@ -19,11 +19,12 @@
 
 #include <boost/algorithm/string.hpp>
 #include "opentelemetry/exporters/otlp/otlp_http_exporter_factory.h"
+#if 0
 #include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 #include "opentelemetry/exporters/zipkin/zipkin_exporter_factory.h"
+#endif
 #include "opentelemetry/exporters/jaeger/jaeger_exporter_factory.h"
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
-#include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 #include "opentelemetry/ext/zpages/zpages.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
@@ -36,11 +37,10 @@ namespace trace_api = opentelemetry::trace;
 namespace trace_sdk = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
-namespace jaeger    = opentelemetry::exporter::jaeger;
-
-
+namespace jaeger = opentelemetry::exporter::jaeger;
+#if 0  // missing linkage
 namespace zipkin = opentelemetry::exporter::zipkin;
-
+#endif
 namespace resource = opentelemetry::sdk::resource;
 
 Tracing::Tracing() { Init(); }
@@ -54,13 +54,15 @@ void Tracing::Init() {
     StdOutInit();
   } else if (cmp == "ZPAGES") {
     ZPagesInit();
+#if 0
   } else if (cmp == "OTLPGRPC") {
     OtlpGRPCInit();
+#endif
   } else if (cmp == "OTLPHTTP") {
     OtlpHTTPInit();
-  } else if (cmp == "JAEGER"){
+  } else if (cmp == "JAEGER") {
     JaegerInit();
-  } else if (cmp == ""){
+  } else if (cmp == "") {
     JaegerInit();
   }
 }
@@ -84,6 +86,7 @@ void Tracing::JaegerInit() {
 }
 
 void Tracing::OtlpGRPCInit() {
+#if 0
   opentelemetry::exporter::otlp::OtlpGrpcExporterOptions opts;
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
@@ -92,6 +95,7 @@ void Tracing::OtlpGRPCInit() {
   m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
+#endif
 }
 
 void Tracing::OtlpHTTPInit() {
@@ -102,16 +106,16 @@ void Tracing::OtlpHTTPInit() {
     opts.url = addr;
   }
   // Create OTLP exporter instance
-  auto exporter  = otlp::OtlpHttpExporterFactory::Create(opts);
-  auto processor = trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
-      trace_sdk::TracerProviderFactory::Create(std::move(processor));
+  auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
+  auto processor =
+      trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
   // Set the global trace provider
-  trace_api::Provider::SetTracerProvider(provider);
+  trace_api::Provider::SetTracerProvider(m_provider);
 }
 
 void Tracing::ZipkinInit() {
-/*  // Create zipkin exporter instance
+#if 0  // missing web server
   zipkin::ZipkinExporterOptions opts;
   resource::ResourceAttributes attributes = {
       {"service.name", "zipkin_demo_service"}};
@@ -122,11 +126,12 @@ void Tracing::ZipkinInit() {
   m_provider =
       trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
   // Set the global trace provider
-  */
+ trace_api::Provider::SetTracerProvider(m_provider);
+#endif
 }
 
 void Tracing::ZPagesInit() {
-#ifdef OTEL_1_81_1
+#if 0  // missing library needs investigating
   ZPages::Initialize();
   m_provider = trace_api::Provider::GetTracerProvider();
   trace_api::Provider::SetTracerProvider(m_provider);

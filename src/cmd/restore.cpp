@@ -20,15 +20,12 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include "libData/AccountData/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
-#include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/FileSystem.h"
 #include "libUtils/UpgradeManager.h"
-#include "libValidator/Validator.h"
 
 using namespace std;
 
