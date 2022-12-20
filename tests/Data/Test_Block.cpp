@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_test) {
   // compute tx root hash
   zbytes vec;
   tx1.Serialize(vec, 0);
-  SHA2<HASH_TYPE::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(vec);
   zbytes tx1HashVec = sha2.Finalize();
   std::array<unsigned char, TRAN_HASH_SIZE> tx1Hash;

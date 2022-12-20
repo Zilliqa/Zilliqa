@@ -16,6 +16,4 @@ target_link_libraries (Network PUBLIC
         libevent::core
         libevent::pthreads
         RumorSpreading
-        Message
-        ${Schnorr_LIBRARY}
-        OpenSSL::Crypto)
+        Utils)

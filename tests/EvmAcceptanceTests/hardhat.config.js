@@ -3,6 +3,27 @@ const clc = require("cli-color");
 require("@nomicfoundation/hardhat-toolbox");
 require("@nomiclabs/hardhat-web3");
 
+const argv = require("yargs/yargs")()
+  .env("")
+  .options({
+    debug: {
+      type: "boolean",
+      default: false
+    },
+    parallel: {
+      type: "boolean",
+      default: false
+    },
+    mochaWorkers: {
+      type: "number",
+      default: 4
+    },
+    mochaTimeout: {
+      type: "number",
+      default: 300000
+    }
+  }).argv;
+
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   solidity: "0.8.9",
@@ -71,17 +92,21 @@ module.exports = {
     }
   },
   mocha: {
-    timeout: 300000
+    timeout: argv.mochaTimeout,
+    jobs: argv.mochaWorkers
   }
 };
 
+extendEnvironment((hre) => {
+  hre.debugMode = argv.debug;
+  hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
+  hre.parallelMode = argv.parallel;
+});
+
 task("test")
-  .addFlag("debug", "Print debugging logs")
   .addFlag("logJsonrpc", "Log JSON RPC ")
   .addFlag("logTxnid", "Log JSON RPC ")
-  .setAction(async (taskArgs, hre, runSuper) => {
-    hre.debugMode = taskArgs.debug ?? false;
-    hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
+  .setAction((taskArgs, hre, runSuper) => {
     if (taskArgs.logJsonrpc || taskArgs.logTxnid) {
       hre.ethers.provider.on("debug", (info) => {
         if (taskArgs.logJsonrpc) {

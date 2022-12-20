@@ -21,7 +21,6 @@
 
 using namespace std::chrono;
 using namespace boost::multiprecision;
-static std::mutex gmtimeMutex;
 
 system_clock::time_point r_timer_start() { return system_clock::now(); }
 

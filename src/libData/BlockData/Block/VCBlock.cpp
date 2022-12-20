@@ -34,7 +34,7 @@ VCBlock::VCBlock(const zbytes& src, unsigned int offset) {
 
 VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
     : m_header(header) {
-  m_cosigs = move(cosigs);
+  m_cosigs = std::move(cosigs);
   SetTimestamp(get_time_as_int());
   SetBlockHash(m_header.GetMyHash());
 }

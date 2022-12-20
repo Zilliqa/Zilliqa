@@ -20,6 +20,7 @@
 
 #include <array>
 #include <boost/algorithm/hex.hpp>
+#include <cstdint>
 #include <exception>
 #include <optional>
 #include <sstream>
@@ -35,29 +36,14 @@
 class DataConversion {
  public:
   /// Converts alphanumeric hex string to Uint64.
-  static bool HexStringToUint64(const std::string& s, uint64_t* res) {
-    try {
-      *res = std::stoull(s, nullptr, 16);
-    } catch (const std::invalid_argument& e) {
-      LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
-      return false;
-    } catch (const std::out_of_range& e) {
-      LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
-      return false;
-    }
-    return true;
-  }
-
-  static uint64_t HexStringToUint64Ret(const std::string& s) {
-    uint64_t ret = 0;
-
-    if (s.size() > 2 && s[1] == 'x') {
-      HexStringToUint64(std::string(s.c_str() + 2), &ret);
-    } else {
-      HexStringToUint64(s, &ret);
-    }
-
-    return ret;
+  static std::optional<uint64_t> HexStringToUint64(const std::string& s) try {
+    return std::stoull(s, nullptr, 16);
+  } catch (const std::invalid_argument& e) {
+    LOG_GENERAL(WARNING, "Convert failed, invalid input: " << s);
+    return std::nullopt;
+  } catch (const std::out_of_range& e) {
+    LOG_GENERAL(WARNING, "Convert failed, out of range: " << s);
+    return std::nullopt;
   }
 
   /// Converts alphanumeric hex string to byte vector.
@@ -80,10 +66,6 @@ class DataConversion {
   static bool Uint8VecToHexStr(const zbytes& hex_vec, std::string& str);
 
   static std::string Uint8VecToHexStrRet(const zbytes& hex_vec);
-
-  /// Converts byte vector to alphanumeric hex string.
-  static bool Uint8VecToHexStr(const zbytes& hex_vec, unsigned int offset,
-                               unsigned int len, std::string& str);
 
   /// Converts fixed-sized byte array to alphanumeric hex string.
   template <size_t SIZE>
@@ -156,14 +138,6 @@ class DataConversion {
 
   /// Add '0x' to string if it does not exist already
   static std::string AddOXPrefix(std::string&& s);
-
-  static size_t clz(uint8_t x) {
-    static constexpr std::uint8_t clz_lookup[16] = {4, 3, 2, 2, 1, 1, 1, 1,
-                                                    0, 0, 0, 0, 0, 0, 0, 0};
-    auto upper = (x >> 4) & 0x0F;
-    auto lower = x & 0x0F;
-    return upper ? clz_lookup[upper] : 4 + clz_lookup[lower];
-  }
 
   template <typename T>
   static std::string IntToHexString(T number, bool withX = true) {

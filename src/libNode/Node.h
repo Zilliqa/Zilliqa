@@ -611,7 +611,7 @@ class Node : public Executable {
 
   void AddBalanceToGenesisAccount();
 
-  void PopulateAccounts(bool temp = false);
+  void PopulateAccounts();
 
   void UpdateBalanceForPreGeneratedAccounts();
 

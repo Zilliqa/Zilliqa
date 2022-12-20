@@ -30,7 +30,7 @@ class Serializable {
   virtual int Deserialize(const zbytes& src, unsigned int offset) = 0;
 
   /// Virtual destructor.
-  virtual ~Serializable() {}
+  virtual ~Serializable() = default;
 
   /// Template function for extracting a number from the source byte stream at
   /// the specified offset. Returns 0 if there are not enough bytes to read from
@@ -85,7 +85,7 @@ class SerializableDataBlock {
   virtual bool Deserialize(const std::string& src, unsigned int offset) = 0;
 
   /// Virtual destructor.
-  virtual ~SerializableDataBlock() {}
+  virtual ~SerializableDataBlock() = default;
 
   /// Template function for extracting a number from the source byte stream at
   /// the specified offset. Returns 0 if there are not enough bytes to read from

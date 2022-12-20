@@ -17,9 +17,9 @@
 
 #include "ScillaClient.h"
 
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JsonUtils.h"
-#include "libUtils/ScillaUtils.h"
 #include "libUtils/SysCommand.h"
 
 #include <boost/asio.hpp>

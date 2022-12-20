@@ -151,10 +151,8 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
                                                    const string& header,
                                                    const string& mixdigest,
                                                    const string& boundary) {
-  uint64_t winning_nonce = {0};
-
-  // convert
-  if (!DataConversion::HexStringToUint64(nonce, &winning_nonce)) {
+  auto winning_nonce =  DataConversion::HexStringToUint64(nonce);
+  if (!winning_nonce) {
     LOG_GENERAL(WARNING, "Invalid nonce: " << nonce);
     return FAIL_RESULT;
   }
@@ -177,7 +175,7 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
 
   ethash_hash256 final_result{};
   if (!POW::GetInstance().VerifyRemoteSoln(
-          m_curWork.blocknum, POW::StringToBlockhash(boundary), winning_nonce,
+          m_curWork.blocknum, POW::StringToBlockhash(boundary), *winning_nonce,
           POW::StringToBlockhash(header), POW::StringToBlockhash(mixdigest),
           final_result)) {
     LOG_GENERAL(WARNING, "Failed to verify PoW result from miner.");
@@ -185,7 +183,7 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
   }
 
   return ethash_mining_result_t{POW::BlockhashToHexString(final_result),
-                                mixdigest, winning_nonce, true};
+                                mixdigest, *winning_nonce, true};
 }
 
 // UpdateCurrentResult check and update new result
