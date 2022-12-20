@@ -172,7 +172,7 @@ struct EvmProcessContext {
 
   bool GetDirect() { return m_direct; }
 
-  inline Transaction::ContractType GetContractType() {
+  inline Transaction::ContractType GetContractType() const {
     return Transaction::GetTransactionType(m_legacyTxn);
   }
 
