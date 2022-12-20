@@ -210,6 +210,13 @@ class Metrics : public Singleton<Metrics> {
     COUNTER->Add(1, {{ATTRIBUTE, VALUE}});                               \
   }
 
+#define INCREMENT_CALLS_COUNTER2(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE, \
+                                 ATTRIBUTE2, VALUE2)                      \
+  if (zil::metrics::Filter::GetInstance().Enabled(                        \
+          zil::metrics::FilterClass::FILTER_CLASS)) {                     \
+    COUNTER->Add(1, {{ATTRIBUTE, VALUE}, {ATTRIBUTE2, VALUE2}});          \
+  }
+
 #define INCREMENT_METHOD_CALLS_COUNTER(COUNTER, FILTER_CLASS) \
   if (zil::metrics::Filter::GetInstance().Enabled(            \
           zil::metrics::FilterClass::FILTER_CLASS)) {         \

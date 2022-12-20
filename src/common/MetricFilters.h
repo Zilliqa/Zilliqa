@@ -33,8 +33,9 @@
   M(SCILLA_IPC)                   \
   M(EVM_RPC)                      \
   M(LOOKUP_SERVER)                \
-  M(QUEUE)                        \
-  M(ACCOUNTSTORE_EVM)
+  M(MSG_DISPATCH)                 \
+  M(ACCOUNTSTORE_EVM)             \
+  M(API_SERVER)
 
 namespace zil {
 namespace metrics {

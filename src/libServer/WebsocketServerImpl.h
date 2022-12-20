@@ -55,6 +55,11 @@ class WebsocketServerImpl
     assert(m_threadPool);
   }
 
+  /// A metric
+  size_t GetConnectionsNumber() const {
+    return m_totalConnections;
+  }
+
   /// Called by HTTP server on new WS upgrade request
   void NewConnection(std::string&& from, Socket&& socket, HttpRequest&& req);
 
@@ -92,6 +97,9 @@ class WebsocketServerImpl
 
   /// Active connections
   std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
+
+  /// Metric, can be accessed from foreign thread
+  std::atomic<size_t> m_totalConnections{};
 };
 
 }  // namespace ws

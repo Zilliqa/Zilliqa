@@ -209,6 +209,7 @@ void WebsocketServerImpl::CloseAll() {
       p.second->Close(CloseReason::going_away);
     }
     self->m_connections.clear();
+    m_totalConnections = 0;
   });
 }
 
@@ -218,9 +219,10 @@ void WebsocketServerImpl::NewConnection(std::string&& from, Socket&& socket,
                                            std::move(from), std::move(socket));
   conn->WebsocketAccept(std::move(req));
   m_connections[m_counter] = std::move(conn);
+  ++m_totalConnections;
 
-  LOG_GENERAL(INFO, "WS connection #" << m_counter << " from " << from
-                                      << ", total=" << m_connections.size());
+  LOG_GENERAL(DEBUG, "WS connection #" << m_counter << " from " << from
+                                       << ", total=" << m_connections.size());
 }
 
 bool WebsocketServerImpl::MessageFromConnection(ConnectionId id,
@@ -312,6 +314,7 @@ void WebsocketServerImpl::CloseConnection(ConnectionId conn_id) {
     if (it != self->m_connections.end()) {
       it->second->Close(CloseReason::protocol_error);
       self->m_connections.erase(it);
+      --m_totalConnections;
     }
   });
 }
