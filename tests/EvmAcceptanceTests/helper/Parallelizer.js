@@ -48,6 +48,10 @@ var parallelizer = {
     return ethers.Wallet.createRandom().connect(ethers.provider);
   },
   takeSigner: async function () {
+    if (!hre.parallelMode) {
+      return this.getSignerForCurrentWorker();
+    }
+
     if (this.signers.length == 0) {
       // Need to create new signers
       await this.initSigners();

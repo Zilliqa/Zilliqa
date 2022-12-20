@@ -32,13 +32,12 @@ describe("Openzeppelin ERC20 functionality", function () {
     });
 
     it("Should not be possible to transfer GLD token by an arbitrary account", async function () {
-      const [_, notOwner] = await ethers.getSigners();
+      const [, , notOwner] = await ethers.getSigners();
 
-      await expect(contract.connect(notOwner).transfer(notOwner.address, 1000)).to.changeTokenBalance(
-        contract,
-        notOwner.address,
-        0
+      await expect(contract.connect(notOwner).transfer(notOwner.address, 1000)).to.be.revertedWith(
+        "ERC20: transfer amount exceeds balance"
       );
+      expect(await contract.balanceOf(notOwner.address)).to.be.eq(0);
     });
 
     it("Should not be possible to move more than available tokens to some address", async function () {
