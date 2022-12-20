@@ -92,6 +92,41 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   // call evm-ds
   EvmCallRunner(invoke_type, args, ret, receipt, result);
 
+  const auto reason_case = result.exit_reason().exit_reason_case();
+  LOG_GENERAL(WARNING, "EXIT reason case: " << reason_case);
+  if(result.exit_reason().exit_reason_case() == evm::ExitReason::ExitReasonCase::kTrap) {
+    const evm::TrapData& trap_data = result.trap_data();
+
+    if(trap_data.has_create()) {
+      const evm::TrapData_Create& create_data = trap_data.create();
+        const evm::Address& proto_caller = create_data.caller();
+        const Address address = ProtoToAddress(proto_caller);
+        LOG_GENERAL(WARNING, "Caller Address is: " << address.hex());
+        const evm::TrapData_Scheme& scheme = create_data.scheme();
+        if(scheme.has_legacy()) {
+          const evm::TrapData_Scheme_Legacy &legacy = scheme.legacy();
+          LOG_GENERAL(WARNING, "Legacy scheme. Address is: " << ProtoToAddress(legacy.caller()).hex());
+        }
+        else if(scheme.has_create2()) {
+          const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
+          LOG_GENERAL(WARNING, "Create2 scheme. Caller: " << ProtoToAddress(create2.caller()).hex());
+          LOG_GENERAL(WARNING, "Create2 scheme. CodeHas: " << ProtoToH256(create2.code_hash()).hex());
+          LOG_GENERAL(WARNING, "Create2 scheme. Salt: " << ProtoToH256(create2.salt()).hex());
+        }
+        const auto& value = create_data.value();
+        LOG_GENERAL(WARNING, "Value: " << ProtoToUint(value).convert_to<std::string>());
+        LOG_GENERAL(WARNING, "CallData: " << boost::algorithm::hex(create_data.call_data()));
+        LOG_GENERAL(WARNING, "TargetGas: " << create_data.target_gas());
+        LOG_GENERAL(WARNING, "RemainingGas: " << result.remaining_gas());
+    }
+    else if(trap_data.has_call()) {
+      LOG_GENERAL(WARNING, "GOT CALL DATA");
+    }
+    else {
+      LOG_GENERAL(WARNING, "UNKNOWN TYPE");
+    }
+  }
+
   if (result.exit_reason().exit_reason_case() !=
       evm::ExitReason::ExitReasonCase::kSucceed) {
     LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(result.exit_reason()));

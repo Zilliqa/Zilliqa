@@ -41,8 +41,8 @@ pub async fn run_evm_impl(
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
         debug!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
-            backend.origin, address, gas_limit, apparent_value, hex::encode(&code), hex::encode(&data),
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}",
+            backend.origin, address, gas_limit, apparent_value,
             backend.extras, estimate);
         let code = Rc::new(code);
         let data = Rc::new(data);
@@ -129,9 +129,9 @@ pub async fn run_evm_impl(
                 }
                 let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}, result: {:?}", evm_context,
-                    backend.origin, address, gas_limit, apparent_value, hex::encode(code.as_ref()), hex::encode(data.as_ref()),
-                    backend.extras, estimate, result);
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}", evm_context,
+                    backend.origin, address, gas_limit, apparent_value,
+                    backend.extras, estimate);
                 result
             },
             CpsReason::CallInterrupt(i) => {
@@ -261,6 +261,7 @@ fn build_crate_result(
     trap_data_create.set_call_data(interrupt.init_code.into());
     trap_data_create.set_target_gas(interrupt.target_gas.unwrap_or(0));
     trap_data_create.set_value(interrupt.value.into());
+    trap_data_create.set_target_gas(remaining_gas);
     let mut trap_data = EvmProto::TrapData::new();
     trap_data.set_create(trap_data_create);
     result.set_trap_data(trap_data);

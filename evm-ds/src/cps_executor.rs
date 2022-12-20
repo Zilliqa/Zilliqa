@@ -215,7 +215,16 @@ impl<'a> Handler for CpsExecutor<'a> {
         init_code: Vec<u8>,
         target_gas: Option<u64>,
     ) -> Capture<(ExitReason, Option<H160>, Vec<u8>), Self::CreateInterrupt> {
-        let result =
+
+        Capture::Trap(Self::CreateInterrupt {
+            caller,
+            scheme,
+            value,
+            init_code,
+            target_gas,
+        })
+
+        /*let result =
             self.stack_executor
                 .create(caller, scheme, value, init_code.clone(), target_gas);
         match result {
@@ -227,7 +236,7 @@ impl<'a> Handler for CpsExecutor<'a> {
                 init_code,
                 target_gas,
             }),
-        }
+        }*/
     }
 
     /// Feed in create feedback.
