@@ -10,13 +10,17 @@ const argv = require("yargs/yargs")()
       type: "boolean",
       default: false
     },
+    parallel: {
+      type: "boolean",
+      default: false
+    },
     mochaWorkers: {
       type: "number",
       default: 4
     },
     mochaTimeout: {
       type: "number",
-      default: 30000
+      default: 300000
     }
   }).argv;
 
@@ -96,6 +100,7 @@ module.exports = {
 extendEnvironment((hre) => {
   hre.debugMode = argv.debug;
   hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
+  hre.parallelMode = argv.parallel;
 });
 
 task("test")
