@@ -31,6 +31,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/Tracing.h"
 
 #include "AccountStoreSC.h"
 
@@ -1584,7 +1585,11 @@ bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
 template <class MAP>
 void AccountStoreSC<MAP>::CommitAtomics() {
   LOG_MARKER();
+  auto scoped_span = trace_api::Scope(START_SPAN(ACC_EVM,{}));
+
+  LOG_GENERAL(INFO,"Iterating Accounts");
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
+
     Account* account = this->GetAccount(entry.first);
     if (account != nullptr) {
       *account = entry.second;

@@ -284,8 +284,8 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
   return true;
 }
 
-bool Node::OnCommitFailure(
-    [[gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
+bool Node::OnCommitFailure([
+    [gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "
