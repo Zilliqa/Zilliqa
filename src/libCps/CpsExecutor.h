@@ -31,6 +31,9 @@ class CpsExecutor final {
   CpsExecuteResult Run(const EvmProcessContext& context);
 
  private:
+  CpsExecuteResult preValidateRun(const EvmProcessContext& context) const;
+
+ private:
   CpsAccountStoreInterface& m_account_store;
 };
 
