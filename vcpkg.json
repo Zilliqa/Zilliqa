@@ -34,11 +34,7 @@
       "default-features": false,
       "features": [
         "prometheus",
-        "otlp",
-        "elasticsearch",
-        "jaeger",
-        "zipkin",
-        "zpages"
+        "otlp"
       ]
     }
   ],

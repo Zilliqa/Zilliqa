@@ -22,10 +22,10 @@
 #if 0
 #include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 #include "opentelemetry/exporters/zipkin/zipkin_exporter_factory.h"
-#endif
 #include "opentelemetry/exporters/jaeger/jaeger_exporter_factory.h"
-#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/ext/zpages/zpages.h"
+#endif
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 #include "opentelemetry/trace/provider.h"
@@ -37,9 +37,10 @@ namespace trace_api = opentelemetry::trace;
 namespace trace_sdk = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
+#if 0
 namespace jaeger = opentelemetry::exporter::jaeger;
-
-//namespace zipkin = opentelemetry::exporter::zipkin;
+namespace zipkin = opentelemetry::exporter::zipkin;
+#endif
 
 namespace resource = opentelemetry::sdk::resource;
 
@@ -68,6 +69,7 @@ void Tracing::Init() {
 }
 
 void Tracing::JaegerInit() {
+#if 0
   // Create Jaeger exporter instance
   std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(TRACE_ZILLIQA_PORT)};
@@ -83,6 +85,7 @@ void Tracing::JaegerInit() {
   m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
+#endif
 }
 
 void Tracing::OtlpGRPCInit() {

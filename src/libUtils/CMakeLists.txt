@@ -41,7 +41,6 @@ target_link_libraries(Utils
         jsonrpc
         jsoncpp_lib
         protobuf::libprotobuf
-        opentelemetry-cpp::zpages
         opentelemetry-cpp::api
         opentelemetry-cpp::sdk
         opentelemetry-cpp::logs
@@ -51,9 +50,7 @@ target_link_libraries(Utils
         opentelemetry-cpp::otlp_http_metric_exporter
         opentelemetry-cpp::otlp_http_exporter
         opentelemetry-cpp::opentelemetry_exporter_prometheus
-        opentelemetry-cpp::jaeger_trace_exporter
-        opentelemetry-cpp::zpages
-        nlohmann_json
+
         PRIVATE
         ${CryptoUtils_LIBRARY}
         ${g3sinks_LOGROTATE_LIBRARY}
