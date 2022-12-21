@@ -3,4 +3,4 @@ scrape_configs:
     honor_timestamps: false
     scrape_interval: 10s
     static_configs:
-      - targets: ['8099:8089']
+      - targets: ['8085:8085']

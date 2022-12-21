@@ -5,11 +5,6 @@ receivers:
         endpoint: 0.0.0.0:4318
 
 exporters:
-  prometheus:
-    endpoint: "0.0.0.0:8889"
-    const_labels:
-      label1: value1
-
   logging:
 
   zipkin:
@@ -32,13 +27,9 @@ extensions:
     endpoint: :55679
 
 service:
-  extensions: [pprof, zpages, health_check]
+  extensions: [ pprof, zpages, health_check ]
   pipelines:
     traces:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [logging, zipkin, jaeger]
-    metrics:
-      receivers: [otlp]
-      processors: [batch]
-      exporters: [logging, prometheus]
+      receivers: [ otlp ]
+      processors: [ batch ]
+      exporters: [ logging, zipkin, jaeger ]

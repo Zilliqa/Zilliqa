@@ -33,4 +33,4 @@ scrape_configs:
     honor_timestamps: false
 
     static_configs:
-      - targets: ["localhost:8082"]
+      - targets: ["localhost:8085"]

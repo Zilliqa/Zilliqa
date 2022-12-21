@@ -1,6 +1,5 @@
 version: "2"
 services:
-
   # Jaeger
   jaeger-all-in-one:
     image: jaegertracing/all-in-one:latest
@@ -35,14 +34,3 @@ services:
     depends_on:
       - jaeger-all-in-one
       - zipkin-all-in-one
-
-  prometheus:
-    container_name: prometheus
-    image: prom/prometheus:latest
-    restart: always
-    volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
-    ports:
-      - "9090:9090"
-    depends_on:
-      - otel-collector
