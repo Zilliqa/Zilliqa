@@ -755,6 +755,8 @@ const bool LAUNCH_EVM_DAEMON{
 
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
+const std::string METRIC_ZILLIQA_PROVIDER{ReadConstantString(
+    "METRIC_ZILLIQA_PROVIDER", "node.metric.zilliqa.", "prometheus")};
 const unsigned int METRIC_ZILLIQA_PORT{
     ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.")};
 const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(

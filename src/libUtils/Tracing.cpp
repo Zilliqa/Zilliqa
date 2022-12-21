@@ -38,9 +38,9 @@ namespace trace_sdk = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
 namespace jaeger = opentelemetry::exporter::jaeger;
-#if 0  // missing linkage
-namespace zipkin = opentelemetry::exporter::zipkin;
-#endif
+
+//namespace zipkin = opentelemetry::exporter::zipkin;
+
 namespace resource = opentelemetry::sdk::resource;
 
 Tracing::Tracing() { Init(); }
@@ -103,7 +103,7 @@ void Tracing::OtlpHTTPInit() {
   std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(TRACE_ZILLIQA_PORT)};
   if (!addr.empty()) {
-    opts.url = addr;
+    opts.url = "http://localhost:4318/v1/traces";
   }
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
@@ -115,7 +115,7 @@ void Tracing::OtlpHTTPInit() {
 }
 
 void Tracing::ZipkinInit() {
-#if 0  // missing web server
+#if 0
   zipkin::ZipkinExporterOptions opts;
   resource::ResourceAttributes attributes = {
       {"service.name", "zipkin_demo_service"}};

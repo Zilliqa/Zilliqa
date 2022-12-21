@@ -200,6 +200,8 @@ class Metrics : public Singleton<Metrics> {
 
  private:
   void Init();
+  void InitPrometheus();
+  void InitOTHTTP();
 
   std::shared_ptr<opentelemetry::metrics::MeterProvider> m_provider;
 };

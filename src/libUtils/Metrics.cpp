@@ -20,6 +20,7 @@
 #include <vector>
 
 #include <boost/algorithm/string.hpp>
+#include "opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
@@ -30,12 +31,61 @@
 
 namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace metrics_exporter = opentelemetry::exporter::metrics;
+namespace metrics_api = opentelemetry::metrics;
+namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
 
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
+  std::string cmp(METRIC_ZILLIQA_PROVIDER);
+
+  if (cmp == "PROMETHEUS"){
+    InitPrometheus();
+  }
+  else if (cmp == "OTLPHTTP"){
+    InitOTHTTP();
+  } else {
+    InitOTHTTP(); // our favourite
+  }
+}
+
+
+
+void Metrics::InitOTHTTP() {
+  metrics_sdk::PeriodicExportingMetricReaderOptions opts;
+
+  std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
+                   std::to_string(METRIC_ZILLIQA_PORT)};
+
+  otlp_exporter::OtlpHttpMetricExporterOptions options;
+
+  if (!addr.empty()) {
+    options.url = "http://" + addr + "/v1/metrics";
+  }
+  auto exporter = otlp_exporter::OtlpHttpMetricExporterFactory::Create(options);
+
+  std::string version{"1.2.0"};
+  std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
+
+  // Initialize and set the global MeterProvider
+
+  opts.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  opts.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+
+    std::unique_ptr<metrics_sdk::MetricReader> reader{
+      new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
+                                                     opts)};
+  m_provider = std::shared_ptr<metrics_api::MeterProvider>(
+      new metrics_sdk::MeterProvider());
+  auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(m_provider);
+  p->AddMetricReader(std::move(reader));
+
+  metrics_api::Provider::SetMeterProvider(m_provider);
+}
+
+void Metrics::InitPrometheus() {
   std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT)};
 

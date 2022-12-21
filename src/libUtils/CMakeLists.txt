@@ -48,7 +48,7 @@ target_link_libraries(Utils
         opentelemetry-cpp::trace
         opentelemetry-cpp::ostream_span_exporter
         opentelemetry-cpp::ostream_metrics_exporter
-#        opentelemetry-cpp::otlp_grpc_exporter   // exhibits a startup problem needs investigating proto version db clash
+        opentelemetry-cpp::otlp_http_metric_exporter
         opentelemetry-cpp::otlp_http_exporter
         opentelemetry-cpp::opentelemetry_exporter_prometheus
         opentelemetry-cpp::jaeger_trace_exporter
