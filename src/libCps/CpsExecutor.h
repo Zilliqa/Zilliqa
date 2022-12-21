@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
 #define ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
 
+#include "CpsAccountStoreInterface.h"
 #include "CpsExecuteResult.h"
 
 class AccountStore;
@@ -26,11 +27,11 @@ class EvmProcessContext;
 namespace libCps {
 class CpsExecutor final {
  public:
-  explicit CpsExecutor(AccountStore& account_store);
+  explicit CpsExecutor(CpsAccountStoreInterface& account_store);
   CpsExecuteResult Run(const EvmProcessContext& context);
 
  private:
-  AccountStore& m_account_store;
+  CpsAccountStoreInterface& m_account_store;
 };
 
 }  // namespace libCps

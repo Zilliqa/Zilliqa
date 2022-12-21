@@ -30,6 +30,7 @@ class Amount final {
   }
   uint256_t toWei() const { return m_value; }
   uint128_t toQa() const { return uint128_t{m_value / EVM_ZIL_SCALING_FACTOR}; }
+  bool isZero() const { return m_value.is_zero(); }
   auto operator<=(const Amount& other) const {
     return m_value <= other.m_value;
   }

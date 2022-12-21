@@ -52,6 +52,8 @@ class AccountStoreAtomic
 
 template <class MAP>
 class AccountStoreSC : public AccountStoreBase<MAP> {
+  template <typename T>
+  friend class AccountStoreCpsInterface;
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
@@ -115,12 +117,17 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::vector<Address> m_newLibrariesCreated;
 
   /// Metrics callback for block number
-  zil::metrics::int64Observable_t m_accountStoreCount { Metrics::GetInstance().CreateInt64Gauge(
-      "zilliqa_accountstore", "blockchain_gauge", "Metrics for AccountStore", "blocks") };
-  zil::metrics::int64_t m_accStoreProcees { Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_accountstroe", "invocations_count", "Metrics for AccountStore", "Blocks") };
+  zil::metrics::int64Observable_t m_accountStoreCount{
+      Metrics::GetInstance().CreateInt64Gauge(
+          "zilliqa_accountstore", "blockchain_gauge",
+          "Metrics for AccountStore", "blocks")};
+  zil::metrics::int64_t m_accStoreProcees{
+      Metrics::GetInstance().CreateInt64Metric(
+          "zilliqa_accountstroe", "invocations_count",
+          "Metrics for AccountStore", "Blocks")};
 
-  static void instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,void *state);
+  static void instFetchInfo(
+      opentelemetry::metrics::ObserverResult observer_result, void* state);
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
