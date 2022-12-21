@@ -73,8 +73,17 @@ class Tracing : public Singleton<Tracing> {
   std::shared_ptr<opentelemetry::trace::TracerProvider> m_provider;
 };
 
+
+#define TRACE_ENABLED(FILTER_CLASS) \
+  zil::trace::Filter::GetInstance().Enabled(zil::trace::FilterClass::FILTER_CLASS)
+
+#define SCOPED_SPAN(FILTER_CLASS,SCOPE_NAME,SPAN) \
+  trace_api::Scope SCOPE_NAME = TRACE_ENABLED(FILTER_CLASS) ? trace_api::Scope(SPAN) : trace_api::Scope(nullptr);
+
+
 #define START_SPAN(FILTER_CLASS, ATTRIBUTES) \
-    zil::trace::Filter::GetInstance().Enabled(zil::trace::FilterClass::FILTER_CLASS) ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES)  : nullptr
+    TRACE_ENABLED(FILTER_CLASS) ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES)  : trace_api::Tracer::GetCurrentSpan()
+
 
 
 #endif  // ZILLIQA_SRC_LIBUTILS_TRACING_H_

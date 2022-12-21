@@ -108,13 +108,16 @@ void Tracing::OtlpHTTPInit() {
   if (!addr.empty()) {
     opts.url = "http://localhost:4318/v1/traces";
   }
+  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"}, {"version", (uint32_t)1}};
+  auto resource                           = resource::Resource::Create(attributes);
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
+  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
+
 }
 
 void Tracing::ZipkinInit() {
@@ -152,8 +155,7 @@ void Tracing::StdOutInit() {
 }
 
 std::shared_ptr<trace_api::Tracer> Tracing::get_tracer() {
-  auto provider = trace_api::Provider::GetTracerProvider();
-  return provider->GetTracer("zilliqa", OPENTELEMETRY_SDK_VERSION);
+ return m_provider->GetTracer("zilliqa-cpp", OPENTELEMETRY_SDK_VERSION);
 }
 
 void Tracing::Shutdown() {
