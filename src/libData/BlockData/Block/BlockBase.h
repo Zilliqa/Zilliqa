@@ -18,20 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 
-#include <Schnorr.h>
+#include "libCrypto/CoSignatures.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
-
-struct CoSignatures {
-  Signature m_CS1;
-  std::vector<bool> m_B1;
-  Signature m_CS2;
-  std::vector<bool> m_B2;
-
-  CoSignatures(unsigned int bitmaplen = 1) : m_B1(bitmaplen), m_B2(bitmaplen) {}
-  CoSignatures(const Signature& CS1, const std::vector<bool>& B1,
-               const Signature& CS2, const std::vector<bool>& B2)
-      : m_CS1(CS1), m_B1(B1), m_CS2(CS2), m_B2(B2) {}
-};
 
 /// [TODO] Base class for all supported block data types
 class BlockBase : public SerializableDataBlock {
