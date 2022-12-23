@@ -16,8 +16,8 @@
 
 ARG SCILLA_VERSION=v0.13.1-alpha
 
-FROM ubuntu:20.04 AS builder
-
+# Common dependencies of the builder and runner stages.
+FROM ubuntu:20.04 AS deps
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -62,10 +62,17 @@ RUN apt-get update \
     zip \
     && apt-get remove -y cmake python2  && apt-get autoremove -y
 
+FROM deps AS builder
+
 # Cargo
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
     sh install_script.sh -y
 ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN cargo install sccache
+ENV SCCACHE_CACHE_SIZE="1G"
+ENV SCCACHE_DIR="/sccache"
+ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
 
 # CMake 3.24
 ARG CMAKE_VERSION=3.24.2
@@ -101,7 +108,7 @@ COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
 COPY vcpkg.json .
 
-RUN ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
+RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
 
 COPY src/ src
 COPY cmake/ cmake
@@ -113,13 +120,17 @@ COPY build.sh .
 COPY CMakeLists.txt .
 
 ENV INSTALL_DIR=/usr/local
+ENV CCACHE_DIR="/ccache"
 
 # Build & install Zilliqa
-RUN CCACHE_BASEDIR="/zilliqa" ./build.sh ninja \
-  && cmake --build "/zilliqa/build" --target install
+RUN --mount=type=cache,target=/ccache/ \
+    --mount=type=cache,target=/root/.cache/vcpkg/ \
+    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake --build "/zilliqa/build" --target install
 
 COPY evm-ds/ evm-ds
-RUN cd evm-ds && PATH=/zilliqa/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds
+RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
+
+RUN ls -l /zilliqa/evm-ds/target
 
 # Make sure all DLLs / shared libraries are installed
 RUN ldd /usr/local/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} /usr/local/lib \
@@ -168,51 +179,7 @@ FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-FROM ubuntu:20.04
-
-RUN apt-get update \
-    && apt-get install -y software-properties-common \
-    && apt-get update && apt-get install -y --no-install-recommends \
-    autoconf \
-    bison \
-    build-essential \
-    ca-certificates \
-    ccache \
-    clang-format-7 \
-    clang-tidy \
-    cron \
-    curl \
-    dnsutils \
-    gawk \
-    gdb \
-    git \
-    htop \
-    iproute2 \
-    lcov \
-    libcurl4-openssl-dev \
-    libsecp256k1-dev \
-    libssl-dev \
-    libtool \
-    libxml2-utils \
-    logrotate \
-    net-tools \
-    ninja-build \
-    nload \
-    ocl-icd-opencl-dev \
-    openssh-client \
-    pkg-config \
-    python3-dev \
-    python3-pip \
-    rsync \
-    rsyslog \
-    tar \
-    trickle \
-    unzip \
-    vim \
-    wget \
-    zip \
-    libexpat1 \
-    && apt-get remove -y cmake python2  && apt-get autoremove -y
+FROM deps
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \
