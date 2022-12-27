@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import parallelizer from "../helper/Parallelizer";
-import { web3 } from "hardhat";
+import hre, { web3 } from "hardhat";
 
 // Reference: https://dev.to/yongchanghe/tutorial-using-create2-to-predict-the-contract-address-before-deploying-12cb
 
