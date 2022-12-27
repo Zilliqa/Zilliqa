@@ -1,6 +1,6 @@
-const {expect} = require("chai");
-const {ethers} = require("hardhat");
-const parallelizer = require("../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../helper/Parallelizer";
+import {ethers} from "hardhat";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
@@ -36,7 +36,7 @@ describe("ForwardZil contract functionality", function () {
     });
 
     const currentBalance = await ethers.provider.getBalance(this.contract.address);
-    expect(currentBalance - prevBalance).to.be.eq(FUND);
+    expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
   });
 });
 
