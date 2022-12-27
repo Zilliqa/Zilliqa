@@ -1,5 +1,5 @@
-const {expect} = require("chai");
-const {ethers} = require("hardhat");
+import {expect} from "chai";
+import {ethers} from "hardhat";
 
 // FIXME: Can't be parallelized yet. Needs ZIL-5055
 describe("Revert Contract Call", function () {
