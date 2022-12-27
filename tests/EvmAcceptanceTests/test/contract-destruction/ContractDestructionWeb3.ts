@@ -1,15 +1,17 @@
-const {expect} = require("chai");
-const {web3} = require("hardhat");
-const parallelizer = require("../../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../../helper/Parallelizer";
+import hre, { web3 } from "hardhat";
+import { Contract } from "web3-eth-contract";
+import BN from "bn.js";
 
 describe("Contract destruction with web3.js", function () {
-  let amountPaid;
+  let amountPaid: BN;
   before(function () {
     amountPaid = web3.utils.toBN(web3.utils.toWei("3", "gwei"));
   });
 
   describe("When a user method call", function () {
-    let contract;
+    let contract: Contract;
     before(async function () {
       contract = await parallelizer.deployContractWeb3("ParentContract", {value: amountPaid});
     });
@@ -28,6 +30,7 @@ describe("Contract destruction with web3.js", function () {
   });
 
   describe("When a method call happens through another contract", function () {
+    let contract: Contract;
     before(async function () {
       contract = await parallelizer.deployContractWeb3("ParentContract", {value: amountPaid});
     });

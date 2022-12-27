@@ -1,7 +1,3 @@
-const {expect} = require("chai");
-const {web3} = require("hardhat");
-const general_helper = require("../../helper/GeneralHelper");
-
 describe("Contract destruction with ethers.js", function () {
   describe("via user method call", function () {
     // TODO: Consider adding the test case when the receiving address does not exist.
