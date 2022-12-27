@@ -1,10 +1,11 @@
-const {expect} = require("chai");
-const {web3} = require("hardhat");
-const parallelizer = require("../../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../../helper/Parallelizer";
+import { web3 } from "hardhat";
+import { Contract } from "web3-eth-contract";
 
 describe("Contract Deployment", function () {
   describe("Contract with zero parameter constructor", function () {
-    let contract;
+    let contract: Contract;
     before(async function () {
       contract = await parallelizer.deployContractWeb3("ZeroParamConstructor");
     });
@@ -20,7 +21,7 @@ describe("Contract Deployment", function () {
 
   describe("Contract with one parameter constructor", function () {
     describe("When constructor parameter is a uint256", function () {
-      let contract;
+      let contract: Contract;
       const INITIAL_NUMBER = 100;
 
       before(async function () {
@@ -36,7 +37,7 @@ describe("Contract Deployment", function () {
       });
     });
     describe("When constructor parameter is a string", function () {
-      let contract;
+      let contract: Contract;
       let INITIAL_NAME = "Zilliqa";
       before(async function () {
         contract = await parallelizer.deployContractWeb3("WithStringConstructor", {}, INITIAL_NAME);
@@ -51,7 +52,7 @@ describe("Contract Deployment", function () {
       });
     });
     describe("When constructor parameter is an address", function () {
-      let contract;
+      let contract: Contract;
       let ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
       before(async function () {
         contract = await parallelizer.deployContractWeb3("WithAddressConstructor", {}, ADDRESS);
@@ -65,7 +66,7 @@ describe("Contract Deployment", function () {
       });
     });
     describe("When constructor parameter is an enum", function () {
-      let contract;
+      let contract: Contract;
       let ENUM = "1";
       before(async function () {
         contract = await parallelizer.deployContractWeb3("WithEnumConstructor", {}, ENUM);
@@ -80,7 +81,7 @@ describe("Contract Deployment", function () {
   });
 
   describe("Contract with multi-parameter constructor", function () {
-    let contract;
+    let contract: Contract;
     let NAME = "Zilliqa";
     let NUMBER = 100;
 
@@ -102,7 +103,7 @@ describe("Contract Deployment", function () {
   });
 
   describe("Contract with payable constructor", function () {
-    let contract;
+    let contract: Contract;
     let INITIAL_BALANCE = 10;
     const gasLimit = "350000";
 

@@ -1,5 +1,5 @@
-const {expect} = require("chai");
-const parallelizer = require("../../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../../helper/Parallelizer";
 
 describe("Contract Deployment using Ethers.js", function () {
   describe("Contract with zero parameter constructor", function () {
