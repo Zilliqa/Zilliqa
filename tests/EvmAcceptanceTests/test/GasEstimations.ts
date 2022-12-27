@@ -1,13 +1,14 @@
-const {expect} = require("chai");
-const {ethers} = require("hardhat");
-const parallelizer = require("../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../helper/Parallelizer";
+import {ethers} from "hardhat";
+import SignerPool from "../helper/SignerPool";
 
 describe("Gas estimation with web3.js", function () {
   const CREATE2_MIN_GAS = 32000;
 
   describe("When a fund transfer is made", function () {
     it("should return proper estimation [@transactional]", async function () {
-      const to = parallelizer.createRandomAccount();
+      const to = SignerPool.createRandomAccount();
       const signer = await parallelizer.takeSigner();
 
       const gasAmountEst = await ethers.provider.estimateGas({
