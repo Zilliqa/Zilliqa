@@ -1,11 +1,6 @@
-const {expect} = require("chai");
-const {web3} = require("hardhat");
-const parallelizer = require("../../helper/Parallelizer");
-
-const ENUM = 1;
-const ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
-const UINT256 = 100;
-const STRING = "ZILLIQA";
+import {expect} from "chai";
+import parallelizer from "../../helper/Parallelizer";
+import { web3 } from "hardhat";
 
 describe("Contract Interaction with web3.js", function () {
   describe("When public setter function is called", function () {

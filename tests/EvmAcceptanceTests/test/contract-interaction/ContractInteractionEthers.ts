@@ -1,6 +1,6 @@
-const {expect} = require("chai");
-const {ethers} = require("hardhat");
-const parallelizer = require("../../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../../helper/Parallelizer";
+import {ethers} from "hardhat";
 
 const ENUM = 1;
 const ADDRESS = "0x71C7656EC7ab88b098defB751B7401B5f6d8976F";
