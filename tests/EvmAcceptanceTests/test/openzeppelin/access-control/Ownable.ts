@@ -1,4 +1,5 @@
 import {expect} from "chai";
+import {ethers} from "hardhat"
 
 describe("Openzeppelin ownable contract functionality", function () {
   before(async function () {
