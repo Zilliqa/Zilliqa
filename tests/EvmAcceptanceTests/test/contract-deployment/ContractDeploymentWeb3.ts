@@ -104,8 +104,7 @@ describe("Contract Deployment", function () {
 
   describe("Contract with payable constructor", function () {
     let contract: Contract;
-    let INITIAL_BALANCE = 10;
-    const gasLimit = "350000";
+    let INITIAL_BALANCE = web3.utils.toBN(web3.utils.toWei("1", "gwei"));
 
     before(async function () {
       contract = await parallelizer.deployContractWeb3("WithPayableConstructor", {value: INITIAL_BALANCE});
@@ -116,7 +115,7 @@ describe("Contract Deployment", function () {
     });
 
     it("Should return 10 when balance view function is called", async function () {
-      expect(await contract.methods.balance().call()).to.be.eq(web3.utils.toBN(INITIAL_BALANCE));
+      expect(await contract.methods.balance().call()).to.be.eq(INITIAL_BALANCE);
     });
 
     it("Should return Zilliqa when name view function is called", async function () {
