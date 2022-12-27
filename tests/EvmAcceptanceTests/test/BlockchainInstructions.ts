@@ -1,9 +1,8 @@
-const {expect} = require("chai");
-const parallelizer = require("../helper/Parallelizer");
+import { expect } from "chai";
+import parallelizer from "../helper/Parallelizer";
 
 // TODO: Change the description to something more meaningful.
 describe("Blockchain Instructions contract", function () {
-  let contract;
   before(async function () {
     this.contract = await parallelizer.deployContract("BlockchainInstructions");
   });
