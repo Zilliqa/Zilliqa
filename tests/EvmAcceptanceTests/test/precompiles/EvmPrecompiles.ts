@@ -1,7 +1,6 @@
-const {expect} = require("chai");
-const {web3} = require("hardhat");
-const general_helper = require("../../helper/GeneralHelper");
-const parallelizer = require("../../helper/Parallelizer");
+import {expect} from "chai";
+import parallelizer from "../../helper/Parallelizer";
+import { web3 } from "hardhat";
 
 describe("Precompile tests with web3.js", function () {
   before(async function () {
@@ -11,13 +10,13 @@ describe("Precompile tests with web3.js", function () {
   it("should return signer address when recover function is used", async function () {
     const msg = web3.utils.toHex("SomeMessage");
     const docHash = web3.utils.keccak256(msg);
-    const privKey = general_helper.getPrivateAddressAt(0);
-    const accountAddress = web3.eth.accounts.privateKeyToAccount(privKey).address;
-
-    const signed = web3.eth.accounts.sign(docHash, privKey);
+    const account = web3.eth.accounts.create();
+    const accountAddress = account.address;
+    const signed = account.sign(docHash);
     const result = await this.contract.methods
       .testRecovery(docHash, signed.v, signed.r, signed.s)
       .call({gasLimit: 7500000});
+
     expect(result).to.be.eq(accountAddress);
   });
 
