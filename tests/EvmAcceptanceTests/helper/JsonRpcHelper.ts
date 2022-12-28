@@ -1,8 +1,12 @@
 import axios from "axios";
 import hre from "hardhat";
 
-export default async function sendJsonRpcRequest(method: string, id: number, params: any[],
-  callback: (data: any, status: number)=>void) {
+export default async function sendJsonRpcRequest(
+  method: string,
+  id: number,
+  params: any[],
+  callback: (data: any, status: number) => void
+) {
   const data = {
     id: id,
     jsonrpc: "2.0",

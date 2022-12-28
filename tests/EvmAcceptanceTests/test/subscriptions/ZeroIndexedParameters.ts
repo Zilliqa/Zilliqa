@@ -3,11 +3,11 @@ import chai from "chai";
 
 chai.use(deepEqualInAnyOrder);
 
-import { expect } from "chai";
-import { Contract} from "ethers";
-import hre, { ethers } from "hardhat";
+import {expect} from "chai";
+import {Contract} from "ethers";
+import hre, {ethers} from "hardhat";
 import parallelizer from "../../helper/Parallelizer";
-import { Event, waitForEvents } from "./shared";
+import {Event, waitForEvents} from "./shared";
 
 describe("Subscriptions functionality", function () {
   let contract: Contract;
@@ -29,7 +29,7 @@ describe("Subscriptions functionality", function () {
 
   describe("When event is triggered with zero indexed parameters", function () {
     it("Should receive event regardless of provided filters", async function () {
-      let receivedEvents: Event[] = [];;
+      let receivedEvents: Event[] = [];
       const filter = eventsContract.filters.Event0();
       eventsContract.on(filter, (from, to, amount, _event) => {
         receivedEvents.push({from, to, amount});
@@ -42,7 +42,9 @@ describe("Subscriptions functionality", function () {
 
       for (let i = 0; i < VECTORS.length; ++i) {
         const event: Event = VECTORS[i];
-        await expect(contract.event0(event.to, event.amount)).to.emit(contract, "Event0").withArgs(event.from, event.to, event.amount);
+        await expect(contract.event0(event.to, event.amount))
+          .to.emit(contract, "Event0")
+          .withArgs(event.from, event.to, event.amount);
         receivedEvents = await waitForEvents(receivedEvents);
         expect(receivedEvents[i]).to.deep.equalInAnyOrder(event);
       }

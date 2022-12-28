@@ -175,18 +175,20 @@ it("Should return correct value for string [@transactional, @ethers_js]", async 
 - Second parameter to `expect` function is used to log in the case of test failure. We use it to debug failing tests on devnet or testnet easier.
 
 ```javascript
-    const txn = await payer.sendTransaction({
-      to: payee.address,
-      value: FUND
-    });
+const txn = await payer.sendTransaction({
+  to: payee.address,
+  value: FUND
+});
 
-    expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`).to.be.eq(FUND);
+expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`).to.be.eq(FUND);
 ```
 
-
 # miscellaneous
+
 ## Scripts
+
 To get the balances of the current accounts, run:
+
 ```bash
 npx hardhat run scripts/Accounts.js
 npx hardhat run scripts/Accounts.js --network public_testnet
@@ -214,6 +216,7 @@ Instead of `devnet` we can pass any other networks defined in the [config file](
 ## Increase tests timeout
 
 Set the timeout as a environment variable before running the tests. It's in milliseconds.
+
 ```bash
 MOCHA_TIMEOUT=300000 npx hardhat test
 ```

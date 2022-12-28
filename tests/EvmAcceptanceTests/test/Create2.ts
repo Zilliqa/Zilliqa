@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import parallelizer from "../helper/Parallelizer";
-import hre, { web3 } from "hardhat";
+import hre, {web3} from "hardhat";
 
 // Reference: https://dev.to/yongchanghe/tutorial-using-create2-to-predict-the-contract-address-before-deploying-12cb
 
@@ -24,9 +24,13 @@ describe("Create2 instruction", function () {
       const deployResult = await this.contract.deploy(SALT, {gasLimit: 25000000});
 
       // Using the address we calculated, point at the deployed contract
-      const deployedContract = new web3.eth.Contract(hre.artifacts.readArtifactSync("DeployWithCreate2").abi, addrDerived, {
-        from: owner.address
-      });
+      const deployedContract = new web3.eth.Contract(
+        hre.artifacts.readArtifactSync("DeployWithCreate2").abi,
+        addrDerived,
+        {
+          from: owner.address
+        }
+      );
 
       // Check the owner is correct
       const ownerTest = await deployedContract.methods.getOwner().call();

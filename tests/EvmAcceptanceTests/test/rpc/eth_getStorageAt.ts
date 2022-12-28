@@ -1,7 +1,7 @@
 import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
 import parallelizer from "../../helper/Parallelizer";
-import { assert } from "chai";
-import { web3 } from "hardhat";
+import {assert} from "chai";
+import {web3} from "hardhat";
 import logDebug from "../../helper/DebugHelper";
 
 var METHOD = "eth_getStorageAt";

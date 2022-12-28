@@ -1,4 +1,4 @@
-import { expect } from "chai";
+import {expect} from "chai";
 import parallelizer from "../helper/Parallelizer";
 
 // TODO: Change the description to something more meaningful.

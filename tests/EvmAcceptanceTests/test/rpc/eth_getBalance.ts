@@ -1,6 +1,6 @@
 import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
-import { assert } from "chai";
-import { ethers } from "hardhat";
+import {assert} from "chai";
+import {ethers} from "hardhat";
 import logDebug from "../../helper/DebugHelper";
 import hre from "hardhat";
 
@@ -39,27 +39,22 @@ describe("Calling " + METHOD, function () {
 
       it("should return the earliest balance as specified in the ethereum protocol", async function () {
         const [signer] = await ethers.getSigners();
-        await sendJsonRpcRequest(
-          METHOD,
-          1,
-          [signer.address, "earliest"],
-          (result, status) => {
-            logDebug("Result:", result);
+        await sendJsonRpcRequest(METHOD, 1, [signer.address, "earliest"], (result, status) => {
+          logDebug("Result:", result);
 
-            assert.equal(status, 200, "has status code");
-            assert.property(result, "result", result.error ? result.error.message : "error");
-            assert.isString(result.result, "is string");
-            assert.match(result.result, /^0x/, "should be HEX starting with 0x");
-            assert.isNumber(+result.result, "can be converted to a number");
+          assert.equal(status, 200, "has status code");
+          assert.property(result, "result", result.error ? result.error.message : "error");
+          assert.isString(result.result, "is string");
+          assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+          assert.isNumber(+result.result, "can be converted to a number");
 
-            var expectedBalance = 0;
-            assert.isAbove(
-              +result.result,
-              expectedBalance,
-              "Has result:" + result + " should have balance " + expectedBalance
-            );
-          }
-        );
+          var expectedBalance = 0;
+          assert.isAbove(
+            +result.result,
+            expectedBalance,
+            "Has result:" + result + " should have balance " + expectedBalance
+          );
+        });
       });
     });
   });
@@ -74,27 +69,22 @@ describe("Calling " + METHOD, function () {
 
       it("should return the pending balance as specified in the ethereum protocol", async function () {
         const [signer] = await ethers.getSigners();
-        await sendJsonRpcRequest(
-          METHOD,
-          1,
-          [signer.address, "pending"],
-          (result, status) => {
-            logDebug("Result:", result);
+        await sendJsonRpcRequest(METHOD, 1, [signer.address, "pending"], (result, status) => {
+          logDebug("Result:", result);
 
-            assert.equal(status, 200, "has status code");
-            assert.property(result, "result", result.error ? result.error.message : "error");
-            assert.isString(result.result, "is string");
-            assert.match(result.result, /^0x/, "should be HEX starting with 0x");
-            assert.isNumber(+result.result, "can be converted to a number");
+          assert.equal(status, 200, "has status code");
+          assert.property(result, "result", result.error ? result.error.message : "error");
+          assert.isString(result.result, "is string");
+          assert.match(result.result, /^0x/, "should be HEX starting with 0x");
+          assert.isNumber(+result.result, "can be converted to a number");
 
-            var expectedBalance = 0;
-            assert.isAbove(
-              +result.result,
-              expectedBalance,
-              "Has result:" + result + " should have balance " + expectedBalance
-            );
-          }
-        );
+          var expectedBalance = 0;
+          assert.isAbove(
+            +result.result,
+            expectedBalance,
+            "Has result:" + result + " should have balance " + expectedBalance
+          );
+        });
       });
     });
   });

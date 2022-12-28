@@ -1,24 +1,23 @@
-import { TransactionRequest } from "@ethersproject/providers";
-import { Signer, Wallet } from "ethers";
+import {TransactionRequest} from "@ethersproject/providers";
+import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
 import SignerPool from "./SignerPool";
 import BN from "bn.js";
 
 export type DeployOptions = {
-    gasPrice?: string;
-    gasLimit?: number;
-    value?: BN;
-}
+  gasPrice?: string;
+  gasLimit?: number;
+  value?: BN;
+};
 
 export class Parallelizer {
   async deployContract(contractName: string, ...args: any[]) {
     let signer: Signer;
 
     if (hre.parallel) {
-        signer = await this.signerPool.takeSigner();
-    }
-    else {
-        signer = await SignerPool.getSignerForCurrentWorker();
+      signer = await this.signerPool.takeSigner();
+    } else {
+      signer = await SignerPool.getSignerForCurrentWorker();
     }
 
     web3.eth.getAccounts();
@@ -63,8 +62,8 @@ export class Parallelizer {
     this.signerPool.releaseSigner(...signer);
   }
 
-  private signerPool: SignerPool = new SignerPool;
-};
+  private signerPool: SignerPool = new SignerPool();
+}
 
-const parallelizer: Parallelizer = new Parallelizer;
+const parallelizer: Parallelizer = new Parallelizer();
 export default parallelizer;

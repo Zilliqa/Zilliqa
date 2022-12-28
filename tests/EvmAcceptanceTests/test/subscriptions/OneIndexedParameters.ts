@@ -3,11 +3,11 @@ import chai from "chai";
 
 chai.use(deepEqualInAnyOrder);
 
-import { expect } from "chai";
-import { Contract} from "ethers";
-import hre, { ethers } from "hardhat";
+import {expect} from "chai";
+import {Contract} from "ethers";
+import hre, {ethers} from "hardhat";
 import parallelizer from "../../helper/Parallelizer";
-import { Event, waitForEvents } from "./shared";
+import {Event, waitForEvents} from "./shared";
 
 describe("Subscriptions functionality", function () {
   let contract: Contract;
@@ -36,10 +36,14 @@ describe("Subscriptions functionality", function () {
         receivedEvents.push({from, to, amount});
       });
 
-      const VECTORS = [{from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}];
+      const VECTORS = [
+        {from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}
+      ];
 
       const event: Event = VECTORS[0];
-      await expect(contract.event1(event.to, event.amount)).to.emit(contract, "Event1").withArgs(event.from, event.to, event.amount);
+      await expect(contract.event1(event.to, event.amount))
+        .to.emit(contract, "Event1")
+        .withArgs(event.from, event.to, event.amount);
       receivedEvents = await waitForEvents(receivedEvents);
       expect(receivedEvents[0]).to.deep.equalInAnyOrder(event);
     });
@@ -53,10 +57,14 @@ describe("Subscriptions functionality", function () {
         receivedEvents.push({from, to, amount});
       });
 
-      const VECTORS: Event[] = [{from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}];
+      const VECTORS: Event[] = [
+        {from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}
+      ];
 
       const event: Event = VECTORS[0];
-      await expect(contract.event1(event.to, event.amount)).to.emit(contract, "Event1").withArgs(event.from, event.to, event.amount);
+      await expect(contract.event1(event.to, event.amount))
+        .to.emit(contract, "Event1")
+        .withArgs(event.from, event.to, event.amount);
       receivedEvents = await waitForEvents(receivedEvents);
       expect(receivedEvents[0]).to.deep.equalInAnyOrder(event);
     });
@@ -70,10 +78,14 @@ describe("Subscriptions functionality", function () {
         receivedEvents.push({from, to, amount});
       });
 
-      const VECTORS: Event[] = [{from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}];
+      const VECTORS: Event[] = [
+        {from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}
+      ];
 
       const event: Event = VECTORS[0];
-      await expect(contract.event1(event.to, event.amount)).to.emit(contract, "Event1").withArgs(event.from, event.to, event.amount);
+      await expect(contract.event1(event.to, event.amount))
+        .to.emit(contract, "Event1")
+        .withArgs(event.from, event.to, event.amount);
       receivedEvents = await waitForEvents(receivedEvents);
       expect(receivedEvents).to.be.empty;
     });
@@ -90,10 +102,14 @@ describe("Subscriptions functionality", function () {
         receivedEvents.push({from, to, amount});
       });
 
-      const VECTORS = [{from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}];
+      const VECTORS = [
+        {from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}
+      ];
 
       const event: Event = VECTORS[0];
-      await expect(contract.event1(event.to, event.amount)).to.emit(contract, "Event1").withArgs(event.from, event.to, event.amount);
+      await expect(contract.event1(event.to, event.amount))
+        .to.emit(contract, "Event1")
+        .withArgs(event.from, event.to, event.amount);
       receivedEvents = await waitForEvents(receivedEvents);
       expect(receivedEvents).to.be.empty;
     });
@@ -111,10 +127,14 @@ describe("Subscriptions functionality", function () {
         receivedEvents.push({from, to, amount});
       });
 
-      const VECTORS = [{from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}];
+      const VECTORS = [
+        {from: senderAddress, to: "0x05A321d0B9541Ca08d7e32315Ca186cC67A1602c", amount: ethers.BigNumber.from(100)}
+      ];
 
       const event: Event = VECTORS[0];
-      await expect(contract.event1(event.to, event.amount)).to.emit(contract, "Event1").withArgs(event.from, event.to, event.amount);
+      await expect(contract.event1(event.to, event.amount))
+        .to.emit(contract, "Event1")
+        .withArgs(event.from, event.to, event.amount);
       receivedEvents = await waitForEvents(receivedEvents);
       expect(receivedEvents[0]).to.deep.equalInAnyOrder(VECTORS[0]);
     });

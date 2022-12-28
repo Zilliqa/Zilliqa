@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import parallelizer from "../../helper/Parallelizer";
-import { web3 } from "hardhat";
+import {web3} from "hardhat";
 
 describe("Contract Interaction with web3.js", function () {
   describe("When public setter function is called", function () {

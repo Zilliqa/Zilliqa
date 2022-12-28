@@ -1,7 +1,7 @@
 import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
-import { assert } from "chai";
+import {assert} from "chai";
 import logDebug from "../../helper/DebugHelper";
-import hre from 'hardhat';
+import hre from "hardhat";
 
 const METHOD = "eth_chainId";
 

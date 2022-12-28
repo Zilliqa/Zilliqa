@@ -1,7 +1,7 @@
 import {extendEnvironment, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
-import clc from "cli-color"
+import clc from "cli-color";
 
 import yargs from "yargs/yargs";
 
@@ -97,11 +97,11 @@ const config: any = {
 };
 
 // Extend hardhat runtime environment to have some utility functions and variables.
-import "./AddConfigHelpersToHre"
+import "./AddConfigHelpersToHre";
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
-})
+});
 
 task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")

@@ -2,7 +2,7 @@ import {assert, expect} from "chai";
 import parallelizer from "../helper/Parallelizer";
 import {ethers} from "hardhat";
 import hre from "hardhat";
-import { Contract } from "ethers";
+import {Contract} from "ethers";
 import sendJsonRpcRequest from "../helper/JsonRpcHelper";
 import logDebug from "../helper/DebugHelper";
 

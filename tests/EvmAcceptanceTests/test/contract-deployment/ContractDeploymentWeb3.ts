@@ -1,7 +1,7 @@
 import {expect} from "chai";
 import parallelizer from "../../helper/Parallelizer";
-import { web3 } from "hardhat";
-import { Contract } from "web3-eth-contract";
+import {web3} from "hardhat";
+import {Contract} from "web3-eth-contract";
 
 describe("Contract Deployment", function () {
   describe("Contract with zero parameter constructor", function () {

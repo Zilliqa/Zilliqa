@@ -1,14 +1,14 @@
 import {expect} from "chai";
 import parallelizer from "../../../helper/Parallelizer";
-import hre, { ethers } from "hardhat";
-import { Contract, Signer, Wallet } from "ethers";
+import hre, {ethers} from "hardhat";
+import {Contract, Signer, Wallet} from "ethers";
 
 describe("Openzeppelin role based access control functionality", function () {
   let defaultAdmin: Signer;
   let minter: Wallet;
   let burner: Wallet;
   let user: Wallet;
-  let contract: Contract
+  let contract: Contract;
 
   before(async function () {
     user = ethers.Wallet.createRandom();
@@ -29,11 +29,7 @@ describe("Openzeppelin role based access control functionality", function () {
   });
 
   it("should be possible for minter to mint", async function () {
-    expect(await contract.connect(minter).mint(user.address, 1000)).to.changeTokenBalance(
-      contract,
-      user.address,
-      1000
-    );
+    expect(await contract.connect(minter).mint(user.address, 1000)).to.changeTokenBalance(contract, user.address, 1000);
 
     expect(await contract.totalSupply()).to.be.at.least(1000);
   });
@@ -54,11 +50,7 @@ describe("Openzeppelin role based access control functionality", function () {
   });
 
   it("should be possible for burner to burn after it grants the access", async function () {
-    expect(await contract.connect(burner).burn(user.address, 100)).to.changeTokenBalance(
-      contract,
-      user.address,
-      -100
-    );
+    expect(await contract.connect(burner).burn(user.address, 100)).to.changeTokenBalance(contract, user.address, -100);
   });
 
   it("should not be possible to grant a role to someone by an arbitrary account", async function () {

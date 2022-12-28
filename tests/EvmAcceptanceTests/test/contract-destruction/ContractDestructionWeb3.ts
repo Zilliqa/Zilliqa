@@ -1,7 +1,7 @@
 import {expect} from "chai";
 import parallelizer from "../../helper/Parallelizer";
-import hre, { web3 } from "hardhat";
-import { Contract } from "web3-eth-contract";
+import hre, {web3} from "hardhat";
+import {Contract} from "web3-eth-contract";
 import BN from "bn.js";
 
 describe("Contract destruction with web3.js", function () {

@@ -1,6 +1,6 @@
 import {expect} from "chai";
 import parallelizer from "../../helper/Parallelizer";
-import { web3 } from "hardhat";
+import {web3} from "hardhat";
 
 describe("Precompile tests with web3.js", function () {
   before(async function () {

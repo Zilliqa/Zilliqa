@@ -1,5 +1,5 @@
 import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
-import { assert } from "chai";
+import {assert} from "chai";
 import hre from "hardhat";
 import logDebug from "../../helper/DebugHelper";
 
@@ -22,7 +22,7 @@ describe("Calling " + METHOD, function () {
           logDebug(result);
 
           assert.equal(status, 200, "has status code");
-          assert.isNumber(result.error.code)
+          assert.isNumber(result.error.code);
           assert.equal(Number(result.error.code), -32601);
           assert.isString(result.error.message, "is string");
           assert.equal(

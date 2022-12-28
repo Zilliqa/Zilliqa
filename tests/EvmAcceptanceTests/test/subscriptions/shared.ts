@@ -4,7 +4,7 @@ export type Event = {
   from: string;
   to: string;
   amount: BigNumber;
-}
+};
 
 // Ensures all events in current eventloop run are dispatched
 export async function waitForEvents(events: Event[], timeout = 5000) {
