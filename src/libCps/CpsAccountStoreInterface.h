@@ -21,6 +21,10 @@
 #include "common/FixedHash.h"
 #include "libCps/Amount.h"
 
+#include <map>
+#include <string>
+#include <vector>
+
 class EvmProcessContext;
 
 namespace libCps {
@@ -29,20 +33,36 @@ struct CpsAccountStoreInterface {
   virtual ~CpsAccountStoreInterface() = default;
   virtual Amount GetBalanceForAccount(const Address& account) = 0;
   virtual uint64_t GetNonceForAccount(const Address& account) = 0;
+  virtual void SetNonceForAccount(const Address& account, uint64_t nonce) = 0;
   virtual bool AccountExists(const Address& account) = 0;
   virtual bool AddAccountAtomic(const Address& accont) = 0;
+  virtual bool AccountExistsAtomic(const Address& accont) = 0;
   virtual Address GetAddressForContract(const Address& account,
                                         uint32_t transaction_version) = 0;
   virtual bool IncreaseBalance(const Address& account, Amount amount) = 0;
   virtual bool DecreaseBalance(const Address& account, Amount amount) = 0;
+  virtual void SetBalanceAtomic(const Address& account, Amount amount) = 0;
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      Amount amount) = 0;
   virtual void DiscardAtomics() = 0;
   virtual void CommitAtomics() = 0;
-  virtual void UpdateStates(const Address& addr,
-                            const std::map<std::string, zbytes>& states,
+  virtual bool UpdateStates(const Address& addr,
+                            const std::map<std::string, zbytes>& t_states,
                             const std::vector<std::string>& toDeleteIndices,
-                            bool temp, bool revertible) = 0;
+                            bool temp, bool revertible = false) = 0;
+  virtual bool UpdateStateValue(const Address& addr, const zbytes& q,
+                                unsigned int q_offset, const zbytes& v,
+                                unsigned int v_offset) = 0;
+  virtual void AddAddressToUpdateBufferAtomic(const Address& addr) = 0;
+  virtual void SetImmutableAtoimic(const Address& addr, const zbytes& code,
+                                   const zbytes& initData) = 0;
+  virtual void SetNonceForAccountAtomic(const Address& account, uint64_t) = 0;
+  virtual uint64_t GetNonceForAccountAtomic(const Address& account,
+                                            uint64_t) = 0;
+  virtual void FetchStateDataForContract(
+      std::map<std::string, zbytes>& states, const dev::h160& address,
+      const std::string& vname, const std::vector<std::string>& indices,
+      bool temp) = 0;
 };
 }  // namespace libCps
 

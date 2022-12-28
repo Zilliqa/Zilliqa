@@ -261,7 +261,6 @@ fn build_crate_result(
     trap_data_create.set_call_data(interrupt.init_code.into());
     trap_data_create.set_target_gas(interrupt.target_gas.unwrap_or(0));
     trap_data_create.set_value(interrupt.value.into());
-    trap_data_create.set_target_gas(remaining_gas);
     let mut trap_data = EvmProto::TrapData::new();
     trap_data.set_create(trap_data_create);
     result.set_trap_data(trap_data);

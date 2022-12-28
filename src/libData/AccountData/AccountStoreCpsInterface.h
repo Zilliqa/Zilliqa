@@ -22,6 +22,8 @@
 
 #include "libCps/CpsAccountStoreInterface.h"
 
+#include "libPersistence/ContractStorage.h"
+
 template <typename T>
 struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
  public:
@@ -34,8 +36,19 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return m_account_store.GetNonce(account);
   }
 
+  virtual void SetNonceForAccount(const Address& address,
+                                  uint64_t nonce) override {
+    Account* account = m_account_store.GetAccount(address);
+    if (account != nullptr) {
+      account->SetNonce(nonce)
+    }
+  }
+
   virtual bool AccountExists(const Address& account) override {
     return m_account_store.GetAccount(account) != nullptr;
+  }
+  virtual bool AccountExistsAtomic(const Address& address) override {
+    return m_account_store.GetAccountAtomic(address) != nullptr;
   }
   virtual bool AddAccountAtomic(const Address& address) override {
     if (m_account_store.AddAccountAtomic(address, {0, 0})) {
@@ -56,6 +69,14 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
                                libCps::Amount amount) override {
     return m_account_store.DecreaseBalance(account, amount.toQa());
   }
+  virtual void SetBalanceAtomic(const Address& address,
+                                libCps::Amount amount) override {
+    Account* account = m_account_store.GetAccountAtomic(address);
+    if (account != nullptr) {
+      account->SetBalance(amount.toQa());
+    }
+  }
+
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      libCps::Amount amount) override {
     return m_account_store.TransferBalanceAtomic(from, to, amount.toQa());
@@ -64,12 +85,60 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   virtual void DiscardAtomics() override { m_account_store.DiscardAtomics(); }
   virtual void CommitAtomics() override { m_account_store.CommitAtomics(); }
 
-  virtual void UpdateStates(const Address& address,
+  virtual bool UpdateStates(const Address& address,
                             const std::map<std::string, zbytes>& states,
                             const std::vector<std::string>& toDeleteIndices,
-                            bool temp, bool revertible) override {
+                            bool temp, bool revertible = false) override {
     Account* account = m_account_store.GetAccountAtomic(address);
-    account->UpdateStates(address, states, toDeleteIndices, temp, revertible);
+    if (account != nullptr) {
+      return account->UpdateStates(address, states, toDeleteIndices, temp,
+                                   revertible);
+    }
+    return false;
+  }
+
+  virtual bool UpdateStateValue(const Address& address, const zbytes& q,
+                                unsigned int q_offset, const zbytes& v,
+                                unsigned int v_offset) override {
+    return Contract::ContractStorage::GetContractStorage().UpdateStateValue(
+        address, q, q_offset, v, v_offset);
+  }
+
+  virtual void AddAddressToUpdateBufferAtomic(const Address& addr) override {
+    m_account_store.m_storageRootUpdateBufferAtomic.emplace(addr);
+  }
+
+  virtual void SetImmutableAtoimic(const Address& address, const zbytes& code,
+                                   const zbytes& initData) override {
+    Account* account = m_account_store.GetAccountAtomic(address);
+    if (account != nullptr) {
+      account->SetImmutable(code, initData);
+    }
+  }
+
+  virtual void SetNonceForAccountAtomic(const Address& address,
+                                        uint64_t nonce) override {
+    Account* account = m_account_store.GetAccountAtomic(address);
+    if (account != nullptr) {
+      account->SetNonce(nonce);
+    }
+  }
+
+  virtual uint64_t GetNonceForAccountAtomic(const Address& account,
+                                            uint64_t) override {
+    Account* account = m_account_store.GetAccountAtomic(address);
+    if (account != nullptr) {
+      account->GetNonce();
+    }
+    return 0;
+  }
+
+  virtual void FetchStateDataForContract(
+      std::map<std::string, zbytes>& states, const dev::h160& address,
+      const std::string& vname, const std::vector<std::string>& indices,
+      bool temp) override {
+    Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
+        states, address, vname, indices, temp);
   }
 
  private:

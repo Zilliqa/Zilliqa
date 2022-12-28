@@ -15,35 +15,15 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
-#define ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
-
-#include "CpsAccountStoreInterface.h"
-#include "CpsExecuteResult.h"
-
-#include <memory>
-#include <vector>
-
-class AccountStore;
-class EvmProcessContext;
+#ifndef ZILLIQA_SRC_LIBCPS_CPSRUN_H_
+#define ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 
 namespace libCps {
-class CpsRun;
-class CpsExecutor final {
+class CpsRun {
  public:
-  explicit CpsExecutor(CpsAccountStoreInterface& account_store);
-  ~CpsExecutor();
-  CpsExecuteResult Run(const EvmProcessContext& context);
-
- private:
-  CpsExecuteResult PreValidateRun(const EvmProcessContext& context) const;
-  void InitRun();
-
- private:
-  CpsAccountStoreInterface& m_account_store;
-  std::vector<std::unique_ptr<CpsRun>> m_queue;
+  virtual ~CpsRun() = default;
 };
 
 }  // namespace libCps
 
-#endif  // ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
+#endif  // ZILLIQA_SRC_LIBCPS_CPSRUN_H_
