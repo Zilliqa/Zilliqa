@@ -31,5 +31,5 @@ then
     exit 0
 fi
 
-${SHELL} -x ./build.sh ninja debug tests coverage
+${SHELL} -x ./build.sh debug tests coverage
 
