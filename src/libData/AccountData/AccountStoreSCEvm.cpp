@@ -20,6 +20,15 @@
 #include <future>
 #include <stdexcept>
 #include <vector>
+
+#include "opentelemetry/ext/http/client/http_client_factory.h"
+#include "opentelemetry/ext/http/common/url_parser.h"
+#include "opentelemetry/trace/semantic_conventions.h"
+#include "opentelemetry/context/propagation/global_propagator.h"
+#include "opentelemetry/context/propagation/text_map_propagator.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+
+
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
 #include "common/Constants.h"
@@ -37,7 +46,46 @@
 #include "libUtils/Tracing.h"
 #include "libUtils/TxnExtras.h"
 
+
 namespace {
+
+template <typename T>
+class ArtemTextMapCarrier : public opentelemetry::context::propagation::TextMapCarrier
+{
+ public:
+  ArtemTextMapCarrier(T &headers) : headers_(headers) {}
+  ArtemTextMapCarrier() = default;
+  virtual opentelemetry::nostd::string_view Get(
+      opentelemetry::nostd::string_view key) const noexcept override
+  {
+    std::string key_to_compare = key.data();
+    // Header's first letter seems to be  automatically capitaliazed by our test http-server, so
+    // compare accordingly.
+    if (key == opentelemetry::trace::propagation::kTraceParent)
+    {
+      key_to_compare = "Traceparent";
+    }
+    else if (key == opentelemetry::trace::propagation::kTraceState)
+    {
+      key_to_compare = "Tracestate";
+    }
+    auto it = headers_.find(key_to_compare);
+    if (it != headers_.end())
+    {
+      return it->second;
+    }
+    return "";
+  }
+
+  virtual void Set(opentelemetry::nostd::string_view key,
+                   opentelemetry::nostd::string_view value) noexcept override
+  {
+    headers_.insert(std::pair<std::string, std::string>(std::string(key), std::string(value)));
+  }
+
+  T headers_;
+};
+
 
 zil::metrics::uint64Counter_t& GetInvocationsCounter() {
   static auto counter = Metrics::GetInstance().CreateInt64Metric(
@@ -60,6 +108,11 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   auto span = START_SPAN(ACC_EVM, {});
   // Give the span a scoped lifetime if enabled.
   SCOPED_SPAN(ACC_EVM, scope, span);
+
+
+  // new code
+  namespace http_client = opentelemetry::ext::http::client;
+  namespace context     = opentelemetry::context;
 
   //
   // create a worker to be executed in the async method
@@ -84,6 +137,21 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                               "release-normal");
       if (TRACE_ENABLED(ACC_EVM))
         span->AddEvent("return", {{"reason", "release-normal"}});
+
+      { // example for Artem - retreving the context for shipment over the wire.
+        auto current_ctx = context::RuntimeContext::GetCurrent();
+        ArtemTextMapCarrier<http_client::Headers> carrier;
+        auto prop = context::propagation::GlobalTextMapPropagator::
+            GetGlobalPropagator();
+        prop->Inject(carrier, current_ctx);
+
+        for (auto ting : carrier.headers_) {
+          std::cout << "key :" << ting.first << " ";
+          std::cout << "value :" << ting.second << std::endl;
+        }
+      }
+
+
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
@@ -97,6 +165,8 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
       if (TRACE_ENABLED(ACC_EVM))
         span->AddEvent("return", {{"reason", "lock-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
+
+
       ret = false;
     } break;
     case std::future_status::deferred: {

@@ -29,6 +29,9 @@
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 #include "opentelemetry/trace/provider.h"
+#include "opentelemetry/context/propagation/global_propagator.h"
+#include "opentelemetry/context/propagation/text_map_propagator.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
 
 #include "common/Constants.h"
 #include "common/TraceFilters.h"
@@ -118,6 +121,12 @@ void Tracing::OtlpHTTPInit() {
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
 
+  // Setup a prpogator
+
+  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
+      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
+          new opentelemetry::trace::propagation::HttpTraceContext()));
+
 }
 
 void Tracing::ZipkinInit() {
@@ -152,6 +161,8 @@ void Tracing::StdOutInit() {
 
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
+
+
 }
 
 std::shared_ptr<trace_api::Tracer> Tracing::get_tracer() {
