@@ -1,9 +1,11 @@
 import {expect} from "chai";
+import { Contract } from "ethers";
 import {ethers} from "hardhat";
 
 describe("Openzeppelin ERC20 functionality", function () {
   const TOTAL_SUPPLY = 1_000_000;
-  let contract;
+  let contract: Contract;
+
   before(async function () {
     const Contract = await ethers.getContractFactory("OpenZeppelinGLDToken");
     contract = await Contract.deploy(TOTAL_SUPPLY);
