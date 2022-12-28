@@ -49,6 +49,9 @@
 
 namespace {
 
+// A temporary class
+
+
 template <typename T>
 class ArtemTextMapCarrier : public opentelemetry::context::propagation::TextMapCarrier
 {
