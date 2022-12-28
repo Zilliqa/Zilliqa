@@ -1,31 +1,32 @@
-const gHelper = require("../../helper/GeneralHelper");
-const zilliqa_helper = require("../../helper/ZilliqaHelper");
-assert = require("chai").assert;
+import { assert } from "chai";
+import hre from "hardhat";
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { web3 } from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
 const METHOD = "eth_sendRawTransaction";
-
-let amount = 1_000;
 
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     it("should return a send raw transaction", async function () {
-      const fromAccount = zilliqa_helper.primaryAccount;
-      const toAddress = zilliqa_helper.getSecondaryAccountAddress();
+      const fromAccount = web3.eth.accounts.create();
+      const destination = web3.eth.accounts.create();
+      const toAddress = destination.address;
       const nonce = await web3.eth.getTransactionCount(fromAccount.address); // nonce starts counting from 0
       const tx = {
         to: toAddress,
-        value: amount,
+        value: 1_000_000,
         gas: 300000,
         gasPrice: 2000000000000000,
         nonce: nonce,
-        chainId: gHelper.getEthChainId(),
+        chainId: hre.getEthChainId(),
         data: ""
       };
 
       const signedTx = await fromAccount.signTransaction(tx);
 
-      await gHelper.callEthMethod(METHOD, 1, [signedTx.rawTransaction], (result, status) => {
-        hre.logDebug("Result:", result);
+      await sendJsonRpcRequest(METHOD, 1, [signedTx.rawTransaction], (result, status) => {
+        logDebug("Result:", result);
 
         // The result contains a transaction hash that is every time different and should match the hash returned in the result
         assert.equal(status, 200, "has status code");

@@ -1,22 +1,25 @@
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import logDebug from "../../helper/DebugHelper";
+import hre from "hardhat";
 
 const METHOD = "eth_coinbase";
 
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     before(async function () {
-      if (!helper.isZilliqaNetworkSelected()) {
+      if (!hre.isZilliqaNetworkSelected()) {
         this.skip();
       }
     });
 
     it("should return an error on eth_coinbase", async function () {
-      await helper.callEthMethod(METHOD, 1, [], (result, status) => {
-        hre.logDebug(result);
+      await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
+        logDebug(result);
 
         assert.equal(status, 200, "has status code");
-        assert.isNumber(result.error.code, -32601);
+        assert.isNumber(result.error.code);
+        assert.equal(Number(result.error.code), -32601);
         assert.isString(result.error.message, "is string");
       });
     });

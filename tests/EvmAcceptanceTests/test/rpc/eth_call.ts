@@ -1,26 +1,28 @@
-const helper = require("../../helper/GeneralHelper");
-const zilliqa_helper = require("../../helper/ZilliqaHelper");
-assert = require("chai").assert;
+import callJsonRpc from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import { ethers } from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
 const METHOD = "eth_call";
 
 describe("Calling " + METHOD, function () {
   it("should return the from eth call", async function () {
-    const contractFactory = await hre.ethers.getContractFactory("SimpleContract");
+    const contractFactory = await ethers.getContractFactory("SimpleContract");
+    const [signer] = await ethers.getSigners();
 
-    await helper.callEthMethod(
+    await callJsonRpc(
       METHOD,
       2,
       [
         {
-          to: zilliqa_helper.getPrimaryAccountAddress(),
+          to: signer.address,
           data: contractFactory.bytecode,
           gas: 1000000
         },
         "latest"
       ],
       (result, status) => {
-        hre.logDebug(result);
+        logDebug(result);
 
         assert.equal(status, 200, "has status code");
         assert.property(result, "result", result.error ? result.error.message : "error");

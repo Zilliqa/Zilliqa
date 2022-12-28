@@ -1,23 +1,25 @@
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import hre from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
-const METHOD = "eth_getUncleByBlockNumberAndIndex";
+const METHOD = "eth_getUncleByBlockHashAndIndex";
 
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     before(async function () {
-      if (!helper.isZilliqaNetworkSelected()) {
+      if (!hre.isZilliqaNetworkSelected()) {
         this.skip();
       }
     });
 
-    it("should return the uncle Id by block number", async function () {
-      await helper.callEthMethod(
+    it("should return the uncle Id by block hash", async function () {
+      await sendJsonRpcRequest(
         METHOD,
         2,
         ["0xc6ef2fc5426d6ad6fd9e2a26abeab0aa2411b7ab17f30a99d3cb96aed1d1055b", "0x0"],
         (result, status) => {
-          hre.logDebug(result);
+          logDebug(result);
           assert.equal(status, 200, "has status code");
           assert.property(result, "result", result.error ? result.error.message : "error");
           assert.isNumber(+result.result, "can be converted to a number");

@@ -1,19 +1,21 @@
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import hre from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
 const METHOD = "net_version";
 
 describe("Calling " + METHOD, function () {
   it("should return the current network version", async function () {
-    await helper.callEthMethod(METHOD, 1, [], (result, status) => {
-      hre.logDebug(result);
+    await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
+      logDebug(result);
 
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
       assert.isString(result.result, "is string");
       assert.isNumber(+result.result, "can be converted to a number");
 
-      const expectedNetVersion = helper.getEthChainId();
+      const expectedNetVersion = hre.getEthChainId();
       assert.equal(
         result.result,
         expectedNetVersion,

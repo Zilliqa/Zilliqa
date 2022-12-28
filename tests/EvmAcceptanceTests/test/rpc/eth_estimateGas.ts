@@ -1,5 +1,5 @@
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
 
 const METHOD = "eth_estimateGas";
 
@@ -7,7 +7,7 @@ const METHOD = "eth_estimateGas";
 
 // describe("Calling " + METHOD, function () {
 //   it("should return the estimated gas as calculated over the transaction provided", async function () {
-//     await helper.callEthMethod(METHOD, 2, [
+//     await sendJsonRpcRequest(METHOD, 2, [
 //       "{\"from\":\"\", \"to\":\"\", \"value\":\"\", \"gas\":\"\", \"data\":\"\"}",
 //       "latest"],
 //       (result, status) => {

@@ -1,14 +1,17 @@
-const zilliqa_helper = require("../../helper/ZilliqaHelper");
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import { ethers } from "hardhat";
+import logDebug from "../../helper/DebugHelper";
+import hre from "hardhat";
 
 const METHOD = "eth_getBalance";
 
 describe("Calling " + METHOD, function () {
   describe("When tag is 'latest'", function () {
     it("should return the latest balance from the specified account", async function () {
-      await helper.callEthMethod(METHOD, 1, [zilliqa_helper.getPrimaryAccountAddress(), "latest"], (result, status) => {
-        hre.logDebug("Result:", result);
+      const [signer] = await ethers.getSigners();
+      await sendJsonRpcRequest(METHOD, 1, [signer.address, "latest"], (result, status) => {
+        logDebug("Result:", result);
 
         assert.equal(status, 200, "has status code");
         assert.property(result, "result", result.error ? result.error.message : "error");
@@ -29,18 +32,19 @@ describe("Calling " + METHOD, function () {
   describe("When tag is 'earliest'", function () {
     describe("When on Zilliqa network", function () {
       before(async function () {
-        if (!helper.isZilliqaNetworkSelected()) {
+        if (!hre.isZilliqaNetworkSelected()) {
           this.skip();
         }
       });
 
       it("should return the earliest balance as specified in the ethereum protocol", async function () {
-        await helper.callEthMethod(
+        const [signer] = await ethers.getSigners();
+        await sendJsonRpcRequest(
           METHOD,
           1,
-          [zilliqa_helper.getPrimaryAccountAddress(), "earliest"],
+          [signer.address, "earliest"],
           (result, status) => {
-            hre.logDebug("Result:", result);
+            logDebug("Result:", result);
 
             assert.equal(status, 200, "has status code");
             assert.property(result, "result", result.error ? result.error.message : "error");
@@ -63,18 +67,19 @@ describe("Calling " + METHOD, function () {
   describe("When tag is 'pending'", function () {
     describe("When on Zilliqa network", function () {
       before(async function () {
-        if (!helper.isZilliqaNetworkSelected()) {
+        if (!hre.isZilliqaNetworkSelected()) {
           this.skip();
         }
       });
 
       it("should return the pending balance as specified in the ethereum protocol", async function () {
-        await helper.callEthMethod(
+        const [signer] = await ethers.getSigners();
+        await sendJsonRpcRequest(
           METHOD,
           1,
-          [zilliqa_helper.getPrimaryAccountAddress(), "pending"],
+          [signer.address, "pending"],
           (result, status) => {
-            hre.logDebug("Result:", result);
+            logDebug("Result:", result);
 
             assert.equal(status, 200, "has status code");
             assert.property(result, "result", result.error ? result.error.message : "error");
@@ -98,7 +103,7 @@ describe("Calling " + METHOD, function () {
     let expectedErrorMessage = "";
     let errorCode = 0;
     before(async function () {
-      if (helper.isZilliqaNetworkSelected()) {
+      if (hre.isZilliqaNetworkSelected()) {
         expectedErrorMessage = "Unable To Process, invalid tag";
         errorCode = -1;
       } else {
@@ -109,12 +114,13 @@ describe("Calling " + METHOD, function () {
     });
 
     it("should return an error requesting the balance due to invalid tag", async function () {
-      await helper.callEthMethod(
+      const [signer] = await ethers.getSigners();
+      await sendJsonRpcRequest(
         METHOD,
         1,
-        [zilliqa_helper.getPrimaryAccountAddress(), "unknown tag"], // not supported tag should give an error
+        [signer.address, "unknown tag"], // not supported tag should give an error
         (result, status) => {
-          hre.logDebug(result);
+          logDebug(result);
 
           assert.equal(status, 200, "has status code");
           assert.equal(result.error.code, errorCode);

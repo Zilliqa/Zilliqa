@@ -1,27 +1,30 @@
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import hre from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
 const METHOD = "eth_sign";
 
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     before(async function () {
-      if (!helper.isZilliqaNetworkSelected()) {
+      if (!hre.isZilliqaNetworkSelected()) {
         this.skip();
       }
     });
 
     it("should return an error on sending a eth_sign request", async function () {
-      await helper.callEthMethod(
+      await sendJsonRpcRequest(
         METHOD,
         2,
         ["0xF0C05464f12cB2a011d21dE851108a090C95c755", "0xdeadbeaf"],
         (result, status) => {
-          hre.logDebug(result);
+          logDebug(result);
 
           // eth_sign not supported on Zilliqa
           assert.equal(status, 200, "has status code");
-          assert.isNumber(result.error.code, -32601);
+          assert.isNumber(result.error.code);
+          assert.equal(Number(result.error.code), -32601);
           assert.isString(result.error.message, "is string");
           assert.equal(
             result.error.message,

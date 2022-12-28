@@ -1,18 +1,20 @@
-const helper = require("../../helper/GeneralHelper");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import { assert } from "chai";
+import hre from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
 const METHOD = "eth_sendTransaction";
 
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     before(async function () {
-      if (!helper.isZilliqaNetworkSelected()) {
+      if (!hre.isZilliqaNetworkSelected()) {
         this.skip();
       }
     });
 
     it("Should return a an error on sending send transaction request", async function () {
-      await helper.callEthMethod(
+      await sendJsonRpcRequest(
         METHOD,
         1,
         [
@@ -26,10 +28,11 @@ describe("Calling " + METHOD, function () {
           }
         ],
         (result, status) => {
-          hre.logDebug(result);
+          logDebug(result);
 
           assert.equal(status, 200, "has status code");
-          assert.isNumber(result.error.code, -32601);
+          assert.isNumber(result.error.code);
+          assert.equal(Number(result.error.code), -32601);
           assert.isString(result.error.message, "is string");
           assert.equal(
             result.error.message,

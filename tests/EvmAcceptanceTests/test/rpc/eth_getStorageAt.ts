@@ -1,6 +1,8 @@
-const helper = require("../../helper/GeneralHelper");
-const parallelizer = require("../../helper/Parallelizer");
-assert = require("chai").assert;
+import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import parallelizer from "../../helper/Parallelizer";
+import { assert } from "chai";
+import { web3 } from "hardhat";
+import logDebug from "../../helper/DebugHelper";
 
 var METHOD = "eth_getStorageAt";
 
@@ -10,8 +12,8 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return proper storage value when the defaultBlock is 'latest' for storage position 0 at address of contract", async function () {
-    await helper.callEthMethod(METHOD, 1, [this.contract.address, "0x0", "latest"], (result, status) => {
-      hre.logDebug("Result:", result);
+    await sendJsonRpcRequest(METHOD, 1, [this.contract.address, "0x0", "latest"], (result, status) => {
+      logDebug("Result:", result);
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
       assert.isString(result.result, "is string");
@@ -30,8 +32,8 @@ describe("Calling " + METHOD, function () {
     // Compute the actual storage slot of the value associated with the key
     const balanceSlot = web3.utils.soliditySha3({t: "bytes", v: KEY + MAPPING_SLOT});
 
-    await helper.callEthMethod(METHOD, 1, [this.contract.address, balanceSlot, "latest"], (result, status) => {
-      hre.logDebug("Result:", result);
+    await sendJsonRpcRequest(METHOD, 1, [this.contract.address, balanceSlot, "latest"], (result, status) => {
+      logDebug("Result:", result);
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
       assert.isString(result.result, "is string");
@@ -42,8 +44,8 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return proper storage value when the defaultBlock is '0x0' for storage position 0 at address of contract", async function () {
-    await helper.callEthMethod(METHOD, 1, [this.contract.address, "0x0", "0x0"], (result, status) => {
-      hre.logDebug("Result:", result);
+    await sendJsonRpcRequest(METHOD, 1, [this.contract.address, "0x0", "0x0"], (result, status) => {
+      logDebug("Result:", result);
       assert.equal(status, 200, "has status code");
       assert.property(result, "result", result.error ? result.error.message : "error");
       assert.isString(result.result, "is string");
@@ -54,7 +56,7 @@ describe("Calling " + METHOD, function () {
   });
 
   it("should return an error when no parameter is passed", async function () {
-    await helper.callEthMethod(METHOD, 1, [], (result, status) => {
+    await sendJsonRpcRequest(METHOD, 1, [], (result, status) => {
       assert.equal(status, 200, "has status code");
       assert.property(result, "error");
       assert.equal(result.error.code, -32602);
