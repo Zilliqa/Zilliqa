@@ -1,10 +1,12 @@
-const clc = require("cli-color");
+import {extendEnvironment, task} from "hardhat/config";
+import "@nomicfoundation/hardhat-toolbox";
+import "@nomiclabs/hardhat-web3";
+import clc from "cli-color"
 
-require("@nomicfoundation/hardhat-toolbox");
-require("@nomiclabs/hardhat-web3");
+import yargs from "yargs/yargs";
 
-const argv = require("yargs/yargs")()
-  .env("")
+const argv = yargs()
+  .env()
   .options({
     debug: {
       type: "boolean",
@@ -22,10 +24,11 @@ const argv = require("yargs/yargs")()
       type: "number",
       default: 300000
     }
-  }).argv;
+  })
+  .parseSync();
 
 /** @type import('hardhat/config').HardhatUserConfig */
-module.exports = {
+const config: any = {
   solidity: "0.8.9",
   //defaultNetwork: "ganache",
   defaultNetwork: "isolated_server",
@@ -97,11 +100,12 @@ module.exports = {
   }
 };
 
+// Extend hardhat runtime environment to have some utility functions and variables.
+import "./AddConfigHelpers"
 extendEnvironment((hre) => {
-  hre.debugMode = argv.debug;
-  hre.logDebug = hre.debugMode ? console.log.bind(console) : function () {};
-  hre.parallelMode = argv.parallel;
-});
+  hre.debug = argv.debug;
+  hre.parallel = argv.parallel;
+})
 
 task("test")
   .addFlag("logJsonrpc", "Log JSON RPC ")
@@ -127,3 +131,5 @@ task("test")
     }
     return runSuper();
   });
+
+export default config;

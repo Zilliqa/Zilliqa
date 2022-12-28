@@ -4,6 +4,7 @@ import {ethers} from "hardhat";
 import hre from "hardhat";
 import { Contract } from "ethers";
 import sendJsonRpcRequest from "../helper/JsonRpcHelper";
+import logDebug from "../helper/DebugHelper";
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 10_000_000;
@@ -49,7 +50,7 @@ describe("Parent Child Contract Functionality", function () {
       const METHOD = "debug_traceTransaction";
 
       await sendJsonRpcRequest(METHOD, 1, [this.installedChild.hash], (result, status) => {
-        // hre.logDebug(result);
+        logDebug(result);
 
         assert.equal(status, 200, "has status code");
         assert.isString(result.result, "Expected to be populated");

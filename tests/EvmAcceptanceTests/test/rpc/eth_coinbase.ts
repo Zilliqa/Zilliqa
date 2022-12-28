@@ -19,7 +19,7 @@ describe("Calling " + METHOD, function () {
 
         assert.equal(status, 200, "has status code");
         assert.isNumber(result.error.code);
-        assert.equal(Number(result.error.code), -32601);
+        assert.equal(Number(result.error.code), -32600);
         assert.isString(result.error.message, "is string");
       });
     });
