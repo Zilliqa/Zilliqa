@@ -12,10 +12,6 @@ const argv = yargs()
       type: "boolean",
       default: false
     },
-    parallel: {
-      type: "boolean",
-      default: false
-    },
     mochaWorkers: {
       type: "number",
       default: 4
@@ -104,7 +100,7 @@ const config: any = {
 import "./AddConfigHelpersToHre"
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
-  hre.parallel = argv.parallel;
+  hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
 })
 
 task("test")
