@@ -21,13 +21,12 @@
 #include <stdexcept>
 #include <vector>
 
-#include "opentelemetry/ext/http/client/http_client_factory.h"
-#include "opentelemetry/ext/http/common/url_parser.h"
-#include "opentelemetry/trace/semantic_conventions.h"
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
+#include "opentelemetry/ext/http/client/http_client_factory.h"
+#include "opentelemetry/ext/http/common/url_parser.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
-
+#include "opentelemetry/trace/semantic_conventions.h"
 
 #include "AccountStoreSC.h"
 #include "EvmClient.h"
@@ -46,49 +45,41 @@
 #include "libUtils/Tracing.h"
 #include "libUtils/TxnExtras.h"
 
-
 namespace {
 
 // A temporary class
 
-
 template <typename T>
-class ArtemTextMapCarrier : public opentelemetry::context::propagation::TextMapCarrier
-{
+class ArtemTextMapCarrier
+    : public opentelemetry::context::propagation::TextMapCarrier {
  public:
-  ArtemTextMapCarrier(T &headers) : headers_(headers) {}
+  ArtemTextMapCarrier(T& data) : data_(data) {}
   ArtemTextMapCarrier() = default;
   virtual opentelemetry::nostd::string_view Get(
-      opentelemetry::nostd::string_view key) const noexcept override
-  {
+      opentelemetry::nostd::string_view key) const noexcept override {
     std::string key_to_compare = key.data();
-    // Header's first letter seems to be  automatically capitaliazed by our test http-server, so
-    // compare accordingly.
-    if (key == opentelemetry::trace::propagation::kTraceParent)
-    {
+    // Header's first letter seems to be  automatically capitaliazed by our test
+    // http-server, so compare accordingly.
+    if (key == opentelemetry::trace::propagation::kTraceParent) {
       key_to_compare = "Traceparent";
-    }
-    else if (key == opentelemetry::trace::propagation::kTraceState)
-    {
+    } else if (key == opentelemetry::trace::propagation::kTraceState) {
       key_to_compare = "Tracestate";
     }
-    auto it = headers_.find(key_to_compare);
-    if (it != headers_.end())
-    {
+    auto it = data_.find(key_to_compare);
+    if (it != data_.end()) {
       return it->second;
     }
     return "";
   }
 
   virtual void Set(opentelemetry::nostd::string_view key,
-                   opentelemetry::nostd::string_view value) noexcept override
-  {
-    headers_.insert(std::pair<std::string, std::string>(std::string(key), std::string(value)));
+                   opentelemetry::nostd::string_view value) noexcept override {
+    data_.insert(std::pair<std::string, std::string>(std::string(key),
+                                                        std::string(value)));
   }
 
-  T headers_;
+  T data_;
 };
-
 
 zil::metrics::uint64Counter_t& GetInvocationsCounter() {
   static auto counter = Metrics::GetInstance().CreateInt64Metric(
@@ -112,10 +103,9 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   // Give the span a scoped lifetime if enabled.
   SCOPED_SPAN(ACC_EVM, scope, span);
 
-
   // new code
   namespace http_client = opentelemetry::ext::http::client;
-  namespace context     = opentelemetry::context;
+  namespace context = opentelemetry::context;
 
   //
   // create a worker to be executed in the async method
@@ -141,19 +131,35 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
       if (TRACE_ENABLED(ACC_EVM))
         span->AddEvent("return", {{"reason", "release-normal"}});
 
-      { // example for Artem - retreving the context for shipment over the wire.
+      // Example code for pushing a context into a span and then creating a new
+      // span from the context carried
+      {  // example for Artem - retreving the context for shipment over the
+         // wire.
         auto current_ctx = context::RuntimeContext::GetCurrent();
-        ArtemTextMapCarrier<http_client::Headers> carrier;
+        ArtemTextMapCarrier<std::map<std::string,std::string>> carrier;
         auto prop = context::propagation::GlobalTextMapPropagator::
             GetGlobalPropagator();
         prop->Inject(carrier, current_ctx);
 
-        for (auto ting : carrier.headers_) {
+        for (auto ting : carrier.data_) {
           std::cout << "key :" << ting.first << " ";
           std::cout << "value :" << ting.second << std::endl;
         }
-      }
 
+        // now do the reverse to get a context back again
+
+        auto prop2 = context::propagation::GlobalTextMapPropagator::
+            GetGlobalPropagator();
+        auto current_ctx2 = context::RuntimeContext::GetCurrent();
+        auto new_context = prop->Extract(carrier, current_ctx2);
+        opentelemetry::trace::StartSpanOptions options;
+        options.kind = opentelemetry::trace::SpanKind::kServer;
+        options.parent =
+            opentelemetry::trace::GetSpan(new_context)->GetContext();
+        // start span with parent context extracted from http header
+        auto span2 = START_SPAN_WITH_PARENT(ACC_EVM, {}, options);
+        SCOPED_SPAN(ACC_EVM, scope2, span2);
+      }
 
     } break;
     case std::future_status::timeout: {
@@ -168,7 +174,6 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
       if (TRACE_ENABLED(ACC_EVM))
         span->AddEvent("return", {{"reason", "lock-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
-
 
       ret = false;
     } break;
@@ -423,7 +428,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
         if (TRACE_ENABLED(ACC_EVM))
           span->AddEvent("return", {{"From", fromAddr.hex()},
-                                  {"reason", "Get Account Returned Null"}});
+                                    {"reason", "Get Account Returned Null"}});
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }

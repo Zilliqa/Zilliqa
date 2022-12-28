@@ -84,6 +84,8 @@ class Tracing : public Singleton<Tracing> {
 #define START_SPAN(FILTER_CLASS, ATTRIBUTES) \
     TRACE_ENABLED(FILTER_CLASS) ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES)  : trace_api::Tracer::GetCurrentSpan()
 
+#define START_SPAN_WITH_PARENT(FILTER_CLASS, ATTRIBUTES, OPTIONS) \
+    TRACE_ENABLED(FILTER_CLASS) ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES,OPTIONS)  : trace_api::Tracer::GetCurrentSpan()
 
 
 #endif  // ZILLIQA_SRC_LIBUTILS_TRACING_H_
