@@ -101,7 +101,7 @@ const config: any = {
 };
 
 // Extend hardhat runtime environment to have some utility functions and variables.
-import "./AddConfigHelpers"
+import "./AddConfigHelpersToHre"
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = argv.parallel;
