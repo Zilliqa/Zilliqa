@@ -80,6 +80,11 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   /// Joins the threads
   ~APIThreadPool();
 
+  /// A metric
+  size_t GetQueueSize() const {
+    return m_requestQueue.size();
+  }
+
   /// Owner pushes a new request
   bool PushRequest(JobId id, bool isWebsocket, std::string from,
                    std::string body);

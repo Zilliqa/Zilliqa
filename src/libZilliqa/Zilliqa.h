@@ -57,6 +57,11 @@ class Zilliqa {
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_stakingServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
 
+  zil::metrics::Observable m_msgQueueSize{
+      Metrics::GetInstance().CreateInt64Gauge(
+          zil::metrics::FilterClass::MSG_DISPATCH, "zilliqa_msg_dispatch",
+          "queue_size", "Incoming P2P message queue size")};
+
   ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
   void ProcessMessage(Msg& message);

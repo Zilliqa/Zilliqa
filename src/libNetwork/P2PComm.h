@@ -33,10 +33,11 @@
 struct evconnlistener;
 class SendJobs;
 
-extern const unsigned char START_BYTE_NORMAL;
-extern const unsigned char START_BYTE_GOSSIP;
-extern const unsigned char START_BYTE_SEED_TO_SEED_REQUEST;
-extern const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE;
+const unsigned char START_BYTE_NORMAL = 0x11;
+const unsigned char START_BYTE_BROADCAST = 0x22;
+const unsigned char START_BYTE_GOSSIP = 0x33;
+const unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
+const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
 
 /// Provides network layer functionality.
 class P2PComm {

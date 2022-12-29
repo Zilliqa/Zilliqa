@@ -90,11 +90,6 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                          const dev::h256& rootHash,
                          const uint32_t scillaVersion);
 
-  zil::metrics::uint64Counter_t m_scillaIPCCount =
-      Metrics::GetInstance().CreateInt64Metric(
-          "zilliqa_scillaipc", "scilla_ipc_count",
-          "Metrics for ScillaIPCServer", "Calls");
-
   // bool fetchExternalStateValue(const std::string& addr,
   //                              const std::string& query, std::string& value,
   //                              bool& found, std::string& type);
