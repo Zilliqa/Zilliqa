@@ -15,6 +15,14 @@
 
 # Start Testing
 
+## A few simple rules before start
+1. Please prefer ethers.js library to web3.js. Our default library to use throughout the the code is **ethers.js**.
+2. Please use typescript. Javascript is not used anymore in this test suite.
+3. Please don't add commented tests. You can't add disabled tests as well, unless you create a ticket for it.
+
+For more info, see [Testing conventions and best practices](#testing-conventions-and-best-practices).
+
+
 ## Add a new contract
 
 1. Add a new contract to `contracts` folder
@@ -62,11 +70,11 @@ npx hardhat test --parallel
 
 # How to define a new network for hardhat
 
-1. Add a new network to `hardhat.config.js` inside `networks` property:
+1. Add a new network to `hardhat.config.ts` inside `networks` property:
 
-```
+```javascript
 ...
-module.exports = {
+const config: any = {
   solidity: "0.8.9",
   defaultNetwork: "isolated_server",
   networks: {
@@ -83,7 +91,7 @@ module.exports = {
 
 2. Change the default network:
 
-```
+```javascript
 module.exports = {
   solidity: "0.8.9",
   defaultNetwork: "ganache",
@@ -100,15 +108,8 @@ npx hardhat test --network ganache
 
 - Use `--log-txnid` to print out the transaction IDs.
 - Use `--log-jsonrpc` option to enable Json-RPC requests/responses logging. It only works with ethers.js currently.
-- Use `hre.logDebug`
 - Use vscode debugger
-- Use `--verbose` option to enable hardhat verbose logging.
-
-```bash
-npx hardhat --verbose test
-```
-
-- Use `DEBUG=true` environment variable to print out log messages.
+- Use `logDebug` and `DEBUG=true` environment variable to print out log messages.
 
 ```bash
 DEBUG=true npx hardhat test
@@ -117,7 +118,7 @@ DEBUG=true npx hardhat test
 # Testing conventions and best practices
 
 - File names tries to tell us the scenario we're testing.
-- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `DEBUG=true` env variable and use `logDebug` function:
+- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `logDebug` function:
 
 ```typescript
 import logDebug from "../helper/DebugHelper";
