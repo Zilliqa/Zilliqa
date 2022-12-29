@@ -157,12 +157,19 @@ void Tracing::StdOutInit() {
   auto exporter = trace_exporter::OStreamSpanExporterFactory::Create();
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor));
+  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"}, {"version", (uint32_t)1}};
+  auto resource                           = resource::Resource::Create(attributes);
+
+  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
 
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
 
+  // Setup a prpogator
 
+  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
+      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
+          new opentelemetry::trace::propagation::HttpTraceContext()));
 }
 
 std::shared_ptr<trace_api::Tracer> Tracing::get_tracer() {
