@@ -10,6 +10,7 @@
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
+    npx hardhat test --parallel   # to run tests in parallel
 ```
 
 # Start Testing
@@ -116,10 +117,11 @@ DEBUG=true npx hardhat test
 # Testing conventions and best practices
 
 - File names tries to tell us the scenario we're testing.
-- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `--debug` flag and use `hre.logDebug` function:
+- We don't pollute test results with logs. So if you want to add them for debugging, please consider using `DEBUG=true` env variable and use `logDebug` function:
 
-```javascript
-hre.logDebug(result);
+```typescript
+import logDebug from "../helper/DebugHelper";
+logDebug(result);
 ```
 
 - Every `it` block should have one assertion, readable and easy to understand.
