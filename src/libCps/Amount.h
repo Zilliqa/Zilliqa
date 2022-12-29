@@ -24,6 +24,7 @@
 namespace libCps {
 class Amount final {
  public:
+  Amount() : m_value(0) {}
   static Amount fromWei(const uint256_t& wei) { return Amount{wei}; }
   static Amount fromQa(const uint256_t& qa) {
     return Amount{qa * EVM_ZIL_SCALING_FACTOR};

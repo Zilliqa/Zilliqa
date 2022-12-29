@@ -140,7 +140,7 @@ pub async fn run_evm_impl(
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut());
-                let result = build_crate_result(i, listener.traces.clone(), remaining_gas, cont_id);
+                let result = build_crate_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
                 result
             }
         };
@@ -219,6 +219,7 @@ fn build_call_result(
 }
 
 fn build_crate_result(
+    runtime: &Runtime,
     interrupt: CpsCreateInterrupt,
     traces: Vec<String>,
     remaining_gas: u64,
@@ -226,6 +227,7 @@ fn build_crate_result(
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
 
+    result.set_return_value(runtime.machine().return_value().into());
     let mut trap_reason = EvmProto::ExitReason_Trap::new();
     trap_reason.set_kind(EvmProto::ExitReason_Trap_Kind::CREATE);
     let mut exit_reason = EvmProto::ExitReason::new();
@@ -259,7 +261,7 @@ fn build_crate_result(
     trap_data_create.set_scheme(scheme);
     trap_data_create.set_caller(interrupt.caller.into());
     trap_data_create.set_call_data(interrupt.init_code.into());
-    trap_data_create.set_target_gas(interrupt.target_gas.unwrap_or(0));
+    trap_data_create.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
     trap_data_create.set_value(interrupt.value.into());
     let mut trap_data = EvmProto::TrapData::new();
     trap_data.set_create(trap_data_create);

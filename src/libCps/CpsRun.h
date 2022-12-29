@@ -18,10 +18,15 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 #define ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 
+class TransactionReceipt;
+
 namespace libCps {
+class CpsAccountStoreInterface;
 class CpsRun {
  public:
   virtual ~CpsRun() = default;
+  virtual CpsExecuteResult Run(CpsAccountStoreInterface& account_store,
+                               TransactionReceipt& receipt) = 0;
 };
 
 }  // namespace libCps

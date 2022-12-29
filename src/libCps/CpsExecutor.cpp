@@ -17,8 +17,9 @@
 
 #include "libCps/CpsExecutor.h"
 #include "libCps/Amount.h"
+#include "libCps/CpsContext.h"
 #include "libCps/CpsExecuteValidator.h"
-#include "libCps/CpsRun.h"
+#include "libCps/CpsRunEvm.h"
 
 #include "libData/AccountData/EvmProcessContext.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -26,57 +27,68 @@
 
 namespace libCps {
 
-CpsExecutor::CpsExecutor(CpsAccountStoreInterface& account_store)
-    : m_account_store(account_store) {}
+CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
+                         TransactionReceipt& receipt)
+    : mAccountSore(accountStore), mTxReceipt(receipt) {}
 
 CpsExecuteResult CpsExecutor::PreValidateRun(
     const EvmProcessContext& context) const {
-  const auto owned = m_account_store.GetBalanceForAccount(
+  const auto owned = mAccountSore.GetBalanceForAccountAtomic(
       context.GetTransaction().GetSenderAddr());
 
-  const auto amount_result = CpsExecuteValidator::CheckAmount(context, owned);
-  if (!amount_result.is_success) {
-    return amount_result;
+  const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
+  if (!amountResult.isSuccess) {
+    return amountResult;
   }
   const auto gas_result = CpsExecuteValidator::CheckGasLimit(context);
-  if (!gas_result.is_success) {
+  if (!gas_result.isSuccess) {
     return gas_result;
   }
-  return {TxnStatus::NOT_PRESENT, true};
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecutor::~CpsExecutor() = default;
 
-void CpsExecutor::InitRun() { m_account_store.DiscardAtomics(); }
+void CpsExecutor::InitRun() { mAccountSore.DiscardAtomics(); }
 
 CpsExecuteResult CpsExecutor::Run(const EvmProcessContext& context) {
   InitRun();
 
-  const auto pre_validate_result = PreValidateRun(context);
-  if (!pre_validate_result.is_success) {
-    return pre_validate_result;
+  const auto preValidateResult = PreValidateRun(context);
+  if (!preValidateResult.isSuccess) {
+    return preValidateResult;
   }
 
-  if (context.GetTranID() != dev::h256{}) {
-    LOG_GENERAL(WARNING, "...");
+  CpsContext ctx{context.GetEvmArgs().estimate(),
+                 context.GetEvmArgs().extras()};
+  auto evmRun = std::make_unique<CpsRunEvm>(context.GetEvmArgs(), *this, ctx);
+  m_queue.push_back(std::move(evmRun));
+
+  CpsExecuteResult runResult;
+  while (!m_queue.empty()) {
+    const auto currentRun = std::move(m_queue.back());
+    m_queue.pop_back();
+    runResult = currentRun->Run(mAccountSore, mTxReceipt);
+    if (!runResult.isSuccess) {
+      LOG_GENERAL(WARNING, "Got error from processing");
+      break;
+    }
+
+    // Likely rewrite that to std::variant and check if it's scilla type
+    if (!m_queue.empty()) {
+      CpsRunEvm* nextRun = static_cast<CpsRunEvm*>(m_queue.back().get());
+      if (nextRun->IsResumable()) {
+        nextRun->ProvideFeedback(*static_cast<CpsRunEvm*>(currentRun.get()),
+                                 runResult.evmResult);
+      }
+    }
   }
 
-  TransactionReceipt receipt;
-  receipt.AddAccepted(true);
+  return runResult;
+}
 
-  if (m_account_store
-          .GetBalanceForAccount(context.GetTransaction().GetSenderAddr())
-          .toQa() != 1000) {
-    LOG_GENERAL(WARNING, "...");
-  }
-
-  const auto result =
-      CpsExecuteValidator::CheckAmount(context, Amount::fromQa(10000));
-  if (result.is_success) {
-    LOG_GENERAL(WARNING, "...");
-  }
-
-  return {};
+void CpsExecutor::PushRun(std::unique_ptr<CpsRun> run) {
+  m_queue.push_back(std::move(run));
 }
 
 }  // namespace libCps

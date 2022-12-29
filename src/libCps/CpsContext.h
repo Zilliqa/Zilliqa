@@ -15,18 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_
-#define ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_
+#ifndef ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
+#define ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
 
-#include "common/TxnStatus.h"
 #include "libUtils/Evm.pb.h"
 
 namespace libCps {
-struct CpsExecuteResult {
-  TxnStatus txnStatus = TxnStatus::NOT_PRESENT;
-  bool isSuccess = false;
-  evm::EvmResult evmResult;
+struct CpsContext {
+  bool estimate = false;
+  evm::EvmEvalExtras evmExtras;
 };
 }  // namespace libCps
 
-#endif /* ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_ */
+#endif /* ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_ */

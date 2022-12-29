@@ -27,31 +27,37 @@
 template <typename T>
 struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
  public:
-  explicit AccountStoreCpsInterface(AccountStoreSC<T>& acc_store)
-      : m_account_store(acc_store) {}
-  virtual libCps::Amount GetBalanceForAccount(const Address& account) override {
-    return libCps::Amount::fromQa(m_account_store.GetBalance(account));
+  explicit AccountStoreCpsInterface(AccountStoreSC<T>& accStore)
+      : mAccountStore(accStore) {}
+  virtual libCps::Amount GetBalanceForAccountAtomic(
+      const Address& address) override {
+    const Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return libCps::Amount::fromQa(account->GetBalance());
+    }
+    return libCps::Amount{};
   }
+
   virtual uint64_t GetNonceForAccount(const Address& account) override {
-    return m_account_store.GetNonce(account);
+    return mAccountStore.GetNonce(account);
   }
 
   virtual void SetNonceForAccount(const Address& address,
                                   uint64_t nonce) override {
-    Account* account = m_account_store.GetAccount(address);
+    Account* account = mAccountStore.GetAccount(address);
     if (account != nullptr) {
-      account->SetNonce(nonce)
+      account->SetNonce(nonce);
     }
   }
 
   virtual bool AccountExists(const Address& account) override {
-    return m_account_store.GetAccount(account) != nullptr;
+    return mAccountStore.GetAccount(account) != nullptr;
   }
   virtual bool AccountExistsAtomic(const Address& address) override {
-    return m_account_store.GetAccountAtomic(address) != nullptr;
+    return mAccountStore.GetAccountAtomic(address) != nullptr;
   }
   virtual bool AddAccountAtomic(const Address& address) override {
-    if (m_account_store.AddAccountAtomic(address, {0, 0})) {
+    if (!mAccountStore.AddAccountAtomic(address, {0, 0})) {
       return false;
     }
     return true;
@@ -63,15 +69,15 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   }
   virtual bool IncreaseBalance(const Address& account,
                                libCps::Amount amount) override {
-    return m_account_store.IncreaseBalance(account, amount.toQa());
+    return mAccountStore.IncreaseBalance(account, amount.toQa());
   }
   virtual bool DecreaseBalance(const Address& account,
                                libCps::Amount amount) override {
-    return m_account_store.DecreaseBalance(account, amount.toQa());
+    return mAccountStore.DecreaseBalance(account, amount.toQa());
   }
   virtual void SetBalanceAtomic(const Address& address,
                                 libCps::Amount amount) override {
-    Account* account = m_account_store.GetAccountAtomic(address);
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       account->SetBalance(amount.toQa());
     }
@@ -79,17 +85,17 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
 
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      libCps::Amount amount) override {
-    return m_account_store.TransferBalanceAtomic(from, to, amount.toQa());
+    return mAccountStore.TransferBalanceAtomic(from, to, amount.toQa());
   }
 
-  virtual void DiscardAtomics() override { m_account_store.DiscardAtomics(); }
-  virtual void CommitAtomics() override { m_account_store.CommitAtomics(); }
+  virtual void DiscardAtomics() override { mAccountStore.DiscardAtomics(); }
+  virtual void CommitAtomics() override { mAccountStore.CommitAtomics(); }
 
   virtual bool UpdateStates(const Address& address,
                             const std::map<std::string, zbytes>& states,
                             const std::vector<std::string>& toDeleteIndices,
                             bool temp, bool revertible = false) override {
-    Account* account = m_account_store.GetAccountAtomic(address);
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       return account->UpdateStates(address, states, toDeleteIndices, temp,
                                    revertible);
@@ -105,12 +111,12 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   }
 
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) override {
-    m_account_store.m_storageRootUpdateBufferAtomic.emplace(addr);
+    mAccountStore.m_storageRootUpdateBufferAtomic.emplace(addr);
   }
 
   virtual void SetImmutableAtoimic(const Address& address, const zbytes& code,
                                    const zbytes& initData) override {
-    Account* account = m_account_store.GetAccountAtomic(address);
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       account->SetImmutable(code, initData);
     }
@@ -118,15 +124,14 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
 
   virtual void SetNonceForAccountAtomic(const Address& address,
                                         uint64_t nonce) override {
-    Account* account = m_account_store.GetAccountAtomic(address);
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       account->SetNonce(nonce);
     }
   }
 
-  virtual uint64_t GetNonceForAccountAtomic(const Address& account,
-                                            uint64_t) override {
-    Account* account = m_account_store.GetAccountAtomic(address);
+  virtual uint64_t GetNonceForAccountAtomic(const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       account->GetNonce();
     }
@@ -142,7 +147,7 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   }
 
  private:
-  AccountStoreSC<T>& m_account_store;
+  AccountStoreSC<T>& mAccountStore;
 };
 
 #endif /* ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORECPSINTERFACE_H_ */

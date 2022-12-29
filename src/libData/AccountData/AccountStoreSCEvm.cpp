@@ -304,10 +304,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             EvmProcessContext& evmContext) {
   LOG_MARKER();
 
-  AccountStoreCpsInterface ac_cps_interface{*this};
-  libCps::CpsExecutor cps_executor{ac_cps_interface};
-  const auto cps_run_result = cps_executor.Run(evmContext);
-  if (cps_run_result.is_success) {
+  AccountStoreCpsInterface acCpsInterface{*this};
+  libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
+  const auto cpsRunResult = cpsExecutor.Run(evmContext);
+  if (cpsRunResult.isSuccess) {
+    LOG_GENERAL(WARNING, "RUN SUCCESSFUL!");
+    return true;
+  } else {
+    LOG_GENERAL(WARNING, "RUN NOT SUCCESSFUL!");
+    return false;
   }
 
   LOG_GENERAL(INFO,

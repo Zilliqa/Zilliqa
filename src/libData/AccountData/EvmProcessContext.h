@@ -147,6 +147,12 @@ struct EvmProcessContext {
   const evm::EvmResult& GetEvmResult() const;
 
   /*
+   * Return internal structure of evm args
+   */
+
+  const evm::EvmArgs& GetEvmArgs() const;
+
+  /*
    * Return internal structure populated by call to evm
    */
 

@@ -17,6 +17,8 @@
 
 #include "libCps/CpsRunEvm.h"
 #include "libCps/CpsAccountStoreInterface.h"
+#include "libCps/CpsContext.h"
+#include "libCps/CpsExecutor.h"
 #include "libData/AccountData/EvmClient.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libEth/utils/EthUtils.h"
@@ -29,21 +31,29 @@
 #include <future>
 
 namespace libCps {
-CpsRunEvm::CpsRunEvm(evm::EvmArgs proto_args)
-    : m_proto_args(std::move(proto_args)) {}
+CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
+                     const CpsContext& ctx)
+    : mProtoArgs(std::move(protoArgs)), mExecutor(executor), mCpsContext(ctx) {}
 
-CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& account_store,
+bool CpsRunEvm::IsResumable() const {
+  return mProtoArgs.has_continuation() && mProtoArgs.continuation().id() > 0;
+}
+
+CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& accountStore,
                                 TransactionReceipt& receipt) {
-  if (account_store.AccountExists(dev::h160{})) {
-    return {};
-  }
-
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
     const auto metrics = Metrics::GetInstance().CreateInt64Metric(
         "zilliqa_accountstroe", "invocations_count", "Metrics for AccountStore",
         "Blocks");
     metrics->Add(1, {{"method", "EvmCallRunner"}});
+  }
+
+  if (!accountStore.TransferBalanceAtomic(
+          ProtoToAddress(mProtoArgs.origin()),
+          ProtoToAddress(mProtoArgs.address()),
+          Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+    return {};
   }
 
   const auto invoke_result = InvokeEvm();
@@ -59,10 +69,10 @@ CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& account_store,
   const auto& exit_reason_case = evm_result.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-    return HandleTrap(evm_result, receipt);
+    return HandleTrap(evm_result, accountStore);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
-    HandleApply(evm_result, receipt, account_store);
-    return {TxnStatus::NOT_PRESENT, true};
+    HandleApply(evm_result, receipt, accountStore);
+    return {TxnStatus::NOT_PRESENT, true, {}};
   }
   // Revert or Abort
   return {};
@@ -70,7 +80,7 @@ CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& account_store,
 
 std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
   evm::EvmResult result;
-  const auto worker = [args = std::cref(m_proto_args), &result]() -> void {
+  const auto worker = [args = std::cref(mProtoArgs), &result]() -> void {
     try {
       EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                           result);
@@ -116,77 +126,116 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result,
                                        CpsAccountStoreInterface& accountStore) {
   const evm::TrapData& trap_data = result.trap_data();
   if (trap_data.has_create()) {
-    const evm::TrapData_Create& create_data = trap_data.create();
-    const auto validateResult = ValidateCreateTrap(create_data);
-    if (!validateResult.is_success) {
-      return validateResult;
-    }
+    return HandleCreateTrap(result, accountStore);
+  }
+  // Call trap
+  else {
+    return {TxnStatus::NOT_PRESENT, true, {}};
+  }
+}
 
-    Address contractAddress;
-    Address fromAddress;
-
-    if (scheme.has_legacy()) {
-      const evm::TrapData_Scheme_Legacy& legacy = scheme.legacy();
-      fromAddress = ProtoToAddress(legacy.caller());
-      contractAddress = account_store.GetAddressForContract(
-          fromAddress, TRANSACTION_VERSION_ETH);
-    } else if (scheme.has_create2()) {
-      const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
-      fromAddress = ProtoToAddress(create2.caller());
-      contractAddress = account_store.GetAddressForContract(
-          fromAddress, TRANSACTION_VERSION_ETH);
-    }
-
-    if (!accountStore.AddAccountAtomic(contractAddress)) {
-      return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false};
-    }
-
-    if (!accountStore.TransferBalanceAtomic(
-            fromAddress, contractAddress,
-            Amount::fromWei(ProtoToUint(createData.value())))) {
-      return {TxnStatus::INSUFFICIENT_BALANCE, false};
-    }
-
-    // Check if account is atomic or already existed and set nonce respectively
-    if (accountStore.AccountExistsAtomic(fromAddress)) {
-      const auto currentNonce =
-          accountStore.GetNonceForAccountAtomic(fromAddress);
-      accountStore.SetNonceAtomic(currentNonce + 1);
-    } else {
-      const auto currentNonce = accountStore.GetNonceForAccount(fromAddress);
-      accountStore.SetNonceForAccount(fromAddress);
-    }
+CpsExecuteResult CpsRunEvm::HandleCreateTrap(
+    const evm::EvmResult& result, CpsAccountStoreInterface& accountStore) {
+  const evm::TrapData& trap_data = result.trap_data();
+  const evm::TrapData_Create& createData = trap_data.create();
+  const auto validateResult =
+      ValidateCreateTrap(createData, accountStore, result.remaining_gas());
+  if (!validateResult.isSuccess) {
+    return validateResult;
   }
 
-  (void)evm_result;
-  (void)receipt;
+  Address contractAddress;
+  Address fromAddress;
+
+  const auto& scheme = createData.scheme();
+  if (scheme.has_legacy()) {
+    const evm::TrapData_Scheme_Legacy& legacy = scheme.legacy();
+    fromAddress = ProtoToAddress(legacy.caller());
+    contractAddress = accountStore.GetAddressForContract(
+        fromAddress, TRANSACTION_VERSION_ETH);
+  } else if (scheme.has_create2()) {
+    const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
+    fromAddress = ProtoToAddress(create2.caller());
+    contractAddress = accountStore.GetAddressForContract(
+        fromAddress, TRANSACTION_VERSION_ETH);
+  }
+
+  if (!accountStore.AddAccountAtomic(contractAddress)) {
+    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
+  }
+
+  if (!accountStore.TransferBalanceAtomic(
+          fromAddress, contractAddress,
+          Amount::fromWei(ProtoToUint(createData.value())))) {
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+  }
+
+  const auto currentNonce = accountStore.GetNonceForAccountAtomic(fromAddress);
+  accountStore.SetNonceForAccountAtomic(fromAddress, currentNonce + 1);
+
+  // Set continuation to be resumed when create run is finished
+  {
+    evm::EvmArgs continuation;
+    continuation.mutable_continuation()->set_feedback_type(
+        evm::Continuation_Type_CREATE);
+    continuation.mutable_continuation()->set_id(result.continuation_id());
+    auto continuationRun = std::make_unique<CpsRunEvm>(std::move(continuation),
+                                                       mExecutor, mCpsContext);
+    mExecutor.PushRun(std::move(continuationRun));
+  }
+
+  // Push create job to be run by EVM
+  {
+    const auto targetGas =
+        createData.target_gas() != std::numeric_limits<uint64_t>::max()
+            ? createData.target_gas()
+            : result.remaining_gas();
+    evm::EvmArgs evmCreateArgs;
+    *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
+    *evmCreateArgs.mutable_origin() = AddressToProto(fromAddress);
+    *evmCreateArgs.mutable_code() = createData.call_data();
+    evmCreateArgs.set_gas_limit(targetGas);
+    *evmCreateArgs.mutable_apparent_value() = createData.value();
+    evmCreateArgs.set_estimate(mCpsContext.estimate);
+    *evmCreateArgs.mutable_context() = "TrapCreate";
+    *evmCreateArgs.mutable_extras() = mCpsContext.evmExtras;
+    auto createRun = std::make_unique<CpsRunEvm>(std::move(evmCreateArgs),
+                                                 mExecutor, mCpsContext);
+    mExecutor.PushRun(std::move(createRun));
+  }
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
-    const evm::TrapData_Create& createData) {
-  const evm::Address& proto_caller = createData.caller();
-  const Address address = ProtoToAddress(proto_caller);
-  const evm::TrapData_Scheme& scheme = createData.scheme();
+    const evm::TrapData_Create& createData,
+    CpsAccountStoreInterface& accountStore, uint64_t remainingGas) {
+  const evm::Address& protoCaller = createData.caller();
+  const Address address = ProtoToAddress(protoCaller);
   // Check Balance, Required Gas
 
-    const auto current_balance = Amount::fromQa(account_store.GetBalanceForAccount(address);
-    const auto requested_value = Amount::fromWei(ProtoToUint(createData.value()));
+  const auto currentBalance = accountStore.GetBalanceForAccountAtomic(address);
+  const auto requestedValue = Amount::fromWei(ProtoToUint(createData.value()));
+  LOG_GENERAL(WARNING, "Requested balance[Wei]: "
+                           << requestedValue.toWei().convert_to<std::string>()
+                           << ", current[Wei]: "
+                           << currentBalance.toWei().convert_to<std::string>());
+  if (requestedValue > currentBalance) {
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+  }
 
-    if(current_balance < requested_value) {
-    return {TxnStatus::INSUFFICIENT_BALANCE, false};
-    }
+  const auto targetGas =
+      createData.target_gas() != std::numeric_limits<uint64_t>::max()
+          ? createData.target_gas()
+          : remainingGas;
 
-    const auto targetGas = createData.target_gas();
+  const auto baseFee = Eth::getGasUnitsForContractDeployment(
+      {}, DataConversion::StringToCharArray(createData.call_data()));
 
-    const auto baseFee = Eth::getGasUnitsForContractDeployment(
-          {}, DataConversion::StringToCharArray(createData.call_data()));
+  if (targetGas < baseFee || targetGas > remainingGas) {
+    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+  }
 
-
-    if(targetGas < baseFee) {
-    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false};
-    }
-
-    return {TxnStatus::NOT_PRESENT, true};
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 void CpsRunEvm::HandleApply(const evm::EvmResult& result,
@@ -227,7 +276,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         // Get the account that this apply instruction applies to
         address = ProtoToAddress(it.modify().address());
         if (!account_store.AccountExistsAtomic(address)) {
-          continue;
+          account_store.AddAccountAtomic(address);
         }
 
         if (it.modify().reset_storage()) {
@@ -281,7 +330,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
           if ((nonce >> 64) > 0) {
             throw std::runtime_error("Nonce overflow!");
           }
-          account_store.SetNonceAtomic(address, nonce.convert_to<uint64_t>());
+          account_store.SetNonceForAccountAtomic(address,
+                                                 nonce.convert_to<uint64_t>());
         }
         // Mark the Address as updated
         account_store.AddAddressToUpdateBufferAtomic(address);
@@ -290,6 +340,18 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         // do nothing;
         break;
     }
+  }
+}
+
+void CpsRunEvm::ProvideFeedback(const CpsRunEvm& previousRun,
+                                const evm::EvmResult& result) {
+  if (mProtoArgs.continuation().feedback_type() ==
+      evm::Continuation_Type_CREATE) {
+    *mProtoArgs.mutable_continuation()->mutable_address() =
+        previousRun.mProtoArgs.address();
+  } else {
+    *mProtoArgs.mutable_continuation()->mutable_calldata() =
+        result.return_value();
   }
 }
 

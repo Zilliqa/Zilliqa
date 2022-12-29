@@ -24,23 +24,26 @@
 #include <memory>
 #include <vector>
 
-class AccountStore;
 class EvmProcessContext;
+class TransactionReceipt;
 
 namespace libCps {
 class CpsRun;
 class CpsExecutor final {
  public:
-  explicit CpsExecutor(CpsAccountStoreInterface& account_store);
+  explicit CpsExecutor(CpsAccountStoreInterface& account_store,
+                       TransactionReceipt& receipt);
   ~CpsExecutor();
   CpsExecuteResult Run(const EvmProcessContext& context);
+  void PushRun(std::unique_ptr<CpsRun> run);
 
  private:
   CpsExecuteResult PreValidateRun(const EvmProcessContext& context) const;
   void InitRun();
 
  private:
-  CpsAccountStoreInterface& m_account_store;
+  CpsAccountStoreInterface& mAccountSore;
+  TransactionReceipt& mTxReceipt;
   std::vector<std::unique_ptr<CpsRun>> m_queue;
 };
 

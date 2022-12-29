@@ -31,7 +31,7 @@ namespace libCps {
 struct CpsAccountStoreInterface {
   using Address = dev::h160;
   virtual ~CpsAccountStoreInterface() = default;
-  virtual Amount GetBalanceForAccount(const Address& account) = 0;
+  virtual Amount GetBalanceForAccountAtomic(const Address& account) = 0;
   virtual uint64_t GetNonceForAccount(const Address& account) = 0;
   virtual void SetNonceForAccount(const Address& account, uint64_t nonce) = 0;
   virtual bool AccountExists(const Address& account) = 0;
@@ -57,8 +57,7 @@ struct CpsAccountStoreInterface {
   virtual void SetImmutableAtoimic(const Address& addr, const zbytes& code,
                                    const zbytes& initData) = 0;
   virtual void SetNonceForAccountAtomic(const Address& account, uint64_t) = 0;
-  virtual uint64_t GetNonceForAccountAtomic(const Address& account,
-                                            uint64_t) = 0;
+  virtual uint64_t GetNonceForAccountAtomic(const Address& account) = 0;
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
       const std::string& vname, const std::vector<std::string>& indices,

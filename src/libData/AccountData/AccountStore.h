@@ -46,6 +46,8 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
   AccountStore& m_parent;
 
   friend class AccountStore;
+  template <typename T>
+  friend class AccountStoreCpsInterface;
 
  public:
   AccountStoreTemp(AccountStore& parent);
@@ -70,7 +72,6 @@ class AccountStore
     : public AccountStoreTrie<std::unordered_map<Address, Account>> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
-  std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
 
   /// used for states reverting
   std::unordered_map<Address, Account> m_addressToAccountRevChanged;
@@ -94,13 +95,13 @@ class AccountStore
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
   std::unique_ptr<rpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
 
-  AccountStore();
-  ~AccountStore();
-
   /// Store the trie root to leveldb
   bool MoveRootToDisk(const dev::h256& root);
 
  public:
+  std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
+  AccountStore();
+  ~AccountStore();
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
 

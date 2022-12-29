@@ -30,16 +30,16 @@ CpsExecuteResult CpsExecuteValidator::CheckAmount(
   if (!SafeMath<uint256_t>::mul(context.GetTransaction().GetGasLimitZil(),
                                 context.GetTransaction().GetGasPriceWei(),
                                 gasDepositWei)) {
-    return {TxnStatus::MATH_ERROR, false};
+    return {TxnStatus::MATH_ERROR, false, {}};
   }
 
   const auto claimed =
       Amount::fromWei(gasDepositWei + context.GetTransaction().GetAmountWei());
   if (claimed > owned) {
-    return {TxnStatus::INSUFFICIENT_BALANCE, false};
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
 
-  return {TxnStatus::NOT_PRESENT, true};
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
     const EvmProcessContext& context) {
@@ -53,17 +53,17 @@ CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
     if (requested_limit < baseFee) {
       LOG_GENERAL(WARNING,
                   "Gas limit " << requested_limit << " less than " << baseFee);
-      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false};
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
 
   } else {
     if (requested_limit < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Gas limit " << requested_limit << " less than "
                                         << MIN_ETH_GAS);
-      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false};
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }
-  return {};
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 }  // namespace libCps

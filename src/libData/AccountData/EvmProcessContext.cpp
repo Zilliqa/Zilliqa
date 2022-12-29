@@ -211,6 +211,10 @@ const evm::EvmResult& EvmProcessContext::GetEvmResult() const {
   return m_evmResult;
 }
 
+const evm::EvmArgs& EvmProcessContext::GetEvmArgs() const {
+  return m_protoData;
+}
+
 /*
  * Return internal structure populated by call to evm
  */

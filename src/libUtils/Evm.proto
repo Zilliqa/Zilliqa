@@ -67,9 +67,10 @@ message Continuation {
 
   uint64 id = 1;
   Type feedback_type = 2;
-  bytes feedback_data = 3;
-  uint64 consumed_gas = 4;
-  
+  oneof feedback_data {
+    Address address = 3;
+    bytes calldata = 4;
+  }
 }
 
 message EvmArgs {
