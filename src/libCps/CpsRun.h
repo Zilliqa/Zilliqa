@@ -18,11 +18,13 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 #define ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 
+#include <memory>
+
 class TransactionReceipt;
 
 namespace libCps {
 class CpsAccountStoreInterface;
-class CpsRun {
+class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
   virtual ~CpsRun() = default;
   virtual CpsExecuteResult Run(CpsAccountStoreInterface& account_store,

@@ -61,7 +61,7 @@ CpsExecuteResult CpsExecutor::Run(const EvmProcessContext& context) {
 
   CpsContext ctx{context.GetEvmArgs().estimate(),
                  context.GetEvmArgs().extras()};
-  auto evmRun = std::make_unique<CpsRunEvm>(context.GetEvmArgs(), *this, ctx);
+  auto evmRun = std::make_shared<CpsRunEvm>(context.GetEvmArgs(), *this, ctx);
   m_queue.push_back(std::move(evmRun));
 
   CpsExecuteResult runResult;
@@ -87,7 +87,7 @@ CpsExecuteResult CpsExecutor::Run(const EvmProcessContext& context) {
   return runResult;
 }
 
-void CpsExecutor::PushRun(std::unique_ptr<CpsRun> run) {
+void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
   m_queue.push_back(std::move(run));
 }
 

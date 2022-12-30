@@ -4,6 +4,9 @@ use std::convert::Infallible;
 use evm::executor::stack::{
     MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor, StackState,
 };
+
+use crate::protos::Evm as EvmProto;
+
 use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
     Runtime, Stack, Transfer,
@@ -28,7 +31,9 @@ pub struct CpsCreateInterrupt {
     pub target_gas: Option<u64>,
 }
 
-pub struct CpsCreateFeedback {}
+pub struct CpsCreateFeedback {
+    pub address: H160,
+}
 
 pub struct CpsCallInterrupt {
     code_address: H160,
@@ -60,13 +65,25 @@ impl<'a> CpsExecutor<'a> {
     }
 
     /// Execute the runtime until it returns.
-    pub fn execute(&mut self, runtime: &mut Runtime) -> CpsReason {
+    pub fn execute(&mut self, runtime: &mut Runtime, feedback: Option<EvmProto::Continuation>) -> CpsReason {
+        self.apply_feedback(runtime, feedback);
         match runtime.run(self) {
             Capture::Exit(s) => CpsReason::NormalExit(s),
             Capture::Trap(t) => match t {
                 Resolve::Call(i, _) => CpsReason::CallInterrupt(i),
                 Resolve::Create(i, _) => CpsReason::CreateInterrupt(i),
             },
+        }
+    }
+
+    fn apply_feedback(&mut self, runtime: &mut Runtime, feedback: Option<EvmProto::Continuation>) {
+        if let Some(evm_feedback) = feedback {
+            if evm_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
+                runtime.machine_mut().stack_mut().pop();
+                let ethAddress = H160::from(evm_feedback.get_address());
+                let create_address: H256 = ethAddress.into();
+                runtime.machine_mut().stack_mut().push(create_address);
+            }
         }
     }
 
@@ -239,12 +256,6 @@ impl<'a> Handler for CpsExecutor<'a> {
         }*/
     }
 
-    /// Feed in create feedback.
-    fn create_feedback(&mut self, _feedback: Self::CreateFeedback) -> Result<(), ExitError> {
-        // TODO: feed the feedback for real!
-        Ok(())
-    }
-
     /// Invoke a call operation.
     fn call(
         &mut self,
@@ -275,12 +286,6 @@ impl<'a> Handler for CpsExecutor<'a> {
                 context,
             }),
         }
-    }
-
-    /// Feed in call feedback.
-    fn call_feedback(&mut self, _feedback: Self::CallFeedback) -> Result<(), ExitError> {
-        // TODO: feed it for real!
-        Ok(())
     }
 
     /// Pre-validation step for the runtime.

@@ -35,7 +35,7 @@ class CpsExecutor final {
                        TransactionReceipt& receipt);
   ~CpsExecutor();
   CpsExecuteResult Run(const EvmProcessContext& context);
-  void PushRun(std::unique_ptr<CpsRun> run);
+  void PushRun(std::shared_ptr<CpsRun> run);
 
  private:
   CpsExecuteResult PreValidateRun(const EvmProcessContext& context) const;
@@ -44,7 +44,7 @@ class CpsExecutor final {
  private:
   CpsAccountStoreInterface& mAccountSore;
   TransactionReceipt& mTxReceipt;
-  std::vector<std::unique_ptr<CpsRun>> m_queue;
+  std::vector<std::shared_ptr<CpsRun>> m_queue;
 };
 
 }  // namespace libCps

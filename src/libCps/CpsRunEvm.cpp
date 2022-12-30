@@ -49,6 +49,18 @@ CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& accountStore,
     metrics->Add(1, {{"method", "EvmCallRunner"}});
   }
 
+  // Contract deployment
+  if (IsNullAddress(ProtoToAddress(mProtoArgs.address()))) {
+    const auto contractAddress = accountStore.GetAddressForContract(
+        ProtoToAddress(mProtoArgs.origin()), TRANSACTION_VERSION_ETH);
+    LOG_GENERAL(WARNING,
+                "RUNNING WITH FIRST CONTRACT ADDR: " << contractAddress.hex());
+    *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
+  } else {
+    LOG_GENERAL(WARNING, "RUNNING WITH ALREADY EXISTING CONTRACT ADDR: "
+                             << ProtoToAddress(mProtoArgs.address()).hex());
+  }
+
   if (!accountStore.TransferBalanceAtomic(
           ProtoToAddress(mProtoArgs.origin()),
           ProtoToAddress(mProtoArgs.address()),
@@ -56,23 +68,26 @@ CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& accountStore,
     return {};
   }
 
-  const auto invoke_result = InvokeEvm();
-  if (!invoke_result.has_value()) {
+  const auto invokeResult = InvokeEvm();
+  if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     return {};
   }
 
-  const evm::EvmResult& evm_result = invoke_result.value();
-  LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(evm_result.exit_reason()));
+  LOG_GENERAL(WARNING, "After invoke remaining gas: "
+                           << invokeResult.value().remaining_gas());
 
-  const auto& exit_reason_case = evm_result.exit_reason().exit_reason_case();
+  const evm::EvmResult& evmResult = invokeResult.value();
+  LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(evmResult.exit_reason()));
+
+  const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-    return HandleTrap(evm_result, accountStore);
+    return HandleTrap(evmResult, accountStore);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
-    HandleApply(evm_result, receipt, accountStore);
-    return {TxnStatus::NOT_PRESENT, true, {}};
+    HandleApply(evmResult, receipt, accountStore);
+    return {TxnStatus::NOT_PRESENT, true, evmResult};
   }
   // Revert or Abort
   return {};
@@ -170,18 +185,24 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
 
+  LOG_GENERAL(WARNING,
+              "RUNNING WITH TRAP CONTRACT ADDR: " << contractAddress.hex());
+  LOG_GENERAL(WARNING, "RUNNING WITH TRAP FROM ADDR: " << fromAddress.hex());
+
+  accountStore.SetImmutableAtomic(
+      contractAddress,
+      DataConversion::StringToCharArray("EVM" + createData.call_data()), {});
+
   const auto currentNonce = accountStore.GetNonceForAccountAtomic(fromAddress);
   accountStore.SetNonceForAccountAtomic(fromAddress, currentNonce + 1);
 
-  // Set continuation to be resumed when create run is finished
+  // Set continuation (itself) to be resumed when create run is finished
   {
     evm::EvmArgs continuation;
-    continuation.mutable_continuation()->set_feedback_type(
+    mProtoArgs.mutable_continuation()->set_feedback_type(
         evm::Continuation_Type_CREATE);
-    continuation.mutable_continuation()->set_id(result.continuation_id());
-    auto continuationRun = std::make_unique<CpsRunEvm>(std::move(continuation),
-                                                       mExecutor, mCpsContext);
-    mExecutor.PushRun(std::move(continuationRun));
+    mProtoArgs.mutable_continuation()->set_id(result.continuation_id());
+    mExecutor.PushRun(shared_from_this());
   }
 
   // Push create job to be run by EVM
@@ -190,11 +211,15 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(
         createData.target_gas() != std::numeric_limits<uint64_t>::max()
             ? createData.target_gas()
             : result.remaining_gas();
+    const auto baseFee = Eth::getGasUnitsForContractDeployment(
+        {}, DataConversion::StringToCharArray(createData.call_data()));
+
+    const auto inputGas = targetGas - baseFee;
     evm::EvmArgs evmCreateArgs;
     *evmCreateArgs.mutable_address() = AddressToProto(contractAddress);
     *evmCreateArgs.mutable_origin() = AddressToProto(fromAddress);
     *evmCreateArgs.mutable_code() = createData.call_data();
-    evmCreateArgs.set_gas_limit(targetGas);
+    evmCreateArgs.set_gas_limit(inputGas);
     *evmCreateArgs.mutable_apparent_value() = createData.value();
     evmCreateArgs.set_estimate(mCpsContext.estimate);
     *evmCreateArgs.mutable_context() = "TrapCreate";
@@ -302,7 +327,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         // the hash
         const std::string& code = it.modify().code();
         if (!code.empty()) {
-          account_store.SetImmutableAtoimic(
+          account_store.SetImmutableAtomic(
               address, DataConversion::StringToCharArray("EVM" + code), {});
         }
 
@@ -345,6 +370,10 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
 void CpsRunEvm::ProvideFeedback(const CpsRunEvm& previousRun,
                                 const evm::EvmResult& result) {
+  LOG_GENERAL(WARNING,
+              "PRovide feedback remaining gas: " << result.remaining_gas());
+  mProtoArgs.set_gas_limit(result.remaining_gas());
+
   if (mProtoArgs.continuation().feedback_type() ==
       evm::Continuation_Type_CREATE) {
     *mProtoArgs.mutable_continuation()->mutable_address() =

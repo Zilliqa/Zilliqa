@@ -6,7 +6,7 @@ use evm::{
     backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
-use evm::{CreateScheme, Machine, Runtime};
+use evm::{CreateScheme, Machine, Runtime, ExitError};
 
 use log::{debug, error, info};
 
@@ -82,9 +82,9 @@ pub async fn run_evm_impl(
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles);
 
         // Provide feedback from c++ node to EVM through executor
-        if let Some(continuation) = feedback_continuation {
-            provide_feedback(&continuation, &mut executor);
-        }
+        //if let Some(continuation) = feedback_continuation {
+        //    provide_feedback(&continuation, &mut executor);
+       // }
 
         let mut listener = LoggingEventListener{traces : Default::default()};
 
@@ -95,9 +95,9 @@ pub async fn run_evm_impl(
         // the unwind.
         let executor_result = panic::catch_unwind(AssertUnwindSafe(|| {
             if tracing {
-                evm::tracing::using(&mut listener, || executor.execute(&mut runtime))
+                evm::tracing::using(&mut listener, || executor.execute(&mut runtime, feedback_continuation))
             } else {
-                executor.execute(&mut runtime)
+                executor.execute(&mut runtime, feedback_continuation)
             }
         }));
 
@@ -280,11 +280,4 @@ fn handle_panic(traces: Vec<String>, remaining_gas: u64) -> EvmProto::EvmResult 
     result.set_trace(traces.into_iter().map(Into::into).collect());
     result.set_remaining_gas(remaining_gas);
     result
-}
-
-fn provide_feedback(
-    node_continuation: &EvmProto::Continuation,
-    executor: &mut CpsExecutor,
-) -> bool {
-    return true;
 }

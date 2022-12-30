@@ -64,8 +64,8 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   }
   virtual Address GetAddressForContract(const Address& account,
                                         uint32_t transaction_version) override {
-    return Account::GetAddressForContract(account, GetNonceForAccount(account),
-                                          transaction_version);
+    return Account::GetAddressForContract(
+        account, GetNonceForAccountAtomic(account), transaction_version);
   }
   virtual bool IncreaseBalance(const Address& account,
                                libCps::Amount amount) override {
@@ -114,8 +114,8 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     mAccountStore.m_storageRootUpdateBufferAtomic.emplace(addr);
   }
 
-  virtual void SetImmutableAtoimic(const Address& address, const zbytes& code,
-                                   const zbytes& initData) override {
+  virtual void SetImmutableAtomic(const Address& address, const zbytes& code,
+                                  const zbytes& initData) override {
     Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       account->SetImmutable(code, initData);
