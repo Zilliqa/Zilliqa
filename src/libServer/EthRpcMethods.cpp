@@ -373,10 +373,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     const CreateTransactionTargetFunc& targetFunc) {
   LOG_MARKER();
 
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1,
-                      { {"method", "CreateTransactionEth"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), EVM_RPC);
 
   std::string ret;
 

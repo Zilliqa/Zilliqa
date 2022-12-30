@@ -23,8 +23,6 @@
 #include <vector>
 #include "ScillaClient.h"
 
-#include "AccountStoreSC.h"
-#include "EvmProcessContext.h"
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
 #include "libScilla/ScillaUtils.h"
@@ -35,30 +33,10 @@
 #include "libUtils/TimeUtils.h"
 #include "libUtils/Tracing.h"
 
+#include "AccountStoreSC.h"
+
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
-
-template <class MAP>
-void AccountStoreSC<MAP>::instFetchInfo(
-    opentelemetry::metrics::ObserverResult observer_result, void* state) {
-  AccountStoreSC<MAP>* that = reinterpret_cast<AccountStoreSC<MAP>*>(state);
-
-  // This looks like a bug in openTelemetry, need to investigate, clash between
-  // uint64_t amd long int should be unsigned, losing precision.
-
-  if (std::holds_alternative<std::shared_ptr<
-          opentelemetry::v1::metrics::ObserverResultT<long int>>>(
-          observer_result)) {
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
-        observer_result)
-        ->Observe(that->m_curBlockNum, {{"counter", "BlockNumber"}});
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
-        observer_result)
-        ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
-  }
-}
 
 template <class MAP>
 AccountStoreSC<MAP>::AccountStoreSC() {

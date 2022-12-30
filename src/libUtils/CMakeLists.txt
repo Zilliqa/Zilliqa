@@ -1,5 +1,6 @@
 find_package(CURL REQUIRED)
 find_package(opentelemetry-cpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
 # A workaround for incorrect link libraries in vcpkg's opentelemtry-cpp-target.cmake
 # which includes non-existent target (i.e. opentelemetry-cpp::pull & opentelemetry-cpp::core).

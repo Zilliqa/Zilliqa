@@ -36,6 +36,8 @@ def readline_from_file(filename):
 
 
 def get_my_keypair(args):
+
+
     if is_dsguard(args):
         return args.keypairs[args.index]
 
@@ -44,9 +46,14 @@ def get_my_keypair(args):
         return args.keypairs[offset + args.index]
 
     if is_lookup(args):
+
+        return '0239D447F87A0637386CED92242ACFC4ABA13A07BD83AE646E1B05A68251872726 032AD3998E54DFAE46B4DEBEA513AF37BCF12CA1575BC568BFF917A6DA355AC8'
+
         return args.lookup_keypairs[args.index]
 
     if is_seedpub(args):
+        return '03241BAF8C15944FE9261BFDF4A4103E7F0607DDAA84FFB3A5A830B733B6802544 EEF9CF490858F3173A8DE0C70A056CFCC41DE6BEBC13BC1B36BCB599B44B1035'
+
         return args.seedpub_keypairs[args.index]
 
     if is_new(args) and len(args.new_keypairs) > args.index:
