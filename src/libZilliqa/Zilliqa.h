@@ -18,13 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 #define ZILLIQA_SRC_LIBZILLIQA_ZILLIQA_H_
 
-#include <memory>
-#include <vector>
-
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
-#include "libNetwork/Peer.h"
+#include "libNetwork/P2PMessage.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
 #include "libServer/StakingServer.h"
@@ -36,8 +33,7 @@
 class Zilliqa {
  public:
   // TODO shared instead of unique due to lambda move capture limitations
-  using Msg =
-      std::shared_ptr<std::pair<zbytes, std::pair<Peer, const unsigned char>>>;
+  using Msg = std::shared_ptr<zil::p2p::Message>;
 
  private:
   Mediator m_mediator;

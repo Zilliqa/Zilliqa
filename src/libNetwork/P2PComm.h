@@ -23,21 +23,16 @@
 #include <functional>
 #include <mutex>
 #include <set>
-#include <vector>
 
-#include "Peer.h"
+#include "P2PMessage.h"
 #include "RumorManager.h"
-#include "common/BaseType.h"
 #include "common/Constants.h"
 
 struct evconnlistener;
-class SendJobs;
 
-const unsigned char START_BYTE_NORMAL = 0x11;
-const unsigned char START_BYTE_BROADCAST = 0x22;
-const unsigned char START_BYTE_GOSSIP = 0x33;
-const unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
-const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
+namespace zil::p2p {
+class SendJobs;
+}
 
 /// Provides network layer functionality.
 class P2PComm {
@@ -74,7 +69,7 @@ class P2PComm {
   static std::mutex m_mutexPeerConnectionCount;
   static std::map<uint128_t, uint16_t> m_peerConnectionCount;
 
-  std::shared_ptr<SendJobs> m_sendJobs;
+  std::shared_ptr<zil::p2p::SendJobs> m_sendJobs;
 
   static void ProcessBroadCastMsg(zbytes& message, const Peer& from);
   static void ProcessGossipMsg(zbytes& message, Peer& from);
@@ -108,9 +103,6 @@ class P2PComm {
   /// Returns the singleton P2PComm instance.
   static P2PComm& GetInstance();
 
-  using Msg = std::pair<zbytes, std::pair<Peer, const unsigned char>>;
-  using Dispatcher = std::function<void(std::shared_ptr<Msg> msg)>;
-
   using BroadcastListFunc = std::function<VectorOfPeer(
       unsigned char msg_type, unsigned char ins_type, const Peer&)>;
 
@@ -126,7 +118,7 @@ class P2PComm {
 
  private:
   using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
-  static Dispatcher m_dispatcher;
+  static zil::p2p::Dispatcher m_dispatcher;
   static BroadcastListFunc m_broadcast_list_retriever;
 
  public:
@@ -137,29 +129,32 @@ class P2PComm {
                                void* arg);
 
   /// Listens for incoming socket connections.
-  void StartMessagePump(Dispatcher dispatcher);
+  void StartMessagePump(zil::p2p::Dispatcher dispatcher);
 
   void EnableListener(uint32_t listenPort, bool startSeedNodeListener = false);
   // start event loop
   void EnableConnect();
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(const VectorOfPeer& peers, const zbytes& message,
-                   const unsigned char& startByteType = START_BYTE_NORMAL);
+  void SendMessage(
+      const VectorOfPeer& peers, const zbytes& message,
+      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(const std::deque<Peer>& peers, const zbytes& message,
-                   const unsigned char& startByteType = START_BYTE_NORMAL,
-                   const bool bAllowSendToRelaxedBlacklist = false);
+  void SendMessage(
+      const std::deque<Peer>& peers, const zbytes& message,
+      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL,
+      const bool bAllowSendToRelaxedBlacklist = false);
 
   /// Sends normal message to specified peer.
-  void SendMessage(const Peer& peer, const zbytes& message,
-                   const unsigned char& startByteType = START_BYTE_NORMAL);
+  void SendMessage(
+      const Peer& peer, const zbytes& message,
+      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
 
   // Overloadeded version of SendMessage for p2pseed comm.
-  void SendMessage(const Peer& msgPeer, const Peer& fromPeer,
-                   const zbytes& message,
-                   const unsigned char& startByteType = START_BYTE_NORMAL);
+  void SendMessage(
+      const Peer& msgPeer, const Peer& fromPeer, const zbytes& message,
+      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
 
   /// Multicasts message of type=broadcast to specified list of peers.
   void SendBroadcastMessage(const VectorOfPeer& peers, const zbytes& message);
@@ -173,7 +168,7 @@ class P2PComm {
 
   void SendMessageNoQueue(
       const Peer& peer, const zbytes& message,
-      const unsigned char& startByteType = START_BYTE_NORMAL);
+      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
 
   void SetSelfPeer(const Peer& self);
 

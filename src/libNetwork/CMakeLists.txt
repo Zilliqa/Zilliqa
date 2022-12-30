@@ -8,7 +8,8 @@ add_library (Network
     ReputationManager.cpp
     RumorManager.cpp
     DataSender.cpp
-    SendJobs.cpp)
+    SendJobs.cpp
+    P2PMessage.cpp)
 
 target_include_directories (Network PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries (Network PUBLIC
