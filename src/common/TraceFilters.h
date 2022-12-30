@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_METRICFILTERS_H_
-#define ZILLIQA_SRC_COMMON_METRICFILTERS_H_
+#ifndef ZILLIQA_SRC_COMMON_TRACEFILTERS_H_
+#define ZILLIQA_SRC_COMMON_TRACEFILTERS_H_
 
 // Currently maxes out at 64 filters, in order to increase developer should
 // change the type of the mask from uint64_t to uint128_t or uint256_t if
@@ -27,24 +27,24 @@
 
 // To extend filter classes, you may add items, the total number is limited to
 // 64 (bit mask)
-#define METRICS_FILTER_CLASSES(M) \
+#define TRACE_FILTER_CLASSES(M) \
   M(EVM_CLIENT)                   \
   M(EVM_CLIENT_LOW_LEVEL)         \
   M(SCILLA_IPC)                   \
   M(EVM_RPC)                      \
   M(LOOKUP_SERVER)                \
   M(QUEUE)                        \
-  M(ACCOUNTSTORE_EVM)
+  M(ACC_EVM)
 
 namespace zil {
-namespace metrics {
+namespace trace {
 enum class FilterClass {
 #define ENUM_FILTER_CLASS(C) C,
-  METRICS_FILTER_CLASSES(ENUM_FILTER_CLASS)
+  TRACE_FILTER_CLASSES(ENUM_FILTER_CLASS)
 #undef ENUM_FILTER_CLASS
       FILTER_CLASS_END
 };
-}  // namespace metrics
+}  // namespace trace
 }  // namespace zil
 
-#endif  // ZILLIQA_SRC_COMMON_METRICFILTERS_H_
+#endif  // ZILLIQA_SRC_COMMON_TRACEFILTERS_H_

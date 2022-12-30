@@ -42,6 +42,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -55,6 +56,7 @@
 #include "libUtils/RandomGenerator.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/SysCommand.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -3105,9 +3107,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       return false;
     }
 
-    auto res = CheckTxBlocks(
-        txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-        m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    auto res =
+        CheckTxBlocks(txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+                      m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
       case TxBlockValidationMsg::VALID: {
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW

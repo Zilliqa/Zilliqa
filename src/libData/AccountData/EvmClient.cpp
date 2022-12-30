@@ -23,20 +23,21 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/Metrics.h"
 
 namespace {
 
-#if OUTSIDE_CLASS_SCOPE
-zil::metrics::int64_t counter = Metrics::GetInstance().CreateInt64Metric(
-    "zilliqa_evm_client_ll_count", "method", "local code");
-#endif
+zil::metrics::uint64Counter_t& GetCallsCounter() {
+  static auto evmClientCount = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_evm", "invocations_count", "Calls to EVM-DS", "Calls");
+  return evmClientCount;
+}
+
 bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& binaryPath,
                      const std::string& socketPath) {
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-    //counter->Add(1, {{"method", "LaunchEvmDaemon"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT_LOW_LEVEL);
+
   LOG_MARKER();
 
   const std::vector<std::string> args = {"--socket",
@@ -84,10 +85,8 @@ bool LaunchEvmDaemon(boost::process::child& child,
 }
 
 bool CleanupPreviousInstances() {
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-    //counter->Add(1, {{"method", "CleanupPreviousInstances"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT_LOW_LEVEL);
+
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
   int sysRep = std::system(s.c_str());
   if (sysRep != -1) {
@@ -98,10 +97,8 @@ bool CleanupPreviousInstances() {
 
 bool Terminate(boost::process::child& child,
                const std::unique_ptr<jsonrpc::Client>& client) {
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-    //counter->Add(1, {{"method", "Terminate"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT_LOW_LEVEL);
+
   LOG_MARKER();
   Json::Value _json;
   LOG_GENERAL(DEBUG, "Call evm with die request:" << _json);
@@ -126,10 +123,8 @@ bool Terminate(boost::process::child& child,
 }  // namespace
 
 void EvmClient::Init() {
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
 
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
-    m_evmClientCount->Add(1, {{"method", "Init"}});
-  }
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
                                         << " for communication");
@@ -141,9 +136,8 @@ void EvmClient::Init() {
 }
 
 void EvmClient::Reset() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
-    m_evmClientCount->Add(1, {{"method", "Reset"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
+
   Terminate(m_child, m_client);
   CleanupPreviousInstances();
 }
@@ -151,9 +145,8 @@ void EvmClient::Reset() {
 EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
-    m_evmClientCount->Add(1, {{"method", "OpenServer"}});
-  }
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
+
   bool status{true};
   LOG_GENERAL(INFO, "OpenServer for EVM ");
 
@@ -164,12 +157,12 @@ bool EvmClient::OpenServer() {
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
-    m_evmClientCount->Add(
+    GetCallsCounter()->Add(
         1, {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
-    m_evmClientCount->Add(
+    GetCallsCounter()->Add(
         1, {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   }
@@ -180,8 +173,8 @@ bool EvmClient::OpenServer() {
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception initialising client");
-    m_evmClientCount->Add(
-        1, {{"Error", "Serious"},  {"Exception#3", "OpenServer"}});
+    GetCallsCounter()->Add(
+        1, {{"Error", "Serious"}, {"Exception#3", "OpenServer"}});
     return false;
   }
   return status;
@@ -189,9 +182,8 @@ bool EvmClient::OpenServer() {
 
 bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
-    m_evmClientCount->Add(1, {{"method", "CallRunner"}});
-  }
+
+  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
 
   std::lock_guard<std::mutex> g(m_mutexMain);
 
@@ -216,14 +208,14 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception out of parsing json response " << e.what());
-      m_evmClientCount->Add(1, {{"error", "CallRunner"}});
+      GetCallsCounter()->Add(1, {{"error", "CallRunner"}});
       return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
     throw e;
   } catch (...) {
     LOG_GENERAL(WARNING, "Exception caught executing run ");
-    m_evmClientCount->Add(1, {{"RPCException", "CallRunner"}});
+    GetCallsCounter()->Add(1, {{"RPCException", "CallRunner"}});
     return false;
   }
 }

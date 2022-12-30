@@ -35,6 +35,7 @@
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -929,7 +930,7 @@ void Node::SaveTxnsToS3(
                 "upload txns file : " << txns_filename << " successfully");
   }
 
-  !SHARDLDR_SAVE_TXN_LOCALLY && std::remove(txns_filename.c_str());
+  !SHARDLDR_SAVE_TXN_LOCALLY&& std::remove(txns_filename.c_str());
 }
 
 std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {

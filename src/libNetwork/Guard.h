@@ -55,7 +55,7 @@ class Guard {
 
   unsigned int GetNumOfShardGuard();
 
-  public:
+ public:
   /// Returns the singleton Guard instance.
   static Guard& GetInstance();
 

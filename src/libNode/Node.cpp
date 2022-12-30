@@ -49,6 +49,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;

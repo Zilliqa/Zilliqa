@@ -27,6 +27,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
+#include "libNode/Node.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"

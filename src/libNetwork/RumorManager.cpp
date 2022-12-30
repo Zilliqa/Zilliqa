@@ -100,8 +100,7 @@ void RumorManager::StartRounds() {
         return;
       }
     }
-  })
-      .detach();
+  }).detach();
 }
 
 void RumorManager::StopRounds() {

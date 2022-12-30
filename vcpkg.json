@@ -27,12 +27,14 @@
     "g3log",
     "g3sinks",
     "schnorr",
+    "nlohmann-json",
     "cryptoutils",
     {
       "name": "opentelemetry-cpp",
       "default-features": false,
       "features": [
-        "prometheus"
+        "prometheus",
+        "otlp"
       ]
     }
   ],
@@ -45,10 +47,6 @@
     {
       "name": "openssl",
       "version-string": "1.1.1n"
-    },
-    {
-      "name": "protobuf",
-      "version": "3.9.1"
     },
     {
       "name": "g3log",
