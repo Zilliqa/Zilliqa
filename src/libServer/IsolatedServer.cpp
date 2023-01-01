@@ -1002,7 +1002,7 @@ string IsolatedServer::SetMinimumGasPrice(const string& gasPrice) {
                            "Gas price cannot be less than 1");
   }
 
-  m_gasPrice = move(newGasPrice);
+  m_gasPrice = std::move(newGasPrice);
 
   return m_gasPrice.str();
 }

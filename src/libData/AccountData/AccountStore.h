@@ -32,7 +32,6 @@
 #include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Hashes.h"
-#include "common/Singleton.h"
 #include "libData/AccountData/Transaction.h"
 #include "libUtils/TxnExtras.h"
 
@@ -62,14 +61,13 @@ class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
 
   void AddAccountDuringDeserialization(const Address& address,
                                        const Account& account) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount->insert_or_assign(address, account);
   }
 };
 
 // Singleton class for providing interface related Account System
 class AccountStore
-    : public AccountStoreTrie<std::unordered_map<Address, Account>>,
-      Singleton<AccountStore> {
+    : public AccountStoreTrie<std::unordered_map<Address, Account>> {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
@@ -138,9 +136,6 @@ class AccountStore
   /// commit the in-memory states into persistent storage
   bool MoveUpdatesToDisk(uint64_t dsBlockNum = 0);
 
-  /// discard all the changes in memory and reset the states from last
-  /// checkpoint in persistent storage
-  void DiscardUnsavedUpdates();
   /// repopulate the in-memory data structures from persistent storage
   bool RetrieveFromDisk();
 
@@ -202,13 +197,13 @@ class AccountStore
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
                                        const bool revertible = false) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount->insert_or_assign(address, account);
 
     if (revertible) {
       if (fullCopy) {
-        m_addressToAccountRevCreated[address] = account;
+        m_addressToAccountRevCreated.insert_or_assign(address, account);
       } else {
-        m_addressToAccountRevChanged[address] = oriAccount;
+        m_addressToAccountRevChanged.insert_or_assign(address, oriAccount);
       }
     }
 

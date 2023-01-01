@@ -23,7 +23,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -33,7 +32,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -160,11 +158,12 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
   }
 
   // Update the final block with the co-signatures from the consensus
-  m_finalBlock->SetCoSignatures(*m_consensusObject);
+  m_finalBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
   // Update the DS microblock with the same co-signatures from the consensus
   // If we don't do this, DataSender won't be able to process it
-  m_mediator.m_node->m_microblock->SetCoSignatures(*m_consensusObject);
+  m_mediator.m_node->m_microblock->SetCoSignatures(
+      ConsensusObjectToCoSig(*m_consensusObject));
 
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
 

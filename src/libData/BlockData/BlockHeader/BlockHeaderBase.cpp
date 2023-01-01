@@ -17,7 +17,6 @@
 
 #include "BlockHeaderBase.h"
 #include "libCrypto/Sha2.h"
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -32,7 +31,7 @@ BlockHeaderBase::BlockHeaderBase(const uint32_t& version,
       m_prevHash(prevHash) {}
 
 BlockHash BlockHeaderBase::GetMyHash() const {
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   zbytes vec;
   Serialize(vec, 0);
   sha2.Update(vec);

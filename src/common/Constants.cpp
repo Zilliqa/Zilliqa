@@ -120,8 +120,6 @@ const uint16_t CHAIN_ID{(uint16_t)ReadConstantNumeric("CHAIN_ID")};
 const uint16_t NETWORK_ID{(uint16_t)ReadConstantNumeric("NETWORK_ID")};
 const string GENESIS_PUBKEY{
     ReadConstantString("GENESIS_PUBKEY", "node.general.")};
-const unsigned int UPGRADE_TARGET_DS_NUM{
-    ReadConstantNumeric("UPGRADE_TARGET_DS_NUM")};
 const string STORAGE_PATH{ReadConstantString("STORAGE_PATH", "node.general.")};
 const unsigned int NUM_EPOCHS_PER_PERSISTENT_DB{
     ReadConstantNumeric("NUM_EPOCHS_PER_PERSISTENT_DB")};
@@ -161,8 +159,6 @@ const unsigned int DSCOMMITTEE_VERSION{
     ReadConstantNumeric("DSCOMMITTEE_VERSION", "node.version.")};
 const unsigned int SHARDINGSTRUCTURE_VERSION{
     ReadConstantNumeric("SHARDINGSTRUCTURE_VERSION", "node.version.")};
-const unsigned int ACCOUNT_VERSION{
-    ReadConstantNumeric("ACCOUNT_VERSION", "node.version.")};
 const unsigned int CONTRACT_STATE_VERSION{
     ReadConstantNumeric("CONTRACT_STATE_VERSION", "node.version.")};
 

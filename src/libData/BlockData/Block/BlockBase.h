@@ -19,10 +19,6 @@
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
 
 #include <Schnorr.h>
-#include "common/Constants.h"
-#include "common/Serializable.h"
-#include "libConsensus/ConsensusCommon.h"
-#include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 
 struct CoSignatures {
@@ -47,45 +43,53 @@ class BlockBase : public SerializableDataBlock {
 
  public:
   /// Default constructor.
-  BlockBase();
+  BlockBase() : m_timestamp(0) {}
 
   /// Implements the Serialize function inherited from Serializable.
-  virtual bool Serialize(zbytes& dst, unsigned int offset) const;
+  virtual bool Serialize(zbytes& /*dst*/,
+                         unsigned int /*offset*/) const override {
+    return true;
+  }
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const zbytes& src, unsigned int offset);
+  virtual bool Deserialize(const zbytes& /*src*/,
+                           unsigned int /*offset*/) override {
+    return true;
+  }
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const std::string& src, unsigned int offset);
+  virtual bool Deserialize(const std::string& /*src*/,
+                           unsigned int /*offset*/) override {
+    return true;
+  }
 
   /// Returns the block hash
-  const BlockHash& GetBlockHash() const;
+  const BlockHash& GetBlockHash() const { return m_blockHash; }
 
   /// Returns the timestamp
-  const uint64_t& GetTimestamp() const;
+  const uint64_t& GetTimestamp() const { return m_timestamp; }
 
   /// Set the timestamp
-  void SetTimestamp(const uint64_t& timestamp);
+  void SetTimestamp(const uint64_t& timestamp) { m_timestamp = timestamp; }
 
   /// Set the block hash
-  void SetBlockHash(const BlockHash& blockHash);
+  void SetBlockHash(const BlockHash& blockHash) { m_blockHash = blockHash; }
 
   /// Returns the co-sig for first round.
-  const Signature& GetCS1() const;
+  const Signature& GetCS1() const { return m_cosigs.m_CS1; }
 
   /// Returns the co-sig bitmap for first round.
-  const std::vector<bool>& GetB1() const;
+  const std::vector<bool>& GetB1() const { return m_cosigs.m_B1; }
 
   /// Returns the co-sig for second round.
-  const Signature& GetCS2() const;
+  const Signature& GetCS2() const { return m_cosigs.m_CS2; }
 
   /// Returns the co-sig bitmap for second round.
-  const std::vector<bool>& GetB2() const;
+  const std::vector<bool>& GetB2() const { return m_cosigs.m_B2; }
 
   /// Sets the co-sig members.
-  void SetCoSignatures(const ConsensusCommon& src);
-  void SetCoSignatures(CoSignatures& cosigs);
-  void SetCoSignatures(CoSignatures&& cosigs);
+  void SetCoSignatures(CoSignatures& cosigs) { m_cosigs = cosigs; }
+  void SetCoSignatures(CoSignatures&& cosigs) { m_cosigs = std::move(cosigs); }
 
   friend std::ostream& operator<<(std::ostream& os, const BlockBase& t);
 };

@@ -24,7 +24,6 @@
 #include <vector>
 #include "common/Constants.h"
 #include "depends/common/CommonIO.h"
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
