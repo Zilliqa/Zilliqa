@@ -26,7 +26,7 @@ namespace CryptoUtils {
 Address GetAddressFromPubKey(const PubKey& pubKey) {
   zbytes addr_ser;
   pubKey.Serialize(addr_ser, 0);
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(addr_ser, 0, PUB_KEY_SIZE);
   const zbytes& tmp = sha2.Finalize();
   Address ret;

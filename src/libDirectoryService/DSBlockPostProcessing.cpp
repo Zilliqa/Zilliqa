@@ -33,9 +33,7 @@
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SanityChecks.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -181,7 +179,7 @@ void DirectoryService::SendDSBlockToShardNodes(
     }
 
     // Send the message
-    SHA2<HashType::HASH_VARIANT_256> sha256;
+    SHA256Calculator sha256;
     sha256.Update(dsblock_message_to_shard);
     auto this_msg_hash = sha256.Finalize();
 
@@ -711,7 +709,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     }
 
     // Update the DS Block with the co-signatures from the consensus
-    m_pendingDSBlock->SetCoSignatures(*m_consensusObject);
+    m_pendingDSBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
     if (m_pendingDSBlock->GetHeader().GetBlockNum() >
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
@@ -745,9 +743,9 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
   {
     lock_guard<mutex> g(m_mutexMapNodeReputation);
     if (m_mode == BACKUP_DS) {
-      m_shards = move(m_tempShards);
-      m_publicKeyToshardIdMap = move(m_tempPublicKeyToshardIdMap);
-      m_mapNodeReputation = move(m_tempMapNodeReputation);
+      m_shards = std::move(m_tempShards);
+      m_publicKeyToshardIdMap = std::move(m_tempPublicKeyToshardIdMap);
+      m_mapNodeReputation = std::move(m_tempMapNodeReputation);
     } else if (m_mode == PRIMARY_DS) {
       RemoveReputationOfNodeFailToJoin(m_shards, m_mapNodeReputation);
     }

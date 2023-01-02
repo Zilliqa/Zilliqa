@@ -19,7 +19,6 @@
 #include <array>
 #include <string>
 #include <vector>
-#include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"

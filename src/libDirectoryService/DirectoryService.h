@@ -740,6 +740,9 @@ class DirectoryService : public Executable {
   bool RunConsensusOnFinalBlockWhenDSPrimary();
   bool CheckIfDSNode(const PubKey& submitterPubKey);
   bool RemoveDSMicroBlock();
+
+  static CoSignatures ConsensusObjectToCoSig(
+      const ConsensusCommon& consensusObject);
 };
 
 #endif  // ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_

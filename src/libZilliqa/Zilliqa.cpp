@@ -51,7 +51,7 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
 
   LOG_PAYLOAD(INFO, "Public Key", tmp2, PUB_KEY_SIZE * 2);
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Reset();
   zbytes message;
   key.second.Serialize(message, 0);

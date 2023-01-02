@@ -25,7 +25,6 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
-#include "libUtils/HashUtils.h"
 
 using namespace std;
 using namespace boost::multiprecision;

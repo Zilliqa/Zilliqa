@@ -19,7 +19,6 @@
 #include <string>
 #include <vector>
 
-#include "libCrypto/Sha2.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libTestUtils/TestUtils.h"

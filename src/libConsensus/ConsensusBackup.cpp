@@ -448,10 +448,10 @@ ConsensusBackup::ConsensusBackup(
     : ConsensusCommon(consensus_id, block_number, block_hash, node_id, privkey,
                       committee, class_byte, ins_byte, isDS),
       m_leaderID(leader_id),
-      m_msgContentValidator(move(msg_validator)),
-      m_prePrepMsgContentValidator(move(preprep_msg_validator)),
-      m_postPrePrepContentValidation(move(post_preprep_validation)),
-      m_readinessFunc(move(collsig_readiness_func)) {
+      m_msgContentValidator(std::move(msg_validator)),
+      m_prePrepMsgContentValidator(std::move(preprep_msg_validator)),
+      m_postPrePrepContentValidation(std::move(post_preprep_validation)),
+      m_readinessFunc(std::move(collsig_readiness_func)) {
   LOG_MARKER();
   m_state = INITIAL;
 

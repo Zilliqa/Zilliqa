@@ -95,8 +95,6 @@ class ContractStorage : boost::noncopyable {
 
   /////////////////////////////////////////////////////////////////////////////
 
-  bool PutContractCode(const dev::h160& address, const zbytes& code);
-
   /// Adds contract codes to persistence in batch
   bool PutContractCodeBatch(
       const std::unordered_map<std::string, std::string>& batch);
@@ -108,14 +106,10 @@ class ContractStorage : boost::noncopyable {
   bool DeleteContractCode(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
-  bool PutInitData(const dev::h160& address, const zbytes& initData);
-
   bool PutInitDataBatch(
       const std::unordered_map<std::string, std::string>& batch);
 
   zbytes GetInitData(const dev::h160& address);
-
-  bool DeleteInitData(const dev::h160& address);
 
   /////////////////////////////////////////////////////////////////////////////
   static std::string GenerateStorageKey(

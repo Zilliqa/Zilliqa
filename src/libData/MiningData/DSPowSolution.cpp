@@ -16,8 +16,6 @@
  */
 
 #include "DSPowSolution.h"
-#include <algorithm>
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;

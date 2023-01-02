@@ -63,7 +63,7 @@ TxBlock::TxBlock(const zbytes& src, unsigned int offset) {
 TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs)
     : m_header(header), m_mbInfos(mbInfos) {
-  m_cosigs = move(cosigs);
+  m_cosigs = std::move(cosigs);
   SetTimestamp(get_time_as_int());
   SetBlockHash(m_header.GetMyHash());
 }
