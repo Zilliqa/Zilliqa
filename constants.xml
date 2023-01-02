@@ -200,7 +200,7 @@
         <!-- blocking Call to read socket from evm-ds timeout -->
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
-        <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
+        <LAUNCH_EVM_DAEMON>false</LAUNCH_EVM_DAEMON>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -292,9 +292,9 @@
     </recovery>
     <smart_contract>
         <ENABLE_SC>true</ENABLE_SC>
-        <SCILLA_ROOT>/scilla</SCILLA_ROOT>
-        <SCILLA_CHECKER>bin/scilla-checker</SCILLA_CHECKER>
-        <SCILLA_BINARY>bin/scilla-runner</SCILLA_BINARY>
+        <SCILLA_ROOT>/home/nathan/repos/scilla</SCILLA_ROOT>
+        <SCILLA_CHECKER>/home/nathan/.opam/default/bin/scilla-checker</SCILLA_CHECKER>
+        <SCILLA_BINARY>/home/nathan/.opam/default/bin/scilla-runner</SCILLA_BINARY>
         <SCILLA_FILES>scilla_files</SCILLA_FILES>
         <SCILLA_LOG>_build</SCILLA_LOG>
         <SCILLA_LIB>src/stdlib</SCILLA_LIB>
@@ -307,8 +307,8 @@
         <CONTRACT_FILE_EXTENSION>.scilla</CONTRACT_FILE_EXTENSION>
         <LIBRARY_CODE_EXTENSION>.scillib</LIBRARY_CODE_EXTENSION>
         <EXTLIB_FOLDER>scilla_libs</EXTLIB_FOLDER>
-        <ENABLE_SCILLA_MULTI_VERSION>true</ENABLE_SCILLA_MULTI_VERSION>
-        <LOG_SC>false</LOG_SC>
+        <ENABLE_SCILLA_MULTI_VERSION>false</ENABLE_SCILLA_MULTI_VERSION>
+        <LOG_SC>true</LOG_SC>
         <DISABLE_SCILLA_LIB>false</DISABLE_SCILLA_LIB>
         <SCILLA_SERVER_PENDING_IN_MS>1500</SCILLA_SERVER_PENDING_IN_MS>
         <SCILLA_SERVER_LOOP_WAIT_MICROSECONDS>10</SCILLA_SERVER_LOOP_WAIT_MICROSECONDS>
