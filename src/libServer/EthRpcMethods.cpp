@@ -626,6 +626,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   zbytes code;
   uint256_t accountFunds{};
+  uint128_t fundsAvailableContract = 0;
+
   bool contractCreation = false;
   {
     shared_lock<shared_timed_mutex> lock(
@@ -641,6 +643,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "Sender doesn't exist");
     }
     accountFunds = sender->GetBalance();
+    fundsAvailableContract = static_cast<uint128_t>(accountFunds);
 
     const Account* toAccount =
         !IsNullAddress(toAddr)
@@ -668,6 +671,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
     value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
+    fundsAvailableContract += DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -729,8 +733,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   evm::EvmResult result;
 
-  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
-                                                    result) &&
+  LOG_GENERAL(WARNING, "Estimating evm gas");
+
+  AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\b_balance", fundsAvailableContract);
+  auto res = AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result);
+  AccountStore::GetInstance().m_scillaIPCServer->clearOverrides();
+
+  if (res &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();

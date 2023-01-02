@@ -388,7 +388,7 @@ bool ContractStorage::FetchStateValue(const dev::h160& addr,
 bool ContractStorage::FetchExternalStateValue(
     const dev::h160& /*caller*/, const dev::h160& target, const zbytes& src,
     unsigned int s_offset, zbytes& dst, unsigned int d_offset, bool& foundVal,
-    string& type, uint32_t caller_version) {
+    string& type, uint32_t caller_version, Account* injected) {
   if (s_offset > src.size() || d_offset > dst.size()) {
     LOG_GENERAL(WARNING, "Invalid src/dst data and offset, data size ");
     return false;
@@ -398,15 +398,17 @@ bool ContractStorage::FetchExternalStateValue(
   query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
 
   std::string special_query;
-  Account* account;
+  Account* account = injected;
   Account* accountAtomic =
       AccountStore::GetInstance().GetAccountTempAtomic(target);
-  if (!accountAtomic) {
-    LOG_GENERAL(INFO,
-                "Could not find account " << target.hex() << " in atomic");
-    account = AccountStore::GetInstance().GetAccountTemp(target);
-  } else {
-    account = accountAtomic;
+  if (!injected) {
+    if (!accountAtomic) {
+      LOG_GENERAL(INFO,
+                  "Could not find account " << target.hex() << " in atomic");
+      account = AccountStore::GetInstance().GetAccountTemp(target);
+    } else {
+      account = accountAtomic;
+    }
   }
 
   if (!account) {

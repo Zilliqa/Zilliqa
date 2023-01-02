@@ -92,6 +92,10 @@ class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {
                                    std::string& value);
   void setBCInfoProvider(const ScillaBCInfo& bcInfo);
 
+  std::unordered_map<std::string, uint128_t> overrides;
+  void setOverrides(std::string key, uint128_t const&value);
+  void clearOverrides();
+
   zil::metrics::int64_t m_scillaIPCCount =
       Metrics::GetInstance().CreateInt64Metric(
           "zilliqa_scillaipc", "scilla_ipc_count",

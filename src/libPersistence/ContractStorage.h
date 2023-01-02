@@ -27,6 +27,8 @@
 #include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
 
+#include "libData/AccountData/Account.h"
+
 class ProtoScillaQuery;
 
 namespace Contract {
@@ -133,7 +135,7 @@ class ContractStorage : boost::noncopyable {
       const dev::h160& caller, const dev::h160& target, const zbytes& src,
       unsigned int s_offset, zbytes& dst, unsigned int d_offset, bool& foundVal,
       std::string& type,
-      uint32_t caller_version = std::numeric_limits<uint32_t>::max());
+      uint32_t caller_version = std::numeric_limits<uint32_t>::max(), Account* injected = nullptr);
 
   void InsertValueToStateJson(Json::Value& _json, std::string key,
                               std::string value, bool unquote = true,

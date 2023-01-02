@@ -22,9 +22,12 @@
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
+#include "libData/AccountData/Account.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include <cctype>
+#include <string>
 
 using namespace std;
 using namespace Contract;
@@ -120,6 +123,18 @@ void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
   response.clear();
   response.append(Json::Value(found));
   response.append(Json::Value(value));
+}
+
+void ScillaIPCServer::setOverrides(std::string key, uint128_t const&value){
+
+  std::transform(key.begin(), key.end(), key.begin(),
+                 [](unsigned char c){ return std::tolower(c); });
+
+  overrides[key] = value;
+}
+
+void ScillaIPCServer::clearOverrides(){
+  overrides.clear();
 }
 
 void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
@@ -220,18 +235,43 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   }
   zbytes destination;
 
+  auto combinedKey = addr + query;
+  std::transform(combinedKey.begin(), combinedKey.end(), combinedKey.begin(),
+                 [](unsigned char c){ return std::tolower(c); });
+  std::unique_ptr<Account> injected;
+
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING,
+                "Request for state val: "
+                    << addr << " with query: " << query << " aka: "
+                    << DataConversion::Uint8VecToHexStrRet(toZbytes(query)));
+  }
+
+  if(overrides.contains(combinedKey)) {
+    auto const &item = overrides[combinedKey];
+
+    injected = std::make_unique<Account>(item, 0, 0);
+
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING,
+                  "Responding with overridden value: " << item << " AKA " << value);
+    }
+  }
+
   if (!ContractStorage::GetContractStorage().FetchExternalStateValue(
           m_BCInfo.getCurContrAddr(), Address(addr),
           DataConversion::StringToCharArray(query), 0, destination, 0, found,
-          type)) {
+          type, std::numeric_limits<uint32_t>::max(), injected.get())) {
+
+    if (LOG_SC) {
+      LOG_GENERAL(WARNING, "Returning false, not found.");
+    }
     return false;
   }
 
   value = DataConversion::CharArrayToString(destination);
 
   if (LOG_SC) {
-    LOG_GENERAL(WARNING,
-                "Request for state val: " << addr << " with query: " << query);
     LOG_GENERAL(WARNING,
                 "Resp for state val:    "
                     << DataConversion::Uint8VecToHexStrRet(destination));
