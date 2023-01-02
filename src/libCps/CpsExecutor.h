@@ -34,15 +34,18 @@ class CpsExecutor final {
   explicit CpsExecutor(CpsAccountStoreInterface& account_store,
                        TransactionReceipt& receipt);
   ~CpsExecutor();
-  CpsExecuteResult Run(const EvmProcessContext& context);
+  CpsExecuteResult Run(EvmProcessContext& context);
   void PushRun(std::shared_ptr<CpsRun> run);
+  CpsAccountStoreInterface& GetAccStoreIface() { return mAccountStore; }
 
  private:
   CpsExecuteResult PreValidateRun(const EvmProcessContext& context) const;
   void InitRun();
+  void RefundGas(const EvmProcessContext& context,
+                 const CpsExecuteResult& runResult);
 
  private:
-  CpsAccountStoreInterface& mAccountSore;
+  CpsAccountStoreInterface& mAccountStore;
   TransactionReceipt& mTxReceipt;
   std::vector<std::shared_ptr<CpsRun>> m_queue;
 };

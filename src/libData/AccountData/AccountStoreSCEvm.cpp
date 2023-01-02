@@ -304,17 +304,6 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
                                             EvmProcessContext& evmContext) {
   LOG_MARKER();
 
-  AccountStoreCpsInterface acCpsInterface{*this};
-  libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
-  const auto cpsRunResult = cpsExecutor.Run(evmContext);
-  if (cpsRunResult.isSuccess) {
-    LOG_GENERAL(WARNING, "RUN SUCCESSFUL!");
-    return true;
-  } else {
-    LOG_GENERAL(WARNING, "RUN NOT SUCCESSFUL!");
-    return false;
-  }
-
   LOG_GENERAL(INFO,
               "Commit Context Mode="
                   << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
@@ -337,6 +326,20 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+
+  if (true) {
+    AccountStoreCpsInterface acCpsInterface{*this};
+    libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
+    const auto cpsRunResult = cpsExecutor.Run(evmContext);
+    if (cpsRunResult.isSuccess) {
+      LOG_GENERAL(WARNING, "RUN SUCCESSFUL!");
+      return true;
+    } else {
+      LOG_GENERAL(WARNING, "RUN NOT SUCCESSFUL!");
+      return false;
+    }
+  }
+
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;

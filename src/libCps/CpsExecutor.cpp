@@ -23,17 +23,19 @@
 
 #include "libData/AccountData/EvmProcessContext.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+#include "libUtils/SafeMath.h"
 
 namespace libCps {
 
 CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
                          TransactionReceipt& receipt)
-    : mAccountSore(accountStore), mTxReceipt(receipt) {}
+    : mAccountStore(accountStore), mTxReceipt(receipt) {}
 
 CpsExecuteResult CpsExecutor::PreValidateRun(
     const EvmProcessContext& context) const {
-  const auto owned = mAccountSore.GetBalanceForAccountAtomic(
+  const auto owned = mAccountStore.GetBalanceForAccountAtomic(
       context.GetTransaction().GetSenderAddr());
 
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
@@ -49,26 +51,28 @@ CpsExecuteResult CpsExecutor::PreValidateRun(
 
 CpsExecutor::~CpsExecutor() = default;
 
-void CpsExecutor::InitRun() { mAccountSore.DiscardAtomics(); }
+void CpsExecutor::InitRun() { mAccountStore.DiscardAtomics(); }
 
-CpsExecuteResult CpsExecutor::Run(const EvmProcessContext& context) {
+CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   InitRun();
 
-  const auto preValidateResult = PreValidateRun(context);
+  const auto preValidateResult = PreValidateRun(clientContext);
   if (!preValidateResult.isSuccess) {
     return preValidateResult;
   }
 
-  CpsContext ctx{context.GetEvmArgs().estimate(),
-                 context.GetEvmArgs().extras()};
-  auto evmRun = std::make_shared<CpsRunEvm>(context.GetEvmArgs(), *this, ctx);
+  CpsContext cpsCtx{clientContext.GetEvmArgs().estimate(),
+                    clientContext.GetEvmArgs().extras()};
+  auto evmRun = std::make_shared<CpsRunEvm>(
+      clientContext.GetEvmArgs(), *this, cpsCtx,
+      IsNullAddress(clientContext.GetTransaction().GetToAddr()));
   m_queue.push_back(std::move(evmRun));
 
   CpsExecuteResult runResult;
   while (!m_queue.empty()) {
     const auto currentRun = std::move(m_queue.back());
     m_queue.pop_back();
-    runResult = currentRun->Run(mAccountSore, mTxReceipt);
+    runResult = currentRun->Run(mTxReceipt);
     if (!runResult.isSuccess) {
       LOG_GENERAL(WARNING, "Got error from processing");
       break;
@@ -84,7 +88,44 @@ CpsExecuteResult CpsExecutor::Run(const EvmProcessContext& context) {
     }
   }
 
+  clientContext.SetEvmResult(runResult.evmResult);
+  const auto gasRemainedCore =
+      GasConv::GasUnitsFromEthToCore(runResult.evmResult.remaining_gas());
+
+  // failure
+  if (!m_queue.empty() || !runResult.isSuccess) {
+    mAccountStore.DiscardAtomics();
+    mTxReceipt.clear();
+    mTxReceipt.SetCumGas(clientContext.GetTransaction().GetGasLimitZil() -
+                         gasRemainedCore);
+    mTxReceipt.SetResult(false);
+    mTxReceipt.AddError(RUNNER_FAILED);
+    mTxReceipt.update();
+  } else {
+    mAccountStore.CommitAtomics();
+    mTxReceipt.SetCumGas(clientContext.GetTransaction().GetGasLimitZil() -
+                         gasRemainedCore);
+    mTxReceipt.SetResult(true);
+    mTxReceipt.update();
+    RefundGas(clientContext, runResult);
+  }
+
   return runResult;
+}
+
+void CpsExecutor::RefundGas(const EvmProcessContext& context,
+                            const CpsExecuteResult& runResult) {
+  const auto gasRemainedCore =
+      GasConv::GasUnitsFromEthToCore(runResult.evmResult.remaining_gas());
+  uint128_t gasRefund;
+  if (!SafeMath<uint128_t>::mul(gasRemainedCore,
+                                context.GetTransaction().GetGasPriceWei(),
+                                gasRefund)) {
+    return;
+  }
+
+  mAccountStore.IncreaseBalance(context.GetTransaction().GetSenderAddr(),
+                                Amount::fromQa(gasRefund));
 }
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {

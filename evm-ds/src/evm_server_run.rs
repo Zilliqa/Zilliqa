@@ -2,6 +2,7 @@ use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use evm::executor::stack::MemoryStackSubstate;
 use evm::{
     backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
@@ -54,6 +55,10 @@ pub async fn run_evm_impl(
             apparent_value,
         };
         let mut runtime: Runtime;
+        let gas_limit = gas_limit * gas_scaling_factor;
+        let metadata = StackSubstateMetadata::new(gas_limit, &config);
+        let state;
+
         let mut feedback_continuation:Option<EvmProto::Continuation> = None;
         // Check if evm should resume from the point it stopped
         if let Some(continuation) = node_continuation {
@@ -67,15 +72,17 @@ pub async fn run_evm_impl(
                                                               recorded_cont.position, recorded_cont.return_range, recorded_cont.valids,
                                                               recorded_cont.memory, recorded_cont.stack);
             runtime = Runtime::new_from_state(machine, context, &config);
+            let memory_substate = MemoryStackSubstate::from_state(metadata, recorded_cont.logs, recorded_cont.accounts,
+                recorded_cont.storages, recorded_cont.deletes);
+            state = MemoryStackState::new_with_substate(memory_substate, &backend);
             feedback_continuation = Some(continuation);
         }
         else {
             runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+            state = MemoryStackState::new(metadata, &backend);
+    
         }
         // Scale the gas limit.
-        let gas_limit = gas_limit * gas_scaling_factor;
-        let metadata = StackSubstateMetadata::new(gas_limit, &config);
-        let state = MemoryStackState::new(metadata, &backend);
 
         let precompiles = get_precompiles();
 
@@ -139,7 +146,7 @@ pub async fn run_evm_impl(
                 result
             },
             CpsReason::CreateInterrupt(i) => {
-                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut());
+                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
                 let result = build_crate_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
                 result
             }

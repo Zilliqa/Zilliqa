@@ -53,6 +53,7 @@ struct CpsAccountStoreInterface {
   virtual bool UpdateStateValue(const Address& addr, const zbytes& q,
                                 unsigned int q_offset, const zbytes& v,
                                 unsigned int v_offset) = 0;
+  virtual std::string GenerateContractStorageKey(const Address& addr) = 0;
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) = 0;
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;

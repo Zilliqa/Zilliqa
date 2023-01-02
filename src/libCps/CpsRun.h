@@ -26,9 +26,13 @@ namespace libCps {
 class CpsAccountStoreInterface;
 class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
+  CpsRun(CpsAccountStoreInterface& accountStore)
+      : mAccountStore(accountStore) {}
   virtual ~CpsRun() = default;
-  virtual CpsExecuteResult Run(CpsAccountStoreInterface& account_store,
-                               TransactionReceipt& receipt) = 0;
+  virtual CpsExecuteResult Run(TransactionReceipt& receipt) = 0;
+
+ protected:
+  CpsAccountStoreInterface& mAccountStore;
 };
 
 }  // namespace libCps

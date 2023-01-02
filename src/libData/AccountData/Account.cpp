@@ -582,6 +582,9 @@ const zbytes Account::GetInitData() const {
 }
 
 bool Account::SetImmutable(const zbytes& code, const zbytes& initData) {
+  LOG_GENERAL(WARNING,
+              "SET IMMUTABLE ATOMIC: " << m_address.hex()
+                                       << ", CODE SIZE: " << code.size());
   if (!SetCode(code) || !SetInitData(initData)) {
     return false;
   }

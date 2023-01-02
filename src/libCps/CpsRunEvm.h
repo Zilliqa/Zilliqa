@@ -25,36 +25,37 @@
 class TransactionReceipt;
 
 namespace libCps {
+class Address;
 class CpsAccountStoreInterface;
 class CpsContext;
 class CpsExecutor;
 class CpsRunEvm final : public CpsRun {
+  using Address = dev::h160;
+
  public:
   CpsRunEvm(evm::EvmArgs proto_args, CpsExecutor& executor,
-            const CpsContext& ctx);
-  virtual CpsExecuteResult Run(CpsAccountStoreInterface& account_store,
-                               TransactionReceipt& receipt) override;
+            const CpsContext& ctx, bool hasNullDestAddr);
+  virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   void ProvideFeedback(const CpsRunEvm& previousRun,
                        const evm::EvmResult& result);
   bool IsResumable() const;
 
  private:
   std::optional<evm::EvmResult> InvokeEvm();
-  void HandleApply(const evm::EvmResult& evmResult, TransactionReceipt& receipt,
-                   CpsAccountStoreInterface& accountStore);
+  void HandleApply(const evm::EvmResult& evmResult,
+                   TransactionReceipt& receipt);
 
-  CpsExecuteResult HandleTrap(const evm::EvmResult& evm_result,
-                              CpsAccountStoreInterface& accountStore);
-  CpsExecuteResult HandleCreateTrap(const evm::EvmResult& evm_result,
-                                    CpsAccountStoreInterface& accountStore);
+  CpsExecuteResult HandleTrap(const evm::EvmResult& evm_result);
+  CpsExecuteResult HandleCreateTrap(const evm::EvmResult& evm_result);
   CpsExecuteResult ValidateCreateTrap(const evm::TrapData_Create& createData,
-                                      CpsAccountStoreInterface& accountStore,
                                       uint64_t remainingGas);
+  void InstallCode(const Address& address, const std::string& code);
 
  public:
   evm::EvmArgs mProtoArgs;
   CpsExecutor& mExecutor;
   const CpsContext& mCpsContext;
+  bool mHasNullDestAddress = false;
 };
 
 }  // namespace libCps

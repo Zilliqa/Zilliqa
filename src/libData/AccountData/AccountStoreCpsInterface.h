@@ -85,11 +85,22 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
 
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      libCps::Amount amount) override {
+    LOG_GENERAL(WARNING,
+                "TRANSFERRING FROM: " << from.hex() << ", TO: " << to.hex()
+                                      << ", AMOUNT: " << amount.toQa());
     return mAccountStore.TransferBalanceAtomic(from, to, amount.toQa());
   }
 
-  virtual void DiscardAtomics() override { mAccountStore.DiscardAtomics(); }
-  virtual void CommitAtomics() override { mAccountStore.CommitAtomics(); }
+  virtual void DiscardAtomics() override {
+    mAccountStore.m_storageRootUpdateBufferAtomic.clear();
+    mAccountStore.DiscardAtomics();
+  }
+  virtual void CommitAtomics() override {
+    mAccountStore.CommitAtomics();
+    mAccountStore.m_storageRootUpdateBuffer.insert(
+        mAccountStore.m_storageRootUpdateBufferAtomic.begin(),
+        mAccountStore.m_storageRootUpdateBufferAtomic.end());
+  }
 
   virtual bool UpdateStates(const Address& address,
                             const std::map<std::string, zbytes>& states,
@@ -109,6 +120,11 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return Contract::ContractStorage::GetContractStorage().UpdateStateValue(
         address, q, q_offset, v, v_offset);
   }
+
+  virtual std::string GenerateContractStorageKey(const Address& addr) override {
+    return Contract::ContractStorage::GenerateStorageKey(
+        addr, CONTRACT_ADDR_INDICATOR, {});
+  };
 
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) override {
     mAccountStore.m_storageRootUpdateBufferAtomic.emplace(addr);
