@@ -27,4 +27,4 @@ struct CpsContext {
 };
 }  // namespace libCps
 
-#endif /* ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_ */
+#endif  // ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_

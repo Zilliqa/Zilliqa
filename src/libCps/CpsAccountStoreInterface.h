@@ -70,4 +70,4 @@ struct CpsAccountStoreInterface {
 };
 }  // namespace libCps
 
-#endif /* ZILLIQA_SRC_LIBCPS_CPSACCOUNTSTOREINTERFACE_H_ */
+#endif  // ZILLIQA_SRC_LIBCPS_CPSACCOUNTSTOREINTERFACE_H_

@@ -33,4 +33,4 @@ class CpsExecuteValidator final {
 };
 }  // namespace libCps
 
-#endif /* ZILLIQA_SRC_LIBCPS_CPSEXECUTEVALIDATOR_H_ */
+#endif  // ZILLIQA_SRC_LIBCPS_CPSEXECUTEVALIDATOR_H_

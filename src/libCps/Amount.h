@@ -45,4 +45,4 @@ class Amount final {
 };
 }  // namespace libCps
 
-#endif /* ZILLIQA_SRC_LIBCPS_AMOUNT_H_ */
+#endif  // ZILLIQA_SRC_LIBCPS_AMOUNT_H_

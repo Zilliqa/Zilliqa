@@ -29,4 +29,4 @@ struct CpsExecuteResult {
 };
 }  // namespace libCps
 
-#endif /* ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_ */
+#endif  // ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_

@@ -187,4 +187,4 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   AccountStoreSC<T>& mAccountStore;
 };
 
-#endif /* ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORECPSINTERFACE_H_ */
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORECPSINTERFACE_H_
