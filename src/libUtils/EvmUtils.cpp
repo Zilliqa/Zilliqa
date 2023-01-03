@@ -223,6 +223,7 @@ std::string EvmUtils::GetEvmResultJsonFromTextProto(
 
 bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
                       evm::EvmEvalExtras& extras_out) {
+  extras_out.set_chain_id(ETH_CHAINID);
   extras_out.set_block_timestamp(
       extras_in.block_timestamp.convert_to<uint64_t>());
   extras_out.set_block_gas_limit(DS_MICROBLOCK_GAS_LIMIT *
