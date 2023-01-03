@@ -160,5 +160,3 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
 | **Bug report** | <a href="https://github.com/Zilliqa/zilliqa/issues" target="_blank"><img src="https://img.shields.io/github/issues/Zilliqa/zilliqa.svg" /></a> |
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
 | **Security bug bounty** | <a href="https://hackerone.com/zilliqa" target="_blank">HackerOne bug bounty</a> |
-
-
