@@ -26,6 +26,7 @@
 
 #include <libScilla/ScillaIPCServer.h>
 #include "AccountStoreBase.h"
+#include "EvmProcessContext.h"
 #include "InvokeType.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"
@@ -240,9 +241,8 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   bool UpdateAccountsEvm(const uint64_t& blockNum,
                          const unsigned int& numShards, const bool& isDS,
-                         const Transaction& transaction,
-                         const TxnExtras& txnExtras,
-                         TransactionReceipt& receipt, TxnStatus& error_code);
+                         TransactionReceipt& receipt, TxnStatus& error_code,
+                         EvmProcessContext& evmContext);
 
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,
@@ -275,6 +275,7 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool AddAccountAtomic(const Address& address, const Account& account);
 
   bool ViewAccounts(const evm::EvmArgs& args, evm::EvmResult& result);
+  bool EvmProcessMessage(EvmProcessContext& params, evm::EvmResult& result);
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_

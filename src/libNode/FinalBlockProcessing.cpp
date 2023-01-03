@@ -41,10 +41,8 @@
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/HashUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/MemoryStats.h"
-#include "libUtils/SanityChecks.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
@@ -78,11 +76,11 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
 
   // Update average block time except when txblock is first block for the epoch
   if ((txBlock.GetHeader().GetBlockNum() % NUM_FINAL_BLOCK_PER_POW) > 0) {
-    const uint64_t& timestampBef =
+    const uint64_t timestampBef =
         m_mediator.m_txBlockChain
             .GetBlock(txBlock.GetHeader().GetBlockNum() - 1)
             .GetTimestamp();
-    const uint64_t& timestampNow = txBlock.GetTimestamp();
+    const uint64_t timestampNow = txBlock.GetTimestamp();
     const double lastBlockTimeInSeconds =
         static_cast<double>(timestampNow - timestampBef) / 1000000;
     double tmpAveBlockTimeInSeconds = m_mediator.m_aveBlockTimeInSeconds;
@@ -1158,7 +1156,7 @@ bool Node::ProcessStateDeltaFromFinalBlock(
     return false;
   }
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
   sha2.Update(stateDeltaBytes);
   StateHash stateDeltaHash(sha2.Finalize());
 

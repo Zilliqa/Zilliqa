@@ -36,7 +36,7 @@ DSBlock::DSBlock(const zbytes& src, unsigned int offset) {
 
 DSBlock::DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs)
     : m_header(header) {
-  m_cosigs = move(cosigs);
+  m_cosigs = std::move(cosigs);
   SetTimestamp(get_time_as_int());
   SetBlockHash(m_header.GetMyHash());
 }

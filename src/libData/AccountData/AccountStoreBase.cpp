@@ -186,7 +186,7 @@ bool AccountStoreBase<MAP>::AddAccount(const Address& address,
                                        const Account& account, bool toReplace) {
   // LOG_MARKER();
   if (toReplace || !IsAccountExist(address)) {
-    (*m_addressToAccount)[address] = account;
+    m_addressToAccount->insert_or_assign(address, account);
 
     return true;
   }

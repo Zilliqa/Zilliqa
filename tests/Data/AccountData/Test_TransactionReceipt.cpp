@@ -22,10 +22,10 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
+#include "libCrypto/Sha2.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
-#include "libCrypto/Sha2.h"
 
 struct Fixture {
   Fixture() { INIT_STDOUT_LOGGER() }
@@ -96,8 +96,9 @@ BOOST_AUTO_TEST_CASE(transactionreceipt) {
   BOOST_CHECK_EQUAL(true, tranReceiptStr_2.compare(tranReceiptStr) == 0);
 
   std::ostringstream oss;
-  Json::StreamWriterBuilder().newStreamWriter()->write(tr_2.GetJsonValue(),
-                                                       &oss);
+  std::unique_ptr<Json::StreamWriter> streamWriter{
+      Json::StreamWriterBuilder().newStreamWriter()};
+  streamWriter->write(tr_2.GetJsonValue(), &oss);
 
   tranReceiptStr_2 = oss.str();
   tranReceiptStr_2.erase(
@@ -117,7 +118,7 @@ BOOST_AUTO_TEST_CASE(transactionwithreceipt) {
   TransactionReceipt tr;
   std::vector<TransactionWithReceipt> txrs;
 
-  SHA2<HashType::HASH_VARIANT_256> sha2;
+  SHA256Calculator sha2;
 
   for (const auto& ts : transactionStrings) {
     sha2.Update(DataConversion::StringToCharArray(ts.c_str()));
