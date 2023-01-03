@@ -35,9 +35,9 @@ BOOST_AUTO_TEST_CASE(commitAndRollback) {
   std::string RET;
   std::string errs;
   Json::CharReaderBuilder readBuilder;
-  Json::CharReader* cr = readBuilder.newCharReader();
+  std::unique_ptr<Json::CharReader> cr{readBuilder.newCharReader()};
   Json::StreamWriterBuilder writeBuilder;
-  Json::StreamWriter* writer = writeBuilder.newStreamWriter();
+  std::unique_ptr<Json::StreamWriter> writer{writeBuilder.newStreamWriter()};
   std::ostringstream oss;
 
   BOOST_CHECK_MESSAGE(le.Install(jv, addr) == false,
