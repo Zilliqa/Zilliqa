@@ -34,7 +34,7 @@ class CpsRunEvm final : public CpsRun {
 
  public:
   CpsRunEvm(evm::EvmArgs proto_args, CpsExecutor& executor,
-            const CpsContext& ctx, bool hasNullDestAddr);
+            const CpsContext& ctx, CpsRun::Type type);
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   void ProvideFeedback(const CpsRunEvm& previousRun,
                        const evm::EvmResult& result);

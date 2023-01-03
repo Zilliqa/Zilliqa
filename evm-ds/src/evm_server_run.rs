@@ -261,8 +261,12 @@ fn build_crate_result(
             scheme_crate2.set_code_hash(code_hash.into());
             scheme_crate2.set_salt(salt.into());
             scheme.set_create2(scheme_crate2);
+        },
+        evm::CreateScheme::Fixed(address) => {
+            let mut scheme_fixed = EvmProto::TrapData_Scheme_Fixed::new();
+            scheme_fixed.set_addres(address.into());
+            scheme.set_fixed(scheme_fixed);
         }
-        _ => (),
     }
     let mut trap_data_create = EvmProto::TrapData_Create::new();
     trap_data_create.set_scheme(scheme);

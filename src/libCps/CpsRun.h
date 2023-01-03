@@ -26,13 +26,18 @@ namespace libCps {
 class CpsAccountStoreInterface;
 class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
-  CpsRun(CpsAccountStoreInterface& accountStore)
-      : mAccountStore(accountStore) {}
+  enum Type { Call, Create, TrapCreate, TrapCall };
+  CpsRun(CpsAccountStoreInterface& accountStore, Type type)
+      : mAccountStore(accountStore), mType(type) {}
   virtual ~CpsRun() = default;
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) = 0;
+  Type GetType() const { return mType; }
 
  protected:
   CpsAccountStoreInterface& mAccountStore;
+
+ private:
+  Type mType;
 };
 
 }  // namespace libCps

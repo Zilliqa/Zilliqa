@@ -58,11 +58,15 @@ struct CpsAccountStoreInterface {
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;
   virtual void SetNonceForAccountAtomic(const Address& account, uint64_t) = 0;
+  virtual void IncreaseNonceForAccountAtomic(const Address& account) = 0;
   virtual uint64_t GetNonceForAccountAtomic(const Address& account) = 0;
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
       const std::string& vname, const std::vector<std::string>& indices,
       bool temp) = 0;
+  virtual void BufferCurrentContractStorageState() = 0;
+  virtual void RevertContractStorageState() = 0;
+  virtual zbytes GetContractCode(const Address& account) = 0;
 };
 }  // namespace libCps
 

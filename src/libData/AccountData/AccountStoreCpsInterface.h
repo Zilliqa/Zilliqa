@@ -149,10 +149,15 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   virtual uint64_t GetNonceForAccountAtomic(const Address& address) override {
     Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
-      account->GetNonce();
+      return account->GetNonce();
     }
     return 0;
   }
+
+  virtual void IncreaseNonceForAccountAtomic(const Address& account) override {
+    const auto nonce = GetNonceForAccountAtomic(account);
+    SetNonceForAccountAtomic(account, nonce + 1);
+  };
 
   virtual void FetchStateDataForContract(
       std::map<std::string, zbytes>& states, const dev::h160& address,
@@ -160,6 +165,22 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
       bool temp) override {
     Contract::ContractStorage::GetContractStorage().FetchStateDataForContract(
         states, address, vname, indices, temp);
+  }
+
+  virtual void BufferCurrentContractStorageState() override {
+    Contract::ContractStorage::GetContractStorage().BufferCurrentState();
+  }
+
+  virtual void RevertContractStorageState() override {
+    Contract::ContractStorage::GetContractStorage().RevertPrevState();
+  }
+
+  virtual zbytes GetContractCode(const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->GetCode();
+    }
+    return {};
   }
 
  private:

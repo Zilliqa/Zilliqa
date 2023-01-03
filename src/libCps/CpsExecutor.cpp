@@ -63,10 +63,18 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
 
   CpsContext cpsCtx{clientContext.GetEvmArgs().estimate(),
                     clientContext.GetEvmArgs().extras()};
-  auto evmRun = std::make_shared<CpsRunEvm>(
-      clientContext.GetEvmArgs(), *this, cpsCtx,
-      IsNullAddress(clientContext.GetTransaction().GetToAddr()));
+  const auto runType = IsNullAddress(clientContext.GetTransaction().GetToAddr())
+                           ? CpsRun::Create
+                           : CpsRun::Call;
+  auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
+                                            cpsCtx, runType);
   m_queue.push_back(std::move(evmRun));
+
+  LOG_GENERAL(WARNING,
+              "EXEC NONCE IS: " << mAccountStore.GetNonceForAccountAtomic(
+                  clientContext.GetTransaction().GetSenderAddr()));
+
+  mAccountStore.BufferCurrentContractStorageState();
 
   CpsExecuteResult runResult;
   while (!m_queue.empty()) {
@@ -87,19 +95,33 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
       }
     }
   }
+  // Increase nonce regardless of processing result
+  const auto sender = clientContext.GetTransaction().GetSenderAddr();
+  mAccountStore.IncreaseNonceForAccountAtomic(sender);
+
+  LOG_GENERAL(WARNING,
+              "EXEC NONCE 2 IS: " << mAccountStore.GetNonceForAccountAtomic(
+                  clientContext.GetTransaction().GetSenderAddr()));
 
   clientContext.SetEvmResult(runResult.evmResult);
   const auto gasRemainedCore =
       GasConv::GasUnitsFromEthToCore(runResult.evmResult.remaining_gas());
 
-  // failure
-  if (!m_queue.empty() || !runResult.isSuccess) {
+  const bool isFailure = !m_queue.empty() || !runResult.isSuccess;
+
+  // failure or Estimate mode
+  if (isFailure || !clientContext.GetCommit()) {
+    mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
     mTxReceipt.clear();
     mTxReceipt.SetCumGas(clientContext.GetTransaction().GetGasLimitZil() -
                          gasRemainedCore);
-    mTxReceipt.SetResult(false);
-    mTxReceipt.AddError(RUNNER_FAILED);
+    if (isFailure) {
+      mTxReceipt.SetResult(false);
+      mTxReceipt.AddError(RUNNER_FAILED);
+    } else {
+      mTxReceipt.SetResult(true);
+    }
     mTxReceipt.update();
   } else {
     mAccountStore.CommitAtomics();

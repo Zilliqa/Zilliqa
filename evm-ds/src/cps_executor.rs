@@ -233,14 +233,19 @@ impl<'a> Handler for CpsExecutor<'a> {
         target_gas: Option<u64>,
     ) -> Capture<(ExitReason, Option<H160>, Vec<u8>), Self::CreateInterrupt> {
 
-        Capture::Trap(Self::CreateInterrupt {
-            caller,
-            scheme,
-            value,
-            init_code,
-            target_gas,
-        })
+        /*if !self.stack_executor.config().estimate { */
+         
+            Capture::Trap(Self::CreateInterrupt {
+                caller,
+                scheme,
+                value,
+                init_code,
+                target_gas,
+            })
+        
+        /* } */
 
+        
         /*let result =
             self.stack_executor
                 .create(caller, scheme, value, init_code.clone(), target_gas);

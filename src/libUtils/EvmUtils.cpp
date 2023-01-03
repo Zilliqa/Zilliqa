@@ -25,8 +25,8 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
-#include "libUtils/Evm.pb.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/TxnExtras.h"
 
@@ -84,8 +84,8 @@ void EvmUtils::PrintDebugEvmResult(evm::EvmResult& result) {
       case evm::Apply::ApplyCase::kModify:
         LOG_GENERAL(
             INFO, "Modify address: " << ProtoToAddress(it.modify().address()));
-        LOG_GENERAL(INFO, "Code: " << DataConversion::Uint8VecToHexStrRet(
-                              toZbytes(it.modify().code())));
+        // LOG_GENERAL(INFO, "Code: " << DataConversion::Uint8VecToHexStrRet(
+        //                      toZbytes(it.modify().code())));
         LOG_GENERAL(INFO,
                     "Modify reset storage: " << it.modify().reset_storage());
         LOG_GENERAL(INFO, "Modify nonce: " << ProtoToUint(it.modify().nonce()));

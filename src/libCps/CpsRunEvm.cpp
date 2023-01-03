@@ -19,6 +19,7 @@
 #include "libCps/CpsAccountStoreInterface.h"
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecutor.h"
+#include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/EvmClient.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libEth/utils/EthUtils.h"
@@ -32,41 +33,66 @@
 
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
-                     const CpsContext& ctx)
-    : mProtoArgs(std::move(protoArgs)), mExecutor(executor), mCpsContext(ctx) {}
+                     const CpsContext& ctx, CpsRun::Type type)
+    : CpsRun(executor.GetAccStoreIface(), type),
+      mProtoArgs(std::move(protoArgs)),
+      mExecutor(executor),
+      mCpsContext(ctx) {}
 
 bool CpsRunEvm::IsResumable() const {
   return mProtoArgs.has_continuation() && mProtoArgs.continuation().id() > 0;
 }
 
-CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& accountStore,
-                                TransactionReceipt& receipt) {
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-    const auto metrics = Metrics::GetInstance().CreateInt64Metric(
-        "zilliqa_accountstroe", "invocations_count", "Metrics for AccountStore",
-        "Blocks");
-    metrics->Add(1, {{"method", "EvmCallRunner"}});
+CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
+  if (!IsResumable()) {
+    // Contract deployment
+    if (GetType() == CpsRun::Create) {
+      const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
+      const auto contractAddress = mAccountStore.GetAddressForContract(
+          fromAddress, TRANSACTION_VERSION_ETH);
+      mAccountStore.AddAccountAtomic(contractAddress);
+      LOG_GENERAL(WARNING,
+                  "ACC HAS (1): "
+                      << fromAddress.hex() << ", NONCEE: "
+                      << mAccountStore.GetNonceForAccountAtomic(fromAddress));
+      mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
+      LOG_GENERAL(WARNING,
+                  "ACC HAS (2): "
+                      << fromAddress.hex() << ", NONCEE: "
+                      << mAccountStore.GetNonceForAccountAtomic(fromAddress));
+      LOG_GENERAL(WARNING, "RUNNING WITH FIRST CONTRACT ADDR: "
+                               << contractAddress.hex() << ", AND CODE SIZE: "
+                               << mProtoArgs.code().size());
+      *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
+    } else if (GetType() == CpsRun::Call) {
+      const auto code =
+          mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
+      *mProtoArgs.mutable_code() =
+          DataConversion::CharArrayToString(StripEVM(code));
+    }
+
+    if (!mAccountStore.TransferBalanceAtomic(
+            ProtoToAddress(mProtoArgs.origin()),
+            ProtoToAddress(mProtoArgs.address()),
+            Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+      return {};
+    }
   }
 
-  // Contract deployment
-  if (IsNullAddress(ProtoToAddress(mProtoArgs.address()))) {
-    const auto contractAddress = accountStore.GetAddressForContract(
-        ProtoToAddress(mProtoArgs.origin()), TRANSACTION_VERSION_ETH);
-    LOG_GENERAL(WARNING,
-                "RUNNING WITH FIRST CONTRACT ADDR: " << contractAddress.hex());
-    *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
-  } else {
-    LOG_GENERAL(WARNING, "RUNNING WITH ALREADY EXISTING CONTRACT ADDR: "
-                             << ProtoToAddress(mProtoArgs.address()).hex());
-  }
+  mAccountStore.AddAddressToUpdateBufferAtomic(
+      ProtoToAddress(mProtoArgs.address()));
 
-  if (!accountStore.TransferBalanceAtomic(
-          ProtoToAddress(mProtoArgs.origin()),
-          ProtoToAddress(mProtoArgs.address()),
-          Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
-    return {};
-  }
+  LOG_GENERAL(WARNING,
+              "ACC HAS (3): " << ProtoToAddress(mProtoArgs.address()).hex()
+                              << ", NONCEE: "
+                              << mAccountStore.GetNonceForAccountAtomic(
+                                     ProtoToAddress(mProtoArgs.address())));
+
+  LOG_GENERAL(WARNING,
+              "ACC HAS (4): " << ProtoToAddress(mProtoArgs.origin()).hex()
+                              << ", NONCEE: "
+                              << mAccountStore.GetNonceForAccountAtomic(
+                                     ProtoToAddress(mProtoArgs.origin())));
 
   const auto invokeResult = InvokeEvm();
   if (!invokeResult.has_value()) {
@@ -84,9 +110,9 @@ CpsExecuteResult CpsRunEvm::Run(CpsAccountStoreInterface& accountStore,
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-    return HandleTrap(evmResult, accountStore);
+    return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
-    HandleApply(evmResult, receipt, accountStore);
+    HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   }
   // Revert or Abort
@@ -137,11 +163,10 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
   return {};
 }
 
-CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result,
-                                       CpsAccountStoreInterface& accountStore) {
+CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result) {
   const evm::TrapData& trap_data = result.trap_data();
   if (trap_data.has_create()) {
-    return HandleCreateTrap(result, accountStore);
+    return HandleCreateTrap(result);
   }
   // Call trap
   else {
@@ -149,12 +174,11 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result,
   }
 }
 
-CpsExecuteResult CpsRunEvm::HandleCreateTrap(
-    const evm::EvmResult& result, CpsAccountStoreInterface& accountStore) {
+CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   const evm::TrapData& trap_data = result.trap_data();
   const evm::TrapData_Create& createData = trap_data.create();
   const auto validateResult =
-      ValidateCreateTrap(createData, accountStore, result.remaining_gas());
+      ValidateCreateTrap(createData, result.remaining_gas());
   if (!validateResult.isSuccess) {
     return validateResult;
   }
@@ -166,35 +190,41 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(
   if (scheme.has_legacy()) {
     const evm::TrapData_Scheme_Legacy& legacy = scheme.legacy();
     fromAddress = ProtoToAddress(legacy.caller());
-    contractAddress = accountStore.GetAddressForContract(
+    contractAddress = mAccountStore.GetAddressForContract(
         fromAddress, TRANSACTION_VERSION_ETH);
   } else if (scheme.has_create2()) {
     const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
     fromAddress = ProtoToAddress(create2.caller());
-    contractAddress = accountStore.GetAddressForContract(
+    contractAddress = mAccountStore.GetAddressForContract(
         fromAddress, TRANSACTION_VERSION_ETH);
+  } else if (scheme.has_fixed()) {
+    const evm::TrapData_Scheme_Fixed& fixed = scheme.fixed();
+    fromAddress = ProtoToAddress(mProtoArgs.origin());
+    contractAddress = ProtoToAddress(fixed.addres());
   }
 
-  if (!accountStore.AddAccountAtomic(contractAddress)) {
+  LOG_GENERAL(WARNING,
+              "NONCEE FOR ACC "
+                  << fromAddress.hex() << ", IS: "
+                  << mAccountStore.GetNonceForAccountAtomic(fromAddress));
+
+  if (!mAccountStore.AddAccountAtomic(contractAddress)) {
     return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
-  }
-
-  if (!accountStore.TransferBalanceAtomic(
-          fromAddress, contractAddress,
-          Amount::fromWei(ProtoToUint(createData.value())))) {
-    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
 
   LOG_GENERAL(WARNING,
               "RUNNING WITH TRAP CONTRACT ADDR: " << contractAddress.hex());
   LOG_GENERAL(WARNING, "RUNNING WITH TRAP FROM ADDR: " << fromAddress.hex());
 
-  accountStore.SetImmutableAtomic(
-      contractAddress,
-      DataConversion::StringToCharArray("EVM" + createData.call_data()), {});
+  mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
+  // mAccountStore.AddAddressToUpdateBufferAtomic(fromAddress);
 
-  const auto currentNonce = accountStore.GetNonceForAccountAtomic(fromAddress);
-  accountStore.SetNonceForAccountAtomic(fromAddress, currentNonce + 1);
+  LOG_GENERAL(WARNING,
+              "NONCEE FOR 2 ACC "
+                  << fromAddress.hex() << ", IS: "
+                  << mAccountStore.GetNonceForAccountAtomic(fromAddress));
+
+  // InstallCode(contractAddress, createData.call_data());
 
   // Set continuation (itself) to be resumed when create run is finished
   {
@@ -224,21 +254,20 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(
     evmCreateArgs.set_estimate(mCpsContext.estimate);
     *evmCreateArgs.mutable_context() = "TrapCreate";
     *evmCreateArgs.mutable_extras() = mCpsContext.evmExtras;
-    auto createRun = std::make_unique<CpsRunEvm>(std::move(evmCreateArgs),
-                                                 mExecutor, mCpsContext);
+    auto createRun = std::make_unique<CpsRunEvm>(
+        std::move(evmCreateArgs), mExecutor, mCpsContext, CpsRun::TrapCreate);
     mExecutor.PushRun(std::move(createRun));
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
-    const evm::TrapData_Create& createData,
-    CpsAccountStoreInterface& accountStore, uint64_t remainingGas) {
+    const evm::TrapData_Create& createData, uint64_t remainingGas) {
   const evm::Address& protoCaller = createData.caller();
   const Address address = ProtoToAddress(protoCaller);
   // Check Balance, Required Gas
 
-  const auto currentBalance = accountStore.GetBalanceForAccountAtomic(address);
+  const auto currentBalance = mAccountStore.GetBalanceForAccountAtomic(address);
   const auto requestedValue = Amount::fromWei(ProtoToUint(createData.value()));
   LOG_GENERAL(WARNING, "Requested balance[Wei]: "
                            << requestedValue.toWei().convert_to<std::string>()
@@ -264,8 +293,7 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
 }
 
 void CpsRunEvm::HandleApply(const evm::EvmResult& result,
-                            TransactionReceipt& receipt,
-                            CpsAccountStoreInterface& account_store) {
+                            TransactionReceipt& receipt) {
   if (result.logs_size() > 0) {
     Json::Value entry = Json::arrayValue;
 
@@ -291,30 +319,32 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         // Set account balance to 0 to avoid any leakage of funds in case
         // selfdestruct is called multiple times
         address = ProtoToAddress(it.delete_().address());
-        if (!account_store.AccountExistsAtomic(address)) {
-          account_store.AddAccountAtomic(address);
+        if (!mAccountStore.AccountExistsAtomic(address)) {
+          mAccountStore.AddAccountAtomic(address);
         }
-        account_store.SetBalanceAtomic(address, Amount::fromQa(0));
-        account_store.AddAddressToUpdateBufferAtomic(address);
+        mAccountStore.SetBalanceAtomic(address, Amount::fromQa(0));
+        mAccountStore.AddAddressToUpdateBufferAtomic(address);
         break;
       case evm::Apply::ApplyCase::kModify: {
         // Get the account that this apply instruction applies to
         address = ProtoToAddress(it.modify().address());
-        if (!account_store.AccountExistsAtomic(address)) {
-          account_store.AddAccountAtomic(address);
+        if (!mAccountStore.AccountExistsAtomic(address)) {
+          mAccountStore.AddAccountAtomic(address);
         }
 
         if (it.modify().reset_storage()) {
+          LOG_GENERAL(WARNING,
+                      "RESETING STORAGE FOR ADDRESS: " << address.hex());
           std::map<std::string, zbytes> states;
           std::vector<std::string> toDeletes;
 
-          account_store.FetchStateDataForContract(states, address, "", {},
+          mAccountStore.FetchStateDataForContract(states, address, "", {},
                                                   true);
           for (const auto& x : states) {
             toDeletes.emplace_back(x.first);
           }
 
-          if (!account_store.UpdateStates(address, {}, toDeletes, true)) {
+          if (!mAccountStore.UpdateStates(address, {}, toDeletes, true)) {
             LOG_GENERAL(
                 WARNING,
                 "Failed to update states hby setting indices for deletion "
@@ -325,16 +355,18 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
         // If Instructed to reset the Code do so and call SetImmutable to reset
         // the hash
-        const std::string& code = it.modify().code();
+        /*const std::string& code = it.modify().code();
         if (!code.empty()) {
-          account_store.SetImmutableAtomic(
+          LOG_GENERAL(INFO, "Saving code from apply: "
+                                << address << ", code size: " << code.size());
+          mAccountStore.SetImmutableAtomic(
               address, DataConversion::StringToCharArray("EVM" + code), {});
-        }
+        }*/
 
         // Actually Update the state for the contract
         for (const auto& sit : it.modify().storage()) {
           LOG_GENERAL(INFO, "Saving storage for Address: " << address);
-          if (!account_store.UpdateStateValue(
+          if (!mAccountStore.UpdateStateValue(
                   address, DataConversion::StringToCharArray(sit.key()), 0,
                   DataConversion::StringToCharArray(sit.value()), 0)) {
             LOG_GENERAL(WARNING,
@@ -344,27 +376,33 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
         if (it.modify().has_balance()) {
           uint256_t balance = ProtoToUint(it.modify().balance());
+          LOG_GENERAL(WARNING, "Balance to be applied for account: "
+                                   << address.hex() << ", val: "
+                                   << balance.convert_to<std::string>());
           if ((balance >> 128) > 0) {
             throw std::runtime_error("Balance overflow!");
           }
-          account_store.SetBalanceAtomic(
-              address, Amount::fromQa(balance.convert_to<uint128_t>()));
+          // account_store.SetBalanceAtomic(
+          // address, Amount::fromQa(balance.convert_to<uint128_t>()));
         }
         if (it.modify().has_nonce()) {
           uint256_t nonce = ProtoToUint(it.modify().nonce());
           if ((nonce >> 64) > 0) {
             throw std::runtime_error("Nonce overflow!");
           }
-          account_store.SetNonceForAccountAtomic(address,
-                                                 nonce.convert_to<uint64_t>());
+          // account_store.SetNonceForAccountAtomic(address,
+          // nonce.convert_to<uint64_t>());
         }
         // Mark the Address as updated
-        account_store.AddAddressToUpdateBufferAtomic(address);
+        mAccountStore.AddAddressToUpdateBufferAtomic(address);
       } break;
       case evm::Apply::ApplyCase::APPLY_NOT_SET:
         // do nothing;
         break;
     }
+  }
+  if (GetType() == CpsRun::Create || GetType() == CpsRun::TrapCreate) {
+    InstallCode(ProtoToAddress(mProtoArgs.address()), result.return_value());
   }
 }
 
@@ -382,6 +420,26 @@ void CpsRunEvm::ProvideFeedback(const CpsRunEvm& previousRun,
     *mProtoArgs.mutable_continuation()->mutable_calldata() =
         result.return_value();
   }
+}
+
+void CpsRunEvm::InstallCode(const Address& address, const std::string& code) {
+  /*std::map<std::string, zbytes> states;
+  std::vector<std::string> toDeletes;
+  mAccountStore.FetchStateDataForContract(states, address, "", {}, true);
+  for (const auto& x : states) {
+    toDeletes.emplace_back(x.first);
+  }
+
+  mAccountStore.UpdateStates(address, {}, toDeletes, true); */
+
+  std::map<std::string, zbytes> t_newmetadata;
+
+  t_newmetadata.emplace(mAccountStore.GenerateContractStorageKey(address),
+                        address.asBytes());
+  mAccountStore.UpdateStates(address, t_newmetadata, {}, true);
+
+  mAccountStore.SetImmutableAtomic(
+      address, DataConversion::StringToCharArray("EVM" + code), {});
 }
 
 }  // namespace libCps

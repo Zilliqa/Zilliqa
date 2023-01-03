@@ -179,10 +179,14 @@ message TrapData {
       H256 code_hash = 2;
       H256 salt = 3;
     }
+    message Fixed {
+      Address addres = 1;
+    }
 
     oneof type {
       Legacy legacy = 1;
       Create2 create2 = 2;
+      Fixed fixed = 3;
     }
   }
 
