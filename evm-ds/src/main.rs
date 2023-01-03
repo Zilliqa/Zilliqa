@@ -135,7 +135,7 @@ async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        debug!(
+        println!(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, hex::encode(&code), hex::encode(&data),
             backend.extras, estimate);

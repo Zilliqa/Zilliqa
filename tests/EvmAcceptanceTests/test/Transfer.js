@@ -93,4 +93,48 @@ describe("Transfer ethers", function () {
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
   });
+
+  it("probably should be possible to use sent funds of smart contract", async function () {
+    const ACCOUNTS_COUNT = 1;
+    const ACCOUNT_VALUE = 0;
+    const TRANSFER_VALUE = 9;
+
+    const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
+      ethers.Wallet.createRandom().connect(ethers.provider)
+    );
+
+    const addresses = accounts.map((signer) => signer.address);
+
+    let bal = await ethers.provider.getBalance(addresses[0]);
+    console.log("Initial balance of account to send is: ", bal);
+
+    const [owner] = await ethers.getSigners();
+    bal = await ethers.provider.getBalance(owner.address);
+
+    console.log("Initial balance of account sending from is: ", bal);
+
+    // Deploy with no funds at contract address, but send value
+    const SingleTransferContract = await ethers.getContractFactory("SingleTransfer");
+
+    // Transfer the amount, WITH FUNDS
+    //const singleTransfer = await SingleTransferContract.deploy({ value: 1_000_000 });
+    const singleTransfer = await SingleTransferContract.deploy();
+    await singleTransfer.deployed();
+
+    console.log("arghmeemnadf ");
+
+    const ret = await singleTransfer.doTransfer(addresses[0], TRANSFER_VALUE, {gasLimit: 25000000, value: TRANSFER_VALUE});
+
+    console.log("arghmeemnadf ", ret);
+
+    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
+    //balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
+
+    bal = await ethers.provider.getBalance(addresses[0]);
+    console.log("Final balance of account to send is: ", bal);
+
+    bal = await ethers.provider.getBalance(owner.address);
+
+    console.log("Final balance of account sending from is: ", bal);
+  });
 });
