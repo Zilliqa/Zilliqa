@@ -210,15 +210,6 @@ class Messenger {
       const std::string& src, const unsigned int offset,
       TransactionWithReceipt& transactionWithReceipt);
 
-  static bool SetStateIndex(zbytes& dst, const unsigned int offset,
-                            const std::vector<Contract::Index>& indexes);
-  static bool GetStateIndex(const zbytes& src, const unsigned int offset,
-                            std::vector<Contract::Index>& indexes);
-  static bool SetStateData(zbytes& dst, const unsigned int offset,
-                           const Contract::StateEntry& entry);
-  static bool GetStateData(const zbytes& src, const unsigned int offset,
-                           Contract::StateEntry& entry, uint32_t& version);
-
   static bool SetPeer(zbytes& dst, const unsigned int offset, const Peer& peer);
   static bool GetPeer(const zbytes& src, const unsigned int offset, Peer& peer);
 

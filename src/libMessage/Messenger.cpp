@@ -845,57 +845,6 @@ void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
   }
 }
 
-void StateIndexToProtobuf(const vector<Contract::Index>& indexes,
-                          ProtoStateIndex& protoStateIndex) {
-  for (const auto& index : indexes) {
-    protoStateIndex.add_index(index.data(), index.size);
-  }
-}
-
-bool ProtobufToStateIndex(const ProtoStateIndex& protoStateIndex,
-                          vector<Contract::Index>& indexes) {
-  for (const auto& index : protoStateIndex.index()) {
-    indexes.emplace_back();
-    unsigned int size =
-        min((unsigned int)index.size(), (unsigned int)indexes.back().size);
-    copy(index.begin(), index.begin() + size, indexes.back().asArray().begin());
-  }
-
-  return true;
-}
-
-void StateDataToProtobuf(const Contract::StateEntry& entry,
-                         ProtoStateData& protoStateData) {
-  protoStateData.set_version(CONTRACT_STATE_VERSION);
-  protoStateData.set_vname(std::get<Contract::VNAME>(entry));
-  protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
-  protoStateData.set_type(std::get<Contract::TYPE>(entry));
-
-  string value = std::get<Contract::VALUE>(entry);
-  if (value.front() == '"') {
-    value.erase(0, 1);
-  }
-  if (value.back() == '"') {
-    value.erase(value.size() - 1);
-  }
-
-  protoStateData.set_value(value);
-}
-
-bool ProtobufToStateData(const ProtoStateData& protoStateData,
-                         Contract::StateEntry& indexes, uint32_t& version) {
-  if (!CheckRequiredFieldsProtoStateData(protoStateData)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoStateData failed");
-    return false;
-  }
-
-  version = protoStateData.version();
-
-  indexes = std::make_tuple(protoStateData.vname(), protoStateData.ismutable(),
-                            protoStateData.type(), protoStateData.value());
-  return true;
-}
-
 void BlockBaseToProtobuf(const BlockBase& base,
                          ProtoBlockBase& protoBlockBase) {
   // Block hash
@@ -3518,72 +3467,6 @@ bool Messenger::GetTransactionWithReceipt(
   }
 
   return ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
-}
-
-bool Messenger::SetStateIndex(zbytes& dst, const unsigned int offset,
-                              const vector<Contract::Index>& indexes) {
-  ProtoStateIndex result;
-
-  StateIndexToProtobuf(indexes, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateIndex initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetStateIndex(const zbytes& src, const unsigned int offset,
-                              vector<Contract::Index>& indexes) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoStateIndex result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateIndex initialization failed");
-    return false;
-  }
-
-  return ProtobufToStateIndex(result, indexes);
-}
-
-bool Messenger::SetStateData(zbytes& dst, const unsigned int offset,
-                             const Contract::StateEntry& entry) {
-  ProtoStateData result;
-
-  StateDataToProtobuf(entry, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateData initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetStateData(const zbytes& src, const unsigned int offset,
-                             Contract::StateEntry& entry, uint32_t& version) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoStateData result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateData initialization failed");
-    return false;
-  }
-
-  return ProtobufToStateData(result, entry, version);
 }
 
 bool Messenger::SetPeer(zbytes& dst, const unsigned int offset,
