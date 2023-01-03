@@ -60,8 +60,6 @@ find_package(Boost COMPONENTS filesystem system unit_test_framework program_opti
 find_package(Schnorr REQUIRED)
 find_package(CryptoUtils REQUIRED)
 
-include(ProjectSecp256k1)
-
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 include_directories(${OPENSSL_INCLUDE_DIR})
 

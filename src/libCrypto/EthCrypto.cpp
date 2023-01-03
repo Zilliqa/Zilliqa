@@ -50,6 +50,17 @@
 // https://stackoverflow.com/questions/57385412/
 // https://medium.com/mycrypto/the-magic-of-digital-signatures-on-ethereum-98fe184dc9c7
 
+namespace {
+
+// Workaround for the warning/error "ignoring attributes on template argument"
+// on gcc: write our own deleter for std::unique_ptr below that has no
+// attributes.
+void Secp256k1ContextDeleter(secp256k1_context* ctx) {
+  if (ctx) secp256k1_context_destroy(ctx);
+}
+
+}  // namespace
+
 auto bnFree = [](BIGNUM* b) { BN_free(b); };
 auto ecFree = [](EC_GROUP* b) { EC_GROUP_free(b); };
 auto epFree = [](EC_POINT* b) { EC_POINT_free(b); };
@@ -62,10 +73,10 @@ bool PubKeysSame(zbytes const& pubkA, PubKey const& pubkB) {
 
 zbytes DerivePubkey(zbytes rs, int vSelect, const unsigned char* signingHash) {
   // Load the RS into the library
-  std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
-      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
-                                     SECP256K1_CONTEXT_VERIFY),
-            &secp256k1_context_destroy};
+  std::unique_ptr<secp256k1_context, decltype(&Secp256k1ContextDeleter)> s_ctx{
+      secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                               SECP256K1_CONTEXT_VERIFY),
+      &Secp256k1ContextDeleter};
   auto ctx = s_ctx.get();
 
   secp256k1_ecdsa_recoverable_signature rawSig;
@@ -226,10 +237,10 @@ bool SignEcdsaSecp256k1(const zbytes& digest, const zbytes& privKey,
     return false;
   }
 
-  std::unique_ptr<secp256k1_context, decltype(&secp256k1_context_destroy)>
-      s_ctx{secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
-                                     SECP256K1_CONTEXT_VERIFY),
-            &secp256k1_context_destroy};
+  std::unique_ptr<secp256k1_context, decltype(&Secp256k1ContextDeleter)> s_ctx{
+      secp256k1_context_create(SECP256K1_CONTEXT_SIGN |
+                               SECP256K1_CONTEXT_VERIFY),
+      &Secp256k1ContextDeleter};
 
   auto ctx = s_ctx.get();
 
