@@ -21,7 +21,7 @@
 #include <memory>
 
 class Transaction;
-class TxnExtras;
+struct TxnExtras;
 
 /* EvmProcessContext
  * *
