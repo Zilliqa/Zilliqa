@@ -75,7 +75,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
             ProtoToAddress(mProtoArgs.origin()),
             ProtoToAddress(mProtoArgs.address()),
             Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
-      return {};
+      return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
   }
 
@@ -423,15 +423,6 @@ void CpsRunEvm::ProvideFeedback(const CpsRunEvm& previousRun,
 }
 
 void CpsRunEvm::InstallCode(const Address& address, const std::string& code) {
-  /*std::map<std::string, zbytes> states;
-  std::vector<std::string> toDeletes;
-  mAccountStore.FetchStateDataForContract(states, address, "", {}, true);
-  for (const auto& x : states) {
-    toDeletes.emplace_back(x.first);
-  }
-
-  mAccountStore.UpdateStates(address, {}, toDeletes, true); */
-
   std::map<std::string, zbytes> t_newmetadata;
 
   t_newmetadata.emplace(mAccountStore.GenerateContractStorageKey(address),
