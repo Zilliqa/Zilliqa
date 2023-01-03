@@ -121,20 +121,13 @@ describe("Transfer ethers", function () {
     const singleTransfer = await SingleTransferContract.deploy();
     await singleTransfer.deployed();
 
-    console.log("arghmeemnadf ");
-
     const ret = await singleTransfer.doTransfer(randomAccount, TRANSFER_VALUE, {gasLimit: 25000000, value: TRANSFER_VALUE});
-
-    console.log("retme1 ", singleTransfer);
-    console.log("retme2 ", ret);
 
     const fee1 = await getFee(singleTransfer.deployTransaction.hash);
     const fee2 = await getFee(ret.hash);
 
-    console.log("fee1 ", fee1);
-    console.log("fee2 ", fee2);
-
-    //const balances = await Promise.all(accounts.map((account) => account.getBalance()));
+    console.log("Fee1: ", fee1);
+    console.log("Fee2: ", fee2);
 
     const receivedBal = await ethers.provider.getBalance(randomAccount);
     const senderBal = await ethers.provider.getBalance(owner.address);
