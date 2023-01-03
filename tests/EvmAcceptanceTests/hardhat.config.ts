@@ -3,6 +3,14 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 
+require("@nomicfoundation/hardhat-toolbox");
+require("@nomiclabs/hardhat-web3");
+require("hardhat-gas-reporter");
+require("solidity-coverage");
+require("@openzeppelin/hardhat-upgrades");
+
+//ceiling energy brass such rescue brief pound wrist tone chat high midnight
+
 import yargs from "yargs/yargs";
 
 const argv = yargs()
@@ -36,10 +44,11 @@ const config: any = {
       web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
       protocolVersion: 0x3f,
       accounts: [
-        "c95690aed4461afd835b17492ff889af72267a8bdf7d781e305576cd8f7eb182",
-        "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad",
-        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+        "c75c9269aa768794d24bc8f88e01c58f463ac3412895367609b5c4f099e8d829",
+        "5c219a0c5ff246f3705df936d15e5b0ab0ef1c34baaed1a54cf483ab836a65a6",
+        "d0390e1e71d4623a1aa830bdbe2db7bd882bf3efdcf82ad31cfb338bb2777d2f",
+        "1a664a5d8fd0808fc8cf1209b68f14e5b84cc6fb4908a40680d3d29bb6fc221e",
+        "24378c6e5dfa2478334a4cf3d4cb15b8b88ff53cd8a06a2327c171bb49db0dcd"
       ],
       zilliqaNetwork: false,
       miningState: true
@@ -81,7 +90,8 @@ const config: any = {
         "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
         "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3"
       ],
       chainId: 0x8001,
       web3ClientVersion: "Zilliqa/v8.2",

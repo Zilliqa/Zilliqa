@@ -71,6 +71,13 @@ void EvmUtils::PrintDebugEvmResult(evm::EvmResult& result) {
   LOG_GENERAL(INFO, "Exit code: " << exitReason);
   LOG_GENERAL(INFO, "Return value: " << DataConversion::Uint8VecToHexStrRet(
                         toZbytes(result.return_value())));
+
+    if(exitReason.find("REVERTED") != std::string::npos) {
+    auto returnString = result.return_value();
+    std::replace(returnString.begin(), returnString.end(), '\0', ' ');
+    LOG_GENERAL(INFO, "Return value as str: " << returnString);
+  }
+
   LOG_GENERAL(INFO, "Remaining gas: " << result.remaining_gas());
 
   for (const auto& it : result.apply()) {

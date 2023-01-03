@@ -44,10 +44,14 @@
     "web3": "^1.7.5"
   },
   "dependencies": {
+    "@nomiclabs/hardhat-waffle": "^2.0.3",
+    "@openzeppelin/contracts-upgradeable": "^4.8.0",
+    "@openzeppelin/hardhat-upgrades": "^1.22.0",
     "@types/deep-equal-in-any-order": "^1.0.1",
     "@zilliqa-js/zilliqa": "^3.3.4",
     "cli-color": "^2.0.3",
     "deep-equal-in-any-order": "^2.0.1",
+    "mocha": "^10.2.0",
     "yargs": "^17.6.2"
   },
   "lint-staged": {
