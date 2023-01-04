@@ -28,8 +28,7 @@
 class DSBlockHeader : public BlockHeaderBase {
   uint8_t m_dsDifficulty{};  // Number of PoW leading zeros
   uint8_t m_difficulty{};    // Number of PoW leading zeros
-  uint8_t m_totalDifficulty{};
-  PubKey m_leaderPubKey;  // The one who proposed this DS block
+  PubKey m_leaderPubKey;     // The one who proposed this DS block
   uint64_t m_blockNum{};  // Block index, starting from 0 in the genesis block
   uint64_t m_epochNum{};  // Tx Epoch Num when the DS block was generated
   uint128_t m_gasPrice;
@@ -42,21 +41,16 @@ class DSBlockHeader : public BlockHeaderBase {
 
  public:
   /// Default constructor.
-  DSBlockHeader();  // creates a dummy invalid placeholder BlockHeader
-
-  /// Constructor for loading DS block header information from a byte stream.
-  DSBlockHeader(const zbytes& src, unsigned int offset);
-
-  /// Constructor with specified DS block header parameters.
-  DSBlockHeader(const uint8_t dsDifficulty, const uint8_t difficulty,
-                const PubKey& leaderPubKey, const uint64_t& blockNum,
-                const uint64_t& epochNum, const uint128_t& gasPrice,
-                const SWInfo& swInfo,
-                const std::map<PubKey, Peer>& powDSWinners,
-                const std::vector<PubKey>& removeDSNodePubkeys,
-                const DSBlockHashSet& hashset,
-                const GovDSShardVotesMap& m_govProposalMap,
-                const uint32_t version = 0,
+  DSBlockHeader(uint8_t dsDifficulty = 0, uint8_t difficulty = 0,
+                const PubKey& leaderPubKey = {},
+                uint64_t blockNum = INIT_BLOCK_NUMBER,
+                uint64_t epochNum = (uint64_t)-1, const uint128_t& gasPrice = 0,
+                const SWInfo& swInfo = {},
+                const std::map<PubKey, Peer>& powDSWinners = {},
+                const std::vector<PubKey>& removeDSNodePubkeys = {},
+                const DSBlockHashSet& hashset = {},
+                const GovDSShardVotesMap& m_govProposalMap = {},
+                uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
 
@@ -74,50 +68,58 @@ class DSBlockHeader : public BlockHeaderBase {
   BlockHash GetHashForRandom() const;
 
   /// Returns the difficulty of the PoW puzzle.
-  const uint8_t& GetDSDifficulty() const;
+  uint8_t GetDSDifficulty() const noexcept { return m_dsDifficulty; }
 
   /// Returns the difficulty of the PoW puzzle.
-  const uint8_t& GetDifficulty() const;
+  uint8_t GetDifficulty() const noexcept { return m_difficulty; }
 
   /// Returns the total difficulty of the chain until this block. (not
   /// supported)
-  const uint8_t& GetTotalDifficulty() const;
+  uint8_t GetTotalDifficulty() const noexcept { return 0; }
 
   /// Returns the public key of the leader of the DS committee that composed
   /// this block.
-  const PubKey& GetLeaderPubKey() const;
+  const PubKey& GetLeaderPubKey() const noexcept { return m_leaderPubKey; }
 
   /// Returns the number of ancestor blocks.
-  const uint64_t& GetBlockNum() const;
+  uint64_t GetBlockNum() const noexcept { return m_blockNum; }
 
   /// Returns the number of tx epoch when block is mined
-  const uint64_t& GetEpochNum() const;
+  uint64_t GetEpochNum() const noexcept { return m_epochNum; }
 
   /// Returns the number of global minimum gas price acceptable for the coming
   /// epoch
-  const uint128_t& GetGasPrice() const;
+  const uint128_t& GetGasPrice() const noexcept { return m_gasPrice; }
 
   /// Returns the software version information used during creation of this
   /// block.
-  const SWInfo& GetSWInfo() const;
+  const SWInfo& GetSWInfo() const noexcept { return m_swInfo; }
 
   // Returns the DS PoW Winners.
-  const std::map<PubKey, Peer>& GetDSPoWWinners() const;
+  const std::map<PubKey, Peer>& GetDSPoWWinners() const noexcept {
+    return m_PoWDSWinners;
+  }
 
   // Returns Governance proposals and corresponding votes values count.
-  inline const GovDSShardVotesMap& GetGovProposalMap() const {
+  const GovDSShardVotesMap& GetGovProposalMap() const noexcept {
     return m_govProposalMap;
   }
 
   // Returns the DS members to remove for non-performance.
-  const std::vector<PubKey>& GetDSRemovePubKeys() const;
+  const std::vector<PubKey>& GetDSRemovePubKeys() const noexcept {
+    return m_removeDSNodePubkeys;
+  }
 
   /// Returns the digest that represents the hash of the sharding structure
-  const ShardingHash& GetShardingHash() const;
+  const ShardingHash& GetShardingHash() const noexcept {
+    return m_hashset.m_shardingHash;
+  }
 
   /// Returns a reference to the reserved field in the hash set
   const std::array<unsigned char, RESERVED_FIELD_SIZE>&
-  GetHashSetReservedField() const;
+  GetHashSetReservedField() const noexcept {
+    return m_hashset.m_reservedField;
+  }
 
   /// Equality operator.
   bool operator==(const DSBlockHeader& header) const;
@@ -136,20 +138,20 @@ inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
 
   os << blockHeaderBase << std::endl
      << "<DSBlockHeader>" << std::endl
-     << " m_dsDifficulty    = " << t.m_dsDifficulty << std::endl
-     << " m_difficulty      = " << t.m_difficulty << std::endl
-     << " m_totalDifficulty = " << t.m_totalDifficulty << std::endl
-     << " m_leaderPubKey    = " << t.m_leaderPubKey << std::endl
-     << " m_blockNum        = " << t.m_blockNum << std::endl
-     << " m_epochNum        = " << t.m_epochNum << std::endl
-     << " m_gasPrice        = " << t.m_gasPrice << std::endl
+     << " DSDifficulty    = " << t.GetDSDifficulty() << std::endl
+     << " Difficulty      = " << t.GetDifficulty() << std::endl
+     << " TotalDifficulty = " << t.GetTotalDifficulty() << std::endl
+     << " LeaderPubKey    = " << t.GetLeaderPubKey() << std::endl
+     << " BlockNum        = " << t.GetBlockNum() << std::endl
+     << " EpochNum        = " << t.GetEpochNum() << std::endl
+     << " GasPrice        = " << t.GetGasPrice() << std::endl
      << t.m_hashset << std::endl
-     << t.m_swInfo << std::endl;
-  for (const auto& node : t.m_PoWDSWinners) {
+     << t.GetSWInfo() << std::endl;
+  for (const auto& node : t.GetDSPoWWinners()) {
     os << " PoWDSWinner     = " << node.first << " " << node.second
        << std::endl;
   }
-  for (const auto& pubkey : t.m_removeDSNodePubkeys) {
+  for (const auto& pubkey : t.GetDSRemovePubKeys()) {
     os << " DSRemoved       = " << pubkey << std::endl;
   }
 

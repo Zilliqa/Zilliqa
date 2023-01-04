@@ -22,39 +22,17 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-DSBlockHeader::DSBlockHeader()
-    : m_dsDifficulty(0),
-      m_difficulty(0),
-      m_totalDifficulty(0),
-      m_leaderPubKey(),
-      m_blockNum(INIT_BLOCK_NUMBER),
-      m_epochNum((uint64_t)-1),
-      m_gasPrice(0),
-      m_swInfo(),
-      m_PoWDSWinners(),
-      m_removeDSNodePubkeys(),
-      m_hashset(),
-      m_govProposalMap() {}
-
-DSBlockHeader::DSBlockHeader(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init DSBlockHeader.");
-  }
-}
-
 DSBlockHeader::DSBlockHeader(
-    const uint8_t dsDifficulty, const uint8_t difficulty,
-    const PubKey& leaderPubKey, const uint64_t& blockNum,
-    const uint64_t& epochNum, const uint128_t& gasPrice, const SWInfo& swInfo,
-    const map<PubKey, Peer>& powDSWinners,
+    uint8_t dsDifficulty, uint8_t difficulty, const PubKey& leaderPubKey,
+    uint64_t blockNum, uint64_t epochNum, const uint128_t& gasPrice,
+    const SWInfo& swInfo, const map<PubKey, Peer>& powDSWinners,
     const std::vector<PubKey>& removeDSNodePubkeys,
     const DSBlockHashSet& hashset, const GovDSShardVotesMap& govProposalMap,
-    const uint32_t version, const CommitteeHash& committeeHash,
+    uint32_t version, const CommitteeHash& committeeHash,
     const BlockHash& prevHash)
     : BlockHeaderBase(version, committeeHash, prevHash),
       m_dsDifficulty(dsDifficulty),
       m_difficulty(difficulty),
-      m_totalDifficulty(0),
       m_leaderPubKey(leaderPubKey),
       m_blockNum(blockNum),
       m_epochNum(epochNum),
@@ -106,41 +84,6 @@ bool DSBlockHeader::Deserialize(const string& src, unsigned int offset) {
   }
 
   return true;
-}
-
-const uint8_t& DSBlockHeader::GetDSDifficulty() const { return m_dsDifficulty; }
-
-const uint8_t& DSBlockHeader::GetDifficulty() const { return m_difficulty; }
-
-const uint8_t& DSBlockHeader::GetTotalDifficulty() const {
-  return m_totalDifficulty;
-}
-
-const PubKey& DSBlockHeader::GetLeaderPubKey() const { return m_leaderPubKey; }
-
-const uint64_t& DSBlockHeader::GetBlockNum() const { return m_blockNum; }
-
-const uint64_t& DSBlockHeader::GetEpochNum() const { return m_epochNum; }
-
-const uint128_t& DSBlockHeader::GetGasPrice() const { return m_gasPrice; }
-
-const SWInfo& DSBlockHeader::GetSWInfo() const { return m_swInfo; }
-
-const map<PubKey, Peer>& DSBlockHeader::GetDSPoWWinners() const {
-  return m_PoWDSWinners;
-}
-
-const std::vector<PubKey>& DSBlockHeader::GetDSRemovePubKeys() const {
-  return m_removeDSNodePubkeys;
-}
-
-const ShardingHash& DSBlockHeader::GetShardingHash() const {
-  return m_hashset.m_shardingHash;
-}
-
-const array<unsigned char, RESERVED_FIELD_SIZE>&
-DSBlockHeader::GetHashSetReservedField() const {
-  return m_hashset.m_reservedField;
 }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const {

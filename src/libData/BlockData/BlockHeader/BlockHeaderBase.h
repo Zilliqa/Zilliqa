@@ -22,7 +22,7 @@
 #include "common/Hashes.h"
 #include "common/Serializable.h"
 
-const uint64_t INIT_BLOCK_NUMBER = (uint64_t)-1;
+constexpr const uint64_t INIT_BLOCK_NUMBER = (uint64_t)-1;
 
 /// [TODO] Base class for all supported block header types
 class BlockHeaderBase : public SerializableDataBlock {
@@ -34,21 +34,25 @@ class BlockHeaderBase : public SerializableDataBlock {
 
  public:
   // Constructors
-  BlockHeaderBase();
-  BlockHeaderBase(const uint32_t& version, const CommitteeHash& committeeHash,
-                  const BlockHash& prevHash);
+  BlockHeaderBase(uint32_t version = 0,
+                  const CommitteeHash& committeeHash = CommitteeHash{},
+                  const BlockHash& prevHash = BlockHash{})
+      : m_version(version),
+        m_committeeHash(committeeHash),
+        m_prevHash(prevHash) {}
 
   /// Calculate my hash
   BlockHash GetMyHash() const;
 
   /// Returns the current version of this block.
-  const uint32_t& GetVersion() const;
+  uint32_t GetVersion() const { return m_version; }
 
   /// Returns the hash of the committee where the block was generated
-  const CommitteeHash& GetCommitteeHash() const;
+  const CommitteeHash& GetCommitteeHash() const { return m_committeeHash; }
 
-  const BlockHash& GetPrevHash() const;
+  const BlockHash& GetPrevHash() const { return m_prevHash; }
 
+#if 0
   /// Sets the current version of this block.
   void SetVersion(const uint32_t& version);
 
@@ -57,6 +61,7 @@ class BlockHeaderBase : public SerializableDataBlock {
 
   /// Sets the hash of the previous block (DirBlock or TxBlock)
   void SetPrevHash(const BlockHash& prevHash);
+#endif
 
   // Operators
   bool operator==(const BlockHeaderBase& header) const;

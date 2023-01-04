@@ -930,7 +930,7 @@ bool ProtobufToBlockHeaderBase(const ProtoBlockHeaderBase& protoBlockHeaderBase,
   uint32_t version;
   version = protoBlockHeaderBase.version();
 
-  base.SetVersion(version);
+  // base.SetVersion(version);
 
   // Deserialize committee hash
   CommitteeHash committeeHash;
@@ -938,7 +938,7 @@ bool ProtobufToBlockHeaderBase(const ProtoBlockHeaderBase& protoBlockHeaderBase,
                                     committeeHash.asArray())) {
     return false;
   }
-  base.SetCommitteeHash(committeeHash);
+  // base.SetCommitteeHash(committeeHash);
 
   // Deserialize prev hash
   BlockHash prevHash;
@@ -946,7 +946,7 @@ bool ProtobufToBlockHeaderBase(const ProtoBlockHeaderBase& protoBlockHeaderBase,
                                     prevHash.asArray())) {
     return false;
   }
-  base.SetPrevHash(prevHash);
+  // base.SetPrevHash(prevHash);
 
   return true;
 }

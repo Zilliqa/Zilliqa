@@ -24,9 +24,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-// creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-DSBlock::DSBlock() {}
-
 // To-do: handle exceptions. Will be deprecated.
 DSBlock::DSBlock(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {

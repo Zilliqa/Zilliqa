@@ -21,15 +21,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-BlockHeaderBase::BlockHeaderBase() : m_version(0) {}
-
-BlockHeaderBase::BlockHeaderBase(const uint32_t& version,
-                                 const CommitteeHash& committeeHash,
-                                 const BlockHash& prevHash)
-    : m_version(version),
-      m_committeeHash(committeeHash),
-      m_prevHash(prevHash) {}
-
 BlockHash BlockHeaderBase::GetMyHash() const {
   SHA256Calculator sha2;
   zbytes vec;
@@ -41,8 +32,7 @@ BlockHash BlockHeaderBase::GetMyHash() const {
   return blockHash;
 }
 
-const uint32_t& BlockHeaderBase::GetVersion() const { return m_version; }
-
+#if 0
 void BlockHeaderBase::SetVersion(const uint32_t& version) {
   m_version = version;
 }
@@ -55,11 +45,10 @@ void BlockHeaderBase::SetCommitteeHash(const CommitteeHash& committeeHash) {
   m_committeeHash = committeeHash;
 }
 
-const BlockHash& BlockHeaderBase::GetPrevHash() const { return m_prevHash; }
-
 void BlockHeaderBase::SetPrevHash(const BlockHash& prevHash) {
   m_prevHash = prevHash;
 }
+#endif
 
 bool BlockHeaderBase::operator==(const BlockHeaderBase& header) const {
   return std::tie(m_version, m_committeeHash, m_prevHash) ==
