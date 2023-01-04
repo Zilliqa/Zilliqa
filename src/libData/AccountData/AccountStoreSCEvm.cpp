@@ -328,6 +328,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
   if (true) {
+    LOG_GENERAL(WARNING, "WILL RUN CPS MODE!");
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.Run(evmContext);

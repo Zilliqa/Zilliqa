@@ -260,6 +260,7 @@ fn build_crate_result(
             scheme_crate2.set_caller(caller.into());
             scheme_crate2.set_code_hash(code_hash.into());
             scheme_crate2.set_salt(salt.into());
+            scheme_crate2.set_create2_address(interrupt.create2_address.into());
             scheme.set_create2(scheme_crate2);
         },
         evm::CreateScheme::Fixed(address) => {

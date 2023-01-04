@@ -43,6 +43,7 @@ class CpsExecutor final {
   void InitRun();
   void RefundGas(const EvmProcessContext& context,
                  const CpsExecuteResult& runResult);
+  void TakeGasFromAccount(const EvmProcessContext& context);
 
  private:
   CpsAccountStoreInterface& mAccountStore;

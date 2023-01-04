@@ -178,6 +178,7 @@ message TrapData {
       Address caller = 1;
       H256 code_hash = 2;
       H256 salt = 3;
+      Address create2_address = 4;
     }
     message Fixed {
       Address addres = 1;

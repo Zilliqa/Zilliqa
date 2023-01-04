@@ -26,6 +26,7 @@ pub struct CpsExecutor<'a> {
 pub struct CpsCreateInterrupt {
     pub caller: H160,
     pub scheme: CreateScheme,
+    pub create2_address: H160,
     pub value: U256,
     pub init_code: Vec<u8>,
     pub target_gas: Option<u64>,
@@ -233,20 +234,20 @@ impl<'a> Handler for CpsExecutor<'a> {
         target_gas: Option<u64>,
     ) -> Capture<(ExitReason, Option<H160>, Vec<u8>), Self::CreateInterrupt> {
 
-        /*if !self.stack_executor.config().estimate { */
+        //if !self.stack_executor.config().estimate { 
          
             Capture::Trap(Self::CreateInterrupt {
                 caller,
                 scheme,
+                create2_address: self.stack_executor.create_address(scheme),
                 value,
                 init_code,
                 target_gas,
             })
+        //}
         
-        /* } */
-
-        
-        /*let result =
+        /*
+        let result =
             self.stack_executor
                 .create(caller, scheme, value, init_code.clone(), target_gas);
         match result {
@@ -254,6 +255,7 @@ impl<'a> Handler for CpsExecutor<'a> {
             Capture::Trap(_) => Capture::Trap(Self::CreateInterrupt {
                 caller,
                 scheme,
+                create2_address: self.stack_executor.create_address(scheme),
                 value,
                 init_code,
                 target_gas,

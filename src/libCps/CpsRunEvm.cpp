@@ -64,11 +64,17 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
                                << contractAddress.hex() << ", AND CODE SIZE: "
                                << mProtoArgs.code().size());
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
+      const auto baseFee = Eth::getGasUnitsForContractDeployment(
+          {}, DataConversion::StringToCharArray(mProtoArgs.code()));
+      mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - baseFee);
     } else if (GetType() == CpsRun::Call) {
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
+      if (ProtoToUint(mProtoArgs.apparent_value())) {
+        mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+      }
     }
 
     if (!mAccountStore.TransferBalanceAtomic(
@@ -195,8 +201,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   } else if (scheme.has_create2()) {
     const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
     fromAddress = ProtoToAddress(create2.caller());
-    contractAddress = mAccountStore.GetAddressForContract(
-        fromAddress, TRANSACTION_VERSION_ETH);
+    contractAddress = ProtoToAddress(create2.create2_address());
   } else if (scheme.has_fixed()) {
     const evm::TrapData_Scheme_Fixed& fixed = scheme.fixed();
     fromAddress = ProtoToAddress(mProtoArgs.origin());
@@ -311,6 +316,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     receipt.AddJsonEntry(entry);
   }
 
+  bool hasDeleteCase = false;
+  (void)hasDeleteCase;
   // parse the return values from the call to evm.
   for (const auto& it : result.apply()) {
     Address address;
@@ -324,6 +331,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         }
         mAccountStore.SetBalanceAtomic(address, Amount::fromQa(0));
         mAccountStore.AddAddressToUpdateBufferAtomic(address);
+        hasDeleteCase = true;
         break;
       case evm::Apply::ApplyCase::kModify: {
         // Get the account that this apply instruction applies to
@@ -376,14 +384,13 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
         if (it.modify().has_balance()) {
           uint256_t balance = ProtoToUint(it.modify().balance());
-          LOG_GENERAL(WARNING, "Balance to be applied for account: "
-                                   << address.hex() << ", val: "
-                                   << balance.convert_to<std::string>());
-          if ((balance >> 128) > 0) {
-            throw std::runtime_error("Balance overflow!");
+          if (result.exit_reason().succeed() == evm::ExitReason::SUICIDED ||
+              hasDeleteCase) {
+            LOG_GENERAL(WARNING, "Balance to be applied for account: "
+                                     << address.hex() << ", val: "
+                                     << balance.convert_to<std::string>());
+            mAccountStore.SetBalanceAtomic(address, Amount::fromQa(balance));
           }
-          // account_store.SetBalanceAtomic(
-          // address, Amount::fromQa(balance.convert_to<uint128_t>()));
         }
         if (it.modify().has_nonce()) {
           uint256_t nonce = ProtoToUint(it.modify().nonce());

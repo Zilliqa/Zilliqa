@@ -43,7 +43,7 @@ CpsExecuteResult CpsExecuteValidator::CheckAmount(
 }
 CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
     const EvmProcessContext& context) {
-  const auto requested_limit = context.GetTransaction().GetGasLimitEth();
+  const auto requested_limit = context.GetEvmArgs().gas_limit();
 
   if (context.GetContractType() == Transaction::CONTRACT_CREATION) {
     const auto baseFee = Eth::getGasUnitsForContractDeployment(

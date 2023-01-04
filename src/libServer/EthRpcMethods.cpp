@@ -650,8 +650,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     if (toAccount != nullptr && toAccount->isContract()) {
       code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
-      toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
-                                              TRANSACTION_VERSION_ETH);
+      // toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
+      //                                        TRANSACTION_VERSION_ETH);
       contractCreation = true;
     }
   }
@@ -723,9 +723,14 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
+  LOG_GENERAL(WARNING, "ETH_ESTIMATEGAS: "
+                           << "FROM: " << fromAddr.hex()
+                           << ", TO: " << toAddr.hex()
+                           << ", CS: " << code.size() << ", DS: " << data.size()
+                           << ", V: " << value.convert_to<std::string>());
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
-                                      true);
+                                      true, false);
 
   evm::EvmResult result;
 
@@ -837,7 +842,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
      */
     EvmProcessContext evmMessageContext(fromAddr, addr, code, data, gasRemained,
                                         value, blockNum, txnExtras, "eth_call",
-                                        false);
+                                        false, true);
 
     if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
                                                       result) &&

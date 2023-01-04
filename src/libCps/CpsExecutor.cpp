@@ -61,11 +61,26 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     return preValidateResult;
   }
 
+  LOG_GENERAL(WARNING, "CPS ENTER");
+  LOG_GENERAL(WARNING, "CPS ENTER FROM: " << ProtoToAddress(
+                           clientContext.GetEvmArgs().origin()));
+  LOG_GENERAL(WARNING, "CPS ENTER TO: " << ProtoToAddress(
+                           clientContext.GetEvmArgs().address()));
+  LOG_GENERAL(WARNING, "CPS ENTER VALUE: " << ProtoToUint(
+                           clientContext.GetEvmArgs().apparent_value()));
+  LOG_GENERAL(WARNING,
+              "CPS ENTER CODE SIZE: " << clientContext.GetCode().size());
+  LOG_GENERAL(WARNING,
+              "CPS ENTER DATA SIZE: " << clientContext.GetData().size());
+  LOG_GENERAL(WARNING,
+              "CPS ENTER GAS: " << clientContext.GetEvmArgs().gas_limit());
+
   CpsContext cpsCtx{clientContext.GetEvmArgs().estimate(),
                     clientContext.GetEvmArgs().extras()};
-  const auto runType = IsNullAddress(clientContext.GetTransaction().GetToAddr())
-                           ? CpsRun::Create
-                           : CpsRun::Call;
+  const auto runType =
+      IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
+          ? CpsRun::Create
+          : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
                                             cpsCtx, runType);
   m_queue.push_back(std::move(evmRun));
@@ -74,6 +89,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
               "EXEC NONCE IS: " << mAccountStore.GetNonceForAccountAtomic(
                   clientContext.GetTransaction().GetSenderAddr()));
 
+  TakeGasFromAccount(clientContext);
   mAccountStore.BufferCurrentContractStorageState();
 
   CpsExecuteResult runResult;
@@ -95,6 +111,10 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
       }
     }
   }
+
+  LOG_GENERAL(WARNING,
+              "CPS LEAVE GAS LEFT: " << runResult.evmResult.remaining_gas());
+
   // Increase nonce regardless of processing result
   const auto sender = clientContext.GetTransaction().GetSenderAddr();
   mAccountStore.IncreaseNonceForAccountAtomic(sender);
@@ -135,6 +155,17 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   return runResult;
 }
 
+void CpsExecutor::TakeGasFromAccount(const EvmProcessContext& context) {
+  uint256_t gasDepositWei;
+  if (!SafeMath<uint256_t>::mul(context.GetTransaction().GetGasLimitZil(),
+                                context.GetTransaction().GetGasPriceWei(),
+                                gasDepositWei)) {
+    return;
+  }
+  mAccountStore.DecreaseBalance(context.GetTransaction().GetSenderAddr(),
+                                Amount::fromWei(gasDepositWei));
+}
+
 void CpsExecutor::RefundGas(const EvmProcessContext& context,
                             const CpsExecuteResult& runResult) {
   const auto gasRemainedCore =
@@ -147,7 +178,7 @@ void CpsExecutor::RefundGas(const EvmProcessContext& context,
   }
 
   mAccountStore.IncreaseBalance(context.GetTransaction().GetSenderAddr(),
-                                Amount::fromQa(gasRefund));
+                                Amount::fromWei(gasRefund));
 }
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
