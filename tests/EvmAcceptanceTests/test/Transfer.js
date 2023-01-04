@@ -141,4 +141,29 @@ describe("Transfer ethers", function () {
     console.log("Sum:  ", sumBal);
     console.log("Diff:  ", BigInt(InitialOwnerbal) - sumBal);
   });
+
+  it("check gas consistency", async function () {
+
+
+    const [owner] = await ethers.getSigners();
+    let initialBal = await ethers.provider.getBalance(owner.address);
+    console.log("Initial balance of account to send is: ", initialBal);
+
+    let InitialOwnerbal = await ethers.provider.getBalance(owner.address);
+
+    const SingleTransferContract = await ethers.getContractFactory("SingleTransfer");
+    const singleTransfer = await SingleTransferContract.deploy();
+    await singleTransfer.deployed();
+
+    const fee1 = await getFee(singleTransfer.deployTransaction.hash);
+
+    const senderBal = await ethers.provider.getBalance(owner.address);
+
+    console.log("Fee1: ", fee1);
+    console.log("xx: ", BigInt(initialBal));
+    console.log(": ", BigInt(senderBal));
+    console.log(": ", BigInt(fee1));
+    console.log("Diff", BigInt(initialBal) - BigInt(senderBal) - BigInt(fee1));
+
+  });
 });
