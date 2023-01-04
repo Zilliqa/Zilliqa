@@ -37,6 +37,13 @@
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
+// "long" and "long long" are the same in gnu's libstdc++ and not in apple's libc++
+#ifdef __APPLE__
+typedef long long observerType;
+#else
+typedef long int observerType;
+#endif
+
 template <class MAP>
 void AccountStoreSC<MAP>::instFetchInfo(
     opentelemetry::metrics::ObserverResult observer_result, void* state) {
@@ -44,16 +51,15 @@ void AccountStoreSC<MAP>::instFetchInfo(
 
   // This looks like a bug in openTelemetry, need to investigate, clash between
   // uint64_t amd long int should be unsigned, losing precision.
-
   if (std::holds_alternative<std::shared_ptr<
-          opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+          opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
           observer_result)) {
     std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
         observer_result)
         ->Observe(that->m_curBlockNum, {{"counter", "BlockNumber"}});
     std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<long int>>>(
+        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
         observer_result)
         ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
   }
