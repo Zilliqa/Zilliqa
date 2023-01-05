@@ -16,27 +16,14 @@
  */
 
 #include "DSBlockHeader.h"
+#include "Serialization.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libMessage/MessengerCommon.h"
-#include "libMessage/ZilliqaMessage.pb.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
 namespace {
-
-void BlockHeaderBaseToProtobuf(
-    const BlockHeaderBase& base,
-    ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase) {
-  // version
-  protoBlockHeaderBase.set_version(base.GetVersion());
-  // committee hash
-  protoBlockHeaderBase.set_committeehash(base.GetCommitteeHash().data(),
-                                         base.GetCommitteeHash().size);
-  protoBlockHeaderBase.set_prevhash(base.GetPrevHash().data(),
-                                    base.GetPrevHash().size);
-}
 
 void DSBlockHeaderToProtobuf(
     const DSBlockHeader& dsBlockHeader,
@@ -44,7 +31,7 @@ void DSBlockHeaderToProtobuf(
     bool concreteVarsOnly = false) {
   ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
       protoDSBlockHeader.mutable_blockheaderbase();
-  BlockHeaderBaseToProtobuf(dsBlockHeader, *protoBlockHeaderBase);
+  io::BlockHeaderBaseToProtobuf(dsBlockHeader, *protoBlockHeaderBase);
 
   if (!concreteVarsOnly) {
     protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
@@ -116,44 +103,6 @@ bool SetDSBlockHeader(zbytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool CheckRequiredFieldsProtoBlockHeaderBase(
-    const ZilliqaMessage::ProtoBlockHeaderBase& /*protoBlockHeaderBase*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoBlockHeaderBase.has_version() &&
-         protoBlockHeaderBase.has_committeehash() &&
-         protoBlockHeaderBase.has_prevhash();
-#endif
-  return true;
-}
-
-std::optional<std::tuple<uint32_t, CommitteeHash, BlockHash>>
-ProtobufToBlockHeaderBase(
-    const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase) {
-  if (!CheckRequiredFieldsProtoBlockHeaderBase(protoBlockHeaderBase)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoBlockHeaderBase failed");
-    return std::nullopt;
-  }
-
-  // Deserialize the version
-  uint32_t version = protoBlockHeaderBase.version();
-
-  // Deserialize committee hash
-  CommitteeHash committeeHash;
-  if (!CopyWithSizeCheck(protoBlockHeaderBase.committeehash(),
-                         committeeHash.asArray())) {
-    return std::nullopt;
-  }
-
-  // Deserialize prev hash
-  BlockHash prevHash;
-  if (!CopyWithSizeCheck(protoBlockHeaderBase.prevhash(), prevHash.asArray())) {
-    return std::nullopt;
-  }
-
-  return std::make_tuple(version, committeeHash, prevHash);
 }
 
 bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
@@ -262,7 +211,8 @@ bool ProtobufToDSBlockHeader(
   const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
       protoDSBlockHeader.blockheaderbase();
 
-  auto blockHeaderBaseVars = ProtobufToBlockHeaderBase(protoBlockHeaderBase);
+  auto blockHeaderBaseVars =
+      io::ProtobufToBlockHeaderBase(protoBlockHeaderBase);
   if (!blockHeaderBaseVars) return false;
 
   const auto& [version, committeeHash, prevHash] = *blockHeaderBaseVars;
