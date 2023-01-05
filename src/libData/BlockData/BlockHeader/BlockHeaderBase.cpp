@@ -32,24 +32,6 @@ BlockHash BlockHeaderBase::GetMyHash() const {
   return blockHash;
 }
 
-#if 0
-void BlockHeaderBase::SetVersion(const uint32_t& version) {
-  m_version = version;
-}
-
-const CommitteeHash& BlockHeaderBase::GetCommitteeHash() const {
-  return m_committeeHash;
-}
-
-void BlockHeaderBase::SetCommitteeHash(const CommitteeHash& committeeHash) {
-  m_committeeHash = committeeHash;
-}
-
-void BlockHeaderBase::SetPrevHash(const BlockHash& prevHash) {
-  m_prevHash = prevHash;
-}
-#endif
-
 bool BlockHeaderBase::operator==(const BlockHeaderBase& header) const {
   return std::tie(m_version, m_committeeHash, m_prevHash) ==
          std::tie(header.m_version, header.m_committeeHash, header.m_prevHash);

@@ -52,17 +52,6 @@ class BlockHeaderBase : public SerializableDataBlock {
 
   const BlockHash& GetPrevHash() const { return m_prevHash; }
 
-#if 0
-  /// Sets the current version of this block.
-  void SetVersion(const uint32_t& version);
-
-  /// Sets the hash of the committee where the block was generated
-  void SetCommitteeHash(const CommitteeHash& committeeHash);
-
-  /// Sets the hash of the previous block (DirBlock or TxBlock)
-  void SetPrevHash(const BlockHash& prevHash);
-#endif
-
   // Operators
   bool operator==(const BlockHeaderBase& header) const;
   bool operator<(const BlockHeaderBase& header) const;
