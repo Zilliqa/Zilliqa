@@ -67,14 +67,16 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - baseFee);
+      LOG_GENERAL(WARNING, "New gas limit for CREATEType is: "
+                               << mProtoArgs.gas_limit());
     } else if (GetType() == CpsRun::Call) {
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
-      if (ProtoToUint(mProtoArgs.apparent_value())) {
-        mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
-      }
+      mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+      LOG_GENERAL(WARNING,
+                  "New gas limit for CAllType is: " << mProtoArgs.gas_limit());
     }
 
     if (!mAccountStore.TransferBalanceAtomic(
@@ -120,9 +122,9 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
+  } else {
+    return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
-  // Revert or Abort
-  return {};
 }
 
 std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
@@ -317,7 +319,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
   }
 
   bool hasDeleteCase = false;
-  (void)hasDeleteCase;
   // parse the return values from the call to evm.
   for (const auto& it : result.apply()) {
     Address address;

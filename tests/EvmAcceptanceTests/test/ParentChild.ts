@@ -1,10 +1,9 @@
 import {assert, expect} from "chai";
-import parallelizer from "../helper/Parallelizer";
-import {ethers} from "hardhat";
-import hre from "hardhat";
 import {Contract} from "ethers";
-import sendJsonRpcRequest from "../helper/JsonRpcHelper";
+import hre, {ethers} from "hardhat";
 import logDebug from "../helper/DebugHelper";
+import sendJsonRpcRequest from "../helper/JsonRpcHelper";
+import parallelizer from "../helper/Parallelizer";
 
 describe("Parent Child Contract Functionality", function () {
   const INITIAL_FUND = 10_000_000;

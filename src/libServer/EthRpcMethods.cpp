@@ -741,10 +741,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
-    const auto baseFee = contractCreation
-                             ? Eth::getGasUnitsForContractDeployment(code, data)
-                             : MIN_ETH_GAS;
-    const auto retGas = baseFee + consumedEvmGas;
+    // const auto baseFee = contractCreation
+    //                         ? Eth::getGasUnitsForContractDeployment(code,
+    //                         data) : MIN_ETH_GAS;
+    const auto retGas = consumedEvmGas + MIN_ETH_GAS;  //); // + baseFee;
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {

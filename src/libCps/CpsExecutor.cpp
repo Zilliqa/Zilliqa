@@ -124,18 +124,19 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
                   clientContext.GetTransaction().GetSenderAddr()));
 
   clientContext.SetEvmResult(runResult.evmResult);
+  const auto givenGasCore =
+      GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
   const auto gasRemainedCore =
       GasConv::GasUnitsFromEthToCore(runResult.evmResult.remaining_gas());
 
   const bool isFailure = !m_queue.empty() || !runResult.isSuccess;
-
+  const bool isEstimate = !clientContext.GetCommit();
   // failure or Estimate mode
-  if (isFailure || !clientContext.GetCommit()) {
+  if (isFailure || isEstimate) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
     mTxReceipt.clear();
-    mTxReceipt.SetCumGas(clientContext.GetTransaction().GetGasLimitZil() -
-                         gasRemainedCore);
+    mTxReceipt.SetCumGas(givenGasCore - gasRemainedCore);
     if (isFailure) {
       mTxReceipt.SetResult(false);
       mTxReceipt.AddError(RUNNER_FAILED);
@@ -145,13 +146,15 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     mTxReceipt.update();
   } else {
     mAccountStore.CommitAtomics();
-    mTxReceipt.SetCumGas(clientContext.GetTransaction().GetGasLimitZil() -
-                         gasRemainedCore);
+    mTxReceipt.SetCumGas(givenGasCore - gasRemainedCore);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
     RefundGas(clientContext, runResult);
   }
-
+  // Always mark run as successful in estimate mode
+  if (isEstimate) {
+    return {TxnStatus::NOT_PRESENT, true, runResult.evmResult};
+  }
   return runResult;
 }
 

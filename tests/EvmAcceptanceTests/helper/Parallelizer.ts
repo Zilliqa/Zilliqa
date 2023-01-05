@@ -1,8 +1,8 @@
 import {TransactionRequest} from "@ethersproject/providers";
+import BN from "bn.js";
 import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
 import SignerPool from "./SignerPool";
-import BN from "bn.js";
 
 export type DeployOptions = {
   gasPrice?: string;
