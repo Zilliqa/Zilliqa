@@ -650,8 +650,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     if (toAccount != nullptr && toAccount->isContract()) {
       code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
-      // toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
-      //                                        TRANSACTION_VERSION_ETH);
+      if (!ENABLE_CPS) {
+        toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
+                                                TRANSACTION_VERSION_ETH);
+      }
       contractCreation = true;
     }
   }
@@ -741,10 +743,16 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
-    // const auto baseFee = contractCreation
-    //                         ? Eth::getGasUnitsForContractDeployment(code,
-    //                         data) : MIN_ETH_GAS;
-    const auto retGas = consumedEvmGas + MIN_ETH_GAS;  //); // + baseFee;
+    const auto baseFee = contractCreation
+                             ? Eth::getGasUnitsForContractDeployment(code, data)
+                             : MIN_ETH_GAS;
+    uint64_t retGas = 0;
+
+    if (ENABLE_CPS) {
+      retGas = consumedEvmGas + MIN_ETH_GAS;
+    } else {
+      retGas = consumedEvmGas + baseFee;
+    }
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {

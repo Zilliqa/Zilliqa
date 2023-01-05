@@ -7,7 +7,7 @@ use evm::{
     backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
-use evm::{CreateScheme, Machine, Runtime, ExitError};
+use evm::{Machine, Runtime};
 
 use log::{debug, error, info};
 
@@ -15,7 +15,7 @@ use jsonrpc_core::Result;
 use primitive_types::*;
 use scillabackend::ScillaBackend;
 
-use crate::continuations::{Continuation, Continuations};
+use crate::continuations::{Continuations};
 use crate::cps_executor::{CpsCallInterrupt, CpsCreateInterrupt, CpsExecutor, CpsReason};
 use crate::precompiles::get_precompiles;
 use crate::protos::Evm as EvmProto;
@@ -35,6 +35,7 @@ pub async fn run_evm_impl(
     evm_context: String,
     node_continuation: Option<EvmProto::Continuation>,
     continuations: Arc<Mutex<Continuations>>,
+    enable_cps: bool,
 ) -> Result<String> {
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
@@ -42,9 +43,9 @@ pub async fn run_evm_impl(
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
         debug!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}",
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate);
+            backend.extras, estimate, enable_cps);
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -80,13 +81,12 @@ pub async fn run_evm_impl(
         else {
             runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
             state = MemoryStackState::new(metadata, &backend);
-    
         }
         // Scale the gas limit.
 
         let precompiles = get_precompiles();
 
-        let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles);
+        let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
         // Provide feedback from c++ node to EVM through executor
         //if let Some(continuation) = feedback_continuation {
@@ -136,12 +136,13 @@ pub async fn run_evm_impl(
                 }
                 let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}", evm_context,
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?}", evm_context,
                     backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate);
+                    backend.extras, estimate, enable_cps);
                 result
             },
-            CpsReason::CallInterrupt(i) => {
+            CpsReason::CallInterrupt(_i) => {
+                // Todo: create callInterrupt
                 let result = EvmProto::EvmResult::new();
                 result
             },
@@ -214,10 +215,10 @@ fn build_exit_result(
     result
 }
 
-fn build_call_result(
-    interrupt: CpsCallInterrupt,
-    traces: Vec<String>,
-    remaining_gas: u64,
+fn _build_call_result(
+    _interrupt: CpsCallInterrupt,
+    _traces: Vec<String>,
+    _remaining_gas: u64,
     cont_id: u64,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
@@ -262,7 +263,7 @@ fn build_crate_result(
             scheme_crate2.set_salt(salt.into());
             scheme_crate2.set_create2_address(interrupt.create2_address.into());
             scheme.set_create2(scheme_crate2);
-        },
+        }
         evm::CreateScheme::Fixed(address) => {
             let mut scheme_fixed = EvmProto::TrapData_Scheme_Fixed::new();
             scheme_fixed.set_addres(address.into());

@@ -1,8 +1,7 @@
 use std::collections::BTreeMap;
-use std::convert::Infallible;
 
 use evm::executor::stack::{
-    MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor, StackState,
+    MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor,
 };
 
 use crate::protos::Evm as EvmProto;
@@ -21,6 +20,7 @@ type PrecompileMap = BTreeMap<
 
 pub struct CpsExecutor<'a> {
     stack_executor: StackExecutor<'a, 'a, MemoryStackState<'a, 'a, ScillaBackend>, PrecompileMap>,
+    enable_cps: bool,
 }
 
 pub struct CpsCreateInterrupt {
@@ -37,12 +37,12 @@ pub struct CpsCreateFeedback {
 }
 
 pub struct CpsCallInterrupt {
-    code_address: H160,
-    transfer: Option<Transfer>,
-    input: Vec<u8>,
-    target_gas: Option<u64>,
-    is_static: bool,
-    context: Context,
+    _code_address: H160,
+    _transfer: Option<Transfer>,
+    _input: Vec<u8>,
+    _target_gas: Option<u64>,
+    _is_static: bool,
+    _context: Context,
 }
 
 pub struct CpsCallFeedback {}
@@ -59,15 +59,23 @@ impl<'a> CpsExecutor<'a> {
         state: MemoryStackState<'a, 'a, ScillaBackend>,
         config: &'a Config,
         precompile_set: &'a PrecompileMap,
+        enable_cps: bool,
     ) -> Self {
         Self {
             stack_executor: StackExecutor::new_with_precompiles(state, config, precompile_set),
+            enable_cps,
         }
     }
 
     /// Execute the runtime until it returns.
-    pub fn execute(&mut self, runtime: &mut Runtime, feedback: Option<EvmProto::Continuation>) -> CpsReason {
-        self.apply_feedback(runtime, feedback);
+    pub fn execute(
+        &mut self,
+        runtime: &mut Runtime,
+        feedback: Option<EvmProto::Continuation>,
+    ) -> CpsReason {
+        if let Err(r) = self.apply_feedback(runtime, feedback) {
+            return CpsReason::NormalExit(ExitReason::Fatal(evm::ExitFatal::CallErrorAsFatal(r)));
+        }
         match runtime.run(self) {
             Capture::Exit(s) => CpsReason::NormalExit(s),
             Capture::Trap(t) => match t {
@@ -77,15 +85,20 @@ impl<'a> CpsExecutor<'a> {
         }
     }
 
-    fn apply_feedback(&mut self, runtime: &mut Runtime, feedback: Option<EvmProto::Continuation>) {
+    fn apply_feedback(
+        &mut self,
+        runtime: &mut Runtime,
+        feedback: Option<EvmProto::Continuation>,
+    ) -> Result<(), evm::ExitError> {
         if let Some(evm_feedback) = feedback {
             if evm_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
-                runtime.machine_mut().stack_mut().pop();
-                let ethAddress = H160::from(evm_feedback.get_address());
-                let create_address: H256 = ethAddress.into();
-                runtime.machine_mut().stack_mut().push(create_address);
+                // Pop placeholder placed on a stack by evm before trap
+                runtime.machine_mut().stack_mut().pop()?;
+                let eth_address = H160::from(evm_feedback.get_address());
+                runtime.machine_mut().stack_mut().push(eth_address.into())?;
             }
         }
+        Result::Ok(())
     }
 
     /// Get remaining gas.
@@ -233,20 +246,17 @@ impl<'a> Handler for CpsExecutor<'a> {
         init_code: Vec<u8>,
         target_gas: Option<u64>,
     ) -> Capture<(ExitReason, Option<H160>, Vec<u8>), Self::CreateInterrupt> {
-
-        //if !self.stack_executor.config().estimate { 
-         
-            Capture::Trap(Self::CreateInterrupt {
+        if self.enable_cps {
+            return Capture::Trap(Self::CreateInterrupt {
                 caller,
                 scheme,
                 create2_address: self.stack_executor.create_address(scheme),
                 value,
                 init_code,
                 target_gas,
-            })
-        //}
-        
-        /*
+            });
+        }
+
         let result =
             self.stack_executor
                 .create(caller, scheme, value, init_code.clone(), target_gas);
@@ -260,7 +270,7 @@ impl<'a> Handler for CpsExecutor<'a> {
                 init_code,
                 target_gas,
             }),
-        }*/
+        }
     }
 
     /// Invoke a call operation.
@@ -285,12 +295,12 @@ impl<'a> Handler for CpsExecutor<'a> {
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CallInterrupt {
-                code_address,
-                transfer,
-                input,
-                target_gas,
-                is_static,
-                context,
+                _code_address : code_address,
+                _transfer: transfer,
+                _input : input,
+                _target_gas: target_gas,
+                _is_static : is_static,
+                _context : context,
             }),
         }
     }

@@ -261,6 +261,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     evmCreateArgs.set_estimate(mCpsContext.estimate);
     *evmCreateArgs.mutable_context() = "TrapCreate";
     *evmCreateArgs.mutable_extras() = mCpsContext.evmExtras;
+    evmCreateArgs.set_enable_cps(ENABLE_CPS);
     auto createRun = std::make_unique<CpsRunEvm>(
         std::move(evmCreateArgs), mExecutor, mCpsContext, CpsRun::TrapCreate);
     mExecutor.PushRun(std::move(createRun));

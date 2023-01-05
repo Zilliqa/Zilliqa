@@ -1,11 +1,14 @@
 use std::{
-    collections::{HashMap, BTreeMap, BTreeSet},
-    ops::Range,
-    sync::{atomic::AtomicU64, Arc, Mutex},
+    collections::{BTreeMap, BTreeSet, HashMap},
+    ops::Range
 };
 
-use evm::{ExitReason, Memory, Stack, Valids, executor::stack::{MemoryStackSubstate, MemoryStackAccount}, backend::Log};
-use primitive_types::{U256, H160, H256};
+use evm::{
+    backend::Log,
+    executor::stack::{MemoryStackAccount, MemoryStackSubstate},
+    ExitReason, Memory, Stack, Valids,
+};
+use primitive_types::{H160, H256, U256};
 
 pub struct Continuation {
     pub data: Vec<u8>,
@@ -16,9 +19,9 @@ pub struct Continuation {
     pub memory: Memory,
     pub stack: Stack,
     pub logs: Vec<Log>,
-	pub accounts: BTreeMap<H160, MemoryStackAccount>,
-	pub storages: BTreeMap<(H160, H256), H256>,
-	pub deletes: BTreeSet<H160>,
+    pub accounts: BTreeMap<H160, MemoryStackAccount>,
+    pub storages: BTreeMap<(H160, H256), H256>,
+    pub deletes: BTreeSet<H160>,
 }
 
 pub struct Continuations {
@@ -34,7 +37,11 @@ impl Continuations {
         }
     }
 
-    pub fn create_continuation(&mut self, machine: &mut evm::Machine, substate: &MemoryStackSubstate) -> u64 {
+    pub fn create_continuation(
+        &mut self,
+        machine: &mut evm::Machine,
+        substate: &MemoryStackSubstate,
+    ) -> u64 {
         self.next_continuation_id += 1;
         let continuation = Continuation {
             data: machine.data(),
@@ -48,7 +55,6 @@ impl Continuations {
             logs: Vec::from(substate.logs()),
             storages: substate.storages().clone(),
             deletes: substate.deletes().clone(),
-
         };
         self.storage.insert(self.next_continuation_id, continuation);
         self.next_continuation_id

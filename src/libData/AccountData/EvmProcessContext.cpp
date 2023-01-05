@@ -96,6 +96,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
     m_status = false;
   }
   m_protoData.set_estimate(false);
+  m_protoData.set_enable_cps(ENABLE_CPS);
   // Initialised OK
   m_status = true;
 }
@@ -129,6 +130,7 @@ EvmProcessContext::EvmProcessContext(
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
   }
+  m_protoData.set_enable_cps(ENABLE_CPS);
 }
 
 bool EvmProcessContext::GetCommit() const { return m_commit; }

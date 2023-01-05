@@ -96,45 +96,6 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   // call evm-ds
   EvmCallRunner(invoke_type, args, ret, receipt, result);
 
-  const auto reason_case = result.exit_reason().exit_reason_case();
-  LOG_GENERAL(WARNING, "EXIT reason case: " << reason_case);
-  if (result.exit_reason().exit_reason_case() ==
-      evm::ExitReason::ExitReasonCase::kTrap) {
-    const evm::TrapData& trap_data = result.trap_data();
-
-    if (trap_data.has_create()) {
-      const evm::TrapData_Create& create_data = trap_data.create();
-      const evm::Address& proto_caller = create_data.caller();
-      const Address address = ProtoToAddress(proto_caller);
-      LOG_GENERAL(WARNING, "Caller Address is: " << address.hex());
-      const evm::TrapData_Scheme& scheme = create_data.scheme();
-      if (scheme.has_legacy()) {
-        const evm::TrapData_Scheme_Legacy& legacy = scheme.legacy();
-        LOG_GENERAL(WARNING, "Legacy scheme. Address is: "
-                                 << ProtoToAddress(legacy.caller()).hex());
-      } else if (scheme.has_create2()) {
-        const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
-        LOG_GENERAL(WARNING, "Create2 scheme. Caller: "
-                                 << ProtoToAddress(create2.caller()).hex());
-        LOG_GENERAL(WARNING, "Create2 scheme. CodeHas: "
-                                 << ProtoToH256(create2.code_hash()).hex());
-        LOG_GENERAL(WARNING, "Create2 scheme. Salt: "
-                                 << ProtoToH256(create2.salt()).hex());
-      }
-      const auto& value = create_data.value();
-      LOG_GENERAL(WARNING,
-                  "Value: " << ProtoToUint(value).convert_to<std::string>());
-      LOG_GENERAL(WARNING, "CallData: " << boost::algorithm::hex(
-                               create_data.call_data()));
-      LOG_GENERAL(WARNING, "TargetGas: " << create_data.target_gas());
-      LOG_GENERAL(WARNING, "RemainingGas: " << result.remaining_gas());
-    } else if (trap_data.has_call()) {
-      LOG_GENERAL(WARNING, "GOT CALL DATA");
-    } else {
-      LOG_GENERAL(WARNING, "UNKNOWN TYPE");
-    }
-  }
-
   if (result.exit_reason().exit_reason_case() !=
       evm::ExitReason::ExitReasonCase::kSucceed) {
     LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(result.exit_reason()));
@@ -317,7 +278,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    * This will be executed before the accounts lock as it does not touch
    * accounts.
    */
-  if (evmContext.GetDirect()) {
+  if (evmContext.GetDirect() || (!ENABLE_CPS && evmContext.GetEstimateOnly())) {
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
         EvmUtils::GetEvmCallJson(evmContext.GetEvmArgs()), res);
@@ -327,22 +288,29 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
-  if (true) {
-    LOG_GENERAL(WARNING, "WILL RUN CPS MODE!");
+  m_curIsDS = isDS;
+  m_txnProcessTimeout = false;
+
+  if (ENABLE_CPS) {
+    LOG_GENERAL(WARNING, "Running EVM in CPS mode");
+    m_curGasLimit = evmContext.GetTransaction().GetGasLimitZil();
+    m_curGasPrice = evmContext.GetTransaction().GetGasPriceWei();
+    m_curContractAddr = evmContext.GetTransaction().GetToAddr();
+    m_curAmount = evmContext.GetTransaction().GetAmountQa();
+    m_curNumShards = numShards;
+
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.Run(evmContext);
     if (cpsRunResult.isSuccess) {
-      LOG_GENERAL(WARNING, "RUN SUCCESSFUL!");
-      return true;
+      LOG_GENERAL(WARNING, "Cps Run is successful");
     } else {
-      LOG_GENERAL(WARNING, "RUN NOT SUCCESSFUL!");
-      return false;
+      LOG_GENERAL(WARNING, "Cps Run is not successful");
     }
+    error_code = cpsRunResult.txnStatus;
+    return cpsRunResult.isSuccess;
   }
 
-  m_curIsDS = isDS;
-  m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
 

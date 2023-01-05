@@ -306,6 +306,7 @@ extern const std::string EVM_LOG_CONFIG;
 extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
 extern const bool LAUNCH_EVM_DAEMON;
+extern const bool ENABLE_CPS;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
@@ -507,6 +508,6 @@ extern const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS;
 extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
 extern const std::string METRIC_ZILLIQA_SCHEMA;
 extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
-extern const uint64_t  METRIC_ZILLIQA_MASK;
+extern const uint64_t METRIC_ZILLIQA_MASK;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

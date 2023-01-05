@@ -84,6 +84,7 @@ message EvmArgs {
   bool estimate = 8;
   string context = 9;
   Continuation continuation = 10;
+  bool enable_cps = 11;
 }
 
 message EvmLog {

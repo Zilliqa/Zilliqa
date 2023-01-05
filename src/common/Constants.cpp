@@ -752,6 +752,8 @@ const uint64_t EVM_RPC_TIMEOUT_SECONDS{
     ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
 const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
+const bool ENABLE_CPS{
+    ReadConstantString("ENABLE_CPS", "node.jsonrpc.", "true") == "true"};
 
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
@@ -767,4 +769,5 @@ const std::string METRIC_ZILLIQA_SCHEMA{
 const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
     "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
 
-const uint64_t METRIC_ZILLIQA_MASK{ReadConstantUInt64("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", 0)};
+const uint64_t METRIC_ZILLIQA_MASK{
+    ReadConstantUInt64("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", 0)};
