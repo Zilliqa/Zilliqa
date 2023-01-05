@@ -17,11 +17,9 @@
 #ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 #define ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 
-#include <Schnorr.h>
 #include <boost/variant.hpp>
 #include <map>
 #include "common/BaseType.h"
-#include "common/Serializable.h"
 #include "common/TxnStatus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/BlockData/Block.h"
@@ -31,19 +29,7 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
-
-#define PROTOBUFBYTEARRAYTOSERIALIZABLE(ba, s)                       \
-  if (!ProtobufByteArrayToSerializable(ba, s)) {                     \
-    LOG_GENERAL(WARNING, "ProtobufByteArrayToSerializable failed."); \
-    return false;                                                    \
-  }
-
-namespace ZilliqaMessage {
-class ByteArray;
-}
-
-bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
-                                     SerializableCrypto& serializable);
+#include "MessengerCommon.h"
 
 class Messenger {
  public:
@@ -116,11 +102,6 @@ class Messenger {
   static bool SetDSBlockHeader(zbytes& dst, const unsigned int offset,
                                const DSBlockHeader& dsBlockHeader,
                                bool concreteVarsOnly = false);
-  static bool GetDSBlockHeader(const zbytes& src, const unsigned int offset,
-                               DSBlockHeader& dsBlockHeader);
-  static bool GetDSBlockHeader(const std::string& src,
-                               const unsigned int offset,
-                               DSBlockHeader& dsBlockHeader);
   static bool SetDSBlock(zbytes& dst, const unsigned int offset,
                          const DSBlock& dsBlock);
   static bool GetDSBlock(const zbytes& src, const unsigned int offset,

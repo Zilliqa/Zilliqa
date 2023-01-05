@@ -47,46 +47,11 @@ void SerializableToProtobufByteArray(const T& serializable,
   byteArray.set_data(tmp.data(), tmp.size());
 }
 
-bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     Serializable& serializable) {
-  zbytes tmp(byteArray.data().size());
-  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
-  return serializable.Deserialize(tmp, 0) == 0;
-}
-
-bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     SerializableCrypto& serializable) {
-  zbytes tmp(byteArray.data().size());
-  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
-  return serializable.Deserialize(tmp, 0);
-}
-
-// Temporary function for use by data blocks
-void SerializableToProtobufByteArray(const SerializableDataBlock& serializable,
-                                     ByteArray& byteArray) {
-  zbytes tmp;
-  serializable.Serialize(tmp, 0);
-  byteArray.set_data(tmp.data(), tmp.size());
-}
-
-// Temporary function for use by data blocks
-bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     SerializableDataBlock& serializable) {
-  return serializable.Deserialize(byteArray.data(), 0);
-}
-
 template <class T, size_t S>
 void NumberToProtobufByteArray(const T& number, ByteArray& byteArray) {
   zbytes tmp;
   Serializable::SetNumber<T>(tmp, 0, number, S);
   byteArray.set_data(tmp.data(), tmp.size());
-}
-
-template <class T, size_t S>
-void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
-  zbytes tmp(byteArray.data().size());
-  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
-  number = Serializable::GetNumber<T>(tmp, 0, S);
 }
 
 template <class T>
@@ -2804,44 +2769,6 @@ bool Messenger::SetDSBlockHeader(zbytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetDSBlockHeader(const zbytes& src, const unsigned int offset,
-                                 DSBlockHeader& dsBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoDSBlock::DSBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToDSBlockHeader(result, dsBlockHeader);
-}
-
-bool Messenger::GetDSBlockHeader(const string& src, const unsigned int offset,
-                                 DSBlockHeader& dsBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoDSBlock::DSBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToDSBlockHeader(result, dsBlockHeader);
 }
 
 bool Messenger::SetDSBlock(zbytes& dst, const unsigned int offset,

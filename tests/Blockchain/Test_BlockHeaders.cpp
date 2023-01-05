@@ -166,4 +166,61 @@ BOOST_AUTO_TEST_CASE(DSBlockHeader_GetHashForRandom) {
           BlockHash::ConstructFromStringType::FromHex));
 }
 
+BOOST_AUTO_TEST_CASE(Test_Serialization) {
+  zbytes dst;
+
+  for (int i = 1; i < 5; ++i) {
+    DSBlockHeader blockHeader{
+        static_cast<uint8_t>(i * 5),
+        static_cast<uint8_t>(i * 3),
+        PubKey::GetPubKeyFromString(
+            std::string(66, static_cast<char>('1' + i))),
+        static_cast<uint64_t>(i + 20),
+        25,
+        76,
+        SWInfo{},
+        {// PoW winners
+         {PubKey::GetPubKeyFromString(
+              "111111111111111111111111111111111111111111"
+              "111111111111111111111111"),
+          Peer{111, 2275}}},
+        {// Removed keys
+         PubKey::GetPubKeyFromString(
+             "ccccccccccccccccccccccccccccccccccccccccccc"
+             "ccccccccccccccccccccccc")},
+        {},
+        {},
+        1,  // version
+        BlockHash(std::string(64, static_cast<char>('a' + i))),
+        BlockHash("677dc8f0cbe535e8ee53ea9bb8a0f2517857bc827fe8aed9aba734d8d5d2"
+                  "f282")};
+
+    BOOST_CHECK(blockHeader.Serialize(dst, 0));
+
+    DSBlockHeader deserializedBlockHeader;
+    deserializedBlockHeader.Deserialize(dst, 0);
+    BOOST_CHECK(deserializedBlockHeader.Deserialize(dst, 0));
+
+    BOOST_CHECK(blockHeader == deserializedBlockHeader);
+  }
+}
+
+#if 0
+BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
+  zbytes dst;
+  unsigned int offset = 0;
+
+  DSBlock dsBlock(TestUtils::GenerateRandomDSBlockHeader(),
+                  TestUtils::GenerateRandomCoSignatures());
+
+  BOOST_CHECK(Messenger::SetDSBlock(dst, offset, dsBlock));
+
+  DSBlock dsBlockDeserialized;
+
+  BOOST_CHECK(Messenger::GetDSBlock(dst, offset, dsBlockDeserialized));
+
+  BOOST_CHECK(dsBlock == dsBlockDeserialized);
+}
+#endif
+
 BOOST_AUTO_TEST_SUITE_END()

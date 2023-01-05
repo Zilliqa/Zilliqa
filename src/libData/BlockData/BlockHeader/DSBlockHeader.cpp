@@ -18,9 +18,198 @@
 #include "DSBlockHeader.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libMessage/MessengerCommon.h"
+#include "libMessage/ZilliqaMessage.pb.h"
 
 using namespace std;
 using namespace boost::multiprecision;
+
+namespace {
+
+bool CheckRequiredFieldsProtoBlockHeaderBase(
+    const ZilliqaMessage::ProtoBlockHeaderBase& /*protoBlockHeaderBase*/) {
+// TODO: Check if default value is acceptable for each field
+#if 0
+  return protoBlockHeaderBase.has_version() &&
+         protoBlockHeaderBase.has_committeehash() &&
+         protoBlockHeaderBase.has_prevhash();
+#endif
+  return true;
+}
+
+std::optional<std::tuple<uint32_t, CommitteeHash, BlockHash>>
+ProtobufToBlockHeaderBase(
+    const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase) {
+  if (!CheckRequiredFieldsProtoBlockHeaderBase(protoBlockHeaderBase)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoBlockHeaderBase failed");
+    return std::nullopt;
+  }
+
+  // Deserialize the version
+  uint32_t version = protoBlockHeaderBase.version();
+
+  // base.SetVersion(version);
+
+  // Deserialize committee hash
+  CommitteeHash committeeHash;
+  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.committeehash(),
+                                    committeeHash.asArray())) {
+    return std::nullopt;
+  }
+  // base.SetCommitteeHash(committeeHash);
+
+  // Deserialize prev hash
+  BlockHash prevHash;
+  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.prevhash(),
+                                    prevHash.asArray())) {
+    return std::nullopt;
+  }
+  // base.SetPrevHash(prevHash);
+
+  return std::make_tuple(version, committeeHash, prevHash);
+}
+
+bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
+    const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& /*protoDSBlockHeader*/) {
+// TODO: Check if default value is acceptable for each field
+#if 0
+  // Don't need to enforce check on repeated member dswinners
+  // Don't need to enforce check on optional members dsdifficulty, difficulty,
+  // and gasprice
+  return protoDSBlockHeader.has_leaderpubkey() &&
+         protoDSBlockHeader.has_blocknum() &&
+         protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
+         protoDSBlockHeader.has_hash() &&
+         protoDSBlockHeader.has_blockheaderbase() &&
+         CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
+             protoDSBlockHeader.hash());
+#endif
+  return true;
+}
+
+bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
+    const ZilliqaMessage::ProtoDSBlock::DSBlockHeader::
+        PowDSWinners& /*powDSWinner*/) {
+// TODO: Check if default value is acceptable for each field
+#if 0
+  return powDSWinner.has_key() && powDSWinner.has_val();
+#endif
+  return true;
+}
+
+bool ProtobufToDSBlockHeader(
+    const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
+    DSBlockHeader& dsBlockHeader) {
+  if (!CheckRequiredFieldsProtoDSBlockDSBlockHeader(protoDSBlockHeader)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlockDSBlockHeader failed");
+    return false;
+  }
+
+  PubKey leaderPubKey;
+  SWInfo swInfo;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.leaderpubkey(),
+                                  leaderPubKey);
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.swinfo(), swInfo);
+
+  // Deserialize powDSWinners
+  map<PubKey, Peer> powDSWinners;
+  PubKey tempPubKey;
+  Peer tempWinnerNetworkInfo;
+  for (const auto& dswinner : protoDSBlockHeader.dswinners()) {
+    if (!CheckRequiredFieldsProtoDSBlockPowDSWinner(dswinner)) {
+      LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlockPowDSWinner failed");
+      return false;
+    }
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(dswinner.key(), tempPubKey);
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(dswinner.val(), tempWinnerNetworkInfo);
+    powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
+  }
+
+  GovDSShardVotesMap govProposalMap;
+  for (const auto& protoProposal : protoDSBlockHeader.proposals()) {
+    std::map<uint32_t, uint32_t> dsVotes;
+    std::map<uint32_t, uint32_t> shardVotes;
+    for (const auto& protovote : protoProposal.dsvotes()) {
+      dsVotes[protovote.value()] = protovote.count();
+    }
+    for (const auto& protovote : protoProposal.minervotes()) {
+      shardVotes[protovote.value()] = protovote.count();
+    }
+    govProposalMap[protoProposal.proposalid()].first = dsVotes;
+    govProposalMap[protoProposal.proposalid()].second = shardVotes;
+  }
+
+  // Deserialize removeDSNodePubkeys
+  std::vector<PubKey> removeDSNodePubKeys;
+  PubKey tempRemovePubKey;
+  for (const auto& removenode : protoDSBlockHeader.dsremoved()) {
+    PROTOBUFBYTEARRAYTOSERIALIZABLE(removenode, tempRemovePubKey);
+    removeDSNodePubKeys.emplace_back(tempRemovePubKey);
+  }
+
+  // Deserialize DSBlockHashSet
+  DSBlockHashSet hash;
+  const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
+      protoDSBlockHeader.hash();
+
+  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
+                                    hash.m_shardingHash.asArray())) {
+    return false;
+  }
+
+  copy(protoDSBlockHeaderHash.reservedfield().begin(),
+       protoDSBlockHeaderHash.reservedfield().begin() +
+           min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
+               (unsigned int)hash.m_reservedField.size()),
+       hash.m_reservedField.begin());
+
+  // Generate the new DSBlock
+
+  const uint8_t dsdifficulty = protoDSBlockHeader.dsdifficulty();
+  const uint8_t difficulty = protoDSBlockHeader.difficulty();
+  uint128_t gasprice = 0;
+
+  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
+      protoDSBlockHeader.gasprice(), gasprice);
+
+  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
+      protoDSBlockHeader.blockheaderbase();
+
+  auto blockHeaderBaseVars = ProtobufToBlockHeaderBase(protoBlockHeaderBase);
+  if (!blockHeaderBaseVars) return false;
+
+  auto [version, committeeHash, prevHash] = *blockHeaderBaseVars;
+
+  dsBlockHeader = DSBlockHeader(
+      dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
+      protoDSBlockHeader.epochnum(), gasprice, swInfo, powDSWinners,
+      removeDSNodePubKeys, hash, govProposalMap, version, committeeHash,
+      prevHash);
+
+  return true;
+}
+
+template <std::ranges::contiguous_range RangeT>
+bool GetDSBlockHeader(RangeT&& src, const unsigned int offset,
+                      DSBlockHeader& dsBlockHeader) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ZilliqaMessage::ProtoDSBlock::DSBlockHeader result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
+    return false;
+  }
+
+  return ProtobufToDSBlockHeader(result, dsBlockHeader);
+}
+
+}  // namespace
 
 DSBlockHeader::DSBlockHeader(
     uint8_t dsDifficulty, uint8_t difficulty, const PubKey& leaderPubKey,
@@ -69,7 +258,7 @@ BlockHash DSBlockHeader::GetHashForRandom() const {
 }
 
 bool DSBlockHeader::Deserialize(const zbytes& src, unsigned int offset) {
-  if (!Messenger::GetDSBlockHeader(src, offset, *this)) {
+  if (!GetDSBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
     return false;
   }
@@ -78,7 +267,7 @@ bool DSBlockHeader::Deserialize(const zbytes& src, unsigned int offset) {
 }
 
 bool DSBlockHeader::Deserialize(const string& src, unsigned int offset) {
-  if (!Messenger::GetDSBlockHeader(src, offset, *this)) {
+  if (!GetDSBlockHeader(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
     return false;
   }
