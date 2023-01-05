@@ -39,32 +39,6 @@ using namespace ZilliqaMessage;
 // Utility conversion functions
 // ============================================================================
 
-template <class T>
-void SerializableToProtobufByteArray(const T& serializable,
-                                     ByteArray& byteArray) {
-  zbytes tmp;
-  serializable.Serialize(tmp, 0);
-  byteArray.set_data(tmp.data(), tmp.size());
-}
-
-template <class T, size_t S>
-void NumberToProtobufByteArray(const T& number, ByteArray& byteArray) {
-  zbytes tmp;
-  Serializable::SetNumber<T>(tmp, 0, number, S);
-  byteArray.set_data(tmp.data(), tmp.size());
-}
-
-template <class T>
-bool SerializeToArray(const T& protoMessage, zbytes& dst,
-                      const unsigned int offset) {
-  if ((offset + protoMessage.ByteSizeLong()) > dst.size()) {
-    dst.resize(offset + protoMessage.ByteSizeLong());
-  }
-
-  return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSizeLong());
-}
-
 template bool SerializeToArray<ProtoAccountStore>(
     const ProtoAccountStore& protoMessage, zbytes& dst,
     const unsigned int offset);
@@ -2754,21 +2728,6 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
   copy(tmp.begin(), tmp.end(), dst.asArray().begin());
 
   return true;
-}
-
-bool Messenger::SetDSBlockHeader(zbytes& dst, const unsigned int offset,
-                                 const DSBlockHeader& dsBlockHeader,
-                                 bool concreteVarsOnly) {
-  ProtoDSBlock::DSBlockHeader result;
-
-  DSBlockHeaderToProtobuf(dsBlockHeader, result, concreteVarsOnly);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
 }
 
 bool Messenger::SetDSBlock(zbytes& dst, const unsigned int offset,

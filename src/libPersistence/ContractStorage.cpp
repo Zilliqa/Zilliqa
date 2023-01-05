@@ -79,16 +79,6 @@ zbytes ContractStorage::GetInitData(const dev::h160& address) {
 
 // State
 // ========================================
-template <class T>
-bool SerializeToArray(const T& protoMessage, zbytes& dst,
-                      const unsigned int offset) {
-  if ((offset + protoMessage.ByteSizeLong()) > dst.size()) {
-    dst.resize(offset + protoMessage.ByteSizeLong());
-  }
-
-  return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSizeLong());
-}
 
 string ContractStorage::GenerateStorageKey(const dev::h160& addr,
                                            const string& vname,

@@ -77,22 +77,6 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
                                                   shards, dst));
 }
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-
-  DSBlockHeader dsBlockHeader = TestUtils::GenerateRandomDSBlockHeader();
-
-  BOOST_CHECK(Messenger::SetDSBlockHeader(dst, offset, dsBlockHeader));
-
-  DSBlockHeader dsBlockHeaderDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetDSBlockHeader(dst, offset, dsBlockHeaderDeserialized));
-
-  BOOST_CHECK(dsBlockHeader == dsBlockHeaderDeserialized);
-}
-
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
   zbytes dst;
   unsigned int offset = 0;

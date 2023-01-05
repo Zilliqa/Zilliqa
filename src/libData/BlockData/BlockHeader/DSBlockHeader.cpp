@@ -26,6 +26,98 @@ using namespace boost::multiprecision;
 
 namespace {
 
+void BlockHeaderBaseToProtobuf(
+    const BlockHeaderBase& base,
+    ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase) {
+  // version
+  protoBlockHeaderBase.set_version(base.GetVersion());
+  // committee hash
+  protoBlockHeaderBase.set_committeehash(base.GetCommitteeHash().data(),
+                                         base.GetCommitteeHash().size);
+  protoBlockHeaderBase.set_prevhash(base.GetPrevHash().data(),
+                                    base.GetPrevHash().size);
+}
+
+void DSBlockHeaderToProtobuf(
+    const DSBlockHeader& dsBlockHeader,
+    ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
+    bool concreteVarsOnly = false) {
+  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
+      protoDSBlockHeader.mutable_blockheaderbase();
+  BlockHeaderBaseToProtobuf(dsBlockHeader, *protoBlockHeaderBase);
+
+  if (!concreteVarsOnly) {
+    protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
+    protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
+    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
+        dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
+    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
+
+    for (const auto& winner : dsBlockHeader.GetDSPoWWinners()) {
+      powdswinner = protoDSBlockHeader.add_dswinners();
+      SerializableToProtobufByteArray(winner.first,
+                                      *powdswinner->mutable_key());
+      SerializableToProtobufByteArray(winner.second,
+                                      *powdswinner->mutable_val());
+    }
+
+    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Proposal* protoproposal;
+    for (const auto& govProposal : dsBlockHeader.GetGovProposalMap()) {
+      protoproposal = protoDSBlockHeader.add_proposals();
+      protoproposal->set_proposalid(govProposal.first);
+      for (const auto& vote : govProposal.second.first) {
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
+        protoVote = protoproposal->add_dsvotes();
+        protoVote->set_value(vote.first);
+        protoVote->set_count(vote.second);
+      }
+      for (const auto& vote : govProposal.second.second) {
+        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
+        protoVote = protoproposal->add_minervotes();
+        protoVote->set_value(vote.first);
+        protoVote->set_count(vote.second);
+      }
+    }
+
+    ZilliqaMessage::ByteArray* dsremoved;
+    for (const auto& removedPubKey : dsBlockHeader.GetDSRemovePubKeys()) {
+      dsremoved = protoDSBlockHeader.add_dsremoved();
+      SerializableToProtobufByteArray(removedPubKey, *dsremoved);
+    }
+  }
+
+  SerializableToProtobufByteArray(dsBlockHeader.GetLeaderPubKey(),
+                                  *protoDSBlockHeader.mutable_leaderpubkey());
+
+  protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
+  protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
+  SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
+                                  *protoDSBlockHeader.mutable_swinfo());
+
+  ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
+      protoDSBlockHeader.mutable_hash();
+  protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
+                                    dsBlockHeader.GetShardingHash().size);
+  protoHeaderHash->set_reservedfield(
+      dsBlockHeader.GetHashSetReservedField().data(),
+      dsBlockHeader.GetHashSetReservedField().size());
+}
+
+bool SetDSBlockHeader(zbytes& dst, const unsigned int offset,
+                      const DSBlockHeader& dsBlockHeader,
+                      bool concreteVarsOnly = false) {
+  ZilliqaMessage::ProtoDSBlock::DSBlockHeader result;
+
+  DSBlockHeaderToProtobuf(dsBlockHeader, result, concreteVarsOnly);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
 bool CheckRequiredFieldsProtoBlockHeaderBase(
     const ZilliqaMessage::ProtoBlockHeaderBase& /*protoBlockHeaderBase*/) {
 // TODO: Check if default value is acceptable for each field
@@ -48,23 +140,18 @@ ProtobufToBlockHeaderBase(
   // Deserialize the version
   uint32_t version = protoBlockHeaderBase.version();
 
-  // base.SetVersion(version);
-
   // Deserialize committee hash
   CommitteeHash committeeHash;
-  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.committeehash(),
-                                    committeeHash.asArray())) {
+  if (!CopyWithSizeCheck(protoBlockHeaderBase.committeehash(),
+                         committeeHash.asArray())) {
     return std::nullopt;
   }
-  // base.SetCommitteeHash(committeeHash);
 
   // Deserialize prev hash
   BlockHash prevHash;
-  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.prevhash(),
-                                    prevHash.asArray())) {
+  if (!CopyWithSizeCheck(protoBlockHeaderBase.prevhash(), prevHash.asArray())) {
     return std::nullopt;
   }
-  // base.SetPrevHash(prevHash);
 
   return std::make_tuple(version, committeeHash, prevHash);
 }
@@ -152,8 +239,8 @@ bool ProtobufToDSBlockHeader(
   const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
       protoDSBlockHeader.hash();
 
-  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
-                                    hash.m_shardingHash.asArray())) {
+  if (!CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
+                         hash.m_shardingHash.asArray())) {
     return false;
   }
 
@@ -178,7 +265,7 @@ bool ProtobufToDSBlockHeader(
   auto blockHeaderBaseVars = ProtobufToBlockHeaderBase(protoBlockHeaderBase);
   if (!blockHeaderBaseVars) return false;
 
-  auto [version, committeeHash, prevHash] = *blockHeaderBaseVars;
+  const auto& [version, committeeHash, prevHash] = *blockHeaderBaseVars;
 
   dsBlockHeader = DSBlockHeader(
       dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
@@ -233,7 +320,7 @@ DSBlockHeader::DSBlockHeader(
       m_govProposalMap(govProposalMap) {}
 
 bool DSBlockHeader::Serialize(zbytes& dst, unsigned int offset) const {
-  if (!Messenger::SetDSBlockHeader(dst, offset, *this)) {
+  if (!SetDSBlockHeader(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetDSBlockHeader failed.");
     return false;
   }
@@ -245,8 +332,8 @@ BlockHash DSBlockHeader::GetHashForRandom() const {
   SHA256Calculator sha2;
   zbytes vec;
 
-  if (!Messenger::SetDSBlockHeader(vec, 0, *this, true)) {
-    LOG_GENERAL(WARNING, "Messenger::SetDSBlockHeader failed.");
+  if (!SetDSBlockHeader(vec, 0, *this, true)) {
+    LOG_GENERAL(WARNING, "SetDSBlockHeader failed.");
     return BlockHash();
   }
 
@@ -258,21 +345,11 @@ BlockHash DSBlockHeader::GetHashForRandom() const {
 }
 
 bool DSBlockHeader::Deserialize(const zbytes& src, unsigned int offset) {
-  if (!GetDSBlockHeader(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
-    return false;
-  }
-
-  return true;
+  return GetDSBlockHeader(src, offset, *this);
 }
 
 bool DSBlockHeader::Deserialize(const string& src, unsigned int offset) {
-  if (!GetDSBlockHeader(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetDSBlockHeader failed.");
-    return false;
-  }
-
-  return true;
+  return GetDSBlockHeader(src, offset, *this);
 }
 
 bool DSBlockHeader::operator==(const DSBlockHeader& header) const {
