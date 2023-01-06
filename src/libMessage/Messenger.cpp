@@ -2782,63 +2782,6 @@ bool Messenger::GetDSBlock(const string& src, const unsigned int offset,
   return ProtobufToDSBlock(result, dsBlock);
 }
 
-bool Messenger::SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
-                                    const MicroBlockHeader& microBlockHeader) {
-  ProtoMicroBlock::MicroBlockHeader result;
-
-  MicroBlockHeaderToProtobuf(microBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoMicroBlock::MicroBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetMicroBlockHeader(const zbytes& src,
-                                    const unsigned int offset,
-                                    MicroBlockHeader& microBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoMicroBlock::MicroBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoMicroBlock::MicroBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToMicroBlockHeader(result, microBlockHeader);
-}
-
-bool Messenger::GetMicroBlockHeader(const string& src,
-                                    const unsigned int offset,
-                                    MicroBlockHeader& microBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoMicroBlock::MicroBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoMicroBlock::MicroBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToMicroBlockHeader(result, microBlockHeader);
-}
-
 bool Messenger::SetMicroBlock(zbytes& dst, const unsigned int offset,
                               const MicroBlock& microBlock) {
   ProtoMicroBlock result;

@@ -93,22 +93,6 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
   BOOST_CHECK(dsBlock == dsBlockDeserialized);
 }
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-  MicroBlockHeader microBlockHeader =
-      TestUtils::GenerateRandomMicroBlockHeader();
-
-  BOOST_CHECK(Messenger::SetMicroBlockHeader(dst, offset, microBlockHeader));
-
-  MicroBlockHeader microBlockHeaderDeserialized;
-
-  BOOST_CHECK(Messenger::GetMicroBlockHeader(dst, offset,
-                                             microBlockHeaderDeserialized));
-
-  BOOST_CHECK(microBlockHeader == microBlockHeaderDeserialized);
-}
-
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
   zbytes dst;
   unsigned int offset = 0;

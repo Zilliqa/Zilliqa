@@ -41,7 +41,8 @@ class MicroBlockHeader : public BlockHeaderBase {
                    uint64_t gasUsed = 0, const uint128_t& rewards = 0,
                    uint64_t epochNum = (uint64_t)-1,
                    const MicroBlockHashSet& hashset = {}, uint32_t numTxs = 0,
-                   const PubKey& minerPubKey = {}, uint64_t dsBlockNum = 0,
+                   const PubKey& minerPubKey = {},
+                   uint64_t dsBlockNum = INIT_BLOCK_NUMBER,
                    uint32_t version = 0,
                    const CommitteeHash& committeeHash = CommitteeHash(),
                    const BlockHash& prevHash = BlockHash());

@@ -106,13 +106,6 @@ class Messenger {
   static bool GetDSBlock(const std::string& src, const unsigned int offset,
                          DSBlock& dsBlock);
 
-  static bool SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
-                                  const MicroBlockHeader& microBlockHeader);
-  static bool GetMicroBlockHeader(const zbytes& src, const unsigned int offset,
-                                  MicroBlockHeader& microBlockHeader);
-  static bool GetMicroBlockHeader(const std::string& src,
-                                  const unsigned int offset,
-                                  MicroBlockHeader& microBlockHeader);
   static bool SetMicroBlock(zbytes& dst, const unsigned int offset,
                             const MicroBlock& microBlock);
   static bool GetMicroBlock(const zbytes& src, const unsigned int offset,
