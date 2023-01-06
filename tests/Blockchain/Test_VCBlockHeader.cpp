@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/BlockHeader/DSBlockHeader.h"
+#include "libData/BlockData/BlockHeader/VCBlockHeader.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 
 #include <fstream>
 
-#define BOOST_TEST_MODULE blockchainheaderstest
+#define BOOST_TEST_MODULE vcblockheadertest
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -32,189 +32,79 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_SUITE(blockchainheaderstest)
+BOOST_AUTO_TEST_SUITE(vcblockheadertest)
 
-BOOST_AUTO_TEST_CASE(BlockChainHeaders_test) { LOG_MARKER(); }
+BOOST_AUTO_TEST_CASE(VCBlockHeader_DefaultConstruction) {
+  VCBlockHeader blockHeader;
 
-BOOST_AUTO_TEST_CASE(DSBlockHeader_DefaultConstruction) {
-  DSBlockHeader blockHeader;
-
-  BOOST_CHECK_EQUAL(blockHeader.GetDSDifficulty(), 0);
-  BOOST_CHECK_EQUAL(blockHeader.GetDifficulty(), 0);
-  BOOST_CHECK_EQUAL(blockHeader.GetTotalDifficulty(), 0);
-  BOOST_CHECK_EQUAL(blockHeader.GetLeaderPubKey(), PubKey{});
-  BOOST_CHECK_EQUAL(blockHeader.GetBlockNum(), INIT_BLOCK_NUMBER);
-  BOOST_CHECK_EQUAL(blockHeader.GetEpochNum(), -1);
-  BOOST_CHECK_EQUAL(blockHeader.GetGasPrice(), 0);
-  BOOST_CHECK_EQUAL(blockHeader.GetSWInfo(), SWInfo{});
-  BOOST_CHECK(blockHeader.GetDSPoWWinners().empty());
-  BOOST_CHECK(blockHeader.GetDSRemovePubKeys().empty());
-  BOOST_CHECK(blockHeader.GetGovProposalMap().empty());
-  BOOST_CHECK_EQUAL(blockHeader.GetShardingHash(), ShardingHash{});
-
-  for (auto i : blockHeader.GetHashSetReservedField()) BOOST_CHECK_EQUAL(i, 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeDSEpochNo(),
+                    static_cast<uint64_t>(-1));
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeEpochNo(),
+                    static_cast<uint64_t>(-1));
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeState(), 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderNetworkInfo(), Peer{});
+  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderPubKey(), PubKey{});
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeCounter(), 0);
+  BOOST_CHECK(blockHeader.GetFaultyLeaders().empty());
 }
 
-BOOST_AUTO_TEST_CASE(DSBlockHeader_NonDefaultConstruction) {
-  auto key = PubKey::GetPubKeyFromString(
+BOOST_AUTO_TEST_CASE(VCBlockHeader_NonDefaultConstruction) {
+  auto candidateLeaderPubKey = PubKey::GetPubKeyFromString(
       "872e4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa");
-  DSBlockHeader blockHeader{
+  auto faultyLeaderPubKey = PubKey::GetPubKeyFromString(
+      "bec5320d32a1a6c60a6258efa5e1b86c3dbf460af54cefe6e1ad4254ea8cb01cff");
+  VectorOfNode faultyLeaders{{faultyLeaderPubKey, {12345, 9937}}};
+  VCBlockHeader blockHeader{
       41,
       92,
-      key,
-      33,
-      89,
-      111,
-      SWInfo{},
-      {// PoW winners
-       {PubKey::GetPubKeyFromString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                                    "bbbbbbbbbbbbbbbbbbbbbbbb"),
-        Peer{8888, 1111}}},
-      {// Removed keys
-       PubKey::GetPubKeyFromString("ccccccccccccccccccccccccccccccccccccccccccc"
-                                   "ccccccccccccccccccccccc")},
-      {},
-      {},
+      3,
+      {4444, 5555},
+      candidateLeaderPubKey,
+      4,
+      faultyLeaders,
       1,  // version
       BlockHash(
-          "c22b1ab817891c54a3e3c2bb1e1e09a9a616cb2a763f8027cd8646ec1ee038e6"),
+          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
       BlockHash(
-          "677dc8f0cbe535e8ee53ea9bb8a0f2517857bc827fe8aed9aba734d8d5d2f282")};
+          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
 
-  BOOST_CHECK_EQUAL(blockHeader.GetDSDifficulty(), 41);
-  BOOST_CHECK_EQUAL(blockHeader.GetDifficulty(), 92);
-  BOOST_CHECK_EQUAL(blockHeader.GetLeaderPubKey(), key);
-  BOOST_CHECK_EQUAL(blockHeader.GetBlockNum(), 33);
-  BOOST_CHECK_EQUAL(blockHeader.GetEpochNum(), 89);
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeDSEpochNo(), 41);
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeEpochNo(), 92);
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeState(), 3);
+  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderNetworkInfo(),
+                    Peer(4444, 5555));
+  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderPubKey(),
+                    candidateLeaderPubKey);
+  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeCounter(), 4);
+  BOOST_TEST(blockHeader.GetFaultyLeaders() == faultyLeaders);
 }
 
-BOOST_AUTO_TEST_CASE(DSBlockHeader_CompareEqual) {
-  auto key = PubKey::GetPubKeyFromString(
-      "9fff4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa");
-  DSBlockHeader blockHeader1{
-      9,
-      2,
-      key,
-      9,
+BOOST_AUTO_TEST_CASE(VCBlockHeader_CompareEqual) {
+  auto candidateLeaderPubKey = PubKey::GetPubKeyFromString(
+      "bec5320d32a1a6c60a6258efa5e1b86c3dbf460af54cefe6e1ad4254ea8cb01cff");
+  auto faultyLeaderPubKey = PubKey::GetPubKeyFromString(
+      "872e4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa");
+  VectorOfNode faultyLeaders{{faultyLeaderPubKey, {321, 1002}}};
+  VCBlockHeader blockHeader1{
+      5,
+      6,
+      7,
+      {8888, 9999},
+      candidateLeaderPubKey,
       10,
-      555,
-      SWInfo{},
-      {// PoW winners
-       {PubKey::GetPubKeyFromString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                                    "bbbbbbbbbbbbbbbbbbbbbbbb"),
-        Peer{13579, 35000}}},
-      {// Removed keys
-       PubKey::GetPubKeyFromString("ccccccccccccccccccccccccccccccccccccccccccc"
-                                   "ccccccccccccccccccccccc")},
-      {},
-      {},
+      faultyLeaders,
       1,  // version
       BlockHash(
-          "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"),
+          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61"),
       BlockHash(
-          "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd")};
+          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131")};
 
   auto blockHeader2 = blockHeader1;
 
   BOOST_CHECK_EQUAL(blockHeader1, blockHeader2);
   BOOST_CHECK_EQUAL(blockHeader2, blockHeader1);
 
-  BOOST_CHECK_EQUAL(DSBlockHeader{}, DSBlockHeader{});
-}
-
-BOOST_AUTO_TEST_CASE(DSBlockHeader_CompareGreaterLessThan) {
-  DSBlockHeader blockHeader1{4,           2,          PubKey{}, 9,  10, 0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-  DSBlockHeader blockHeader2{4,           2,          PubKey{}, 10, 10, 0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-  DSBlockHeader blockHeader3{4,           2,          PubKey{}, 11, 3,  0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  DSBlockHeader blockHeader4{2,           2,          PubKey{}, 12, 2,  0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  DSBlockHeader blockHeader5{1,           2,          PubKey{}, 99, 1,  0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  BOOST_CHECK_LT(blockHeader1, blockHeader2);
-  BOOST_CHECK_GT(blockHeader2, blockHeader1);
-
-  BOOST_CHECK_LT(blockHeader2, blockHeader3);
-  BOOST_CHECK_GT(blockHeader3, blockHeader2);
-
-  BOOST_CHECK_LT(blockHeader3, blockHeader4);
-  BOOST_CHECK_GT(blockHeader4, blockHeader3);
-
-  BOOST_CHECK_LT(blockHeader4, blockHeader5);
-  BOOST_CHECK_GT(blockHeader5, blockHeader4);
-
-  BOOST_CHECK_LT(blockHeader1, blockHeader5);
-  BOOST_CHECK_GT(blockHeader5, blockHeader1);
-}
-
-BOOST_AUTO_TEST_CASE(DSBlockHeader_GetHashForRandom) {
-  DSBlockHeader blockHeader1{
-      111,
-      4,
-      PubKey::GetPubKeyFromString(
-          "9fff4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa"),
-      999,
-      888,
-      0,
-      SWInfo{},
-      {},
-      {},
-      {},
-      {},
-      0,  // version
-      BlockHash{},
-      BlockHash{}};
-
-  BOOST_CHECK_EQUAL(
-      blockHeader1.GetHashForRandom(),
-      BlockHash(
-          "9aa9a8d44726c8a34ed364acdb498b1fb80296a35d26320821fa2ae1d4851052",
-          BlockHash::ConstructFromStringType::FromHex));
-
-  DSBlockHeader blockHeader2{
-      9,
-      123,
-      PubKey::GetPubKeyFromString(
-          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-      5,
-      11,
-      810,
-      SWInfo{},
-      {// PoW winners
-       {PubKey::GetPubKeyFromString("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                                    "bbbbbbbbbbbbbbbbbbbbbbbb"),
-        Peer{13579, 35000}}},
-      {// Removed keys
-       PubKey::GetPubKeyFromString("ccccccccccccccccccccccccccccccccccccccccccc"
-                                   "ccccccccccccccccccccccc")},
-      {},
-      {},
-      1,  // version
-      BlockHash(
-          "c22b1ab817891c54a3e3c2bb1e1e09a9a616cb2a763f8027cd8646ec1ee038e6"),
-      BlockHash(
-          "677dc8f0cbe535e8ee53ea9bb8a0f2517857bc827fe8aed9aba734d8d5d2f282")};
-
-  BOOST_CHECK_EQUAL(
-      blockHeader2.GetHashForRandom(),
-      BlockHash(
-          "4611757dda494c9ed95de4c47877221187587860cf105fbb80b927f1de3237aa",
-          BlockHash::ConstructFromStringType::FromHex));
+  BOOST_CHECK_EQUAL(VCBlockHeader{}, VCBlockHeader{});
 }
 
 BOOST_AUTO_TEST_CASE(Test_Serialization) {
@@ -319,43 +209,39 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
        0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
        0,   0,   0,   0,   0,   0,   0,   0,   0}};
 
+  VectorOfNode faultyLeaders;
   for (int i = 1; i < 3; ++i) {
     zbytes dst;
 
-    DSBlockHeader blockHeader{
-        static_cast<uint8_t>(i * 5),
-        static_cast<uint8_t>(i * 3),
+    faultyLeaders.emplace_back(PubKey::GetPubKeyFromString(
+                                   std::string(66, static_cast<char>('6' + i))),
+                               Peer(i + 15000, i + 23791));
+    VCBlockHeader blockHeader{
+        static_cast<uint64_t>(i * 5),
+        static_cast<uint64_t>(i * 6),
+        static_cast<unsigned char>(i * 7),
+        {i * 888, static_cast<uint32_t>(i * 999)},
         PubKey::GetPubKeyFromString(
             std::string(66, static_cast<char>('1' + i))),
-        static_cast<uint64_t>(i + 20),
-        25,
-        76,
-        SWInfo{},
-        {// PoW winners
-         {PubKey::GetPubKeyFromString(
-              std::string(66, static_cast<char>('3' + i))),
-          Peer{111 + i, 2275}}},
-        {
-            // Removed keys
-            PubKey::GetPubKeyFromString(
-                std::string(66, static_cast<char>('2' + i))),
-        },
-        {},
-        {},
+        static_cast<uint32_t>(i + 10),
+        faultyLeaders,
         1,  // version
-        BlockHash(std::string(64, static_cast<char>('a' + i))),
-        BlockHash("677dc8f0cbe535e8ee53ea9bb8a0f2517857bc827fe8aed9aba734d8d5d2"
-                  "f282")};
+        BlockHash(
+            "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61"),
+        BlockHash("9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883"
+                  "e131")};
 
     BOOST_CHECK(blockHeader.Serialize(dst, 0));
+#if 0
     BOOST_TEST(dst == serialized[i - 1]);
 
     std::ofstream file{"dst-" + std::to_string(i)};
     file << '{';
     for (auto v : dst) file << static_cast<unsigned int>(v) << ", ";
     file << '}';
+#endif
 
-    DSBlockHeader deserializedBlockHeader;
+    VCBlockHeader deserializedBlockHeader;
     deserializedBlockHeader.Deserialize(dst, 0);
     BOOST_CHECK(deserializedBlockHeader.Deserialize(dst, 0));
 

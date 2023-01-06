@@ -18,14 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
 
-#include <array>
-#include "common/BaseType.h"
-
 #include <Schnorr.h>
 #include "BlockHeaderBase.h"
-#include "common/Constants.h"
-#include "common/Serializable.h"
-#include "libData/AccountData/Transaction.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
 
@@ -41,19 +35,13 @@ class VCBlockHeader : public BlockHeaderBase {
 
  public:
   /// Default constructor.
-  VCBlockHeader();  // creates a dummy invalid placeholder BlockHeader --
-                    // blocknum is maxsize of uint256
-
-  /// Constructor for loading VC block header information from a byte stream.
-  VCBlockHeader(const zbytes& src, unsigned int offset);
-
-  /// Constructor with specified VC block header parameters.
-  VCBlockHeader(const uint64_t& vieWChangeDSEpochNo,
-                const uint64_t& viewChangeEpochNo,
-                const unsigned char viewChangeState,
-                const Peer& candidateLeaderNetworkInfo,
-                const PubKey& candidateLeaderPubKey, const uint32_t vcCounter,
-                const VectorOfNode& faultyLeaders, const uint32_t version = 0,
+  VCBlockHeader(uint64_t vieWChangeDSEpochNo = (uint64_t)-1,
+                uint64_t viewChangeEpochNo = (uint64_t)-1,
+                unsigned char viewChangeState = 0,
+                const Peer& candidateLeaderNetworkInfo = {},
+                const PubKey& candidateLeaderPubKey = {},
+                uint32_t vcCounter = 0, const VectorOfNode& faultyLeaders = {},
+                const uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
 
@@ -67,60 +55,37 @@ class VCBlockHeader : public BlockHeaderBase {
   bool Deserialize(const std::string& src, unsigned int offset);
 
   /// Returns the DS Epoch number where view change happen
-  const uint64_t& GetViewChangeDSEpochNo() const;
+  uint64_t GetViewChangeDSEpochNo() const { return m_VieWChangeDSEpochNo; }
 
   /// Returns the Epoch number (Total nums of final block) where view change
   /// happen
-  const uint64_t& GetViewChangeEpochNo() const;
+  uint64_t GetViewChangeEpochNo() const { return m_VieWChangeEpochNo; }
 
   /// Return the candidate leader ds state when view change happen
-  unsigned char GetViewChangeState() const;
+  unsigned char GetViewChangeState() const { return m_ViewChangeState; }
 
   /// Return the IP and port of candidate (at the point where view change
   /// happen)
-  const Peer& GetCandidateLeaderNetworkInfo() const;
+  const Peer& GetCandidateLeaderNetworkInfo() const {
+    return m_CandidateLeaderNetworkInfo;
+  }
 
   /// Return pub key of candidate leader
-  const PubKey& GetCandidateLeaderPubKey() const;
+  const PubKey& GetCandidateLeaderPubKey() const {
+    return m_CandidateLeaderPubKey;
+  }
 
   /// Return the number of times view change has happened for the particular
   /// epoch and state
-  uint32_t GetViewChangeCounter() const;
+  uint32_t GetViewChangeCounter() const { return m_VCCounter; }
 
   /// Return all the faulty leaders in the current round of view change
-  const VectorOfNode& GetFaultyLeaders() const;
+  const VectorOfNode& GetFaultyLeaders() const { return m_FaultyLeaders; }
 
   /// Equality operator.
   bool operator==(const VCBlockHeader& header) const;
-
-  /// Less-than comparison operator.
-  bool operator<(const VCBlockHeader& header) const;
-
-  /// Greater-than comparison operator.
-  bool operator>(const VCBlockHeader& header) const;
-
-  friend std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t) {
-  const BlockHeaderBase& blockHeaderBase(t);
-
-  os << blockHeaderBase << std::endl
-     << "<VCBlockHeader>" << std::endl
-     << " m_VieWChangeDSEpochNo        = " << t.m_VieWChangeDSEpochNo
-     << std::endl
-     << " m_VieWChangeEpochNo          = " << t.m_VieWChangeEpochNo << std::endl
-     << " m_ViewChangeState            = " << t.m_ViewChangeState << std::endl
-     << " m_CandidateLeaderNetworkInfo = " << t.m_CandidateLeaderNetworkInfo
-     << std::endl
-     << " m_CandidateLeaderPubKey      = " << t.m_CandidateLeaderPubKey
-     << std::endl
-     << " m_VCCounter                  = " << t.m_VCCounter << std::endl;
-  for (const auto& node : t.m_FaultyLeaders) {
-    os << " FaultyLeader                 = " << node.first << " " << node.second
-       << std::endl;
-  }
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
