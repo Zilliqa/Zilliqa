@@ -134,13 +134,6 @@ class Messenger {
   static bool GetTxBlock(const std::string& src, const unsigned int offset,
                          TxBlock& txBlock);
 
-  static bool SetVCBlockHeader(zbytes& dst, const unsigned int offset,
-                               const VCBlockHeader& vcBlockHeader);
-  static bool GetVCBlockHeader(const zbytes& src, const unsigned int offset,
-                               VCBlockHeader& vcBlockHeader);
-  static bool GetVCBlockHeader(const std::string& src,
-                               const unsigned int offset,
-                               VCBlockHeader& vcBlockHeader);
   static bool SetVCBlock(zbytes& dst, const unsigned int offset,
                          const VCBlock& vcBlock);
   static bool GetVCBlock(const zbytes& src, const unsigned int offset,

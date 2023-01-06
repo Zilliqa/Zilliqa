@@ -18,7 +18,6 @@
 #include "DSBlockHeader.h"
 #include "Serialization.h"
 #include "libCrypto/Sha2.h"
-#include "libMessage/Messenger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -90,7 +89,7 @@ void DSBlockHeaderToProtobuf(
       dsBlockHeader.GetHashSetReservedField().size());
 }
 
-bool SetDSBlockHeader(zbytes& dst, const unsigned int offset,
+bool SetDSBlockHeader(zbytes& dst, unsigned int offset,
                       const DSBlockHeader& dsBlockHeader,
                       bool concreteVarsOnly = false) {
   ZilliqaMessage::ProtoDSBlock::DSBlockHeader result;
@@ -227,7 +226,7 @@ bool ProtobufToDSBlockHeader(
 }
 
 template <std::ranges::contiguous_range RangeT>
-bool GetDSBlockHeader(RangeT&& src, const unsigned int offset,
+bool GetDSBlockHeader(RangeT&& src, unsigned int offset,
                       DSBlockHeader& dsBlockHeader) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "

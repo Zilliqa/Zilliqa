@@ -2995,58 +2995,6 @@ bool Messenger::GetTxBlock(const string& src, const unsigned int offset,
   return ProtobufToTxBlock(result, txBlock);
 }
 
-bool Messenger::SetVCBlockHeader(zbytes& dst, const unsigned int offset,
-                                 const VCBlockHeader& vcBlockHeader) {
-  ProtoVCBlock::VCBlockHeader result;
-
-  VCBlockHeaderToProtobuf(vcBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetVCBlockHeader(const zbytes& src, const unsigned int offset,
-                                 VCBlockHeader& vcBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoVCBlock::VCBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToVCBlockHeader(result, vcBlockHeader);
-}
-
-bool Messenger::GetVCBlockHeader(const string& src, const unsigned int offset,
-                                 VCBlockHeader& vcBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoVCBlock::VCBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToVCBlockHeader(result, vcBlockHeader);
-}
-
 bool Messenger::SetVCBlock(zbytes& dst, const unsigned int offset,
                            const VCBlock& vcBlock) {
   ProtoVCBlock result;
