@@ -133,21 +133,6 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
   BOOST_CHECK(microBlock == microBlockDeserialized);
 }
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-  TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
-
-  BOOST_CHECK(Messenger::SetTxBlockHeader(dst, offset, txBlockHeader));
-
-  TxBlockHeader txBlockHeaderDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetTxBlockHeader(dst, offset, txBlockHeaderDeserialized));
-
-  BOOST_CHECK(txBlockHeader == txBlockHeaderDeserialized);
-}
-
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
   zbytes dst;
   unsigned int offset = 0;

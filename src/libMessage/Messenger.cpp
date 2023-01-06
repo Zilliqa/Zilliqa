@@ -2891,58 +2891,6 @@ bool Messenger::GetMicroBlock(const string& src, const unsigned int offset,
   return ProtobufToMicroBlock(result, microBlock);
 }
 
-bool Messenger::SetTxBlockHeader(zbytes& dst, const unsigned int offset,
-                                 const TxBlockHeader& txBlockHeader) {
-  ProtoTxBlock::TxBlockHeader result;
-
-  TxBlockHeaderToProtobuf(txBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetTxBlockHeader(const zbytes& src, const unsigned int offset,
-                                 TxBlockHeader& txBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoTxBlock::TxBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToTxBlockHeader(result, txBlockHeader);
-}
-
-bool Messenger::GetTxBlockHeader(const string& src, const unsigned int offset,
-                                 TxBlockHeader& txBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoTxBlock::TxBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToTxBlockHeader(result, txBlockHeader);
-}
-
 bool Messenger::SetTxBlock(zbytes& dst, const unsigned int offset,
                            const TxBlock& txBlock) {
   ProtoTxBlock result;
