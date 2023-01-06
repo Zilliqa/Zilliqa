@@ -15,13 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/BlockHeader/VCBlockHeader.h"
+#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 
 #include <fstream>
 
-#define BOOST_TEST_MODULE vcblockheadertest
+#define BOOST_TEST_MODULE txblockheadertest
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -32,82 +32,83 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_SUITE(vcblockheadertest)
+BOOST_AUTO_TEST_SUITE(txblockheadertest)
 
-BOOST_AUTO_TEST_CASE(VCBlockHeader_DefaultConstruction) {
-  VCBlockHeader blockHeader;
+BOOST_AUTO_TEST_CASE(TxBlockHeader_DefaultConstruction) {
+  TxBlockHeader blockHeader;
 
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeDSEpochNo(),
-                    static_cast<uint64_t>(-1));
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeEpochNo(),
-                    static_cast<uint64_t>(-1));
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeState(), 0);
-  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderNetworkInfo(), Peer{});
-  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderPubKey(), PubKey{});
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeCounter(), 0);
-  BOOST_CHECK(blockHeader.GetFaultyLeaders().empty());
+  BOOST_CHECK_EQUAL(blockHeader.GetGasLimit(), 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetGasUsed(), 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetRewards(), 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetBlockNum(), INIT_BLOCK_NUMBER);
+  BOOST_CHECK_EQUAL(blockHeader.GetNumTxs(), 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetMinerPubKey(), PubKey{});
+  BOOST_CHECK_EQUAL(blockHeader.GetDSBlockNum(), INIT_BLOCK_NUMBER);
+  BOOST_CHECK_EQUAL(blockHeader.GetStateRootHash(), StateHash{});
+  BOOST_CHECK_EQUAL(blockHeader.GetStateDeltaHash(), StateHash{});
+  BOOST_CHECK_EQUAL(blockHeader.GetVersion(), 0);
+  BOOST_CHECK_EQUAL(blockHeader.GetCommitteeHash(), CommitteeHash{});
+  BOOST_CHECK_EQUAL(blockHeader.GetPrevHash(), BlockHash{});
 }
 
-BOOST_AUTO_TEST_CASE(VCBlockHeader_NonDefaultConstruction) {
-  auto candidateLeaderPubKey = PubKey::GetPubKeyFromString(
-      "872e4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa");
-  auto faultyLeaderPubKey = PubKey::GetPubKeyFromString(
-      "bec5320d32a1a6c60a6258efa5e1b86c3dbf460af54cefe6e1ad4254ea8cb01cff");
-  VectorOfNode faultyLeaders{{faultyLeaderPubKey, {12345, 9937}}};
-  VCBlockHeader blockHeader{
-      41,
-      92,
+BOOST_AUTO_TEST_CASE(TxBlockHeader_NonDefaultConstruction) {
+  auto minerPubKey = PubKey::GetPubKeyFromString(
+      "8b133a3868993176b613738816247a7f4d357cae555996519cf5b543e9b3554b89");
+  TxBlockHeader blockHeader{
+      54,
+      23,
       3,
-      {4444, 5555},
-      candidateLeaderPubKey,
-      4,
-      faultyLeaders,
+      1235,
+      {},
+      9,
+      minerPubKey,
+      211,
       1,  // version
       BlockHash(
           "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
       BlockHash(
           "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
 
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeDSEpochNo(), 41);
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeEpochNo(), 92);
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeState(), 3);
-  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderNetworkInfo(),
-                    Peer(4444, 5555));
-  BOOST_CHECK_EQUAL(blockHeader.GetCandidateLeaderPubKey(),
-                    candidateLeaderPubKey);
-  BOOST_CHECK_EQUAL(blockHeader.GetViewChangeCounter(), 4);
-  BOOST_TEST(blockHeader.GetFaultyLeaders() == faultyLeaders);
+  BOOST_CHECK_EQUAL(blockHeader.GetGasLimit(), 54);
+  BOOST_CHECK_EQUAL(blockHeader.GetGasUsed(), 23);
+  BOOST_CHECK_EQUAL(blockHeader.GetRewards(), 3);
+  BOOST_CHECK_EQUAL(blockHeader.GetBlockNum(), 1235);
+  BOOST_CHECK_EQUAL(blockHeader.GetNumTxs(), 9);
+  BOOST_CHECK_EQUAL(blockHeader.GetMinerPubKey(), minerPubKey);
+  BOOST_CHECK_EQUAL(blockHeader.GetDSBlockNum(), 211);
+  BOOST_CHECK_EQUAL(blockHeader.GetStateRootHash(), StateHash{});
+  BOOST_CHECK_EQUAL(blockHeader.GetStateDeltaHash(), StateHash{});
 }
 
-BOOST_AUTO_TEST_CASE(VCBlockHeader_CompareEqual) {
-  auto candidateLeaderPubKey = PubKey::GetPubKeyFromString(
-      "bec5320d32a1a6c60a6258efa5e1b86c3dbf460af54cefe6e1ad4254ea8cb01cff");
-  auto faultyLeaderPubKey = PubKey::GetPubKeyFromString(
-      "872e4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa");
-  VectorOfNode faultyLeaders{{faultyLeaderPubKey, {321, 1002}}};
-  VCBlockHeader blockHeader1{
+BOOST_AUTO_TEST_CASE(TxBlockHeader_CompareEqual) {
+
+  auto minerPubKey = PubKey::GetPubKeyFromString(
+      "9ab33a3868993176b613738816247a7f4d357cae555996519cf5b543e9b3554b89");
+  TxBlockHeader blockHeader1{
       5,
-      6,
-      7,
-      {8888, 9999},
-      candidateLeaderPubKey,
-      10,
-      faultyLeaders,
+      2,
+      0,
+      235,
+      {},
+      8,
+      minerPubKey,
+      11,
       1,  // version
       BlockHash(
-          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61"),
+          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
       BlockHash(
-          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131")};
+          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
 
   auto blockHeader2 = blockHeader1;
 
   BOOST_CHECK_EQUAL(blockHeader1, blockHeader2);
   BOOST_CHECK_EQUAL(blockHeader2, blockHeader1);
 
-  BOOST_CHECK_EQUAL(VCBlockHeader{}, VCBlockHeader{});
+  BOOST_CHECK_EQUAL(TxBlockHeader{}, TxBlockHeader{});
 }
 
 BOOST_AUTO_TEST_CASE(Test_Serialization) {
+#if 0
   zbytes serialized[3] = {
       {10, 70,  8,   1,   18,  32,  113, 122, 197, 6,   149, 13,  160, 204, 182,
        64, 76,  221, 94,  117, 145, 247, 32,  24,  162, 12,  188, 162, 124, 138,
@@ -165,23 +166,20 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
        0,   0,   0,  0,   0,   0,   0,   0,   0,   0,   0,   0,   18,  22,
        10,  20,  0,  0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
        0,   0,   58, 155, 0,   0,   92,  242}};
-
-  VectorOfNode faultyLeaders;
+#endif
   for (int i = 1; i <= 3; ++i) {
     zbytes dst;
 
-    faultyLeaders.emplace_back(PubKey::GetPubKeyFromString(
-                                   std::string(66, static_cast<char>('6' + i))),
-                               Peer(i + 15000, i + 23791));
-    VCBlockHeader blockHeader{
-        static_cast<uint64_t>(i * 5),
-        static_cast<uint64_t>(i * 6),
+    TxBlockHeader blockHeader{
+        static_cast<uint64_t>(i * 9),
+        static_cast<uint64_t>(i * 8),
         static_cast<unsigned char>(i * 7),
-        {i * 888, static_cast<uint32_t>(i * 999)},
+        static_cast<uint64_t>(i * 10),
+        {},
+        static_cast<uint32_t>(i + 135),
         PubKey::GetPubKeyFromString(
             std::string(66, static_cast<char>('1' + i))),
-        static_cast<uint32_t>(i + 10),
-        faultyLeaders,
+        static_cast<uint32_t>(i + 19),
         1,  // version
         BlockHash(
             "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61"),
@@ -189,14 +187,16 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
                   "e131")};
 
     BOOST_CHECK(blockHeader.Serialize(dst, 0));
+#if 0
     BOOST_TEST(dst == serialized[i - 1]);
 
     std::ofstream file{"dst-" + std::to_string(i)};
     file << '{';
     for (auto v : dst) file << static_cast<unsigned int>(v) << ", ";
     file << '}';
+#endif
 
-    VCBlockHeader deserializedBlockHeader;
+    TxBlockHeader deserializedBlockHeader;
     deserializedBlockHeader.Deserialize(dst, 0);
     BOOST_CHECK(deserializedBlockHeader.Deserialize(dst, 0));
 

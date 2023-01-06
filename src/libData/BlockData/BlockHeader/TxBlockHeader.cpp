@@ -17,32 +17,15 @@
 
 #include "TxBlockHeader.h"
 #include "libMessage/Messenger.h"
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-TxBlockHeader::TxBlockHeader()
-    : m_gasLimit(0),
-      m_gasUsed(0),
-      m_rewards(0),
-      m_blockNum(INIT_BLOCK_NUMBER),
-      m_hashset(),
-      m_numTxs(0),
-      m_minerPubKey(),
-      m_dsBlockNum(INIT_BLOCK_NUMBER) {}
-
-TxBlockHeader::TxBlockHeader(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init TxBlockHeader.");
-  }
-}
-
-TxBlockHeader::TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
-                             const uint128_t& rewards, const uint64_t& blockNum,
+TxBlockHeader::TxBlockHeader(uint64_t gasLimit, uint64_t gasUsed,
+                             const uint128_t& rewards, uint64_t blockNum,
                              const TxBlockHashSet& blockHashSet,
                              uint32_t numTxs, const PubKey& minerPubKey,
-                             const uint64_t& dsBlockNum, uint32_t version,
+                             uint64_t dsBlockNum, uint32_t version,
                              const CommitteeHash& committeeHash,
                              const BlockHash& prevHash)
     : BlockHeaderBase(version, committeeHash, prevHash),
@@ -82,32 +65,6 @@ bool TxBlockHeader::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-const uint64_t& TxBlockHeader::GetGasLimit() const { return m_gasLimit; }
-
-const uint64_t& TxBlockHeader::GetGasUsed() const { return m_gasUsed; }
-
-const uint128_t& TxBlockHeader::GetRewards() const { return m_rewards; }
-
-const uint64_t& TxBlockHeader::GetBlockNum() const { return m_blockNum; }
-
-const StateHash& TxBlockHeader::GetStateRootHash() const {
-  return m_hashset.m_stateRootHash;
-}
-
-const StateHash& TxBlockHeader::GetStateDeltaHash() const {
-  return m_hashset.m_stateDeltaHash;
-}
-
-const MBInfoHash& TxBlockHeader::GetMbInfoHash() const {
-  return m_hashset.m_mbInfoHash;
-}
-
-const uint32_t& TxBlockHeader::GetNumTxs() const { return m_numTxs; }
-
-const PubKey& TxBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
-
-const uint64_t& TxBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
-
 bool TxBlockHeader::operator==(const TxBlockHeader& header) const {
   return BlockHeaderBase::operator==(header) &&
          (std::tie(m_gasLimit, m_gasUsed, m_rewards, m_blockNum, m_hashset,
@@ -117,10 +74,28 @@ bool TxBlockHeader::operator==(const TxBlockHeader& header) const {
                    header.m_minerPubKey, header.m_dsBlockNum));
 }
 
+#if 0
 bool TxBlockHeader::operator<(const TxBlockHeader& header) const {
   return m_blockNum < header.m_blockNum;
 }
 
 bool TxBlockHeader::operator>(const TxBlockHeader& header) const {
   return header < *this;
+}
+#endif
+
+std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<TxBlockHeader>" << std::endl
+     << " GasLimit    = " << t.GetGasLimit() << std::endl
+     << " GasUsed     = " << t.GetGasUsed() << std::endl
+     << " Rewards     = " << t.GetRewards() << std::endl
+     << " BlockNum    = " << t.GetBlockNum() << std::endl
+     << " NumTxs      = " << t.GetNumTxs() << std::endl
+     << " MinerPubKey = " << t.GetMinerPubKey() << std::endl
+     << " DSBlockNum  = " << t.GetDSBlockNum() << std::endl
+     << t.m_hashset;
+  return os;
 }

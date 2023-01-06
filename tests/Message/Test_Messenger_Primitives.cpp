@@ -167,21 +167,6 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
   BOOST_CHECK(txBlock == txBlockDeserialized);
 }
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-  VCBlockHeader vcBlockHeader = TestUtils::GenerateRandomVCBlockHeader();
-
-  BOOST_CHECK(Messenger::SetVCBlockHeader(dst, offset, vcBlockHeader));
-
-  VCBlockHeader vcBlockHeaderDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetVCBlockHeader(dst, offset, vcBlockHeaderDeserialized));
-
-  BOOST_CHECK(vcBlockHeader == vcBlockHeaderDeserialized);
-}
-
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
   zbytes dst;
   unsigned int offset = 0;

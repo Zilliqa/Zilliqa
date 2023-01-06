@@ -36,17 +36,12 @@ class TxBlockHeader : public BlockHeaderBase {
 
  public:
   /// Default constructor.
-  TxBlockHeader();
-
-  /// Constructor for loading Tx block header information from a byte stream.
-  TxBlockHeader(const zbytes& src, unsigned int offset);
-
-  /// Constructor with specified Tx block header parameters.
-  TxBlockHeader(const uint64_t& gasLimit, const uint64_t& gasUsed,
-                const uint128_t& rewards, const uint64_t& blockNum,
-                const TxBlockHashSet& blockHashSet, const uint32_t numTxs,
-                const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-                const uint32_t version = 0,
+  TxBlockHeader(uint64_t gasLimit = 0, uint64_t gasUsed = 0,
+                const uint128_t& rewards = 0,
+                uint64_t blockNum = INIT_BLOCK_NUMBER,
+                const TxBlockHashSet& blockHashSet = {}, uint32_t numTxs = 0,
+                const PubKey& minerPubKey = {},
+                uint64_t dsBlockNum = INIT_BLOCK_NUMBER, uint32_t version = 0,
                 const CommitteeHash& committeeHash = CommitteeHash(),
                 const BlockHash& prevHash = BlockHash());
 
@@ -60,67 +55,59 @@ class TxBlockHeader : public BlockHeaderBase {
   bool Deserialize(const std::string& src, unsigned int offset) override;
 
   /// Returns the current limit for gas expenditure per block.
-  const uint64_t& GetGasLimit() const;
+  uint64_t GetGasLimit() const { return m_gasLimit; }
 
   /// Returns the total gas used by transactions in this block.
-  const uint64_t& GetGasUsed() const;
+  uint64_t GetGasUsed() const { return m_gasUsed; }
 
   /// Returns the rewards generated in this block. If normal epoch, then is the
   /// sum of txnFees from all microblock, if vacuous epoch, is the total rewards
   /// generated during coinbase
-  const uint128_t& GetRewards() const;
+  const uint128_t& GetRewards() const { return m_rewards; }
 
   /// Returns the number of ancestor blocks.
-  const uint64_t& GetBlockNum() const;
+  uint64_t GetBlockNum() const { return m_blockNum; }
 
   /// Returns the digest that represents the root of the Merkle tree that stores
   /// all state uptil this block.
-  const StateHash& GetStateRootHash() const;
+  const StateHash& GetStateRootHash() const {
+    return m_hashset.m_stateRootHash;
+  }
 
   /// Returns the digest that represents the hash of state delta attached to
   /// finalblock.
-  const StateHash& GetStateDeltaHash() const;
+  const StateHash& GetStateDeltaHash() const {
+    return m_hashset.m_stateDeltaHash;
+  }
 
   /// Returns the digest that represents the hash of all the extra micro block
   /// information in the finalblock.
-  const MBInfoHash& GetMbInfoHash() const;
+  const MBInfoHash& GetMbInfoHash() const { return m_hashset.m_mbInfoHash; }
 
   /// Returns the number of transactions in this block.
-  const uint32_t& GetNumTxs() const;
+  uint32_t GetNumTxs() const { return m_numTxs; }
 
   /// Returns the public key of the leader of the committee that composed this
   /// block.
-  const PubKey& GetMinerPubKey() const;
+  const PubKey& GetMinerPubKey() const { return m_minerPubKey; }
 
   /// Returns the parent DS block number.
-  const uint64_t& GetDSBlockNum() const;
+  uint64_t GetDSBlockNum() const { return m_dsBlockNum; }
 
   /// Equality comparison operator.
   bool operator==(const TxBlockHeader& header) const;
 
+#if 0
   /// Less-than comparison operator.
   bool operator<(const TxBlockHeader& header) const;
 
   /// Greater-than comparison operator.
   bool operator>(const TxBlockHeader& header) const;
+#endif
 
   friend std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t) {
-  const BlockHeaderBase& blockHeaderBase(t);
-
-  os << blockHeaderBase << std::endl
-     << "<TxBlockHeader>" << std::endl
-     << " m_gasLimit    = " << t.m_gasLimit << std::endl
-     << " m_gasUsed     = " << t.m_gasUsed << std::endl
-     << " m_rewards     = " << t.m_rewards << std::endl
-     << " m_blockNum    = " << t.m_blockNum << std::endl
-     << " m_numTxs      = " << t.m_numTxs << std::endl
-     << " m_minerPubKey = " << t.m_minerPubKey << std::endl
-     << " m_dsBlockNum  = " << t.m_dsBlockNum << std::endl
-     << t.m_hashset;
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
