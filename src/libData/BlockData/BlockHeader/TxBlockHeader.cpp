@@ -17,7 +17,6 @@
 
 #include "TxBlockHeader.h"
 #include "Serialization.h"
-#include "libMessage/Messenger.h"
 
 using namespace std;
 using namespace boost::multiprecision;

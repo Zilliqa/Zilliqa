@@ -16,36 +16,20 @@
  */
 
 #include "MicroBlockHeader.h"
+#include "Serialization.h"
 #include "libMessage/Messenger.h"
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-MicroBlockHeader::MicroBlockHeader()
-    : m_shardId(0),
-      m_gasLimit(0),
-      m_gasUsed(0),
-      m_rewards(0),
-      m_epochNum((uint64_t)-1),
-      m_hashset(),
-      m_numTxs(0),
-      m_minerPubKey(),
-      m_dsBlockNum(INIT_BLOCK_NUMBER) {}
-
-MicroBlockHeader::MicroBlockHeader(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init MicroBlockHeader.");
-  }
-}
-
-MicroBlockHeader::MicroBlockHeader(
-    uint32_t shardId, const uint64_t& gasLimit, const uint64_t& gasUsed,
-    const uint128_t& rewards, const uint64_t& epochNum,
-    const MicroBlockHashSet& hashset, uint32_t numTxs,
-    const PubKey& minerPubKey, const uint64_t& dsBlockNum,
-    const uint32_t version, const CommitteeHash& committeeHash,
-    const BlockHash& prevHash)
+MicroBlockHeader::MicroBlockHeader(uint32_t shardId, uint64_t gasLimit,
+                                   uint64_t gasUsed, const uint128_t& rewards,
+                                   uint64_t epochNum,
+                                   const MicroBlockHashSet& hashset,
+                                   uint32_t numTxs, const PubKey& minerPubKey,
+                                   uint64_t dsBlockNum, uint32_t version,
+                                   const CommitteeHash& committeeHash,
+                                   const BlockHash& prevHash)
     : BlockHeaderBase(version, committeeHash, prevHash),
       m_shardId(shardId),
       m_gasLimit(gasLimit),
@@ -84,38 +68,6 @@ bool MicroBlockHeader::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-const uint32_t& MicroBlockHeader::GetShardId() const { return m_shardId; }
-
-const uint64_t& MicroBlockHeader::GetGasLimit() const { return m_gasLimit; }
-
-const uint64_t& MicroBlockHeader::GetGasUsed() const { return m_gasUsed; }
-
-const uint128_t& MicroBlockHeader::GetRewards() const { return m_rewards; }
-
-const uint64_t& MicroBlockHeader::GetEpochNum() const { return m_epochNum; }
-
-const uint32_t& MicroBlockHeader::GetNumTxs() const { return m_numTxs; }
-
-const PubKey& MicroBlockHeader::GetMinerPubKey() const { return m_minerPubKey; }
-
-const uint64_t& MicroBlockHeader::GetDSBlockNum() const { return m_dsBlockNum; }
-
-const TxnHash& MicroBlockHeader::GetTxRootHash() const {
-  return m_hashset.m_txRootHash;
-}
-
-const StateHash& MicroBlockHeader::GetStateDeltaHash() const {
-  return m_hashset.m_stateDeltaHash;
-}
-
-const TxnHash& MicroBlockHeader::GetTranReceiptHash() const {
-  return m_hashset.m_tranReceiptHash;
-}
-
-const MicroBlockHashSet& MicroBlockHeader::GetHashes() const {
-  return m_hashset;
-}
-
 bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const {
   return BlockHeaderBase::operator==(header) &&
          (std::tie(m_shardId, m_gasLimit, m_gasUsed, m_rewards, m_epochNum,
@@ -125,6 +77,7 @@ bool MicroBlockHeader::operator==(const MicroBlockHeader& header) const {
                    header.m_numTxs, header.m_minerPubKey, header.m_dsBlockNum));
 }
 
+#if 0
 bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const {
   // To compare, first they must be of identical epochno
   return (std::tie(m_version, m_prevHash, m_epochNum, m_dsBlockNum) ==
@@ -135,4 +88,22 @@ bool MicroBlockHeader::operator<(const MicroBlockHeader& header) const {
 
 bool MicroBlockHeader::operator>(const MicroBlockHeader& header) const {
   return header < *this;
+}
+#endif
+
+std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<MicroBlockHeader>" << std::endl
+     << " ShardId     = " << t.GetShardId() << std::endl
+     << " GasLimit    = " << t.GetGasLimit() << std::endl
+     << " GasUsed     = " << t.GetGasUsed() << std::endl
+     << " Rewards     = " << t.GetRewards() << std::endl
+     << " EpochNum    = " << t.GetEpochNum() << std::endl
+     << " NumTxs      = " << t.GetNumTxs() << std::endl
+     << " MinerPubKey = " << t.GetMinerPubKey() << std::endl
+     << " DSBlockNum  = " << t.GetDSBlockNum() << std::endl
+     << t.m_hashset;
+  return os;
 }

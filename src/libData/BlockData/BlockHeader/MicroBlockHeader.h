@@ -36,18 +36,13 @@ class MicroBlockHeader : public BlockHeaderBase {
       m_dsBlockNum{};  // DS Block index at the time this Tx Block was proposed
 
  public:
-  /// Default constructor.
-  MicroBlockHeader();
-
-  /// Constructor for loading existing microblock header from a byte stream.
-  MicroBlockHeader(const zbytes& src, unsigned int offset);
-
   /// Constructor with predefined member values.
-  MicroBlockHeader(const uint32_t shardId, const uint64_t& gasLimit,
-                   const uint64_t& gasUsed, const uint128_t& rewards,
-                   const uint64_t& epochNum, const MicroBlockHashSet& hashset,
-                   const uint32_t numTxs, const PubKey& minerPubKey,
-                   const uint64_t& dsBlockNum, const uint32_t version = 0,
+  MicroBlockHeader(uint32_t shardId = 0, uint64_t gasLimit = 0,
+                   uint64_t gasUsed = 0, const uint128_t& rewards = 0,
+                   uint64_t epochNum = (uint64_t)-1,
+                   const MicroBlockHashSet& hashset = {}, uint32_t numTxs = 0,
+                   const PubKey& minerPubKey = {}, uint64_t dsBlockNum = 0,
+                   uint32_t version = 0,
                    const CommitteeHash& committeeHash = CommitteeHash(),
                    const BlockHash& prevHash = BlockHash());
 
@@ -62,41 +57,29 @@ class MicroBlockHeader : public BlockHeaderBase {
 
   // [TODO] These methods are all supposed to be moved into BlockHeaderBase, so
   // no need to add Doxygen tags for now
-  const uint32_t& GetShardId() const;
-  const uint64_t& GetGasLimit() const;
-  const uint64_t& GetGasUsed() const;
-  const uint128_t& GetRewards() const;
-  const uint64_t& GetEpochNum() const;
-  const uint32_t& GetNumTxs() const;
-  const PubKey& GetMinerPubKey() const;
-  const uint64_t& GetDSBlockNum() const;
-  const TxnHash& GetTxRootHash() const;
-  const StateHash& GetStateDeltaHash() const;
-  const TxnHash& GetTranReceiptHash() const;
-  const MicroBlockHashSet& GetHashes() const;
+  uint32_t GetShardId() const { return m_shardId; }
+  uint64_t GetGasLimit() const { return m_gasLimit; }
+  uint64_t GetGasUsed() const { return m_gasUsed; }
+  const uint128_t& GetRewards() const { return m_rewards; }
+  uint64_t GetEpochNum() const { return m_epochNum; }
+  uint32_t GetNumTxs() const { return m_numTxs; }
+  const PubKey& GetMinerPubKey() const { return m_minerPubKey; }
+  uint64_t GetDSBlockNum() const { return m_dsBlockNum; }
+  const TxnHash& GetTxRootHash() const { return m_hashset.m_txRootHash; }
+  const StateHash& GetStateDeltaHash() const {
+    return m_hashset.m_stateDeltaHash;
+  }
+  const TxnHash& GetTranReceiptHash() const {
+    return m_hashset.m_tranReceiptHash;
+  }
+  const MicroBlockHashSet& GetHashes() const { return m_hashset; }
 
   // Operators
   bool operator==(const MicroBlockHeader& header) const;
-  bool operator<(const MicroBlockHeader& header) const;
-  bool operator>(const MicroBlockHeader& header) const;
 
   friend std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t) {
-  const BlockHeaderBase& blockHeaderBase(t);
-
-  os << blockHeaderBase << std::endl
-     << "<MicroBlockHeader>" << std::endl
-     << " m_shardId     = " << t.m_shardId << std::endl
-     << " m_gasLimit    = " << t.m_gasLimit << std::endl
-     << " m_rewards     = " << t.m_rewards << std::endl
-     << " m_epochNum    = " << t.m_epochNum << std::endl
-     << " m_numTxs      = " << t.m_numTxs << std::endl
-     << " m_minerPubKey = " << t.m_minerPubKey << std::endl
-     << " m_dsBlockNum  = " << t.m_dsBlockNum << std::endl
-     << t.m_hashset;
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_MICROBLOCKHEADER_H_

@@ -13,3 +13,8 @@ target_include_directories(Test_TxBlockHeader PUBLIC ${CMAKE_SOURCE_DIR}/src ${C
 target_link_libraries(Test_TxBlockHeader PRIVATE BlockHeader Message Boost::unit_test_framework)
 add_test(NAME Test_TxBlockHeader COMMAND Test_TxBlockHeader)
 
+add_executable(Test_MicroBlockHeader Test_MicroBlockHeader.cpp)
+target_include_directories(Test_MicroBlockHeader PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_MicroBlockHeader PRIVATE BlockHeader Message Boost::unit_test_framework)
+add_test(NAME Test_MicroBlockHeader COMMAND Test_MicroBlockHeader)
+
