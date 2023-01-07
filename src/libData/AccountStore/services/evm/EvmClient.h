@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_EVM_EVMCLIENT_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_EVM_EVMCLIENT_H_
 
 #include <boost/process.hpp>
 #include <boost/process/child.hpp>
@@ -75,4 +75,4 @@ class EvmClient : public Singleton<EvmClient> {
   std::mutex m_mutexMain;
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_EVMCLIENT_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_EVM_EVMCLIENT_H_
