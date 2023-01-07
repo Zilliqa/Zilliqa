@@ -44,7 +44,7 @@ AccountStoreSC::AccountStoreSC() {
   m_txnProcessTimeout = false;
   m_accountStoreCount.SetCallback([this](auto&& result) {
     result.Set(m_curBlockNum, {{"counter", "BlockNumber"}});
-    result.Set(m_curBlockNum, {{"counter", "DSBlockNumber"}});
+    result.Set(m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
   });
 }
 

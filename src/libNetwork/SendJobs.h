@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,23 +18,13 @@
 #ifndef ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_
 #define ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_
 
-#include <memory>
+#include "libNetwork/P2PMessage.h"
 
-#include "Peer.h"
+namespace zil::p2p {
 
 class SendJobs {
  public:
-  struct RawMessage {
-    // shared_ptr here is for not to duplicate broadcast messages
-    std::shared_ptr<const void> data;
-    size_t size = 0;
-  };
-
   static std::shared_ptr<SendJobs> Create();
-
-  /// Serializes a message
-  static RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
-                                  uint8_t start_byte);
 
   virtual ~SendJobs() = default;
 
@@ -55,5 +45,7 @@ class SendJobs {
                                             const zbytes& message,
                                             uint8_t start_byte) = 0;
 };
+
+}  // namespace zil::p2p
 
 #endif  // ZILLIQA_SRC_LIBNETWORK_SENDJOBS_H_

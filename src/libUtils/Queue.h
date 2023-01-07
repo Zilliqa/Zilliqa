@@ -90,7 +90,7 @@ class Queue {
 
  private:
   const size_t m_maxSize;
-  Mutex m_mutex;
+  mutable Mutex m_mutex;
   Condition m_condition;
   std::deque<T> m_queue;
   bool m_stopped;

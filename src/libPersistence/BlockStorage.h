@@ -24,7 +24,6 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockData/Block.h"
 #include "libData/MiningData/MinerInfo.h"
 
