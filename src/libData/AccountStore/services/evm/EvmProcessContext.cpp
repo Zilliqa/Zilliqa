@@ -16,9 +16,9 @@
  */
 
 #include <memory>
-#include "Transaction.h"
 #include "common/TxnStatus.h"
 #include "libCrypto/EthCrypto.h"
+#include "libData/AccountData/Transaction.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
@@ -50,8 +50,8 @@
  *
  * */
 #include "EvmProcessContext.h"
-#include "TransactionReceipt.h"
 #include "common/TxnStatus.h"
+#include "libData/AccountData/TransactionReceipt.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 

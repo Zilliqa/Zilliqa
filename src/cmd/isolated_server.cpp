@@ -20,7 +20,7 @@
 #include <boost/program_options.hpp>
 #include <fstream>
 #include <iostream>
-#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libNode/Node.h"
 #include "libServer/APIServer.h"

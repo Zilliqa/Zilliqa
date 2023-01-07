@@ -29,11 +29,11 @@
 #include "opentelemetry/trace/semantic_conventions.h"
 
 #include "AccountStoreSC.h"
-#include "EvmClient.h"
-#include "EvmProcessContext.h"
 #include "common/Constants.h"
 #include "common/TraceFilters.h"
 #include "libCrypto/EthCrypto.h"
+#include "libData/AccountStore/services/evm/EvmClient.h"
+#include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
@@ -91,8 +91,8 @@ zil::metrics::uint64Counter_t& GetInvocationsCounter() {
 
 }  // namespace
 
-template <class MAP>
-void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
+
+void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         const evm::EvmArgs& args,           //
                                         bool& ret,                          //
                                         TransactionReceipt& receipt,        //
@@ -134,6 +134,7 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
       // Example code for pushing a context into a span and then creating a new
       // span from the context carried
+      if (TRACE_ENABLED(ACC_EVM))
       {  // example for Artem - retreving the context for shipment over the
          // wire.
         auto current_ctx = context::RuntimeContext::GetCurrent();
@@ -190,8 +191,8 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   }
 }
 
-template <class MAP>
-uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
+
+uint64_t AccountStoreSC::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
     bool& ret, TransactionReceipt& receipt, evm::EvmResult& result) {
   // call evm-ds
@@ -326,8 +327,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   return result.remaining_gas();
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
+
+bool AccountStoreSC::ViewAccounts(const evm::EvmArgs& args,
                                        evm::EvmResult& result) {
   return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                              result);
@@ -340,8 +341,8 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
  *
  */
 
-template <class MAP>
-bool AccountStoreSC<MAP>::EvmProcessMessage(EvmProcessContext& params,
+
+bool AccountStoreSC::EvmProcessMessage(EvmProcessContext& params,
                                             evm::EvmResult& result) {
   unsigned int unused_numShards = 0;
   bool unused_isds = true;
@@ -357,8 +358,8 @@ bool AccountStoreSC<MAP>::EvmProcessMessage(EvmProcessContext& params,
   return status;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
+
+bool AccountStoreSC::UpdateAccountsEvm(const uint64_t& blockNum,
                                             const unsigned int& numShards,
                                             const bool& isDS,
                                             TransactionReceipt& receipt,
@@ -848,11 +849,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
+
+bool AccountStoreSC::AddAccountAtomic(const Address& address,
                                            const Account& account) {
   return m_accountStoreAtomic->AddAccount(address, account);
 }
 
-template class AccountStoreSC<std::map<Address, Account>>;
-template class AccountStoreSC<std::unordered_map<Address, Account>>;

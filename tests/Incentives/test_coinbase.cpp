@@ -22,7 +22,7 @@
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
-#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMediator/Mediator.h"

@@ -16,7 +16,7 @@
  */
 
 #include "MessengerAccountStoreBase.h"
-#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
