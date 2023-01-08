@@ -188,7 +188,7 @@ expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`)
 
 # Scilla Testing Tools
 ## Scilla checker task
-To run scilla-checker on all of the contracts in the [contracts directory](./contracts/) run:
+To run `scilla-checker` on all of the scilla contracts in the [contracts directory](./contracts/) run:
 ```bash
 npx hardhat scilla-check --libdir path_to_stdlib
 ```
