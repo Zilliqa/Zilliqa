@@ -28,9 +28,9 @@
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/EvmProcessContext.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
+#include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/Eth.h"
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
@@ -652,7 +652,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");
     }
-    std::cout << "Set Data" << std::endl;
   }
 
   uint256_t value = 0;
@@ -668,7 +667,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
         DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
     gasPrice = max(gasPrice, inputGasPrice);
   }
-
   uint256_t gasDeposit = 0;
   if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,

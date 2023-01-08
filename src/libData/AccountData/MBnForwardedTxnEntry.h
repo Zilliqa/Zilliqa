@@ -18,9 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_MBNFORWARDEDTXNENTRY_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_MBNFORWARDEDTXNENTRY_H_
 
-#include "AccountStore.h"
 #include "Transaction.h"
 #include "TransactionReceipt.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockData/Block/MicroBlock.h"
 
 struct MBnForwardedTxnEntry {

@@ -16,7 +16,7 @@
  */
 
 #include "MessengerAccountStoreBase.h"
-#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -50,15 +50,6 @@ MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
     const string& src, const unsigned int offset,
     unordered_map<Address, Account>& addressToAccount);
 
-template bool MessengerAccountStoreBase::SetAccountStore<map<Address, Account>>(
-    zbytes& dst, const unsigned int offset,
-    const map<Address, Account>& addressToAccount);
-template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
-    const zbytes& src, const unsigned int offset,
-    map<Address, Account>& addressToAccount);
-template bool MessengerAccountStoreBase::GetAccountStore<map<Address, Account>>(
-    const string& src, const unsigned int offset,
-    map<Address, Account>& addressToAccount);
 
 template <class MAP>
 bool MessengerAccountStoreBase::SetAccountStore(zbytes& dst,

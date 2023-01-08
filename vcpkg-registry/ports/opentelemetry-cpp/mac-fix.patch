@@ -22,7 +22,7 @@ index 1ab0c7cb..fc808c02 100644
      opentelemetry_exporter_otlp_grpc_client
 -    PUBLIC opentelemetry_sdk opentelemetry_ext opentelemetry_proto)
 +    PUBLIC opentelemetry_common opentelemetry_ext opentelemetry_proto)
- 
+
    target_link_libraries(opentelemetry_exporter_otlp_grpc_client
                          PRIVATE gRPC::grpc++)
 @@ -57,7 +57,8 @@ if(WITH_OTLP_GRPC)
@@ -32,9 +32,9 @@ index 1ab0c7cb..fc808c02 100644
 -           opentelemetry_exporter_otlp_grpc_client)
 +           opentelemetry_exporter_otlp_grpc_client
 +    PRIVATE gRPC::grpc++)
- 
+
    list(APPEND OPENTELEMETRY_OTLP_TARGETS opentelemetry_exporter_otlp_grpc)
- 
+
 @@ -72,7 +73,8 @@ if(WITH_OTLP_GRPC)
    target_link_libraries(
      opentelemetry_exporter_otlp_grpc_log
@@ -42,9 +42,9 @@ index 1ab0c7cb..fc808c02 100644
 -           opentelemetry_exporter_otlp_grpc_client)
 +           opentelemetry_exporter_otlp_grpc_client
 +    PRIVATE gRPC::grpc++)
- 
+
    list(APPEND OPENTELEMETRY_OTLP_TARGETS opentelemetry_exporter_otlp_grpc_log)
- 
+
 @@ -86,7 +88,8 @@ if(WITH_OTLP_GRPC)
    target_link_libraries(
      opentelemetry_exporter_otlp_grpc_metrics
@@ -52,7 +52,7 @@ index 1ab0c7cb..fc808c02 100644
 -           opentelemetry_exporter_otlp_grpc_client)
 +           opentelemetry_exporter_otlp_grpc_client
 +    PRIVATE gRPC::grpc++)
- 
+
    list(APPEND OPENTELEMETRY_OTLP_TARGETS
         opentelemetry_exporter_otlp_grpc_metrics)
 @@ -99,7 +102,7 @@ if(WITH_OTLP_HTTP)

@@ -71,11 +71,11 @@ fi
 
 run_clang_format_fix=0
 run_clang_tidy_fix=0
-run_code_coverage=0
+run_code_coverage=1
 parallelize=1
 build_type="RelWithDebInfo"
 
-#./scripts/license_checker.sh
+./scripts/license_checker.sh
 ./scripts/ci_xml_checker.sh constants.xml
 ./scripts/ci_xml_checker.sh constants_local.xml
 if [ "$OS" != "osx" ]; then ./scripts/depends/check_guard.sh; fi

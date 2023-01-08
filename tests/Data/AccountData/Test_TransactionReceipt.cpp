@@ -96,8 +96,9 @@ BOOST_AUTO_TEST_CASE(transactionreceipt) {
   BOOST_CHECK_EQUAL(true, tranReceiptStr_2.compare(tranReceiptStr) == 0);
 
   std::ostringstream oss;
-  Json::StreamWriterBuilder().newStreamWriter()->write(tr_2.GetJsonValue(),
-                                                       &oss);
+  std::unique_ptr<Json::StreamWriter> streamWriter{
+      Json::StreamWriterBuilder().newStreamWriter()};
+  streamWriter->write(tr_2.GetJsonValue(), &oss);
 
   tranReceiptStr_2 = oss.str();
   tranReceiptStr_2.erase(

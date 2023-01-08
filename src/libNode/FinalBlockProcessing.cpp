@@ -24,9 +24,9 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
@@ -80,7 +80,7 @@ bool Node::StoreFinalBlock(const TxBlock& txBlock) {
         m_mediator.m_txBlockChain
             .GetBlock(txBlock.GetHeader().GetBlockNum() - 1)
             .GetTimestamp();
-    const uint64_t& timestampNow = txBlock.GetTimestamp();
+    const uint64_t timestampNow = txBlock.GetTimestamp();
     const double lastBlockTimeInSeconds =
         static_cast<double>(timestampNow - timestampBef) / 1000000;
     double tmpAveBlockTimeInSeconds = m_mediator.m_aveBlockTimeInSeconds;

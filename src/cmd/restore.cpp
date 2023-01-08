@@ -20,7 +20,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include "libData/AccountData/AccountStore.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
 #include "libNode/Node.h"
