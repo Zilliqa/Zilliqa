@@ -28,11 +28,8 @@ class MicroBlock : public BlockBase {
 
  public:
   /// Default constructor.
-  MicroBlock() = default;  // creates a dummy invalid placeholder block -- blocknum is
-                 // maxsize of uint256
-
-  /// Constructor for loading existing microblock from a byte stream.
-  MicroBlock(const zbytes& src, unsigned int offset);
+  MicroBlock() = default;  // creates a dummy invalid placeholder block --
+                           // blocknum is maxsize of uint256
 
   /// Constructor with predefined member values
   MicroBlock(const MicroBlockHeader& header,
@@ -49,10 +46,12 @@ class MicroBlock : public BlockBase {
                            unsigned int offset) override;
 
   /// Returns the header component of the microblock.
-  const MicroBlockHeader& GetHeader() const;
+  const MicroBlockHeader& GetHeader() const noexcept { return m_header; }
 
   /// Returns the list of transaction hashes.
-  const std::vector<TxnHash>& GetTranHashes() const;
+  const std::vector<TxnHash>& GetTranHashes() const noexcept {
+    return m_tranHashes;
+  }
 
   /// Equality operator.
   bool operator==(const MicroBlock& block) const;

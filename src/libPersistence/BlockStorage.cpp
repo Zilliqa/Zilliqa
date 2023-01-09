@@ -233,8 +233,8 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   if (blockString.empty()) {
     return false;
   }
-  microblock = make_shared<MicroBlock>(
-      zbytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>();
+  microblock->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -258,8 +258,8 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
   if (blockString.empty()) {
     return false;
   }
-  microblock = make_shared<MicroBlock>(
-      zbytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>();
+  microblock->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -706,13 +706,8 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
       return false;
     }
 
-#if 0
-    DSBlockSharedPtr block = DSBlockSharedPtr(
-        new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
-#endif
     auto block = std::make_shared<DSBlock>();
     block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
-
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
   }

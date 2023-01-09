@@ -73,12 +73,6 @@ bool MicroBlock::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-MicroBlock::MicroBlock(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init MicroBlock.");
-  }
-}
-
 MicroBlock::MicroBlock(const MicroBlockHeader& header,
                        const vector<TxnHash>& tranHashes, CoSignatures&& cosigs)
     : BlockBase{header.GetMyHash(), std::move(cosigs)},
@@ -90,12 +84,6 @@ MicroBlock::MicroBlock(const MicroBlockHeader& header,
                              << " is not equal to the size of m_tranHashes "
                              << m_tranHashes.size());
   }
-}
-
-const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }
-
-const vector<TxnHash>& MicroBlock::GetTranHashes() const {
-  return m_tranHashes;
 }
 
 bool MicroBlock::operator==(const MicroBlock& block) const {
