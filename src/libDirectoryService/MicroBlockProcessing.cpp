@@ -21,7 +21,6 @@
 
 #include "DirectoryService.h"
 #include "common/Constants.h"
-#include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"

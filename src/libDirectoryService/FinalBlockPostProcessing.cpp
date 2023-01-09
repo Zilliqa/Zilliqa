@@ -22,7 +22,6 @@
 #include "DirectoryService.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "common/Serializable.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
