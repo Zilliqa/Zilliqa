@@ -371,8 +371,12 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
 
   // LOG_GENERAL(INFO, blockString);
   // LOG_GENERAL(INFO, blockString.length());
+#if 0
   block = DSBlockSharedPtr(
       new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
+#endif
+  block = std::make_shared<DSBlock>();
+  block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -705,8 +709,13 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
       return false;
     }
 
+#if 0
     DSBlockSharedPtr block = DSBlockSharedPtr(
         new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
+#endif
+    auto block = std::make_shared<DSBlock>();
+    block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
+
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
   }

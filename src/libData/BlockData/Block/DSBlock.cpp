@@ -24,12 +24,14 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+#if 0
 // To-do: handle exceptions. Will be deprecated.
 DSBlock::DSBlock(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init DSBlock.");
   }
 }
+#endif
 
 DSBlock::DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs)
     : m_header(header) {
@@ -64,8 +66,6 @@ bool DSBlock::Deserialize(const string& src, unsigned int offset) {
 
   return true;
 }
-
-const DSBlockHeader& DSBlock::GetHeader() const { return m_header; }
 
 bool DSBlock::operator==(const DSBlock& block) const {
   return (m_header == block.m_header);

@@ -88,7 +88,8 @@ BOOST_AUTO_TEST_CASE(testSerializationDeserialization) {
   zbytes serializedDSBlock;
   block1.Serialize(serializedDSBlock, 0);
 
-  DSBlock block2(serializedDSBlock, 0);
+  DSBlock block2; //(serializedDSBlock, 0);
+  block2.Deserialize(serializedDSBlock, 0);
 
   BOOST_CHECK_MESSAGE(
       block2.GetHeader().GetBlockNum() == block1.GetHeader().GetBlockNum(),
