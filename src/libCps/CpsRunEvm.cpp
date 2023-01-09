@@ -123,6 +123,10 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     HandleApply(evmResult, receipt);
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
+    // Allow CPS to continune since caller may expect failures
+    if (GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate) {
+      return {TxnStatus::NOT_PRESENT, true, evmResult};
+    }
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }
@@ -319,7 +323,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     receipt.AddJsonEntry(entry);
   }
 
-  bool hasDeleteCase = false;
   // parse the return values from the call to evm.
   for (const auto& it : result.apply()) {
     Address address;
@@ -333,7 +336,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         }
         mAccountStore.SetBalanceAtomic(address, Amount::fromQa(0));
         mAccountStore.AddAddressToUpdateBufferAtomic(address);
-        hasDeleteCase = true;
         break;
       case evm::Apply::ApplyCase::kModify: {
         // Get the account that this apply instruction applies to
@@ -386,8 +388,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
         if (it.modify().has_balance()) {
           uint256_t balance = ProtoToUint(it.modify().balance());
-          if (result.exit_reason().succeed() == evm::ExitReason::SUICIDED ||
-              hasDeleteCase) {
+          if (result.exit_reason().succeed() == evm::ExitReason::SUICIDED) {
             LOG_GENERAL(WARNING, "Balance to be applied for account: "
                                      << address.hex() << ", val: "
                                      << balance.convert_to<std::string>());
