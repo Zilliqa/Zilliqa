@@ -22,15 +22,12 @@
 #include "libData/BlockData/BlockHeader/VCBlockHeader.h"
 
 /// Stores the VC header and signatures.
-class VCBlock : public BlockBase {
+class VCBlock final : public BlockBase {
   VCBlockHeader m_header;
 
  public:
   /// Default constructor.
-  VCBlock();  // creates a dummy invalid placeholder block
-
-  /// Constructor for loading VC block information from a byte stream.
-  VCBlock(const zbytes& src, unsigned int offset);
+  VCBlock() = default;  // creates a dummy invalid placeholder block
 
   /// Constructor with specified VC block parameters.
   VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs);
@@ -49,7 +46,7 @@ class VCBlock : public BlockBase {
                            unsigned int offset) override;
 
   /// Returns the reference to the VCBlockHeader part of the VC block.
-  const VCBlockHeader& GetHeader() const;
+  const VCBlockHeader& GetHeader() const noexcept { return m_header; }
 
   /// Equality comparison operator.
   bool operator==(const VCBlock& block) const;
@@ -63,11 +60,6 @@ class VCBlock : public BlockBase {
   friend std::ostream& operator<<(std::ostream& os, const VCBlock& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const VCBlock& t) {
-  const BlockBase& blockBase(t);
-
-  os << "<VCBlock>" << std::endl << blockBase << std::endl << t.m_header;
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const VCBlock& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_

@@ -20,6 +20,7 @@
 
 #include "libCrypto/CoSignatures.h"
 #include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
+#include "libUtils/TimeUtils.h"
 
 /// [TODO] Base class for all supported block data types
 class BlockBase : public SerializableDataBlock {
@@ -28,6 +29,13 @@ class BlockBase : public SerializableDataBlock {
   BlockHash m_blockHash;
   CoSignatures m_cosigs;
   uint64_t m_timestamp;
+
+  template <typename BlockHashT, typename CoSignaturesT>
+  BlockBase(BlockHashT&& blockHash, CoSignaturesT&& coSigs,
+            uint64_t timestamp = get_time_as_int())
+      : m_blockHash{std::forward<BlockHashT>(blockHash)},
+        m_cosigs{std::forward<CoSignaturesT>(coSigs)},
+        m_timestamp(timestamp) {}
 
  public:
   /// Default constructor.

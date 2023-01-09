@@ -24,21 +24,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-#if 0
-// To-do: handle exceptions. Will be deprecated.
-DSBlock::DSBlock(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init DSBlock.");
-  }
-}
-#endif
-
 DSBlock::DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs)
-    : m_header(header) {
-  m_cosigs = std::move(cosigs);
-  SetTimestamp(get_time_as_int());
-  SetBlockHash(m_header.GetMyHash());
-}
+    : BlockBase{header.GetMyHash(), std::move(cosigs)}, m_header(header) {}
 
 bool DSBlock::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetDSBlock(dst, offset, *this)) {

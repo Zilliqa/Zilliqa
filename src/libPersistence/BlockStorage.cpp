@@ -393,11 +393,8 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
     return false;
   }
 
-  // LOG_GENERAL(INFO, blockString);
-  // LOG_GENERAL(INFO, blockString.length());
-  block = VCBlockSharedPtr(
-      new VCBlock(zbytes(blockString.begin(), blockString.end()), 0));
-
+  block = std::make_shared<VCBlock>();
+  block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
   return true;
 }
 
@@ -876,8 +873,8 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
       return false;
     }
-    VCBlockSharedPtr block = VCBlockSharedPtr(
-        new VCBlock(zbytes(blockString.begin(), blockString.end()), 0));
+    auto block = std::make_shared<VCBlock>();
+    block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
     blocks.emplace_back(block);
     count++;
   }

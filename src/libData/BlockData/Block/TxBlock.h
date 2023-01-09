@@ -58,8 +58,8 @@ class TxBlock : public BlockBase {
 
  public:
   /// Default constructor.
-  TxBlock();  // creates a dummy invalid placeholder block -- blocknum is
-              // maxsize of uint256
+  TxBlock() = default;  // creates a dummy invalid placeholder block -- blocknum
+                        // is maxsize of uint256
 
   /// Constructor for loading Tx block information from a byte stream.
   TxBlock(const zbytes& src, unsigned int offset);

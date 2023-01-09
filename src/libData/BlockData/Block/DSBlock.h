@@ -30,11 +30,6 @@ class DSBlock : public BlockBase {
   DSBlock() = default;  // creates a dummy invalid placeholder block -- blocknum
                         // is maxsize of uint256
 
-#if 0
-  /// Constructor for loading DS block information from a byte stream.
-  DSBlock(const zbytes& src, unsigned int offset);
-#endif
-
   /// Constructor with specified DS block parameters.
   DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs);
 

@@ -51,9 +51,6 @@ bool TxBlock::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-// creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-TxBlock::TxBlock() {}
-
 TxBlock::TxBlock(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init TxBlock.");
@@ -62,11 +59,9 @@ TxBlock::TxBlock(const zbytes& src, unsigned int offset) {
 
 TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs)
-    : m_header(header), m_mbInfos(mbInfos) {
-  m_cosigs = std::move(cosigs);
-  SetTimestamp(get_time_as_int());
-  SetBlockHash(m_header.GetMyHash());
-}
+    : BlockBase{header.GetMyHash(), std::move(cosigs)},
+      m_header(header),
+      m_mbInfos(mbInfos) {}
 
 const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
 

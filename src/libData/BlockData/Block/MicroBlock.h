@@ -28,7 +28,7 @@ class MicroBlock : public BlockBase {
 
  public:
   /// Default constructor.
-  MicroBlock();  // creates a dummy invalid placeholder block -- blocknum is
+  MicroBlock() = default;  // creates a dummy invalid placeholder block -- blocknum is
                  // maxsize of uint256
 
   /// Constructor for loading existing microblock from a byte stream.

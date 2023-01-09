@@ -22,22 +22,8 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-// creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-VCBlock::VCBlock() {}
-
-// To-do: handle exceptions. Will be deprecated.
-VCBlock::VCBlock(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "Error. We failed to initialize VCBlock.");
-  }
-}
-
 VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
-    : m_header(header) {
-  m_cosigs = std::move(cosigs);
-  SetTimestamp(get_time_as_int());
-  SetBlockHash(m_header.GetMyHash());
-}
+    : BlockBase{header.GetMyHash(), std::move(cosigs)}, m_header(header) {}
 
 bool VCBlock::Serialize(zbytes& dst, unsigned int offset) const {
   if (!Messenger::SetVCBlock(dst, offset, *this)) {
@@ -66,8 +52,6 @@ bool VCBlock::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-const VCBlockHeader& VCBlock::GetHeader() const { return m_header; }
-
 bool VCBlock::operator==(const VCBlock& block) const {
   return (m_header == block.m_header);
 }
@@ -77,3 +61,11 @@ bool VCBlock::operator<(const VCBlock& block) const {
 }
 
 bool VCBlock::operator>(const VCBlock& block) const { return block < *this; }
+
+
+std::ostream& operator<<(std::ostream& os, const VCBlock& t) {
+  const BlockBase& blockBase(t);
+
+  os << "<VCBlock>" << std::endl << blockBase << std::endl << t.m_header;
+  return os;
+}

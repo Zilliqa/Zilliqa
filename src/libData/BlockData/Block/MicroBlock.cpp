@@ -73,9 +73,6 @@ bool MicroBlock::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-// creates a dummy invalid placeholder block -- blocknum is maxsize of uint256
-MicroBlock::MicroBlock() {}
-
 MicroBlock::MicroBlock(const zbytes& src, unsigned int offset) {
   if (!Deserialize(src, offset)) {
     LOG_GENERAL(WARNING, "We failed to init MicroBlock.");
@@ -84,17 +81,15 @@ MicroBlock::MicroBlock(const zbytes& src, unsigned int offset) {
 
 MicroBlock::MicroBlock(const MicroBlockHeader& header,
                        const vector<TxnHash>& tranHashes, CoSignatures&& cosigs)
-    : m_header(header), m_tranHashes(tranHashes) {
+    : BlockBase{header.GetMyHash(), std::move(cosigs)},
+      m_header(header),
+      m_tranHashes(tranHashes) {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
     LOG_GENERAL(WARNING, "Num of Txns get from header "
                              << m_header.GetNumTxs()
                              << " is not equal to the size of m_tranHashes "
                              << m_tranHashes.size());
   }
-
-  m_cosigs = std::move(cosigs);
-  SetTimestamp(get_time_as_int());
-  SetBlockHash(m_header.GetMyHash());
 }
 
 const MicroBlockHeader& MicroBlock::GetHeader() const { return m_header; }
