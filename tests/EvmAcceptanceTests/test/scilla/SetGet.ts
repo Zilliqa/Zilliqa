@@ -1,6 +1,4 @@
-/* deploy the SetGet contract and basic interactions   */
-
-import {deploy_from_file} from "../../helper/ScillaHelper";
+import {deploy_from_file, sc_call} from "../../helper/ScillaHelper";
 
 // async function run() {
 //   let tx = (sc = null);
@@ -40,12 +38,15 @@ describe("Scilla SetGet contract", function () {
     this.contract = sc;
   });
 
-  it("Should be deployed successfully", async function() {
+  it("Should be deployed successfully", async function () {
     expect(this.contract.address).to.be.properAddress;
   });
 
-  it("Should set state correctly", async function() {
-    const ret = await this.contract.Set(12);
-    expect(ret.value).to.be.eq('12');
+  it("Should set state correctly", async function () {
+    const VALUE = 12;
+    const args = [{vname: "v", type: "Uint128", value: VALUE.toString()}];
+    await sc_call(this.contract, "Set", args);
+    const state = await this.contract.getState();
+    expect(state.value).to.be.eq("12");
   });
 });

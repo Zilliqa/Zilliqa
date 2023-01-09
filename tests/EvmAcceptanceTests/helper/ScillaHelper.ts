@@ -2,13 +2,15 @@ import {Zilliqa} from "@zilliqa-js/zilliqa";
 import fs from "fs";
 import {BN, Long, units, bytes} from "@zilliqa-js/util";
 import {getAddressFromPrivateKey, getPubKeyFromPrivateKey} from "@zilliqa-js/crypto";
-import { Init } from "@zilliqa-js/contract";
+import {Init, Contract, Value} from "@zilliqa-js/contract";
 
 // chain setup on ceres locally run isolated server, see https://dev.zilliqa.com/docs/dev/dev-tools-ceres/. Keys and wallet setup
 const s = () => {
   let setup = {
     zilliqa: new Zilliqa("http://localhost:5555"),
     VERSION: bytes.pack(1, 1),
+    addresses: [],
+    pub_keys: [],
     priv_keys: [
       // b028055ea3bc78d759d10663da40d171dec992aa
       "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004",
@@ -32,18 +34,12 @@ exports.setup = setup;
 const tx_settings = {
   gas_price: units.toQa("2000", units.Units.Li),
   gas_limit: Long.fromNumber(50000),
-  attempts: Long.fromNumber(10),
+  attempts: 10,
   timeout: 1000
 };
 
-/* ---------------------------------------------------------------------------------------------------------------------------
-utility functions
---------------------------------------------------------------------------------------------------------------------------- */
-// read a file and return contents as a string
 function read(f: string) {
-  let t = fs.readFileSync(f, "utf8", (err, txt) => {
-    if (err) throw err;
-  });
+  let t = fs.readFileSync(f, "utf8");
   return t;
 }
 
@@ -58,34 +54,17 @@ export async function deploy_from_file(path: string, init: Init) {
     false
   );
 
-  sc.Set = async function(v: number) {
-    const args = [{vname: "v", type: "Uint128", value: v.toString()}];
-    await sc_call(sc, "Set", args);
-    const state = await sc.getState();
-    return state;
-  }
   return sc;
 }
 
-// deploy a scilla lib whose code is in a string
-// async function deploy_lib_from_file(path) {
-//   const lib_init = [
-//     {vname: "_scilla_version", type: "Uint32", value: "0"},
-//     {vname: "_library", type: "Bool", value: {constructor: "True", argtypes: [], arguments: []}}
-//   ];
-//   const code = read(path);
-//   const user_lib = setup.zilliqa.contracts.new(code, lib_init);
-//   return user_lib.deploy(
-//     // Deployment
-//     {version: setup.VERSION, gasPrice: tx_settings.gas_price, gasLimit: tx_settings.gas_limit},
-//     tx_settings.attempts,
-//     tx_settings.timeoute,
-//     false
-//   );
-// }
-
 // call a smart contract's transition with given args and an amount to send from a given public key
-export async function sc_call(sc, transition, args = [], amt = new BN(0), caller_pub_key = setup.pub_keys[0]) {
+export async function sc_call(
+  sc: Contract,
+  transition: string,
+  args: Value[] = [],
+  amt = new BN(0),
+  caller_pub_key = setup.pub_keys[0]
+) {
   return sc.call(
     transition,
     args,
