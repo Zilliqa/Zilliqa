@@ -3,7 +3,8 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import {execSync} from "child_process";
-import { glob } from "glob";
+import {glob} from "glob";
+import { updateContractsInfo as updateScillaContractsInfo } from "./ScillaContractProcessor";
 
 import yargs from "yargs/yargs";
 
@@ -130,6 +131,11 @@ task("test")
     return runSuper();
   });
 
+task("compile").setAction((taskArgs, hre, runSuper) => {
+  updateScillaContractsInfo();
+  return runSuper();
+});
+
 task("scilla-check", "Parsing scilla contracts and performing a number of static checks including typechecking.")
   .addParam("libdir", "Path to Scilla stdlib")
   .addOptionalVariadicPositionalParam("contracts", "An optional list of files to check", [])
@@ -148,7 +154,7 @@ task("scilla-check", "Parsing scilla contracts and performing a number of static
       } catch (error) {
         console.error("Failed to run scilla-checker");
       }
-    })
+    });
   });
 
 export default config;

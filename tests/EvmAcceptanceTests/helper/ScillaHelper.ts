@@ -3,6 +3,7 @@ import fs from "fs";
 import {BN, Long, units, bytes} from "@zilliqa-js/util";
 import {getAddressFromPrivateKey, getPubKeyFromPrivateKey} from "@zilliqa-js/crypto";
 import {Init, Contract, Value} from "@zilliqa-js/contract";
+import {scillaContracts, ContractInfo} from "../ScillaContractProcessor";
 
 // chain setup on ceres locally run isolated server, see https://dev.zilliqa.com/docs/dev/dev-tools-ceres/. Keys and wallet setup
 const s = () => {
@@ -41,6 +42,20 @@ const tx_settings = {
 function read(f: string) {
   let t = fs.readFileSync(f, "utf8");
   return t;
+}
+
+export async function deploy(contractName: string, init?: Init) {
+  let contractInfo: ContractInfo = scillaContracts[contractName];
+  if (contractInfo === undefined) {
+    throw new Error(`Scilla contract ${contractName} doesn't exist.`);
+  }
+
+  if (init) {
+    return deploy_from_file(contractInfo.path, init);
+  }else {
+    const init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
+    return deploy_from_file(contractInfo.path, init);
+  }
 }
 
 // deploy a smart contract whose code is in a file with given init arguments

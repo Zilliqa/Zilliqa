@@ -1,12 +1,11 @@
-import {deploy_from_file, sc_call} from "../../helper/ScillaHelper";
+import {deploy, sc_call} from "../../helper/ScillaHelper";
 import {Contract} from "@zilliqa-js/contract";
 import {expect} from "chai";
 
 describe("Scilla SetGet contract", function () {
   let contract: Contract;
   before(async function () {
-    const init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
-    contract = await deploy_from_file("contracts/scilla/SetGet.scilla", init);
+    contract = await deploy("SetGet");
   });
 
   it("Should be deployed successfully", async function () {
