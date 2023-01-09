@@ -15,7 +15,7 @@ use jsonrpc_core::Result;
 use primitive_types::*;
 use scillabackend::ScillaBackend;
 
-use crate::continuations::{Continuations};
+use crate::continuations::Continuations;
 use crate::cps_executor::{CpsCallInterrupt, CpsCreateInterrupt, CpsExecutor, CpsReason};
 use crate::precompiles::get_precompiles;
 use crate::protos::Evm as EvmProto;

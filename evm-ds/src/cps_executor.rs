@@ -1,8 +1,6 @@
 use std::collections::BTreeMap;
 
-use evm::executor::stack::{
-    MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor,
-};
+use evm::executor::stack::{MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor};
 
 use crate::protos::Evm as EvmProto;
 
@@ -295,12 +293,12 @@ impl<'a> Handler for CpsExecutor<'a> {
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CallInterrupt {
-                _code_address : code_address,
+                _code_address: code_address,
                 _transfer: transfer,
-                _input : input,
+                _input: input,
                 _target_gas: target_gas,
-                _is_static : is_static,
-                _context : context,
+                _is_static: is_static,
+                _context: context,
             }),
         }
     }

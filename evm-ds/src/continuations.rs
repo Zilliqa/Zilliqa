@@ -1,6 +1,6 @@
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap},
-    ops::Range
+    ops::Range,
 };
 
 use evm::{
