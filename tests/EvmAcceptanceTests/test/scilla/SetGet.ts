@@ -1,10 +1,5 @@
 import {deploy_from_file, sc_call} from "../../helper/ScillaHelper";
 import {Contract} from "@zilliqa-js/contract";
-import deepEqualInAnyOrder from "deep-equal-in-any-order";
-import chai from "chai";
-
-chai.use(deepEqualInAnyOrder);
-
 import {expect} from "chai";
 
 describe("Scilla SetGet contract", function () {
