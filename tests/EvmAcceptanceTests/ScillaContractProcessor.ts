@@ -1,8 +1,10 @@
 import {glob} from "glob";
 import fs from "fs";
+import path from "path";
 import {createHash} from "crypto";
 
-const CONTRACTS_INFO_CACHE_FILE = "./artifacts/scilla.json"
+// For some reason, hardhat deletes json files in artifacts, so it couldn't be scilla.json
+const CONTRACTS_INFO_CACHE_FILE = "./artifacts/scilla.cache"
 
 export interface ContractInfo {
   hash: string;
@@ -26,6 +28,7 @@ export const updateContractsInfo = () => {
 
   contractsInfo = loadContractsInfo();
   
+  let somethingChanged = false;
   files.forEach((file)=>{
     if (file in contractsInfo && contractsInfo[file].hash === getFileHash(file)) {
       return;   // Nothing to do
@@ -34,11 +37,14 @@ export const updateContractsInfo = () => {
     // Either the file is new or has been changed
     const contract = parseScillaFile(file);
     if (contract) {
+      somethingChanged = true;
       contractsInfo[file] = contract;
     }
   });
 
-  saveContractsInfo(contractsInfo);
+  if (somethingChanged) {
+    saveContractsInfo(contractsInfo);
+  }
 
   scillaContracts = convertToMapByName(contractsInfo);
 }
@@ -62,7 +68,7 @@ const loadContractsInfo = (): ContractMapByPath => {
 }
 
 const saveContractsInfo = (contracts: ContractMapByPath) => {
-  fs.writeFileSync(CONTRACTS_INFO_CACHE_FILE, JSON.stringify(contracts));
+  fs.writeFileSync(path.join(__dirname, CONTRACTS_INFO_CACHE_FILE), JSON.stringify(contracts));
 }
 
 const getFileHash = (fileName: string): string => {
