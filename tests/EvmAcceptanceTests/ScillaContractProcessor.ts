@@ -10,6 +10,7 @@ export interface ContractInfo {
   hash: string;
   name: string;
   path: string;
+  transitions: string[];
 }
 
 type ContractName = string;
@@ -84,11 +85,16 @@ const parseScillaFile = (fileName: string): ContractInfo | null => {
   const hashSum = createHash('md5');
   hashSum.update(contents);
 
-  const contractNameRegex = /^contract (?<contractName>.+)$/gm;
-  const contractNames: string[] = []
+  const contractNameRegex = /^(contract (?<contractName>.+)$)|(transition (?<transitionName>[^\(]+))/gm;
+  const contractNames: string[] = [];
+  const transitions: string[] = [];
   for ( const m of contents.matchAll(contractNameRegex)) {
-    if (m.groups) {
-      contractNames.push(m.groups.contractName);
+    if (m.groups){
+      if (m.groups.contractName){
+        contractNames.push(m.groups.contractName);
+      } else if (m.groups.transitionName) {
+        transitions.push(m.groups.transitionName);
+      }
     }
   }
 
@@ -100,5 +106,5 @@ const parseScillaFile = (fileName: string): ContractInfo | null => {
     throw new Error(`More than one contract is found in ${fileName}`);
   }
 
-  return {name: contractNames[0], hash: hashSum.digest("hex"), path: fileName};
+  return {name: contractNames[0], hash: hashSum.digest("hex"), path: fileName, transitions: transitions};
 }

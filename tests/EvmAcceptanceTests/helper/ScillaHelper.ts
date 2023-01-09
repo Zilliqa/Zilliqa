@@ -50,16 +50,25 @@ export async function deploy(contractName: string, init?: Init) {
     throw new Error(`Scilla contract ${contractName} doesn't exist.`);
   }
 
+  let sc: Contract; 
   if (init) {
-    return deploy_from_file(contractInfo.path, init);
+    sc = await deploy_from_file(contractInfo.path, init);
   }else {
     const init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
-    return deploy_from_file(contractInfo.path, init);
+    sc = await deploy_from_file(contractInfo.path, init);
   }
+
+  contractInfo.transitions.forEach(transition => {
+    sc[transition] = async (args: Value[] = []) => {
+      return sc_call(sc, transition, args);
+    }
+  });
+
+  return sc;
 }
 
 // deploy a smart contract whose code is in a file with given init arguments
-export async function deploy_from_file(path: string, init: Init) {
+async function deploy_from_file(path: string, init: Init) {
   const code = read(path);
   const contract = setup.zilliqa.contracts.new(code, init);
   let [_, sc] = await contract.deploy(
