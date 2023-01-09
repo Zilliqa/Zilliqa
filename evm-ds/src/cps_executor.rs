@@ -41,6 +41,8 @@ pub struct CpsCallInterrupt {
     _target_gas: Option<u64>,
     _is_static: bool,
     _context: Context,
+    _memory_offset: U256,
+    _offset_len: U256,
 }
 
 pub struct CpsCallFeedback {}
@@ -280,6 +282,8 @@ impl<'a> Handler for CpsExecutor<'a> {
         target_gas: Option<u64>,
         is_static: bool,
         context: Context,
+        memory_offset: U256,
+        offset_len: U256,
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
         let result = self.stack_executor.call(
             code_address,
@@ -288,6 +292,8 @@ impl<'a> Handler for CpsExecutor<'a> {
             target_gas,
             is_static,
             context.clone(),
+            memory_offset,
+            offset_len,
         );
 
         match result {
@@ -299,6 +305,8 @@ impl<'a> Handler for CpsExecutor<'a> {
                 _target_gas: target_gas,
                 _is_static: is_static,
                 _context: context,
+                _memory_offset: memory_offset,
+                _offset_len: offset_len,
             }),
         }
     }

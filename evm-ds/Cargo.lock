@@ -163,11 +163,12 @@ dependencies = [
 
 [[package]]
 name = "bstr"
-version = "0.2.17"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ba3569f383e8f1598449f1a423e72e99569137b47740b1da11ef19af3d5c3223"
+checksum = "b45ea9b00a7b3f2988e9a65ad3917e62123c38dba709b666506207be96d1790b"
 dependencies = [
  "memchr",
+ "serde",
 ]
 
 [[package]]
@@ -374,9 +375,9 @@ dependencies = [
 
 [[package]]
 name = "cxx"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5add3fc1717409d029b20c5b6903fc0c0b02fa6741d820054f4a2efa5e5816fd"
+checksum = "51d1075c37807dcf850c379432f0df05ba52cc30f279c5cfc43cc221ce7f8579"
 dependencies = [
  "cc",
  "cxxbridge-flags",
@@ -386,9 +387,9 @@ dependencies = [
 
 [[package]]
 name = "cxx-build"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b4c87959ba14bc6fbc61df77c3fcfe180fc32b93538c4f1031dd802ccb5f2ff0"
+checksum = "5044281f61b27bc598f2f6647d480aed48d2bf52d6eb0b627d84c0361b17aa70"
 dependencies = [
  "cc",
  "codespan-reporting",
@@ -401,15 +402,15 @@ dependencies = [
 
 [[package]]
 name = "cxxbridge-flags"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "69a3e162fde4e594ed2b07d0f83c6c67b745e7f28ce58c6df5e6b6bef99dfb59"
+checksum = "61b50bc93ba22c27b0d31128d2d130a0a6b3d267ae27ef7e4fae2167dfe8781c"
 
 [[package]]
 name = "cxxbridge-macro"
-version = "1.0.85"
+version = "1.0.86"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3e7e2adeb6a0d4a282e581096b06e1791532b7d576dcde5ccd9382acf55db8e6"
+checksum = "39e61fda7e62115119469c7b3591fd913ecca96fb766cfd3f2e2502ab7bc87a5"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -575,7 +576,7 @@ dependencies = [
 [[package]]
 name = "evm"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#28054a170cc93cfc23b8b64c4fd4154f09cea01c"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#de594fa761e7595e0a4c2b3238fe1adc8838dc52"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -595,7 +596,7 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#28054a170cc93cfc23b8b64c4fd4154f09cea01c"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#de594fa761e7595e0a4c2b3238fe1adc8838dc52"
 dependencies = [
  "parity-scale-codec",
  "primitive-types 0.12.1",
@@ -644,7 +645,7 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#28054a170cc93cfc23b8b64c4fd4154f09cea01c"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#de594fa761e7595e0a4c2b3238fe1adc8838dc52"
 dependencies = [
  "environmental",
  "evm-core",
@@ -655,7 +656,7 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.37.0"
-source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#28054a170cc93cfc23b8b64c4fd4154f09cea01c"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#de594fa761e7595e0a4c2b3238fe1adc8838dc52"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -887,9 +888,9 @@ dependencies = [
 
 [[package]]
 name = "globset"
-version = "0.4.9"
+version = "0.4.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0a1e17342619edbc21a964c2afbeb6c820c6a2560032872f397bb97ea127bd0a"
+checksum = "029d74589adefde59de1a0c4f4732695c32805624aec7b68d91503d4dba79afc"
 dependencies = [
  "aho-corasick",
  "bstr",
@@ -2659,9 +2660,9 @@ checksum = "cda74da7e1a664f795bb1f8a87ec406fb89a02522cf6e50620d016add6dbbf5c"
 
 [[package]]
 name = "tokio"
-version = "1.23.0"
+version = "1.24.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eab6d665857cc6ca78d6e80303a02cea7a7851e85dfbd77cbdc09bd129f1ef46"
+checksum = "1d9f76183f91ecfb55e1d7d5602bd1d979e38a3a522fe900241cf195624d67ae"
 dependencies = [
  "autocfg 1.1.0",
  "bytes 1.3.0",
@@ -2862,9 +2863,9 @@ dependencies = [
 
 [[package]]
 name = "try-lock"
-version = "0.2.3"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "59547bce71d9c38b83d9c0e92b6066c4253371f15005def0c30d9657f50c7642"
+checksum = "3528ecfd12c466c6f163363caf2d02a71161dd5e1cc6ae7b34207ea2d42d81ed"
 
 [[package]]
 name = "typeable"
