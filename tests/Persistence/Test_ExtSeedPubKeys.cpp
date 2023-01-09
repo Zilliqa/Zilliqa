@@ -15,10 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
-#include <string>
-#include <thread>
-#include <vector>
 
 #include "libPersistence/BlockStorage.h"
 #include "libTestUtils/TestUtils.h"

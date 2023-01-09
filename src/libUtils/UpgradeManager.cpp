@@ -17,12 +17,10 @@
 
 #include "UpgradeManager.h"
 #include <MultiSig.h>
-#include <sys/wait.h>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 #include <boost/tokenizer.hpp>
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 
 using namespace std;

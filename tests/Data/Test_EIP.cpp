@@ -17,13 +17,11 @@
 
 #include <array>
 #include <string>
-#include <thread>
 #include <vector>
 #include "libServer/AddressChecksum.h"
 
 #define BOOST_TEST_MODULE testeip
 #define BOOST_TEST_DYN_LINK
-#include <boost/algorithm/string.hpp>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;

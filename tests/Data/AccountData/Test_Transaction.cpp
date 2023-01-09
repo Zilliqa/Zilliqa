@@ -17,7 +17,6 @@
 
 #include <Schnorr.h>
 #include <array>
-#include <string>
 #include <vector>
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"

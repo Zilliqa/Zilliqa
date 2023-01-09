@@ -19,13 +19,10 @@
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libTestUtils/TestUtils.h"
-#include "libUtils/DataConversion.h"
-#include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/UpgradeManager.h"
 

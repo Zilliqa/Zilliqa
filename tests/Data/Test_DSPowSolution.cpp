@@ -17,7 +17,6 @@
 
 #include <string>
 #include <vector>
-#include "common/Constants.h"
 #include "libData/AccountData/Account.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libTestUtils/TestUtils.h"

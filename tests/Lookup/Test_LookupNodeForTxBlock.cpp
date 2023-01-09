@@ -16,9 +16,6 @@
  */
 
 #include <arpa/inet.h>
-#include <array>
-#include <string>
-#include <thread>
 #include <vector>
 
 #include <Schnorr.h>
@@ -26,12 +23,10 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "common/Serializable.h"
-#include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/BlockData/Block.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
-#include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE lookupnodetxblocktest
 #define BOOST_TEST_DYN_LINK

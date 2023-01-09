@@ -16,7 +16,6 @@
  */
 
 #include <libPOW/pow.h>
-#include <iomanip>
 
 #ifdef _WIN32
 #include <Shlobj.h>

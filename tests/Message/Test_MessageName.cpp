@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <limits>
-#include <random>
 #include "common/MessageNames.h"
 #include "libUtils/Logger.h"
 #include "libZilliqa/Zilliqa.h"

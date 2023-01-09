@@ -16,14 +16,11 @@
  */
 
 #include <arpa/inet.h>
-#include <cstring>
 #include <iostream>
 
 #include <boost/algorithm/string/join.hpp>
 #include <boost/program_options.hpp>
 
-#include "common/Constants.h"
-#include "common/Messages.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/IPConverter.h"

@@ -15,8 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
-#include <string>
 
 #define BOOST_TEST_MODULE accountstoretest
 #define BOOST_TEST_DYN_LINK
@@ -27,9 +25,7 @@
 #include "libData/AccountData/Address.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SysCommand.h"
 
-#include "../ScillaTestUtil.h"
 
 TxnExtras GetDefaultTxnExtras() {
   TxnExtras extras{GAS_PRICE_MIN_VALUE * EVM_ZIL_SCALING_FACTOR, 1664226846,

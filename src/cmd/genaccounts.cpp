@@ -17,7 +17,6 @@
 
 #include <boost/algorithm/hex.hpp>
 #include <boost/program_options.hpp>
-#include <cstring>
 
 #include <Schnorr.h>
 #include "libData/AccountData/Address.h"

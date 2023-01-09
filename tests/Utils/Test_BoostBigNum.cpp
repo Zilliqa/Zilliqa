@@ -27,7 +27,6 @@
 
 #include "common/Constants.h"
 #include "common/Serializable.h"
-#include "libNetwork/Peer.h"
 
 #define BOOST_TEST_MODULE utils
 #define BOOST_TEST_DYN_LINK

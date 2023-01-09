@@ -15,11 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <boost/algorithm/string/predicate.hpp>
 #include <chrono>
-#include <ctime>
 #include <iomanip>
-#include <iostream>
 
 #include "common/Serializable.h"
 #include "ethash/ethash.hpp"

@@ -16,7 +16,6 @@
  */
 
 #include <arpa/inet.h>
-#include <string>
 #include "libNetwork/Guard.h"
 #include "libUtils/Logger.h"
 

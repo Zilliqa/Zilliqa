@@ -15,13 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
-#include <string>
-#include <vector>
 
 #include "libData/BlockData/Block.h"
 #include "libPersistence/BlockStorage.h"
-#include "libUtils/TimeUtils.h"
 
 #define BOOST_TEST_MODULE persistencetest
 #include <boost/test/included/unit_test.hpp>

@@ -15,14 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <sys/stat.h>
-#include <sys/syscall.h>
 #include <unistd.h>
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 #include <leveldb/db.h>

@@ -19,7 +19,6 @@
  * https://www.gnu.org/software/libc/manual/html_node/Error-Codes.html */
 
 #include <arpa/inet.h>
-#include <errno.h>
 #include <event2/buffer.h>
 #include <event2/bufferevent.h>
 #include <event2/event-config.h>

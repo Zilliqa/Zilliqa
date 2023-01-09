@@ -18,15 +18,12 @@
 #include <Schnorr.h>
 #include <array>
 #include <fstream>
-#include <string>
-#include <vector>
 #include "common/Constants.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libPersistence/BlockStorage.h"
 #include "libTestUtils/TestUtils.h"
-#include "libUtils/TimeUtils.h"
 
 #include <boost/filesystem.hpp>
 

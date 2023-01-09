@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <type_traits>
 
 #include "libMessage/MessengerAccountStoreBase.h"
 #include "libUtils/Logger.h"

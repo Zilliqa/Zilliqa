@@ -16,7 +16,6 @@
  */
 
 #include <algorithm>
-#include <vector>
 
 #include "common/Constants.h"
 #include "libPersistence/BlockStorage.h"

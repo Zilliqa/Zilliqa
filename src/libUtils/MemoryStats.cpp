@@ -21,7 +21,6 @@
 #ifndef __APPLE__
 #include "sys/sysinfo.h"
 #endif
-#include "sys/types.h"
 
 using namespace std;
 int parseLine(char* line) {

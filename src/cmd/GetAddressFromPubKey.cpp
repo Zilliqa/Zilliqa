@@ -15,18 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
-#include <chrono>
 #include <functional>
 #include <iostream>
-#include <thread>
 
 #include <boost/program_options.hpp>
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "common/Messages.h"
-#include "common/Serializable.h"
 #include "libData/AccountData/Address.h"
 #include "libUtils/CryptoUtils.h"
 #include "libUtils/Logger.h"

@@ -17,12 +17,9 @@
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "common/Messages.h"
-#include "libRumorSpreading/MemberID.h"
 #include "libRumorSpreading/Message.h"
 #include "libRumorSpreading/NetworkConfig.h"
 #include "libRumorSpreading/RumorHolder.h"
-#include "libRumorSpreading/RumorSpreadingInterface.h"
 #include "libRumorSpreading/RumorStateMachine.h"
 #include "libTestUtils/TestUtils.h"
 

@@ -18,7 +18,6 @@
 #include <Schnorr.h>
 #include <iostream>
 
-#include "common/Constants.h"
 #include "common/Serializable.h"
 
 using namespace std;

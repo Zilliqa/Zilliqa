@@ -18,7 +18,6 @@
 #include <boost/filesystem.hpp>
 #include <climits>
 #include <fstream>
-#include <string>
 #include <vector>
 
 #include <boost/program_options.hpp>

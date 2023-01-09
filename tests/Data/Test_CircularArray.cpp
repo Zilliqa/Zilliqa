@@ -16,8 +16,6 @@
  */
 
 #include <setjmp.h>
-#include <array>
-#include <string>
 
 #include <signal.h>
 #include "libData/DataStructures/CircularArray.h"

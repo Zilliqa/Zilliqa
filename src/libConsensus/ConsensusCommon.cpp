@@ -17,13 +17,11 @@
 
 #include "ConsensusCommon.h"
 #include "common/Constants.h"
-#include "common/Messages.h"
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libMessage/Messenger.h"
 #include "libMessage/ZilliqaMessage.pb.h"
 #pragma GCC diagnostic pop
-#include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 

@@ -17,17 +17,14 @@
 
 #include <Schnorr.h>
 #include <string>
-#include "libData/BlockData/Block.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/Logger.h"
-#include "libUtils/SWInfo.h"
 
 #define BOOST_TEST_MODULE determinebyzantinenodes
 #define BOOST_TEST_DYN_LINK
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
-#include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
 #include <boost/test/unit_test.hpp>
 

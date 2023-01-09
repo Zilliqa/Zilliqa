@@ -15,16 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <arpa/inet.h>
 #include <array>
-#include <string>
-#include <thread>
-#include <vector>
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "common/Messages.h"
-#include "common/Serializable.h"
 #include "libMediator/Mediator.h"
 #include "libNode/Node.h"
 

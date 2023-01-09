@@ -15,14 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <leveldb/db.h>
 #include <string>
 
 #include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
 #include "libData/AccountData/Account.h"
-#include "libData/DataStructures/TraceableDB.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 

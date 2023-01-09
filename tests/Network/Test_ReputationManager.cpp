@@ -23,7 +23,6 @@
 #define BOOST_TEST_MODULE ReputationManager
 #define BOOST_TEST_DYN_LINK
 #include <arpa/inet.h>
-#include <limits.h>
 #include <boost/test/unit_test.hpp>
 
 using namespace std;

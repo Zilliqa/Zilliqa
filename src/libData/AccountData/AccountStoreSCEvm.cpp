@@ -26,7 +26,6 @@
 #include "common/Constants.h"
 #include "libCrypto/EthCrypto.h"
 #include "libEth/utils/EthUtils.h"
-#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
@@ -34,7 +33,6 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/TxnExtras.h"
 
 template <class MAP>
 void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //

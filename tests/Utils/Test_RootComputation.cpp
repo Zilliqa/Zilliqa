@@ -15,12 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <Schnorr.h>
-#include "common/Serializable.h"
 #include "libData/AccountData/Transaction.h"
 #include "libNode/RootComputation.h"
 #include "libUtils/DataConversion.h"
 
-#include <cstdint>
 #include <vector>
 
 #define BOOST_TEST_MODULE utils

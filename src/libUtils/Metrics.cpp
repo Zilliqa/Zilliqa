@@ -17,10 +17,8 @@
 
 #include "Metrics.h"
 #include <chrono>
-#include <map>
 #include <memory>
 #include <thread>
-#include <vector>
 #include "Logger.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 

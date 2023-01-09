@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "common/Constants.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
@@ -28,7 +27,6 @@
 #include <boost/test/unit_test.hpp>
 #pragma GCC diagnostic pop
 
-#include <map>
 #include <vector>
 
 using namespace std;

@@ -16,12 +16,9 @@
  */
 
 #include <arpa/inet.h>
-#include <errno.h>
 #include <netinet/in.h>
 #include <stdint.h>
 #include <sys/socket.h>
-#include <unistd.h>
-#include <cstring>
 #include <exception>
 #include <fstream>
 #include <random>
@@ -34,7 +31,6 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libData/BlockData/Block.h"
 #include "libMediator/Mediator.h"
@@ -54,7 +50,6 @@
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/RandomGenerator.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/SysCommand.h"
 
 using namespace std;
 using namespace boost::multiprecision;

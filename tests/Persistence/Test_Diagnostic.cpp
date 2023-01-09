@@ -16,7 +16,6 @@
  */
 
 #include <array>
-#include <string>
 #include <vector>
 
 #include "libPersistence/BlockStorage.h"

@@ -15,19 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
 #include <boost/program_options.hpp>
-#include <chrono>
 #include <functional>
 #include <iostream>
-#include <thread>
 
 #include <Schnorr.h>
-#include "common/Constants.h"
-#include "common/Messages.h"
-#include "common/Serializable.h"
-#include "libData/AccountData/Address.h"
-#include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
 
 #define SUCCESS 0

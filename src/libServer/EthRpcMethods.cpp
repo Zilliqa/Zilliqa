@@ -18,7 +18,6 @@
 #include <jsonrpccpp/common/exception.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/format.hpp>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <ethash/keccak.hpp>
 #include <stdexcept>
 #include "JSONConversion.h"

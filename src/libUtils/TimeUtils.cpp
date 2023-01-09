@@ -16,7 +16,6 @@
  */
 
 #include "TimeUtils.h"
-#include <mutex>
 #include "depends/common/CommonIO.h"
 
 using namespace std::chrono;

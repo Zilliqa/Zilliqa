@@ -33,7 +33,6 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/test/unit_test.hpp>
-#include <fstream>
 #include <iostream>
 #include <vector>
 #include "libTestUtils/TestUtils.h"
