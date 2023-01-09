@@ -61,9 +61,6 @@ class TxBlock : public BlockBase {
   TxBlock() = default;  // creates a dummy invalid placeholder block -- blocknum
                         // is maxsize of uint256
 
-  /// Constructor for loading Tx block information from a byte stream.
-  TxBlock(const zbytes& src, unsigned int offset);
-
   /// Constructor with specified Tx block parameters.
   TxBlock(const TxBlockHeader& header,
           const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
@@ -79,10 +76,12 @@ class TxBlock : public BlockBase {
                            unsigned int offset) override;
 
   /// Returns the reference to the TxBlockHeader part of the Tx block.
-  const TxBlockHeader& GetHeader() const;
+  const TxBlockHeader& GetHeader() const noexcept { return m_header; }
 
   /// Returns the vector of MicroBlockInfo.
-  const std::vector<MicroBlockInfo>& GetMicroBlockInfos() const;
+  const std::vector<MicroBlockInfo>& GetMicroBlockInfos() const noexcept {
+    return m_mbInfos;
+  }
 
   /// Equality comparison operator.
   bool operator==(const TxBlock& block) const;

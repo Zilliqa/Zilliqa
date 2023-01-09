@@ -15,11 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <utility>
-
 #include "TxBlock.h"
 #include "libMessage/Messenger.h"
-#include "libUtils/Logger.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -51,23 +48,11 @@ bool TxBlock::Deserialize(const string& src, unsigned int offset) {
   return true;
 }
 
-TxBlock::TxBlock(const zbytes& src, unsigned int offset) {
-  if (!Deserialize(src, offset)) {
-    LOG_GENERAL(WARNING, "We failed to init TxBlock.");
-  }
-}
-
 TxBlock::TxBlock(const TxBlockHeader& header,
                  const vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs)
     : BlockBase{header.GetMyHash(), std::move(cosigs)},
       m_header(header),
       m_mbInfos(mbInfos) {}
-
-const TxBlockHeader& TxBlock::GetHeader() const { return m_header; }
-
-const std::vector<MicroBlockInfo>& TxBlock::GetMicroBlockInfos() const {
-  return m_mbInfos;
-}
 
 bool TxBlock::operator==(const TxBlock& block) const {
   return ((m_header == block.m_header) && (m_mbInfos == block.m_mbInfos));

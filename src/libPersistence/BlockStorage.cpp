@@ -493,8 +493,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
     return false;
   }
 
-  block = TxBlockSharedPtr(
-      new TxBlock(zbytes(blockString.begin(), blockString.end()), 0));
+  block = std::make_shared<TxBlock>();
+  block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -843,8 +843,8 @@ bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
       return false;
     }
-    TxBlockSharedPtr block = TxBlockSharedPtr(
-        new TxBlock(zbytes(blockString.begin(), blockString.end()), 0));
+    auto block = std::make_shared<TxBlock>();
+    block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
     blocks.emplace_back(block);
     count++;
   }
@@ -1985,7 +1985,8 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
       // There's nothing more to do at this point
       break;
     }
-    const TxBlock block{{blockContent.begin(), blockContent.end()}, 0};
+    TxBlock block;
+    block.Deserialize(zbytes{blockContent.begin(), blockContent.end()}, 0);
 
     m_txBlockHashToNumDB->Insert(block.GetBlockHash(),
                                  std::to_string(currBlock));

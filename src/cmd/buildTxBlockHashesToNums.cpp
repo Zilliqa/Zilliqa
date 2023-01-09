@@ -53,7 +53,8 @@ int main(int argc, char* argv[]) {
   for (it->SeekToFirst(); it->Valid(); it->Next()) {
     const uint64_t blockNum = std::stoull(it->key().ToString());
     const auto blockString = txBlockchainDB.Lookup(blockNum);
-    const TxBlock block{zbytes(blockString.begin(), blockString.end()), 0};
+    TxBlock block;
+    block.Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
     txBlockHashToNumDB.Insert(block.GetBlockHash(), std::to_string(blockNum));
     maxKnownBlockNum = std::max(maxKnownBlockNum, blockNum);
   }
