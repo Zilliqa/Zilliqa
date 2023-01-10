@@ -285,6 +285,19 @@ impl<'a> Handler for CpsExecutor<'a> {
         memory_offset: U256,
         offset_len: U256,
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
+        if self.enable_cps {
+            return Capture::Trap(Self::CallInterrupt {
+                code_address,
+                transfer,
+                input,
+                target_gas,
+                is_static,
+                context,
+                memory_offset,
+                offset_len,
+            });
+        }
+
         let result = self.stack_executor.call(
             code_address,
             transfer.clone(),
