@@ -37,14 +37,6 @@ bool BlockHeaderBase::operator==(const BlockHeaderBase& header) const {
          std::tie(header.m_version, header.m_committeeHash, header.m_prevHash);
 }
 
-bool BlockHeaderBase::operator<(const BlockHeaderBase& header) const {
-  return m_version < header.m_version;
-}
-
-bool BlockHeaderBase::operator>(const BlockHeaderBase& header) const {
-  return header < *this;
-}
-
 std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
   os << "<BlockHeaderBase>" << std::endl
      << " m_version       = " << t.GetVersion() << std::endl

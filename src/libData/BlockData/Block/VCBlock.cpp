@@ -137,12 +137,6 @@ bool VCBlock::operator==(const VCBlock& block) const {
   return (m_header == block.m_header);
 }
 
-bool VCBlock::operator<(const VCBlock& block) const {
-  return block.m_header > m_header;
-}
-
-bool VCBlock::operator>(const VCBlock& block) const { return block < *this; }
-
 std::ostream& operator<<(std::ostream& os, const VCBlock& t) {
   const BlockBase& blockBase(t);
 

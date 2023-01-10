@@ -136,12 +136,6 @@ bool DSBlock::operator==(const DSBlock& block) const {
   return (m_header == block.m_header);
 }
 
-bool DSBlock::operator<(const DSBlock& block) const {
-  return block.m_header > m_header;
-}
-
-bool DSBlock::operator>(const DSBlock& block) const { return block < *this; }
-
 std::ostream& operator<<(std::ostream& os, const DSBlock& t) {
   const BlockBase& blockBase(t);
 

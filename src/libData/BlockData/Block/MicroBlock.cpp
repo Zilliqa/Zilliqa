@@ -173,15 +173,6 @@ bool MicroBlock::operator==(const MicroBlock& block) const {
   return ((m_header == block.m_header) && (m_tranHashes == block.m_tranHashes));
 }
 
-bool MicroBlock::operator<(const MicroBlock& block) const {
-  return std::tie(block.m_header, block.m_tranHashes) >
-         std::tie(m_header, m_tranHashes);
-}
-
-bool MicroBlock::operator>(const MicroBlock& block) const {
-  return block < *this;
-}
-
 std::ostream& operator<<(std::ostream& os, const MicroBlock& t) {
   const BlockBase& blockBase(t);
 

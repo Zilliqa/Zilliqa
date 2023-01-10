@@ -126,14 +126,6 @@ bool DSBlockHeader::operator==(const DSBlockHeader& header) const {
                    header.m_removeDSNodePubkeys));
 }
 
-bool DSBlockHeader::operator<(const DSBlockHeader& header) const {
-  return m_blockNum < header.m_blockNum;
-}
-
-bool DSBlockHeader::operator>(const DSBlockHeader& header) const {
-  return header < *this;
-}
-
 std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
   const BlockHeaderBase& blockHeaderBase(t);
 

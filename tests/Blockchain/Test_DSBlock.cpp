@@ -110,26 +110,6 @@ BOOST_AUTO_TEST_CASE(DSBlock_CompareEqual) {
   BOOST_CHECK_EQUAL(block2, block3);
 }
 
-BOOST_AUTO_TEST_CASE(DSBlock_CompareGreaterLessThan) {
-  DSBlockHeader blockHeader1{4,           2,          PubKey{}, 9,  10, 0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-  DSBlockHeader blockHeader2{4,           2,          PubKey{}, 10, 10, 0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  CoSignatures coSigs1{3};
-  DSBlock block1{blockHeader1, coSigs1, 1111};
-
-  CoSignatures coSigs2{9};
-  DSBlock block2{blockHeader2, coSigs2, 9983};
-
-  BOOST_CHECK_LT(block1, block2);
-  BOOST_CHECK_GT(block2, block1);
-}
-
 BOOST_AUTO_TEST_CASE(Test_Serialization) {
   zbytes serialized[3] = {
       {10,  201, 3,   10,  70,  8,   1,   18,  32,  187, 187, 187, 187, 187,

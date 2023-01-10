@@ -83,12 +83,6 @@ class TxBlock final : public BlockBase {
 
   /// Equality comparison operator.
   bool operator==(const TxBlock& block) const;
-
-  /// Less-than comparison operator.
-  bool operator<(const TxBlock& block) const;
-
-  /// Greater-than comparison operator.
-  bool operator>(const TxBlock& block) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const TxBlock& t);

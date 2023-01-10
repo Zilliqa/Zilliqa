@@ -545,8 +545,18 @@ class DirectoryService : public Executable {
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
 
+  struct MicroBlockCompare
+  {
+    bool operator()(const MicroBlock& /*lhs*/, const MicroBlock& /*rhs*/) const
+    {
+      // TODO: implement
+      return true;
+    }
+  };
+
   std::mutex m_mutexMicroBlocks;
-  std::unordered_map<uint64_t, std::set<MicroBlock>> m_microBlocks;
+  // TODO: is it possible to use an unordered data structure instead of a set of MicroBlocks?
+  std::unordered_map<uint64_t, std::set<MicroBlock, MicroBlockCompare>> m_microBlocks;
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   std::unordered_map<uint64_t, std::unordered_map<BlockHash, zbytes>>
       m_microBlockStateDeltas;

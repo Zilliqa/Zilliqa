@@ -195,13 +195,6 @@ bool TxBlock::operator==(const TxBlock& block) const {
   return ((m_header == block.m_header) && (m_mbInfos == block.m_mbInfos));
 }
 
-bool TxBlock::operator<(const TxBlock& block) const {
-  return std::tie(block.m_header, block.m_mbInfos) >
-         std::tie(m_header, m_mbInfos);
-}
-
-bool TxBlock::operator>(const TxBlock& block) const { return block < *this; }
-
 std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t) {
   os << "<MicroBlockInfo>" << std::endl
      << " t.m_microBlockHash = " << t.m_microBlockHash << std::endl

@@ -124,12 +124,6 @@ class DSBlockHeader final : public BlockHeaderBase {
   /// Equality operator.
   bool operator==(const DSBlockHeader& header) const;
 
-  /// Less-than comparison operator.
-  bool operator<(const DSBlockHeader& header) const;
-
-  /// Greater-than comparison operator.
-  bool operator>(const DSBlockHeader& header) const;
-
   friend std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t);
 };
 

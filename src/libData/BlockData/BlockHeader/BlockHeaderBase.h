@@ -54,8 +54,6 @@ class BlockHeaderBase : public SerializableDataBlock {
 
   // Operators
   bool operator==(const BlockHeaderBase& header) const;
-  bool operator<(const BlockHeaderBase& header) const;
-  bool operator>(const BlockHeaderBase& header) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);

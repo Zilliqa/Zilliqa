@@ -118,46 +118,6 @@ BOOST_AUTO_TEST_CASE(DSBlockHeader_CompareEqual) {
   BOOST_CHECK_EQUAL(DSBlockHeader{}, DSBlockHeader{});
 }
 
-BOOST_AUTO_TEST_CASE(DSBlockHeader_CompareGreaterLessThan) {
-  DSBlockHeader blockHeader1{4,           2,          PubKey{}, 9,  10, 0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-  DSBlockHeader blockHeader2{4,           2,          PubKey{}, 10, 10, 0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-  DSBlockHeader blockHeader3{4,           2,          PubKey{}, 11, 3,  0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  DSBlockHeader blockHeader4{2,           2,          PubKey{}, 12, 2,  0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  DSBlockHeader blockHeader5{1,           2,          PubKey{}, 99, 1,  0,
-                             SWInfo{},    {},         {},       {}, {},
-                             0,  // version
-                             BlockHash{}, BlockHash{}};
-
-  BOOST_CHECK_LT(blockHeader1, blockHeader2);
-  BOOST_CHECK_GT(blockHeader2, blockHeader1);
-
-  BOOST_CHECK_LT(blockHeader2, blockHeader3);
-  BOOST_CHECK_GT(blockHeader3, blockHeader2);
-
-  BOOST_CHECK_LT(blockHeader3, blockHeader4);
-  BOOST_CHECK_GT(blockHeader4, blockHeader3);
-
-  BOOST_CHECK_LT(blockHeader4, blockHeader5);
-  BOOST_CHECK_GT(blockHeader5, blockHeader4);
-
-  BOOST_CHECK_LT(blockHeader1, blockHeader5);
-  BOOST_CHECK_GT(blockHeader5, blockHeader1);
-}
-
 BOOST_AUTO_TEST_CASE(DSBlockHeader_GetHashForRandom) {
   DSBlockHeader blockHeader1{
       111,

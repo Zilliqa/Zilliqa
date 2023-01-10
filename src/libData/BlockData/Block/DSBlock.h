@@ -53,12 +53,6 @@ class DSBlock final : public BlockBase {
 
   /// Equality comparison operator.
   bool operator==(const DSBlock& block) const;
-
-  /// Less-than comparison operator.
-  bool operator<(const DSBlock& block) const;
-
-  /// Greater-than comparison operator.
-  bool operator>(const DSBlock& block) const;
 };
 
 std::ostream& operator<<(std::ostream& os, const DSBlock& t);
