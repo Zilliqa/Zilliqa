@@ -141,9 +141,9 @@ pub async fn run_evm_impl(
                     backend.extras, estimate, enable_cps);
                 result
             },
-            CpsReason::CallInterrupt(_i) => {
-                // Todo: create callInterrupt
-                let result = EvmProto::EvmResult::new();
+            CpsReason::CallInterrupt(i) => {
+                let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
+                let result = build_call_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
                 result
             },
             CpsReason::CreateInterrupt(i) => {
@@ -215,13 +215,47 @@ fn build_exit_result(
     result
 }
 
-fn _build_call_result(
-    _interrupt: CpsCallInterrupt,
-    _traces: Vec<String>,
-    _remaining_gas: u64,
+fn build_call_result(
+    runtime: &Runtime,
+    interrupt: CpsCallInterrupt,
+    traces: Vec<String>,
+    remaining_gas: u64,
     cont_id: u64,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
+    result.set_return_value(runtime.machine().return_value().into());
+    let mut trap_reason = EvmProto::ExitReason_Trap::new();
+    trap_reason.set_kind(EvmProto::ExitReason_Trap_Kind::CALL);
+    let mut exit_reason = EvmProto::ExitReason::new();
+    exit_reason.set_trap(trap_reason);
+    result.set_exit_reason(exit_reason);
+    result.set_trace(traces.into_iter().map(Into::into).collect());
+    result.set_remaining_gas(remaining_gas);
+
+    let mut trap_data_call = EvmProto::TrapData_Call::new();
+
+    let mut context = EvmProto::TrapData_Context::new();
+    context.set_apparent_value(interrupt.context.apparent_value.into());
+    context.set_caller(interrupt.context.caller.into());
+    context.set_destination(interrupt.context.address.into());
+    trap_data_call.set_context(context);
+
+    if let Some(tran) = interrupt.transfer {
+        let mut transfer = EvmProto::TrapData_Transfer::new();
+        transfer.set_destination(tran.target.into());
+        transfer.set_source(tran.source.into());
+        transfer.set_value(tran.value.into());
+        trap_data_call.set_transfer(transfer);
+    }
+
+    trap_data_call.set_callee_address(interrupt.code_address.into());
+    trap_data_call.set_call_data(interrupt.input.into());
+    trap_data_call.set_is_static(interrupt.is_static);
+    trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
+
+    let mut trap_data = EvmProto::TrapData::new();
+    trap_data.set_call(trap_data_call);
+    result.set_trap_data(trap_data);
     result.set_continuation_id(cont_id);
     result
 }

@@ -35,14 +35,14 @@ pub struct CpsCreateFeedback {
 }
 
 pub struct CpsCallInterrupt {
-    _code_address: H160,
-    _transfer: Option<Transfer>,
-    _input: Vec<u8>,
-    _target_gas: Option<u64>,
-    _is_static: bool,
-    _context: Context,
-    _memory_offset: U256,
-    _offset_len: U256,
+    pub code_address: H160,
+    pub transfer: Option<Transfer>,
+    pub input: Vec<u8>,
+    pub target_gas: Option<u64>,
+    pub is_static: bool,
+    pub context: Context,
+    pub memory_offset: U256,
+    pub offset_len: U256,
 }
 
 pub struct CpsCallFeedback {}
@@ -299,14 +299,14 @@ impl<'a> Handler for CpsExecutor<'a> {
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CallInterrupt {
-                _code_address: code_address,
-                _transfer: transfer,
-                _input: input,
-                _target_gas: target_gas,
-                _is_static: is_static,
-                _context: context,
-                _memory_offset: memory_offset,
-                _offset_len: offset_len,
+                code_address,
+                transfer,
+                input,
+                target_gas,
+                is_static,
+                context,
+                memory_offset,
+                offset_len,
             }),
         }
     }
