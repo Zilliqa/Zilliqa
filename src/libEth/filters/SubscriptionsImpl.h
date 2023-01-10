@@ -23,7 +23,7 @@
 #include <unordered_set>
 
 #include "Common.h"
-#include "libServer/NewWebsocketServer.h"
+#include "libServer/WebsocketServer.h"
 
 namespace evmproj {
 namespace filters {

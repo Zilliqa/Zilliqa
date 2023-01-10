@@ -34,9 +34,9 @@
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/JSONConversion.h"
 #include "libServer/LookupServer.h"
-#include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
@@ -1210,7 +1210,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
 
       // feed the event log holder
       if (ENABLE_WEBSOCKET) {
-        WebsocketServer::GetInstance().ParseTxn(twr);
+        m_mediator.m_websocketServer->ParseTxn(twr);
       }
 
       if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
@@ -1730,11 +1730,10 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
         } catch (...) {
           j_txnhashes = Json::arrayValue;
         }
-        WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
-            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
 
-        // send event logs
-        WebsocketServer::GetInstance().SendOutMessages();
+        // sends out everything to subscriptions
+        m_mediator.m_websocketServer->FinalizeTxBlock(
+            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
       }
     }
   }

@@ -107,7 +107,7 @@ class APIServerImpl::Connection
 
     auto request = m_parser->release();
 
-    if (websocket::is_upgrade(request)) {
+    if (beast::websocket::is_upgrade(request)) {
       OnWebsocketUpgrade(std::move(request));
       return;
     }
@@ -301,8 +301,8 @@ APIServerImpl::APIServerImpl(Options options) : m_options(std::move(options)) {
         OnResponseFromThreadPool(std::move(res));
       });
 
-  m_websocket =
-      std::make_shared<ws::WebsocketServerImpl>(*m_options.asio, m_threadPool);
+  m_websocket = WebsocketServerBackend::CreateWithThreadPool(*m_options.asio,
+                                                             m_threadPool);
 }
 
 bool APIServerImpl::Start() {

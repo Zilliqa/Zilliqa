@@ -21,42 +21,19 @@
 #include <atomic>
 #include <unordered_map>
 
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/websocket.hpp>
+#include "WebsocketServerBackend.h"
 
-#include "NewWebsocketServer.h"
-
-namespace rpc {
-
-namespace asio = boost::asio;
-namespace beast = boost::beast;
-namespace http = beast::http;
-namespace websocket = beast::websocket;
-
-using tcp = asio::ip::tcp;
-using AsioCtx = asio::io_context;
-using Socket = tcp::socket;
-using HttpRequest = http::request<http::basic_string_body<char>>;
-
-class APIThreadPool;
-
-namespace ws {
+namespace rpc::ws {
 
 class Connection;
 
 /// Websocket server implementation
 class WebsocketServerImpl
-    : public WebsocketServer,
+    : public WebsocketServerBackend,
       public std::enable_shared_from_this<WebsocketServerImpl> {
  public:
   WebsocketServerImpl(AsioCtx& asio, std::shared_ptr<APIThreadPool> threadPool)
-      : m_asio(asio), m_threadPool(std::move(threadPool)) {
-    assert(m_threadPool);
-  }
-
-  /// Called by HTTP server on new WS upgrade request
-  void NewConnection(std::string&& from, Socket&& socket, HttpRequest&& req);
+      : m_asio(asio), m_threadPool(std::move(threadPool)) {}
 
   /// Called from Connection with its id.
   /// Empty msg means that the conn is closed.
@@ -64,14 +41,18 @@ class WebsocketServerImpl
   bool MessageFromConnection(ConnectionId id, const std::string& from,
                              InMessage msg);
 
-  // overrides
-  void SendMessage(ConnectionId conn_id, OutMessage msg) override;
-  void CloseAll() override;
-
  private:
   // overrides
   void SetOptions(Feedback feedback, size_t max_in_msg_size) override;
   void CloseConnection(ConnectionId conn_id) override;
+  void SendMessage(ConnectionId conn_id, OutMessage msg) override;
+  void CloseAll() override;
+  void NewConnection(std::string&& from, Socket&& socket,
+                     HttpRequest&& req) override;
+  void NewConnection(std::string&& from, Socket&& socket) override;
+
+  std::shared_ptr<Connection> CreateNewConnection(std::string&& from,
+                                                  Socket&& socket);
 
   /// Asio context is needed here to perform network-related operations in their
   /// dedicated thread
@@ -94,7 +75,6 @@ class WebsocketServerImpl
   std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
 };
 
-}  // namespace ws
-}  // namespace rpc
+}  // namespace rpc::ws
 
 #endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVERIMPL_H_

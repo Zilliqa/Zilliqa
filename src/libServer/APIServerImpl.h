@@ -22,11 +22,12 @@
 
 #include <atomic>
 #include <optional>
-
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
 #include <jsonrpccpp/server/abstractserverconnector.h>
 
 #include "APIThreadPool.h"
-#include "WebsocketServerImpl.h"
+#include "WebsocketServerBackend.h"
 
 namespace rpc {
 
@@ -96,7 +97,7 @@ class APIServerImpl : public APIServer,
   std::shared_ptr<APIThreadPool> m_threadPool;
 
   /// Websocket server
-  std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
+  std::shared_ptr<WebsocketServerBackend> m_websocket;
 
   /// Listening socket
   std::optional<tcp::acceptor> m_acceptor;

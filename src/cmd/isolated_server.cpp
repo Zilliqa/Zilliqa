@@ -22,9 +22,9 @@
 #include <iostream>
 #include "libEth/Filters.h"
 #include "libServer/APIServer.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/IsolatedServer.h"
 #include "libServer/LookupServer.h"
-#include "libServer/WebsocketServer.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
@@ -247,6 +247,7 @@ int main(int argc, const char* argv[]) {
     if (ENABLE_WEBSOCKET) {
       if (timeDelta > 0) {
         LOG_GENERAL(INFO, "Starting websocket on port " << WEBSOCKET_PORT);
+        mediator.m_websocketServer->Start();
       } else {
         LOG_GENERAL(WARNING,
                     "Websocket can only be enabled in time-trigger mode")
@@ -259,6 +260,8 @@ int main(int argc, const char* argv[]) {
 
     ctx->run();
     LOG_GENERAL(INFO, "Event loop stopped");
+
+    mediator.m_websocketServer->Stop();
 
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
