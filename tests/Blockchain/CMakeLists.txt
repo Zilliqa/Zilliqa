@@ -18,3 +18,9 @@ target_include_directories(Test_MicroBlockHeader PUBLIC ${CMAKE_SOURCE_DIR}/src 
 target_link_libraries(Test_MicroBlockHeader PRIVATE BlockHeader Message Boost::unit_test_framework)
 add_test(NAME Test_MicroBlockHeader COMMAND Test_MicroBlockHeader)
 
+add_executable(Test_DSBlock Test_DSBlock.cpp)
+target_include_directories(Test_DSBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_DSBlock PRIVATE Block Message Boost::unit_test_framework)
+add_test(NAME Test_DSBlock COMMAND Test_DSBlock)
+
+
