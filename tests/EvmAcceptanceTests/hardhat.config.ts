@@ -4,7 +4,7 @@ import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import {execSync} from "child_process";
 import {glob} from "glob";
-import { updateContractsInfo as updateScillaContractsInfo } from "./ScillaContractProcessor";
+import {updateContractsInfo as updateScillaContractsInfo} from "./ScillaContractProcessor";
 
 import yargs from "yargs/yargs";
 

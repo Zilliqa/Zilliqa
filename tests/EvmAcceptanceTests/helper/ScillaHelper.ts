@@ -4,6 +4,7 @@ import {BN, Long, units, bytes} from "@zilliqa-js/util";
 import {getAddressFromPrivateKey, getPubKeyFromPrivateKey} from "@zilliqa-js/crypto";
 import {Init, Contract, Value} from "@zilliqa-js/contract";
 import {scillaContracts, ContractInfo} from "../ScillaContractProcessor";
+import {TransitionParam} from "./ScillaParser";
 
 // chain setup on ceres locally run isolated server, see https://dev.zilliqa.com/docs/dev/dev-tools-ceres/. Keys and wallet setup
 const s = () => {
@@ -44,31 +45,52 @@ function read(f: string) {
   return t;
 }
 
+export type ContractFunction<T = any> = (...args: Array<any>) => Promise<T>;
+
+export class ScillaContract extends Contract {
+  // Transitions
+  [key: string]: ContractFunction | any;
+}
+
 export async function deploy(contractName: string, init?: Init) {
   let contractInfo: ContractInfo = scillaContracts[contractName];
   if (contractInfo === undefined) {
     throw new Error(`Scilla contract ${contractName} doesn't exist.`);
   }
 
-  let sc: Contract; 
+  let sc: ScillaContract;
   if (init) {
     sc = await deploy_from_file(contractInfo.path, init);
-  }else {
+  } else {
     const init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
     sc = await deploy_from_file(contractInfo.path, init);
   }
 
-  contractInfo.transitions.forEach(transition => {
-    sc[transition] = async (args: Value[] = []) => {
-      return sc_call(sc, transition, args);
-    }
+  contractInfo.transitions.forEach((transition) => {
+    sc[transition.name] = async (...args: any[]) => {
+      if (args.length !== transition.params.length) {
+        throw new Error(
+          `Expected to receive ${transition.params.length} parameters for ${transition.name} but got ${args.length}`
+        );
+      }
+
+      const values: Value[] = [];
+      transition.params.forEach((param: TransitionParam, index: number) => {
+        values.push({
+          vname: param.name,
+          type: param.type,
+          value: args[index].toString()
+        });
+      });
+      return sc_call(sc, transition.name, values);
+    };
   });
 
   return sc;
 }
 
 // deploy a smart contract whose code is in a file with given init arguments
-async function deploy_from_file(path: string, init: Init) {
+async function deploy_from_file(path: string, init: Init): Promise<ScillaContract> {
   const code = read(path);
   const contract = setup.zilliqa.contracts.new(code, init);
   let [_, sc] = await contract.deploy(

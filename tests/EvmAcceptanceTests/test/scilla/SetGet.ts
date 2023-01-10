@@ -1,9 +1,8 @@
-import {deploy, sc_call} from "../../helper/ScillaHelper";
-import {Contract} from "@zilliqa-js/contract";
+import {deploy, ScillaContract} from "../../helper/ScillaHelper";
 import {expect} from "chai";
 
 describe("Scilla SetGet contract", function () {
-  let contract: Contract;
+  let contract: ScillaContract;
   before(async function () {
     contract = await deploy("SetGet");
   });
@@ -14,8 +13,7 @@ describe("Scilla SetGet contract", function () {
 
   it("Should set state correctly", async function () {
     const VALUE = 12;
-    const args = [{vname: "v", type: "Uint128", value: VALUE.toString()}];
-    await contract.Set(args);
+    await contract.Set(VALUE);
     const state = await contract.getState();
     expect(state.value).to.be.eq("12");
   });
@@ -25,8 +23,6 @@ describe("Scilla SetGet contract", function () {
     const receipt = tx.getReceipt()!;
     expect(receipt.event_logs?.length).to.be.eq(1);
     expect(receipt.event_logs![0]._eventname).to.be.eq("Emit");
-    expect(receipt.event_logs![0].params).to.deep.contain(
-      {type: "Uint128", value: "12", vname: "value"}
-    );
+    expect(receipt.event_logs![0].params).to.deep.contain({type: "Uint128", value: "12", vname: "value"});
   });
 });
