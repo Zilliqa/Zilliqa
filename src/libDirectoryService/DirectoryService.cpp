@@ -1286,3 +1286,30 @@ CoSignatures DirectoryService::ConsensusObjectToCoSig(
   return CoSignatures{consensusObject.GetCS1(), consensusObject.GetB1(),
                       consensusObject.GetCS2(), consensusObject.GetB2()};
 }
+
+namespace {
+
+bool CompareMicroBlockHeader(const MicroBlockHeader& lhs,
+                             const MicroBlockHeader& rhs) {
+  const auto& lhsVersion = lhs.GetVersion();
+  const auto& lhsDSBlockNum = lhs.GetDSBlockNum();
+  const auto& lhsEpochNum = lhs.GetEpochNum();
+
+  const auto& rhsVersion = rhs.GetVersion();
+  const auto& rhsDSBlockNum = rhs.GetDSBlockNum();
+  const auto& rhsEpochNum = rhs.GetEpochNum();
+
+  return (std::tie(lhsVersion, lhs.GetPrevHash(), lhsEpochNum, lhsDSBlockNum) ==
+          std::tie(rhsVersion, rhs.GetPrevHash(), rhsEpochNum,
+                   rhsDSBlockNum)) &&
+         (lhs.GetShardId() < rhs.GetShardId());
+}
+
+}  // namespace
+
+bool DirectoryService::MicroBlockCompare::operator()(
+    const MicroBlock& lhs, const MicroBlock& rhs) const {
+  if (CompareMicroBlockHeader(lhs.GetHeader(), rhs.GetHeader())) return true;
+  if (CompareMicroBlockHeader(rhs.GetHeader(), lhs.GetHeader())) return false;
+  return lhs.GetTranHashes() < rhs.GetTranHashes();
+}

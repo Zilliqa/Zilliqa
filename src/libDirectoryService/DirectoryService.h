@@ -545,13 +545,9 @@ class DirectoryService : public Executable {
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
 
-  struct MicroBlockCompare
+  struct MicroBlockCompare final
   {
-    bool operator()(const MicroBlock& /*lhs*/, const MicroBlock& /*rhs*/) const
-    {
-      // TODO: implement
-      return true;
-    }
+    bool operator()(const MicroBlock& lhs, const MicroBlock& rhs) const;
   };
 
   std::mutex m_mutexMicroBlocks;
