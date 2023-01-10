@@ -23,44 +23,11 @@ using namespace boost::multiprecision;
 
 namespace {
 
-void FaultyLeaderToProtobuf(
-    const VectorOfNode& faultyLeaders,
-    ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-  for (const auto& node : faultyLeaders) {
-    ZilliqaMessage::ProtoDSNode* protodsnode =
-        protoVCBlockHeader.add_faultyleaders();
-    SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
-    SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
-  }
-}
-
-void VCBlockHeaderToProtobuf(
-    const VCBlockHeader& vcBlockHeader,
-    ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoVCBlockHeader.mutable_blockheaderbase();
-  io::BlockHeaderBaseToProtobuf(vcBlockHeader, *protoBlockHeaderBase);
-
-  protoVCBlockHeader.set_viewchangedsepochno(
-      vcBlockHeader.GetViewChangeDSEpochNo());
-  protoVCBlockHeader.set_viewchangeepochno(
-      vcBlockHeader.GetViewChangeEpochNo());
-  protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
-  SerializableToProtobufByteArray(
-      vcBlockHeader.GetCandidateLeaderNetworkInfo(),
-      *protoVCBlockHeader.mutable_candidateleadernetworkinfo());
-  SerializableToProtobufByteArray(
-      vcBlockHeader.GetCandidateLeaderPubKey(),
-      *protoVCBlockHeader.mutable_candidateleaderpubkey());
-  protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
-  FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
-}
-
 bool SetVCBlockHeader(zbytes& dst, unsigned int offset,
                       const VCBlockHeader& vcBlockHeader) {
   ZilliqaMessage::ProtoVCBlock::VCBlockHeader result;
 
-  VCBlockHeaderToProtobuf(vcBlockHeader, result);
+  io::VCBlockHeaderToProtobuf(vcBlockHeader, result);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
@@ -68,79 +35,6 @@ bool SetVCBlockHeader(zbytes& dst, unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
-    const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& /*protoVCBlockHeader*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member faultyleaders
-  return protoVCBlockHeader.has_viewchangedsepochno() &&
-         protoVCBlockHeader.has_viewchangeepochno() &&
-         protoVCBlockHeader.has_viewchangestate() &&
-         protoVCBlockHeader.has_candidateleadernetworkinfo() &&
-         protoVCBlockHeader.has_candidateleaderpubkey() &&
-         protoVCBlockHeader.has_vccounter() &&
-         protoVCBlockHeader.has_blockheaderbase();
-#endif
-  return true;
-}
-
-bool ProtobufToFaultyDSMembers(
-    const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
-    VectorOfNode& faultyDSMembers) {
-  for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
-    PubKey pubkey;
-    Peer peer;
-
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dsnode.pubkey(), pubkey);
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dsnode.peer(), peer);
-    faultyDSMembers.emplace_back(pubkey, peer);
-  }
-
-  return true;
-}
-
-bool ProtobufToVCBlockHeader(
-    const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
-    VCBlockHeader& vcBlockHeader) {
-  if (!CheckRequiredFieldsProtoVCBlockVCBlockHeader(protoVCBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoVCBlockVCBlockHeader failed");
-    return false;
-  }
-
-  Peer candidateLeaderNetworkInfo;
-  PubKey candidateLeaderPubKey;
-  VectorOfNode faultyLeaders;
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(
-      protoVCBlockHeader.candidateleadernetworkinfo(),
-      candidateLeaderNetworkInfo);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoVCBlockHeader.candidateleaderpubkey(),
-                                  candidateLeaderPubKey);
-
-  if (!ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders)) {
-    LOG_GENERAL(WARNING, "ProtobufToFaultyDSMembers failed");
-    return false;
-  }
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoVCBlockHeader.blockheaderbase();
-
-  auto blockHeaderBaseVars =
-      io::ProtobufToBlockHeaderBase(protoBlockHeaderBase);
-  if (!blockHeaderBaseVars) return false;
-
-  const auto& [version, committeeHash, prevHash] = *blockHeaderBaseVars;
-
-  vcBlockHeader = VCBlockHeader(
-      protoVCBlockHeader.viewchangedsepochno(),
-      protoVCBlockHeader.viewchangeepochno(),
-      protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
-      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders,
-      version, committeeHash, prevHash);
-
-  return true;
 }
 
 template <std::ranges::contiguous_range RangeT>
@@ -160,7 +54,7 @@ bool GetVCBlockHeader(RangeT&& src, unsigned int offset,
     return false;
   }
 
-  return ProtobufToVCBlockHeader(result, vcBlockHeader);
+  return io::ProtobufToVCBlockHeader(result, vcBlockHeader);
 }
 
 }  // namespace

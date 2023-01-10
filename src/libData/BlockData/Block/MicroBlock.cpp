@@ -15,15 +15,135 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <utility>
-
 #include "MicroBlock.h"
-#include "libMessage/Messenger.h"
-#include "libUtils/BitVector.h"
-#include "libUtils/Logger.h"
+#include "Serialization.h"
+#include "libData/BlockData/BlockHeader/Serialization.h"
+#include "libMessage/MessengerCommon.h"
 
 using namespace std;
 using namespace boost::multiprecision;
+
+namespace {
+
+void MicroBlockToProtobuf(const MicroBlock& microBlock,
+                          ZilliqaMessage::ProtoMicroBlock& protoMicroBlock) {
+  // Serialize header
+
+  ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader* protoHeader =
+      protoMicroBlock.mutable_header();
+
+  const MicroBlockHeader& header = microBlock.GetHeader();
+
+  io::MicroBlockHeaderToProtobuf(header, *protoHeader);
+
+  // Serialize body
+
+  for (const auto& hash : microBlock.GetTranHashes()) {
+    protoMicroBlock.add_tranhashes(hash.data(), hash.size);
+  }
+
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoMicroBlock.mutable_blockbase();
+
+  io::BlockBaseToProtobuf(microBlock, *protoBlockBase);
+}
+
+bool SetMicroBlock(zbytes& dst, const unsigned int offset,
+                   const MicroBlock& microBlock) {
+  ZilliqaMessage::ProtoMicroBlock result;
+
+  MicroBlockToProtobuf(microBlock, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool CheckRequiredFieldsProtoMicroBlock(
+    const ZilliqaMessage::ProtoMicroBlock& /*protoMicroBlock*/) {
+// TODO: Check if default value is acceptable for each field
+#if 0
+  // Don't need to enforce check on repeated member tranhashes
+  return protoMicroBlock.has_header() && protoMicroBlock.has_blockbase();
+#endif
+  return true;
+}
+
+bool ProtobufToMicroBlock(
+    const ZilliqaMessage::ProtoMicroBlock& protoMicroBlock,
+    MicroBlock& microBlock) {
+  if (!CheckRequiredFieldsProtoMicroBlock(protoMicroBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoMicroBlock failed");
+    return false;
+  }
+
+  // Deserialize header
+
+  const ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader& protoHeader =
+      protoMicroBlock.header();
+
+  MicroBlockHeader header;
+
+  if (!io::ProtobufToMicroBlockHeader(protoHeader, header)) {
+    LOG_GENERAL(WARNING, "ProtobufToMicroBlockHeader failed");
+    return false;
+  }
+
+  // Deserialize body
+
+  vector<TxnHash> tranHashes;
+  for (const auto& hash : protoMicroBlock.tranhashes()) {
+    tranHashes.emplace_back();
+    unsigned int size =
+        min((unsigned int)hash.size(), (unsigned int)tranHashes.back().size);
+    copy(hash.begin(), hash.begin() + size,
+         tranHashes.back().asArray().begin());
+  }
+
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
+      protoMicroBlock.blockbase();
+
+  auto blockBaseVars = io::ProtobufToBlockBase(protoBlockBase);
+  if (!blockBaseVars) return false;
+
+  const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
+  microBlock = MicroBlock{header, tranHashes, std::move(coSigs), timestamp};
+  return true;
+}
+
+template <std::ranges::contiguous_range RangeT>
+bool GetMicroBlock(RangeT&& src, unsigned int offset, MicroBlock& microBlock) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ZilliqaMessage::ProtoMicroBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
+    return false;
+  }
+
+  if (!ProtobufToMicroBlock(result, microBlock)) return false;
+
+  if (microBlock.GetHeader().GetNumTxs() != microBlock.GetTranHashes().size()) {
+    LOG_GENERAL(WARNING, "Header txn count ("
+                             << microBlock.GetHeader().GetNumTxs()
+                             << ") != txn hash count ("
+                             << microBlock.GetTranHashes().size() << ")");
+    return false;
+  }
+
+  return true;
+}
+
+}  // namespace
 
 bool MicroBlock::Serialize(zbytes& dst, unsigned int offset) const {
   if (m_header.GetNumTxs() != m_tranHashes.size()) {
@@ -33,7 +153,7 @@ bool MicroBlock::Serialize(zbytes& dst, unsigned int offset) const {
     return false;
   }
 
-  if (!Messenger::SetMicroBlock(dst, offset, *this)) {
+  if (!SetMicroBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlock failed.");
     return false;
   }
@@ -42,48 +162,11 @@ bool MicroBlock::Serialize(zbytes& dst, unsigned int offset) const {
 }
 
 bool MicroBlock::Deserialize(const zbytes& src, unsigned int offset) {
-  if (!Messenger::GetMicroBlock(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetMicroBlock failed.");
-    return false;
-  }
-
-  if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "Header txn count (" << m_header.GetNumTxs()
-                                              << ") != txn hash count ("
-                                              << m_tranHashes.size() << ")");
-    return false;
-  }
-
-  return true;
+  return GetMicroBlock(src, offset, *this);
 }
 
 bool MicroBlock::Deserialize(const string& src, unsigned int offset) {
-  if (!Messenger::GetMicroBlock(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetMicroBlock failed.");
-    return false;
-  }
-
-  if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "Header txn count (" << m_header.GetNumTxs()
-                                              << ") != txn hash count ("
-                                              << m_tranHashes.size() << ")");
-    return false;
-  }
-
-  return true;
-}
-
-MicroBlock::MicroBlock(const MicroBlockHeader& header,
-                       const vector<TxnHash>& tranHashes, CoSignatures&& cosigs)
-    : BlockBase{header.GetMyHash(), std::move(cosigs)},
-      m_header(header),
-      m_tranHashes(tranHashes) {
-  if (m_header.GetNumTxs() != m_tranHashes.size()) {
-    LOG_GENERAL(WARNING, "Num of Txns get from header "
-                             << m_header.GetNumTxs()
-                             << " is not equal to the size of m_tranHashes "
-                             << m_tranHashes.size());
-  }
+  return GetMicroBlock(src, offset, *this);
 }
 
 bool MicroBlock::operator==(const MicroBlock& block) const {
@@ -97,4 +180,11 @@ bool MicroBlock::operator<(const MicroBlock& block) const {
 
 bool MicroBlock::operator>(const MicroBlock& block) const {
   return block < *this;
+}
+
+std::ostream& operator<<(std::ostream& os, const MicroBlock& t) {
+  const BlockBase& blockBase(t);
+
+  os << "<MicroBlock>" << std::endl << blockBase << std::endl << t.GetHeader();
+  return os;
 }

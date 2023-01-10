@@ -44,3 +44,12 @@ bool BlockHeaderBase::operator<(const BlockHeaderBase& header) const {
 bool BlockHeaderBase::operator>(const BlockHeaderBase& header) const {
   return header < *this;
 }
+
+std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
+  os << "<BlockHeaderBase>" << std::endl
+     << " m_version       = " << t.GetVersion() << std::endl
+     << " m_committeeHash = " << t.GetCommitteeHash() << std::endl
+     << " m_prevHash      = " << t.GetPrevHash();
+
+  return os;
+}

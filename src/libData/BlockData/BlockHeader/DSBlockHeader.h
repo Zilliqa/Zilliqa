@@ -25,7 +25,7 @@
 #include "libUtils/SWInfo.h"
 
 /// Stores information on the header part of the DS block.
-class DSBlockHeader : public BlockHeaderBase {
+class DSBlockHeader final : public BlockHeaderBase {
   uint8_t m_dsDifficulty{};  // Number of PoW leading zeros
   uint8_t m_difficulty{};    // Number of PoW leading zeros
   PubKey m_leaderPubKey;     // The one who proposed this DS block
@@ -133,29 +133,6 @@ class DSBlockHeader : public BlockHeaderBase {
   friend std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
-  const BlockHeaderBase& blockHeaderBase(t);
-
-  os << blockHeaderBase << std::endl
-     << "<DSBlockHeader>" << std::endl
-     << " DSDifficulty    = " << t.GetDSDifficulty() << std::endl
-     << " Difficulty      = " << t.GetDifficulty() << std::endl
-     << " TotalDifficulty = " << t.GetTotalDifficulty() << std::endl
-     << " LeaderPubKey    = " << t.GetLeaderPubKey() << std::endl
-     << " BlockNum        = " << t.GetBlockNum() << std::endl
-     << " EpochNum        = " << t.GetEpochNum() << std::endl
-     << " GasPrice        = " << t.GetGasPrice() << std::endl
-     << t.m_hashset << std::endl
-     << t.GetSWInfo() << std::endl;
-  for (const auto& node : t.GetDSPoWWinners()) {
-    os << " PoWDSWinner     = " << node.first << " " << node.second
-       << std::endl;
-  }
-  for (const auto& pubkey : t.GetDSRemovePubKeys()) {
-    os << " DSRemoved       = " << pubkey << std::endl;
-  }
-
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_DSBLOCKHEADER_H_

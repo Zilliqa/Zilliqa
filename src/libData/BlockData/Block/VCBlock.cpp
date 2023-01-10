@@ -16,17 +16,108 @@
  */
 
 #include "VCBlock.h"
-#include "libMessage/Messenger.h"
-#include "libUtils/Logger.h"
+#include "Serialization.h"
+#include "libData/BlockData/BlockHeader/Serialization.h"
+#include "libMessage/MessengerCommon.h"
 
 using namespace std;
 using namespace boost::multiprecision;
 
-VCBlock::VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs)
-    : BlockBase{header.GetMyHash(), std::move(cosigs)}, m_header(header) {}
+namespace {
+
+void VCBlockToProtobuf(const VCBlock& vcBlock,
+                       ZilliqaMessage::ProtoVCBlock& protoVCBlock) {
+  // Serialize header
+
+  ZilliqaMessage::ProtoVCBlock::VCBlockHeader* protoHeader =
+      protoVCBlock.mutable_header();
+
+  const VCBlockHeader& header = vcBlock.GetHeader();
+
+  io::VCBlockHeaderToProtobuf(header, *protoHeader);
+
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
+      protoVCBlock.mutable_blockbase();
+
+  io::BlockBaseToProtobuf(vcBlock, *protoBlockBase);
+}
+
+bool SetVCBlock(zbytes& dst, const unsigned int offset,
+                const VCBlock& vcBlock) {
+  ZilliqaMessage::ProtoVCBlock result;
+
+  VCBlockToProtobuf(vcBlock, result);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool CheckRequiredFieldsProtoVCBlock(
+    const ZilliqaMessage::ProtoVCBlock& /*protoVCBlock*/) {
+// TODO: Check if default value is acceptable for each field
+#if 0
+  return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
+#endif
+  return true;
+}
+
+bool ProtobufToVCBlock(const ZilliqaMessage::ProtoVCBlock& protoVCBlock,
+                       VCBlock& vcBlock) {
+  if (!CheckRequiredFieldsProtoVCBlock(protoVCBlock)) {
+    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoVCBlock failed");
+    return false;
+  }
+
+  // Deserialize header
+
+  const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoHeader =
+      protoVCBlock.header();
+
+  VCBlockHeader header;
+
+  if (!io::ProtobufToVCBlockHeader(protoHeader, header)) {
+    LOG_GENERAL(WARNING, "ProtobufToVCBlockHeader failed");
+    return false;
+  }
+
+  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
+      protoVCBlock.blockbase();
+
+  auto blockBaseVars = io::ProtobufToBlockBase(protoBlockBase);
+  if (!blockBaseVars) return false;
+
+  const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
+  vcBlock = VCBlock(header, std::move(coSigs), timestamp);
+  return true;
+}
+
+template <std::ranges::contiguous_range RangeT>
+bool GetVCBlock(RangeT&& src, unsigned int offset, VCBlock& vcBlock) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  ZilliqaMessage::ProtoVCBlock result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
+    return false;
+  }
+
+  return ProtobufToVCBlock(result, vcBlock);
+}
+
+}  // namespace
 
 bool VCBlock::Serialize(zbytes& dst, unsigned int offset) const {
-  if (!Messenger::SetVCBlock(dst, offset, *this)) {
+  if (!SetVCBlock(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetVCBlock failed.");
     return false;
   }
@@ -35,21 +126,11 @@ bool VCBlock::Serialize(zbytes& dst, unsigned int offset) const {
 }
 
 bool VCBlock::Deserialize(const zbytes& src, unsigned int offset) {
-  if (!Messenger::GetVCBlock(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetVCBlock failed.");
-    return false;
-  }
-
-  return true;
+  return GetVCBlock(src, offset, *this);
 }
 
 bool VCBlock::Deserialize(const string& src, unsigned int offset) {
-  if (!Messenger::GetVCBlock(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetVCBlock failed.");
-    return false;
-  }
-
-  return true;
+  return GetVCBlock(src, offset, *this);
 }
 
 bool VCBlock::operator==(const VCBlock& block) const {
@@ -62,10 +143,9 @@ bool VCBlock::operator<(const VCBlock& block) const {
 
 bool VCBlock::operator>(const VCBlock& block) const { return block < *this; }
 
-
 std::ostream& operator<<(std::ostream& os, const VCBlock& t) {
   const BlockBase& blockBase(t);
 
-  os << "<VCBlock>" << std::endl << blockBase << std::endl << t.m_header;
+  os << "<VCBlock>" << std::endl << blockBase << std::endl << t.GetHeader();
   return os;
 }

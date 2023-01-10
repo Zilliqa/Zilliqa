@@ -99,34 +99,6 @@ class Messenger {
   static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
                             MBInfoHash& dst);
 
-  static bool SetDSBlock(zbytes& dst, const unsigned int offset,
-                         const DSBlock& dsBlock);
-  static bool GetDSBlock(const zbytes& src, const unsigned int offset,
-                         DSBlock& dsBlock);
-  static bool GetDSBlock(const std::string& src, const unsigned int offset,
-                         DSBlock& dsBlock);
-
-  static bool SetMicroBlock(zbytes& dst, const unsigned int offset,
-                            const MicroBlock& microBlock);
-  static bool GetMicroBlock(const zbytes& src, const unsigned int offset,
-                            MicroBlock& microBlock);
-  static bool GetMicroBlock(const std::string& src, const unsigned int offset,
-                            MicroBlock& microBlock);
-
-  static bool SetTxBlock(zbytes& dst, const unsigned int offset,
-                         const TxBlock& txBlock);
-  static bool GetTxBlock(const zbytes& src, const unsigned int offset,
-                         TxBlock& txBlock);
-  static bool GetTxBlock(const std::string& src, const unsigned int offset,
-                         TxBlock& txBlock);
-
-  static bool SetVCBlock(zbytes& dst, const unsigned int offset,
-                         const VCBlock& vcBlock);
-  static bool GetVCBlock(const zbytes& src, const unsigned int offset,
-                         VCBlock& vcBlock);
-  static bool GetVCBlock(const std::string& src, const unsigned int offset,
-                         VCBlock& vcBlock);
-
   static bool SetTransactionCoreInfo(zbytes& dst, const unsigned int offset,
                                      const TransactionCoreInfo& transaction);
   static bool GetTransactionCoreInfo(const zbytes& src,

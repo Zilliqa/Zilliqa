@@ -56,17 +56,8 @@ class BlockHeaderBase : public SerializableDataBlock {
   bool operator==(const BlockHeaderBase& header) const;
   bool operator<(const BlockHeaderBase& header) const;
   bool operator>(const BlockHeaderBase& header) const;
-
-  friend std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t) {
-  os << "<BlockHeaderBase>" << std::endl
-     << " m_version       = " << t.m_version << std::endl
-     << " m_committeeHash = " << t.m_committeeHash << std::endl
-     << " m_prevHash      = " << t.m_prevHash;
-
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_

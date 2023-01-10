@@ -38,21 +38,13 @@ struct MicroBlockInfo {
            std::tie(m_microBlockHash, m_txnRootHash, m_shardId);
   }
   bool operator>(const MicroBlockInfo& mbInfo) const { return mbInfo < *this; }
-
-  friend std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t) {
-  os << "<MicroBlockInfo>" << std::endl
-     << " t.m_microBlockHash = " << t.m_microBlockHash << std::endl
-     << " t.m_txnRootHash    = " << t.m_txnRootHash << std::endl
-     << " t.m_shardId        = " << t.m_shardId;
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const MicroBlockInfo& t);
 
 /// Stores the Tx block header and signature.
 
-class TxBlock : public BlockBase {
+class TxBlock final : public BlockBase {
   TxBlockHeader m_header;
   std::vector<MicroBlockInfo> m_mbInfos;
 
@@ -61,9 +53,15 @@ class TxBlock : public BlockBase {
   TxBlock() = default;  // creates a dummy invalid placeholder block -- blocknum
                         // is maxsize of uint256
 
-  /// Constructor with specified Tx block parameters.
+  /// Constructor with predefined member values
+  template <typename CoSignaturesT>
   TxBlock(const TxBlockHeader& header,
-          const std::vector<MicroBlockInfo>& mbInfos, CoSignatures&& cosigs);
+          const std::vector<MicroBlockInfo>& mbInfos, CoSignaturesT&& coSigs,
+          uint64_t timestamp = get_time_as_int())
+      : BlockBase{header.GetMyHash(), std::forward<CoSignaturesT>(coSigs),
+                  timestamp},
+        m_header(header),
+        m_mbInfos(mbInfos) {}
 
   /// Implements the Serialize function inherited from Serializable.
   virtual bool Serialize(zbytes& dst, unsigned int offset) const override;
@@ -91,22 +89,8 @@ class TxBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const TxBlock& block) const;
-
-  friend std::ostream& operator<<(std::ostream& os, const TxBlock& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const TxBlock& t) {
-  const BlockBase& blockBase(t);
-
-  os << "<TxBlock>" << std::endl
-     << blockBase << std::endl
-     << t.m_header << std::endl;
-
-  for (const auto& info : t.m_mbInfos) {
-    os << info << std::endl;
-  }
-
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const TxBlock& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_

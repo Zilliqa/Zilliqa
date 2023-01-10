@@ -23,7 +23,7 @@
 #include "BlockHeaderBase.h"
 
 /// Stores information on the header part of the Tx block.
-class TxBlockHeader : public BlockHeaderBase {
+class TxBlockHeader final : public BlockHeaderBase {
   uint64_t m_gasLimit{};
   uint64_t m_gasUsed{};
   uint128_t m_rewards;
@@ -96,14 +96,6 @@ class TxBlockHeader : public BlockHeaderBase {
 
   /// Equality comparison operator.
   bool operator==(const TxBlockHeader& header) const;
-
-#if 0
-  /// Less-than comparison operator.
-  bool operator<(const TxBlockHeader& header) const;
-
-  /// Greater-than comparison operator.
-  bool operator>(const TxBlockHeader& header) const;
-#endif
 
   friend std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t);
 };

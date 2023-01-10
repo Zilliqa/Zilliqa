@@ -24,77 +24,12 @@ using namespace boost::multiprecision;
 
 namespace {
 
-void DSBlockHeaderToProtobuf(
-    const DSBlockHeader& dsBlockHeader,
-    ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
-    bool concreteVarsOnly = false) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoDSBlockHeader.mutable_blockheaderbase();
-  io::BlockHeaderBaseToProtobuf(dsBlockHeader, *protoBlockHeaderBase);
-
-  if (!concreteVarsOnly) {
-    protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
-    protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
-    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-        dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
-    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
-
-    for (const auto& winner : dsBlockHeader.GetDSPoWWinners()) {
-      powdswinner = protoDSBlockHeader.add_dswinners();
-      SerializableToProtobufByteArray(winner.first,
-                                      *powdswinner->mutable_key());
-      SerializableToProtobufByteArray(winner.second,
-                                      *powdswinner->mutable_val());
-    }
-
-    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Proposal* protoproposal;
-    for (const auto& govProposal : dsBlockHeader.GetGovProposalMap()) {
-      protoproposal = protoDSBlockHeader.add_proposals();
-      protoproposal->set_proposalid(govProposal.first);
-      for (const auto& vote : govProposal.second.first) {
-        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
-        protoVote = protoproposal->add_dsvotes();
-        protoVote->set_value(vote.first);
-        protoVote->set_count(vote.second);
-      }
-      for (const auto& vote : govProposal.second.second) {
-        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
-        protoVote = protoproposal->add_minervotes();
-        protoVote->set_value(vote.first);
-        protoVote->set_count(vote.second);
-      }
-    }
-
-    ZilliqaMessage::ByteArray* dsremoved;
-    for (const auto& removedPubKey : dsBlockHeader.GetDSRemovePubKeys()) {
-      dsremoved = protoDSBlockHeader.add_dsremoved();
-      SerializableToProtobufByteArray(removedPubKey, *dsremoved);
-    }
-  }
-
-  SerializableToProtobufByteArray(dsBlockHeader.GetLeaderPubKey(),
-                                  *protoDSBlockHeader.mutable_leaderpubkey());
-
-  protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
-  protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
-  SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
-                                  *protoDSBlockHeader.mutable_swinfo());
-
-  ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
-      protoDSBlockHeader.mutable_hash();
-  protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
-                                    dsBlockHeader.GetShardingHash().size);
-  protoHeaderHash->set_reservedfield(
-      dsBlockHeader.GetHashSetReservedField().data(),
-      dsBlockHeader.GetHashSetReservedField().size());
-}
-
 bool SetDSBlockHeader(zbytes& dst, unsigned int offset,
                       const DSBlockHeader& dsBlockHeader,
                       bool concreteVarsOnly = false) {
   ZilliqaMessage::ProtoDSBlock::DSBlockHeader result;
 
-  DSBlockHeaderToProtobuf(dsBlockHeader, result, concreteVarsOnly);
+  io::DSBlockHeaderToProtobuf(dsBlockHeader, result, concreteVarsOnly);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
@@ -102,127 +37,6 @@ bool SetDSBlockHeader(zbytes& dst, unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
-    const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& /*protoDSBlockHeader*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member dswinners
-  // Don't need to enforce check on optional members dsdifficulty, difficulty,
-  // and gasprice
-  return protoDSBlockHeader.has_leaderpubkey() &&
-         protoDSBlockHeader.has_blocknum() &&
-         protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
-         protoDSBlockHeader.has_hash() &&
-         protoDSBlockHeader.has_blockheaderbase() &&
-         CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
-             protoDSBlockHeader.hash());
-#endif
-  return true;
-}
-
-bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
-    const ZilliqaMessage::ProtoDSBlock::DSBlockHeader::
-        PowDSWinners& /*powDSWinner*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return powDSWinner.has_key() && powDSWinner.has_val();
-#endif
-  return true;
-}
-
-bool ProtobufToDSBlockHeader(
-    const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
-    DSBlockHeader& dsBlockHeader) {
-  if (!CheckRequiredFieldsProtoDSBlockDSBlockHeader(protoDSBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlockDSBlockHeader failed");
-    return false;
-  }
-
-  PubKey leaderPubKey;
-  SWInfo swInfo;
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.leaderpubkey(),
-                                  leaderPubKey);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.swinfo(), swInfo);
-
-  // Deserialize powDSWinners
-  map<PubKey, Peer> powDSWinners;
-  PubKey tempPubKey;
-  Peer tempWinnerNetworkInfo;
-  for (const auto& dswinner : protoDSBlockHeader.dswinners()) {
-    if (!CheckRequiredFieldsProtoDSBlockPowDSWinner(dswinner)) {
-      LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlockPowDSWinner failed");
-      return false;
-    }
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dswinner.key(), tempPubKey);
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dswinner.val(), tempWinnerNetworkInfo);
-    powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
-  }
-
-  GovDSShardVotesMap govProposalMap;
-  for (const auto& protoProposal : protoDSBlockHeader.proposals()) {
-    std::map<uint32_t, uint32_t> dsVotes;
-    std::map<uint32_t, uint32_t> shardVotes;
-    for (const auto& protovote : protoProposal.dsvotes()) {
-      dsVotes[protovote.value()] = protovote.count();
-    }
-    for (const auto& protovote : protoProposal.minervotes()) {
-      shardVotes[protovote.value()] = protovote.count();
-    }
-    govProposalMap[protoProposal.proposalid()].first = dsVotes;
-    govProposalMap[protoProposal.proposalid()].second = shardVotes;
-  }
-
-  // Deserialize removeDSNodePubkeys
-  std::vector<PubKey> removeDSNodePubKeys;
-  PubKey tempRemovePubKey;
-  for (const auto& removenode : protoDSBlockHeader.dsremoved()) {
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(removenode, tempRemovePubKey);
-    removeDSNodePubKeys.emplace_back(tempRemovePubKey);
-  }
-
-  // Deserialize DSBlockHashSet
-  DSBlockHashSet hash;
-  const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
-      protoDSBlockHeader.hash();
-
-  if (!CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
-                         hash.m_shardingHash.asArray())) {
-    return false;
-  }
-
-  copy(protoDSBlockHeaderHash.reservedfield().begin(),
-       protoDSBlockHeaderHash.reservedfield().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
-               (unsigned int)hash.m_reservedField.size()),
-       hash.m_reservedField.begin());
-
-  // Generate the new DSBlock
-
-  const uint8_t dsdifficulty = protoDSBlockHeader.dsdifficulty();
-  const uint8_t difficulty = protoDSBlockHeader.difficulty();
-  uint128_t gasprice = 0;
-
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-      protoDSBlockHeader.gasprice(), gasprice);
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoDSBlockHeader.blockheaderbase();
-
-  auto blockHeaderBaseVars =
-      io::ProtobufToBlockHeaderBase(protoBlockHeaderBase);
-  if (!blockHeaderBaseVars) return false;
-
-  const auto& [version, committeeHash, prevHash] = *blockHeaderBaseVars;
-
-  dsBlockHeader = DSBlockHeader(
-      dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
-      protoDSBlockHeader.epochnum(), gasprice, swInfo, powDSWinners,
-      removeDSNodePubKeys, hash, govProposalMap, version, committeeHash,
-      prevHash);
-
-  return true;
 }
 
 template <std::ranges::contiguous_range RangeT>
@@ -242,7 +56,7 @@ bool GetDSBlockHeader(RangeT&& src, unsigned int offset,
     return false;
   }
 
-  return ProtobufToDSBlockHeader(result, dsBlockHeader);
+  return io::ProtobufToDSBlockHeader(result, dsBlockHeader);
 }
 
 }  // namespace
@@ -318,4 +132,29 @@ bool DSBlockHeader::operator<(const DSBlockHeader& header) const {
 
 bool DSBlockHeader::operator>(const DSBlockHeader& header) const {
   return header < *this;
+}
+
+std::ostream& operator<<(std::ostream& os, const DSBlockHeader& t) {
+  const BlockHeaderBase& blockHeaderBase(t);
+
+  os << blockHeaderBase << std::endl
+     << "<DSBlockHeader>" << std::endl
+     << " DSDifficulty    = " << t.GetDSDifficulty() << std::endl
+     << " Difficulty      = " << t.GetDifficulty() << std::endl
+     << " TotalDifficulty = " << t.GetTotalDifficulty() << std::endl
+     << " LeaderPubKey    = " << t.GetLeaderPubKey() << std::endl
+     << " BlockNum        = " << t.GetBlockNum() << std::endl
+     << " EpochNum        = " << t.GetEpochNum() << std::endl
+     << " GasPrice        = " << t.GetGasPrice() << std::endl
+     << t.m_hashset << std::endl
+     << t.GetSWInfo() << std::endl;
+  for (const auto& node : t.GetDSPoWWinners()) {
+    os << " PoWDSWinner     = " << node.first << " " << node.second
+       << std::endl;
+  }
+  for (const auto& pubkey : t.GetDSRemovePubKeys()) {
+    os << " DSRemoved       = " << pubkey << std::endl;
+  }
+
+  return os;
 }

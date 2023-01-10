@@ -22,7 +22,7 @@
 #include "libData/BlockData/BlockHeader/DSBlockHeader.h"
 
 /// Stores the DS header and signature.
-class DSBlock : public BlockBase {
+class DSBlock final : public BlockBase {
   DSBlockHeader m_header;
 
  public:
@@ -31,7 +31,12 @@ class DSBlock : public BlockBase {
                         // is maxsize of uint256
 
   /// Constructor with specified DS block parameters.
-  DSBlock(const DSBlockHeader& header, CoSignatures&& cosigs);
+  template <typename CoSignaturesT>
+  DSBlock(const DSBlockHeader& header, CoSignaturesT&& coSigs,
+          uint64_t timestamp = get_time_as_int())
+      : BlockBase{header.GetMyHash(), std::forward<CoSignaturesT>(coSigs),
+                  timestamp},
+        m_header(header) {}
 
   /// Implements the Serialize function inherited from Serializable.
   virtual bool Serialize(zbytes& dst, unsigned int offset) const override;
@@ -54,15 +59,8 @@ class DSBlock : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const DSBlock& block) const;
-
-  friend std::ostream& operator<<(std::ostream& os, const DSBlock& t);
 };
 
-inline std::ostream& operator<<(std::ostream& os, const DSBlock& t) {
-  const BlockBase& blockBase(t);
-
-  os << "<DSBlock>" << std::endl << blockBase << std::endl << t.m_header;
-  return os;
-}
+std::ostream& operator<<(std::ostream& os, const DSBlock& t);
 
 #endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_

@@ -30,7 +30,12 @@ class VCBlock final : public BlockBase {
   VCBlock() = default;  // creates a dummy invalid placeholder block
 
   /// Constructor with specified VC block parameters.
-  VCBlock(const VCBlockHeader& header, CoSignatures&& cosigs);
+  template <typename CoSignaturesT>
+  VCBlock(const VCBlockHeader& header, CoSignaturesT&& coSigs,
+          uint64_t timestamp = get_time_as_int())
+      : BlockBase{header.GetMyHash(), std::forward<CoSignaturesT>(coSigs),
+                  timestamp},
+        m_header(header) {}
 
   /// Implements the Serialize function inherited from Serializable.
   /// Return size of serialized structure
@@ -56,8 +61,6 @@ class VCBlock final : public BlockBase {
 
   /// Greater-than comparison operator.
   bool operator>(const VCBlock& block) const;
-
-  friend std::ostream& operator<<(std::ostream& os, const VCBlock& t);
 };
 
 std::ostream& operator<<(std::ostream& os, const VCBlock& t);

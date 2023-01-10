@@ -28,6 +28,12 @@
     return false;                                                    \
   }
 
+#define PROTOBUFBYTEARRAYTOSERIALIZABLEOPT(ba, s)                    \
+  if (!ProtobufByteArrayToSerializable(ba, s)) {                     \
+    LOG_GENERAL(WARNING, "ProtobufByteArrayToSerializable failed."); \
+    return std::nullopt;                                             \
+  }
+
 namespace ZilliqaMessage {
 class ByteArray;
 }

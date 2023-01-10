@@ -23,7 +23,7 @@
 #include "BlockHeaderBase.h"
 
 /// Stores information on the header part of the microblock.
-class MicroBlockHeader : public BlockHeaderBase {
+class MicroBlockHeader final : public BlockHeaderBase {
   uint32_t m_shardId{};
   uint64_t m_gasLimit{};
   uint64_t m_gasUsed{};
@@ -77,8 +77,6 @@ class MicroBlockHeader : public BlockHeaderBase {
 
   // Operators
   bool operator==(const MicroBlockHeader& header) const;
-
-  friend std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t);
 };
 
 std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t);

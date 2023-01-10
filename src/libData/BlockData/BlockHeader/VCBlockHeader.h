@@ -24,7 +24,7 @@
 #include "libNetwork/ShardStruct.h"
 
 /// Stores information on the header part of the VC block.
-class VCBlockHeader : public BlockHeaderBase {
+class VCBlockHeader final : public BlockHeaderBase {
   uint64_t m_VieWChangeDSEpochNo{};
   uint64_t m_VieWChangeEpochNo{};
   unsigned char m_ViewChangeState{};

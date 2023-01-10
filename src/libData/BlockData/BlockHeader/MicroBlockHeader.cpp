@@ -24,38 +24,11 @@ using namespace boost::multiprecision;
 
 namespace {
 
-void MicroBlockHeaderToProtobuf(
-    const MicroBlockHeader& microBlockHeader,
-    ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoMicroBlockHeader.mutable_blockheaderbase();
-  io::BlockHeaderBaseToProtobuf(microBlockHeader, *protoBlockHeaderBase);
-
-  protoMicroBlockHeader.set_shardid(microBlockHeader.GetShardId());
-  protoMicroBlockHeader.set_gaslimit(microBlockHeader.GetGasLimit());
-  protoMicroBlockHeader.set_gasused(microBlockHeader.GetGasUsed());
-  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-      microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
-  protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
-  protoMicroBlockHeader.set_txroothash(microBlockHeader.GetTxRootHash().data(),
-                                       microBlockHeader.GetTxRootHash().size);
-  protoMicroBlockHeader.set_numtxs(microBlockHeader.GetNumTxs());
-  SerializableToProtobufByteArray(microBlockHeader.GetMinerPubKey(),
-                                  *protoMicroBlockHeader.mutable_minerpubkey());
-  protoMicroBlockHeader.set_dsblocknum(microBlockHeader.GetDSBlockNum());
-  protoMicroBlockHeader.set_statedeltahash(
-      microBlockHeader.GetStateDeltaHash().data(),
-      microBlockHeader.GetStateDeltaHash().size);
-  protoMicroBlockHeader.set_tranreceipthash(
-      microBlockHeader.GetTranReceiptHash().data(),
-      microBlockHeader.GetTranReceiptHash().size);
-}
-
 bool SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
                          const MicroBlockHeader& microBlockHeader) {
   ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader result;
 
-  MicroBlockHeaderToProtobuf(microBlockHeader, result);
+  io::MicroBlockHeaderToProtobuf(microBlockHeader, result);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING,
@@ -64,89 +37,6 @@ bool SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
-    const ZilliqaMessage::ProtoMicroBlock::
-        MicroBlockHeader& /*protoMicroBlockHeader*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoMicroBlockHeader.has_shardid() &&
-         protoMicroBlockHeader.has_gaslimit() &&
-         protoMicroBlockHeader.has_gasused() &&
-         protoMicroBlockHeader.has_rewards() &&
-         protoMicroBlockHeader.has_epochnum() &&
-         protoMicroBlockHeader.has_txroothash() &&
-         protoMicroBlockHeader.has_numtxs() &&
-         protoMicroBlockHeader.has_minerpubkey() &&
-         protoMicroBlockHeader.has_dsblocknum() &&
-         protoMicroBlockHeader.has_statedeltahash() &&
-         protoMicroBlockHeader.has_tranreceipthash() &&
-         protoMicroBlockHeader.has_blockheaderbase();
-#endif
-  return true;
-}
-
-bool ProtobufToMicroBlockHeader(
-    const ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader&
-        protoMicroBlockHeader,
-    MicroBlockHeader& microBlockHeader) {
-  if (!CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
-          protoMicroBlockHeader)) {
-    LOG_GENERAL(WARNING,
-                "CheckRequiredFieldsProtoMicroBlockMicroBlockHeader failed");
-    return false;
-  }
-
-  uint64_t gasLimit;
-  uint64_t gasUsed;
-  uint128_t rewards;
-  TxnHash txRootHash;
-  PubKey minerPubKey;
-  BlockHash dsBlockHash;
-  StateHash stateDeltaHash;
-  TxnHash tranReceiptHash;
-
-  gasLimit = protoMicroBlockHeader.gaslimit();
-  gasUsed = protoMicroBlockHeader.gasused();
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-      protoMicroBlockHeader.rewards(), rewards);
-
-  if (!CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
-                         txRootHash.asArray())) {
-    return false;
-  }
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoMicroBlockHeader.minerpubkey(),
-                                  minerPubKey);
-
-  if (!CopyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
-                         stateDeltaHash.asArray())) {
-    return false;
-  }
-
-  if (!CopyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
-                         tranReceiptHash.asArray())) {
-    return false;
-  }
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoMicroBlockHeader.blockheaderbase();
-
-  auto blockHeaderBaseVars =
-      io::ProtobufToBlockHeaderBase(protoBlockHeaderBase);
-  if (!blockHeaderBaseVars) return false;
-
-  const auto& [version, committeeHash, prevHash] = *blockHeaderBaseVars;
-
-  microBlockHeader = MicroBlockHeader(
-      protoMicroBlockHeader.shardid(), gasLimit, gasUsed, rewards,
-      protoMicroBlockHeader.epochnum(),
-      {txRootHash, stateDeltaHash, tranReceiptHash},
-      protoMicroBlockHeader.numtxs(), minerPubKey,
-      protoMicroBlockHeader.dsblocknum(), version, committeeHash, prevHash);
-
-  return true;
 }
 
 template <std::ranges::contiguous_range RangeT>
@@ -167,7 +57,7 @@ bool GetMicroBlockHeader(RangeT&& src, unsigned int offset,
     return false;
   }
 
-  return ProtobufToMicroBlockHeader(result, microBlockHeader);
+  return io::ProtobufToMicroBlockHeader(result, microBlockHeader);
 }
 
 }  // namespace
@@ -230,6 +120,6 @@ std::ostream& operator<<(std::ostream& os, const MicroBlockHeader& t) {
      << " NumTxs      = " << t.GetNumTxs() << std::endl
      << " MinerPubKey = " << t.GetMinerPubKey() << std::endl
      << " DSBlockNum  = " << t.GetDSBlockNum() << std::endl
-     << t.m_hashset;
+     << t.GetHashes();
   return os;
 }
