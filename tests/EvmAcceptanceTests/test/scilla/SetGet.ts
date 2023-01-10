@@ -14,8 +14,7 @@ describe("Scilla SetGet contract", function () {
   it("Should set state correctly", async function () {
     const VALUE = 12;
     await contract.Set(VALUE);
-    const state = await contract.getState();
-    expect(state.value).to.be.eq("12");
+    expect(await contract.value()).to.be.eq(VALUE);
   });
 
   it("Should contain event data if Get function is called", async function () {

@@ -2,7 +2,7 @@ import {glob} from "glob";
 import fs from "fs";
 import path from "path";
 import {createHash} from "crypto";
-import {ContractName, Transitions, parseScilla} from "./helper/ScillaParser";
+import {ContractName, Transitions, parseScilla, Fields} from "./helper/ScillaParser";
 
 // For some reason, hardhat deletes json files in artifacts, so it couldn't be scilla.json
 const CONTRACTS_INFO_CACHE_FILE = "./artifacts/scilla.cache";
@@ -12,6 +12,7 @@ export interface ContractInfo {
   name: ContractName;
   path: string;
   transitions: Transitions;
+  fields: Fields;
 }
 
 type ContractPath = string;
@@ -85,9 +86,9 @@ const parseScillaFile = (fileName: string): ContractInfo | null => {
   const hashSum = createHash("md5");
   hashSum.update(contents);
 
-  const [contractName, transitions] = parseScilla(fileName);
+  const [contractName, transitions, fields] = parseScilla(fileName);
 
-  return {name: contractName, hash: hashSum.digest("hex"), path: fileName, transitions: transitions};
+  return {name: contractName, hash: hashSum.digest("hex"), path: fileName, transitions, fields};
 };
 
 updateContractsInfo();

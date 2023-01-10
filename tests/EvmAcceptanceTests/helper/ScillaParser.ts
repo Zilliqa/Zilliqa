@@ -2,8 +2,41 @@ const parse: any = require("s-expression");
 import fs from "fs";
 import {execSync} from "child_process";
 
+export type ScillaDataType =
+  | "Int32"
+  | "Int64"
+  | "Int128"
+  | "Int256"
+  | "Uint32"
+  | "Uint64"
+  | "Uint128"
+  | "Uint256"
+  | "String"
+  | "BNum"
+  | "Message"
+  | "Event"
+  | "Exception"
+  | "ReplicateContr"
+  | "ByStr";
+
+export const isNumeric = (type: ScillaDataType) => {
+  switch (type) {
+    case "Int64":
+    case "Int128":
+    case "Int256":
+    case "Uint32":
+    case "Uint64":
+    case "Uint128":
+    case "Uint256":
+      return true;
+
+    default:
+      return false;
+  }
+};
+
 export interface TransitionParam {
-  type: string;
+  type: ScillaDataType;
   name: string;
 }
 
@@ -13,10 +46,16 @@ export interface Transition {
   params: TransitionParam[];
 }
 
+export interface Field {
+  type: ScillaDataType;
+  name: string;
+}
+
 export type Transitions = Transition[];
 export type ContractName = string;
+export type Fields = Field[];
 
-export const parseScilla = (filename: string): [ContractName, Transitions] => {
+export const parseScilla = (filename: string): [ContractName, Transitions, Fields] => {
   if (!fs.existsSync(filename)) {
     throw new Error(`${filename} doesn't exist.`);
   }
@@ -28,6 +67,30 @@ export const parseScilla = (filename: string): [ContractName, Transitions] => {
   const contractName = contr
     .filter((row: string[]) => row[0] === "cname")[0][1]
     .filter((row: string[]) => row[0] === "SimpleLocal")[0][1];
+
+  const cfields = contr.filter((row: string[]) => row[0] === "cfields")[0][1];
+  const fields = cfields.map((row: any[]): Field => {
+    const identData = row[0];
+    if (identData[0] !== "Ident") {
+      throw new Error("0 is not Indent");
+    }
+
+    const fieldNameData = identData[1];
+    if (fieldNameData[0] !== "SimpleLocal") {
+      throw new Error("0 is not SimpleLocal");
+    }
+
+    const fieldTypeData = row[1];
+    if (fieldTypeData[0] !== "PrimType") {
+      throw new Error("0 is not PrimType");
+    }
+
+    return {
+      type: fieldTypeData[1],
+      name: fieldNameData[1]
+    };
+  });
+
   const ccomps = contr.filter((row: string[]) => row[0] === "ccomps")[0][1];
   const functions = ccomps.map((row: any[]) => {
     const comp_type_data = row[0];
@@ -67,5 +130,7 @@ export const parseScilla = (filename: string): [ContractName, Transitions] => {
     };
   });
 
-  return [contractName, functions];
+  return [contractName, functions, fields];
 };
+
+console.log(parseScilla("./contracts/scilla/SetGet.scilla"));

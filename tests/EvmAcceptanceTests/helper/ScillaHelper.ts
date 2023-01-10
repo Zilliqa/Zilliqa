@@ -4,7 +4,7 @@ import {BN, Long, units, bytes} from "@zilliqa-js/util";
 import {getAddressFromPrivateKey, getPubKeyFromPrivateKey} from "@zilliqa-js/crypto";
 import {Init, Contract, Value} from "@zilliqa-js/contract";
 import {scillaContracts, ContractInfo} from "../ScillaContractProcessor";
-import {TransitionParam} from "./ScillaParser";
+import {TransitionParam, isNumeric} from "./ScillaParser";
 
 // chain setup on ceres locally run isolated server, see https://dev.zilliqa.com/docs/dev/dev-tools-ceres/. Keys and wallet setup
 const s = () => {
@@ -82,8 +82,17 @@ export async function deploy(contractName: string, init?: Init) {
           value: args[index].toString()
         });
       });
+
       return sc_call(sc, transition.name, values);
     };
+
+    contractInfo.fields.forEach((field) => {
+      sc[field.name] = async () => {
+        const state = await sc.getState();
+        if (isNumeric(field.type)) return Number(state[field.name]);
+        return state[field.name];
+      };
+    });
   });
 
   return sc;
