@@ -81,7 +81,7 @@ const getFileHash = (fileName: string): string => {
 };
 
 const parseScillaFile = (fileName: string): ContractInfo | null => {
-  console.log("parse " + fileName);
+  console.log("Parsing " + fileName);
   let contents = fs.readFileSync(fileName, "utf8");
   const hashSum = createHash("md5");
   hashSum.update(contents);

@@ -80,28 +80,29 @@ const extractContractFields = (cfieldsElem: any[]): Fields => {
     }
 
     const fieldTypeData = row[1];
+    // Currently we just parse PrimType, for the rest we don't parse it completely.
     if (fieldTypeData[0] === "PrimType") {
       return {
         type: fieldTypeData[1],
         name: fieldNameData[1]
       };
     } else if (fieldTypeData[0] === "ADT") {
-      const identData = fieldTypeData[1];
-      if (identData[0] !== "Ident") {
-        throw new Error(`0 is not Ident: ${identData}`);
-      }
-      const ident = identData[1][1];
-      const primTypeData = fieldTypeData[2][0];
-      if (primTypeData[0] !== "PrimType") {
-        throw new Error(`0 is not PrimType: ${primTypeData}`);
-      }
-      const primType = primTypeData[1];
       return {
-        type: ident + primType,
+        type: "ADT",
+        name: fieldNameData[1]
+      }
+    } else if (fieldTypeData[0] === "MapType") {
+      return {
+        type: "Map",
+        name: fieldNameData[1]
+      }
+    } else if (fieldTypeData[0] === "Address") {
+      return {
+        type: "Address",
         name: fieldNameData[1]
       }
     } else {
-      throw new Error(`0 is not PrimType nor ADT: ${fieldTypeData}`);
+      throw new Error(`Data type is unknown: ${fieldTypeData}`);
     }
   });
 }
