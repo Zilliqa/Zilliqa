@@ -1,0 +1,232 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet # This headless service is required by the statefulset
+  labels:
+    testnet: devnet
+spec:
+  ports:
+  - port: 30303
+    name: zilliqa-app
+  clusterIP: None
+  selector:
+    # select all nodes
+    testnet: devnet
+    app: zilliqa
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet-api
+  labels:
+    testnet: devnet
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4201
+    name: zilliqa-api
+  selector:
+    testnet: devnet
+    app: zilliqa
+    type: lookup
+    jsonrpc: opened
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devnet-api
+  labels:
+    testnet: devnet
+    external: "true"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  rules:
+  - host: api.local.z7a.xyz
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        backend:
+          service:
+            name: devnet-api
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet-l2api
+  labels:
+    testnet: devnet
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4201
+    name: zilliqa-api
+  selector:
+    testnet: devnet
+    app: zilliqa
+    type: seedpub
+    jsonrpc: opened
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devnet-l2api
+  labels:
+    testnet: devnet
+    external: "true"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  rules:
+  - host: l2api.local.z7a.xyz
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        backend:
+          service:
+            name: devnet-l2api
+            port:
+              number: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet-newapi
+  labels:
+    testnet: devnet
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 4201
+    name: zilliqa-api
+  selector:
+    testnet: devnet
+    app: zilliqa
+    type: seedprv
+    jsonrpc: opened
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devnet-newapi
+  labels:
+    testnet: devnet
+    external: "true"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+spec:
+  rules:
+  - host: newapi.local.z7a.xyz
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        backend:
+          service:
+            name: devnet-newapi
+            port:
+              number: 80
+---
+# seedpub staking port service
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet-l2api-staking
+  labels:
+    testnet: devnet
+    type: l2api-staking
+  annotations:
+    external-dns.alpha.kubernetes.io/hostname: "l2api-staking.local.z7a.xyz"
+    service.beta.kubernetes.io/aws-load-balancer-internal: "true"
+    service.beta.kubernetes.io/aws-load-balancer-backend-protocol: http
+    service.beta.kubernetes.io/aws-load-balancer-connection-idle-timeout: "3600"
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+    service.beta.kubernetes.io/aws-load-balancer-ssl-cert: NOT A REAL CERT
+    service.beta.kubernetes.io/aws-load-balancer-ssl-ports: https
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 4501
+    name: api-staking
+  selector:
+    testnet: devnet
+    app: zilliqa
+    type: seedpub
+    staking: opened
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: devnet-origin
+  labels:
+    testnet: devnet
+spec:
+  type: ClusterIP
+  ports:
+  - port: 80
+    targetPort: 80
+    name: zilliqa-origin
+  selector:
+    testnet: devnet
+    app: nginx
+    task: origin
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devnet-origin
+  labels:
+    testnet: devnet
+    external: "true"
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+    ingress.kubernetes.io/auth-type: basic
+    ingress.kubernetes.io/auth-secret: devnet-origin-bauth
+    ingress.kubernetes.io/auth-realm: "authorization required"
+spec:
+  rules:
+  - host: origin.local.z7a.xyz
+    http:
+      paths:
+      - pathType: ImplementationSpecific
+        backend:
+          service:
+            name: devnet-origin
+            port:
+              number: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: devnet-origin-internal
+  labels:
+    testnet: devnet
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    ingress.kubernetes.io/force-ssl-redirect: "true"
+    ingress.kubernetes.io/rewrite-target: /$2
+    ingress.kubernetes.io/auth-type: basic
+    ingress.kubernetes.io/auth-secret: devnet-origin-bauth
+    ingress.kubernetes.io/auth-realm: "authorization required"
+spec:
+  rules:
+  - host: 617aa794.devnet.local.z7a.xyz
+    http:
+      paths:
+      - path: /origin/devnet(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: devnet-origin
+            port:
+              number: 80

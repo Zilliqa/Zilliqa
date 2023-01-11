@@ -345,6 +345,17 @@ bool APIServerImpl::Start() {
     m_eventLoopThread.emplace([this] { EventLoopThread(); });
   }
 
+  m_metrics.SetCallback([this](auto&& result) {
+    result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
+                                      {"counter", "TotalConnections"}});
+    result.Set(m_websocket->GetConnectionsNumber(),
+               {{"server", m_options.threadPoolName},
+                {"counter", "TotalWebsocketConnections"}});
+    result.Set(m_threadPool->GetQueueSize(),
+               {{"server", m_options.threadPoolName},
+                {"counter", "ThreadPoolQueueSize"}});
+  });
+
   return true;
 }
 

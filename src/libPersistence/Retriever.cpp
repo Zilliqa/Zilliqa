@@ -17,18 +17,14 @@
 
 #include "Retriever.h"
 
-#include <stdlib.h>
-#include <algorithm>
 #include <exception>
-#include <vector>
 
 #include <boost/filesystem/operations.hpp>
 
-#include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/Transaction.h"
-#include "libPersistence/BlockStorage.h"
+#include "libDirectoryService/DirectoryService.h"
+#include "libMediator/Mediator.h"
+#include "libNode/Node.h"
 #include "libUtils/CommonUtils.h"
-#include "libUtils/DataConversion.h"
 #include "libUtils/FileSystem.h"
 
 Retriever::Retriever(Mediator& mediator) : m_mediator(mediator) {}

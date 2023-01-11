@@ -10,7 +10,7 @@ list(REMOVE_ITEM MESSAGE_COMPILE_FLAGS -Wextra -Werror)
 message(STATUS "Message compile flags new = ${MESSAGE_COMPILE_FLAGS}")
 set_target_properties(Message PROPERTIES COMPILE_OPTIONS "${MESSAGE_COMPILE_FLAGS}")
 target_include_directories (Message PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src)
-target_link_libraries (Message PUBLIC MessageCommon AccountData Block BlockHeader MiningData CoinbaseData Network)
+target_link_libraries (Message PUBLIC MessageCommon AccountStore AccountData  Block BlockHeader MiningData CoinbaseData Network)
 
 add_library (MessageSWInfo STATIC MessengerSWInfo.cpp)
 get_target_property(MESSAGESWINFO_COMPILE_FLAGS MessageSWInfo COMPILE_OPTIONS )

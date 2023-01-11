@@ -72,7 +72,13 @@ bool DirectoryService::SendPoWPacketSubmissionToOtherDSComm() {
     for (auto const& i : *m_mediator.m_DSCommittee) {
       peerList.push_back(i.second);
     }
-    P2PComm::GetInstance().SendMessage(peerList, powpacketmessage);
+
+    // TODO use distributed traces from here?
+    bool inject_trace_context = false;
+
+    P2PComm::GetInstance().SendMessage(peerList, powpacketmessage,
+                                       zil::p2p::START_BYTE_NORMAL,
+                                       inject_trace_context);
   }
 
   return true;

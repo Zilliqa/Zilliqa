@@ -84,7 +84,7 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test --parallel
+    npx hardhat test --debug
 
     retVal=$?
     if [ $retVal -ne 0 ]; then

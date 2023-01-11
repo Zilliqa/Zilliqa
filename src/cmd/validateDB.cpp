@@ -17,9 +17,11 @@
 
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
+#include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/Retriever.h"
 #include "libUtils/UpgradeManager.h"
+#include "libValidator/Validator.h"
 
 /// Should be run from a folder with dsnodes.xml and constants.xml and a folder
 /// named "persistence" consisting of the persistence

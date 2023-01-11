@@ -35,7 +35,7 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/Executable.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2PMessage.h"
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
@@ -268,7 +268,8 @@ class Node : public Executable {
       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessMicroBlockConsensusCore(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte = START_BYTE_NORMAL);
+      [[gnu::unused]] const unsigned char& startByte =
+          zil::p2p::START_BYTE_NORMAL);
   bool ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
                            const Peer& from, const unsigned char& startByte);
   bool ProcessVCFinalBlockCore(const zbytes& message, unsigned int offset,
@@ -570,7 +571,7 @@ class Node : public Executable {
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
-               const unsigned char& startByte = START_BYTE_NORMAL);
+               const unsigned char& startByte = zil::p2p::START_BYTE_NORMAL);
 
   Mediator& GetMediator() { return m_mediator; }
 

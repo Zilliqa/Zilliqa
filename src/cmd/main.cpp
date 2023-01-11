@@ -248,6 +248,11 @@ int main(int argc, const char* argv[]) {
       P2PComm::GetInstance().EnableListener(my_network_info.m_listenPortHost,
                                             ENABLE_SEED_TO_SEED_COMMUNICATION);
     }
+
+    LOG_GENERAL(INFO, "Shutting down metrics...");
+    Metrics::GetInstance().Shutdown();
+    LOG_GENERAL(INFO, "Metrics shut down");
+
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
