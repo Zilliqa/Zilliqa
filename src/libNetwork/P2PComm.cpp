@@ -122,8 +122,9 @@ void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
 
 namespace {
 
-inline std::shared_ptr<zil::p2p::Message> MakeMsg(
-    zbytes msg, Peer peer, uint8_t startByte, std::string traceContext = {}) {
+inline std::shared_ptr<zil::p2p::Message> MakeMsg(zbytes msg, Peer peer,
+                                                  uint8_t startByte,
+                                                  std::string& traceContext) {
   auto r = std::make_shared<zil::p2p::Message>();
   r->msg = std::move(msg);
   r->traceContext = std::move(traceContext);
@@ -134,11 +135,8 @@ inline std::shared_ptr<zil::p2p::Message> MakeMsg(
 
 }  // namespace
 
-void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
-  // TODO has is parsed
-  zbytes msg_hash(message.begin() + HDR_LEN,
-                  message.begin() + HDR_LEN + HASH_LEN);
-
+void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
+                                  const Peer& from, std::string& traceInfo) {
   P2PComm& p2p = P2PComm::GetInstance();
 
   // Check if this message has been received before
@@ -146,16 +144,14 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
   {
     lock_guard<mutex> guard(p2p.m_broadcastHashesMutex);
 
-    found =
-        (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
+    found = (p2p.m_broadcastHashes.find(hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
       SHA256Calculator sha256;
-      sha256.Update(message, HDR_LEN + HASH_LEN,
-                    message.size() - HDR_LEN - HASH_LEN);
+      sha256.Update(message);
       zbytes this_msg_hash = sha256.Finalize();
 
-      if (this_msg_hash == msg_hash) {
+      if (this_msg_hash == hash) {
         p2p.m_broadcastHashes.insert(this_msg_hash);
       } else {
         LOG_GENERAL(WARNING, "Incorrect message hash.");
@@ -170,10 +166,10 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
     return;
   }
 
-  p2p.ClearBroadcastHashAsync(msg_hash);
+  p2p.ClearBroadcastHashAsync(hash);
 
   string msgHashStr;
-  if (!DataConversion::Uint8VecToHexStr(msg_hash, msgHashStr)) {
+  if (!DataConversion::Uint8VecToHexStr(hash, msgHashStr)) {
     return;
   }
 
@@ -181,31 +177,30 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
                        << msgHashStr.substr(0, 6) << "] RECV");
 
   // Queue the message
-  m_dispatcher(
-      MakeMsg(zbytes(message.begin() + HDR_LEN + HASH_LEN, message.end()), from,
-              zil::p2p::START_BYTE_BROADCAST));
+  m_dispatcher(MakeMsg(std::move(message), from, zil::p2p::START_BYTE_BROADCAST,
+                       traceInfo));
 }
 
-/*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from) {
-  unsigned char gossipMsgTyp = message.at(HDR_LEN);
+/*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from,
+                                          std::string& traceInfo) {
+  unsigned char gossipMsgTyp = message.at(0);
 
-  const uint32_t gossipMsgRound =
-      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN) << 24) +
-      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 1) << 16) +
-      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 2) << 8) +
-      message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 3);
+  const uint32_t gossipMsgRound = (message.at(GOSSIP_MSGTYPE_LEN) << 24) +
+                                  (message.at(GOSSIP_MSGTYPE_LEN + 1) << 16) +
+                                  (message.at(GOSSIP_MSGTYPE_LEN + 2) << 8) +
+                                  message.at(GOSSIP_MSGTYPE_LEN + 3);
 
   const uint32_t gossipSenderPort =
-      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN) << 24) +
-      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1) << 16) +
-      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2) << 8) +
-      message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
+      (message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN) << 24) +
+      (message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1) << 16) +
+      (message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2) << 8) +
+      message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
   from.m_listenPortHost = gossipSenderPort;
 
-  RumorManager::RawBytes rumor_message(
-      message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN +
-          GOSSIP_SNDR_LISTNR_PORT_LEN,
-      message.end());
+  RumorManager::RawBytes rumor_message(message.begin() + GOSSIP_MSGTYPE_LEN +
+                                           GOSSIP_ROUND_LEN +
+                                           GOSSIP_SNDR_LISTNR_PORT_LEN,
+                                       message.end());
 
   P2PComm& p2p = P2PComm::GetInstance();
   if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
@@ -220,7 +215,8 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
-      m_dispatcher(MakeMsg(std::move(tmp), from, zil::p2p::START_BYTE_GOSSIP));
+      m_dispatcher(MakeMsg(std::move(tmp), from, zil::p2p::START_BYTE_GOSSIP,
+                           traceInfo));
     }
   } else {
     auto resp = p2p.m_rumorManager.RumorReceived(
@@ -229,8 +225,8 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
       LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
 
       // Queue the message
-      m_dispatcher(
-          MakeMsg(std::move(resp.second), from, zil::p2p::START_BYTE_GOSSIP));
+      m_dispatcher(MakeMsg(std::move(resp.second), from,
+                           zil::p2p::START_BYTE_GOSSIP, traceInfo));
     }
   }
 }
@@ -393,14 +389,14 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       return;
     }
 
-    ProcessBroadCastMsg(result.message, from);  // TODO TRACES
+    ProcessBroadCastMsg(result.message, result.hash, from, result.traceInfo);
   } else if (result.startByte == zil::p2p::START_BYTE_NORMAL) {
     LOG_PAYLOAD(INFO, "Incoming normal " << from, result.message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
     m_dispatcher(MakeMsg(std::move(result.message), from,
-                         zil::p2p::START_BYTE_NORMAL));  // TODO TRACES
+                         zil::p2p::START_BYTE_NORMAL, result.traceInfo));
   } else if (result.startByte == zil::p2p::START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (result.message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
@@ -410,7 +406,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
                       << MAX_GOSSIP_MSG_SIZE_IN_BYTES
                       << " ]. Will be strictly blacklisting the sender");
       Blacklist::GetInstance().Add(
-          from.m_ipAddress);  // so we dont spend cost sending any data to this
+          from.m_ipAddress);  // so we don't spend cost sending any data to this
                               // sender as well.
       return;
     }
@@ -424,7 +420,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
       return;
     }
 
-    ProcessGossipMsg(result.message, from);  // TODO TRACES
+    ProcessGossipMsg(result.message, from, result.traceInfo);
   } else {
     // Unexpected start byte. Drop this message
     LOG_GENERAL(WARNING, "Incorrect start byte " << result.startByte);
@@ -601,8 +597,9 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
       m_bufferEventMap[bufKey] = bev;
     }
     // Queue the message
+    std::string emptyStr;
     m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
-                         zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST));
+                         zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST, emptyStr));
   } else {
     // Unexpected start byte. Drop this message
     LOG_CHECK_FAIL("Start byte", startByte,
@@ -885,8 +882,9 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
                 message, Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
+    std::string emptyStr;
     m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
-                         zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE));
+                         zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, emptyStr));
   } else {
     // Unexpected start byte. Drop this message
     LOG_CHECK_FAIL("Start byte", startByte,

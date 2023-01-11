@@ -71,8 +71,10 @@ class P2PComm {
 
   std::shared_ptr<zil::p2p::SendJobs> m_sendJobs;
 
-  static void ProcessBroadCastMsg(zbytes& message, const Peer& from);
-  static void ProcessGossipMsg(zbytes& message, Peer& from);
+  static void ProcessBroadCastMsg(zbytes& message, zbytes& hash,
+                                  const Peer& from, std::string& traceInfo);
+  static void ProcessGossipMsg(zbytes& message, Peer& from,
+                               std::string& traceInfo);
 
   static void EventCallback(struct bufferevent* bev, short events, void* ctx);
   static void EventCbServerSeed(struct bufferevent* bev, short events,

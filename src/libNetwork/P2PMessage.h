@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <memory>
 #include <functional>
+#include <memory>
 
 #include "Peer.h"
 
@@ -87,13 +87,20 @@ enum class ReadState {
 };
 
 struct ReadMessageResult {
+  /// START_BYTE_*
   uint8_t startByte = 0;
-  zbytes message;
-  zbytes hash;  // hash for broadcast messages
-  std::string traceInfo;
-  size_t totalMessageBytes = 0;
 
-  void reset();
+  /// Raw binary message
+  zbytes message;
+
+  /// Non-empty hash for broadcast messages
+  zbytes hash;
+
+  /// Non-empty trace information if raw message contained it
+  std::string traceInfo;
+
+  /// Total bytes consumed from wire
+  size_t totalMessageBytes = 0;
 };
 
 ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
