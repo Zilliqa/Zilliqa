@@ -41,10 +41,11 @@ using namespace std;
 using namespace boost::multiprecision;
 
 // TODO: only used in libNode. Move somewhere more appropriate.
-extern bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
-                                unsigned int minLengthNeeded,
-                                unsigned int factor = 0,
-                                const std::string& errMsg = "");
+extern bool IsMessageSizeInappropriate(unsigned int messageSize,
+                                       unsigned int offset,
+                                       unsigned int minLengthNeeded,
+                                       unsigned int factor = 0,
+                                       const std::string& errMsg = "");
 
 bool Node::GetLatestDSBlock() {
   LOG_MARKER();

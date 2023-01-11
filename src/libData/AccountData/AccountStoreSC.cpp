@@ -37,7 +37,8 @@
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
-// "long" and "long long" are the same in gnu's libstdc++ and not in apple's libc++
+// "long" and "long long" are the same in gnu's libstdc++ and not in apple's
+// libc++
 #ifdef __APPLE__
 typedef long long observerType;
 #else
@@ -54,12 +55,12 @@ void AccountStoreSC<MAP>::instFetchInfo(
   if (std::holds_alternative<std::shared_ptr<
           opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
           observer_result)) {
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
+    std::get<std::shared_ptr<
+        opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
         observer_result)
         ->Observe(that->m_curBlockNum, {{"counter", "BlockNumber"}});
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
+    std::get<std::shared_ptr<
+        opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
         observer_result)
         ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
   }

@@ -325,7 +325,8 @@ LookupServer::LookupServer(Mediator& mediator,
 }
 
 string LookupServer::GetNetworkId() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetNetworkId"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -335,7 +336,8 @@ string LookupServer::GetNetworkId() {
 }
 
 bool LookupServer::StartCollectorThread() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "StartCollectorThread"}});
   }
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
@@ -546,7 +548,8 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 Json::Value LookupServer::CreateTransaction(
     const Json::Value& _json, const unsigned int num_shards,
     const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "CreateTransaction"}});
   }
   LOG_MARKER();
@@ -674,7 +677,8 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetTransaction"}});
   }
   LOG_MARKER();
@@ -703,7 +707,8 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
 }
 
 Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetSoftConfirmedTransaction"}});
   }
   LOG_MARKER();
@@ -740,7 +745,8 @@ Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
 }
 
 Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetDsBlock"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -780,7 +786,8 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
 
 Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
                                           bool verbose) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetTxBlockByNum"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -809,7 +816,8 @@ Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
 }
 
 string LookupServer::GetMinimumGasPrice() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetMinimumGasPrice"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -823,7 +831,8 @@ string LookupServer::GetMinimumGasPrice() {
 }
 
 Json::Value LookupServer::GetLatestDsBlock() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetLatestDsBlock"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -841,7 +850,8 @@ Json::Value LookupServer::GetLatestDsBlock() {
 }
 
 Json::Value LookupServer::GetLatestTxBlock() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetLatestTxBlock"}});
   }
   LOG_MARKER();
@@ -860,7 +870,8 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetBalanceAndNonce"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -902,7 +913,8 @@ Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetSmartContractState"}});
   }
   LOG_MARKER();
@@ -953,7 +965,8 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
 }
 
 Json::Value LookupServer::GetSmartContractInit(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetSmartContractInit"}});
   }
   LOG_MARKER();
@@ -1001,7 +1014,8 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
 }
 
 Json::Value LookupServer::GetSmartContractCode(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetSmartContractCode"}});
   }
   LOG_MARKER();
@@ -1043,7 +1057,8 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
 }
 
 Json::Value LookupServer::GetSmartContracts(const string& address) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetSmartContracts"}});
   }
   LOG_MARKER();
@@ -1112,7 +1127,8 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
 }
 
 string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetContractAddressFromTransactionID"}});
   }
   std::string transactionID{tranID};
@@ -1152,7 +1168,8 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
 }
 
 unsigned int LookupServer::GetNumPeers() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetNumPeers"}});
   }
   LOG_MARKER();
@@ -1167,7 +1184,8 @@ unsigned int LookupServer::GetNumPeers() {
 }
 
 string LookupServer::GetNumTxBlocks() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetNumTxBlocks"}});
   }
   LOG_MARKER();
@@ -1180,7 +1198,8 @@ string LookupServer::GetNumTxBlocks() {
 }
 
 string LookupServer::GetNumDSBlocks() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetNumDSBlocks"}});
   }
   LOG_MARKER();
@@ -1193,7 +1212,8 @@ string LookupServer::GetNumDSBlocks() {
 }
 
 string LookupServer::GetNumTransactions() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetNumTransactions"}});
   }
   LOG_MARKER();
@@ -1221,7 +1241,8 @@ string LookupServer::GetNumTransactions() {
 }
 
 size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetNumTransactions"}});
   }
   if (!LOOKUP_NODE_MODE) {
@@ -1248,7 +1269,8 @@ size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
   return res;
 }
 double LookupServer::GetTransactionRate() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetTransactionRate"}});
   }
   LOG_MARKER();
@@ -1309,7 +1331,8 @@ double LookupServer::GetTransactionRate() {
 }
 
 double LookupServer::GetDSBlockRate() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetDSBlockRate"}});
   }
   LOG_MARKER();
@@ -1352,7 +1375,8 @@ double LookupServer::GetDSBlockRate() {
 }
 
 double LookupServer::GetTxBlockRate() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetTxBlockRate"}});
   }
   LOG_MARKER();
@@ -1391,7 +1415,8 @@ double LookupServer::GetTxBlockRate() {
 }
 
 string LookupServer::GetTotalCoinSupply() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetTotalCoinSupply"}});
   }
   auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
@@ -1423,7 +1448,8 @@ string LookupServer::GetTotalCoinSupply() {
 }
 
 Json::Value LookupServer::DSBlockListing(unsigned int page) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "DSBlockListing"}});
   }
   LOG_MARKER();
@@ -1523,7 +1549,8 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
 }
 
 Json::Value LookupServer::TxBlockListing(unsigned int page) {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "TxBlockListing"}});
   }
   LOG_MARKER();
@@ -1626,7 +1653,8 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
 // TODO - Publish these as Gauges
 
 Json::Value LookupServer::GetBlockchainInfo() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::LOOKUP_SERVER)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::LOOKUP_SERVER)) {
     m_callCount->Add(1, {{"Method", "GetBlockchainInfo"}});
   }
   Json::Value _json;

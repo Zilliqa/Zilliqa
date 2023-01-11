@@ -24,8 +24,8 @@
 #include "JsonUtils.h"
 #include "Logger.h"
 #include "common/Constants.h"
-#include "libUtils/Evm.pb.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/Evm.pb.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/TxnExtras.h"
 
@@ -33,24 +33,24 @@ using namespace std;
 using namespace boost::multiprecision;
 
 namespace {
-  std::string Base64Encode(const std::string& in) {
-    namespace b = boost::beast::detail::base64;
+std::string Base64Encode(const std::string& in) {
+  namespace b = boost::beast::detail::base64;
 
-    std::string out;
-    out.resize(b::encoded_size(in.size()));
-    out.resize(b::encode(out.data(), in.data(), in.size()));
-    return out;
-  }
-
-  std::string Base64Decode(const std::string& in) {
-    namespace b = boost::beast::detail::base64;
-
-    std::string out;
-    out.resize(b::decoded_size(in.size()));
-    out.resize(b::decode(out.data(), in.data(), in.size()).first);
-    return out;
-  }
+  std::string out;
+  out.resize(b::encoded_size(in.size()));
+  out.resize(b::encode(out.data(), in.data(), in.size()));
+  return out;
 }
+
+std::string Base64Decode(const std::string& in) {
+  namespace b = boost::beast::detail::base64;
+
+  std::string out;
+  out.resize(b::decoded_size(in.size()));
+  out.resize(b::decode(out.data(), in.data(), in.size()).first);
+  return out;
+}
+}  // namespace
 
 Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   Json::Value arr_ret(Json::arrayValue);

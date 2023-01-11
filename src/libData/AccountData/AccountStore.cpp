@@ -510,8 +510,8 @@ bool AccountStore::UpdateAccountsTemp(
               "[AS] Starting to Process <" << transaction.GetTranID() << ">");
   if (isEvm) {
     EvmProcessContext context(blockNum, transaction, txnExtras);
-    status = m_accountStoreTemp->UpdateAccountsEvm(blockNum, numShards, isDS,
-                                                 receipt, error_code, context);
+    status = m_accountStoreTemp->UpdateAccountsEvm(
+        blockNum, numShards, isDS, receipt, error_code, context);
   } else {
     status = m_accountStoreTemp->UpdateAccounts(
         blockNum, numShards, isDS, transaction, receipt, error_code);

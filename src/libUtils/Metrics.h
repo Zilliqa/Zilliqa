@@ -42,15 +42,16 @@ using doubleObservable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
 using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
-class Filter : public Singleton<Filter>{
+class Filter : public Singleton<Filter> {
  public:
   void init() {
-    m_power[0]=1;
-    for (int i=1;i<65;i++) m_power[i] = pow(2, i);
+    m_power[0] = 1;
+    for (int i = 1; i < 65; i++) m_power[i] = pow(2, i);
   }
   bool Enabled(FilterClass to_test) {
     return METRIC_ZILLIQA_MASK & m_power[to_test];
   }
+
  private:
   uint64_t m_power[65];
 };

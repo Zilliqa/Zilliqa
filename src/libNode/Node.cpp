@@ -61,7 +61,8 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
-                                unsigned int factor = 0, const string& errMsg = "") {
+                                unsigned int factor = 0,
+                                const string& errMsg = "") {
   if (minLengthNeeded > messageSize - offset) {
     LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
     return true;
@@ -2861,15 +2862,14 @@ bool Node::ProcessDSGuardNetworkInfoUpdate(
       }
 
       // Process and update ds committee network info
-      replace_if(
-          m_mediator.m_DSCommittee->begin(),
-          m_mediator.m_DSCommittee->begin() +
-              Guard::GetInstance().GetNumOfDSGuard(),
-          [&dsguardupdate](const PairOfNode& element) {
-            return element.first == dsguardupdate.m_dsGuardPubkey;
-          },
-          make_pair(dsguardupdate.m_dsGuardPubkey,
-                    dsguardupdate.m_dsGuardNewNetworkInfo));
+      replace_if(m_mediator.m_DSCommittee->begin(),
+                 m_mediator.m_DSCommittee->begin() +
+                     Guard::GetInstance().GetNumOfDSGuard(),
+                 [&dsguardupdate](const PairOfNode& element) {
+                   return element.first == dsguardupdate.m_dsGuardPubkey;
+                 },
+                 make_pair(dsguardupdate.m_dsGuardPubkey,
+                           dsguardupdate.m_dsGuardNewNetworkInfo));
       LOG_GENERAL(INFO, "[update ds guard] "
                             << dsguardupdate.m_dsGuardPubkey
                             << " new network info is "
@@ -3283,4 +3283,3 @@ void Node::CheckPeers(const vector<Peer>& peers) {
   }
   P2PComm::GetInstance().SendMessage(peers, message);
 }
-

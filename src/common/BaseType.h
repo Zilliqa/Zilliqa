@@ -36,7 +36,7 @@ using GovDSShardVotesMap =
                                  std::map<uint32_t, uint32_t>>>;
 using GovProposalIdVotePair = std::pair<uint32_t, uint32_t>;
 
-inline zbytes toZbytes(std::string const &input){
+inline zbytes toZbytes(std::string const &input) {
   return zbytes(input.begin(), input.end());
 }
 #endif  // ZILLIQA_SRC_COMMON_BASETYPE_H_

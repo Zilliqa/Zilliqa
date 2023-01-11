@@ -20,11 +20,11 @@
 
 #include "APIServer.h"
 
+#include <jsonrpccpp/server/abstractserverconnector.h>
 #include <atomic>
-#include <optional>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <jsonrpccpp/server/abstractserverconnector.h>
+#include <optional>
 
 #include "APIThreadPool.h"
 #include "WebsocketServerBackend.h"

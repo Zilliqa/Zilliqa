@@ -35,7 +35,7 @@ bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& socketPath) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-    //counter->Add(1, {{"method", "LaunchEvmDaemon"}});
+    // counter->Add(1, {{"method", "LaunchEvmDaemon"}});
   }
   LOG_MARKER();
 
@@ -86,7 +86,7 @@ bool LaunchEvmDaemon(boost::process::child& child,
 bool CleanupPreviousInstances() {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-    //counter->Add(1, {{"method", "CleanupPreviousInstances"}});
+    // counter->Add(1, {{"method", "CleanupPreviousInstances"}});
   }
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
   int sysRep = std::system(s.c_str());
@@ -100,7 +100,7 @@ bool Terminate(boost::process::child& child,
                const std::unique_ptr<jsonrpc::Client>& client) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_CLIENT_LOW_LEVEL)) {
-    //counter->Add(1, {{"method", "Terminate"}});
+    // counter->Add(1, {{"method", "Terminate"}});
   }
   LOG_MARKER();
   Json::Value _json;
@@ -126,8 +126,8 @@ bool Terminate(boost::process::child& child,
 }  // namespace
 
 void EvmClient::Init() {
-
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT)) {
     m_evmClientCount->Add(1, {{"method", "Init"}});
   }
   LOG_MARKER();
@@ -141,7 +141,8 @@ void EvmClient::Init() {
 }
 
 void EvmClient::Reset() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT)) {
     m_evmClientCount->Add(1, {{"method", "Reset"}});
   }
   Terminate(m_child, m_client);
@@ -151,7 +152,8 @@ void EvmClient::Reset() {
 EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT)) {
     m_evmClientCount->Add(1, {{"method", "OpenServer"}});
   }
   bool status{true};
@@ -181,7 +183,7 @@ bool EvmClient::OpenServer() {
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception initialising client");
     m_evmClientCount->Add(
-        1, {{"Error", "Serious"},  {"Exception#3", "OpenServer"}});
+        1, {{"Error", "Serious"}, {"Exception#3", "OpenServer"}});
     return false;
   }
   return status;
@@ -189,7 +191,8 @@ bool EvmClient::OpenServer() {
 
 bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
-  if (zil::metrics::Filter::GetInstance().Enabled(zil::metrics::FilterClass::EVM_CLIENT)) {
+  if (zil::metrics::Filter::GetInstance().Enabled(
+          zil::metrics::FilterClass::EVM_CLIENT)) {
     m_evmClientCount->Add(1, {{"method", "CallRunner"}});
   }
 

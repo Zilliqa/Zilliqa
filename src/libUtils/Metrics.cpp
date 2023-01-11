@@ -29,7 +29,6 @@
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
-
   std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT)};
 
@@ -62,17 +61,17 @@ void Metrics::Init() {
 }
 
 zil::metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,
-                                            const std::string& name,
-                                            const std::string& desc,
-                                            std::string_view unit) {
+                                                 const std::string& name,
+                                                 const std::string& desc,
+                                                 std::string_view unit) {
   std::shared_ptr<metrics_api::Meter> meter =
       m_provider->GetMeter(family, "1.2.0");
   return meter->CreateUInt64Counter(family + "_" + name, desc, unit);
 }
 
 zil::metrics::double_t Metrics::CreateDoubleMetric(const std::string& family,
-                                              const std::string& name,
-                                              std::string_view unit) {
+                                                   const std::string& name,
+                                                   std::string_view unit) {
   std::shared_ptr<metrics_api::Meter> meter =
       m_provider->GetMeter(family, "1.2.0");
   return meter->CreateDoubleCounter(family + "_" + name, unit);
@@ -96,10 +95,9 @@ zil::metrics::doubleObservable_t Metrics::CreateDoubleUpDownMetric(
                                                     unit);
 }
 
-zil::metrics::int64Observable_t Metrics::CreateInt64Gauge(const std::string& family,
-                                                     const std::string& name,
-                                                     const std::string& desc,
-                                                     std::string_view unit) {
+zil::metrics::int64Observable_t Metrics::CreateInt64Gauge(
+    const std::string& family, const std::string& name, const std::string& desc,
+    std::string_view unit) {
   std::shared_ptr<metrics_api::Meter> meter =
       m_provider->GetMeter(family, "1.2.0");
   return meter->CreateInt64ObservableUpDownCounter(family + "_" + name, desc,
