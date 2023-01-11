@@ -132,9 +132,9 @@ task("test")
   });
 
 task("compile").setAction((taskArgs, hre, runSuper) => {
-  console.log(clc.blue.bold("Scilla Contracts: "))
+  console.log(clc.blue.bold("Scilla Contracts: "));
   updateScillaContractsInfo();
-  console.log(clc.blue.bold("\nSolidity Contracts: "))
+  console.log(clc.blue.bold("\nSolidity Contracts: "));
   return runSuper();
 });
 

@@ -26,7 +26,7 @@ export const updateContractsInfo = () => {
   let contractsInfo: ContractMapByName = {};
   let files = glob.sync("contracts/**/*.scilla");
   if (files.length === 0) {
-    console.log(clc.yellowBright("No scilla contracts were found in contracts directory."))
+    console.log(clc.yellowBright("No scilla contracts were found in contracts directory."));
     return;
   }
 
@@ -40,7 +40,7 @@ export const updateContractsInfo = () => {
 
     // Either the file is new or has been changed
     const contract = parseScillaFile(file);
-    console.log(`Parsing ${file}...`)
+    console.log(`Parsing ${file}...`);
     if (contract) {
       somethingChanged = true;
       contractsInfo[file] = contract;
@@ -70,7 +70,7 @@ const convertToMapByName = (contracts: ContractMapByPath): ContractMapByName => 
 
 const loadContractsInfo = (): ContractMapByPath => {
   if (!fs.existsSync(CONTRACTS_INFO_CACHE_FILE)) {
-    console.log("Cache file doesn't exist, creating a new one")
+    console.log("Cache file doesn't exist, creating a new one");
     return {};
   }
 

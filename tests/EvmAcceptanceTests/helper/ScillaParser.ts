@@ -49,14 +49,14 @@ export const parseScilla = (filename: string): [ContractName, Transitions, Field
 
   const result: any[] = parse(sexp.toString());
   const contr = result.filter((row: string[]) => row[0] === "contr")[0][1];
-  
+
   const contractName = extractContractName(contr);
 
   const cfields = contr.filter((row: string[]) => row[0] === "cfields")[0][1];
   const fields = extractContractFields(cfields);
 
   const ccomps = contr.filter((row: string[]) => row[0] === "ccomps")[0][1];
-  const transitions = extractTransitions(ccomps); 
+  const transitions = extractTransitions(ccomps);
 
   return [contractName, transitions, fields];
 };
@@ -65,7 +65,7 @@ const extractContractName = (contrElem: any[]): ContractName => {
   return contrElem
     .filter((row: string[]) => row[0] === "cname")[0][1]
     .filter((row: string[]) => row[0] === "SimpleLocal")[0][1];
-}
+};
 
 const extractContractFields = (cfieldsElem: any[]): Fields => {
   return cfieldsElem.map((row: any[]): Field => {
@@ -90,22 +90,22 @@ const extractContractFields = (cfieldsElem: any[]): Fields => {
       return {
         type: "ADT",
         name: fieldNameData[1]
-      }
+      };
     } else if (fieldTypeData[0] === "MapType") {
       return {
         type: "Map",
         name: fieldNameData[1]
-      }
+      };
     } else if (fieldTypeData[0] === "Address") {
       return {
         type: "Address",
         name: fieldNameData[1]
-      }
+      };
     } else {
       throw new Error(`Data type is unknown: ${fieldTypeData}`);
     }
   });
-}
+};
 
 const extractTransitions = (ccompsElem: any[]): Transitions => {
   return ccompsElem.map((row: any[]) => {
@@ -145,4 +145,4 @@ const extractTransitions = (ccompsElem: any[]): Transitions => {
       params: compParams
     };
   });
-}
+};

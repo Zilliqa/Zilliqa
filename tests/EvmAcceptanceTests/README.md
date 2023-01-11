@@ -186,9 +186,60 @@ const txn = await payer.sendTransaction({
 expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`).to.be.eq(FUND);
 ```
 
-# Scilla Testing Tools
+# Scilla
 
-## Scilla checker task
+## Testing
+
+Scilla testing can be done in the same way ethers.js is used for solidity. It's possible to deploy a scilla contract by its name and call its transitions just like a normal function call. It's also possible to get a field value through a function call. In the below sections, all of these topics are covered in detail.
+
+### Deploy a contract
+
+To deploy a contract all you need to know is its name:
+
+```typescript
+import {deploy, ScillaContract} from "../../helper/ScillaHelper";
+
+let contract: ScillaContract = await deploy("SetGet");
+```
+
+### Call a transition
+
+It's not harder than calling a normal function in typescript.
+Let's assume we have a transition named `Set` which accepts a `number` as its parameter. Here is how to call it:
+
+```typescript
+await contract.Set(12);
+```
+
+### Get field value
+
+If a given contract has a filed named `msg` is possible to get its current value using a function call to `msg()`
+
+```typescript
+const msg = await contract.msg();
+```
+
+### Expect a result
+
+Chai matchers can be used to expect a value:
+
+```typescript
+it("Should set state correctly", async function () {
+  const VALUE = 12;
+  await contract.Set(VALUE);
+  expect(await contract.value()).to.be.eq(VALUE);
+});
+```
+
+### TODO
+
+- Add a few custom chai matchers for more readable tests.
+- Support deployment of contracts with a multi-params constructor.
+- Support formatting complex data types such as `Map` and `List`
+
+## Tasks
+
+### Scilla checker task
 
 To run `scilla-checker` on all of the scilla contracts in the [contracts directory](./contracts/) run:
 
@@ -201,6 +252,10 @@ alternatively, you can check a specific file(s):
 ```bash
 npx hardhat scilla-check --libdir path_to_stdlib contracts/scilla/helloWorld.scilla
 ```
+
+### TODO
+
+- Add `scilla-fmt` task
 
 # miscellaneous
 
