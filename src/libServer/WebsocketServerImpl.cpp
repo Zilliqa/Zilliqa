@@ -132,18 +132,18 @@ class Connection : public std::enable_shared_from_this<Connection> {
   }
 
   void OnRead(beast::error_code ec, size_t n) {
-    if (n == 0) {
-      // ignore, e.g. press Enter on wscat session, don't disconnect
-      StartReading();
-      return;
-    }
-
     if (ec) {
       if (ec != websocket::error::closed) {
         LOG_GENERAL(INFO, "Websocket connection from " << m_from << " closed, "
                                                        << ec.message());
       }
       OnClosed();
+      return;
+    }
+
+    if (n == 0) {
+      // ignore, e.g. press Enter on wscat session, don't disconnect
+      StartReading();
       return;
     }
 
