@@ -1,44 +1,35 @@
 import {Zilliqa} from "@zilliqa-js/zilliqa";
 import fs from "fs";
 import {BN, Long, units, bytes} from "@zilliqa-js/util";
-import {getAddressFromPrivateKey, getPubKeyFromPrivateKey} from "@zilliqa-js/crypto";
 import {Init, Contract, Value} from "@zilliqa-js/contract";
 import {scillaContracts, ContractInfo} from "./ScillaContractsInfoUpdater";
-import {TransitionParam, isNumeric} from "./ScillaParser";
+import {TransitionParam, isNumeric, Fields, ContractName} from "./ScillaParser";
+import hre from "hardhat";
 
-// chain setup on ceres locally run isolated server, see https://dev.zilliqa.com/docs/dev/dev-tools-ceres/. Keys and wallet setup
-const s = () => {
-  let setup = {
-    zilliqa: new Zilliqa("http://localhost:5555"),
-    VERSION: bytes.pack(1, 1),
-    addresses: [],
-    pub_keys: [],
-    priv_keys: [
-      // b028055ea3bc78d759d10663da40d171dec992aa
-      "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004",
-      // f6dad9e193fa2959a849b81caf9cb6ecde466771":
-      "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45"
-    ]
+interface Setup {
+  zilliqa: Zilliqa;
+  readonly attempts: number;
+  readonly timeout: number;
+  readonly version: number;
+  readonly gasPrice: BN;
+  readonly gasLimit: Long;
+}
+
+const init = (): Setup => {
+  const s: Setup = {
+    zilliqa: new Zilliqa(hre.getNetworkUrl()),
+    version: bytes.pack(hre.getZilliqaChainId(), 1),
+    gasPrice: units.toQa("2000", units.Units.Li),
+    gasLimit: Long.fromNumber(50000),
+    attempts: 10,
+    timeout: 1000
   };
-  setup["addresses"] = [];
-  setup["pub_keys"] = [];
-  setup.priv_keys.forEach((item) => {
-    setup.zilliqa.wallet.addByPrivateKey(item); // add key to wallet
-    setup.addresses.push(getAddressFromPrivateKey(item)); // compute and store address
-    setup.pub_keys.push(getPubKeyFromPrivateKey(item)); // compute and store public key
-  });
-  return setup;
-};
-const setup = s();
-exports.setup = setup;
 
-// will use same tx settings for all tx's
-const tx_settings = {
-  gas_price: units.toQa("2000", units.Units.Li),
-  gas_limit: Long.fromNumber(50000),
-  attempts: 10,
-  timeout: 1000
+  s.zilliqa.wallet.addByPrivateKey("254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004");
+  return s;
 };
+
+const setup = init();
 
 function read(f: string) {
   let t = fs.readFileSync(f, "utf8");
@@ -52,21 +43,17 @@ export class ScillaContract extends Contract {
   [key: string]: ContractFunction | any;
 }
 
-export async function deploy(contractName: string, init?: Init) {
+export async function deploy(contractName: string, ...args: any[]) {
   let contractInfo: ContractInfo = scillaContracts[contractName];
   if (contractInfo === undefined) {
     throw new Error(`Scilla contract ${contractName} doesn't exist.`);
   }
 
   let sc: ScillaContract;
-  if (init) {
-    sc = await deploy_from_file(contractInfo.path, init);
-  } else {
-    const init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
-    sc = await deploy_from_file(contractInfo.path, init);
-  }
+  let init: Init = fillInit(contractName, contractInfo.parsedContract.constructorParams, ...args);
 
-  contractInfo.transitions.forEach((transition) => {
+  sc = await deploy_from_file(contractInfo.path, init);
+  contractInfo.parsedContract.transitions.forEach((transition) => {
     sc[transition.name] = async (...args: any[]) => {
       if (args.length !== transition.params.length) {
         throw new Error(
@@ -86,7 +73,7 @@ export async function deploy(contractName: string, init?: Init) {
       return sc_call(sc, transition.name, values);
     };
 
-    contractInfo.fields.forEach((field) => {
+    contractInfo.parsedContract.fields.forEach((field) => {
       sc[field.name] = async () => {
         const state = await sc.getState();
         if (isNumeric(field.type)) return Number(state[field.name]);
@@ -98,16 +85,38 @@ export async function deploy(contractName: string, init?: Init) {
   return sc;
 }
 
+const fillInit = (contractName: string, contractParams: Fields | null, ...userSpecifiedArgs: any[]): Init => {
+  let init: Init = [{vname: "_scilla_version", type: "Uint32", value: "0"}];
+
+  if (contractParams) {
+    if (userSpecifiedArgs.length !== contractParams.length) {
+      throw new Error(
+        `Expected to receive ${contractParams.length} parameters for ${contractName} deployment but got ${userSpecifiedArgs.length}`
+      );
+    }
+    contractParams.forEach((param: TransitionParam, index: number) => {
+      init.push({
+        vname: param.name,
+        type: param.type,
+        value: userSpecifiedArgs[index].toString()
+      });
+    });
+  } else {
+    if (userSpecifiedArgs.length > 0) {
+      throw new Error(
+        `Expected to receive 0 parameters for ${contractName} deployment but got ${userSpecifiedArgs.length}`
+      );
+    }
+  }
+
+  return init;
+};
+
 // deploy a smart contract whose code is in a file with given init arguments
 async function deploy_from_file(path: string, init: Init): Promise<ScillaContract> {
   const code = read(path);
   const contract = setup.zilliqa.contracts.new(code, init);
-  let [_, sc] = await contract.deploy(
-    {version: setup.VERSION, gasPrice: tx_settings.gas_price, gasLimit: tx_settings.gas_limit},
-    tx_settings.attempts,
-    tx_settings.timeout,
-    false
-  );
+  let [_, sc] = await contract.deploy({...setup}, setup.attempts, setup.timeout, false);
 
   return sc;
 }
@@ -117,21 +126,21 @@ export async function sc_call(
   sc: Contract,
   transition: string,
   args: Value[] = [],
-  amt = new BN(0),
-  caller_pub_key = setup.pub_keys[0]
+  amt = new BN(0)
+  // caller_pub_key = setup.pub_keys[0]
 ) {
   return sc.call(
     transition,
     args,
     {
-      version: setup.VERSION,
+      version: setup.version,
       amount: amt,
-      gasPrice: tx_settings.gas_price,
-      gasLimit: tx_settings.gas_limit,
-      pubKey: caller_pub_key
+      gasPrice: setup.gasPrice,
+      gasLimit: setup.gasLimit
+      // pubKey: caller_pub_key
     },
-    tx_settings.attempts,
-    tx_settings.timeout,
+    setup.attempts,
+    setup.timeout,
     true
   );
 }

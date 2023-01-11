@@ -40,7 +40,14 @@ export type Transitions = Transition[];
 export type ContractName = string;
 export type Fields = Field[];
 
-export const parseScilla = (filename: string): [ContractName, Transitions, Fields] => {
+export interface ParsedContract {
+  name: ContractName;
+  constructorParams: Fields | null;
+  transitions: Transitions;
+  fields: Fields;
+}
+
+export const parseScilla = (filename: string): ParsedContract => {
   if (!fs.existsSync(filename)) {
     throw new Error(`${filename} doesn't exist.`);
   }
@@ -51,6 +58,7 @@ export const parseScilla = (filename: string): [ContractName, Transitions, Field
   const contr = result.filter((row: string[]) => row[0] === "contr")[0][1];
 
   const contractName = extractContractName(contr);
+  const contractParams = extractContractParams(contr);
 
   const cfields = contr.filter((row: string[]) => row[0] === "cfields")[0][1];
   const fields = extractContractFields(cfields);
@@ -58,13 +66,26 @@ export const parseScilla = (filename: string): [ContractName, Transitions, Field
   const ccomps = contr.filter((row: string[]) => row[0] === "ccomps")[0][1];
   const transitions = extractTransitions(ccomps);
 
-  return [contractName, transitions, fields];
+  console.log(contractParams);
+  return {name: contractName, transitions, fields, constructorParams: contractParams};
 };
 
 const extractContractName = (contrElem: any[]): ContractName => {
   return contrElem
     .filter((row: string[]) => row[0] === "cname")[0][1]
     .filter((row: string[]) => row[0] === "SimpleLocal")[0][1];
+};
+
+const extractContractParams = (contrElem: any[]): Fields | null => {
+  if (contrElem[1][0] !== "cparams") {
+    throw new Error(`Index 0 is not cparams: ${contrElem}`);
+  }
+
+  if (contrElem[1][1].length === 0) {
+    return null;
+  }
+
+  return extractContractFields(contrElem[1][1]);
 };
 
 const extractContractFields = (cfieldsElem: any[]): Fields => {

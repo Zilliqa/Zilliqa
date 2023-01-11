@@ -3,6 +3,8 @@ import {expect} from "chai";
 
 describe("Scilla SetGet contract", function () {
   let contract: ScillaContract;
+  const VALUE = 12;
+
   before(async function () {
     contract = await deploy("SetGet");
   });
@@ -12,7 +14,6 @@ describe("Scilla SetGet contract", function () {
   });
 
   it("Should set state correctly", async function () {
-    const VALUE = 12;
     await contract.Set(VALUE);
     expect(await contract.value()).to.be.eq(VALUE);
   });
@@ -20,8 +21,6 @@ describe("Scilla SetGet contract", function () {
   it("Should contain event data if Get function is called", async function () {
     const tx = await contract.Emit();
     const receipt = tx.getReceipt()!;
-    expect(receipt.event_logs?.length).to.be.eq(1);
-    expect(receipt.event_logs![0]._eventname).to.be.eq("Emit");
-    expect(receipt.event_logs![0].params).to.deep.contain({type: "Uint128", value: "12", vname: "value"});
+    expect(tx).sendEventWithParams("Emit", {value: VALUE.toString(), vname: "value"});
   });
 });

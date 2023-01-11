@@ -2,7 +2,7 @@ import {glob} from "glob";
 import fs from "fs";
 import path from "path";
 import {createHash} from "crypto";
-import {ContractName, Transitions, parseScilla, Fields} from "./ScillaParser";
+import {ContractName, Transitions, parseScilla, Fields, ParsedContract} from "./ScillaParser";
 import clc from "cli-color";
 
 // For some reason, hardhat deletes json files in artifacts, so it couldn't be scilla.json
@@ -10,10 +10,8 @@ const CONTRACTS_INFO_CACHE_FILE = path.join(__dirname, "../artifacts/scilla.cach
 
 export interface ContractInfo {
   hash: string;
-  name: ContractName;
   path: string;
-  transitions: Transitions;
-  fields: Fields;
+  parsedContract: ParsedContract;
 }
 
 type ContractPath = string;
@@ -62,7 +60,7 @@ export const updateContractsInfo = () => {
 const convertToMapByName = (contracts: ContractMapByPath): ContractMapByName => {
   let contractsByName: ContractMapByName = {};
   for (let key in contracts) {
-    contractsByName[contracts[key].name] = contracts[key];
+    contractsByName[contracts[key].parsedContract.name] = contracts[key];
   }
 
   return contractsByName;
@@ -94,7 +92,7 @@ const parseScillaFile = (fileName: string): ContractInfo | null => {
   const hashSum = createHash("md5");
   hashSum.update(contents);
 
-  const [contractName, transitions, fields] = parseScilla(fileName);
+  const parsedContract = parseScilla(fileName);
 
-  return {name: contractName, hash: hashSum.digest("hex"), path: fileName, transitions, fields};
+  return {hash: hashSum.digest("hex"), path: fileName, parsedContract};
 };
