@@ -22,8 +22,6 @@
 
 #include <boost/test/unit_test.hpp>
 
-#include <fstream>
-
 struct Fixture {
   Fixture() { INIT_STDOUT_LOGGER() }
 };
@@ -270,13 +268,6 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
     TxBlock deserializedBlock;
     deserializedBlock.Deserialize(dst, 0);
     BOOST_CHECK(deserializedBlock.Deserialize(dst, 0));
-
-#if 0
-    std::ofstream file{"dst-" + std::to_string(i)};
-    file << '{';
-    for (auto v : dst) file << static_cast<unsigned int>(v) << ", ";
-    file << '}';
-#endif
 
     BOOST_CHECK(block == deserializedBlock);
     mbInfos.emplace_back(

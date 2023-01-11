@@ -20,7 +20,6 @@
 #include "libCrypto/Sha2.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 namespace {
 

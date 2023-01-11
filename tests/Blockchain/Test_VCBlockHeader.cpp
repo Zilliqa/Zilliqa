@@ -19,8 +19,6 @@
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 
-#include <fstream>
-
 #define BOOST_TEST_MODULE vcblockheadertest
 #define BOOST_TEST_DYN_LINK
 
@@ -190,11 +188,6 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
 
     BOOST_CHECK(blockHeader.Serialize(dst, 0));
     BOOST_TEST(dst == serialized[i - 1]);
-
-    std::ofstream file{"dst-" + std::to_string(i)};
-    file << '{';
-    for (auto v : dst) file << static_cast<unsigned int>(v) << ", ";
-    file << '}';
 
     VCBlockHeader deserializedBlockHeader;
     deserializedBlockHeader.Deserialize(dst, 0);

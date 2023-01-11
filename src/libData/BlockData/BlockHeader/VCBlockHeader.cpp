@@ -19,7 +19,6 @@
 #include "Serialization.h"
 
 using namespace std;
-using namespace boost::multiprecision;
 
 namespace {
 
