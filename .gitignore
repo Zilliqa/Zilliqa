@@ -106,4 +106,4 @@ isolated-server-accounts.json
 isolated-server.logs
 
 *.pyc
-.husky
+.husky/

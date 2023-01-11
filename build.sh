@@ -71,7 +71,7 @@ fi
 
 run_clang_format_fix=0
 run_clang_tidy_fix=0
-run_code_coverage=1
+run_code_coverage=0
 parallelize=1
 build_type="RelWithDebInfo"
 
