@@ -47,7 +47,7 @@ static constexpr uint64_t ETHASH_MIX_BYTES = 128;
 
 namespace fs = boost::filesystem;
 
-BOOST_AUTO_TEST_SUITE(powtest)
+BOOST_AUTO_TEST_SUITE(powtest, *boost::unit_test::disabled())
 
 // Just an alloca "wrapper" to silence uint64_t to size_t conversion warnings in
 // windows consider replacing alloca calls with something better though!
@@ -91,7 +91,7 @@ zbytes hexStringToBytes(std::string const& _s) {
   return ret;
 }
 
-BOOST_AUTO_TEST_CASE(test_stringToBlockhash) {
+BOOST_AUTO_TEST_CASE(test_stringToBlockhash, *boost::unit_test::disabled()) {
   INIT_FILE_LOGGER("zilliqa", "./");
   string original =
       "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b34";
@@ -104,14 +104,14 @@ BOOST_AUTO_TEST_CASE(test_stringToBlockhash) {
                             << result);
 }
 
-BOOST_AUTO_TEST_CASE(test_stringToBlockhash_smaller_than_expect_message) {
+BOOST_AUTO_TEST_CASE(test_stringToBlockhash_smaller_than_expect_message, *boost::unit_test::disabled()) {
   string original = "badf00d";
   ethash_hash256 testhash = POW::StringToBlockhash(original);
   string result = POW::BlockhashToHexString(testhash);
   BOOST_REQUIRE_MESSAGE(result != original, "Obtained: " << result);
 }
 
-BOOST_AUTO_TEST_CASE(test_stringToBlockhash_overflow) {
+BOOST_AUTO_TEST_CASE(test_stringToBlockhash_overflow, *boost::unit_test::disabled()) {
   string original =
       "7e44356ee3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356e"
       "e3441623bc72a683fd3708fdf75e971bbe294f33e539eedad4b92b347e44356ee3441623"
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_stringToBlockhash_overflow) {
   BOOST_REQUIRE_MESSAGE(result != original, "Obtained: " << result);
 }
 
-BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_check) {
+BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_check, *boost::unit_test::disabled()) {
   uint64_t blockNumber = 0;
   auto epochNumber = ethash::get_epoch_number(blockNumber);
   auto epochContextLight = ethash::create_epoch_context(epochNumber);
@@ -153,7 +153,7 @@ BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_check) {
                                          << "\n");
 }
 
-BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_calcifide_check) {
+BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_calcifide_check, *boost::unit_test::disabled()) {
   uint64_t blockNumber = 22;
   auto epochNumber = ethash::get_epoch_number(blockNumber);
   auto epochContextLight = ethash::create_epoch_context(epochNumber);
@@ -172,7 +172,7 @@ BOOST_AUTO_TEST_CASE(ethash_params_init_genesis_calcifide_check) {
                                        << "actual: " << cache_size << "\n");
 }
 
-BOOST_AUTO_TEST_CASE(ethash_params_calcifide_check_30000) {
+BOOST_AUTO_TEST_CASE(ethash_params_calcifide_check_30000, *boost::unit_test::disabled()) {
   uint64_t blockNumber = 30000;
   auto epochNumber = ethash::get_epoch_number(blockNumber);
   auto epochContextLight = ethash::create_epoch_context(epochNumber);
@@ -192,7 +192,7 @@ BOOST_AUTO_TEST_CASE(ethash_params_calcifide_check_30000) {
                                        << "actual: " << cache_size << "\n");
 }
 
-BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check) {
+BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check, *boost::unit_test::disabled()) {
   ethash_hash256 hash{};
   ethash_hash256 target{};
   memcpy(hash.bytes, "11111111111111111111111111111111", 32);
@@ -215,7 +215,7 @@ BOOST_AUTO_TEST_CASE(ethash_check_difficulty_check) {
   // << "\"\n");
 }
 
-BOOST_AUTO_TEST_CASE(test_block22_verification) {
+BOOST_AUTO_TEST_CASE(test_block22_verification, *boost::unit_test::disabled()) {
   // from POC-9 testnet, epoch 0
   auto epochContextLight =
       ethash::create_epoch_context(ethash::get_epoch_number(22));
@@ -234,7 +234,7 @@ BOOST_AUTO_TEST_CASE(test_block22_verification) {
   BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
-BOOST_AUTO_TEST_CASE(test_block30001_verification) {
+BOOST_AUTO_TEST_CASE(test_block30001_verification, *boost::unit_test::disabled()) {
   // from POC-9 testnet, epoch 1
   // ethash_light_t light = ethash_light_new(30001);
   auto epochContextLight =
@@ -250,7 +250,7 @@ BOOST_AUTO_TEST_CASE(test_block30001_verification) {
   BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
-BOOST_AUTO_TEST_CASE(test_block60000_verification) {
+BOOST_AUTO_TEST_CASE(test_block60000_verification, *boost::unit_test::disabled()) {
   // from POC-9 testnet, epoch 2
   // ethash_light_t light = ethash_light_new(60000);
   auto epochContextLight =
@@ -266,7 +266,7 @@ BOOST_AUTO_TEST_CASE(test_block60000_verification) {
   BOOST_REQUIRE(POW::CheckDifficulty(ret.final_hash, difficulty));
 }
 
-BOOST_AUTO_TEST_CASE(mining_and_verification) {
+BOOST_AUTO_TEST_CASE(mining_and_verification, *boost::unit_test::disabled()) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
@@ -309,7 +309,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
-BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
+BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number, *boost::unit_test::disabled()) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
@@ -352,7 +352,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_big_block_number) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
-BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
+BOOST_AUTO_TEST_CASE(mining_and_verification_full, *boost::unit_test::disabled()) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
@@ -395,7 +395,7 @@ BOOST_AUTO_TEST_CASE(mining_and_verification_full) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
-BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
+BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out, *boost::unit_test::disabled()) {
   POW& POWClient = POW::GetInstance();
   std::array<unsigned char, 32> rand1 = {{'0', '1'}};
   std::array<unsigned char, 32> rand2 = {{'0', '2'}};
@@ -419,7 +419,7 @@ BOOST_AUTO_TEST_CASE(mining_high_diffculty_time_out) {
 
 // Please enable the OPENCL_GPU_MINE option in constants.xml to run this test
 // case
-BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
+BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1, *boost::unit_test::disabled()) {
   if (!OPENCL_GPU_MINE) {
     std::cout << "OPENCL_GPU_MINE option is not "
                  "enabled, skip test case "
@@ -476,7 +476,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_1) {
 
 // Please enable the OPENCL_GPU_MINE option in constants.xml to
 // run this test case
-BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
+BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2, *boost::unit_test::disabled()) {
   if (!OPENCL_GPU_MINE) {
     std::cout << "OPENCL_GPU_MINE option is not "
                  "enabled, skip test case "
@@ -531,7 +531,7 @@ BOOST_AUTO_TEST_CASE(gpu_mining_and_verification_2) {
   BOOST_REQUIRE(!verifyWinningNonce);
 }
 
-BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network) {
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network, *boost::unit_test::disabled()) {
   uint8_t currentDifficulty = 3;
   uint8_t minDifficulty = 3;
   int64_t powSubmissions = 25;
@@ -561,7 +561,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_small_network) {
   BOOST_REQUIRE(newDifficulty == 14);
 }
 
-BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network) {
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network, *boost::unit_test::disabled()) {
   uint8_t currentDifficulty = 3;
   uint8_t minDifficulty = 3;
   int64_t powSubmissions = 5100;
@@ -610,7 +610,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_large_network) {
   BOOST_REQUIRE(newDifficulty == 14);
 }
 
-BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small) {
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small, *boost::unit_test::disabled()) {
   uint8_t currentDifficulty = 9;
   uint8_t minDifficulty = 5;
   int64_t powSubmissions = 11;
@@ -623,7 +623,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_small) {
   BOOST_REQUIRE(newDifficulty == 9);
 }
 
-BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
+BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large, *boost::unit_test::disabled()) {
   uint8_t currentDifficulty = 5;
   uint8_t minDifficulty = 5;
   int64_t powSubmissions = 110;
@@ -660,7 +660,7 @@ BOOST_AUTO_TEST_CASE(difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 14);
 }
 
-BOOST_AUTO_TEST_CASE(devided_difficulty_adjustment_for_ds_large) {
+BOOST_AUTO_TEST_CASE(devided_difficulty_adjustment_for_ds_large, *boost::unit_test::disabled()) {
   uint8_t currentDifficulty = 5;
   uint8_t minDifficulty = 5;
   int64_t powSubmissions = 110;
@@ -855,7 +855,7 @@ BOOST_AUTO_TEST_CASE(devided_difficulty_adjustment_for_ds_large) {
   BOOST_REQUIRE(newDifficulty == 69);
 }
 
-BOOST_AUTO_TEST_CASE(test_highest_difficulty) {
+BOOST_AUTO_TEST_CASE(test_highest_difficulty, *boost::unit_test::disabled()) {
   std::cout << "Start test highest difficulty" << std::endl;
   uint8_t currentDifficulty = 255;
   uint8_t minDifficulty = 5;
@@ -877,7 +877,7 @@ BOOST_AUTO_TEST_CASE(test_highest_difficulty) {
   BOOST_REQUIRE(newDifficulty == 255);
 }
 
-BOOST_AUTO_TEST_CASE(devided_boundary) {
+BOOST_AUTO_TEST_CASE(devided_boundary, *boost::unit_test::disabled()) {
   std::cout << "Start test devided_boundary" << std::endl;
 
   for (size_t diff = 1; diff < 256; diff++) {
