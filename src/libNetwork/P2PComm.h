@@ -117,17 +117,10 @@ class P2PComm {
                                              const unsigned& startByteType);
 
  private:
-  using SocketCloser = std::unique_ptr<int, void (*)(int*)>;
   static zil::p2p::Dispatcher m_dispatcher;
   static BroadcastListFunc m_broadcast_list_retriever;
 
  public:
-  /// Accept TCP connection for libevent usage
-  static void ConnectionAccept(evconnlistener* listener,
-                               evutil_socket_t cli_sock,
-                               struct sockaddr* cli_addr, int socklen,
-                               void* arg);
-
   /// Listens for incoming socket connections.
   void StartMessagePump(zil::p2p::Dispatcher dispatcher);
 
@@ -136,39 +129,34 @@ class P2PComm {
   void EnableConnect();
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(
-      const VectorOfPeer& peers, const zbytes& message,
-      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
+  void SendMessage(const VectorOfPeer& peers, const zbytes& message,
+                   unsigned char startByteType, bool inject_trace_context);
 
   /// Multicasts message to specified list of peers.
-  void SendMessage(
-      const std::deque<Peer>& peers, const zbytes& message,
-      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL,
-      const bool bAllowSendToRelaxedBlacklist = false);
+  void SendMessage(const std::deque<Peer>& peers, const zbytes& message,
+                   unsigned char startByteType, bool inject_trace_context,
+                   bool bAllowSendToRelaxedBlacklist = false);
 
   /// Sends normal message to specified peer.
-  void SendMessage(
-      const Peer& peer, const zbytes& message,
-      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
+  void SendMessage(const Peer& peer, const zbytes& message,
+                   unsigned char startByteType, bool inject_trace_context);
 
   // Overloadeded version of SendMessage for p2pseed comm.
-  void SendMessage(
-      const Peer& msgPeer, const Peer& fromPeer, const zbytes& message,
-      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
+  void SendMessage(const Peer& msgPeer, const Peer& fromPeer,
+                   const zbytes& message, unsigned char startByteType,
+                   bool inject_trace_context);
 
   /// Multicasts message of type=broadcast to specified list of peers.
-  void SendBroadcastMessage(const VectorOfPeer& peers, const zbytes& message);
+  void SendBroadcastMessage(const VectorOfPeer& peers, const zbytes& message,
+                            bool inject_trace_context);
 
   /// Multicasts message of type=broadcast to specified list of peers.
   void SendBroadcastMessage(const std::deque<Peer>& peers,
-                            const zbytes& message);
-
-  void RebroadcastMessage(const VectorOfPeer& peers, const zbytes& message,
-                          const zbytes& msg_hash);
+                            const zbytes& message, bool inject_trace_context);
 
   void SendMessageNoQueue(
       const Peer& peer, const zbytes& message,
-      const unsigned char& startByteType = zil::p2p::START_BYTE_NORMAL);
+      unsigned char startByteType = zil::p2p::START_BYTE_NORMAL);
 
   void SetSelfPeer(const Peer& self);
 

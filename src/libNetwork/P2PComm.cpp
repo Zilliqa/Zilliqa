@@ -1152,8 +1152,9 @@ namespace {
 template <typename PeerList>
 void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
                      const PeerList& peers, const zbytes& message,
-                     const unsigned char& startByteType,
-                     const bool bAllowSendToRelaxedBlacklist) {
+                     unsigned char startByteType,
+                     bool bAllowSendToRelaxedBlacklist,
+                     bool inject_trace_context) {
   if (peers.empty()) {
     LOG_GENERAL(WARNING, "Error: empty peer list");
     return;
@@ -1165,7 +1166,8 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
   }
 
   static const zbytes no_hash;
-  auto raw_msg = zil::p2p::CreateMessage(message, no_hash, startByteType);
+  auto raw_msg = zil::p2p::CreateMessage(message, no_hash, startByteType,
+                                         inject_trace_context);
 
   for (const auto& peer : peers) {
     sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist);
@@ -1175,37 +1177,42 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
 }  // namespace
 
 void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
-                          const unsigned char& startByteType) {
-  SendMessageImpl(m_sendJobs, peers, message, startByteType, false);
+                          unsigned char startByteType,
+                          bool inject_trace_context) {
+  SendMessageImpl(m_sendJobs, peers, message, startByteType, false,
+                  inject_trace_context);
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
-                          const unsigned char& startByteType,
-                          const bool bAllowSendToRelaxedBlacklist) {
+                          unsigned char startByteType,
+                          bool bAllowSendToRelaxedBlacklist,
+                          bool inject_trace_context) {
   SendMessageImpl(m_sendJobs, peers, message, startByteType,
-                  bAllowSendToRelaxedBlacklist);
+                  bAllowSendToRelaxedBlacklist, inject_trace_context);
 }
 
 void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
-                          const unsigned char& startByteType) {
+                          unsigned char startByteType,
+                          bool inject_trace_context) {
   if (!m_sendJobs) {
     LOG_GENERAL(WARNING, "Message pump not started");
     return;
   }
-  m_sendJobs->SendMessageToPeer(peer, message, startByteType);
+  m_sendJobs->SendMessageToPeer(peer, message, startByteType,
+                                inject_trace_context);
 }
 
 // Overloaded for p2pseed as we need actual socket port coming in from
 // parameter. Seedpubs lookup will call this overloaded function
 void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
-                          const zbytes& message,
-                          const unsigned char& startByteType) {
+                          const zbytes& message, unsigned char startByteType,
+                          bool inject_trace_context) {
   if (ENABLE_SEED_TO_SEED_COMMUNICATION &&
       startByteType == zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST) {
     SendMsgToSeedNodeOnWire(peer, fromPeer, message, startByteType);
     return;
   }
-  SendMessage(peer, message, startByteType);
+  SendMessage(peer, message, startByteType, inject_trace_context);
 }
 
 namespace {
@@ -1213,7 +1220,8 @@ namespace {
 template <typename PeerList>
 void SendBroadcastMessageImpl(
     const std::shared_ptr<zil::p2p::SendJobs>& sendJobs, const PeerList& peers,
-    const Peer& selfPeer, const zbytes& message, zbytes& hash) {
+    const Peer& selfPeer, const zbytes& message, zbytes& hash,
+    bool inject_trace_context) {
   if (peers.empty()) {
     return;
   }
@@ -1227,8 +1235,8 @@ void SendBroadcastMessageImpl(
   sha256.Update(message);
   hash = sha256.Finalize();
 
-  auto raw_msg =
-      zil::p2p::CreateMessage(message, hash, zil::p2p::START_BYTE_BROADCAST);
+  auto raw_msg = zil::p2p::CreateMessage(
+      message, hash, zil::p2p::START_BYTE_BROADCAST, inject_trace_context);
 
   string hashStr;
   if (selfPeer != Peer()) {
@@ -1248,11 +1256,13 @@ void SendBroadcastMessageImpl(
 }  // namespace
 
 void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
-                                   const zbytes& message) {
+                                   const zbytes& message,
+                                   bool inject_trace_context) {
   LOG_MARKER();
 
   zbytes hash;
-  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash);
+  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash,
+                           inject_trace_context);
 
   if (!hash.empty()) {
     lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -1261,11 +1271,13 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
-                                   const zbytes& message) {
+                                   const zbytes& message,
+                                   bool inject_trace_context) {
   LOG_MARKER();
 
   zbytes hash;
-  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash);
+  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash,
+                           inject_trace_context);
 
   if (!hash.empty()) {
     lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -1274,7 +1286,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
 }
 
 void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
-                                 const unsigned char& startByteType) {
+                                 unsigned char startByteType) {
   if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << peer

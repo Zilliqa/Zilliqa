@@ -338,13 +338,16 @@ void DirectoryService::ProcessViewChangeConsensusWhenDone() {
       ReloadGuardedShards(t_shards);
     }
 
+    // TODO use distributed traces from here?
+    bool inject_trace_context = false;
+
     DataSender::GetInstance().SendDataToOthers(
         *m_pendingVCBlock, tmpDSCommittee,
         t_shards.empty() ? m_shards : t_shards, t_microBlocks,
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        m_consensusMyID, composeVCBlockForSender, m_forceMulticast.load(),
-        t_sendDataToLookupFunc);
+        m_consensusMyID, composeVCBlockForSender, inject_trace_context,
+        m_forceMulticast.load(), t_sendDataToLookupFunc);
   }
 }
 

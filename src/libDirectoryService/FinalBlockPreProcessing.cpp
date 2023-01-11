@@ -785,7 +785,12 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, mb_message);
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
+
+  P2PComm::GetInstance().SendMessage(peer, mb_message,
+                                     zil::p2p::START_BYTE_NORMAL,
+                                     inject_trace_context);
 
   return true;
 }

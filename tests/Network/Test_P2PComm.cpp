@@ -196,18 +196,21 @@ int main() {
   Peer peer = {ip_addr.s_addr, 33133};
   zbytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
-  P2PComm::GetInstance().SendMessage(peer, message1);
+  P2PComm::GetInstance().SendMessage(peer, message1,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 
   vector<Peer> peers = {peer, peer, peer};
   zbytes message2 = {'W', 'o', 'r', 'l', 'd', '\0'};  // Send World 3x
 
-  P2PComm::GetInstance().SendMessage(peers, message2);
+  P2PComm::GetInstance().SendMessage(peers, message2,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 
   zbytes longMsg(1024 * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
-  P2PComm::GetInstance().SendMessage(peer, longMsg);
+  P2PComm::GetInstance().SendMessage(peer, longMsg, zil::p2p::START_BYTE_NORMAL,
+                                     false);
 
   TestRemoveBroadcast();
 

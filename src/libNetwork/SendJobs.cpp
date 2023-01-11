@@ -389,7 +389,7 @@ class SendJobsImpl : public SendJobs,
 
     auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
                                                    std::move(peer));
-    peerCtx->Enqueue(CreateMessage(message, {}, start_byte), false);
+    peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();
   }
