@@ -279,13 +279,17 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, tx_message);
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
+
+  P2PComm::GetInstance().SendMessage(
+      peer, tx_message, zil::p2p::START_BYTE_NORMAL, inject_trace_context);
 
   return true;
 }
 
-bool Node::OnCommitFailure([
-    [gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
+bool Node::OnCommitFailure(
+    [[gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "

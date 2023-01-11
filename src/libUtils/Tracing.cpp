@@ -300,14 +300,6 @@ void ExtractTraceInfoFromCurrentContext(std::string& out) {
   prop->Inject(carrier, current_ctx);
 }
 
-void ExtractTraceInfoFromCurrentContext(const std::string& traceInfo) {
-  auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
-  TextMapCarrier carrier;
-  auto prop = opentelemetry::context::propagation::GlobalTextMapPropagator::
-      GetGlobalPropagator();
-  prop->Inject(carrier, current_ctx);
-}
-
 std::shared_ptr<trace_api::Span> CreateChildSpan(
     std::string_view name, const std::string& serializedTraceInfo) {
   auto prop = opentelemetry::context::propagation::GlobalTextMapPropagator::

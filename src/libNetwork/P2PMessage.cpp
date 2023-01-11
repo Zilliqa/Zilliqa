@@ -94,13 +94,6 @@ RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
   return RawMessage(buf, buffer_size);
 }
 
-void ReadMessageResult::reset() {
-  startByte = 0;
-  message.clear();
-  traceInfo.clear();
-  totalMessageBytes = 0;
-}
-
 ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
                          ReadMessageResult& result) {
   if (!buf || buf_size < HDR_LEN) {
@@ -141,8 +134,7 @@ ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
 
   if (version == MSG_VERSION_WITH_TRACES) {
     if (total_length < 5) {
-      LOG_GENERAL(WARNING,
-                  "Invalid length [" << total_length << "]");
+      LOG_GENERAL(WARNING, "Invalid length [" << total_length << "]");
       return ReadState::WRONG_MESSAGE_LENGTH;
     }
 
