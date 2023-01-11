@@ -3,9 +3,10 @@ import fs from "fs";
 import path from "path";
 import {createHash} from "crypto";
 import {ContractName, Transitions, parseScilla, Fields} from "./ScillaParser";
+import clc from "cli-color";
 
 // For some reason, hardhat deletes json files in artifacts, so it couldn't be scilla.json
-const CONTRACTS_INFO_CACHE_FILE = "../artifacts/scilla.cache";
+const CONTRACTS_INFO_CACHE_FILE = path.join(__dirname, "../artifacts/scilla.cache");
 
 export interface ContractInfo {
   hash: string;
@@ -25,6 +26,7 @@ export const updateContractsInfo = () => {
   let contractsInfo: ContractMapByName = {};
   let files = glob.sync("contracts/**/*.scilla");
   if (files.length === 0) {
+    console.log(clc.yellowBright("No scilla contracts were found in contracts directory."))
     return;
   }
 
@@ -38,14 +40,20 @@ export const updateContractsInfo = () => {
 
     // Either the file is new or has been changed
     const contract = parseScillaFile(file);
+    console.log(`Parsing ${file}...`)
     if (contract) {
       somethingChanged = true;
       contractsInfo[file] = contract;
+    } else {
+      console.log(clc.redBright("  Failed!"));
     }
   });
 
   if (somethingChanged) {
+    console.log("Cache updated.");
     saveContractsInfo(contractsInfo);
+  } else {
+    console.log("Nothing changed since last compile.");
   }
 
   scillaContracts = convertToMapByName(contractsInfo);
@@ -62,6 +70,7 @@ const convertToMapByName = (contracts: ContractMapByPath): ContractMapByName => 
 
 const loadContractsInfo = (): ContractMapByPath => {
   if (!fs.existsSync(CONTRACTS_INFO_CACHE_FILE)) {
+    console.log("Cache file doesn't exist, creating a new one")
     return {};
   }
 
@@ -70,7 +79,7 @@ const loadContractsInfo = (): ContractMapByPath => {
 };
 
 const saveContractsInfo = (contracts: ContractMapByPath) => {
-  fs.writeFileSync(path.join(__dirname, CONTRACTS_INFO_CACHE_FILE), JSON.stringify(contracts));
+  fs.writeFileSync(CONTRACTS_INFO_CACHE_FILE, JSON.stringify(contracts));
 };
 
 const getFileHash = (fileName: string): string => {
@@ -81,7 +90,6 @@ const getFileHash = (fileName: string): string => {
 };
 
 const parseScillaFile = (fileName: string): ContractInfo | null => {
-  console.log("Parsing " + fileName);
   let contents = fs.readFileSync(fileName, "utf8");
   const hashSum = createHash("md5");
   hashSum.update(contents);
@@ -90,5 +98,3 @@ const parseScillaFile = (fileName: string): ContractInfo | null => {
 
   return {name: contractName, hash: hashSum.digest("hex"), path: fileName, transitions, fields};
 };
-
-updateContractsInfo();

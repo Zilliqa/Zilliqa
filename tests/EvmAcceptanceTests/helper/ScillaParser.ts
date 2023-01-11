@@ -146,5 +146,3 @@ const extractTransitions = (ccompsElem: any[]): Transitions => {
     };
   });
 }
-
-console.log(parseScilla("/home/saeed/projects/zilliqa/tests/EvmAcceptanceTests/contracts/test/ecdsa.scilla"));
