@@ -67,6 +67,8 @@ class APIServerImpl : public APIServer,
   bool StartListening() override;
   bool StopListening() override;
 
+  bool DoListen();
+
   /// Initiates accept async operation
   void AcceptNext();
 
@@ -92,6 +94,9 @@ class APIServerImpl : public APIServer,
 
   /// Started flag
   std::atomic<bool> m_started{};
+
+  /// Active flag
+  std::atomic<bool> m_active{};
 
   /// Thread pool
   std::shared_ptr<APIThreadPool> m_threadPool;
