@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/Block/MicroBlock.h"
+#include "libBlockchain/MicroBlock.h"
 
 #define BOOST_TEST_MODULE microblocktest
 #define BOOST_TEST_DYN_LINK

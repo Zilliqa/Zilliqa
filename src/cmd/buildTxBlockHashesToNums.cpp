@@ -18,8 +18,7 @@
 #include <iostream>
 
 #include <common/Constants.h>
-#include <libData/BlockData/Block/TxBlock.h>
-#include "depends/libDatabase/LevelDB.h"
+#include <libBlockchain/TxBlock.h>
 
 int main(int argc, char* argv[]) {
   if (argc != 2) {

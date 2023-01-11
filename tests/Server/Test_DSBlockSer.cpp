@@ -16,8 +16,8 @@
  */
 
 #include <json/json.h>
-#include "libData/BlockData/Block/DSBlock.h"
-#include "libData/BlockData/Block/TxBlock.h"
+#include "libBlockchain/DSBlock.h"
+#include "libBlockchain/TxBlock.h"
 #include "libUtils/IPConverter.h"
 
 #define BOOST_TEST_MODULE json_ds_serialization

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/BlockHeader/DSBlockHeader.h"
+#include "libBlockchain/DSBlockHeader.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 

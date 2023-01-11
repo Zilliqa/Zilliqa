@@ -20,7 +20,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libData/BlockData/Block/Serialization.h"
+#include "libBlockchain/Serialization.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libUtils/SafeMath.h"
 

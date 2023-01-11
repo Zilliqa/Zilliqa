@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_VCBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_VCBLOCKHEADER_H_
 
 #include <Schnorr.h>
 #include "BlockHeaderBase.h"
@@ -88,4 +88,4 @@ class VCBlockHeader final : public BlockHeaderBase {
 
 std::ostream& operator<<(std::ostream& os, const VCBlockHeader& t);
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_VCBLOCKHEADER_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_VCBLOCKHEADER_H_

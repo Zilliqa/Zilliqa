@@ -23,8 +23,8 @@
 #include <vector>
 
 #include "libData/AccountData/TransactionReceipt.h"
-#include "libData/BlockData/Block.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libBlockchain/Block.h"
+#include "libBlockchain/BlockHashSet.h"
 
 class JSONConversion {
   using TxBodySharedPtr = std::shared_ptr<TransactionWithReceipt>;

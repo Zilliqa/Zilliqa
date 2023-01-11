@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_VCBLOCK_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_VCBLOCK_H_
 
 #include "BlockBase.h"
-#include "libData/BlockData/BlockHeader/VCBlockHeader.h"
+#include "libBlockchain/VCBlockHeader.h"
 
 /// Stores the VC header and signatures.
 class VCBlock final : public BlockBase {
@@ -59,4 +59,4 @@ class VCBlock final : public BlockBase {
 
 std::ostream& operator<<(std::ostream& os, const VCBlock& t);
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_VCBLOCK_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_VCBLOCK_H_

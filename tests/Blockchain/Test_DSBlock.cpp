@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/Block/DSBlock.h"
+#include "libBlockchain/DSBlock.h"
 
 #define BOOST_TEST_MODULE dsblocktest
 #define BOOST_TEST_DYN_LINK

@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/Block/VCBlock.h"
+#include "libBlockchain/VCBlock.h"
 
 #define BOOST_TEST_MODULE vcblocktest
 #define BOOST_TEST_DYN_LINK

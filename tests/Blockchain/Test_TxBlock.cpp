@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/Block/TxBlock.h"
+#include "libBlockchain/TxBlock.h"
 
 #define BOOST_TEST_MODULE txblocktest
 #define BOOST_TEST_DYN_LINK

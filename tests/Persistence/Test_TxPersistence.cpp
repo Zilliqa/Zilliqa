@@ -20,8 +20,7 @@
 #include <thread>
 #include <vector>
 
-#include "depends/libDatabase/LevelDB.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libPersistence/BlockStorage.h"
 
 

@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_DSBLOCK_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_DSBLOCK_H_
 
 #include "BlockBase.h"
-#include "libData/BlockData/BlockHeader/DSBlockHeader.h"
+#include "libBlockchain/DSBlockHeader.h"
 
 /// Stores the DS header and signature.
 class DSBlock final : public BlockBase {
@@ -57,4 +57,4 @@ class DSBlock final : public BlockBase {
 
 std::ostream& operator<<(std::ostream& os, const DSBlock& t);
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_DSBLOCK_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_DSBLOCK_H_

@@ -22,7 +22,7 @@
 #include "common/BaseType.h"
 #include "common/TxnStatus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libData/CoinbaseData/CoinbaseStruct.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libData/MiningData/MinerInfo.h"

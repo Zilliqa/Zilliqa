@@ -27,8 +27,8 @@
 #include <Schnorr.h>
 #include "common/Constants.h"
 #include "libConsensus/Consensus.h"
-#include "libData/BlockData/Block.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
+#include "libBlockchain/Block.h"
+#include "libBlockchain/BlockHashSet.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"

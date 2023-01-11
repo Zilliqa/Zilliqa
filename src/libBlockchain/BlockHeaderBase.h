@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKHEADERBASE_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKHEADERBASE_H_
 
 #include "common/Constants.h"
 #include "common/Hashes.h"
@@ -60,4 +60,4 @@ class BlockHeaderBase : public SerializableDataBlock {
 
 std::ostream& operator<<(std::ostream& os, const BlockHeaderBase& t);
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHEADERBASE_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKHEADERBASE_H_

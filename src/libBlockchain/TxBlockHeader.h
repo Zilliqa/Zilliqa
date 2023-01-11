@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_TXBLOCKHEADER_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_TXBLOCKHEADER_H_
 
 #include <Schnorr.h>
 #include "BlockHashSet.h"
@@ -102,4 +102,4 @@ class TxBlockHeader final : public BlockHeaderBase {
 
 std::ostream& operator<<(std::ostream& os, const TxBlockHeader& t);
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_TXBLOCKHEADER_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_TXBLOCKHEADER_H_

@@ -24,7 +24,7 @@
 
 #include "ShardStruct.h"
 #include "common/Singleton.h"
-#include "libData/BlockData/Block/BlockBase.h"
+#include "libBlockchain/BlockBase.h"
 
 typedef std::function<bool(zbytes& message)> ComposeMessageForSenderFunc;
 typedef std::function<void(const VectorOfNode& lookups, const zbytes& message)>

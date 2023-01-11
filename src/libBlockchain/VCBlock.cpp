@@ -17,7 +17,7 @@
 
 #include "VCBlock.h"
 #include "Serialization.h"
-#include "libData/BlockData/BlockHeader/Serialization.h"
+#include "libBlockchain/Serialization.h"
 #include "libMessage/MessengerCommon.h"
 
 using namespace std;

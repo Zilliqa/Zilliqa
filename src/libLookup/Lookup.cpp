@@ -36,7 +36,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"

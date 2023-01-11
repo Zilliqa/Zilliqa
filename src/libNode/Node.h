@@ -31,7 +31,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountData/TxnPool.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/Executable.h"

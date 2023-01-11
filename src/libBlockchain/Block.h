@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Zilliqa
+ * Copyright (C) 2019 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,27 +18,16 @@
 #ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCK_H_
 #define ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCK_H_
 
-#include "common/Hashes.h"
-#include "libCrypto/CoSignatures.h"
+#include "DSBlock.h"
+#include "MicroBlock.h"
+#include "TxBlock.h"
+#include "VCBlock.h"
+#include "BlockHashSet.h"
+#include "DSBlockHeader.h"
+#include "MicroBlockHeader.h"
+#include "TxBlockHeader.h"
+#include "VCBlockHeader.h"
 
-template <typename HeaderT, typename DataT>
-class Block {
- public:
-  const BlockHash& GetHash() const noexcept { return m_blockHash; }
-
-  const HeaderT& GetHeader() const noexcept { return m_header; }
-
-  std::chrono::system_clock::time_point GetTimestamp() const noexcept {
-    return m_timestamp;
-  }
-
- private:
-  BlockHash m_blockHash;
-  CoSignatures m_cosigs;
-  // uint64_t m_timestamp = 0;
-  std::chrono::system_clock::time_point m_timestamp =
-      std::chrono::system_clock::now();
-  HeaderT m_header;
-};
+enum BlockType : unsigned int { DS = 0, Tx = 1, VC = 2 };
 
 #endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCK_H_

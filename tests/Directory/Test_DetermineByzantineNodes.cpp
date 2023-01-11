@@ -17,7 +17,7 @@
 
 #include <Schnorr.h>
 #include <string>
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/Logger.h"

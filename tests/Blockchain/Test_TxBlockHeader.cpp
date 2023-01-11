@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libBlockchain/TxBlockHeader.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 

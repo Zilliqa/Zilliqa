@@ -15,12 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_TXBLOCK_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_TXBLOCK_H_
 
 #include "BlockBase.h"
-#include "libData/BlockData/BlockHeader/BlockHashSet.h"
-#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libBlockchain/BlockHashSet.h"
+#include "libBlockchain/TxBlockHeader.h"
 
 struct MicroBlockInfo {
   BlockHash m_microBlockHash;
@@ -87,4 +87,4 @@ class TxBlock final : public BlockBase {
 
 std::ostream& operator<<(std::ostream& os, const TxBlock& t);
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_TXBLOCK_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_TXBLOCK_H_

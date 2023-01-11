@@ -15,11 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKBASE_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKBASE_H_
 
+#include "libBlockchain/BlockHeaderBase.h"
 #include "libCrypto/CoSignatures.h"
-#include "libData/BlockData/BlockHeader/BlockHeaderBase.h"
 #include "libUtils/TimeUtils.h"
 
 /// [TODO] Base class for all supported block data types
@@ -41,7 +41,6 @@ class BlockBase : public SerializableDataBlock {
   /// Default constructor.
   BlockBase() : m_timestamp(0) {}
 
-#if 0
   /// Implements the Serialize function inherited from Serializable.
   virtual bool Serialize(zbytes& /*dst*/,
                          unsigned int /*offset*/) const override {
@@ -59,7 +58,6 @@ class BlockBase : public SerializableDataBlock {
                            unsigned int /*offset*/) override {
     return true;
   }
-#endif
 
   /// Returns the block hash
   const BlockHash& GetBlockHash() const { return m_blockHash; }
@@ -99,4 +97,4 @@ inline std::ostream& operator<<(std::ostream& os, const BlockBase& t) {
   return os;
 }
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCK_BLOCKBASE_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKBASE_H_

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_
-#define ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_
+#ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKHASHSET_H_
+#define ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKHASHSET_H_
 
 #include "common/BaseType.h"
 #include "common/Hashes.h"
@@ -243,4 +243,4 @@ inline std::ostream& operator<<(std::ostream& os, const TxBlockHashSet& t) {
   return os;
 }
 
-#endif  // ZILLIQA_SRC_LIBDATA_BLOCKDATA_BLOCKHEADER_BLOCKHASHSET_H_
+#endif  // ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCKHASHSET_H_
