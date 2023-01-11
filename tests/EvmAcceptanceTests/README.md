@@ -186,6 +186,18 @@ const txn = await payer.sendTransaction({
 expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`).to.be.eq(FUND);
 ```
 
+# Scilla Testing Tools
+## Scilla checker task
+To run `scilla-checker` on all of the scilla contracts in the [contracts directory](./contracts/) run:
+```bash
+npx hardhat scilla-check --libdir path_to_stdlib
+```
+
+alternatively, you can check a specific file(s):
+```bash
+npx hardhat scilla-check --libdir path_to_stdlib contracts/scilla/helloWorld.scilla
+```
+
 # miscellaneous
 
 ## Scripts
