@@ -22,6 +22,8 @@
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
+#include <ranges>
+
 #define PROTOBUFBYTEARRAYTOSERIALIZABLE(ba, s)                       \
   if (!ProtobufByteArrayToSerializable(ba, s)) {                     \
     LOG_GENERAL(WARNING, "ProtobufByteArrayToSerializable failed."); \
@@ -77,12 +79,12 @@ void NumberToProtobufByteArray(const T& number,
 template <class T>
 bool SerializeToArray(const T& protoMessage, zbytes& dst,
                       const unsigned int offset) {
-  if ((offset + protoMessage.ByteSize()) > dst.size()) {
-    dst.resize(offset + protoMessage.ByteSize());
+  if ((offset + protoMessage.ByteSizeLong()) > dst.size()) {
+    dst.resize(offset + protoMessage.ByteSizeLong());
   }
 
   return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSize());
+                                       protoMessage.ByteSizeLong());
 }
 
 template <std::ranges::input_range InputRangeT,
