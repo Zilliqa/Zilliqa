@@ -7,7 +7,7 @@ declare module "hardhat/types/runtime" {
     parallel: boolean;
     isZilliqaNetworkSelected: () => boolean;
     getEthChainId: () => number;
-    getZilliqaChainId: () => void;
+    getZilliqaChainId: () => number;
     getNetworkUrl: () => string;
     getWebsocketUrl: () => string;
     getWeb3ClientVersion: () => string;
