@@ -2,10 +2,10 @@ import {glob} from "glob";
 import fs from "fs";
 import path from "path";
 import {createHash} from "crypto";
-import {ContractName, Transitions, parseScilla, Fields} from "./helper/ScillaParser";
+import {ContractName, Transitions, parseScilla, Fields} from "./ScillaParser";
 
 // For some reason, hardhat deletes json files in artifacts, so it couldn't be scilla.json
-const CONTRACTS_INFO_CACHE_FILE = "./artifacts/scilla.cache";
+const CONTRACTS_INFO_CACHE_FILE = "../artifacts/scilla.cache";
 
 export interface ContractInfo {
   hash: string;

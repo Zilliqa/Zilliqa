@@ -3,7 +3,7 @@ import fs from "fs";
 import {BN, Long, units, bytes} from "@zilliqa-js/util";
 import {getAddressFromPrivateKey, getPubKeyFromPrivateKey} from "@zilliqa-js/crypto";
 import {Init, Contract, Value} from "@zilliqa-js/contract";
-import {scillaContracts, ContractInfo} from "../ScillaContractProcessor";
+import {scillaContracts, ContractInfo} from "./ScillaContractsInfoUpdater";
 import {TransitionParam, isNumeric} from "./ScillaParser";
 
 // chain setup on ceres locally run isolated server, see https://dev.zilliqa.com/docs/dev/dev-tools-ceres/. Keys and wallet setup
