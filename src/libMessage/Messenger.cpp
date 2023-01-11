@@ -2624,7 +2624,17 @@ bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
   LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
+  std::vector<std::pair<Address, Account>> accountsToSerialize;
+  accountsToSerialize.reserve(accountStoreTemp.GetAddressToAccount()->size());
   for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
+    accountsToSerialize.push_back(entry);
+  }
+  if (SORT_ACC_STORE_DELTA) {
+    std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
+              [&](const auto& l, const auto& r) { return l.first < l.first; });
+  }
+
+  for (const auto& entry : accountsToSerialize) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
@@ -6398,7 +6408,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES); // changed dec 2017
+  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);  // changed dec 2017
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
@@ -7689,7 +7699,9 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES); // was changed in December 2017 Protobuf 3.10
+  codedIn.SetTotalBytesLimit(
+      MAX_READ_WATERMARK_IN_BYTES);  // was changed in December 2017
+                                     // Protobuf 3.10
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
