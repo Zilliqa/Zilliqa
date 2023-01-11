@@ -33,3 +33,8 @@ target_include_directories(Test_TxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_S
 target_link_libraries(Test_TxBlock PRIVATE Block Message Boost::unit_test_framework)
 add_test(NAME Test_TxBlock COMMAND Test_TxBlock)
 
+add_executable(Test_VCBlock Test_VCBlock.cpp)
+target_include_directories(Test_VCBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_VCBlock PRIVATE Block Message Boost::unit_test_framework)
+add_test(NAME Test_VCBlock COMMAND Test_VCBlock)
+

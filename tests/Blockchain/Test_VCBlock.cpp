@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/Block/TxBlock.h"
+#include "libData/BlockData/Block/VCBlock.h"
 
-#define BOOST_TEST_MODULE txblocktest
+#define BOOST_TEST_MODULE vcblocktest
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -30,90 +30,70 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_SUITE(txblocktest)
+BOOST_AUTO_TEST_SUITE(vcblocktest)
 
-BOOST_AUTO_TEST_CASE(TxBlock_DefaultConstruction) {
-  TxBlock block;
+BOOST_AUTO_TEST_CASE(VCBlock_DefaultConstruction) {
+  VCBlock block;
 
-  BOOST_CHECK_EQUAL(block.GetHeader(), TxBlockHeader{});
+  BOOST_CHECK_EQUAL(block.GetHeader(), VCBlockHeader{});
 }
 
-BOOST_AUTO_TEST_CASE(TxBlock_NonDefaultConstruction) {
-  std::vector<MicroBlockInfo> mbInfos{
-      {BlockHash{
-           "8888888888888888888888888888888888888888888888888888888888888888"},
-       TxnHash{
-           "9999999999999999999999999999999999999999999999999999999999999999"},
-       1},
-      {BlockHash{
-           "7777777777777777777777777777777777777777777777777777777777777777"},
-       TxnHash{
-           "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
-       2}};
-
-  TxBlockHeader blockHeader{
-      54,
-      23,
+BOOST_AUTO_TEST_CASE(VCBlock_NonDefaultConstruction) {
+  VCBlockHeader blockHeader{
+      41,
+      92,
       3,
-      1235,
-      {},
-      9,
+      {4444, 5555},
       PubKey::GetPubKeyFromString(
-          "8b133a3868993176b613738816247a7f4d357cae555996519cf5b543e9b3554b89"),
-      211,
+          "872e4e50ce9990d8b041330c47c9ddd11bec6b503ae9386a99da8584e9bb12c4aa"),
+      4,
+      VectorOfNode{
+          {PubKey::GetPubKeyFromString("bec5320d32a1a6c60a6258efa5e1b86c3dbf460"
+                                       "af54cefe6e1ad4254ea8cb01cff"),
+           {12345, 9937}}},
       1,  // version
       BlockHash(
           "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
       BlockHash(
           "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
 
-  CoSignatures coSigs{5};
-  TxBlock block{blockHeader, mbInfos, coSigs, 5239};
+  CoSignatures coSigs{3};
+  VCBlock block{blockHeader, coSigs, 88};
 
   BOOST_CHECK_EQUAL(block.GetHeader(), blockHeader);
   BOOST_CHECK(block.GetB1() == coSigs.m_B1);
   BOOST_CHECK(block.GetB2() == coSigs.m_B2);
   BOOST_CHECK_EQUAL(block.GetCS1(), coSigs.m_CS1);
   BOOST_CHECK_EQUAL(block.GetCS2(), coSigs.m_CS2);
-  BOOST_CHECK_EQUAL(block.GetTimestamp(), 5239);
-  BOOST_TEST(block.GetMicroBlockInfos() == mbInfos);
+  BOOST_CHECK_EQUAL(block.GetTimestamp(), 88);
 }
 
-BOOST_AUTO_TEST_CASE(TxBlock_CompareEqual) {
-  std::vector<MicroBlockInfo> mbInfos{
-      {BlockHash{
-           "0000000000000000000000000000000000000000000000000000000000000000"},
-       TxnHash{
-           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
-       3},
-      {BlockHash{
-           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-       TxnHash{
-           "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
-       9}};
-
-  TxBlockHeader blockHeader1{
+BOOST_AUTO_TEST_CASE(VCBlock_CompareEqual) {
+  VCBlockHeader blockHeader1{
       5,
-      2,
-      0,
-      235,
-      {},
-      8,
+      6,
+      7,
+      {8888, 9999},
       PubKey::GetPubKeyFromString(
-          "9ab33a3868993176b613738816247a7f4d357cae555996519cf5b543e9b3554b89"),
-      11,
+          "bec5320d32a1a6c60a6258efa5e1b86c3dbf460af54cefe6e1ad4254ea8cb01cff"),
+      10,
+      VectorOfNode{
+          {PubKey::GetPubKeyFromString("872e4e50ce9990d8b041330c47c9ddd11bec6b5"
+                                       "03ae9386a99da8584e9bb12c4aa"),
+
+           {321, 1002}}},
       1,  // version
       BlockHash(
-          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
+          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61"),
       BlockHash(
-          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
+          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131")};
 
-  CoSignatures coSigs1{5};
-  TxBlock block1{blockHeader1, mbInfos, coSigs1, 1115};
+  CoSignatures coSigs1{8};
+  VCBlock block1{blockHeader1, coSigs1, 412};
 
   auto blockHeader2 = blockHeader1;
   CoSignatures coSigs2 = coSigs1;
-  TxBlock block2{blockHeader2, mbInfos, coSigs2, 1115};
+  VCBlock block2{blockHeader2, coSigs2, 412};
 
   auto block3 = block1;
   BOOST_CHECK_EQUAL(block1, block2);
@@ -121,6 +101,7 @@ BOOST_AUTO_TEST_CASE(TxBlock_CompareEqual) {
   BOOST_CHECK_EQUAL(block2, block3);
 }
 
+#if 0
 BOOST_AUTO_TEST_CASE(Test_Serialization) {
   zbytes serialized[3] = {
       {10,  244, 1,   10,  70,  8,   1,   18,  32,  113, 122, 197, 6,   149,
@@ -243,7 +224,7 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
   for (int i = 1; i <= 3; ++i) {
     zbytes dst;
 
-    TxBlockHeader blockHeader{
+    VCBlockHeader blockHeader{
         static_cast<uint64_t>(i * 9),
         static_cast<uint64_t>(i * 8),
         static_cast<unsigned char>(i * 7),
@@ -263,11 +244,11 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
         BlockHash("9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883"
                   "e131")};
 
-    TxBlock block{blockHeader, mbInfos, CoSignatures(i * 3), timestamps[i - 1]};
+    VCBlock block{blockHeader, mbInfos, CoSignatures(i * 3), timestamps[i - 1]};
     BOOST_CHECK(block.Serialize(dst, 0));
     BOOST_TEST(dst == serialized[i - 1]);
 
-    TxBlock deserializedBlock;
+    VCBlock deserializedBlock;
     deserializedBlock.Deserialize(dst, 0);
     BOOST_CHECK(deserializedBlock.Deserialize(dst, 0));
 
@@ -285,5 +266,6 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
                        static_cast<uint32_t>(i)});
   }
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()
