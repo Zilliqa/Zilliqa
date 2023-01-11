@@ -15,12 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "libData/BlockData/Block/MicroBlock.h"
+#include "libData/BlockData/Block/TxBlock.h"
 
-#define BOOST_TEST_MODULE microblocktest
+#define BOOST_TEST_MODULE txblocktest
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
+
+#include <fstream>
 
 struct Fixture {
   Fixture() { INIT_STDOUT_LOGGER() }
@@ -28,96 +30,90 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_SUITE(microblocktest)
+BOOST_AUTO_TEST_SUITE(txblocktest)
 
-BOOST_AUTO_TEST_CASE(MicroBlock_DefaultConstruction) {
-  MicroBlock block;
+BOOST_AUTO_TEST_CASE(TxBlock_DefaultConstruction) {
+  TxBlock block;
 
-  BOOST_CHECK_EQUAL(block.GetHeader(), MicroBlockHeader{});
+  BOOST_CHECK_EQUAL(block.GetHeader(), TxBlockHeader{});
 }
 
-BOOST_AUTO_TEST_CASE(MicroBlock_NonDefaultConstruction) {
-  std::vector<TxnHash> tranHashes = {
-      TxnHash{
-          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
-      TxnHash{
-          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
-      TxnHash{
-          "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"}};
+BOOST_AUTO_TEST_CASE(TxBlock_NonDefaultConstruction) {
+  std::vector<MicroBlockInfo> mbInfos{
+      {BlockHash{
+           "8888888888888888888888888888888888888888888888888888888888888888"},
+       TxnHash{
+           "9999999999999999999999999999999999999999999999999999999999999999"},
+       1},
+      {BlockHash{
+           "7777777777777777777777777777777777777777777777777777777777777777"},
+       TxnHash{
+           "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+       2}};
 
-  MicroBlockHeader blockHeader{
-      1,
-      45,
-      32,
-      8,
-      9122,
-      MicroBlockHashSet{
-          TxnHash{"4d99a6aad137aaad46f92e787f5d506e3249cf83cbbb9df23d38f049b986"
-                  "3205"},
-          StateHash{"a32fab43af733e2735a82b196f5530eb67f193a2a6140a5adecdd5eb3e"
-                    "9f454a"},
-          TxnHash{"99cba620b47e8bdad1a5aeb95d7b402c085074ee7c1724bd2936de10930b"
-                  "636c"},
-      },
-      static_cast<uint32_t>(tranHashes.size()),
+  TxBlockHeader blockHeader{
+      54,
+      23,
+      3,
+      1235,
+      {},
+      9,
       PubKey::GetPubKeyFromString(
-          "a0b54dfb242dbb7aabb5ab954e60125f4cfa12bc9aba5150f7c3012554d8de238a"),
-      172,
+          "8b133a3868993176b613738816247a7f4d357cae555996519cf5b543e9b3554b89"),
+      211,
       1,  // version
       BlockHash(
-          "8b7df143d91c716ecfa5fc1730022f6b421b05cedee8fd52b1fc65a96030ad52"),
+          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
       BlockHash(
-          "e21a8a7b4f014090eaffd3e64dac41dcea4f5f7bbe67e0ac4deeb9f975130b87")};
+          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
 
   CoSignatures coSigs{5};
-  MicroBlock block{blockHeader, tranHashes, coSigs, 13579};
+  TxBlock block{blockHeader, mbInfos, coSigs, 5239};
 
   BOOST_CHECK_EQUAL(block.GetHeader(), blockHeader);
   BOOST_CHECK(block.GetB1() == coSigs.m_B1);
   BOOST_CHECK(block.GetB2() == coSigs.m_B2);
   BOOST_CHECK_EQUAL(block.GetCS1(), coSigs.m_CS1);
   BOOST_CHECK_EQUAL(block.GetCS2(), coSigs.m_CS2);
-  BOOST_CHECK_EQUAL(block.GetTimestamp(), 13579);
-  BOOST_TEST(block.GetTranHashes() == tranHashes);
+  BOOST_CHECK_EQUAL(block.GetTimestamp(), 5239);
+  BOOST_TEST(block.GetMicroBlockInfos() == mbInfos);
 }
 
-BOOST_AUTO_TEST_CASE(MicroBlock_CompareEqual) {
-  std::vector<TxnHash> tranHashes = {
-      TxnHash{
-          "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
-      TxnHash{
-          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}};
+BOOST_AUTO_TEST_CASE(TxBlock_CompareEqual) {
+  std::vector<MicroBlockInfo> mbInfos{
+      {BlockHash{
+           "0000000000000000000000000000000000000000000000000000000000000000"},
+       TxnHash{
+           "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"},
+       3},
+      {BlockHash{
+           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+       TxnHash{
+           "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"},
+       9}};
 
-  MicroBlockHeader blockHeader1{
-      1,
-      45,
-      32,
+  TxBlockHeader blockHeader1{
+      5,
+      2,
+      0,
+      235,
+      {},
       8,
-      9122,
-      {
-          TxnHash{"4d99a6aad137aaad46f92e787f5d506e3249cf83cbbb9df23d38f049b986"
-                  "3205"},
-          StateHash{"a32fab43af733e2735a82b196f5530eb67f193a2a6140a5adecdd5eb3e"
-                    "9f454a"},
-          TxnHash{"99cba620b47e8bdad1a5aeb95d7b402c085074ee7c1724bd2936de10930b"
-                  "636c"},
-      },
-      static_cast<uint32_t>(tranHashes.size()),
       PubKey::GetPubKeyFromString(
           "9ab33a3868993176b613738816247a7f4d357cae555996519cf5b543e9b3554b89"),
-      172,
+      11,
       1,  // version
       BlockHash(
-          "8b7df143d91c716ecfa5fc1730022f6b421b05cedee8fd52b1fc65a96030ad52"),
+          "9123dcbb0b42652b0e105956c68d3ca2ff34584f324fa41a29aedd32b883e131"),
       BlockHash(
-          "e21a8a7b4f014090eaffd3e64dac41dcea4f5f7bbe67e0ac4deeb9f975130b87")};
+          "717ac506950da0ccb6404cdd5e7591f72018a20cbca27c8a423e9c9e5626ac61")};
 
   CoSignatures coSigs1{5};
-  MicroBlock block1{blockHeader1, tranHashes, coSigs1, 24633};
+  TxBlock block1{blockHeader1, mbInfos, coSigs1, 1115};
 
   auto blockHeader2 = blockHeader1;
   CoSignatures coSigs2 = coSigs1;
-  MicroBlock block2{blockHeader2, tranHashes, coSigs2, 24633};
+  TxBlock block2{blockHeader2, mbInfos, coSigs2, 1115};
 
   auto block3 = block1;
   BOOST_CHECK_EQUAL(block1, block2);
@@ -125,6 +121,7 @@ BOOST_AUTO_TEST_CASE(MicroBlock_CompareEqual) {
   BOOST_CHECK_EQUAL(block2, block3);
 }
 
+#if 0
 BOOST_AUTO_TEST_CASE(Test_Serialization) {
   zbytes serialized[3] = {
       {10,  245, 1,   10,  70,  8,   1,   18,  32,  139, 125, 241, 67,  217,
@@ -239,7 +236,7 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
   for (int i = 1; i <= 3; ++i) {
     zbytes dst;
 
-    MicroBlockHeader blockHeader{
+    TxBlockHeader blockHeader{
         static_cast<uint32_t>(i),
         static_cast<uint64_t>(i * 9),
         static_cast<uint64_t>(i * 8),
@@ -258,19 +255,27 @@ BOOST_AUTO_TEST_CASE(Test_Serialization) {
         BlockHash("e21a8a7b4f014090eaffd3e64dac41dcea4f5f7bbe67e0ac4deeb9f97513"
                   "0b87")};
 
-    MicroBlock block{blockHeader, tranHashes, CoSignatures(i * 3),
-                     timestamps[i - 1]};
+    TxBlock block{blockHeader, tranHashes, CoSignatures(i * 3),
+                  timestamps[i - 1]};
     BOOST_CHECK(block.Serialize(dst, 0));
     BOOST_TEST(dst == serialized[i - 1]);
 
-    MicroBlock deserializedBlock;
+    TxBlock deserializedBlock;
     deserializedBlock.Deserialize(dst, 0);
     BOOST_CHECK(deserializedBlock.Deserialize(dst, 0));
+
+#if 0
+    std::ofstream file{"dst-" + std::to_string(i)};
+    file << '{';
+    for (auto v : dst) file << static_cast<unsigned int>(v) << ", ";
+    file << '}';
+#endif
 
     BOOST_CHECK(block == deserializedBlock);
     tranHashes.emplace_back(
         TxnHash{std::string(32, static_cast<char>('a' + i))});
   }
 }
+#endif
 
 BOOST_AUTO_TEST_SUITE_END()

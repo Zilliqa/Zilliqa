@@ -28,3 +28,8 @@ target_include_directories(Test_MicroBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAK
 target_link_libraries(Test_MicroBlock PRIVATE Block Message Boost::unit_test_framework)
 add_test(NAME Test_MicroBlock COMMAND Test_MicroBlock)
 
+add_executable(Test_TxBlock Test_TxBlock.cpp)
+target_include_directories(Test_TxBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_TxBlock PRIVATE Block Message Boost::unit_test_framework)
+add_test(NAME Test_TxBlock COMMAND Test_TxBlock)
+
