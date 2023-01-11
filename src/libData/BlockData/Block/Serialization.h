@@ -21,6 +21,12 @@
 #include "BlockBase.h"
 #include "libMessage/MessengerCommon.h"
 
+class DSBlock;
+class MicroBlock;
+class TxBlock;
+class VCBlock;
+struct MicroBlockInfo;
+
 namespace io {
 
 void BlockBaseToProtobuf(const BlockBase& base,
@@ -28,6 +34,34 @@ void BlockBaseToProtobuf(const BlockBase& base,
 
 std::optional<std::tuple<BlockHash, CoSignatures, uint64_t>>
 ProtobufToBlockBase(const ZilliqaMessage::ProtoBlockBase& protoBlockBase);
+
+void DSBlockToProtobuf(const DSBlock& dsBlock,
+                       ZilliqaMessage::ProtoDSBlock& protoDSBlock);
+
+bool ProtobufToDSBlock(const ZilliqaMessage::ProtoDSBlock& protoDSBlock,
+                       DSBlock& dsBlock);
+
+void MicroBlockToProtobuf(const MicroBlock& microBlock,
+                          ZilliqaMessage::ProtoMicroBlock& protoMicroBlock);
+
+bool ProtobufToMicroBlock(
+    const ZilliqaMessage::ProtoMicroBlock& protoMicroBlock,
+    MicroBlock& microBlock);
+
+void TxBlockToProtobuf(const TxBlock& txBlock,
+                       ZilliqaMessage::ProtoTxBlock& protoTxBlock);
+
+bool ProtobufToTxBlock(const ZilliqaMessage::ProtoTxBlock& protoTxBlock,
+                       TxBlock& txBlock);
+
+void VCBlockToProtobuf(const VCBlock& vcBlock,
+                       ZilliqaMessage::ProtoVCBlock& protoVCBlock);
+
+bool ProtobufToVCBlock(const ZilliqaMessage::ProtoVCBlock& protoVCBlock,
+                       VCBlock& vcBlock);
+
+void MbInfoToProtobuf(const MicroBlockInfo& mbInfo,
+                      ZilliqaMessage::ProtoMbInfo& ProtoMbInfo);
 
 }  // namespace io
 

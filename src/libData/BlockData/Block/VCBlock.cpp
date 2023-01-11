@@ -25,28 +25,11 @@ using namespace boost::multiprecision;
 
 namespace {
 
-void VCBlockToProtobuf(const VCBlock& vcBlock,
-                       ZilliqaMessage::ProtoVCBlock& protoVCBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoVCBlock::VCBlockHeader* protoHeader =
-      protoVCBlock.mutable_header();
-
-  const VCBlockHeader& header = vcBlock.GetHeader();
-
-  io::VCBlockHeaderToProtobuf(header, *protoHeader);
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoVCBlock.mutable_blockbase();
-
-  io::BlockBaseToProtobuf(vcBlock, *protoBlockBase);
-}
-
 bool SetVCBlock(zbytes& dst, const unsigned int offset,
                 const VCBlock& vcBlock) {
   ZilliqaMessage::ProtoVCBlock result;
 
-  VCBlockToProtobuf(vcBlock, result);
+  io::VCBlockToProtobuf(vcBlock, result);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
@@ -54,45 +37,6 @@ bool SetVCBlock(zbytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool CheckRequiredFieldsProtoVCBlock(
-    const ZilliqaMessage::ProtoVCBlock& /*protoVCBlock*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
-#endif
-  return true;
-}
-
-bool ProtobufToVCBlock(const ZilliqaMessage::ProtoVCBlock& protoVCBlock,
-                       VCBlock& vcBlock) {
-  if (!CheckRequiredFieldsProtoVCBlock(protoVCBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoVCBlock failed");
-    return false;
-  }
-
-  // Deserialize header
-
-  const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoHeader =
-      protoVCBlock.header();
-
-  VCBlockHeader header;
-
-  if (!io::ProtobufToVCBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToVCBlockHeader failed");
-    return false;
-  }
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoVCBlock.blockbase();
-
-  auto blockBaseVars = io::ProtobufToBlockBase(protoBlockBase);
-  if (!blockBaseVars) return false;
-
-  const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
-  vcBlock = VCBlock(header, std::move(coSigs), timestamp);
-  return true;
 }
 
 template <std::ranges::contiguous_range RangeT>
@@ -111,7 +55,7 @@ bool GetVCBlock(RangeT&& src, unsigned int offset, VCBlock& vcBlock) {
     return false;
   }
 
-  return ProtobufToVCBlock(result, vcBlock);
+  return io::ProtobufToVCBlock(result, vcBlock);
 }
 
 }  // namespace

@@ -17,7 +17,6 @@
 
 #include "MicroBlock.h"
 #include "Serialization.h"
-#include "libData/BlockData/BlockHeader/Serialization.h"
 #include "libMessage/MessengerCommon.h"
 
 using namespace std;
@@ -25,34 +24,11 @@ using namespace boost::multiprecision;
 
 namespace {
 
-void MicroBlockToProtobuf(const MicroBlock& microBlock,
-                          ZilliqaMessage::ProtoMicroBlock& protoMicroBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader* protoHeader =
-      protoMicroBlock.mutable_header();
-
-  const MicroBlockHeader& header = microBlock.GetHeader();
-
-  io::MicroBlockHeaderToProtobuf(header, *protoHeader);
-
-  // Serialize body
-
-  for (const auto& hash : microBlock.GetTranHashes()) {
-    protoMicroBlock.add_tranhashes(hash.data(), hash.size);
-  }
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoMicroBlock.mutable_blockbase();
-
-  io::BlockBaseToProtobuf(microBlock, *protoBlockBase);
-}
-
 bool SetMicroBlock(zbytes& dst, const unsigned int offset,
                    const MicroBlock& microBlock) {
   ZilliqaMessage::ProtoMicroBlock result;
 
-  MicroBlockToProtobuf(microBlock, result);
+  io::MicroBlockToProtobuf(microBlock, result);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
@@ -60,58 +36,6 @@ bool SetMicroBlock(zbytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool CheckRequiredFieldsProtoMicroBlock(
-    const ZilliqaMessage::ProtoMicroBlock& /*protoMicroBlock*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member tranhashes
-  return protoMicroBlock.has_header() && protoMicroBlock.has_blockbase();
-#endif
-  return true;
-}
-
-bool ProtobufToMicroBlock(
-    const ZilliqaMessage::ProtoMicroBlock& protoMicroBlock,
-    MicroBlock& microBlock) {
-  if (!CheckRequiredFieldsProtoMicroBlock(protoMicroBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoMicroBlock failed");
-    return false;
-  }
-
-  // Deserialize header
-
-  const ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader& protoHeader =
-      protoMicroBlock.header();
-
-  MicroBlockHeader header;
-
-  if (!io::ProtobufToMicroBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToMicroBlockHeader failed");
-    return false;
-  }
-
-  // Deserialize body
-
-  vector<TxnHash> tranHashes;
-  for (const auto& hash : protoMicroBlock.tranhashes()) {
-    tranHashes.emplace_back();
-    unsigned int size =
-        min((unsigned int)hash.size(), (unsigned int)tranHashes.back().size);
-    copy(hash.begin(), hash.begin() + size,
-         tranHashes.back().asArray().begin());
-  }
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoMicroBlock.blockbase();
-
-  auto blockBaseVars = io::ProtobufToBlockBase(protoBlockBase);
-  if (!blockBaseVars) return false;
-
-  const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
-  microBlock = MicroBlock{header, tranHashes, std::move(coSigs), timestamp};
-  return true;
 }
 
 template <std::ranges::contiguous_range RangeT>
@@ -130,7 +54,7 @@ bool GetMicroBlock(RangeT&& src, unsigned int offset, MicroBlock& microBlock) {
     return false;
   }
 
-  if (!ProtobufToMicroBlock(result, microBlock)) return false;
+  if (!io::ProtobufToMicroBlock(result, microBlock)) return false;
 
   if (microBlock.GetHeader().GetNumTxs() != microBlock.GetTranHashes().size()) {
     LOG_GENERAL(WARNING, "Header txn count ("

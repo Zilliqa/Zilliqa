@@ -52,6 +52,8 @@ class BlockHeaderBase : public SerializableDataBlock {
 
   const BlockHash& GetPrevHash() const { return m_prevHash; }
 
+ protected:
+
   // Operators
   bool operator==(const BlockHeaderBase& header) const;
 };

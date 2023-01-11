@@ -25,7 +25,7 @@ namespace io {
 
 namespace {
 
-bool CheckRequiredFieldsProtoBlockHeaderBase(
+constexpr bool CheckRequiredFieldsProtoBlockHeaderBase(
     const ZilliqaMessage::ProtoBlockHeaderBase& /*protoBlockHeaderBase*/) {
 // TODO: Check if default value is acceptable for each field
 #if 0
@@ -36,7 +36,7 @@ bool CheckRequiredFieldsProtoBlockHeaderBase(
   return true;
 }
 
-bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
+constexpr bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
     const ZilliqaMessage::ProtoDSBlock::DSBlockHeader::
         PowDSWinners& /*powDSWinner*/) {
 // TODO: Check if default value is acceptable for each field
@@ -46,7 +46,7 @@ bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
   return true;
 }
 
-bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
+constexpr bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
     const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& /*protoDSBlockHeader*/) {
 // TODO: Check if default value is acceptable for each field
 #if 0
@@ -64,7 +64,7 @@ bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
   return true;
 }
 
-bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
+constexpr bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
     const ZilliqaMessage::ProtoMicroBlock::
         MicroBlockHeader& /*protoMicroBlockHeader*/) {
 // TODO: Check if default value is acceptable for each field
@@ -85,7 +85,7 @@ bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
   return true;
 }
 
-bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
+constexpr bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
     const ZilliqaMessage::ProtoTxBlock::TxBlockHeader& /*protoTxBlockHeader*/) {
 // TODO: Check if default value is acceptable for each field
 #if 0
@@ -113,7 +113,7 @@ void FaultyLeaderToProtobuf(
   }
 }
 
-bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
+constexpr bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
     const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& /*protoVCBlockHeader*/) {
 // TODO: Check if default value is acceptable for each field
 #if 0

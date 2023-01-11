@@ -41,6 +41,7 @@ class BlockBase : public SerializableDataBlock {
   /// Default constructor.
   BlockBase() : m_timestamp(0) {}
 
+#if 0
   /// Implements the Serialize function inherited from Serializable.
   virtual bool Serialize(zbytes& /*dst*/,
                          unsigned int /*offset*/) const override {
@@ -58,6 +59,7 @@ class BlockBase : public SerializableDataBlock {
                            unsigned int /*offset*/) override {
     return true;
   }
+#endif
 
   /// Returns the block hash
   const BlockHash& GetBlockHash() const { return m_blockHash; }

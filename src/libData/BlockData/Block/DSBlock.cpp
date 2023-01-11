@@ -17,7 +17,6 @@
 
 #include "DSBlock.h"
 #include "Serialization.h"
-#include "libData/BlockData/BlockHeader/Serialization.h"
 #include "libMessage/MessengerCommon.h"
 
 using namespace std;
@@ -25,28 +24,11 @@ using namespace boost::multiprecision;
 
 namespace {
 
-void DSBlockToProtobuf(const DSBlock& dsBlock,
-                       ZilliqaMessage::ProtoDSBlock& protoDSBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoDSBlock::DSBlockHeader* protoHeader =
-      protoDSBlock.mutable_header();
-
-  const DSBlockHeader& header = dsBlock.GetHeader();
-
-  io::DSBlockHeaderToProtobuf(header, *protoHeader);
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoDSBlock.mutable_blockbase();
-
-  io::BlockBaseToProtobuf(dsBlock, *protoBlockBase);
-}
-
 bool SetDSBlock(zbytes& dst, const unsigned int offset,
                 const DSBlock& dsBlock) {
   ZilliqaMessage::ProtoDSBlock result;
 
-  DSBlockToProtobuf(dsBlock, result);
+  io::DSBlockToProtobuf(dsBlock, result);
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "ProtoDSBlock initialization failed");
@@ -54,44 +36,6 @@ bool SetDSBlock(zbytes& dst, const unsigned int offset,
   }
 
   return SerializeToArray(result, dst, offset);
-}
-
-bool CheckRequiredFieldsProtoDSBlock(
-    const ZilliqaMessage::ProtoDSBlock& /*protoDSBlock*/) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoDSBlock.has_header() && protoDSBlock.has_blockbase();
-#endif
-  return true;
-}
-
-bool ProtobufToDSBlock(const ZilliqaMessage::ProtoDSBlock& protoDSBlock,
-                       DSBlock& dsBlock) {
-  // Deserialize header
-
-  if (!CheckRequiredFieldsProtoDSBlock(protoDSBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlock failed");
-    return false;
-  }
-
-  const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoHeader =
-      protoDSBlock.header();
-
-  DSBlockHeader header;
-  if (!io::ProtobufToDSBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToDSBlockHeader failed");
-    return false;
-  }
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoDSBlock.blockbase();
-
-  auto blockBaseVars = io::ProtobufToBlockBase(protoBlockBase);
-  if (!blockBaseVars) return false;
-
-  const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
-  dsBlock = DSBlock{header, std::move(coSigs), timestamp};
-  return true;
 }
 
 template <std::ranges::contiguous_range RangeT>
@@ -110,7 +54,7 @@ bool GetDSBlock(RangeT&& src, unsigned int offset, DSBlock& dsBlock) {
     return false;
   }
 
-  return ProtobufToDSBlock(result, dsBlock);
+  return io::ProtobufToDSBlock(result, dsBlock);
 }
 
 }  // namespace
