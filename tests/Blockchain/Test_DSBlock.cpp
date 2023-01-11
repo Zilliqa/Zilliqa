@@ -17,7 +17,7 @@
 
 #include "libData/BlockData/Block/DSBlock.h"
 
-#define BOOST_TEST_MODULE dsheadertest
+#define BOOST_TEST_MODULE dsblocktest
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -28,7 +28,7 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_SUITE(dsheadertest)
+BOOST_AUTO_TEST_SUITE(dsblocktest)
 
 BOOST_AUTO_TEST_CASE(DSBlock_DefaultConstruction) {
   DSBlock block;

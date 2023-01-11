@@ -23,4 +23,8 @@ target_include_directories(Test_DSBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_S
 target_link_libraries(Test_DSBlock PRIVATE Block Message Boost::unit_test_framework)
 add_test(NAME Test_DSBlock COMMAND Test_DSBlock)
 
+add_executable(Test_MicroBlock Test_MicroBlock.cpp)
+target_include_directories(Test_MicroBlock PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
+target_link_libraries(Test_MicroBlock PRIVATE Block Message Boost::unit_test_framework)
+add_test(NAME Test_MicroBlock COMMAND Test_MicroBlock)
 
