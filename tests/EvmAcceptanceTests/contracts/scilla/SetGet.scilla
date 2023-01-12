@@ -6,11 +6,11 @@ contract SetGet
 ()
 field value: Uint128 = Uint128 0
 
-transition Set(v : Uint128)
+transition set(v : Uint128)
   value := v
 end
 
-transition Emit()
+transition emit()
   v <- value;
   ev = {_eventname: "Emit"; sender: _sender; value: v};
   event ev

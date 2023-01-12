@@ -200,6 +200,7 @@ To deploy a contract all you need to know is its name:
 import {deploy, ScillaContract} from "../../helper/ScillaHelper";
 
 let contract: ScillaContract = await deploy("SetGet");
+let contract: ScillaContract = await deploy("HelloWorld", "Hello World"); // Contract with initial parameters.
 ```
 
 ### Call a transition
@@ -231,10 +232,41 @@ it("Should set state correctly", async function () {
 });
 ```
 
+There are two custom chai matchers specially developed to `expect` scilla events. `eventLog` and `eventLogWithParams`.
+Use `eventLog` if you just need to expect event name:
+
+```typescript
+it("Should contain event data if emit function is called", async function () {
+  const tx = await contract.emit();
+  expect(tx).to.have.eventLog("Emit");
+});
+```
+
+Otherwise, if you need to deeply expect an event, you should use `eventLogWithParams`. The first parameter is again the event name. The rest are parameters of the expected event. If you expect to have an event like `getHello` sending a parameter named `msg` with a `"hello world"` value:
+
+```typescript
+it("Should send getHello() event when getHello() transition is called", async function () {
+  const tx = await contract.getHello();
+  expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", name: "msg"});
+});
+```
+
+You can even expect data type of the parameter(s):
+
+```typescript
+expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", name: "msg", type: "String"});
+```
+
+Type should be a valid Scilla type.
+
+But if you just want to expect on the value of a event parameter do this:
+
+```typescript
+expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world"});
+```
+
 ### TODO
 
-- Add a few custom chai matchers for more readable tests.
-- Support deployment of contracts with a multi-params constructor.
 - Support formatting complex data types such as `Map` and `List`
 
 ## Tasks

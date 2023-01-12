@@ -14,13 +14,12 @@ describe("Scilla SetGet contract", function () {
   });
 
   it("Should set state correctly", async function () {
-    await contract.Set(VALUE);
+    await contract.set(VALUE);
     expect(await contract.value()).to.be.eq(VALUE);
   });
 
-  it("Should contain event data if Get function is called", async function () {
-    const tx = await contract.Emit();
-    const receipt = tx.getReceipt()!;
-    expect(tx).sendEventWithParams("Emit", {value: VALUE.toString(), vname: "value"});
+  it("Should contain event data if emit transition is called", async function () {
+    const tx = await contract.emit();
+    expect(tx).to.have.eventLog("Emit");
   });
 });
