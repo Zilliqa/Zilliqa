@@ -5,10 +5,8 @@
 #docker_build("zilliqa/zilliqa", ".", dockerfile="docker/Dockerfile")
 custom_build("zilliqa/zilliqa", "DOCKER_BUILDKIT=1 docker build . -t $EXPECTED_REF -f docker/Dockerfile", ["docker/Dockerfile"])
 
+# TODO: Deploy nginx ingress with Tilt, so the user doesn't need to do it manually.
 #k8s_yaml("infra/k8s/nginx-ingress.yaml")
 
 k8s_yaml(kustomize("infra/k8s/base"))
 k8s_resource("devnet-explorer", port_forwards="8110:80")
-
-# kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-# kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=300s
