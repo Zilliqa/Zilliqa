@@ -66,7 +66,6 @@ export const parseScilla = (filename: string): ParsedContract => {
   const ccomps = contr.filter((row: string[]) => row[0] === "ccomps")[0][1];
   const transitions = extractTransitions(ccomps);
 
-  console.log(contractParams);
   return {name: contractName, transitions, fields, constructorParams: contractParams};
 };
 

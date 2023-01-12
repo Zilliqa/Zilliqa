@@ -7,7 +7,7 @@ import {Transaction} from "@zilliqa-js/account";
 export interface EventParam {
   type?: string;
   value?: string;
-  name?: string;
+  vname?: string;
 }
 
 declare global {
@@ -39,9 +39,6 @@ export const scillaChaiEventMatcher = function (chai: Chai.ChaiStatic, utils: Ch
     new Assertion(this._obj).to.eventLog(eventName);
 
     const event_logs = receipt.event_logs!;
-    params = params.map((eventParam) => {
-      return {type: eventParam.type, vname: eventParam.name, value: eventParam.value};
-    });
     const desiredLog = event_logs.filter((log) => log._eventname === eventName);
 
     new Assertion(desiredLog[0].params).to.containSubset(params);

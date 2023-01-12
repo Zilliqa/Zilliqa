@@ -16,12 +16,12 @@ describe("Scilla SetGet contract", function () {
 
   it("Can be possible to call setHello by the owner", async function () {
     const tx = await contract.setHello("salam");
-    expect(tx).to.eventLogWithParams("setHello()", {value: "2", name: "code"});
+    expect(tx).to.eventLogWithParams("setHello()", {value: "2", vname: "code"});
     expect(await contract.welcome_msg()).to.be.eq("salam");
   });
 
   it("Should send getHello() event when getHello() transition is called", async function () {
     const tx = await contract.getHello();
-    expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", name: "msg", type: "String"});
+    expect(tx).to.have.eventLogWithParams("getHello()", {value: "salam", vname: "msg", type: "String"});
   });
 });

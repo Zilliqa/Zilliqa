@@ -54,7 +54,9 @@ export const updateContractsInfo = () => {
     console.log("Nothing changed since last compile.");
   }
 
+  console.log(contractsInfo);
   scillaContracts = convertToMapByName(contractsInfo);
+  console.log(scillaContracts);
 };
 
 const convertToMapByName = (contracts: ContractMapByPath): ContractMapByName => {
