@@ -31,6 +31,6 @@ jobs:
         file: ${{ env.GITHUB_WORKSPACE }}/docker/Dockerfile
         context: ${{ env.GITHUB_WORKSPACE }}
         push: false
-        tags: zilliqa:${{ env.GITHUB_WORKFLOW_SHA }}
+        tags: zilliqa:${{ env.GITHUB_SHA }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
