@@ -1,6 +1,6 @@
 import {glob} from "glob";
 import fs from "fs";
-import path from "path";
+import path, {dirname} from "path";
 import {createHash} from "crypto";
 import {ContractName, Transitions, parseScilla, Fields, ParsedContract} from "./ScillaParser";
 import clc from "cli-color";
@@ -77,6 +77,7 @@ const loadContractsInfo = (): ContractMapByPath => {
 };
 
 const saveContractsInfo = (contracts: ContractMapByPath) => {
+  fs.mkdirSync(dirname(CONTRACTS_INFO_CACHE_FILE), {recursive: true});
   fs.writeFileSync(CONTRACTS_INFO_CACHE_FILE, JSON.stringify(contracts));
 };
 
