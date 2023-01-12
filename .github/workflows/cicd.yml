@@ -16,21 +16,21 @@ jobs:
       uses: actions/checkout@v3
       with:
         fetch-depth: 0
-    - name: Build
-      run: cd docker && make dev COMMIT_OR_TAG=HEAD
-      shell: bash
-    # - name: Set up QEMU
-    #   uses: docker/setup-qemu-action@v2
-    # - name: Set up Docker Buildx
-    #   uses: docker/setup-buildx-action@v2
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v2
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
     # # - name: Login to Docker Hub
     # #   uses: docker/login-action@v2
     # #   with:
     # #     username: ${{ secrets.DOCKERHUB_USERNAME }}
     # #     password: ${{ secrets.DOCKERHUB_TOKEN }}
-    # - name: Build and push
-    #   uses: docker/build-push-action@v3
-    #   with:
-    #     context: jenkins-slave/
-    #     push: false
-    #     tags: zilliqa/jenkins-slave:latest
+    - name: Build and push
+      uses: docker/build-push-action@v3
+      with:
+        file: ${{ env.GITHUB_WORKSPACE }}/docker/Dockerfile
+        context: ${{ env.GITHUB_WORKSPACE }}
+        push: false
+        tags: zilliqa:${{ env.GITHUB_WORKFLOW_SHA }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
