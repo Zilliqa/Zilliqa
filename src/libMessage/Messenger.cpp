@@ -6408,6 +6408,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
+
   codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);  // changed dec 2017
 
   if (!result.ParseFromCodedStream(&codedIn) ||
@@ -7699,9 +7700,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(
-      MAX_READ_WATERMARK_IN_BYTES);  // was changed in December 2017
-                                     // Protobuf 3.10
+  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
