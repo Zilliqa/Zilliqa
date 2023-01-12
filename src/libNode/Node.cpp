@@ -34,8 +34,8 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -49,6 +49,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -61,7 +62,8 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
-                                unsigned int factor = 0, const string& errMsg = "") {
+                                unsigned int factor = 0,
+                                const string& errMsg = "") {
   if (minLengthNeeded > messageSize - offset) {
     LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
     return true;
@@ -1843,7 +1845,11 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes& message,
     }
     LOG_GENERAL(INFO, "[Batching] Broadcast my txns to other shard members");
 
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, message);
+    // TODO use distributed traces from here?
+    bool inject_trace_context = false;
+
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, message,
+                                                inject_trace_context);
   }
 
 #ifdef DM_TEST_DM_LESSTXN_ONE
@@ -2385,7 +2391,12 @@ bool Node::ComposeAndSendRemoveNodeFromBlacklist(const RECEIVERTYPE receiver) {
         }
       }
     }
-    P2PComm::GetInstance().SendMessage(peerList, message);
+
+    // TODO use distributed traces from here?
+    bool inject_trace_context = false;
+
+    P2PComm::GetInstance().SendMessage(
+        peerList, message, zil::p2p::START_BYTE_NORMAL, inject_trace_context);
   }
 
   if (receiver == RECEIVERTYPE::LOOKUP || receiver == RECEIVERTYPE::BOTH) {
@@ -2576,7 +2587,12 @@ bool Node::UpdateShardNodeIdentity() {
     }
   }
 
-  P2PComm::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage);
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
+
+  P2PComm::GetInstance().SendMessage(peerInfo, updateShardNodeIdentitymessage,
+                                     zil::p2p::START_BYTE_NORMAL,
+                                     inject_trace_context);
 
   return true;
 }
@@ -2711,8 +2727,13 @@ bool Node::ProcessGetVersion(const zbytes& message, unsigned int offset,
       LOG_GENERAL(WARNING, "Messenger::SetNodeSetVersion failed");
       return false;
     }
-    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo),
-                                       response);
+
+    // TODO use distributed traces from here?
+    bool inject_trace_context = false;
+
+    P2PComm::GetInstance().SendMessage(Peer(from.m_ipAddress, portNo), response,
+                                       zil::p2p::START_BYTE_NORMAL,
+                                       inject_trace_context);
     m_versionChecked = true;
   }
 
@@ -3006,7 +3027,12 @@ void Node::SendBlockToOtherShardNodes(const zbytes& message,
                           << std::get<SHARD_NODE_PUBKEY>(kv) << " "
                           << std::get<SHARD_NODE_PEER>(kv));
   }
-  P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message);
+
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
+
+  P2PComm::GetInstance().SendBroadcastMessage(shardBlockReceivers, message,
+                                              inject_trace_context);
 }
 
 bool Node::RecalculateMyShardId(bool& ipChanged) {
@@ -3281,6 +3307,10 @@ void Node::CheckPeers(const vector<Peer>& peers) {
                                     m_mediator.m_selfPeer.m_listenPortHost)) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");
   }
-  P2PComm::GetInstance().SendMessage(peers, message);
-}
 
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
+
+  P2PComm::GetInstance().SendMessage(
+      peers, message, zil::p2p::START_BYTE_NORMAL, inject_trace_context);
+}

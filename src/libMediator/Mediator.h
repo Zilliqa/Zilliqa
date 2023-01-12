@@ -24,17 +24,16 @@
 #include <Schnorr.h>
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libDirectoryService/DirectoryService.h"
-#include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
-#include "libNode/Node.h"
-#include "libValidator/Validator.h"
 
-namespace evmproj {
-namespace filters {
+class DirectoryService;
+class Node;
+class Lookup;
+class Validator;
+
+namespace evmproj::filters {
 class APICache;
-}
-}  // namespace evmproj
+}  // namespace evmproj::filters
 
 /// A mediator class for providing access to global members.
 class Mediator {

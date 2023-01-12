@@ -18,7 +18,7 @@ add_test(NAME Test_Messenger_Consensus COMMAND Test_Messenger_Consensus)
 
 add_executable(Test_MessageName Test_MessageName.cpp)
 target_include_directories (Test_MessageName PUBLIC ${CMAKE_BINARY_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_MessageName PUBLIC Zilliqa Validator Boost::unit_test_framework Utils)
+target_link_libraries(Test_MessageName PUBLIC Zilliqa AccountStore AccountData Validator Boost::unit_test_framework Utils)
 add_test(NAME Test_MessageName COMMAND Test_MessageName)
 
 set(PROTOBUF_IMPORT_DIRS ${PROTOBUF_IMPORT_DIRS} ${PROJECT_SOURCE_DIR}/tests/Message)
@@ -31,5 +31,5 @@ message(STATUS "Test_Messenger_Compatibility compile flags new = ${TESTMESSENGER
 set_target_properties(Test_Messenger_Compatibility PROPERTIES COMPILE_OPTIONS "${TESTMESSENGERCOMPATIBILITY_COMPILE_FLAGS}")
 
 target_include_directories (Test_Messenger_Compatibility PUBLIC ${CMAKE_BINARY_DIR}/src ${CMAKE_BINARY_DIR}/tests ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_Messenger_Compatibility PUBLIC Boost::unit_test_framework Utils protobuf::libprotobuf Block BlockHeader TestUtils Lookup Node Mediator DirectoryService)
+target_link_libraries(Test_Messenger_Compatibility PUBLIC Boost::unit_test_framework Utils protobuf::libprotobuf Block BlockHeader TestUtils Lookup Node Mediator DirectoryService AccountStore AccountData)
 add_test(NAME Test_Messenger_Compatibility COMMAND Test_Messenger_Compatibility)

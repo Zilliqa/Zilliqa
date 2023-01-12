@@ -22,11 +22,17 @@
 #include <map>
 #include <utility>
 #include <vector>
-
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <boost/multiprecision/cpp_int.hpp>
 #pragma GCC diagnostic pop
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 using zbytes = std::vector<uint8_t>;
 using uint128_t = boost::multiprecision::uint128_t;
@@ -36,7 +42,7 @@ using GovDSShardVotesMap =
                                  std::map<uint32_t, uint32_t>>>;
 using GovProposalIdVotePair = std::pair<uint32_t, uint32_t>;
 
-inline zbytes toZbytes(std::string const &input){
+inline zbytes toZbytes(std::string const &input) {
   return zbytes(input.begin(), input.end());
 }
 #endif  // ZILLIQA_SRC_COMMON_BASETYPE_H_

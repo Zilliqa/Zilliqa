@@ -1,0 +1,83 @@
+Programmer notes for using Metrics.
+
+Metrics are enabled in the cpp code by including the file
+
+#include “Utils/Metrics.h”
+
+The library support for metrics is provided in libUtils so you must link with this libs if you use metrics in your library module.
+
+Metrics.h contains a number of useful Macros that simplfy the definition of metrics.
+
+INCREMENT_METHOD_CALLS_COUNTER(COUNTER, FILTER_CLASS)
+INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE)
+
+These macros trap the location and filename of the invocation and define and maintain a numeric counter.
+
+Firstly one needs to define a counter, either as a member of your class, or in the namespace somewhere.
+
+counter = Metrics::CreateInt64Metric(
+    "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore", "Units");
+
+Whenever you want to increment a counter in this family then the macro INCREMENT_CALLS_COUNTER can be used
+
+INCREMENT_CALLS_COUNTER(counter, ACCOUNTSTORE_EVM, "Transaction", "Create");
+
+the last two parameters are additional qualifiers for a specific counter instance in the family, these are free form and you may set them as you please, whilst abiding to the naming standard, please no spaces or special chars.
+THE ACCOUNTSTORE_EVM is a filter class of metrics that will be enabled in the constants.xml by the system admin or yourself. Using the FIELD METRIC_ZILLIQA_MASK which if set to ALL means no filters or it may have been set to a string of FilterNames such as  ACCOUNTSTORE_EVM,SCILLA,MEMPOOL further documentation will be provided in due time.
+
+
+As a Developer you may add new Filter criteria in one place without understanding the mechanics behind the filter.
+
+A file in common defines the filter classes this is the only change required to add a new class of metrics.
+
+common/MetricFilters.h
+
+This file contains the filter definition which again is a macro.
+
+#define METRICS_FILTER_CLASSES(M) \
+  M(EVM_CLIENT)                   \
+  M(EVM_CLIENT_LOW_LEVEL)         \
+  M(SCILLA_IPC)                   \
+  M(EVM_RPC)                      \
+  M(LOOKUP_SERVER)                \
+  M(MSG_DISPATCH)                 \
+  M(ACCOUNTSTORE_EVM)             \
+  M(API_SERVER)
+
+One may simply add a new definition into this macro and that's it all complexity taken care of.
+
+This same pattern is used in the trace Filters and is implemented as a 64bit mask where each bit represents one of the classes defined here, this makes filtering extremely fast as its a simple test of the bit been set to enable or disable that class of filter at runtime.
+
+
+That set of instructions covers simple incrementing counters.
+
+You can also have non incrementing metrics,  set the metric to any numeric value you please such as height or queue length. These metrics are implemented via a call back which is when the metric is captured.
+
+
+These are slightly more complex in that you define the metric as an observable counter in you class or namespace.
+
+The observable.
+
+In this example it was define in ScillaIPCServer.h
+
+zil::metrics::Observable m_bcInfoCount{
+    Metrics::GetInstance().CreateInt64Gauge(
+        zil::metrics::FilterClass::SCILLA_IPC, "zilliqa_scilla_bcinfo",
+        "invocations_count", "Metrics for ScillaBCInfo", "Blocks")};
+
+
+Here is an example that you will find by looking at ScillaIPCServer.h and cpp
+
+At the start of the classes constructor a call back was added to this observable , the callback performs the job of moving the monitor-able items value into the counter when the collector polls us for the latest value.
+
+ m_bcInfoCount.SetCallback([this](auto &&result) {
+  result.Set(getCurBlockNum(), {{"counter", "BlockNumber"}});
+  result.Set(getCurDSBlockNum(), {{"counter", "DSBlockNumber"}});
+});
+
+Periodically the open-telemetry services will invoke this method and move the value into a cache within the process. An open telemetry collector somewhere in the cluster will ask for the cache value periodically rather than bothering the scilla process on every request from the network, there fore the monitored task is isolated from heavy request traffic for a particular metric been managed this can all be configured and throttled outside of the user code.
+
+All the rest of the naming for the metric by the time it arrives at prometheus is handled by the implementation.
+
+the metric will contains host/pod class type units and any further qualifying attributes and values these will be documented very soon
+once the software is delivered.

@@ -15,39 +15,36 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "AccountStore.h"
-#include "libMessage/Messenger.h"
+#include "libData/AccountStore/AccountStoreSC.h"
 
-using namespace std;
-using namespace boost::multiprecision;
+AccountStoreAtomic::AccountStoreAtomic(AccountStoreSC& parent)
+    : m_parent(parent) {}
 
-AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
 
-Account* AccountStoreTemp::GetAccount(const Address& address) {
+Account* AccountStoreAtomic::GetAccount(const Address& address) {
   Account* account =
-      AccountStoreBase<map<Address, Account>>::GetAccount(address);
+      AccountStoreBase::GetAccount(
+          address);
   if (account != nullptr) {
+    // LOG_GENERAL(INFO, "Got From Temp");
     return account;
   }
 
   account = m_parent.GetAccount(address);
   if (account) {
-    Account newaccount(*account);
-    m_addressToAccount->insert(make_pair(address, newaccount));
+    // LOG_GENERAL(INFO, "Got From Parent");
+    m_addressToAccount->insert(std::make_pair(address, *account));
     return &(m_addressToAccount->find(address))->second;
   }
+
+  // LOG_GENERAL(INFO, "Got Nullptr");
 
   return nullptr;
 }
 
-bool AccountStoreTemp::DeserializeDelta(const zbytes& src,
-                                        unsigned int offset) {
-  LOG_MARKER();
 
-  if (!Messenger::GetAccountStoreDelta(src, offset, *this, true)) {
-    LOG_GENERAL(WARNING, "Messenger::GetAccountStoreDelta failed.");
-    return false;
-  }
-
-  return true;
+const std::shared_ptr<std::unordered_map<Address, Account>>&
+AccountStoreAtomic::GetAddressToAccount() {
+  return this->m_addressToAccount;
 }
+

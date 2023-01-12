@@ -17,10 +17,13 @@
 
 #include "StatusServer.h"
 #include "JSONConversion.h"
+#include "libDirectoryService/DirectoryService.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/Blacklist.h"
+#include "libNode/Node.h"
 #include "libPersistence/BlockStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libUtils/IPConverter.h"
 
 using namespace jsonrpc;
 using namespace std;

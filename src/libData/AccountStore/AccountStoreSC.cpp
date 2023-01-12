@@ -21,10 +21,8 @@
 
 #include <unordered_map>
 #include <vector>
-#include "ScillaClient.h"
+#include "libData/AccountStore/services/scilla/ScillaClient.h"
 
-#include "AccountStoreSC.h"
-#include "EvmProcessContext.h"
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
 #include "libScilla/ScillaUtils.h"
@@ -33,6 +31,9 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/Tracing.h"
+
+#include "libData/AccountStore/AccountStoreSC.h"
 
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
@@ -44,38 +45,19 @@ typedef long long observerType;
 typedef long int observerType;
 #endif
 
-template <class MAP>
-void AccountStoreSC<MAP>::instFetchInfo(
-    opentelemetry::metrics::ObserverResult observer_result, void* state) {
-  AccountStoreSC<MAP>* that = reinterpret_cast<AccountStoreSC<MAP>*>(state);
-
-  // This looks like a bug in openTelemetry, need to investigate, clash between
-  // uint64_t amd long int should be unsigned, losing precision.
-  if (std::holds_alternative<std::shared_ptr<
-          opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
-          observer_result)) {
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
-        observer_result)
-        ->Observe(that->m_curBlockNum, {{"counter", "BlockNumber"}});
-    std::get<
-        std::shared_ptr<opentelemetry::v1::metrics::ObserverResultT<observerType>>>(
-        observer_result)
-        ->Observe(that->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
-  }
-}
-
-template <class MAP>
-AccountStoreSC<MAP>::AccountStoreSC() {
-  m_accountStoreAtomic = std::make_unique<AccountStoreAtomic<MAP>>(*this);
+AccountStoreSC::AccountStoreSC() {
+  m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
   m_txnProcessTimeout = false;
-  m_accountStoreCount->AddCallback(instFetchInfo, this);
+  m_accountStoreCount.SetCallback([this](auto&& result) {
+    result.Set(m_curBlockNum, {{"counter", "BlockNumber"}});
+    result.Set(m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
+  });
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::Init() {
+
+void AccountStoreSC::Init() {
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
-  AccountStoreBase<MAP>::Init();
+  AccountStoreBase::Init();
   m_curContractAddr.clear();
   m_curSenderAddr.clear();
   m_curAmount = 0;
@@ -86,8 +68,8 @@ void AccountStoreSC<MAP>::Init() {
   boost::filesystem::create_directories(EXTLIB_FOLDER);
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::InvokeInterpreter(
+
+void AccountStoreSC::InvokeInterpreter(
     INVOKE_TYPE invoke_type, std::string& interprinterPrint,
     const uint32_t& version, bool is_library, const uint64_t& available_gas,
     const boost::multiprecision::uint128_t& balance, bool& ret,
@@ -151,8 +133,8 @@ void AccountStoreSC<MAP>::InvokeInterpreter(
   }
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
+
+bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
                                          const unsigned int& numShards,
                                          const bool& isDS,
                                          const Transaction& transaction,
@@ -200,7 +182,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
-      return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
+      return AccountStoreBase::UpdateAccounts(transaction, receipt,
                                                    error_code);
     }
     case Transaction::CONTRACT_CREATION: {
@@ -348,8 +330,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
       if (m_scillaIPCServer) {
         m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
-             toAccount->GetStorageRoot(), scilla_version});
+            m_curBlockNum, m_curDSBlockNum, m_originAddr, toAddr,
+            toAccount->GetStorageRoot(), scilla_version);
       } else {
         LOG_GENERAL(
             WARNING,
@@ -632,8 +614,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       // prepare IPC with current blockchain info provider.
       if (m_scillaIPCServer) {
         m_scillaIPCServer->setBCInfoProvider(
-            {m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
-             toAccount->GetStorageRoot(), scilla_version});
+            m_curBlockNum, m_curDSBlockNum, m_originAddr, m_curContractAddr,
+            toAccount->GetStorageRoot(), scilla_version);
       } else {
         LOG_GENERAL(WARNING, "m_scillaIPCServer not Initialised");
       }
@@ -747,8 +729,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::PopulateExtlibsExports(
+
+bool AccountStoreSC::PopulateExtlibsExports(
     uint32_t scilla_version, const std::vector<Address>& extlibs,
     std::map<Address, std::pair<std::string, std::string>>& extlibs_exports) {
   LOG_MARKER();
@@ -816,8 +798,8 @@ bool AccountStoreSC<MAP>::PopulateExtlibsExports(
   return extlibsExporter(extlibs, extlibs_exports);
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ExportCreateContractFiles(
+
+bool AccountStoreSC::ExportCreateContractFiles(
     const Account& contract, bool is_library, uint32_t scilla_version,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
@@ -851,8 +833,8 @@ bool AccountStoreSC<MAP>::ExportCreateContractFiles(
   return true;
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::ExportCommonFiles(
+
+void AccountStoreSC::ExportCommonFiles(
     std::ofstream& os, const Account& contract,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
@@ -885,8 +867,8 @@ void AccountStoreSC<MAP>::ExportCommonFiles(
   }
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ExportContractFiles(
+
+bool AccountStoreSC::ExportContractFiles(
     Account& contract, uint32_t scilla_version,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
@@ -926,8 +908,8 @@ bool AccountStoreSC<MAP>::ExportContractFiles(
   return true;
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::CreateScillaCodeFiles(
+
+void AccountStoreSC::CreateScillaCodeFiles(
     Account& contract,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports,
@@ -941,8 +923,8 @@ void AccountStoreSC<MAP>::CreateScillaCodeFiles(
   ExportCommonFiles(os, contract, extlibs_exports);
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ExportCallContractFiles(
+
+bool AccountStoreSC::ExportCallContractFiles(
     Account& contract, const Transaction& transaction, uint32_t scilla_version,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
@@ -977,8 +959,8 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ExportCallContractFiles(
+
+bool AccountStoreSC::ExportCallContractFiles(
     Account& contract, const Json::Value& contractData, uint32_t scilla_version,
     const std::map<Address, std::pair<std::string, std::string>>&
         extlibs_exports) {
@@ -999,8 +981,8 @@ bool AccountStoreSC<MAP>::ExportCallContractFiles(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
+
+bool AccountStoreSC::ParseContractCheckerOutput(
     const Address& addr, const std::string& checkerPrint,
     TransactionReceipt& receipt, std::map<std::string, zbytes>& metadata,
     uint64_t& gasRemained, bool is_library) {
@@ -1106,8 +1088,8 @@ bool AccountStoreSC<MAP>::ParseContractCheckerOutput(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
+
+bool AccountStoreSC::ParseCreateContract(uint64_t& gasRemained,
                                               const std::string& runnerPrint,
                                               TransactionReceipt& receipt,
                                               bool is_library) {
@@ -1119,8 +1101,8 @@ bool AccountStoreSC<MAP>::ParseCreateContract(uint64_t& gasRemained,
                                        is_library);
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseCreateContractOutput(
+
+bool AccountStoreSC::ParseCreateContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint,
     TransactionReceipt& receipt) {
   // LOG_MARKER();
@@ -1144,8 +1126,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractOutput(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
+
+bool AccountStoreSC::ParseCreateContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
     TransactionReceipt& receipt, bool is_library) {
   // LOG_MARKER();
@@ -1200,8 +1182,8 @@ bool AccountStoreSC<MAP>::ParseCreateContractJsonOutput(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
+
+bool AccountStoreSC::ParseCallContract(uint64_t& gasRemained,
                                             const std::string& runnerPrint,
                                             TransactionReceipt& receipt,
                                             uint32_t tree_depth,
@@ -1214,8 +1196,8 @@ bool AccountStoreSC<MAP>::ParseCallContract(uint64_t& gasRemained,
                                      tree_depth, scilla_version);
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseCallContractOutput(
+
+bool AccountStoreSC::ParseCallContractOutput(
     Json::Value& jsonOutput, const std::string& runnerPrint,
     TransactionReceipt& receipt) {
   std::chrono::system_clock::time_point tpStart;
@@ -1246,8 +1228,8 @@ bool AccountStoreSC<MAP>::ParseCallContractOutput(
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
+
+bool AccountStoreSC::ParseCallContractJsonOutput(
     const Json::Value& _json, uint64_t& gasRemained,
     TransactionReceipt& receipt, uint32_t tree_depth,
     uint32_t pre_scilla_version) {
@@ -1399,7 +1381,7 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
       account = m_accountStoreAtomic->GetAccount(recipient);
 
       if (account == nullptr) {
-        AccountStoreBase<MAP>::AddAccount(recipient, {0, 0});
+        AccountStoreBase::AddAccount(recipient, {0, 0});
         account = m_accountStoreAtomic->GetAccount(recipient);
       }
 
@@ -1497,8 +1479,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
+          account->GetStorageRoot(), scilla_version);
 
       if (DISABLE_SCILLA_LIB && !extlibs.empty()) {
         LOG_GENERAL(WARNING, "ScillaLib disabled");
@@ -1535,8 +1517,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
 
       // prepare IPC with current blockchain info provider.
       m_scillaIPCServer->setBCInfoProvider(
-          {m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
-           account->GetStorageRoot(), scilla_version});
+          m_curBlockNum, m_curDSBlockNum, m_originAddr, recipient,
+          account->GetStorageRoot(), scilla_version);
 
       std::string runnerPrint;
       bool result = true;
@@ -1572,8 +1554,8 @@ bool AccountStoreSC<MAP>::ParseCallContractJsonOutput(
   return true;
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
+
+void AccountStoreSC::ProcessStorageRootUpdateBuffer() {
   LOG_MARKER();
   {
     std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
@@ -1592,24 +1574,25 @@ void AccountStoreSC<MAP>::ProcessStorageRootUpdateBuffer() {
   CleanStorageRootUpdateBuffer();
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::CleanStorageRootUpdateBuffer() {
+
+void AccountStoreSC::CleanStorageRootUpdateBuffer() {
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
   m_storageRootUpdateBuffer.clear();
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::TransferBalanceAtomic(const Address& from,
+
+bool AccountStoreSC::TransferBalanceAtomic(const Address& from,
                                                 const Address& to,
                                                 const uint128_t& delta) {
   // LOG_MARKER();
   return m_accountStoreAtomic->TransferBalance(from, to, delta);
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::CommitAtomics() {
+
+void AccountStoreSC::CommitAtomics() {
   LOG_MARKER();
   for (const auto& entry : *m_accountStoreAtomic->GetAddressToAccount()) {
+
     Account* account = this->GetAccount(entry.first);
     if (account != nullptr) {
       *account = entry.second;
@@ -1621,33 +1604,33 @@ void AccountStoreSC<MAP>::CommitAtomics() {
   }
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::DiscardAtomics() {
+
+void AccountStoreSC::DiscardAtomics() {
   LOG_MARKER();
   m_accountStoreAtomic->Init();
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::NotifyTimeout() {
+
+void AccountStoreSC::NotifyTimeout() {
   LOG_MARKER();
   m_txnProcessTimeout = true;
   m_CallContractConditionVariable.notify_all();
 }
 
-template <class MAP>
-Account* AccountStoreSC<MAP>::GetAccountAtomic(const dev::h160& addr) {
+
+Account* AccountStoreSC::GetAccountAtomic(const dev::h160& addr) {
   return m_accountStoreAtomic->GetAccount(addr);
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::SetScillaIPCServer(
+
+void AccountStoreSC::SetScillaIPCServer(
     std::shared_ptr<ScillaIPCServer> scillaIPCServer) {
   LOG_MARKER();
   m_scillaIPCServer = std::move(scillaIPCServer);
 }
 
-template <class MAP>
-void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
+
+void AccountStoreSC::CleanNewLibrariesCache() {
   for (const auto& addr : m_newLibrariesCreated) {
     boost::filesystem::remove(addr.hex() + LIBRARY_CODE_EXTENSION);
     boost::filesystem::remove(addr.hex() + ".json");
@@ -1655,6 +1638,3 @@ void AccountStoreSC<MAP>::CleanNewLibrariesCache() {
   m_newLibrariesCreated.clear();
 }
 
-// Explicit template instantiations.
-template class AccountStoreSC<std::map<Address, Account>>;
-template class AccountStoreSC<std::unordered_map<Address, Account>>;

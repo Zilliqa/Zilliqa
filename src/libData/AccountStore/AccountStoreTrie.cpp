@@ -15,28 +15,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "AccountStoreTrie.h"
+#include "libData/AccountStore/AccountStoreTrie.h"
 #include "libMessage/MessengerAccountStoreTrie.h"
 #include "libUtils/DataConversion.h"
 
-template <class MAP>
-AccountStoreTrie<MAP>::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
 
-template <class MAP>
-void AccountStoreTrie<MAP>::Init() {
-  AccountStoreSC<MAP>::Init();
+AccountStoreTrie::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
+
+
+void AccountStoreTrie::Init() {
+  AccountStoreSC::Init();
   InitTrie();
 }
 
-template <class MAP>
-void AccountStoreTrie<MAP>::InitTrie() {
+
+void AccountStoreTrie::InitTrie() {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   m_state.init();
   m_prevRoot = m_state.root();
 }
 
-template <class MAP>
-bool AccountStoreTrie<MAP>::Serialize(zbytes& dst, unsigned int offset) const {
+
+bool AccountStoreTrie::Serialize(zbytes& dst, unsigned int offset) const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   if (LOOKUP_NODE_MODE) {
     if (m_prevRoot != dev::h256()) {
@@ -56,18 +56,18 @@ bool AccountStoreTrie<MAP>::Serialize(zbytes& dst, unsigned int offset) const {
   return true;
 }
 
-template <class MAP>
-Account* AccountStoreTrie<MAP>::GetAccount(const Address& address) {
+
+Account* AccountStoreTrie::GetAccount(const Address& address) {
   return this->GetAccount(address, false);
 }
 
-template <class MAP>
-Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
+
+Account* AccountStoreTrie::GetAccount(const Address& address,
                                            bool resetRoot) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
 
-  Account* account = AccountStoreBase<MAP>::GetAccount(address);
+  Account* account = AccountStoreBase::GetAccount(address);
   if (account != nullptr) {
     return account;
   }
@@ -120,8 +120,8 @@ Account* AccountStoreTrie<MAP>::GetAccount(const Address& address,
   return &it2.first->second;
 }
 
-template <class MAP>
-bool AccountStoreTrie<MAP>::GetProof(const Address& address,
+
+bool AccountStoreTrie::GetProof(const Address& address,
                                      const dev::h256& rootHash,
                                      Account& account,
                                      std::set<std::string>& nodes) {
@@ -177,8 +177,8 @@ bool AccountStoreTrie<MAP>::GetProof(const Address& address,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreTrie<MAP>::UpdateStateTrie(const Address& address,
+
+bool AccountStoreTrie::UpdateStateTrie(const Address& address,
                                             const Account& account) {
   zbytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
@@ -192,8 +192,8 @@ bool AccountStoreTrie<MAP>::UpdateStateTrie(const Address& address,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreTrie<MAP>::RemoveFromTrie(const Address& address) {
+
+bool AccountStoreTrie::RemoveFromTrie(const Address& address) {
   // LOG_MARKER();
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
@@ -202,22 +202,22 @@ bool AccountStoreTrie<MAP>::RemoveFromTrie(const Address& address) {
   return true;
 }
 
-template <class MAP>
-dev::h256 AccountStoreTrie<MAP>::GetStateRootHash() const {
+
+dev::h256 AccountStoreTrie::GetStateRootHash() const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
   return m_state.root();
 }
 
-template <class MAP>
-dev::h256 AccountStoreTrie<MAP>::GetPrevRootHash() const {
+
+dev::h256 AccountStoreTrie::GetPrevRootHash() const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
   return m_prevRoot;
 }
 
-template <class MAP>
-bool AccountStoreTrie<MAP>::UpdateStateTrieAll() {
+
+bool AccountStoreTrie::UpdateStateTrieAll() {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   if (m_prevRoot != dev::h256()) {
     try {
@@ -242,12 +242,8 @@ bool AccountStoreTrie<MAP>::UpdateStateTrieAll() {
   return true;
 }
 
-template <class MAP>
-void AccountStoreTrie<MAP>::PrintAccountState() {
-  AccountStoreBase<MAP>::PrintAccountState();
+
+void AccountStoreTrie::PrintAccountState() {
+  AccountStoreBase::PrintAccountState();
   LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
 }
-
-// Explicit instantiations.
-template class AccountStoreTrie<std::map<Address, Account>>;
-template class AccountStoreTrie<std::unordered_map<Address, Account>>;

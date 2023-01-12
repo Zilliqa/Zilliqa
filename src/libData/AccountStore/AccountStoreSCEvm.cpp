@@ -20,11 +20,20 @@
 #include <future>
 #include <stdexcept>
 #include <vector>
+
+#include "opentelemetry/context/propagation/global_propagator.h"
+#include "opentelemetry/context/propagation/text_map_propagator.h"
+#include "opentelemetry/ext/http/client/http_client_factory.h"
+#include "opentelemetry/ext/http/common/url_parser.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/semantic_conventions.h"
+
 #include "AccountStoreSC.h"
-#include "EvmClient.h"
-#include "EvmProcessContext.h"
 #include "common/Constants.h"
+#include "common/TraceFilters.h"
 #include "libCrypto/EthCrypto.h"
+#include "libData/AccountStore/services/evm/EvmClient.h"
+#include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
@@ -34,20 +43,40 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/Tracing.h"
 #include "libUtils/TxnExtras.h"
 
-template <class MAP>
-void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
+
+namespace {
+
+zil::metrics::uint64Counter_t& GetInvocationsCounter() {
+  static auto counter = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
+      "Blocks");
+  return counter;
+}
+
+}  // namespace
+
+
+void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                         const evm::EvmArgs& args,           //
                                         bool& ret,                          //
                                         TransactionReceipt& receipt,        //
                                         evm::EvmResult& result) {
+  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+
+  // Start a span if filter allows
+  auto span = START_SPAN(ACC_EVM, {});
+  // Give the span a scoped lifetime if enabled.
+  SCOPED_SPAN(ACC_EVM, scope, span);
+
+  // new code
+  namespace http_client = opentelemetry::ext::http::client;
+  namespace context = opentelemetry::context;
+
   //
   // create a worker to be executed in the async method
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-    m_accStoreProcees->Add(1, {{"method", "EvmCallRunner"}});
-  }
   const auto worker = [&args, &ret, &result]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
@@ -64,30 +93,42 @@ void AccountStoreSC<MAP>::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        m_accStoreProcees->Add(1, {{"lock", "release-normal"}});
-      }
+
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+                              "release-normal");
+      if (TRACE_ENABLED(ACC_EVM))
+        span->AddEvent("return", {{"reason", "release-normal"}});
+
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
+
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      m_accStoreProcees->Add(1, {{"lock", "release-timeout"}});
+
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+                              "release-timeout");
+      if (TRACE_ENABLED(ACC_EVM))
+        span->AddEvent("return", {{"reason", "lock-timeout"}});
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
+
       ret = false;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      m_accStoreProcees->Add(1, {{"lock", "release-deferred"}});
+
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+                              "release-deferred");
+      if (TRACE_ENABLED(ACC_EVM))
+        span->AddEvent("return", {{"reason", "illegal future return"}});
       ret = false;
     }
   }
 }
 
-template <class MAP>
-uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
+
+uint64_t AccountStoreSC::InvokeEvmInterpreter(
     Account* contractAccount, INVOKE_TYPE invoke_type, const evm::EvmArgs& args,
     bool& ret, TransactionReceipt& receipt, evm::EvmResult& result) {
   // call evm-ds
@@ -222,8 +263,8 @@ uint64_t AccountStoreSC<MAP>::InvokeEvmInterpreter(
   return result.remaining_gas();
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
+
+bool AccountStoreSC::ViewAccounts(const evm::EvmArgs& args,
                                        evm::EvmResult& result) {
   return EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                              result);
@@ -236,8 +277,8 @@ bool AccountStoreSC<MAP>::ViewAccounts(const evm::EvmArgs& args,
  *
  */
 
-template <class MAP>
-bool AccountStoreSC<MAP>::EvmProcessMessage(EvmProcessContext& params,
+
+bool AccountStoreSC::EvmProcessMessage(EvmProcessContext& params,
                                             evm::EvmResult& result) {
   unsigned int unused_numShards = 0;
   bool unused_isds = true;
@@ -253,14 +294,29 @@ bool AccountStoreSC<MAP>::EvmProcessMessage(EvmProcessContext& params,
   return status;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
+
+bool AccountStoreSC::UpdateAccountsEvm(const uint64_t& blockNum,
                                             const unsigned int& numShards,
                                             const bool& isDS,
                                             TransactionReceipt& receipt,
                                             TxnStatus& error_code,
                                             EvmProcessContext& evmContext) {
   LOG_MARKER();
+
+  LOG_GENERAL(INFO,
+              "Commit Context Mode="
+                  << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
+
+  std::string txnId = evmContext.GetTranID().hex();
+
+  // TODO : This construct could do with been simplified
+  std::map<std::string, opentelemetry::common::AttributeValue> attribute_map{
+      {"tid", txnId}, {"block", blockNum}};
+
+  // Start a span if filter allows
+  auto span = START_SPAN(ACC_EVM, attribute_map);
+  // Give the span a scoped lifetime if enabled.
+  SCOPED_SPAN(ACC_EVM, scope, span);
 
   LOG_GENERAL(INFO,
               "Commit Context Mode="
@@ -305,10 +361,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        m_accStoreProcees->Add(1, {{"Transaction", "Create"}});
-      }
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM,
+                              "Transaction", "Create");
+
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
       }
@@ -316,6 +371,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
       Account* fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
         LOG_GENERAL(WARNING, "Sender has no balance, reject");
+        if (TRACE_ENABLED(ACC_EVM))
+          span->AddEvent("return", {{"From", fromAddr.hex()},
+                                    {"reason", "Get Account Returned Null"}});
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
@@ -338,6 +396,13 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           gasDepositWei + evmContext.GetTransaction().GetAmountWei()) {
         LOG_GENERAL(WARNING,
                     "The account doesn't have enough gas to create a contract");
+        if (TRACE_ENABLED(ACC_EVM)) {
+          span->AddEvent(
+              "return",
+              {{"From", fromAddr.hex()},
+               {"reason",
+                "The account doesn't have enough gas to create a contract"}});
+        }
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         return false;
       }
@@ -358,17 +423,34 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
         LOG_GENERAL(WARNING, "AddAccount failed for contract address "
                                  << contractAddress.hex());
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
+        if (TRACE_ENABLED(ACC_EVM)) {
+          span->AddEvent(
+              "return",
+              {{"From", fromAddr.hex()},
+               {"reason", "AddAccount failed for contract address "}});
+        }
         return false;
       }
       contractAccount = this->GetAccountAtomic(contractAddress);
       if (contractAccount == nullptr) {
         LOG_GENERAL(WARNING, "contractAccount is null ptr");
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
+        if (TRACE_ENABLED(ACC_EVM)) {
+          span->AddEvent("return", {{"From", fromAddr.hex()},
+                                    {"reason", "contractAccount is null ptr"}});
+        }
         return false;
       }
       if (evmContext.GetCode().empty()) {
         LOG_GENERAL(WARNING,
                     "Creating a contract with empty code is not feasible.");
+        if (TRACE_ENABLED(ACC_EVM)) {
+          span->AddEvent(
+              "return",
+              {{"From", fromAddr.hex()},
+               {"reason",
+                "Creating a contract with empty code is not feasible."}});
+        }
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
         return false;
       }
@@ -490,11 +572,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        m_accStoreProcees->Add(1,
-                               {{"Transaction", "Contract-Call/Non Contract"}});
-      }
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM,
+                              "Transaction", "Contract-Call/Non Contract");
+
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
       }
@@ -705,11 +785,9 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
   return true;
 }
 
-template <class MAP>
-bool AccountStoreSC<MAP>::AddAccountAtomic(const Address& address,
+
+bool AccountStoreSC::AddAccountAtomic(const Address& address,
                                            const Account& account) {
   return m_accountStoreAtomic->AddAccount(address, account);
 }
 
-template class AccountStoreSC<std::map<Address, Account>>;
-template class AccountStoreSC<std::unordered_map<Address, Account>>;

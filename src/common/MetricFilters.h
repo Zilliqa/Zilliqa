@@ -25,19 +25,27 @@
 // Do not override the default numbering of these items, the algorithms rely
 // upon these definitions being consecutive, so no assigning new numbers.
 
+// To extend filter classes, you may add items, the total number is limited to
+// 64 (bit mask)
+#define METRICS_FILTER_CLASSES(M) \
+  M(EVM_CLIENT)                   \
+  M(EVM_CLIENT_LOW_LEVEL)         \
+  M(SCILLA_IPC)                   \
+  M(EVM_RPC)                      \
+  M(LOOKUP_SERVER)                \
+  M(MSG_DISPATCH)                 \
+  M(ACCOUNTSTORE_EVM)             \
+  M(API_SERVER)
+
 namespace zil {
 namespace metrics {
-enum FilterClass {
-  EVM_CLIENT,
-  EVM_CLIENT_LOW_LEVEL,
-  SCILLA_IPC,
-  EVM_RPC,
-  LOOKUP_SERVER,
-  QUEUE,
-  ACCOUNTSTORE_EVM,
-  ANYTHING_YOU_LIKE_LEASE_EXTEND_JUST_ADD_ANY_FILTER_YOU_LIKE_UP_TO_64_OF_THEM
+enum class FilterClass {
+#define ENUM_FILTER_CLASS(C) C,
+  METRICS_FILTER_CLASSES(ENUM_FILTER_CLASS)
+#undef ENUM_FILTER_CLASS
+      FILTER_CLASS_END
 };
-}
+}  // namespace metrics
 }  // namespace zil
 
 #endif  // ZILLIQA_SRC_COMMON_METRICFILTERS_H_

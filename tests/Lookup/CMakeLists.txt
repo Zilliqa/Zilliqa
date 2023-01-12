@@ -21,7 +21,7 @@ add_test(NAME Test_LookupNodeForTxBlock COMMAND Test_LookupNodeForTxBlock)
 
 add_executable(Test_txn_send Test_txn_send.cpp)
 target_include_directories(Test_txn_send PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
-target_link_libraries(Test_txn_send PUBLIC Node Mediator TestUtils)
+target_link_libraries(Test_txn_send PUBLIC Node Mediator AccountStore AccountData TestUtils)
 add_test(NAME Test_txn_send COMMAND Test_txn_send)
 
 if (${CMAKE_GENERATOR} STREQUAL "Xcode")

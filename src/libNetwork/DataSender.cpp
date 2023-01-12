@@ -26,7 +26,8 @@
 using namespace std;
 
 void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
-                                  const zbytes& message) {
+                                  const zbytes& message,
+                                  bool inject_trace_context) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToLookupNodesDefault not "
@@ -57,12 +58,13 @@ void SendDataToLookupNodesDefault(const VectorOfNode& lookups,
     allLookupNodes.emplace_back(tmp);
   }
 
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message,
+                                              inject_trace_context);
 }
 
 void SendDataToShardNodesDefault(
     const zbytes& message, const std::deque<VectorOfPeer>& sharded_receivers,
-    bool forceMulticast) {
+    bool forceMulticast, bool inject_trace_context) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DataSender::SendDataToShardNodesDefault not expected to "
@@ -76,14 +78,16 @@ void SendDataToShardNodesDefault(
     if (BROADCAST_GOSSIP_MODE && !forceMulticast) {
       P2PComm::GetInstance().SendRumorToForeignPeers(receivers, message);
     } else {
-      P2PComm::GetInstance().SendBroadcastMessage(receivers, message);
+      P2PComm::GetInstance().SendBroadcastMessage(receivers, message,
+                                                  inject_trace_context);
     }
   }
 }
 
 SendDataToLookupFunc SendDataToLookupFuncDefault =
-    [](const VectorOfNode& lookups, const zbytes& message) mutable -> void {
-  SendDataToLookupNodesDefault(lookups, message);
+    [](const VectorOfNode& lookups, const zbytes& message,
+       bool inject_trace_context) mutable -> void {
+  SendDataToLookupNodesDefault(lookups, message, inject_trace_context);
 };
 
 DataSender::DataSender() {}
@@ -236,7 +240,8 @@ bool DataSender::SendDataToOthers(
     const VectorOfNode& lookups, const BlockHash& hashForRandom,
     const uint16_t& consensusMyId,
     const ComposeMessageForSenderFunc& composeMessageForSenderFunc,
-    bool forceMulticast, const SendDataToLookupFunc& sendDataToLookupFunc,
+    bool inject_trace_context, bool forceMulticast,
+    const SendDataToLookupFunc& sendDataToLookupFunc,
     const SendDataToShardFunc& sendDataToShardFunc) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -296,7 +301,7 @@ bool DataSender::SendDataToOthers(
     if (indexB2 >= nodeToSendToLookUpLo && indexB2 < nodeToSendToLookUpHi) {
       LOG_GENERAL(INFO, "I will send data to the lookups");
       if (sendDataToLookupFunc) {
-        sendDataToLookupFunc(lookups, message);
+        sendDataToLookupFunc(lookups, message, inject_trace_context);
       }
     }
 
@@ -311,14 +316,15 @@ bool DataSender::SendDataToOthers(
       if ((my_cluster_num + 1) <= shards.size()) {
         LOG_GENERAL(INFO, "I will send data to the shards");
         if (sendDataToShardFunc) {
-          sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi);
+          sendDataToShardFunc(message, shards, my_shards_lo, my_shards_hi,
+                              inject_trace_context);
         } else {
           std::deque<VectorOfPeer> sharded_receivers;
           DetermineNodesToSendDataTo(shards, blockswcosigRecver, consensusMyId,
                                      my_shards_lo, my_shards_hi, forceMulticast,
                                      sharded_receivers);
           SendDataToShardNodesDefault(message, sharded_receivers,
-                                      forceMulticast);
+                                      forceMulticast, inject_trace_context);
         }
       }
     }
