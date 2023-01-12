@@ -17,7 +17,7 @@
 ARG SCILLA_VERSION=v0.13.1-alpha
 
 # Common dependencies of the builder and runner stages.
-FROM ubuntu:20.04 AS deps
+FROM ubuntu:22.04 AS deps
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -27,7 +27,7 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     ccache \
-    clang-format-7 \
+    clang-format \
     clang-tidy \
     cron \
     curl \
@@ -39,6 +39,7 @@ RUN apt-get update \
     iproute2 \
     lcov \
     libcurl4-openssl-dev \
+    libgmp-dev \
     libsecp256k1-dev \
     libssl-dev \
     libtool \
