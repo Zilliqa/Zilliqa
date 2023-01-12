@@ -779,7 +779,7 @@ class Messenger {
       return false;
     }
 
-    zbytes tmp(consensus_message.consensusinfo().ByteSize());
+    zbytes tmp(consensus_message.consensusinfo().ByteSizeLong());
     consensus_message.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     ProtobufByteArrayToSerializable(consensus_message.pubkey(), senderPubKey);
@@ -797,10 +797,10 @@ class Messenger {
 
     // Copy src into reserializedSrc, trimming away any excess bytes beyond the
     // definition of protobuf message T
-    reserializedSrc.resize(offset + consensus_message.ByteSize());
+    reserializedSrc.resize(offset + consensus_message.ByteSizeLong());
     copy(src.begin(), src.begin() + offset, reserializedSrc.begin());
     consensus_message.SerializeToArray(reserializedSrc.data() + offset,
-                                       consensus_message.ByteSize());
+                                       consensus_message.ByteSizeLong());
 
     return true;
   }

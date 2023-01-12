@@ -1,0 +1,19 @@
+build
+build_lookup
+**/target
+**/node_modules
+# Important not to ignore all of `.git` since our build system needs to call `git submodule update` at some points.
+.git/objects/*
+.idea
+.vscode
+.history
+cmake-build-debug
+persistence/
+scilla/
+scilla_files/
+config.xml
+isolated-server-accounts.json
+isolated-server.logs
+.github
+.husky
+vcpkg_installed/
