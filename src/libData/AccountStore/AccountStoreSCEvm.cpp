@@ -48,40 +48,6 @@
 
 namespace {
 
-// A temporary class
-
-template <typename T>
-class ArtemTextMapCarrier
-    : public opentelemetry::context::propagation::TextMapCarrier {
- public:
-  ArtemTextMapCarrier(T& data) : data_(data) {}
-  ArtemTextMapCarrier() = default;
-  virtual opentelemetry::nostd::string_view Get(
-      opentelemetry::nostd::string_view key) const noexcept override {
-    std::string key_to_compare = key.data();
-    // Header's first letter seems to be  automatically capitaliazed by our test
-    // http-server, so compare accordingly.
-    if (key == opentelemetry::trace::propagation::kTraceParent) {
-      key_to_compare = "Traceparent";
-    } else if (key == opentelemetry::trace::propagation::kTraceState) {
-      key_to_compare = "Tracestate";
-    }
-    auto it = data_.find(key_to_compare);
-    if (it != data_.end()) {
-      return it->second;
-    }
-    return "";
-  }
-
-  virtual void Set(opentelemetry::nostd::string_view key,
-                   opentelemetry::nostd::string_view value) noexcept override {
-    data_.insert(std::pair<std::string, std::string>(std::string(key),
-                                                        std::string(value)));
-  }
-
-  T data_;
-};
-
 zil::metrics::uint64Counter_t& GetInvocationsCounter() {
   static auto counter = Metrics::GetInstance().CreateInt64Metric(
       "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
@@ -131,37 +97,6 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                               "release-normal");
       if (TRACE_ENABLED(ACC_EVM))
         span->AddEvent("return", {{"reason", "release-normal"}});
-
-      // Example code for pushing a context into a span and then creating a new
-      // span from the context carried
-      if (TRACE_ENABLED(ACC_EVM))
-      {  // example for Artem - retreving the context for shipment over the
-         // wire.
-        auto current_ctx = context::RuntimeContext::GetCurrent();
-        ArtemTextMapCarrier<std::map<std::string,std::string>> carrier;
-        auto prop = context::propagation::GlobalTextMapPropagator::
-            GetGlobalPropagator();
-        prop->Inject(carrier, current_ctx);
-
-        for (auto ting : carrier.data_) {
-          std::cout << "key :" << ting.first << " ";
-          std::cout << "value :" << ting.second << std::endl;
-        }
-
-        // now do the reverse to get a context back again
-
-        auto prop2 = context::propagation::GlobalTextMapPropagator::
-            GetGlobalPropagator();
-        auto current_ctx2 = context::RuntimeContext::GetCurrent();
-        auto new_context = prop->Extract(carrier, current_ctx2);
-        opentelemetry::trace::StartSpanOptions options;
-        options.kind = opentelemetry::trace::SpanKind::kServer;
-        options.parent =
-            opentelemetry::trace::GetSpan(new_context)->GetContext();
-        // start span with parent context extracted from http header
-        auto span2 = START_SPAN_WITH_PARENT(ACC_EVM, {}, options);
-        SCOPED_SPAN(ACC_EVM, scope2, span2);
-      }
 
     } break;
     case std::future_status::timeout: {
