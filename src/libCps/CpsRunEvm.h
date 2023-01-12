@@ -33,8 +33,9 @@ class CpsRunEvm final : public CpsRun {
   using Address = dev::h160;
 
  public:
-  CpsRunEvm(evm::EvmArgs proto_args, CpsExecutor& executor,
-            const CpsContext& ctx, CpsRun::Type type);
+  CpsRunEvm(evm::EvmArgs proto_args, CpsExecutor& executor, CpsContext& ctx,
+            CpsRun::Type type);
+  ~CpsRunEvm();
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   void ProvideFeedback(const CpsRunEvm& previousRun,
                        const evm::EvmResult& result);
@@ -46,6 +47,10 @@ class CpsRunEvm final : public CpsRun {
                    TransactionReceipt& receipt);
 
   CpsExecuteResult HandleTrap(const evm::EvmResult& evm_result);
+  CpsExecuteResult HandleCallTrap(const evm::EvmResult& evm_result);
+  CpsExecuteResult ValidateCallTrap(const evm::TrapData_Call& callData,
+                                    uint64_t remainingGas);
+
   CpsExecuteResult HandleCreateTrap(const evm::EvmResult& evm_result);
   CpsExecuteResult ValidateCreateTrap(const evm::TrapData_Create& createData,
                                       uint64_t remainingGas);
@@ -54,7 +59,7 @@ class CpsRunEvm final : public CpsRun {
  public:
   evm::EvmArgs mProtoArgs;
   CpsExecutor& mExecutor;
-  const CpsContext& mCpsContext;
+  CpsContext& mCpsContext;
   bool mHasNullDestAddress = false;
 };
 

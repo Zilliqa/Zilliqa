@@ -42,10 +42,10 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        debug!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}",
+        info!(
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, codeLen: {:?}, dataLen: {:?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate, enable_cps);
+            backend.extras, estimate, enable_cps, code.len(), data.len());
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -252,6 +252,8 @@ fn build_call_result(
     trap_data_call.set_call_data(interrupt.input.into());
     trap_data_call.set_is_static(interrupt.is_static);
     trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
+    trap_data_call.set_memory_offset(interrupt.memory_offset.into());
+    trap_data_call.set_offset_len(interrupt.offset_len.into());
 
     let mut trap_data = EvmProto::TrapData::new();
     trap_data.set_call(trap_data_call);

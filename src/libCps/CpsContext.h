@@ -22,8 +22,12 @@
 
 namespace libCps {
 struct CpsContext {
+  using Address = dev::h160;
+  Address origSender;
+  bool isStatic = false;
   bool estimate = false;
   evm::EvmEvalExtras evmExtras;
+  uint32_t depth = 0;
 };
 }  // namespace libCps
 

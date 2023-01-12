@@ -36,7 +36,7 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
 CpsExecuteResult CpsExecutor::PreValidateRun(
     const EvmProcessContext& context) const {
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(
-      context.GetTransaction().GetSenderAddr());
+      ProtoToAddress(context.GetEvmArgs().origin()));
 
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
   if (!amountResult.isSuccess) {
@@ -75,7 +75,9 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   LOG_GENERAL(WARNING,
               "CPS ENTER GAS: " << clientContext.GetEvmArgs().gas_limit());
 
-  CpsContext cpsCtx{clientContext.GetEvmArgs().estimate(),
+  CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
+                    clientContext.GetDirect(),
+                    clientContext.GetEvmArgs().estimate(),
                     clientContext.GetEvmArgs().extras()};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))

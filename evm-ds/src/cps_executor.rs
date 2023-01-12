@@ -1,13 +1,14 @@
 use std::collections::BTreeMap;
 
-use evm::executor::stack::{MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor};
-
 use crate::protos::Evm as EvmProto;
+use core::cmp::min;
+use evm::executor::stack::{MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor};
 
 use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
     Runtime, Stack, Transfer,
 };
+use log::info;
 use primitive_types::{H160, H256, U256};
 
 use crate::scillabackend::ScillaBackend;
@@ -91,11 +92,41 @@ impl<'a> CpsExecutor<'a> {
         feedback: Option<EvmProto::Continuation>,
     ) -> Result<(), evm::ExitError> {
         if let Some(evm_feedback) = feedback {
+            // Pop placeholder placed on a stack by evm before trap
+            runtime.machine_mut().stack_mut().pop()?;
             if evm_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
-                // Pop placeholder placed on a stack by evm before trap
-                runtime.machine_mut().stack_mut().pop()?;
                 let eth_address = H160::from(evm_feedback.get_address());
                 runtime.machine_mut().stack_mut().push(eth_address.into())?;
+            } else {
+                *runtime.return_data_buffer() = Vec::from(evm_feedback.get_calldata().get_data());
+                let offset_len: U256 = U256::from(evm_feedback.get_calldata().get_offset_len());
+                let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
+
+                info!(
+                    "INSERTING FEEDBACK CALL with len: {:?} and data: {:?}",
+                    target_len,
+                    evm_feedback.get_calldata().get_data()
+                );
+
+                match runtime.machine_mut().memory_mut().copy_large(
+                    U256::from(evm_feedback.get_calldata().get_memory_offset()),
+                    U256::zero(),
+                    target_len,
+                    evm_feedback.get_calldata().get_data(),
+                ) {
+                    Ok(()) => {
+                        let mut value = H256::default();
+                        let one = U256::one();
+                        one.to_big_endian(&mut value[..]);
+                        runtime.machine_mut().stack_mut().push(value)?;
+                    }
+                    Err(_) => {
+                        let mut value = H256::default();
+                        let zero = U256::zero();
+                        zero.to_big_endian(&mut value[..]);
+                        runtime.machine_mut().stack_mut().push(value)?;
+                    }
+                }
             }
         }
         Result::Ok(())

@@ -33,11 +33,15 @@
 
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
-                     const CpsContext& ctx, CpsRun::Type type)
+                     CpsContext& ctx, CpsRun::Type type)
     : CpsRun(executor.GetAccStoreIface(), type),
       mProtoArgs(std::move(protoArgs)),
       mExecutor(executor),
-      mCpsContext(ctx) {}
+      mCpsContext(ctx) {
+  mCpsContext.depth += 1;
+}
+
+CpsRunEvm::~CpsRunEvm() { mCpsContext.depth -= 1; }
 
 bool CpsRunEvm::IsResumable() const {
   return mProtoArgs.has_continuation() && mProtoArgs.continuation().id() > 0;
@@ -85,6 +89,11 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
             Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
+  }
+
+  if (GetType() == CpsRun::TrapCall) {
+    int a = 10;
+    a++;
   }
 
   mAccountStore.AddAddressToUpdateBufferAtomic(
@@ -179,11 +188,159 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result) {
   const evm::TrapData& trap_data = result.trap_data();
   if (trap_data.has_create()) {
     return HandleCreateTrap(result);
+  } else {
+    return HandleCallTrap(result);
   }
-  // Call trap
-  else {
-    return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
+CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
+  const auto kind = result.exit_reason().trap().kind();
+  LOG_GENERAL(WARNING, "Kind is: " << kind);
+
+  const evm::TrapData& trap_data = result.trap_data();
+  const evm::TrapData_Call callData = trap_data.call();
+
+  LOG_GENERAL(WARNING, "Callee address: "
+                           << ProtoToAddress(callData.callee_address()).hex());
+  const auto& ctx = callData.context();
+  LOG_GENERAL(WARNING, "Ctx caller: " << ProtoToAddress(ctx.caller()).hex());
+  LOG_GENERAL(WARNING, "Ctx dest: " << ProtoToAddress(ctx.destination()));
+  LOG_GENERAL(WARNING, "Ctx Value: " << ProtoToUint(ctx.apparent_value()));
+
+  const auto& transfer = callData.transfer();
+
+  LOG_GENERAL(WARNING,
+              "Transfer Source: " << ProtoToAddress(transfer.source()).hex());
+  LOG_GENERAL(WARNING, "Transfer Destination: "
+                           << ProtoToAddress(transfer.destination()).hex());
+  LOG_GENERAL(WARNING, "Transfer Value: " << ProtoToUint(transfer.value()));
+
+  LOG_GENERAL(WARNING, "IsStatic Value: " << callData.is_static());
+
+  LOG_GENERAL(WARNING, "Gas: " << callData.target_gas());
+  const auto& evmData = callData.call_data();
+  LOG_GENERAL(WARNING, "CAllData: " << evmData);
+
+  const auto validateResult =
+      ValidateCallTrap(callData, result.remaining_gas());
+  if (!validateResult.isSuccess) {
+    return validateResult;
   }
+
+  // Set continuation (itself) to be resumed when create run is finished
+  {
+    evm::EvmArgs continuation;
+    mProtoArgs.mutable_continuation()->set_feedback_type(
+        evm::Continuation_Type_CALL);
+    mProtoArgs.mutable_continuation()->set_id(result.continuation_id());
+    *mProtoArgs.mutable_continuation()
+         ->mutable_calldata()
+         ->mutable_memory_offset() = callData.memory_offset();
+    *mProtoArgs.mutable_continuation()
+         ->mutable_calldata()
+         ->mutable_offset_len() = callData.offset_len();
+    mExecutor.PushRun(shared_from_this());
+  }
+
+  // Push create job to be run by EVM
+  {
+    const auto targetGas =
+        callData.target_gas() != std::numeric_limits<uint64_t>::max()
+            ? callData.target_gas()
+            : result.remaining_gas();
+
+    const auto inputGas = targetGas;
+    evm::EvmArgs evmCreateArgs;
+    *evmCreateArgs.mutable_address() = ctx.destination();
+    *evmCreateArgs.mutable_origin() = ctx.caller();
+    const auto code = mAccountStore.GetContractCode(
+        ProtoToAddress(callData.callee_address()));
+    *evmCreateArgs.mutable_code() =
+        DataConversion::CharArrayToString(StripEVM(code));
+    *evmCreateArgs.mutable_data() = callData.call_data();
+    evmCreateArgs.set_gas_limit(inputGas);
+    *evmCreateArgs.mutable_apparent_value() = ctx.apparent_value();
+    evmCreateArgs.set_estimate(mCpsContext.estimate);
+    *evmCreateArgs.mutable_context() = "TrapCall";
+    *evmCreateArgs.mutable_extras() = mCpsContext.evmExtras;
+    evmCreateArgs.set_enable_cps(ENABLE_CPS);
+    auto createRun = std::make_unique<CpsRunEvm>(
+        std::move(evmCreateArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
+    mExecutor.PushRun(std::move(createRun));
+  }
+  return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
+CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
+                                             uint64_t remainingGas) {
+  const auto ctxDestAddr = ProtoToAddress(callData.context().destination());
+  const auto ctxOriginAddr = ProtoToAddress(callData.context().caller());
+  const auto isStatic = callData.is_static();
+
+  const auto tnsfDestAddr = ProtoToAddress(callData.transfer().destination());
+  const auto tnsfOriginAddr = ProtoToAddress(callData.transfer().source());
+  const auto tnsfVal = ProtoToUint(callData.transfer().value());
+
+  const auto calleeAddr = ProtoToAddress(callData.callee_address());
+
+  if (IsNullAddress(calleeAddr)) {
+    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
+  }
+
+  const auto destContractCode = mAccountStore.GetContractCode(calleeAddr);
+  if (destContractCode.empty()) {
+    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
+  }
+
+  if (mCpsContext.isStatic && !isStatic) {
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+
+  const bool areTxnAddressesEmpty =
+      IsNullAddress(tnsfDestAddr) && IsNullAddress(tnsfOriginAddr);
+  const bool isValZero = (tnsfVal == 0);
+  const bool isDelegate = (ctxOriginAddr == mCpsContext.origSender) &&
+                          (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
+
+  if (isStatic || isDelegate) {
+    if (!areTxnAddressesEmpty || !isValZero) {
+      return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+    }
+  }
+  const bool isOrigAddressValid =
+      (ctxOriginAddr == mCpsContext.origSender) ||
+      (ctxOriginAddr == ProtoToAddress(mProtoArgs.address()));
+  const bool isDestAddressValid =
+      (ctxDestAddr == calleeAddr) ||
+      (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
+  if (!isOrigAddressValid || !isDestAddressValid) {
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+
+  if (!areTxnAddressesEmpty) {
+    const auto currentBalance =
+        mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
+    const auto requestedValue = Amount::fromWei(tnsfVal);
+    LOG_GENERAL(WARNING,
+                "CallTrap: Requested balance[Wei]: "
+                    << requestedValue.toWei().convert_to<std::string>()
+                    << ", current[Wei]: "
+                    << currentBalance.toWei().convert_to<std::string>());
+    if (requestedValue > currentBalance) {
+      return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+    }
+  }
+
+  const auto targetGas =
+      callData.target_gas() != std::numeric_limits<uint64_t>::max()
+          ? callData.target_gas()
+          : remainingGas;
+
+  if (targetGas > remainingGas) {
+    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+  }
+
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
@@ -427,7 +584,7 @@ void CpsRunEvm::ProvideFeedback(const CpsRunEvm& previousRun,
     *mProtoArgs.mutable_continuation()->mutable_address() =
         previousRun.mProtoArgs.address();
   } else {
-    *mProtoArgs.mutable_continuation()->mutable_calldata() =
+    *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
         result.return_value();
   }
 }
