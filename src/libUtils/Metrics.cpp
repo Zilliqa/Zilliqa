@@ -121,6 +121,13 @@ void Metrics::Shutdown() {
     auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(m_provider);
     p->Shutdown();
   }
+zil::metrics::int64_t Metrics::CreateInt64Metric(const std::string& family,
+                                                 const std::string& name,
+                                                 const std::string& desc,
+                                                 std::string_view unit) {
+  std::shared_ptr<metrics_api::Meter> meter =
+      m_provider->GetMeter(family, "1.2.0");
+  return meter->CreateUInt64Counter(family + "_" + name, desc, unit);
 }
 
 namespace {
@@ -129,6 +136,12 @@ inline auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider>& provider,
     const std::string& family) {
   return provider->GetMeter(family, "1.2.0");
+zil::metrics::double_t Metrics::CreateDoubleMetric(const std::string& family,
+                                                   const std::string& name,
+                                                   std::string_view unit) {
+  std::shared_ptr<metrics_api::Meter> meter =
+      m_provider->GetMeter(family, "1.2.0");
+  return meter->CreateDoubleCounter(family + "_" + name, unit);
 }
 
 inline std::string GetFullName(const std::string& family,
@@ -175,6 +188,13 @@ zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
                       GetFullName(family, name), desc, unit));
 }
 
+zil::metrics::int64Observable_t Metrics::CreateInt64Gauge(
+    const std::string& family, const std::string& name, const std::string& desc,
+    std::string_view unit) {
+  std::shared_ptr<metrics_api::Meter> meter =
+      m_provider->GetMeter(family, "1.2.0");
+  return meter->CreateInt64ObservableUpDownCounter(family + "_" + name, desc,
+                                                   unit);
 zil::metrics::Observable Metrics::CreateInt64Gauge(
     zil::metrics::FilterClass filter, const std::string& family,
     const std::string& name, const std::string& desc, std::string_view unit) {

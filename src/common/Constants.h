@@ -503,7 +503,6 @@ extern const std::vector<std::pair<uint64_t, uint32_t>>
 
 // Metrics constants
 extern const std::string METRIC_ZILLIQA_HOSTNAME;
-extern const std::string METRIC_ZILLIQA_PROVIDER;
 extern const unsigned int METRIC_ZILLIQA_PORT;
 extern const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS;
 extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;

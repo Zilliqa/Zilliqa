@@ -38,7 +38,6 @@
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
-// "long" and "long long" are the same in gnu's libstdc++ and not in apple's libc++
 #ifdef __APPLE__
 typedef long long observerType;
 #else

@@ -45,7 +45,8 @@ class MicroBlock : public BlockBase {
   virtual bool Deserialize(const zbytes& src, unsigned int offset) override;
 
   /// Implements the Deserialize function inherited from Serializable.
-  virtual bool Deserialize(const std::string& src, unsigned int offset) override;
+  virtual bool Deserialize(const std::string& src,
+                           unsigned int offset) override;
 
   /// Returns the header component of the microblock.
   const MicroBlockHeader& GetHeader() const;

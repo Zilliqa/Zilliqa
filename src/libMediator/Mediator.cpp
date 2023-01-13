@@ -24,6 +24,7 @@
 #include "libEth/Filters.h"
 #include "libLookup/Lookup.h"
 #include "libNode/Node.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
@@ -62,7 +63,8 @@ Mediator::Mediator(const PairOfKey& key, const Peer& peer)
               TX_DISTRIBUTE_TIME_IN_MS +
               (DS_ANNOUNCEMENT_DELAY_IN_MS + SHARD_ANNOUNCEMENT_DELAY_IN_MS)) /
           1000),
-      m_filtersAPICache(evmproj::filters::APICache::Create()) {
+      m_filtersAPICache(evmproj::filters::APICache::Create()),
+      m_websocketServer(rpc::DedicatedWebsocketServer::Create()) {
   SetupLogLevel();
 }
 

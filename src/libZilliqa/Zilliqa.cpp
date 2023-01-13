@@ -33,9 +33,9 @@
 #include "libNetwork/P2PComm.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/APIServer.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/LocalAPIServer.h"
-#include "libServer/WebsocketServer.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
@@ -501,7 +501,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       }
 
       if (ENABLE_WEBSOCKET) {
-        (void)WebsocketServer::GetInstance();
+        m_mediator.m_websocketServer->Start();
       }
 
       if (m_lookupServer == nullptr) {
@@ -600,7 +600,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   });
 }
 
-Zilliqa::~Zilliqa() { m_msgQueue.stop(); }
+Zilliqa::~Zilliqa() {
+  m_msgQueue.stop();
+  m_mediator.m_websocketServer->Stop();
+}
 
 void Zilliqa::Dispatch(Zilliqa::Msg message) {
   LOG_MARKER();

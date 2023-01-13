@@ -22,7 +22,7 @@
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
 #include "libPersistence/Retriever.h"
-#include "libServer/WebsocketServer.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
@@ -721,7 +721,10 @@ Json::Value IsolatedServer::CreateTransaction(const Json::Value& _json) {
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
     ret["TranID"] = txHash.hex();
     ret["Info"] = "Txn processed";
-    WebsocketServer::GetInstance().ParseTxn(twr);
+
+    // No-op if websocket not enabled
+    m_mediator.m_websocketServer->ParseTxn(twr);
+
     LOG_GENERAL(INFO, "Processing On the isolated server completed");
   } catch (const JsonRpcException& je) {
     throw je;
@@ -889,7 +892,9 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
     }
 
     LOG_GENERAL(INFO, "Added Txn " << txHash << " to blocknum: " << m_blocknum);
-    WebsocketServer::GetInstance().ParseTxn(twr);
+
+    // No-op if websocket not enabled
+    m_mediator.m_websocketServer->ParseTxn(twr);
 
     LOG_GENERAL(
         INFO,
@@ -1113,12 +1118,9 @@ void IsolatedServer::PostTxBlock() {
       j_txnhashes = Json::arrayValue;
     }
 
-    // send tx block and attach txhashes
-    WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
+    // send tx block and attach txhashes, plus send event logs
+    m_mediator.m_websocketServer->FinalizeTxBlock(
         JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
-
-    // send event logs
-    WebsocketServer::GetInstance().SendOutMessages();
   }
 
   m_blocknum++;

@@ -107,7 +107,7 @@ class APIServerImpl::Connection
 
     auto request = m_parser->release();
 
-    if (websocket::is_upgrade(request)) {
+    if (beast::websocket::is_upgrade(request)) {
       OnWebsocketUpgrade(std::move(request));
       return;
     }
@@ -301,13 +301,36 @@ APIServerImpl::APIServerImpl(Options options) : m_options(std::move(options)) {
         OnResponseFromThreadPool(std::move(res));
       });
 
-  m_websocket =
-      std::make_shared<ws::WebsocketServerImpl>(*m_options.asio, m_threadPool);
+  m_websocket = WebsocketServerBackend::CreateWithThreadPool(*m_options.asio,
+                                                             m_threadPool);
 }
 
 bool APIServerImpl::Start() {
-  if (m_started) {
+  if (m_active) {
     LOG_GENERAL(WARNING, "Double start ignored");
+    return false;
+  }
+
+  if (!m_started) {
+    if (!DoListen()) {
+      return false;
+    }
+
+    m_started = true;
+
+    if (m_ownEventLoop) {
+      m_eventLoopThread.emplace([this] { EventLoopThread(); });
+    }
+  } else {
+    m_options.asio->post(
+        [self = shared_from_this()] { std::ignore = self->DoListen(); });
+  }
+
+  return true;
+}
+
+bool APIServerImpl::DoListen() {
+  if (m_active) {
     return false;
   }
 
@@ -337,24 +360,9 @@ bool APIServerImpl::Start() {
 
 #undef CHECK_EC
 
+  m_active = true;
+
   AcceptNext();
-
-  m_started = true;
-
-  if (m_ownEventLoop) {
-    m_eventLoopThread.emplace([this] { EventLoopThread(); });
-  }
-
-  m_metrics.SetCallback([this](auto&& result) {
-    result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
-                                      {"counter", "TotalConnections"}});
-    result.Set(m_websocket->GetConnectionsNumber(),
-               {{"server", m_options.threadPoolName},
-                {"counter", "TotalWebsocketConnections"}});
-    result.Set(m_threadPool->GetQueueSize(),
-               {{"server", m_options.threadPoolName},
-                {"counter", "ThreadPoolQueueSize"}});
-  });
 
   return true;
 }
@@ -385,23 +393,9 @@ jsonrpc::AbstractServerConnector& APIServerImpl::GetRPCServerBackend() {
 }
 
 void APIServerImpl::Close() {
+  std::ignore = StopListening();
+
   if (m_started) {
-    m_started = false;
-
-    m_acceptor.reset();
-
-    m_threadPool->Close();
-
-    assert(m_websocket);
-    m_websocket->CloseAll();
-
-    m_options.asio->post([self = shared_from_this()] {
-      for (auto& conn : self->m_connections) {
-        conn.second->Close();
-      }
-      self->m_connections.clear();
-    });
-
     if (m_eventLoopThread.has_value()) {
       // after connections closed
       m_options.asio->post(
@@ -409,18 +403,34 @@ void APIServerImpl::Close() {
       m_eventLoopThread->join();
       m_eventLoopThread.reset();
     }
+    m_started = false;
   }
 }
 
 bool APIServerImpl::StartListening() {
-  if (!m_started) {
+  if (!m_active) {
     return Start();
   }
   return true;
 }
 
 bool APIServerImpl::StopListening() {
-  Close();
+  if (m_active) {
+    m_active = false;
+
+    m_threadPool->Reset();
+
+    assert(m_websocket);
+    m_websocket->CloseAll();
+
+    m_options.asio->post([self = shared_from_this()] {
+      self->m_acceptor.reset();
+      for (auto& conn : self->m_connections) {
+        conn.second->Close();
+      }
+      self->m_connections.clear();
+    });
+  }
   return true;
 }
 
@@ -432,7 +442,7 @@ void APIServerImpl::AcceptNext() {
 }
 
 void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
-  if (ec || !m_started || !socket.is_open()) {
+  if (ec || !m_active || !m_started || !socket.is_open()) {
     // stopped, ignore
     return;
   }
@@ -485,6 +495,11 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
 
 void APIServerImpl::OnResponseFromThreadPool(
     APIThreadPool::Response&& response) {
+  if (!m_active) {
+    // ignoring response if not active
+    return;
+  }
+
   if (response.isWebsocket) {
     // API response to be dispatched to websocket connection
     if (m_websocket) {

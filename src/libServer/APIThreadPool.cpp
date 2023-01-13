@@ -44,7 +44,8 @@ APIThreadPool::APIThreadPool(boost::asio::io_context& asio, std::string name,
 }
 
 APIThreadPool::~APIThreadPool() {
-  Close();
+  m_requestQueue.stop();
+  m_responseQueue.stop();
   for (auto& thread : m_threads) {
     thread.join();
   }
@@ -64,9 +65,9 @@ bool APIThreadPool::PushRequest(JobId id, bool isWebsocket, std::string from,
   return true;
 }
 
-void APIThreadPool::Close() {
-  m_requestQueue.stop();
-  m_responseQueue.stop();
+void APIThreadPool::Reset() {
+  m_requestQueue.reset();
+  m_responseQueue.reset();
 }
 
 namespace {
