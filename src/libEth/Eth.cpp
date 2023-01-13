@@ -54,7 +54,7 @@ Json::Value populateReceiptHelper(
   ret["from"] = from;
   ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["logs"] = logs;
-  ret["logsBloom"] = logsBloom;
+  ret["logsBlooooooom"] = logsBloom;
   ret["root"] =
       "0x0000000000000000000000000000000000000000000000000000000000001010";
   ret["status"] = success ? "0x1" : "0x0";
