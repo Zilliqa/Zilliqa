@@ -41,6 +41,7 @@
 #include "libUtils/SetThreadName.h"
 #include "libUtils/UpgradeManager.h"
 #include "libValidator/Validator.h"
+#include "libUtils/Tracing.h"
 
 namespace {
 
@@ -200,6 +201,9 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_n(m_mediator, syncType, toRetrieveHistory),
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
+
+  // This will bring tracing alive
+  std::cout << Tracing::GetInstance().Version() << std::endl;
 
   if (LOG_PARAMETERS) {
     LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
