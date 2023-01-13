@@ -74,16 +74,6 @@ spec:
         operator: Equal
         value: multiplier
         effect: NoSchedule
-      # https://kubernetes.io/docs/concepts/services-networking/dns-pod-service
-      # dnsPolicy: None
-      dnsConfig:
-        nameservers:
-        - 1.1.1.1
-        - 8.8.8.8
-        options:
-        - name: timeout
-          value: "2"
-        - name: rotate
       affinity:
         nodeAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -115,6 +105,12 @@ spec:
               fieldPath: metadata.name
         - name: Z7A_TESTNET_NAME
           value: devnet
+        - name: AWS_ACCESS_KEY_ID
+          value: "test"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "test"
+        - name: AWS_ENDPOINT_URL
+          value: "http://localstack:4566"
         command:
         - /bin/bash
         - -c
@@ -122,7 +118,7 @@ spec:
           set -e
           cp -rL /etc/zilliqa-config/* /etc/zilliqa/
           cp -rL /etc/zilliqa-secrets/* /etc/zilliqa/
-          python /etc/zilliqa/init.py --pod-name $Z7A_POD_NAME --testnet devnet -n 8 -d 4 -l 1 --port 30303 --websocket=seedpub  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=76177407-1e06-4e24-85be-7f3071e3e79a   --cleanup-private-keys
+          python /etc/zilliqa/init.py --pod-name $Z7A_POD_NAME --testnet devnet -n 8 -d 4 -l 2 --port 30303 --websocket=seedpub  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=devnet-bucket   --cleanup-private-keys
         volumeMounts:
         - mountPath: /etc/zilliqa
           name: local-config
@@ -155,6 +151,12 @@ spec:
             value: arn:aws:eks:us-west-2:210478221899:cluster/devnet
           - name: Z7A_TESTNET_NAME
             value: devnet
+          - name: AWS_ENDPOINT_URL
+            value: "http://localstack:4566"
+          - name: AWS_ACCESS_KEY_ID
+            value: "test"
+          - name: AWS_SECRET_ACCESS_KEY
+            value: "test"
         volumeMounts:
         - mountPath: /run/zilliqa
           name: zilliqa-run
@@ -173,7 +175,7 @@ spec:
           sysctl -w fs.inotify.max_user_instances=1024
           sysctl -w fs.file-max=4000000
           touch readiness
-          python /etc/zilliqa/init.py --pod-name $Z7A_POD_NAME --testnet devnet -n 8 -d 4 -l 1 --port 30303 --websocket=seedpub  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=76177407-1e06-4e24-85be-7f3071e3e79a  
+          python /etc/zilliqa/init.py --pod-name $Z7A_POD_NAME --testnet devnet -n 8 -d 4 -l 2 --port 30303 --websocket=seedpub  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=devnet-bucket
           # launch sequence
           chmod u+x ./start.sh
           echo "Running start.sh"

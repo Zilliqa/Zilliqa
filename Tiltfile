@@ -8,5 +8,8 @@ custom_build("zilliqa/zilliqa", "DOCKER_BUILDKIT=1 docker build . -t $EXPECTED_R
 # TODO: Deploy nginx ingress with Tilt, so the user doesn't need to do it manually.
 #k8s_yaml("infra/k8s/nginx-ingress.yaml")
 
+k8s_yaml("infra/k8s/localstack.yaml")
+k8s_resource("localstack", port_forwards="4566:4566")
+
 k8s_yaml(kustomize("infra/k8s/base"))
 k8s_resource("devnet-explorer", port_forwards="8110:80")
