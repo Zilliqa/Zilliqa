@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_
 
 #include <json/json.h>
 #include <map>
@@ -25,52 +25,25 @@
 #include <unordered_map>
 
 #include <Schnorr.h>
-#include "Account.h"
-#include "AccountStoreSC.h"
-#include "AccountStoreTrie.h"
-#include "Address.h"
-#include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Hashes.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/AccountStoreSC.h"
+#include "libData/AccountStore/AccountStoreTemp.h"
+#include "libData/AccountStore/AccountStoreTrie.h"
+#include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/TxnExtras.h"
 
-class AccountStore;
 class ScillaIPCServer;
 
-namespace rpc {
-class UnixDomainSocketServer;
-}
 
-class AccountStoreTemp : public AccountStoreSC<std::map<Address, Account>> {
-  AccountStore& m_parent;
-
-  friend class AccountStore;
-
- public:
-  AccountStoreTemp(AccountStore& parent);
-
-  bool DeserializeDelta(const zbytes& src, unsigned int offset);
-
-  /// Returns the Account associated with the specified address.
-  Account* GetAccount(const Address& address) override;
-
-  const std::shared_ptr<std::map<Address, Account>>& GetAddressToAccount() {
-    return this->m_addressToAccount;
-  }
-
-  void AddAccountDuringDeserialization(const Address& address,
-                                       const Account& account) {
-    m_addressToAccount->insert_or_assign(address, account);
-  }
-};
-
-// Singleton class for providing interface related Account System
-class AccountStore
-    : public AccountStoreTrie<std::unordered_map<Address, Account>> {
+class AccountStore  : public AccountStoreTrie {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
-  std::unique_ptr<AccountStoreTemp> m_accountStoreTemp;
+  AccountStoreTemp m_accountStoreTemp;
 
   /// used for states reverting
   std::unordered_map<Address, Account> m_addressToAccountRevChanged;
@@ -92,7 +65,8 @@ class AccountStore
 
   /// Scilla IPC server related
   std::shared_ptr<ScillaIPCServer> m_scillaIPCServer;
-  std::unique_ptr<rpc::UnixDomainSocketServer> m_scillaIPCServerConnector;
+
+  rpc::UnixDomainSocketServer m_scillaIPCServerConnector;
 
   AccountStore();
   ~AccountStore();
@@ -159,13 +133,13 @@ class AccountStore
   /// add account in AccountStoreTemp
   void AddAccountTemp(const Address& address, const Account& account) {
     std::lock_guard<std::mutex> g(m_mutexDelta);
-    m_accountStoreTemp->AddAccount(address, account);
+    m_accountStoreTemp.AddAccount(address, account);
   }
 
   /// increase balance for account in AccountStoreTemp
   bool IncreaseBalanceTemp(const Address& address, const uint128_t& delta) {
     std::lock_guard<std::mutex> g(m_mutexDelta);
-    return m_accountStoreTemp->IncreaseBalance(address, delta);
+    return m_accountStoreTemp.IncreaseBalance(address, delta);
   }
 
   /// get the nonce of an account in AccountStoreTemp
@@ -179,18 +153,18 @@ class AccountStore
   /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
   void ProcessStorageRootUpdateBufferTemp() {
     std::lock_guard<std::mutex> g(m_mutexDelta);
-    m_accountStoreTemp->ProcessStorageRootUpdateBuffer();
+    m_accountStoreTemp.ProcessStorageRootUpdateBuffer();
   }
 
   /// Call ProcessStorageRootUpdateBuffer in AccountStoreTemp
   void CleanStorageRootUpdateBufferTemp() {
     std::lock_guard<std::mutex> g(m_mutexDelta);
-    m_accountStoreTemp->CleanStorageRootUpdateBuffer();
+    m_accountStoreTemp.CleanStorageRootUpdateBuffer();
   }
 
   void CleanNewLibrariesCacheTemp() {
     std::lock_guard<std::mutex> g(m_mutexDelta);
-    m_accountStoreTemp->CleanNewLibrariesCache();
+    m_accountStoreTemp.CleanNewLibrariesCache();
   }
 
   /// used in deserialization
@@ -251,4 +225,4 @@ class AccountStore
   }
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORE_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_

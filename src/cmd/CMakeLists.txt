@@ -95,21 +95,21 @@ add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:genTxnBodiesFromS3> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(genTxnBodiesFromS3 PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(genTxnBodiesFromS3 PUBLIC AccountData Utils Persistence Server Boost::program_options)
+target_link_libraries(genTxnBodiesFromS3 PUBLIC AccountStore AccountData Utils Persistence Server Boost::program_options)
 
 add_executable(isolatedServer isolated_server.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:isolatedServer> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(isolatedServer PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(isolatedServer PUBLIC AccountData Mediator Persistence Server Validator Boost::program_options)
+target_link_libraries(isolatedServer PUBLIC AccountStore AccountData Mediator Persistence Server Validator Boost::program_options)
 
 add_executable(websocketsubscriber websocketsubscriber.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:websocketsubscriber> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(websocketsubscriber PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(websocketsubscriber PUBLIC Utils Server Boost::program_options)
+target_link_libraries(websocketsubscriber PUBLIC Utils Server AccountStore Boost::program_options)
 
 add_executable(buildTxBlockHashesToNums buildTxBlockHashesToNums.cpp)
 add_custom_command(TARGET zilliqa

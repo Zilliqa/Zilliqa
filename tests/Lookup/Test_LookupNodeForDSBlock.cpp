@@ -103,7 +103,8 @@ BOOST_AUTO_TEST_CASE(testDSBlockStoring) {
   Serializable::SetNumber<uint32_t>(dsblockmsg, curr_offset, (uint32_t)5001, 4);
   curr_offset += 4;
 
-  P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg);
+  P2PComm::GetInstance().SendMessage(lookup_node, dsblockmsg,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 }
 
 BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
@@ -127,7 +128,8 @@ BOOST_AUTO_TEST_CASE(testDSBlockRetrieval) {
           getDSBlockMessage, MessageOffset::BODY, 0, 1, 5000, false)) {
     LOG_GENERAL(WARNING, "Messenger::SetLookupGetDSBlockFromSeed failed.");
   } else {
-    P2PComm::GetInstance().SendMessage(lookup_node, getDSBlockMessage);
+    P2PComm::GetInstance().SendMessage(lookup_node, getDSBlockMessage,
+                                       zil::p2p::START_BYTE_NORMAL, false);
   }
 }
 

@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_
 
 #include <json/json.h>
 #include <atomic>
@@ -24,37 +24,21 @@
 #include <functional>
 #include <mutex>
 
-#include <libScilla/ScillaIPCServer.h>
+#include "AccountStoreAtomic.h"
 #include "AccountStoreBase.h"
-#include "EvmProcessContext.h"
-#include "InvokeType.h"
+#include "libData/AccountData/InvokeType.h"
+#include "libData/AccountStore/services/evm/EvmProcessContext.h"
+#include "libScilla/ScillaIPCServer.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
-template <class MAP>
-class AccountStoreSC;
 class ScillaIPCServer;
 
-template <class MAP>
-class AccountStoreAtomic
-    : public AccountStoreBase<std::unordered_map<Address, Account>> {
-  AccountStoreSC<MAP>& m_parent;
-
- public:
-  AccountStoreAtomic(AccountStoreSC<MAP>& parent);
-
-  Account* GetAccount(const Address& address) override;
-
-  const std::shared_ptr<std::unordered_map<Address, Account>>&
-  GetAddressToAccount();
-};
-
-template <class MAP>
-class AccountStoreSC : public AccountStoreBase<MAP> {
+class AccountStoreSC : public AccountStoreBase {
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
-  std::unique_ptr<AccountStoreAtomic<MAP>> m_accountStoreAtomic;
+  std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
 
   /// mutex to block major accounts changes
   std::mutex m_mutexUpdateAccounts;
@@ -115,12 +99,10 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   std::vector<Address> m_newLibrariesCreated;
 
   /// Metrics callback for block number
-  zil::metrics::int64Observable_t m_accountStoreCount { Metrics::GetInstance().CreateInt64Gauge(
-      "zilliqa_accountstore", "blockchain_gauge", "Metrics for AccountStore", "blocks") };
-  zil::metrics::int64_t m_accStoreProcees { Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_accountstroe", "invocations_count", "Metrics for AccountStore", "Blocks") };
-
-  static void instFetchInfo(opentelemetry::metrics::ObserverResult observer_result,void *state);
+  zil::metrics::Observable m_accountStoreCount{
+      Metrics::GetInstance().CreateInt64Gauge(
+          zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "zilliqa_accountstore",
+          "blockchain_gauge", "Metrics for AccountStore", "blocks")};
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
@@ -239,11 +221,6 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
                       const bool& isDS, const Transaction& transaction,
                       TransactionReceipt& receipt, TxnStatus& error_code);
 
-  bool UpdateAccountsEvm(const uint64_t& blockNum,
-                         const unsigned int& numShards, const bool& isDS,
-                         TransactionReceipt& receipt, TxnStatus& error_code,
-                         EvmProcessContext& evmContext);
-
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address>& extlibs,
       std::map<Address, std::pair<std::string, std::string>>& extlibs_exports);
@@ -254,6 +231,11 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
 
   /// external interface for calling timeout for txn processing
   void NotifyTimeout();
+
+  bool UpdateAccountsEvm(const uint64_t& blockNum,
+                         const unsigned int& numShards, const bool& isDS,
+                         TransactionReceipt& receipt, TxnStatus& error_code,
+                         EvmProcessContext& evmContext);
 
   /// public interface to setup scilla ipc server
   void SetScillaIPCServer(std::shared_ptr<ScillaIPCServer> scillaIPCServer);
@@ -278,4 +260,4 @@ class AccountStoreSC : public AccountStoreBase<MAP> {
   bool EvmProcessMessage(EvmProcessContext& params, evm::EvmResult& result);
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORESC_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_

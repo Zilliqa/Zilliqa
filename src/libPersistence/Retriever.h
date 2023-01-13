@@ -18,13 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBPERSISTENCE_RETRIEVER_H_
 #define ZILLIQA_SRC_LIBPERSISTENCE_RETRIEVER_H_
 
-#include <list>
-#include <map>
-#include <unordered_map>
+#include "common/BaseType.h"
 
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/Address.h"
-#include "libMediator/Mediator.h"
+class Mediator;
 
 class Retriever {
  public:

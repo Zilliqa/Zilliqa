@@ -19,9 +19,9 @@
 #include <boost/filesystem/operations.hpp>
 #include <regex>
 
-#include "AccountStore.h"
-#include "EvmClient.h"
-#include "ScillaClient.h"
+#include "libData/AccountStore/AccountStore.h"
+#include "libData/AccountStore/services/evm/EvmClient.h"
+#include "libData/AccountStore/services/scilla/ScillaClient.h"
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
@@ -31,7 +31,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include "libPersistence/ScillaMessage.pb.h"
 #pragma GCC diagnostic pop
-#include "EvmClient.h"
+#include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libScilla/ScillaIPCServer.h"
 #include "libScilla/ScillaUtils.h"
 #include "libScilla/UnixDomainSocketServer.h"
@@ -43,18 +43,17 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() : m_externalWriters{0} {
-  m_accountStoreTemp = make_unique<AccountStoreTemp>(*this);
+AccountStore::AccountStore() : m_accountStoreTemp(*this),
+                               m_externalWriters{0},
+                               m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
+
   bool ipcScillaInit = false;
 
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServerConnector =
-        make_unique<rpc::UnixDomainSocketServer>(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServer =
-        make_shared<ScillaIPCServer>(*m_scillaIPCServerConnector);
+    m_scillaIPCServer = make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
@@ -64,7 +63,7 @@ AccountStore::AccountStore() : m_externalWriters{0} {
     if (m_scillaIPCServer == nullptr) {
       LOG_GENERAL(WARNING, "m_scillaIPCServer NULL");
     } else {
-      m_accountStoreTemp->SetScillaIPCServer(m_scillaIPCServer);
+      m_accountStoreTemp.SetScillaIPCServer(m_scillaIPCServer);
       if (m_scillaIPCServer->StartListening()) {
         LOG_GENERAL(INFO, "Scilla IPC Server started successfully");
       } else {
@@ -103,7 +102,7 @@ void AccountStore::Init() {
 void AccountStore::InitSoft() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-  AccountStoreTrie<unordered_map<Address, Account>>::Init();
+  AccountStoreTrie::Init();
 
   m_externalWriters = 0;
 
@@ -124,7 +123,7 @@ bool AccountStore::RefreshDB() {
 void AccountStore::InitTemp() {
   lock_guard<mutex> g(m_mutexDelta);
 
-  m_accountStoreTemp->Init();
+  m_accountStoreTemp.Init();
   m_stateDeltaSerialized.clear();
 
   ContractStorage::GetContractStorage().InitTempState();
@@ -147,7 +146,7 @@ AccountStore& AccountStore::GetInstance() {
 bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreTrie<std::unordered_map<Address, Account>>::Serialize(
+  return AccountStoreTrie::Serialize(
       src, offset);
 }
 
@@ -193,7 +192,7 @@ bool AccountStore::SerializeDelta() {
   m_stateDeltaSerialized.clear();
 
   if (!Messenger::SetAccountStoreDelta(m_stateDeltaSerialized, 0,
-                                       *m_accountStoreTemp, *this)) {
+                                       m_accountStoreTemp, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountStoreDelta failed.");
     return false;
   }
@@ -258,7 +257,7 @@ bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
 bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
                                         unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
-  return m_accountStoreTemp->DeserializeDelta(src, offset);
+  return m_accountStoreTemp.DeserializeDelta(src, offset);
 }
 
 bool AccountStore::MoveRootToDisk(const dev::h256& root) {
@@ -472,11 +471,11 @@ bool AccountStore::RetrieveFromDiskOld() {
 }
 
 Account* AccountStore::GetAccountTemp(const Address& address) {
-  return m_accountStoreTemp->GetAccount(address);
+  return m_accountStoreTemp.GetAccount(address);
 }
 
 Account* AccountStore::GetAccountTempAtomic(const Address& address) {
-  return m_accountStoreTemp->GetAccountAtomic(address);
+  return m_accountStoreTemp.GetAccountAtomic(address);
 }
 
 bool AccountStore::UpdateAccountsTemp(
@@ -510,10 +509,10 @@ bool AccountStore::UpdateAccountsTemp(
               "[AS] Starting to Process <" << transaction.GetTranID() << ">");
   if (isEvm) {
     EvmProcessContext context(blockNum, transaction, txnExtras);
-    status = m_accountStoreTemp->UpdateAccountsEvm(blockNum, numShards, isDS,
-                                                 receipt, error_code, context);
+    status = m_accountStoreTemp.UpdateAccountsEvm(blockNum, numShards, isDS,
+                                                  receipt, error_code, context);
   } else {
-    status = m_accountStoreTemp->UpdateAccounts(
+    status = m_accountStoreTemp.UpdateAccounts(
         blockNum, numShards, isDS, transaction, receipt, error_code);
   }
   LOG_GENERAL(WARNING, "[AS] Finished Processing <"
@@ -527,19 +526,19 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
                                       const uint128_t& amount) {
   lock_guard<mutex> g(m_mutexDelta);
 
-  if (m_accountStoreTemp->GetAccount(rewardee) == nullptr) {
-    m_accountStoreTemp->AddAccount(rewardee, {0, 0});
+  if (m_accountStoreTemp.GetAccount(rewardee) == nullptr) {
+    m_accountStoreTemp.AddAccount(rewardee, {0, 0});
   }
-  return m_accountStoreTemp->TransferBalance(genesisAddress, rewardee, amount);
+  return m_accountStoreTemp.TransferBalance(genesisAddress, rewardee, amount);
   // Should the nonce increase ??
 }
 
 uint128_t AccountStore::GetNonceTemp(const Address& address) {
   lock_guard<mutex> g(m_mutexDelta);
 
-  if (m_accountStoreTemp->GetAddressToAccount()->find(address) !=
-      m_accountStoreTemp->GetAddressToAccount()->end()) {
-    return m_accountStoreTemp->GetNonce(address);
+  if (m_accountStoreTemp.GetAddressToAccount()->find(address) !=
+      m_accountStoreTemp.GetAddressToAccount()->end()) {
+    return m_accountStoreTemp.GetNonce(address);
   } else {
     return this->GetNonce(address);
   }
@@ -601,4 +600,4 @@ bool AccountStore::RevertCommitTemp() {
   return true;
 }
 
-void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp->NotifyTimeout(); }
+void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp.NotifyTimeout(); }

@@ -19,6 +19,7 @@ target_include_directories(Server PUBLIC
 
 target_link_libraries(Server PUBLIC
     jsonrpc
+    AccountStore
     AccountData
     Eth)
 

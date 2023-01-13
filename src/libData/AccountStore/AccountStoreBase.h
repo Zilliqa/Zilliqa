@@ -15,23 +15,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTOREBASE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTOREBASE_H_
 
 #include <Schnorr.h>
-#include "Account.h"
-#include "Address.h"
-#include "Transaction.h"
-#include "TransactionReceipt.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "common/TxnStatus.h"
 #include "depends/common/FixedHash.h"
+#include "libData/AccountData/Account.h"
+#include "libData/AccountData/Address.h"
+#include "libData/AccountData/Transaction.h"
+#include "libData/AccountData/TransactionReceipt.h"
 
-template <class MAP>
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<MAP> m_addressToAccount;
+  std::shared_ptr<std::unordered_map<Address,Account>> m_addressToAccount;
 
   AccountStoreBase();
 
@@ -82,4 +81,4 @@ class AccountStoreBase : public SerializableDataBlock {
   virtual void PrintAccountState();
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTOREBASE_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTOREBASE_H_

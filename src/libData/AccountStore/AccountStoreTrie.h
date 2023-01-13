@@ -15,15 +15,14 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORETRIE_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORETRIE_H_
 
 #include "AccountStoreSC.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
 
-template <class MAP>
-class AccountStoreTrie : public AccountStoreSC<MAP> {
+class AccountStoreTrie : public AccountStoreSC {
  protected:
   TraceableDB m_db;
   dev::GenericTrieDB<TraceableDB> m_state;
@@ -59,4 +58,4 @@ class AccountStoreTrie : public AccountStoreSC<MAP> {
   void PrintAccountState() override;
 };
 
-#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ACCOUNTSTORETRIE_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORETRIE_H_

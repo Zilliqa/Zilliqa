@@ -22,9 +22,9 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 
-#include "libData/AccountData/AccountStore.h"
-#include "libData/AccountData/AccountStoreSC.h"
 #include "libData/AccountData/Address.h"
+#include "libData/AccountStore/AccountStore.h"
+#include "libData/AccountStore/AccountStoreSC.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SysCommand.h"

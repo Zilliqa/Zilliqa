@@ -25,24 +25,21 @@
 using namespace std;
 chrono::high_resolution_clock::time_point startTime;
 
-void process_message(
-    std::shared_ptr<pair<zbytes, std::pair<Peer, const unsigned char>>>
-        message) {
+void process_message(std::shared_ptr<zil::p2p::Message> message) {
   LOG_MARKER();
 
-  if (message->first.size() < 10) {
+  if (message->msg.size() < 10) {
     LOG_GENERAL(INFO, "Received message '"
-                          << (char*)&message->first.at(0) << "' at port "
-                          << message->second.first.m_listenPortHost
-                          << " from address "
-                          << message->second.first.m_ipAddress);
+                          << (char*)&message->msg.at(0) << "' at port "
+                          << message->from.m_listenPortHost << " from address "
+                          << message->from.m_ipAddress);
   } else {
     chrono::duration<double, std::milli> time_span =
         chrono::high_resolution_clock::now() - startTime;
-    LOG_GENERAL(INFO, "Received " << message->first.size() / (1024 * 1024)
+    LOG_GENERAL(INFO, "Received " << message->msg.size() / (1024 * 1024)
                                   << " MB message in " << time_span.count()
                                   << " ms");
-    LOG_GENERAL(INFO, "Benchmark: " << (1000 * message->first.size()) /
+    LOG_GENERAL(INFO, "Benchmark: " << (1000 * message->msg.size()) /
                                            (time_span.count() * 1024 * 1024)
                                     << " MBps");
   }
@@ -199,18 +196,21 @@ int main() {
   Peer peer = {ip_addr.s_addr, 33133};
   zbytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
-  P2PComm::GetInstance().SendMessage(peer, message1);
+  P2PComm::GetInstance().SendMessage(peer, message1,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 
   vector<Peer> peers = {peer, peer, peer};
   zbytes message2 = {'W', 'o', 'r', 'l', 'd', '\0'};  // Send World 3x
 
-  P2PComm::GetInstance().SendMessage(peers, message2);
+  P2PComm::GetInstance().SendMessage(peers, message2,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 
   zbytes longMsg(1024 * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
-  P2PComm::GetInstance().SendMessage(peer, longMsg);
+  P2PComm::GetInstance().SendMessage(peer, longMsg, zil::p2p::START_BYTE_NORMAL,
+                                     false);
 
   TestRemoveBroadcast();
 

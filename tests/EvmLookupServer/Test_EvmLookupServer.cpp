@@ -29,8 +29,8 @@
 #include <boost/range.hpp>
 #include <boost/range/numeric.hpp>
 #include <boost/test/unit_test.hpp>
-#include "libData/AccountData/EvmClient.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libMediator/Mediator.h"
 #include "libServer/LookupServer.h"
 #include "libUtils/Evm.pb.h"
