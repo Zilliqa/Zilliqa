@@ -266,10 +266,10 @@ int main(int argc, const char* argv[]) {
     ctx->run();
     LOG_GENERAL(INFO, "Event loop stopped");
 
+    mediator.m_websocketServer->Stop();
+
     Metrics::GetInstance().Shutdown();
     LOG_GENERAL(INFO, "Metrics shut down");
-
-    mediator.m_websocketServer->Stop();
 
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()

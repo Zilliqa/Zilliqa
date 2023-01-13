@@ -44,7 +44,7 @@ class LookupServer : public Server,
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
 
-  zil::metrics::int64_t m_callCount = Metrics::GetInstance().CreateInt64Metric(
+  zil::metrics::uint64Counter_t m_callCount = Metrics::GetInstance().CreateInt64Metric(
       "zilliqa_lookup", "invocation_count", "Calls to Lookup Server", "Calls");
 
   CreateTransactionTargetFunc m_createTransactionTarget =

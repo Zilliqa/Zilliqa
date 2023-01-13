@@ -29,64 +29,50 @@ class Connection;
 
 /// Websocket server implementation
 class WebsocketServerImpl
-    : public WebsocketServerBackend,
-      public std::enable_shared_from_this<WebsocketServerImpl> {
- public:
-  WebsocketServerImpl(AsioCtx& asio, std::shared_ptr<APIThreadPool> threadPool)
-      : m_asio(asio), m_threadPool(std::move(threadPool)) {
-    assert(m_threadPool);
-  }
+   : public WebsocketServerBackend,
+     public std::enable_shared_from_this<WebsocketServerImpl> {
+public:
+ WebsocketServerImpl(AsioCtx& asio, std::shared_ptr<APIThreadPool> threadPool)
+     : m_asio(asio), m_threadPool(std::move(threadPool)) {}
 
-  /// A metric
-  size_t GetConnectionsNumber() const {
-    return m_totalConnections;
-  }
+ /// Called from Connection with its id.
+ /// Empty msg means that the conn is closed.
+ /// If returns false then conn will close silently
+ bool MessageFromConnection(ConnectionId id, const std::string& from,
+                            InMessage msg);
 
-  /// Called by HTTP server on new WS upgrade request
-  void NewConnection(std::string&& from, Socket&& socket, HttpRequest&& req);
-      : m_asio(asio), m_threadPool(std::move(threadPool)) {}
+private:
+ // overrides
+ void SetOptions(Feedback feedback, size_t max_in_msg_size) override;
+ void CloseConnection(ConnectionId conn_id) override;
+ void SendMessage(ConnectionId conn_id, OutMessage msg) override;
+ void CloseAll() override;
+ void NewConnection(std::string&& from, Socket&& socket,
+                    HttpRequest&& req) override;
+ void NewConnection(std::string&& from, Socket&& socket) override;
 
-  /// Called from Connection with its id.
-  /// Empty msg means that the conn is closed.
-  /// If returns false then conn will close silently
-  bool MessageFromConnection(ConnectionId id, const std::string& from,
-                             InMessage msg);
+ std::shared_ptr<Connection> CreateNewConnection(std::string&& from,
+                                                 Socket&& socket);
 
- private:
-  // overrides
-  void SetOptions(Feedback feedback, size_t max_in_msg_size) override;
-  void CloseConnection(ConnectionId conn_id) override;
-  void SendMessage(ConnectionId conn_id, OutMessage msg) override;
-  void CloseAll() override;
-  void NewConnection(std::string&& from, Socket&& socket,
-                     HttpRequest&& req) override;
-  void NewConnection(std::string&& from, Socket&& socket) override;
+ /// Asio context is needed here to perform network-related operations in their
+ /// dedicated thread
+ AsioCtx& m_asio;
 
-  std::shared_ptr<Connection> CreateNewConnection(std::string&& from,
-                                                  Socket&& socket);
+ /// Thread pool to which other messages than eth_[un]subscribe to be
+ /// dispatched
+ std::shared_ptr<APIThreadPool> m_threadPool;
 
-  /// Asio context is needed here to perform network-related operations in their
-  /// dedicated thread
-  AsioCtx& m_asio;
+ /// Feedback to WebsocketServer owner
+ Feedback m_feedback;
 
-  /// Thread pool to which other messages than eth_[un]subscribe to be
-  /// dispatched
-  std::shared_ptr<APIThreadPool> m_threadPool;
+ /// Max incoming message size
+ size_t m_maxMsgSize = DEF_MAX_INCOMING_MSG_SIZE;
 
-  /// Feedback to WebsocketServer owner
-  Feedback m_feedback;
+ /// Incremental counter
+ ConnectionId m_counter = 0;
 
-  /// Max incoming message size
-  size_t m_maxMsgSize = DEF_MAX_INCOMING_MSG_SIZE;
-
-  /// Incremental counter
-  ConnectionId m_counter = 0;
-
-  /// Active connections
-  std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
-
-  /// Metric, can be accessed from foreign thread
-  std::atomic<size_t> m_totalConnections{};
+ /// Active connections
+ std::unordered_map<ConnectionId, std::shared_ptr<Connection>> m_connections;
 };
 
 }  // namespace rpc::ws

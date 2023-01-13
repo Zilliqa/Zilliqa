@@ -27,9 +27,9 @@
 #include <optional>
 
 #include "APIThreadPool.h"
+#include "WebsocketServerBackend.h"
 #include "WebsocketServerImpl.h"
 #include "libUtils/Metrics.h"
-#include "WebsocketServerBackend.h"
 
 namespace rpc {
 
