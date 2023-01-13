@@ -1,14 +1,18 @@
-import {deploy, ScillaContract} from "../../helper/ScillaHelper";
+import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
 import {getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
+import hre from "hardhat";
+import {initZilliqa} from "hardhat-scilla-plugin";
 
-// TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
-describe.skip("Scilla HelloWorld contract", function () {
+describe("Scilla HelloWorld contract", function () {
   let contract: ScillaContract;
   before(async function () {
     const privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
+    initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [
+      privateKey
+    ]);
     const address = getAddressFromPrivateKey(privateKey);
-    contract = await deploy("HelloWorld", address);
+    contract = await hre.deployScilla("HelloWorld", address);
   });
 
   it("Should be deployed successfully", async function () {

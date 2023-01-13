@@ -1,10 +1,8 @@
 import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
+import "hardhat-scilla-plugin";
 import clc from "cli-color";
-import {execSync} from "child_process";
-import {glob} from "glob";
-import {loadScillaContractsInfo, updateContractsInfo as updateScillaContractsInfo} from "./helper/ScillaContractsInfoUpdater";
 import chai from "chai";
 import {scillaChaiEventMatcher} from "./helper/ScillaChaiMatchers";
 
@@ -116,7 +114,6 @@ import "./AddConfigHelpersToHre";
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
-  hre.scillaContracts = loadScillaContractsInfo();
 });
 
 task("test")
@@ -142,34 +139,6 @@ task("test")
       });
     }
     return runSuper();
-  });
-
-task("compile").setAction((taskArgs, hre, runSuper) => {
-  console.log(clc.blue.bold("Scilla Contracts: "));
-  updateScillaContractsInfo();
-  console.log(clc.blue.bold("\nSolidity Contracts: "));
-  return runSuper();
-});
-
-task("scilla-check", "Parsing scilla contracts and performing a number of static checks including typechecking.")
-  .addParam("libdir", "Path to Scilla stdlib")
-  .addOptionalVariadicPositionalParam("contracts", "An optional list of files to check", [])
-  .setAction(async (taskArgs, hre, runSuper) => {
-    let files: string[] = [];
-    if (taskArgs.contracts.length === 0) {
-      files = glob.sync("contracts/**/*.scilla");
-    } else {
-      files = taskArgs.contracts;
-    }
-    files.forEach((file) => {
-      try {
-        console.log(clc.greenBright.bold(`🔍Checking ${file}...`));
-        const value = execSync(`scilla-checker -gaslimit 10000 -libdir ${taskArgs.libdir} ${file}`);
-        console.log(value.toString());
-      } catch (error) {
-        console.error("Failed to run scilla-checker");
-      }
-    });
   });
 
 export default config;
