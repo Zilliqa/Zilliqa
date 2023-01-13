@@ -15,10 +15,8 @@ export interface ContractInfo {
 }
 
 type ContractPath = string;
-type ContractMapByName = {[key: ContractName]: ContractInfo};
+export type ContractMapByName = {[key: ContractName]: ContractInfo};
 type ContractMapByPath = {[key: ContractPath]: ContractInfo};
-
-export let scillaContracts: ContractMapByName = {};
 
 export const updateContractsInfo = () => {
   let contractsInfo: ContractMapByName = {};
@@ -53,11 +51,12 @@ export const updateContractsInfo = () => {
   } else {
     console.log("Nothing changed since last compile.");
   }
-
-  console.log(contractsInfo);
-  scillaContracts = convertToMapByName(contractsInfo);
-  console.log(scillaContracts);
 };
+
+export const loadScillaContractsInfo = (): ContractMapByName =>  {
+  const contractsInfo = loadContractsInfo();
+  return convertToMapByName(contractsInfo);
+}
 
 const convertToMapByName = (contracts: ContractMapByPath): ContractMapByName => {
   let contractsByName: ContractMapByName = {};

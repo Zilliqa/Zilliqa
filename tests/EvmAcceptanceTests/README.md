@@ -247,14 +247,14 @@ Otherwise, if you need to deeply expect an event, you should use `eventLogWithPa
 ```typescript
 it("Should send getHello() event when getHello() transition is called", async function () {
   const tx = await contract.getHello();
-  expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", name: "msg"});
+  expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", vname: "msg"});
 });
 ```
 
 You can even expect data type of the parameter(s):
 
 ```typescript
-expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", name: "msg", type: "String"});
+expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", vname: "msg", type: "String"});
 ```
 
 Type should be a valid Scilla type.
@@ -265,6 +265,7 @@ But if you just want to expect on the value of a event parameter do this:
 expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world"});
 ```
 
+for more tests please take look at [scilla tests](./test/scilla/).
 ### TODO
 
 - Support formatting complex data types such as `Map` and `List`

@@ -4,7 +4,7 @@ import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
 import {execSync} from "child_process";
 import {glob} from "glob";
-import {updateContractsInfo as updateScillaContractsInfo} from "./helper/ScillaContractsInfoUpdater";
+import {loadScillaContractsInfo, updateContractsInfo as updateScillaContractsInfo} from "./helper/ScillaContractsInfoUpdater";
 import chai from "chai";
 import {scillaChaiEventMatcher} from "./helper/ScillaChaiMatchers";
 
@@ -116,6 +116,7 @@ import "./AddConfigHelpersToHre";
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
+  hre.scillaContracts = loadScillaContractsInfo();
 });
 
 task("test")

@@ -2,7 +2,7 @@ import {Zilliqa} from "@zilliqa-js/zilliqa";
 import fs from "fs";
 import {BN, Long, units, bytes} from "@zilliqa-js/util";
 import {Init, Contract, Value} from "@zilliqa-js/contract";
-import {scillaContracts, ContractInfo} from "./ScillaContractsInfoUpdater";
+import {ContractInfo} from "./ScillaContractsInfoUpdater";
 import {TransitionParam, isNumeric, Fields, ContractName} from "./ScillaParser";
 import hre from "hardhat";
 
@@ -39,12 +39,12 @@ function read(f: string) {
 export type ContractFunction<T = any> = (...args: Array<any>) => Promise<T>;
 
 export class ScillaContract extends Contract {
-  // Transitions
+  // Transitions and fields
   [key: string]: ContractFunction | any;
 }
 
 export async function deploy(contractName: string, ...args: any[]) {
-  let contractInfo: ContractInfo = scillaContracts[contractName];
+  let contractInfo: ContractInfo = hre.scillaContracts[contractName];
   if (contractInfo === undefined) {
     throw new Error(`Scilla contract ${contractName} doesn't exist.`);
   }
