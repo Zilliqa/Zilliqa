@@ -62,6 +62,8 @@ class Tracing : public Singleton<Tracing> {
  public:
   Tracing();
 
+  std::string Version() { return "Initial" ;}
+
   std::shared_ptr<trace_api::Tracer> get_tracer();
 
   /// Called on main() exit explicitly

@@ -30,6 +30,7 @@
 #include "libServer/WebsocketServer.h"
 #include "libUtils/Metrics.h"
 #include "libValidator/Validator.h"
+#include "libUtils/Tracing.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1
@@ -159,6 +160,8 @@ int main(int argc, const char* argv[]) {
     INIT_STDOUT_LOGGER();
 
     LOG_MARKER();
+
+    LOG_GENERAL(WARNING, "Tracing starting version :"  + Tracing::GetInstance().Version() );
 
     ISOLATED_SERVER = true;
 
