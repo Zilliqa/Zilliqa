@@ -75,14 +75,22 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
     //
     // create a worker to be executed in the async method
-    const auto worker = [&args, &ret, &result]() -> void {
+    const auto worker = [&span, &args, &ret, &result]() -> void {
         try {
             ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                       result);
         } catch (std::exception &e) {
             LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
+            auto constexpr str = "Exception from underlying RPC call" ;
+            LOG_GENERAL(WARNING, str);
+            TRACE_ATTRIBUTE msg{{"reason", str}};
+            TRACE_EVENT(span, ACC_EVM, "return", msg);
         } catch (...) {
             LOG_GENERAL(WARNING, "UnHandled Exception from underlying RPC call ");
+            auto constexpr str = "Exception from underlying RPC call" ;
+            LOG_GENERAL(WARNING, str);
+            TRACE_ATTRIBUTE msg{{"reason", str}};
+            TRACE_EVENT(span, ACC_EVM, "return", msg);
         }
     };
 
@@ -94,8 +102,6 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
             INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                                     "release-normal");
-            if (TRACE_ENABLED(ACC_EVM))
-                span->AddEvent("return", {{"reason", "release-normal"}});
 
         }
             break;
@@ -108,10 +114,13 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
             INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                                     "release-timeout");
-            if (TRACE_ENABLED(ACC_EVM))
-                span->AddEvent("return", {{"reason", "lock-timeout"}});
-            receipt.AddError(EXECUTE_CMD_TIMEOUT);
 
+            auto constexpr str = "Timeout on lock waiting for EVM-DS" ;
+            LOG_GENERAL(WARNING, str);
+            TRACE_ATTRIBUTE msg{{"reason", str}};
+            TRACE_EVENT(span, ACC_EVM, "return", msg);
+
+            receipt.AddError(EXECUTE_CMD_TIMEOUT);
             ret = false;
         }
             break;
@@ -120,8 +129,12 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
 
             INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                                     "release-deferred");
-            if (TRACE_ENABLED(ACC_EVM))
-                span->AddEvent("return", {{"reason", "illegal future return"}});
+
+            auto constexpr str = "Illegal future return status" ;
+            LOG_GENERAL(WARNING, str);
+            TRACE_ATTRIBUTE msg{{"reason", str}};
+            TRACE_EVENT(span, ACC_EVM, "return", msg);
+
             ret = false;
         }
     }
@@ -301,34 +314,19 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
     LOG_MARKER();
-
-    LOG_GENERAL(INFO,
-                "Commit Context Mode="
-                        << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
+    LOG_GENERAL(INFO,"Commit Context Mode="
+                       << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
 
     std::string txnId = evmContext.GetTranID().hex();
 
-
-    TRACE_ATTRIBUTE am{{"tid",   txnId},
-                       {"block", blockNum}};
-
-    // Start a span if filter allows
+    TRACE_ATTRIBUTE am{{"tid",   txnId}, {"block", blockNum}};
     auto span = START_SPAN(ACC_EVM, am);
     SCOPED_SPAN(ACC_EVM, scope, span);
-
-    LOG_GENERAL(INFO,
-                "Commit Context Mode="
-                        << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
 
     if (LOG_SC) {
         LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
     }
 
-    /*
-     * This section of code is a very direct call to the evm-ds
-     * This will be executed before the accounts lock as it does not touch
-     * accounts.
-     */
     if (evmContext.GetDirect()) {
         evm::EvmResult res;
         bool status = EvmClient::GetInstance().CallRunner(
@@ -342,7 +340,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     m_txnProcessTimeout = false;
     error_code = TxnStatus::NOT_PRESENT;
     const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
-
     uint64_t gasLimitEth = evmContext.GetTransaction().GetGasLimitEth();
 
     // Get the amount of deposit for running this txn
@@ -351,6 +348,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                   evmContext.GetTransaction().GetGasPriceWei(),
                                   gasDepositWei)) {
         error_code = TxnStatus::MATH_ERROR;
+        auto constexpr str = "Math Error" ;
+        LOG_GENERAL(WARNING, str);
+        TRACE_ATTRIBUTE msg{{"Gas", evmContext.GetTransaction().GetGasLimitEth()}, {"reason", str}};
+        TRACE_EVENT(span, ACC_EVM, "return", msg);
         return false;
     }
 
@@ -368,10 +369,11 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
             Account *fromAccount = this->GetAccount(fromAddr);
             if (fromAccount == nullptr) {
-                LOG_GENERAL(WARNING, "Sender has no balance, reject");
-                if (TRACE_ENABLED(ACC_EVM))
-                    span->AddEvent("return", {{"From",   fromAddr.hex()},
-                                              {"reason", "Get Account Returned Null"}});
+                auto constexpr str = "Sender has no balance, reject";
+                LOG_GENERAL(WARNING, str);
+                TRACE_ATTRIBUTE msg{{"Gas",   evmContext.GetTransaction().GetGasLimitEth()},
+                                    {"reason", str}};
+                TRACE_EVENT(span, ACC_EVM, "return", msg);
                 error_code = TxnStatus::INVALID_FROM_ACCOUNT;
                 return false;
             }
@@ -460,8 +462,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                 LOG_GENERAL(WARNING,
                             "Evm Exception caught in Decrease Balance " << e.what());
                 error_code = TxnStatus::FAIL_CONTRACT_INIT;
-                TRACE_ATTRIBUTE msg{{"From",   fromAddr.hex()},
-                                    {"reason", "Evm Exception caught in Decrease Balance"}};
+                TRACE_ATTRIBUTE msg{{"From",   fromAddr.hex()},{"reason", "Evm Exception caught in Decrease Balance"}};
                 TRACE_EVENT(span, ACC_EVM, "return", msg);
 
                 return false;
@@ -488,8 +489,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                 error_code = TxnStatus::INSUFFICIENT_BALANCE;
                 LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
 
-                TRACE_ATTRIBUTE msg{{"From",   fromAddr.hex()},
-                                    {"reason", "Transfer Atomic Failed"}};
+                TRACE_ATTRIBUTE msg{{"From", fromAddr.hex()},{"reason", "Transfer Atomic Failed"}};
                 TRACE_EVENT(span, ACC_EVM, "return", msg);
 
                 return false;
@@ -505,8 +505,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                                true)) {
                 LOG_GENERAL(WARNING, "Account::UpdateStates failed");
 
-                TRACE_ATTRIBUTE msg{{"From",   fromAddr.hex()},
-                                    {"reason", "Account::UpdateStates failed"}};
+                TRACE_ATTRIBUTE msg{{"From",   fromAddr.hex()}, {"reason", "Account::UpdateStates failed"}};
                 TRACE_EVENT(span, ACC_EVM, "return", msg);
 
                 return false;
