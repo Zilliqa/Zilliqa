@@ -5,7 +5,7 @@ add_library(Server
     LookupServer.cpp
     StakingServer.cpp
     StatusServer.cpp
-    WebsocketServer.cpp
+    DedicatedWebsocketServer.cpp
     IsolatedServer.cpp
     EthRpcMethods.h
     EthRpcMethods.cpp

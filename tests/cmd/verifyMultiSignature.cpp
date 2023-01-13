@@ -27,13 +27,13 @@
 #include <openssl/sha.h>
 #include <boost/algorithm/hex.hpp>
 #include <boost/program_options.hpp>
-#include "libCrypto/Sha2.h"
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "libCrypto/Sha2.h"
 
 using zbytes = std::vector<uint8_t>;
 

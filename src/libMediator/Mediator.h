@@ -35,6 +35,10 @@ namespace evmproj::filters {
 class APICache;
 }  // namespace evmproj::filters
 
+namespace rpc {
+class DedicatedWebsocketServer;
+}
+
 /// A mediator class for providing access to global members.
 class Mediator {
  public:
@@ -119,6 +123,9 @@ class Mediator {
 
   /// Filters API cache
   std::shared_ptr<evmproj::filters::APICache> m_filtersAPICache;
+
+  /// Dedicated (old) websocket server
+  std::shared_ptr<rpc::DedicatedWebsocketServer> m_websocketServer;
 
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);

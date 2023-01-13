@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,188 +18,53 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_
 
-#include <json/json.h>
+#include <functional>
 #include <memory>
-#include <mutex>
-#include <set>
+#include <string>
 
-#include "websocketpp/config/asio_no_tls.hpp"
-#include "websocketpp/server.hpp"
+namespace rpc {
 
-#include "common/Constants.h"
-#include "common/Singleton.h"
-#include "depends/common/FixedHash.h"
-#include "libData/AccountData/Address.h"
-#include "libData/AccountData/TransactionReceipt.h"
-#include "libData/BlockData/Block.h"
-
-typedef websocketpp::server<websocketpp::config::asio> websocketserver;
-
-enum WEBSOCKETQUERY : unsigned int { NEWBLOCK, EVENTLOG, TXNLOG, UNSUBSCRIBE };
-
-struct Subscription {
-  std::set<WEBSOCKETQUERY> queries;
-  std::set<WEBSOCKETQUERY> unsubscribings;
-
-  void subscribe(WEBSOCKETQUERY query) { queries.emplace(query); }
-
-  void unsubscribe_start(WEBSOCKETQUERY query) {
-    if (queries.find(query) != queries.end()) {
-      unsubscribings.emplace(query);
-    }
-  }
-
-  bool subscribed(WEBSOCKETQUERY query) {
-    return queries.find(query) != queries.end();
-  }
-
-  void unsubscribe_finish() {
-    for (auto unsubscribing : unsubscribings) {
-      queries.erase(unsubscribing);
-    }
-    unsubscribings.clear();
-  }
-};
-
-struct EventLogAddrHdlTracker {
-  // for updating event log for client subscribed
-  std::map<Address, std::set<websocketpp::connection_hdl,
-                             std::owner_less<websocketpp::connection_hdl>>>
-      m_addr_hdl_map;
-  // for removing socket from m_eventlog_hdl_tracker
-  std::map<websocketpp::connection_hdl, std::set<Address>,
-           std::owner_less<websocketpp::connection_hdl>>
-      m_hdl_addr_map;
-
-  void remove(const websocketpp::connection_hdl& hdl) {
-    auto iter_hdl_addr = m_hdl_addr_map.find(hdl);
-    if (iter_hdl_addr == m_hdl_addr_map.end()) {
-      return;
-    }
-    for (const auto& addr : iter_hdl_addr->second) {
-      auto iter_addr_hdl = m_addr_hdl_map.find(addr);
-      if (iter_addr_hdl != m_addr_hdl_map.end()) {
-        iter_addr_hdl->second.erase(hdl);
-      }
-      if (iter_addr_hdl->second.empty()) {
-        m_addr_hdl_map.erase(iter_addr_hdl);
-      }
-    }
-    m_hdl_addr_map.erase(iter_hdl_addr);
-  }
-
-  void update(const websocketpp::connection_hdl& hdl,
-              const std::set<Address>& addresses) {
-    for (const auto& addr : addresses) {
-      m_addr_hdl_map[addr].emplace(hdl);
-    }
-    m_hdl_addr_map[hdl] = addresses;
-  }
-
-  void clear() {
-    m_addr_hdl_map.clear();
-    m_hdl_addr_map.clear();
-  }
-};
-
-class WebsocketServer : public Singleton<WebsocketServer> {
-  /// websocketpp server instance
-  static websocketserver m_server;
-
-  static std::mutex m_mutexSubscriptions;
-  static std::map<websocketpp::connection_hdl, Subscription,
-                  std::owner_less<websocketpp::connection_hdl>>
-      m_subscriptions;
-
-  /// a utility data structure for mapping address and subscriber of EventLog
-  /// regarding of new comer or quiting
-  static std::mutex m_mutexEventLogAddrHdlTracker;
-  static EventLogAddrHdlTracker m_eventLogAddrHdlTracker;
-
-  static std::mutex m_mutexTxnLogAddrHdlTracker;
-  static EventLogAddrHdlTracker m_txnLogAddrHdlTracker;
-
-  /// a buffer for keeping the eventlog to send for each subscriber
-
-  static std::mutex m_mutexEventLogDataBuffer;
-  static std::map<websocketpp::connection_hdl,
-                  std::unordered_map<Address, Json::Value>,
-                  std::owner_less<websocketpp::connection_hdl>>
-      m_eventLogDataBuffer;
-
-  static std::mutex m_mutexTxnLogDataBuffer;
-  static std::map<websocketpp::connection_hdl,
-                  std::unordered_map<Address, Json::Value>,
-                  std::owner_less<websocketpp::connection_hdl>>
-      m_txnLogDataBuffer;
-
-  /// make run() detached in a new thread to avoid blocking
-  websocketpp::lib::shared_ptr<websocketpp::lib::thread> m_thread;
-
-  std::mutex m_mutexTxnBlockNTxnHashes;
-  Json::Value m_jsonTxnBlockNTxnHashes;
-
+/// Websocket server: owner's interface
+class WebsocketServer {
  public:
-  /// Returns the singleton AccountStore instance.
-  static WebsocketServer& GetInstance() {
-    static WebsocketServer ws;
-    return ws;
-  }
+  /// Default max inbound raw message size. That big because it can handle EVM
+  /// contract bytes
+  static constexpr size_t DEF_MAX_INCOMING_MSG_SIZE = 5 * 1024 * 1024;
 
-  // /// Public interface for sending TxBlock and TxHashes
-  void PrepareTxBlockAndTxHashes(const Json::Value& json_txblock,
-                                 const Json::Value& json_txhashes);
+  /// Connection ID: auto-incremented integer unique for server instance
+  using ConnectionId = uint64_t;
 
-  /// Public interface to digest contract event from transaction receipts
-  void ParseTxnEventLog(const TransactionWithReceipt& twr);
+  /// Incoming text message, all JSON processing is up to owner
+  using InMessage = std::string;
 
-  //
-  void ParseTxn(const TransactionWithReceipt& twr);
+  /// Outgoing text message const-and-shared for low cost reuse between sessions
+  /// and their transfer speeds
+  using OutMessage = std::shared_ptr<const std::string>;
 
-  void ParseTxnLog(const TransactionWithReceipt& twr);
+  /// Callback from server to its owner. Receives incoming messages or EOF.
+  /// Empty msg means EOF.
+  /// unknownMethodFound is set to true if owner is not going to handle this
+  /// request, but the request is valid
+  /// The owner returns true to proceed with connection, false to close it.
+  using Feedback = std::function<bool(ConnectionId id, const InMessage& msg,
+                                      bool& unknownMethodFound)>;
 
-  // /// Public interface to send all digested contract events to subscriber
-  void SendOutMessages();
+  /// Dtor
+  virtual ~WebsocketServer() = default;
 
- private:
-  /// Singleton constructor and start service immediately
-  WebsocketServer() {
-    m_server.clear_access_channels(websocketpp::log::alevel::all);
-    if (!start()) {
-      LOG_GENERAL(FATAL, "WebsocketServer start failed");
-      ENABLE_WEBSOCKET = false;
-      stop();
-      return;
-    }
-  }
+  /// Owner initializes server
+  virtual void SetOptions(Feedback feedback, size_t max_input_msg_size) = 0;
 
-  /// Singleton desctructor and stop service
-  ~WebsocketServer() { stop(); }
+  /// Enqueues outbound message into connection.
+  virtual void SendMessage(ConnectionId conn_id, OutMessage msg) = 0;
 
-  /// Start websocket server
-  bool start();
+  /// Closes connection with a given id, if exists
+  virtual void CloseConnection(ConnectionId conn_id) = 0;
 
-  /// Stop websocket server
-  void stop();
-
-  /// close a socket from connection_hdl
-  static void closeSocket(
-      const websocketpp::connection_hdl& hdl, const std::string& reason,
-      const websocketpp::close::status::value& close_status);
-
-  /// clean in-memory data structures
-  void clean();
-
-  /// Send string data to hdl connection
-  bool sendData(const websocketpp::connection_hdl& hdl,
-                const std::string& data);
-
-  /// standard callbacks for websocket server instance
-  static void on_message(const websocketpp::connection_hdl& hdl,
-                         const websocketserver::message_ptr& msg);
-  // static void on_fail(const websocketpp::connection_hdl& hdl);
-  static void on_close(const websocketpp::connection_hdl& hdl);
-  static void on_http(const websocketpp::connection_hdl& hdl);
+  /// Closes all, no incoming messages via Feedback after it
+  virtual void CloseAll() = 0;
 };
+
+}  // namespace rpc
 
 #endif  // ZILLIQA_SRC_LIBSERVER_WEBSOCKETSERVER_H_

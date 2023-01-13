@@ -88,6 +88,12 @@ class Queue {
     m_condition.notify_all();
   }
 
+  void reset() {
+    std::lock_guard<Mutex> lk(m_mutex);
+    m_stopped = false;
+    m_queue.clear();
+  }
+
  private:
   const size_t m_maxSize;
   mutable Mutex m_mutex;
