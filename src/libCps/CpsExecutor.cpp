@@ -108,8 +108,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     if (!m_queue.empty()) {
       CpsRunEvm* nextRun = static_cast<CpsRunEvm*>(m_queue.back().get());
       if (nextRun->IsResumable()) {
-        nextRun->ProvideFeedback(*static_cast<CpsRunEvm*>(currentRun.get()),
-                                 runResult.evmResult);
+        nextRun->ProvideFeedback(*currentRun.get(), runResult);
       }
     }
   }

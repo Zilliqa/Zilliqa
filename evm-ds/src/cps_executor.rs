@@ -2,7 +2,10 @@ use std::collections::BTreeMap;
 
 use crate::protos::Evm as EvmProto;
 use core::cmp::min;
-use evm::executor::stack::{MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor};
+use evm::executor::stack::{
+    MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor,
+    StackExecutorHandle, StackState,
+};
 
 use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
@@ -317,6 +320,42 @@ impl<'a> Handler for CpsExecutor<'a> {
         offset_len: U256,
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
         if self.enable_cps {
+            if let Some(result) =
+                self.stack_executor
+                    .precompiles()
+                    .execute(&mut StackExecutorHandle {
+                        executor: &mut self.stack_executor,
+                        code_address,
+                        input: &input,
+                        gas_limit: target_gas,
+                        context: &context,
+                        is_static,
+                    })
+            {
+                info!("EXECUTED PRECOMPILE WITH ADDRESS: {:?}", code_address);
+                return match result {
+                    Ok(PrecompileOutput {
+                        exit_status,
+                        output,
+                    }) => Capture::Exit((ExitReason::Succeed(exit_status), output)),
+                    Err(PrecompileFailure::Error { exit_status }) => {
+                        Capture::Exit((ExitReason::Error(exit_status), Vec::new()))
+                    }
+                    Err(PrecompileFailure::Revert {
+                        exit_status,
+                        output,
+                    }) => Capture::Exit((ExitReason::Revert(exit_status), output)),
+                    Err(PrecompileFailure::Fatal { exit_status }) => {
+                        self.stack_executor
+                            .state_mut()
+                            .metadata_mut()
+                            .gasometer_mut()
+                            .fail();
+                        Capture::Exit((ExitReason::Fatal(exit_status), Vec::new()))
+                    }
+                };
+            }
+
             return Capture::Trap(Self::CallInterrupt {
                 code_address,
                 transfer,

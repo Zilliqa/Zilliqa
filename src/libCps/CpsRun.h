@@ -24,13 +24,18 @@ class TransactionReceipt;
 
 namespace libCps {
 class CpsAccountStoreInterface;
+class CpsExecuteResult;
 class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
-  enum Type { Call, Create, TrapCreate, TrapCall };
+  enum Type { Call, Create, Transfer, TrapCreate, TrapCall };
   CpsRun(CpsAccountStoreInterface& accountStore, Type type)
       : mAccountStore(accountStore), mType(type) {}
   virtual ~CpsRun() = default;
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) = 0;
+  virtual bool IsResumable() const = 0;
+  virtual bool HasFeedback() const = 0;
+  virtual void ProvideFeedback(const CpsRun& prevRun,
+                               const CpsExecuteResult& results) = 0;
   Type GetType() const { return mType; }
 
  protected:

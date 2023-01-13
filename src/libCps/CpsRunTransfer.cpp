@@ -1,0 +1,51 @@
+/*
+ * Copyright (C) 2022 Zilliqa
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "libCps/CpsRunTransfer.h"
+#include "libCps/CpsAccountStoreInterface.h"
+#include "libCps/CpsContext.h"
+#include "libCps/CpsExecutor.h"
+
+#include "libUtils/Logger.h"
+
+namespace libCps {
+CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, CpsContext& ctx,
+                               const Address& from, const Address& to,
+                               const Amount& amount)
+    : CpsRun(executor.GetAccStoreIface(), CpsRun::Transfer),
+      mCpsContext(ctx),
+      mFrom(from),
+      mTo(to),
+      mAmount(amount) {}
+
+CpsExecuteResult CpsRunTransfer::Run(TransactionReceipt& /*receipt*/) {
+  if (mCpsContext.isStatic) {
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+  LOG_GENERAL(WARNING, "RUNNING CPS TRANSFER FROM: " + mFrom.hex() +
+                           ", to: " + mTo.hex() + ", with VAL: " +
+                           mAmount.toWei().convert_to<std::string>());
+
+  if (!mAccountStore.TransferBalanceAtomic(mFrom, mTo, mAmount)) {
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+  }
+  mAccountStore.AddAddressToUpdateBufferAtomic(mFrom);
+  mAccountStore.AddAddressToUpdateBufferAtomic(mTo);
+  return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
+}  // namespace libCps

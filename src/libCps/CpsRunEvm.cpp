@@ -19,6 +19,7 @@
 #include "libCps/CpsAccountStoreInterface.h"
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecutor.h"
+#include "libCps/CpsRunTransfer.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/EvmClient.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -242,31 +243,40 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     mExecutor.PushRun(shared_from_this());
   }
 
-  // Push create job to be run by EVM
-  {
+  const auto destContractCode =
+      mAccountStore.GetContractCode(ProtoToAddress(callData.callee_address()));
+  if (std::empty(destContractCode)) {
+    const auto fromAccount = ProtoToAddress(callData.transfer().source());
+    const auto toAccount = ProtoToAddress(callData.transfer().destination());
+    const auto value =
+        Amount::fromWei(ProtoToUint(callData.transfer().value()));
+    auto transferRun = std::make_shared<CpsRunTransfer>(
+        mExecutor, mCpsContext, fromAccount, toAccount, value);
+    mExecutor.PushRun(std::move(transferRun));
+  } else {
     const auto targetGas =
         callData.target_gas() != std::numeric_limits<uint64_t>::max()
             ? callData.target_gas()
             : result.remaining_gas();
 
     const auto inputGas = targetGas;
-    evm::EvmArgs evmCreateArgs;
-    *evmCreateArgs.mutable_address() = ctx.destination();
-    *evmCreateArgs.mutable_origin() = ctx.caller();
+    evm::EvmArgs evmCallArgs;
+    *evmCallArgs.mutable_address() = ctx.destination();
+    *evmCallArgs.mutable_origin() = ctx.caller();
     const auto code = mAccountStore.GetContractCode(
         ProtoToAddress(callData.callee_address()));
-    *evmCreateArgs.mutable_code() =
+    *evmCallArgs.mutable_code() =
         DataConversion::CharArrayToString(StripEVM(code));
-    *evmCreateArgs.mutable_data() = callData.call_data();
-    evmCreateArgs.set_gas_limit(inputGas);
-    *evmCreateArgs.mutable_apparent_value() = ctx.apparent_value();
-    evmCreateArgs.set_estimate(mCpsContext.estimate);
-    *evmCreateArgs.mutable_context() = "TrapCall";
-    *evmCreateArgs.mutable_extras() = mCpsContext.evmExtras;
-    evmCreateArgs.set_enable_cps(ENABLE_CPS);
-    auto createRun = std::make_unique<CpsRunEvm>(
-        std::move(evmCreateArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
-    mExecutor.PushRun(std::move(createRun));
+    *evmCallArgs.mutable_data() = callData.call_data();
+    evmCallArgs.set_gas_limit(inputGas);
+    *evmCallArgs.mutable_apparent_value() = ctx.apparent_value();
+    evmCallArgs.set_estimate(mCpsContext.estimate);
+    *evmCallArgs.mutable_context() = "TrapCall";
+    *evmCallArgs.mutable_extras() = mCpsContext.evmExtras;
+    evmCallArgs.set_enable_cps(ENABLE_CPS);
+    auto callRun = std::make_unique<CpsRunEvm>(
+        std::move(evmCallArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
+    mExecutor.PushRun(std::move(callRun));
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
@@ -287,11 +297,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
 
-  const auto destContractCode = mAccountStore.GetContractCode(calleeAddr);
-  if (destContractCode.empty()) {
-    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
-  }
-
   if (mCpsContext.isStatic && !isStatic) {
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
@@ -301,6 +306,11 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   const bool isValZero = (tnsfVal == 0);
   const bool isDelegate = (ctxOriginAddr == mCpsContext.origSender) &&
                           (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
+
+  const auto destContractCode = mAccountStore.GetContractCode(calleeAddr);
+  if (std::empty(destContractCode) && areTxnAddressesEmpty) {
+    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
+  }
 
   if (isStatic || isDelegate) {
     if (!areTxnAddressesEmpty || !isValZero) {
@@ -318,6 +328,9 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   }
 
   if (!areTxnAddressesEmpty) {
+    if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
+      return {TxnStatus::ERROR, false, {}};
+    }
     const auto currentBalance =
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
@@ -432,6 +445,9 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
 CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
     const evm::TrapData_Create& createData, uint64_t remainingGas) {
+  if (mCpsContext.isStatic) {
+    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
+  }
   const evm::Address& protoCaller = createData.caller();
   const Address address = ProtoToAddress(protoCaller);
   // Check Balance, Required Gas
@@ -573,19 +589,29 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
   }
 }
 
-void CpsRunEvm::ProvideFeedback(const CpsRunEvm& previousRun,
-                                const evm::EvmResult& result) {
-  LOG_GENERAL(WARNING,
-              "PRovide feedback remaining gas: " << result.remaining_gas());
-  mProtoArgs.set_gas_limit(result.remaining_gas());
+bool CpsRunEvm::HasFeedback() const {
+  return GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate;
+}
+
+void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
+                                const CpsExecuteResult& results) {
+  if (!previousRun.HasFeedback()) {
+    return;
+  }
+
+  // For now only Evm is supported!
+  const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
+  LOG_GENERAL(WARNING, "PRovide feedback remaining gas: "
+                           << results.evmResult.remaining_gas());
+  mProtoArgs.set_gas_limit(results.evmResult.remaining_gas());
 
   if (mProtoArgs.continuation().feedback_type() ==
       evm::Continuation_Type_CREATE) {
     *mProtoArgs.mutable_continuation()->mutable_address() =
-        previousRun.mProtoArgs.address();
+        prevRunEvm.mProtoArgs.address();
   } else {
     *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
-        result.return_value();
+        results.evmResult.return_value();
   }
 }
 

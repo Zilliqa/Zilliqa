@@ -269,6 +269,10 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
               "Commit Context Mode="
                   << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
 
+  LOG_GENERAL(INFO, "Commit Estimate Mode=" << (evmContext.GetEstimateOnly()
+                                                    ? "Estimate"
+                                                    : "Non-Estimate"));
+
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
   }
@@ -278,7 +282,8 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
    * This will be executed before the accounts lock as it does not touch
    * accounts.
    */
-  if (evmContext.GetDirect() || (!ENABLE_CPS && evmContext.GetEstimateOnly())) {
+  if ((!ENABLE_CPS &&
+       (evmContext.GetEstimateOnly() || evmContext.GetDirect()))) {
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
         EvmUtils::GetEvmCallJson(evmContext.GetEvmArgs()), res);

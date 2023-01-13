@@ -37,9 +37,10 @@ class CpsRunEvm final : public CpsRun {
             CpsRun::Type type);
   ~CpsRunEvm();
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
-  void ProvideFeedback(const CpsRunEvm& previousRun,
-                       const evm::EvmResult& result);
-  bool IsResumable() const;
+  void ProvideFeedback(const CpsRun& previousRun,
+                       const CpsExecuteResult& results) override;
+  bool IsResumable() const override;
+  bool HasFeedback() const override;
 
  private:
   std::optional<evm::EvmResult> InvokeEvm();
@@ -56,7 +57,7 @@ class CpsRunEvm final : public CpsRun {
                                       uint64_t remainingGas);
   void InstallCode(const Address& address, const std::string& code);
 
- public:
+ private:
   evm::EvmArgs mProtoArgs;
   CpsExecutor& mExecutor;
   CpsContext& mCpsContext;
