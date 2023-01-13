@@ -315,6 +315,7 @@ class EthRpcMethods {
    */
   virtual void GetEthChainIdI(const Json::Value& /*request*/,
                               Json::Value& response) {
+    std::cout << "testing... " << std::endl;
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetEthChainId();
   }
