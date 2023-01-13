@@ -11,7 +11,6 @@ set_target_properties(opentelemetry-cpp::opentelemetry_exporter_prometheus PROPE
 protobuf_generate_cpp(PROTO_SRC PROTO_HEADER Evm.proto)
 
 add_library(Utils
-        AddressConversion.cpp
         BitVector.cpp
         DataConversion.cpp
         Logger.cpp

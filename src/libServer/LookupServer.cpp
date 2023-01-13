@@ -34,7 +34,6 @@
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
-#include "libUtils/AddressConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
