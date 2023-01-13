@@ -1,6 +1,7 @@
 import {deploy, ScillaContract} from "../../helper/ScillaHelper";
 import {expect} from "chai";
 
+// TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
 describe("Scilla SetGet contract", function () {
   let contract: ScillaContract;
   const VALUE = 12;
