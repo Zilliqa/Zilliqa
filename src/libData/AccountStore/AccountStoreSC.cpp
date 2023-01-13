@@ -35,6 +35,16 @@
 
 #include "libData/AccountStore/AccountStoreSC.h"
 
+namespace {
+
+    zil::metrics::uint64Counter_t& GetInvocationsCounter() {
+        static auto counter = Metrics::GetInstance().CreateInt64Metric(
+                "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
+                "Blocks");
+        return counter;
+    }
+
+}
 // 5mb
 const unsigned int MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
 
@@ -139,7 +149,11 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
                                          const Transaction& transaction,
                                          TransactionReceipt& receipt,
                                          TxnStatus& error_code) {
+  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA)
   LOG_MARKER();
+
+  auto span = START_SPAN(SCILLA_PROCESSING, {});
+  SCOPED_SPAN(SCILLA_PROCESSING, scope, span);
 
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
 
@@ -170,6 +184,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
       // LOG_GENERAL(INFO, "Normal transaction");
+        INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
+                                "Transaction", "Non-Contract");
 
       // Disallow normal transaction to contract account
       Account* toAccount = this->GetAccount(toAddr);
@@ -186,6 +202,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
+                                "Transaction", "Create");
 
       // bool validToTransferBalance = true;
 
@@ -493,6 +511,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t& blockNum,
     }
     case Transaction::CONTRACT_CALL: {
       // reset the storageroot update buffer atomic per transaction
+      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
+                                "Transaction", "Contract-Call/Non Contract");
       m_storageRootUpdateBufferAtomic.clear();
 
       m_originAddr = fromAddr;

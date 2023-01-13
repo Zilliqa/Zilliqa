@@ -256,7 +256,6 @@ class AccountStoreSC : public AccountStoreBase {
   // Adds an Account to the atomic AccountStore.
   bool AddAccountAtomic(const Address& address, const Account& account);
 
-  bool ViewAccounts(const evm::EvmArgs& args, evm::EvmResult& result);
   bool EvmProcessMessage(EvmProcessContext& params, evm::EvmResult& result);
 };
 

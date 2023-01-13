@@ -30,6 +30,7 @@
 #define TRACE_FILTER_CLASSES(M) \
   M(EVM_CLIENT)                   \
   M(EVM_CLIENT_LOW_LEVEL)         \
+  M(SCILLA_PROCESSING)            \
   M(SCILLA_IPC)                   \
   M(EVM_RPC)                      \
   M(LOOKUP_SERVER)                \
