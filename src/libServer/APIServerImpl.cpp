@@ -364,6 +364,19 @@ bool APIServerImpl::DoListen() {
 
   AcceptNext();
 
+
+  m_metrics.SetCallback([this](auto&& result) {
+    result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
+                                      {"counter", "TotalConnections"}});
+    /* TODO add this properly
+     * result.Set(m_websocket->GetConnectionsNumber(),
+               {{"server", m_options.threadPoolName},
+                {"counter", "TotalWebsocketConnections"}}); */
+    result.Set(m_threadPool->GetQueueSize(),
+               {{"server", m_options.threadPoolName},
+                {"counter", "ThreadPoolQueueSize"}});
+  });
+
   return true;
 }
 
