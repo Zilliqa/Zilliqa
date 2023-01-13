@@ -623,8 +623,7 @@ const bool ENABLE_SCILLA_MULTI_VERSION{
     "true"};
 bool ENABLE_SCILLA{ReadConstantString("ENABLE_SCILLA", "node.smart_contract.",
                                       "true") == "true"};
-const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
-                  "true"};
+const bool LOG_SC = true;
 const bool DISABLE_SCILLA_LIB{
     ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_PENDING_IN_MS{

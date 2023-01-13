@@ -967,6 +967,8 @@ std::string EthRpcMethods::GetProtocolVersion() {
 }
 
 std::string EthRpcMethods::GetEthChainId() {
+  std::cout << "chain id 1" << std::endl;
+  std::cerr << "chain id 1" << std::endl;
   LOG_MARKER();
 
   if (zil::metrics::Filter::GetInstance().Enabled(
