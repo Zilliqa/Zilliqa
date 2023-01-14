@@ -200,6 +200,17 @@ COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /zilliqa/evm-ds/target/release/evm-ds /usr/local/bin/
 COPY --from=builder /zilliqa/evm-ds/log4rs.yml /usr/local/etc/
 
+# The above COPY doesn't preserve symlinks which causes gcc/g++/cc/c++
+# to hang as stand-alone binaries on Ubuntu 22.04.
+RUN rm -f /usr/local/bin/gcc \
+      /usr/local/bin/g++ \
+      /usr/local/bin/cc \
+      /usr/local/bin/c++ \
+    && ln -s "$(which ccache)" /usr/local/bin/gcc \
+    && ln -s "$(which ccache)" /usr/local/bin/g++ \
+    && ln -s "$(which ccache)" /usr/local/bin/cc \
+    && ln -s "$(which ccache)" /usr/local/bin/c++
+
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 
 ARG PYTHON3_ENV_PATH=/usr/local
