@@ -54,6 +54,10 @@ typedef long long observerType;
 typedef long int observerType;
 #endif
 
+namespace evm {
+    void InitHistogram();
+};
+
 AccountStoreSC::AccountStoreSC() {
     m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
     m_txnProcessTimeout = false;
@@ -61,6 +65,11 @@ AccountStoreSC::AccountStoreSC() {
         result.Set(m_curBlockNum, {{"counter", "BlockNumber"}});
         result.Set(m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
     });
+    m_evmLatency.SetCallback([this](auto &&result) {
+        result.Set(m_evmLat, {{"counter", "latency"}});
+    });
+    // Initialise our sample histogram
+    evm::InitHistogram();
 }
 
 

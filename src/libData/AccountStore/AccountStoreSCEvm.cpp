@@ -20,6 +20,7 @@
 #include <future>
 #include <stdexcept>
 #include <vector>
+#include <opentelemetry/sdk/metrics/meter_provider.h>
 
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
@@ -27,6 +28,13 @@
 #include "opentelemetry/ext/http/common/url_parser.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
 #include "opentelemetry/trace/semantic_conventions.h"
+#include "opentelemetry/exporters/ostream/metric_exporter.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
+#include "opentelemetry/sdk/metrics/aggregation/histogram_aggregation.h"
+#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
+#include "opentelemetry/sdk/metrics/meter.h"
+#include "opentelemetry/sdk/metrics/meter_provider.h"
 
 #include "AccountStoreSC.h"
 #include "common/Constants.h"
@@ -46,8 +54,39 @@
 #include "libUtils/Tracing.h"
 #include "libUtils/TxnExtras.h"
 
+namespace metric_sdk      = opentelemetry::sdk::metrics;
 
-namespace {
+namespace evm {
+    zil::metrics::doubleHistogram_t histogram;
+
+    void InitHistogram() {
+
+
+        std::string version{"1.2.0"};
+        std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
+        std::string name{"zilliqa"};
+
+        std::string histogram_name = name + "_histogram";
+        std::unique_ptr<metric_sdk::InstrumentSelector> histogram_instrument_selector{
+                new metric_sdk::InstrumentSelector(metric_sdk::InstrumentType::kHistogram, histogram_name)};
+        std::unique_ptr<metric_sdk::MeterSelector> histogram_meter_selector{
+                new metric_sdk::MeterSelector(name, version, schema)};
+        std::shared_ptr<opentelemetry::sdk::metrics::AggregationConfig> aggregation_config{
+                new opentelemetry::sdk::metrics::HistogramAggregationConfig};
+        static_cast<opentelemetry::sdk::metrics::HistogramAggregationConfig *>(aggregation_config.get())
+                ->boundaries_ = std::list<double>{0.0, 100, 250, 500, 1000, 2000, 3000};
+        std::unique_ptr<metric_sdk::View> histogram_view{new metric_sdk::View{
+                name, "description", metric_sdk::AggregationType::kHistogram, aggregation_config}};
+
+        auto p = std::static_pointer_cast<metric_sdk::MeterProvider>(Metrics::GetInstance().getProvider());
+
+        p->AddView(std::move(histogram_instrument_selector), std::move(histogram_meter_selector),
+                   std::move(histogram_view));
+
+
+        std::shared_ptr<opentelemetry::metrics::Meter> meter = p->GetMeter(name, "1.2.0");
+        histogram = meter->CreateDoubleHistogram(histogram_name, "A histogram to measure latencies", "us");
+    }
 
     zil::metrics::uint64Counter_t &GetInvocationsCounter() {
         static auto counter = Metrics::GetInstance().CreateInt64Metric(
@@ -64,7 +103,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    bool &ret,                          //
                                    TransactionReceipt &receipt,        //
                                    evm::EvmResult &result) {
-    INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+    INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM)
 
     auto span = START_SPAN(ACC_EVM, {});
     SCOPED_SPAN(ACC_EVM, scope, span);
@@ -100,7 +139,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
         case std::future_status::ready: {
             LOG_GENERAL(WARNING, "lock released normally");
 
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+            INCREMENT_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                                     "release-normal");
 
         }
@@ -112,7 +151,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                 EvmClient::GetInstance().Reset();
             }
 
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+            INCREMENT_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                                     "release-timeout");
 
             auto constexpr str = "Timeout on lock waiting for EVM-DS" ;
@@ -127,7 +166,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
         case std::future_status::deferred: {
             LOG_GENERAL(WARNING, "Illegal future return status!");
 
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
+            INCREMENT_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM, "lock",
                                     "release-deferred");
 
             auto constexpr str = "Illegal future return status" ;
@@ -292,16 +331,35 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
     bool unused_isds = true;
     TransactionReceipt rcpt;
     TxnStatus error_code;
+    std::chrono::system_clock::time_point tpStart;
 
-    INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+
+    INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM)
+
     auto span = START_SPAN(ACC_EVM, {});
-    SCOPED_SPAN(ACC_EVM, scope, span);
+
+    if (TRACE_ENABLED(ACC_EVM)) {
+        tpStart = r_timer_start();
+    }
 
     bool status = UpdateAccountsEvm(params.GetBlockNumber(), unused_numShards,
                                     unused_isds, rcpt, error_code, params);
 
+    if (TRACE_ENABLED(ACC_EVM)) {
+        uint64_t taken = r_timer_end(tpStart);
+        m_evmLat = taken;
+
+        std::map<std::string, std::string> labels{{"latency","evm-ds"}};
+        auto context           = opentelemetry::context::Context{};
+        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+        std::cout << "recording " << taken << std::endl;
+        evm::histogram->Record(taken, labelkv, context);
+    }
+
     result = params.GetEvmResult();
     params.SetEvmReceipt(rcpt);
+
+    span->End();
 
     return status;
 }
@@ -360,7 +418,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     switch (evmContext.GetContractType()) {
         case Transaction::CONTRACT_CREATION: {
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM,
+            INCREMENT_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM,
                                     "Transaction", "Create");
 
             if (LOG_SC) {
@@ -584,7 +642,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
         case Transaction::NON_CONTRACT:
         case Transaction::CONTRACT_CALL: {
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_EVM,
+            INCREMENT_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM,
                                     "Transaction", "Contract-Call/Non Contract");
 
             if (LOG_SC) {

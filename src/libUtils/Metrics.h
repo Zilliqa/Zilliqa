@@ -198,6 +198,10 @@ class Metrics : public Singleton<Metrics> {
   /// Called on main() exit explicitly
   void Shutdown();
 
+  std::shared_ptr<opentelemetry::metrics::MeterProvider>& getProvider(){
+      return m_provider;
+  }
+
  private:
   void Init();
   void InitPrometheus();
