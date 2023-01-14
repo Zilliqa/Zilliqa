@@ -713,6 +713,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  const uint64_t& messageSize) {
   LOG_MARKER();
 
+  LOG_GENERAL(WARNING, "Marker001: Appears here to be processing final block");
+
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
     LOG_CHECK_FAIL("TxBlock version", txBlock.GetHeader().GetVersion(),

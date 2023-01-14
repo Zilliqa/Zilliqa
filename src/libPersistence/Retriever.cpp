@@ -105,6 +105,8 @@ bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
                                          unsigned int extra_txblocks,
                                          std::vector<zbytes>& extraStateDeltas,
                                          bool trimIncompletedBlocks) {
+
+  LOG_GENERAL(WARNING, "Marker001: construct from state deltas...");
   if ((lastBlockNum - extra_txblocks + 1) %
           (INCRDB_DSNUMS_WITH_STATEDELTAS * NUM_FINAL_BLOCK_PER_POW) ==
       0) {
@@ -163,6 +165,8 @@ bool Retriever::ConstructFromStateDeltas(const uint64_t& lastBlockNum,
                 "Try fetching statedelta and deserializing to state for txnBlk:"
                     << j);
             if (BlockStorage::GetBlockStorage().GetStateDelta(j, stateDelta)) {
+
+              LOG_GENERAL(WARNING, "Marker001: deserialize delta in retriever");
               if (!AccountStore::GetInstance().DeserializeDelta(stateDelta,
                                                                 0)) {
                 LOG_GENERAL(

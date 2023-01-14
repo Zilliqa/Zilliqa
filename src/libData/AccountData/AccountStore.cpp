@@ -185,12 +185,15 @@ bool AccountStore::Deserialize(const string& src, unsigned int offset) {
 
 bool AccountStore::SerializeDelta() {
   LOG_MARKER();
+  LOG_GENERAL(WARNING, "Marker001: seriaLL delta");
 
   unique_lock<mutex> g(m_mutexDelta, defer_lock);
   shared_lock<shared_timed_mutex> g2(m_mutexPrimary, defer_lock);
   lock(g, g2);
 
   m_stateDeltaSerialized.clear();
+
+  LOG_GENERAL(WARNING, "Marker001: serializing delta...");
 
   if (!Messenger::SetAccountStoreDelta(m_stateDeltaSerialized, 0,
                                        *m_accountStoreTemp, *this)) {
@@ -204,6 +207,7 @@ bool AccountStore::SerializeDelta() {
 void AccountStore::GetSerializedDelta(zbytes& dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
+  LOG_GENERAL(WARNING, "Marker001: getting delta...");
   dst.clear();
 
   copy(m_stateDeltaSerialized.begin(), m_stateDeltaSerialized.end(),
@@ -212,7 +216,10 @@ void AccountStore::GetSerializedDelta(zbytes& dst) {
 
 bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
                                     bool revertible) {
+  LOG_GENERAL(WARNING, "Marker001: deser delta...!!!");
+
   if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Marker001: we are lokupnodemode...");
     std::lock_guard<std::mutex> g(m_mutexTrie);
     if (m_prevRoot != dev::h256()) {
       try {
@@ -257,6 +264,7 @@ bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
 
 bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
                                         unsigned int offset) {
+  LOG_GENERAL(WARNING, "Marker001: deser delta tmpj...");
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp->DeserializeDelta(src, offset);
 }
@@ -487,6 +495,8 @@ bool AccountStore::UpdateAccountsTemp(
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
   lock(g, g2);
 
+  LOG_GENERAL(WARNING, "Marker001: update accounts temp...");
+
   bool isEvm{false};
 
   if (Transaction::GetTransactionType(transaction) ==
@@ -547,6 +557,7 @@ uint128_t AccountStore::GetNonceTemp(const Address& address) {
 
 StateHash AccountStore::GetStateDeltaHash() {
   lock_guard<mutex> g(m_mutexDelta);
+  LOG_GENERAL(WARNING, "Marker001: get state delta hashj...");
 
   bool isEmpty = true;
 
@@ -567,6 +578,8 @@ StateHash AccountStore::GetStateDeltaHash() {
 }
 
 void AccountStore::CommitTemp() {
+
+  LOG_GENERAL(WARNING, "Marker001: commit temp...");
   if (!DeserializeDelta(m_stateDeltaSerialized, 0)) {
     LOG_GENERAL(WARNING, "DeserializeDelta failed.");
   }
@@ -575,6 +588,8 @@ void AccountStore::CommitTemp() {
 void AccountStore::CommitTempRevertible() {
   LOG_MARKER();
 
+
+  LOG_GENERAL(WARNING, "Marker001: commit temprevertjyy ...");
   InitRevertibles();
 
   if (!DeserializeDelta(m_stateDeltaSerialized, 0, true)) {

@@ -1730,6 +1730,9 @@ bool Node::CheckMicroBlockTxnRootHash() {
 }
 
 bool Node::CheckMicroBlockStateDeltaHash() {
+
+  LOG_GENERAL(WARNING, "Marker001: verify microblock state del hash...");
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockStateDeltaHash not expected to be "

@@ -889,6 +889,9 @@ bool DirectoryService::CheckStateRoot() {
 }
 
 bool DirectoryService::CheckStateDeltaHash() {
+
+  LOG_GENERAL(WARNING, "Marker001: checing state delta hash001...");
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::CheckStateDeltaHash not expected to be "
