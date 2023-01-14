@@ -105,11 +105,15 @@ class AccountStoreSC : public AccountStoreBase {
                     "blockchain_gauge", "Metrics for AccountStore", "units")};
 
     zil::metrics::Observable m_evmLatency{
-            Metrics::GetInstance().CreateInt64Gauge(
+            Metrics::GetInstance().CreateDoubleGauge(
                     zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "zilliqa_accountstore",
                     "latency_gauge", "Metrics for latency", "units")};
 
-    uint64_t m_evmLat;
+    std::atomic<double> m_evmLat;
+
+    double getLetancyValu(){
+      return m_evmLat;
+    }
 
     /// Contract Deployment
     /// verify the return from scilla_runner for deployment is valid

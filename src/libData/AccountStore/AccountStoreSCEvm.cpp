@@ -345,21 +345,26 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
     bool status = UpdateAccountsEvm(params.GetBlockNumber(), unused_numShards,
                                     unused_isds, rcpt, error_code, params);
 
-    if (TRACE_ENABLED(ACC_EVM)) {
-        uint64_t taken = r_timer_end(tpStart);
-        m_evmLat = taken;
-
-        std::map<std::string, std::string> labels{{"latency","evm-ds"}};
-        auto context           = opentelemetry::context::Context{};
-        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
-        std::cout << "recording " << taken << std::endl;
-        evm::histogram->Record(taken, labelkv, context);
+    if (METRICS_ENABLED(ACCOUNTSTORE_EVM)){
+        double taken = ((double)r_timer_end(tpStart)) / 1000.0 ;
+        if (taken > 0.0)
+          m_evmLat = taken;
     }
+
+//    if (TRACE_ENABLED(ACC_HISTOGRAM)) {
+//        double taken = ((double)r_timer_end(tpStart)) / 1000000.0 ;
+//        std::map<std::string, std::string> labels{{"latency","evm-ds"}};
+//       auto context           = opentelemetry::context::Context{};
+//        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
+//        evm::histogram->Record(taken, labelkv, context);
+//    }
 
     result = params.GetEvmResult();
     params.SetEvmReceipt(rcpt);
 
-    span->End();
+    if (TRACE_ENABLED(ACC_EVM)) {
+          span->End();
+    }
 
     return status;
 }

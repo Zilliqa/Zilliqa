@@ -84,7 +84,7 @@ dkms.conf
 # Default build directories
 build
 build_lookup
-
+tests
 # Mac
 .DS_Store
 

@@ -229,6 +229,10 @@ class Metrics : public Singleton<Metrics> {
     COUNTER->Add(1, {{"Method", __FUNCTION__}});              \
   }
 
+#define METRICS_ENABLED(FILTER_CLASS)          \
+  zil::metrics::Filter::GetInstance().Enabled( \
+      zil::metrics::FilterClass::FILTER_CLASS)
+
 #define INCREMENT_METHOD_CALLS_COUNTER2(COUNTER, FILTER_CLASS, METHOD) \
   if (zil::metrics::Filter::GetInstance().Enabled(                     \
           zil::metrics::FilterClass::FILTER_CLASS)) {                  \

@@ -66,10 +66,16 @@ AccountStoreSC::AccountStoreSC() {
         result.Set(m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
     });
     m_evmLatency.SetCallback([this](auto &&result) {
-        result.Set(m_evmLat, {{"counter", "latency"}});
+        double latency = this->getLetancyValu();
+
+
+        if (latency > 0.0) {
+          std::cout << "CB latency " << this->getLetancyValu() << std::endl;
+          result.Set(latency, {{"counter", "latency"}});
+        }
     });
     // Initialise our sample histogram
-    evm::InitHistogram();
+    //evm::InitHistogram();
 }
 
 
