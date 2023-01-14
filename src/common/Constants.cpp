@@ -36,9 +36,13 @@ struct PTree {
 };
 
 unsigned int ReadConstantNumeric(const string& propertyName,
-                                 const char* path = "node.general.") {
-  auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>(path + propertyName);
+                                 const char* path = "node.general.", unsigned int defaultVal = 0) {
+  try {
+    auto pt = PTree::GetInstance();
+    return pt.get<unsigned int>(path + propertyName);
+  } catch (exception& e) {
+    return defaultVal;
+  }
 }
 
 double ReadConstantDouble(const string& propertyName,
@@ -753,13 +757,13 @@ const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
 
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
-    "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
+    "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost"), "localhost"};
 const unsigned int METRIC_ZILLIQA_PORT{
-    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.")};
+    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa."), 8081};
 const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(
-    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.")};
+    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.", 1000)};
 const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS{ReadConstantNumeric(
-    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.")};
+    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.", 500)};
 const std::string METRIC_ZILLIQA_SCHEMA{
     ReadConstantString("METRIC_ZILLIQA_SCHEMA", "node.metric.zilliqa.",
                        "https://opentelemetry.io/schemas/1.2.0")};
