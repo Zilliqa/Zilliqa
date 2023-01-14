@@ -126,6 +126,8 @@ class LookupServer : public Server,
 
   inline virtual void GetBalanceI(const Json::Value& request,
                                   Json::Value& response) {
+    std::cout << "get balance0 " << std::endl;
+    std::cerr << "get balance1 " << std::endl;
     response = this->GetBalanceAndNonce(request[0u].asString());
   }
 
