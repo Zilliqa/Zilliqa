@@ -757,9 +757,9 @@ const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
 
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
-    "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost"), "localhost"};
+    "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
 const unsigned int METRIC_ZILLIQA_PORT{
-    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa."), 8081};
+    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.", 8081)};
 const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(
     "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.", 1000)};
 const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS{ReadConstantNumeric(
