@@ -45,8 +45,8 @@ const config: any = {
       ],
       zilliqaNetwork: false,
       miningState: true
-    },
-    devnet: {
+  },
+  devnet: {
       url: "https://evmdev-l2api.dev.z7a.xyz",
       websocketUrl: "wss://evmdev-l2api.dev.z7a.xyz",
       accounts: [
@@ -56,6 +56,21 @@ const config: any = {
         "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45"
       ],
       chainId: 33101,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
+    nathan: {
+      url: "https://nathan-mod-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://nathan-mod-l2api.dev.z7a.xyz",
+      accounts: [
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411"
+      ],
+      chainId: 32769,
       zilliqaNetwork: true,
       web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,

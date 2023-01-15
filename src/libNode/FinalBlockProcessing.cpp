@@ -931,6 +931,46 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
 
+  // nathan
+  LOG_GENERAL(WARNING, "Marker001: try to generate the TX trace!");
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "Marker001: lookup node mode!");
+  }
+
+  if (ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(WARNING, "Marker001: archival lookup!");
+
+    auto mbi = txBlock.GetMicroBlockInfos();
+    std::vector<TxBodySharedPtr> txsToExecute;
+
+    for (const auto& mb : mbi) {
+      LOG_GENERAL(WARNING, "Marker001: microblock hash: " << mb.m_microBlockHash);
+
+      MicroBlockSharedPtr microBlockPtr{};
+      auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
+
+
+      const auto &tranHashes = microBlockPtr->GetTranHashes();
+      for (const auto &transactionHash : tranHashes) {
+        TxBodySharedPtr transactionBodyPtr;
+        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                       transactionBodyPtr)) {
+          LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body " );
+          continue;
+        } else {
+          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
+          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
+          txsToExecute.push_back(transactionBodyPtr);
+        }
+      }
+
+      LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
+    }
+
+    LOG_GENERAL(WARNING, "Marker001: Now we generate the TX receipts!" );
+    //AccountStore::GetInstance().InitTemp();
+  }
+
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
     return false;
