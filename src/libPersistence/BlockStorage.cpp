@@ -179,6 +179,10 @@ bool BlockStorage::PutProcessedTxBodyTmp(const dev::h256& key,
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const uint64_t& epochNum,
                                  const uint32_t& shardID, const zbytes& body) {
+
+
+  LOG_GENERAL(WARNING, "Marker001: putting microblock: " << blockHash << " : " << epochNum);
+
   zbytes key;
   if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
