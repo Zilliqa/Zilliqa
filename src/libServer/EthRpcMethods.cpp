@@ -719,8 +719,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   evm::EvmResult result;
 
-  if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
-                                                    result) &&
+  if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
+                                                        result) &&
       result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
@@ -826,8 +826,8 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                                         value, blockNum, txnExtras, "eth_call",
                                         false);
 
-    if (AccountStore::GetInstance().EvmProcessMessage(evmMessageContext,
-                                                      result) &&
+    if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
+                                                          result) &&
         result.exit_reason().exit_reason_case() ==
             evm::ExitReason::ExitReasonCase::kSucceed) {
       success = true;
