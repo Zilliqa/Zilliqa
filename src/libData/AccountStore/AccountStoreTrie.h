@@ -18,11 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORETRIE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORETRIE_H_
 
-#include "AccountStoreSC.h"
+#include "AccountStoreBase.h"
 #include "depends/libTrie/TrieDB.h"
 #include "libData/DataStructures/TraceableDB.h"
 
-class AccountStoreTrie : public AccountStoreSC {
+class AccountStoreTrie : public AccountStoreBase {
  protected:
   TraceableDB m_db;
   dev::GenericTrieDB<TraceableDB> m_state;
