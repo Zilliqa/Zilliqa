@@ -1,0 +1,2 @@
+
+docker build -t zilliqa:2214xxx --build-arg ZILLIQA_BASE_VERSION="v0.0.0" --build-arg ZILLIQA_CCACHE_VERSION="v0.0.0" --build-arg COMMIT_OR_TAG="2214a8be9dc726576a6716fa52a479262a873e00" --build-arg EXTRA_CMAKE_ARGS="" -f Dockerfile .

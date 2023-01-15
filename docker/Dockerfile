@@ -126,7 +126,7 @@ ENV CCACHE_DIR="/ccache"
 # Build & install Zilliqa
 RUN --mount=type=cache,target=/ccache/ \
     --mount=type=cache,target=/root/.cache/vcpkg/ \
-    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake --build "/zilliqa/build" --config Debug --target install
+    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake -DCMAKE_BUILD_TYPE=Debug --build "/zilliqa/build" --target install
 
 COPY evm-ds/ evm-ds
 RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
