@@ -951,10 +951,10 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
       LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
 
-      if (!succ) {
-        LOG_GENERAL(WARNING, "Marker001: skipping...");
-        continue;
-      }
+      //if (!succ) {
+      //  LOG_GENERAL(WARNING, "Marker001: skipping...");
+      //  continue;
+      //}
 
       const auto &tranHashes = microBlockPtr->GetTranHashes();
 
