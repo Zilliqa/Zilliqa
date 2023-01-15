@@ -73,7 +73,7 @@ run_clang_format_fix=0
 run_clang_tidy_fix=0
 run_code_coverage=0
 parallelize=1
-build_type="RelWithDebInfo"
+build_type="Debug"
 
 ./scripts/license_checker.sh
 ./scripts/ci_xml_checker.sh constants.xml
@@ -251,6 +251,7 @@ echo "Currenct directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
+echo "nathan: doing this..."
 cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
 if [ ${parallelize} -ne 0 ]; then
   cmake --build "${build_dir}" --config ${build_type} -j${n_parallel}
