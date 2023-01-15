@@ -949,10 +949,16 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       MicroBlockSharedPtr microBlockPtr{};
       auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
 
+      LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
 
       const auto &tranHashes = microBlockPtr->GetTranHashes();
+
+      LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
+
       for (const auto &transactionHash : tranHashes) {
+        LOG_GENERAL(WARNING, "Marker001: loop 000: ");
         TxBodySharedPtr transactionBodyPtr;
+        LOG_GENERAL(WARNING, "Marker001: loop 001: ");
         if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
                                                        transactionBodyPtr)) {
           LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body " );
@@ -962,6 +968,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
           LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
           txsToExecute.push_back(transactionBodyPtr);
         }
+        LOG_GENERAL(WARNING, "Marker001: loop 002: ");
       }
 
       LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
