@@ -403,7 +403,7 @@ bool LookupServer::StartCollectorThread() {
       }
 
       if (!hasTxn) {
-        LOG_GENERAL(INFO, "No Txns to send for this seed node");
+        //LOG_GENERAL(INFO, "No Txns to send for this seed node");
         continue;
       }
 
