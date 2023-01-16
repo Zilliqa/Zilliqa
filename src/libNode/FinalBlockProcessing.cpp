@@ -952,26 +952,35 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
       LOG_GENERAL(WARNING, "Marker001: microblock epoch num: " << m_mediator.m_currentEpochNum);
 
-      lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
-      for (auto it = m_mbnForwardedTxnBuffer.begin();
-           it != m_mbnForwardedTxnBuffer.end();) {
+      {
+        lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
+        auto ii = 0;
+        for (auto it = m_mbnForwardedTxnBuffer.begin();
+             it != m_mbnForwardedTxnBuffer.end();) {
+          LOG_GENERAL(WARNING,
+                      "Marker001: microblock details blocknum: " << it->first);
 
-        LOG_GENERAL(WARNING, "Marker001: microblock details blocknum: " << it->first);
+          if (ii++ > 200) {
+            LOG_GENERAL(WARNING, "Marker001: break0: ");
+            break;
+          }
 
-        for (const auto& entry : it->second) {
-          LOG_GENERAL(WARNING, "Marker001: microblock details hash: " << entry.m_microBlock.GetBlockHash());
-          LOG_GENERAL(WARNING, "Marker001: microblock details entry: " << entry.m_microBlock.GetHeader().GetEpochNum());
-          LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: " << entry.m_transactions.size());
+          for (const auto& entry : it->second) {
+            LOG_GENERAL(WARNING, "Marker001: microblock details hash: "
+                                     << entry.m_microBlock.GetBlockHash());
+            LOG_GENERAL(WARNING,
+                        "Marker001: microblock details entry: "
+                            << entry.m_microBlock.GetHeader().GetEpochNum());
+            LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
+                                     << entry.m_transactions.size());
+            ii++;
+
+            if (ii > 200) {
+              LOG_GENERAL(WARNING, "Marker001: break1: ");
+              break;
+            }
+          }
         }
-
-        //if (it->first <=
-        //    m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
-        //  for (const auto& entry : it->second) {
-        //    LOG_GENERAL(WARNING, "Marker001: committing mbn forwarded txn... " << entry);
-        //    ProcessMBnForwardTransactionCore(entry);
-        //  }
-        //}
-        //it = m_mbnForwardedTxnBuffer.erase(it);
       }
 
       LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
