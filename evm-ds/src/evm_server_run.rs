@@ -146,7 +146,7 @@ pub async fn run_evm_impl(
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                let result = build_crate_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
+                let result = build_create_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
                 result
             }
         };
@@ -258,7 +258,7 @@ fn build_call_result(
     result
 }
 
-fn build_crate_result(
+fn build_create_result(
     runtime: &Runtime,
     interrupt: CpsCreateInterrupt,
     traces: Vec<String>,
@@ -289,12 +289,12 @@ fn build_crate_result(
             code_hash,
             salt,
         } => {
-            let mut scheme_crate2 = EvmProto::TrapData_Scheme_Create2::new();
-            scheme_crate2.set_caller(caller.into());
-            scheme_crate2.set_code_hash(code_hash.into());
-            scheme_crate2.set_salt(salt.into());
-            scheme_crate2.set_create2_address(interrupt.create2_address.into());
-            scheme.set_create2(scheme_crate2);
+            let mut scheme_create2 = EvmProto::TrapData_Scheme_Create2::new();
+            scheme_create2.set_caller(caller.into());
+            scheme_create2.set_code_hash(code_hash.into());
+            scheme_create2.set_salt(salt.into());
+            scheme_create2.set_create2_address(interrupt.create2_address.into());
+            scheme.set_create2(scheme_create2);
         }
         evm::CreateScheme::Fixed(address) => {
             let mut scheme_fixed = EvmProto::TrapData_Scheme_Fixed::new();
