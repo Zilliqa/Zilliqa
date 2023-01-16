@@ -20,16 +20,17 @@
 
 #include "AccountStore.h"
 #include "AccountStoreSC.h"
+#include "AccountStoreTrie.h"
 
 class AccountStore;
 
 class AccountStoreTemp : public AccountStoreSC {
-  AccountStore& m_parent;
+  AccountStoreTrie& m_parent;
 
   friend class AccountStore;
 
  public:
-  AccountStoreTemp(AccountStore& parent);
+  AccountStoreTemp(AccountStoreTrie& parent);
 
   bool DeserializeDelta(const zbytes& src, unsigned int offset);
 

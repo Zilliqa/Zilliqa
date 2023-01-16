@@ -21,7 +21,7 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-AccountStoreTemp::AccountStoreTemp(AccountStore& parent) : m_parent(parent) {}
+AccountStoreTemp::AccountStoreTemp(AccountStoreTrie& parent) : m_parent(parent) {}
 
 Account* AccountStoreTemp::GetAccount(const Address& address) {
   Account* account =

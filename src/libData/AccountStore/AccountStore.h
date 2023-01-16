@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,7 +40,8 @@
 class ScillaIPCServer;
 
 
-class AccountStore  : public AccountStoreTrie {
+class AccountStore {
+  AccountStoreTrie& m_accountStore;
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   AccountStoreTemp m_accountStoreTemp;
@@ -76,13 +77,13 @@ class AccountStore  : public AccountStoreTrie {
 
  public:
   /// Returns the singleton AccountStore instance.
-  static AccountStore& GetInstance();
+  static AccountStore& GetInstance(AccountStoreTrie& accountStore);
 
-  bool Serialize(zbytes& src, unsigned int offset) const override;
+  // bool Serialize(zbytes& src, unsigned int offset) const;
 
-  bool Deserialize(const zbytes& src, unsigned int offset) override;
+  // bool Deserialize(const zbytes& src, unsigned int offset);
 
-  bool Deserialize(const std::string& src, unsigned int offset) override;
+  // bool Deserialize(const std::string& src, unsigned int offset);
 
   /// generate serialized raw bytes for StateDelta
   bool SerializeDelta();
@@ -98,7 +99,7 @@ class AccountStore  : public AccountStoreTrie {
   bool DeserializeDeltaTemp(const zbytes& src, unsigned int offset);
 
   /// empty everything including the persistent storage for account states
-  void Init() override;
+  void Init();
 
   /// empty states data in memory
   void InitSoft();
