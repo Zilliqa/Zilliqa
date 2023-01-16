@@ -973,6 +973,12 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                             << entry.m_microBlock.GetHeader().GetEpochNum());
             LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
                                      << entry.m_transactions.size());
+
+            if (entry.m_microBlock.GetBlockHash() == mb.m_microBlockHash) {
+              LOG_GENERAL(WARNING, "Marker001: microblock details FOUND! ");
+              microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
+            }
+
             ii++;
 
             if (ii > 200) {
@@ -987,6 +993,10 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
 
       if (!succ) {
+        LOG_GENERAL(WARNING, "no success unf from disk unf...");
+      }
+
+      if (!microBlockPtr) {
         LOG_GENERAL(WARNING, "Marker001: skipping...");
         continue;
       }
