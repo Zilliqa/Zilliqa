@@ -48,6 +48,9 @@ else
     curl -sL https://deb.nodesource.com/setup_14.x | bash -
     apt -y install nodejs
     node --version
+
+    # We need scilla-fmt in the PATH
+    cp /scilla/0/_build/install/default/bin/scilla-fmt /usr/local/bin
     pwd
 
     pkill -9 isolatedServer

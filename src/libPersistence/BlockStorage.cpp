@@ -25,13 +25,13 @@
 #include <sstream>
 #include <string>
 
-#include <leveldb/db.h>
 #include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
+#include "depends/libDatabase/LevelDB.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"

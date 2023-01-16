@@ -24,9 +24,9 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
@@ -34,9 +34,9 @@
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/JSONConversion.h"
 #include "libServer/LookupServer.h"
-#include "libServer/WebsocketServer.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
@@ -469,16 +469,19 @@ void Node::CallActOnFinalblock() {
       []([[gnu::unused]] const zbytes& message,
          [[gnu::unused]] const DequeOfShard& shards,
          [[gnu::unused]] const unsigned int& my_shards_lo,
-         [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
+         [[gnu::unused]] const unsigned int& my_shards_hi, bool) -> void {};
 
   lock_guard<mutex> g(m_mutexShardMember);
+
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
 
   DataSender::GetInstance().SendDataToOthers(
       *m_microblock, *m_myShardMembers, {}, {},
       m_mediator.m_lookup->GetLookupNodes(),
       m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(), m_consensusMyID,
-      composeMBnForwardTxnMessageForSender, false, SendDataToLookupFuncDefault,
-      sendMbnFowardTxnToShardNodes);
+      composeMBnForwardTxnMessageForSender, inject_trace_context, false,
+      SendDataToLookupFuncDefault, sendMbnFowardTxnToShardNodes);
 }
 
 bool Node::ComposeMBnForwardTxnMessageForSender(zbytes& mb_txns_message) {
@@ -1210,7 +1213,7 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
 
       // feed the event log holder
       if (ENABLE_WEBSOCKET) {
-        WebsocketServer::GetInstance().ParseTxn(twr);
+        m_mediator.m_websocketServer->ParseTxn(twr);
       }
 
       if (REMOTESTORAGE_DB_ENABLE && !ARCHIVAL_LOOKUP) {
@@ -1730,11 +1733,10 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
         } catch (...) {
           j_txnhashes = Json::arrayValue;
         }
-        WebsocketServer::GetInstance().PrepareTxBlockAndTxHashes(
-            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
 
-        // send event logs
-        WebsocketServer::GetInstance().SendOutMessages();
+        // sends out everything to subscriptions
+        m_mediator.m_websocketServer->FinalizeTxBlock(
+            JSONConversion::convertTxBlocktoJson(txBlock), j_txnhashes);
       }
     }
   }

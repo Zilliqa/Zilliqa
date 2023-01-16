@@ -151,7 +151,7 @@ ethash_mining_result_t GetWorkServer::VerifySubmit(const string& nonce,
                                                    const string& header,
                                                    const string& mixdigest,
                                                    const string& boundary) {
-  auto winning_nonce =  DataConversion::HexStringToUint64(nonce);
+  auto winning_nonce = DataConversion::HexStringToUint64(nonce);
   if (!winning_nonce) {
     LOG_GENERAL(WARNING, "Invalid nonce: " << nonce);
     return FAIL_RESULT;

@@ -24,17 +24,20 @@
 #include <Schnorr.h>
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libDirectoryService/DirectoryService.h"
-#include "libLookup/Lookup.h"
 #include "libNetwork/Peer.h"
-#include "libNode/Node.h"
-#include "libValidator/Validator.h"
 
-namespace evmproj {
-namespace filters {
+class DirectoryService;
+class Node;
+class Lookup;
+class Validator;
+
+namespace evmproj::filters {
 class APICache;
+}  // namespace evmproj::filters
+
+namespace rpc {
+class DedicatedWebsocketServer;
 }
-}  // namespace evmproj
 
 /// A mediator class for providing access to global members.
 class Mediator {
@@ -120,6 +123,9 @@ class Mediator {
 
   /// Filters API cache
   std::shared_ptr<evmproj::filters::APICache> m_filtersAPICache;
+
+  /// Dedicated (old) websocket server
+  std::shared_ptr<rpc::DedicatedWebsocketServer> m_websocketServer;
 
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);

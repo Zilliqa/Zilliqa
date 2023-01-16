@@ -33,7 +33,6 @@ class AccountBase : public SerializableDataBlock {
   uint64_t m_nonce{};
   dev::h256 m_storageRoot;
   dev::h256 m_codeHash;
-
  public:
   AccountBase() = default;
   AccountBase(const uint128_t& balance, uint64_t nonce, uint32_t version);

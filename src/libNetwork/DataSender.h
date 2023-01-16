@@ -27,11 +27,13 @@
 #include "libData/BlockData/Block/BlockBase.h"
 
 typedef std::function<bool(zbytes& message)> ComposeMessageForSenderFunc;
-typedef std::function<void(const VectorOfNode& lookups, const zbytes& message)>
+typedef std::function<void(const VectorOfNode& lookups, const zbytes& message,
+                           bool inject_trace_context)>
     SendDataToLookupFunc;
 typedef std::function<void(const zbytes& message, const DequeOfShard& shards,
                            const unsigned int& my_shards_lo,
-                           const unsigned int& my_shards_hi)>
+                           const unsigned int& my_shards_hi,
+                           bool inject_trace_context)>
     SendDataToShardFunc;
 
 extern SendDataToLookupFunc SendDataToLookupFuncDefault;
@@ -69,6 +71,7 @@ class DataSender : Singleton<DataSender> {
       const std::unordered_map<uint32_t, BlockBase>& blockswcosigRecver,
       const VectorOfNode& lookups, const BlockHash& hashForRandom,
       const uint16_t& consensusMyId, const ComposeMessageForSenderFunc&,
+      bool inject_trace_context,
       bool forceMulticast = false,
       const SendDataToLookupFunc& sendDataToLookupFunc =
           SendDataToLookupFuncDefault,
