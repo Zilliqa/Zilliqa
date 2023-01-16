@@ -74,6 +74,14 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - baseFee);
       LOG_GENERAL(WARNING, "New gas limit for CREATEType is: "
                                << mProtoArgs.gas_limit());
+
+      if (!mAccountStore.TransferBalanceAtomic(
+              ProtoToAddress(mProtoArgs.origin()),
+              ProtoToAddress(mProtoArgs.address()),
+              Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+        return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+      }
+      // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
@@ -82,13 +90,13 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
       LOG_GENERAL(WARNING,
                   "New gas limit for CAllType is: " << mProtoArgs.gas_limit());
-    }
 
-    if (!mAccountStore.TransferBalanceAtomic(
-            ProtoToAddress(mProtoArgs.origin()),
-            ProtoToAddress(mProtoArgs.address()),
-            Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
-      return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+      if (!mAccountStore.TransferBalanceAtomic(
+              ProtoToAddress(mProtoArgs.origin()),
+              ProtoToAddress(mProtoArgs.address()),
+              Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+        return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+      }
     }
   }
 
@@ -245,21 +253,13 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   const auto destContractCode =
       mAccountStore.GetContractCode(ProtoToAddress(callData.callee_address()));
-  if (std::empty(destContractCode)) {
-    const auto fromAccount = ProtoToAddress(callData.transfer().source());
-    const auto toAccount = ProtoToAddress(callData.transfer().destination());
-    const auto value =
-        Amount::fromWei(ProtoToUint(callData.transfer().value()));
-    auto transferRun = std::make_shared<CpsRunTransfer>(
-        mExecutor, mCpsContext, fromAccount, toAccount, value);
-    mExecutor.PushRun(std::move(transferRun));
-  } else {
+  if (!std::empty(destContractCode)) {
     const auto targetGas =
         callData.target_gas() != std::numeric_limits<uint64_t>::max()
             ? callData.target_gas()
             : result.remaining_gas();
-
-    const auto inputGas = targetGas;
+    const auto inputGas = std::min(targetGas, result.remaining_gas());
+    ;
     evm::EvmArgs evmCallArgs;
     *evmCallArgs.mutable_address() = ctx.destination();
     *evmCallArgs.mutable_origin() = ctx.caller();
@@ -278,11 +278,20 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
         std::move(evmCallArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
     mExecutor.PushRun(std::move(callRun));
   }
+
+  // Push transfer to be executed first
+  const auto fromAccount = ProtoToAddress(callData.transfer().source());
+  const auto toAccount = ProtoToAddress(callData.transfer().destination());
+  const auto value = Amount::fromWei(ProtoToUint(callData.transfer().value()));
+  auto transferRun = std::make_shared<CpsRunTransfer>(
+      mExecutor, mCpsContext, fromAccount, toAccount, value);
+  mExecutor.PushRun(std::move(transferRun));
+
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
-                                             uint64_t remainingGas) {
+                                             uint64_t /*remainingGas*/) {
   const auto ctxDestAddr = ProtoToAddress(callData.context().destination());
   const auto ctxOriginAddr = ProtoToAddress(callData.context().caller());
   const auto isStatic = callData.is_static();
@@ -301,19 +310,14 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
-  const bool areTxnAddressesEmpty =
+  const bool areTnsfAddressesEmpty =
       IsNullAddress(tnsfDestAddr) && IsNullAddress(tnsfOriginAddr);
   const bool isValZero = (tnsfVal == 0);
   const bool isDelegate = (ctxOriginAddr == mCpsContext.origSender) &&
                           (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
 
-  const auto destContractCode = mAccountStore.GetContractCode(calleeAddr);
-  if (std::empty(destContractCode) && areTxnAddressesEmpty) {
-    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
-  }
-
   if (isStatic || isDelegate) {
-    if (!areTxnAddressesEmpty || !isValZero) {
+    if (!areTnsfAddressesEmpty || !isValZero) {
       return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
   }
@@ -327,7 +331,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
-  if (!areTxnAddressesEmpty) {
+  if (!areTnsfAddressesEmpty) {
     if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
       return {TxnStatus::ERROR, false, {}};
     }
@@ -342,15 +346,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     if (requestedValue > currentBalance) {
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
-  }
-
-  const auto targetGas =
-      callData.target_gas() != std::numeric_limits<uint64_t>::max()
-          ? callData.target_gas()
-          : remainingGas;
-
-  if (targetGas > remainingGas) {
-    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
   }
 
   return {TxnStatus::NOT_PRESENT, true, {}};
@@ -380,7 +375,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     contractAddress = ProtoToAddress(create2.create2_address());
   } else if (scheme.has_fixed()) {
     const evm::TrapData_Scheme_Fixed& fixed = scheme.fixed();
-    fromAddress = ProtoToAddress(mProtoArgs.origin());
+    fromAddress = ProtoToAddress(mProtoArgs.address());
     contractAddress = ProtoToAddress(fixed.addres());
   }
 
@@ -440,6 +435,13 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
         std::move(evmCreateArgs), mExecutor, mCpsContext, CpsRun::TrapCreate);
     mExecutor.PushRun(std::move(createRun));
   }
+
+  // Push transfer to be executed first
+  const auto value = Amount::fromWei(ProtoToUint(createData.value()));
+  auto transferRun = std::make_shared<CpsRunTransfer>(
+      mExecutor, mCpsContext, fromAddress, contractAddress, value);
+  mExecutor.PushRun(std::move(transferRun));
+
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
@@ -450,6 +452,25 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
   }
   const evm::Address& protoCaller = createData.caller();
   const Address address = ProtoToAddress(protoCaller);
+
+  Address fromAddress;
+  const auto& scheme = createData.scheme();
+  if (scheme.has_legacy()) {
+    const evm::TrapData_Scheme_Legacy& legacy = scheme.legacy();
+    fromAddress = ProtoToAddress(legacy.caller());
+  } else if (scheme.has_create2()) {
+    const evm::TrapData_Scheme_Create2& create2 = scheme.create2();
+    fromAddress = ProtoToAddress(create2.caller());
+  } else if (scheme.has_fixed()) {
+    fromAddress = ProtoToAddress(mProtoArgs.address());
+  }
+
+  // Caller should be the same as the contract that triggered trap
+  const auto currentAddress = ProtoToAddress(mProtoArgs.address());
+  if (address != currentAddress || fromAddress != currentAddress) {
+    return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
+  }
+
   // Check Balance, Required Gas
 
   const auto currentBalance = mAccountStore.GetBalanceForAccountAtomic(address);

@@ -88,11 +88,6 @@ pub async fn run_evm_impl(
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
-        // Provide feedback from c++ node to EVM through executor
-        //if let Some(continuation) = feedback_continuation {
-        //    provide_feedback(&continuation, &mut executor);
-       // }
-
         let mut listener = LoggingEventListener{traces : Default::default()};
 
         // We have to catch panics, as error handling in the Backend interface of
@@ -148,7 +143,7 @@ pub async fn run_evm_impl(
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                let result = build_crate_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
+                let result = build_create_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
                 result
             }
         };
@@ -262,7 +257,7 @@ fn build_call_result(
     result
 }
 
-fn build_crate_result(
+fn build_create_result(
     runtime: &Runtime,
     interrupt: CpsCreateInterrupt,
     traces: Vec<String>,
