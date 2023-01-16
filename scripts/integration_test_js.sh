@@ -45,7 +45,7 @@ else
     # install dependencies
     apt update
     apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
-    curl -sL https://deb.nodesource.com/setup_16.x | bash -
+    curl -sL https://deb.nodesource.com/setup_14.x | bash -
     apt -y install nodejs
     node --version
 
