@@ -522,7 +522,7 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  AccountStoreSC::m_transactionLatency = ((double)r_timer_end(tpStart)/1000.0);
+  AccountStoreSC::m_transactionLatency = static_cast<double>(r_timer_end(tpStart)) / 1000.0;
   return status;
 }
 

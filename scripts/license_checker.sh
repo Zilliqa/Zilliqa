@@ -50,6 +50,7 @@ scope=$(find . -type f \( \
             ! -path "./evm-ds/*" \
             ! -path "./evm-ds/*" \
             ! -path "./tests/EvmAcceptanceTests/node_modules/*" \
+            ! -path "./tests/observability/*" \
             ! -path "./vcpkg_installed/*" \
             ! -path "./infra/*" \
             ! -path "./src/depends/*" \
