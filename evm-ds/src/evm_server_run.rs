@@ -55,13 +55,10 @@ pub async fn run_evm_impl(
             caller: backend.origin,
             apparent_value,
         };
-        let mut runtime: Runtime;
         let gas_limit = gas_limit * gas_scaling_factor;
         let metadata = StackSubstateMetadata::new(gas_limit, &config);
-        let state;
-
-        let mut feedback_continuation:Option<EvmProto::Continuation> = None;
         // Check if evm should resume from the point it stopped
+        let (feedback_continuation, mut runtime, state) =
         if let Some(continuation) = node_continuation {
             let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
             if let None = recorded_cont {
@@ -72,16 +69,17 @@ pub async fn run_evm_impl(
             let machine = Machine::create_from_state(Rc::new(recorded_cont.code), Rc::new(recorded_cont.data),
                                                               recorded_cont.position, recorded_cont.return_range, recorded_cont.valids,
                                                               recorded_cont.memory, recorded_cont.stack);
-            runtime = Runtime::new_from_state(machine, context, &config);
+            let runtime = Runtime::new_from_state(machine, context, &config);
             let memory_substate = MemoryStackSubstate::from_state(metadata, recorded_cont.logs, recorded_cont.accounts,
                 recorded_cont.storages, recorded_cont.deletes);
-            state = MemoryStackState::new_with_substate(memory_substate, &backend);
-            feedback_continuation = Some(continuation);
+            let state = MemoryStackState::new_with_substate(memory_substate, &backend);
+            (Some(continuation), runtime, state)
         }
         else {
-            runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
-            state = MemoryStackState::new(metadata, &backend);
-        }
+            let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+            let state = MemoryStackState::new(metadata, &backend);
+            (None, runtime, state)
+        };
         // Scale the gas limit.
 
         let precompiles = get_precompiles();
