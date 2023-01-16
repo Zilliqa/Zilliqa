@@ -1,6 +1,6 @@
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
-import {getAddressFromPrivateKey} from "@zilliqa-js/zilliqa";
+import {getAddressFromPrivateKey, Zilliqa} from "@zilliqa-js/zilliqa";
 import hre from "hardhat";
 import parallelizer from "../../helper/Parallelizer";
 
@@ -11,6 +11,9 @@ describe("Scilla HelloWorld contract", function () {
       this.skip();
     }
  
+    const zilliqa = new Zilliqa(hre.getNetworkUrl());
+    console.log("BALANCE: ", await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress));
+
     contract = await parallelizer.deployScillaContract("HelloWorld", parallelizer.zilliqaAccountAddress);
   });
 
