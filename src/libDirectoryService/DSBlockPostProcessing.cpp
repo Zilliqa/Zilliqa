@@ -141,12 +141,7 @@ void DirectoryService::SendDSBlockToLookupNodesAndNewDSMembers(
     newDSmembers.emplace_back(newDSmember.second);
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message,
-                                     zil::p2p::START_BYTE_NORMAL,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(newDSmembers, dsblock_message);
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "I will send DSBlock to lookups and new DS nodes");
@@ -189,9 +184,6 @@ void DirectoryService::SendDSBlockToShardNodes(
     sha256.Update(dsblock_message_to_shard);
     auto this_msg_hash = sha256.Finalize();
 
-    // TODO use distributed traces from here?
-    bool inject_trace_context = false;
-
     if (BROADCAST_TREEBASED_CLUSTER_MODE) {
       // Choose N other Shard nodes to be recipient of DS block
       VectorOfPeer shardDSBlockReceivers;
@@ -222,15 +214,14 @@ void DirectoryService::SendDSBlockToShardNodes(
       }
 
       P2PComm::GetInstance().SendBroadcastMessage(shardDSBlockReceivers,
-                                                  dsblock_message_to_shard,
-                                                  inject_trace_context);
+                                                  dsblock_message_to_shard);
     } else {
       vector<Peer> shard_peers;
       for (const auto& kv : *p) {
         shard_peers.emplace_back(std::get<SHARD_NODE_PEER>(kv));
       }
-      P2PComm::GetInstance().SendBroadcastMessage(
-          shard_peers, dsblock_message_to_shard, inject_trace_context);
+      P2PComm::GetInstance().SendBroadcastMessage(shard_peers,
+                                                  dsblock_message_to_shard);
     }
 
     p++;
@@ -719,8 +710,7 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     }
 
     // Update the DS Block with the co-signatures from the consensus
-    m_pendingDSBlock->SetCoSignatures(
-        ConsensusObjectToCoSig(*m_consensusObject));
+    m_pendingDSBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
 
     if (m_pendingDSBlock->GetHeader().GetBlockNum() >
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +
@@ -788,27 +778,23 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
 
     auto sendDSBlockToLookupNodesAndNewDSMembers =
         [this]([[gnu::unused]] const VectorOfNode& lookups,
-               const zbytes& message, bool) -> void {
+               const zbytes& message) -> void {
       SendDSBlockToLookupNodesAndNewDSMembers(message);
     };
 
     auto sendDSBlockToShardNodes =
         [this](const zbytes& message, const DequeOfShard& shards,
                const unsigned int& my_shards_lo,
-               const unsigned int& my_shards_hi, bool) -> void {
+               const unsigned int& my_shards_hi) -> void {
       SendDSBlockToShardNodes(message, shards, my_shards_lo, my_shards_hi);
     };
-
-    // TODO use distributed traces from here?
-    bool inject_trace_context = false;
 
     DataSender::GetInstance().SendDataToOthers(
         *m_pendingDSBlock, *(m_mediator.m_DSCommittee), m_shards, {},
         m_mediator.m_lookup->GetLookupNodes(),
         m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-        m_consensusMyID, composeDSBlockMessageForSender, inject_trace_context,
-        false, sendDSBlockToLookupNodesAndNewDSMembers,
-        sendDSBlockToShardNodes);
+        m_consensusMyID, composeDSBlockMessageForSender, false,
+        sendDSBlockToLookupNodesAndNewDSMembers, sendDSBlockToShardNodes);
   }
 
   LOG_STATE(

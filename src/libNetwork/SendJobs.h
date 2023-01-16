@@ -34,11 +34,9 @@ class SendJobs {
 
   /// Helper for the function above, for the most common case
   void SendMessageToPeer(const Peer& peer, const zbytes& message,
-                         uint8_t start_byte, bool inject_trace_context) {
+                         uint8_t start_byte) {
     static const zbytes no_hash;
-    SendMessageToPeer(
-        peer, CreateMessage(message, no_hash, start_byte, inject_trace_context),
-        false);
+    SendMessageToPeer(peer, CreateMessage(message, no_hash, start_byte), false);
   }
 
   /// Sends message to peer in the current thread, without queueing.

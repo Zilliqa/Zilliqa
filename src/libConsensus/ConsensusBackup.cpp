@@ -100,13 +100,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
         // Unicast to the leader
         // =====================
-
-        // TODO use distributed traces from here?
-        bool inject_trace_context = false;
-
         P2PComm::GetInstance().SendMessage(
-            GetCommitteeMember(m_leaderID).second, commitFailureMsg,
-            zil::p2p::START_BYTE_NORMAL, inject_trace_context);
+            GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
         return true;
       }
@@ -136,13 +131,8 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
     // Unicast to the leader
     // =====================
-
-    // TODO use distributed traces from here?
-    bool inject_trace_context = false;
-
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
-                                       commit, zil::p2p::START_BYTE_NORMAL,
-                                       inject_trace_context);
+                                       commit);
   }
   return result;
 }
@@ -289,12 +279,8 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Unicast to the leader
     // =====================
 
-    // TODO use distributed traces from here?
-    bool inject_trace_context = false;
-
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
-                                       response, zil::p2p::START_BYTE_NORMAL,
-                                       inject_trace_context);
+                                       response);
 
     return true;
   }
@@ -412,13 +398,8 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
       // Unicast to the leader
       // =====================
-
-      // TODO use distributed traces from here?
-      bool inject_trace_context = false;
-
-      P2PComm::GetInstance().SendMessage(
-          GetCommitteeMember(m_leaderID).second, finalcommit,
-          zil::p2p::START_BYTE_NORMAL, inject_trace_context);
+      P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+                                         finalcommit);
     }
   } else {
     // Save the collective sig over the second round

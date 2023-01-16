@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <functional>
 #include <memory>
+#include <functional>
 
 #include "Peer.h"
 
@@ -52,30 +52,12 @@ struct RawMessage {
   RawMessage(uint8_t* buf, size_t sz);
 };
 
-/* Wire format:
-
- 1) Header: 4 bytes
-    VERSION:    1 byte              MSG_VERSION or MSG_VERSION_WITH_TRACES
-    NETWORK_ID: 2 bytes big endian  NETWORK_ID from constants.xml
-    START_BYTE: 1 byte              START_BYTE_*, see above
-
- 2) Total size of remaining message: 4 bytes big endian
-
- 2opt) Only if VERSION==MSG_VERSION_WITH_TRACES
-     Size of trace information: 4 bytes big endian
-
- 3opt) Only if START_BYTE==START_BYTE_BROADCAST
-       Hash: 32 bytes
-
- 3) Raw message
-
- 4opt) Only if VERSION==MSG_VERSION_WITH_TRACES
-       Trace information
-*/
+// Transmission format:
+// TODO description here
 
 /// Serializes a message
 RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
-                         uint8_t start_byte, bool inject_trace_context);
+                         uint8_t start_byte, bool inject_trace_context = false);
 
 enum class ReadState {
   NOT_ENOUGH_DATA,
@@ -87,20 +69,13 @@ enum class ReadState {
 };
 
 struct ReadMessageResult {
-  /// START_BYTE_*
   uint8_t startByte = 0;
-
-  /// Raw binary message
   zbytes message;
-
-  /// Non-empty hash for broadcast messages
-  zbytes hash;
-
-  /// Non-empty trace information if raw message contained it
+  zbytes hash;  // hash for broadcast messages
   std::string traceInfo;
-
-  /// Total bytes consumed from wire
   size_t totalMessageBytes = 0;
+
+  void reset();
 };
 
 ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
