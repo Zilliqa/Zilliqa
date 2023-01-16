@@ -62,7 +62,7 @@ pub async fn run_evm_impl(
         if let Some(continuation) = node_continuation {
             let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
             if let None = recorded_cont {
-                let result = handle_panic(vec![], gas_limit);
+                let result = handle_panic(vec![], gas_limit, "Continuation not found!");
                 return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
             let recorded_cont = recorded_cont.unwrap();
@@ -114,7 +114,7 @@ pub async fn run_evm_impl(
                     .downcast::<String>()
                     .unwrap_or_else(|_| Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
-            let result = handle_panic(listener.traces.clone(), remaining_gas);
+            let result = handle_panic(listener.traces.clone(), remaining_gas, &panic_message);
             return Ok(base64::encode(result.write_to_bytes().unwrap()));
         }
 
@@ -315,10 +315,10 @@ fn build_create_result(
     result
 }
 
-fn handle_panic(traces: Vec<String>, remaining_gas: u64) -> EvmProto::EvmResult {
+fn handle_panic(traces: Vec<String>, remaining_gas: u64, reason: &str) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     let mut fatal = EvmProto::ExitReason_Fatal::new();
-    fatal.set_kind(EvmProto::ExitReason_Fatal_Kind::OTHER);
+    fatal.set_error_string(reason.into());
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_fatal(fatal);
     result.set_exit_reason(exit_reason);
