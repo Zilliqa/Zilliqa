@@ -202,9 +202,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
 
-  // This will bring tracing alive
-  std::cout << Tracing::GetInstance().Version() << std::endl;
-
   if (LOG_PARAMETERS) {
     LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
   }

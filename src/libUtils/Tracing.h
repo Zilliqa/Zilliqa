@@ -95,6 +95,13 @@ class Tracing : public Singleton<Tracing> {
   ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES) \
   : trace_api::Tracer::GetCurrentSpan()
 
+#define TRACE_EVENT(SPAN,FILTER_CLASS,CLASS,ATTRIBUTES) \
+  TRACE_ENABLED(FILTER_CLASS)                    \
+  ? SPAN->AddEvent(CLASS,ATTRIBUTES) : SPAN->AddEvent(CLASS,{})
+
+using TRACE_ATTRIBUTE=std::map<std::string, opentelemetry::common::AttributeValue>;
+
+
 #define START_SPAN_WITH_PARENT(FILTER_CLASS, ATTRIBUTES, OPTIONS)            \
   TRACE_ENABLED(FILTER_CLASS)                                                \
   ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES, \

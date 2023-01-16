@@ -161,8 +161,6 @@ int main(int argc, const char* argv[]) {
 
     LOG_MARKER();
 
-    LOG_GENERAL(WARNING, "Tracing starting version :"  + Tracing::GetInstance().Version() );
-
     ISOLATED_SERVER = true;
 
     createConfigFile();
