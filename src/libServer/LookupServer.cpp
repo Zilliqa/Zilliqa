@@ -17,6 +17,7 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/format.hpp>
 #include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "common/Messages.h"
@@ -2408,7 +2409,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     } else {
       if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
         throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                               "txn gas limit exceeding ds maximum limit");
+        (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
       }
       if (ARCHIVAL_LOOKUP) {
         mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;

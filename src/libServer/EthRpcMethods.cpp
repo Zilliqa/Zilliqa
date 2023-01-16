@@ -522,7 +522,7 @@ std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
   } else {
     if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding ds maximum limit");
+      (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
     }
     if (ARCHIVAL_LOOKUP) {
       mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;

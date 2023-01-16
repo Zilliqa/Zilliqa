@@ -947,7 +947,30 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       LOG_GENERAL(WARNING, "Marker001: microblock hash: " << mb.m_microBlockHash);
 
       MicroBlockSharedPtr microBlockPtr{};
+
       auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
+
+      LOG_GENERAL(WARNING, "Marker001: microblock epoch num: " << m_mediator.m_currentEpochNum);
+
+      for (auto it = m_mbnForwardedTxnBuffer.begin();
+           it != m_mbnForwardedTxnBuffer.end();) {
+
+        LOG_GENERAL(WARNING, "Marker001: microblock details blocknum: " << it->first);
+
+        for (const auto& entry : it->second) {
+          LOG_GENERAL(WARNING, "Marker001: microblock details entry: " << entry.m_microBlock);
+          LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: " << entry.m_transactions.size());
+        }
+
+        //if (it->first <=
+        //    m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
+        //  for (const auto& entry : it->second) {
+        //    LOG_GENERAL(WARNING, "Marker001: committing mbn forwarded txn... " << entry);
+        //    ProcessMBnForwardTransactionCore(entry);
+        //  }
+        //}
+        //it = m_mbnForwardedTxnBuffer.erase(it);
+      }
 
       LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
 
@@ -1533,6 +1556,7 @@ bool Node::ProcessMBnForwardTransaction(
 
     // skip soft confirmation for DSMB
     if (isDSMB) {
+      LOG_GENERAL(WARNING, "Marker001: SKIPPING!! ");
       return true;
     }
 
@@ -1712,6 +1736,7 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
       return false;
     }
 
+    LOG_GENERAL(WARNING, "Marker001: putting microblock to storage HERE???: ");
     m_mediator.m_lookup->AddMicroBlockToStorage(entry.m_microBlock);
 
     CommitForwardedTransactions(entry);
@@ -1797,6 +1822,9 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
 }
 
 void Node::CommitMBnForwardedTransactionBuffer() {
+
+  LOG_GENERAL(WARNING, "Marker001: committing mbn forwarded txn...");
+
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CommitMBnForwardedTransactionBuffer not expected to be "
@@ -1813,6 +1841,7 @@ void Node::CommitMBnForwardedTransactionBuffer() {
     if (it->first <=
         m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum()) {
       for (const auto& entry : it->second) {
+        LOG_GENERAL(WARNING, "Marker001: committing mbn forwarded txn... " << entry);
         ProcessMBnForwardTransactionCore(entry);
       }
     }
