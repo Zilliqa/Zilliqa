@@ -21,6 +21,7 @@
 
 #include <unordered_map>
 #include <vector>
+#include <opentelemetry/sdk/metrics/meter.h>
 #include "libData/AccountStore/services/scilla/ScillaClient.h"
 
 #include "libPersistence/ContractStorage.h"
@@ -34,6 +35,8 @@
 #include "libUtils/Tracing.h"
 
 #include "libData/AccountStore/AccountStoreSC.h"
+#include "opentelemetry/context/context.h"
+#include "opentelemetry/metrics/provider.h"
 
 namespace {
 
@@ -58,24 +61,26 @@ namespace evm {
     void InitHistogram();
 };
 
-AccountStoreSC::AccountStoreSC() {
+double AccountStoreSC::m_evmLatency = 0;
+double AccountStoreSC::m_transactionLatency = 0;
+double AccountStoreSC::m_scillaLatency = 0;
+
+AccountStoreSC::AccountStoreSC() : m_accountStoreCount(Metrics::GetInstance().CreateInt64Gauge(
+        zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "zilliqa",
+        "blockchain_count", "Metrics for transactions", "microseconds")){
     m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
     m_txnProcessTimeout = false;
+
+    auto provider                     = opentelemetry::metrics::Provider::GetMeterProvider();
+    std::shared_ptr<opentelemetry::metrics::Meter> meter = provider->GetMeter("zilliqa", "1.2.0");
+    m_simpleObservable                = meter->CreateDoubleObservableGauge("zilliqa_observable_latency_gauge");
+    m_simpleObservable->AddCallback(AccountStoreSC::Fetcher, this);
+
+
     m_accountStoreCount.SetCallback([this](auto &&result) {
-        result.Set(m_curBlockNum, {{"counter", "BlockNumber"}});
-        result.Set(m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
+        result.Set(this->m_curBlockNum, {{"counter", "BlockNumber"}});
+        result.Set(this->m_curDSBlockNum, {{"counter", "DSBlockNumber"}});
     });
-    m_evmLatency.SetCallback([this](auto &&result) {
-        double latency = this->getLetancyValu();
-
-
-        if (latency > 0.0) {
-          std::cout << "CB latency " << this->getLetancyValu() << std::endl;
-          result.Set(latency, {{"counter", "latency"}});
-        }
-    });
-    // Initialise our sample histogram
-    //evm::InitHistogram();
 }
 
 

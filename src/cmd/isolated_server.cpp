@@ -161,7 +161,9 @@ int main(int argc, const char* argv[]) {
 
     LOG_MARKER();
 
+    // Crucial, these Initialize the subsystems.
     LOG_GENERAL(WARNING, "Tracing starting version :"  + Tracing::GetInstance().Version() );
+    LOG_GENERAL(WARNING, "Metrics starting version :"  + Metrics::GetInstance().Version() );
 
     ISOLATED_SERVER = true;
 

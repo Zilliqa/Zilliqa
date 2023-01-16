@@ -23,6 +23,7 @@
 #include <condition_variable>
 #include <functional>
 #include <mutex>
+#include <opentelemetry/metrics/async_instruments.h>
 
 #include "AccountStoreAtomic.h"
 #include "AccountStoreBase.h"
@@ -34,6 +35,7 @@
 #include "libUtils/TxnExtras.h"
 
 class ScillaIPCServer;
+
 
 class AccountStoreSC : public AccountStoreBase {
     /// the amount transfers happened within the current txn will only commit when
@@ -99,21 +101,28 @@ class AccountStoreSC : public AccountStoreBase {
     std::vector<Address> m_newLibrariesCreated;
 
     /// Metrics callback for block number
-    zil::metrics::Observable m_accountStoreCount{
-            Metrics::GetInstance().CreateInt64Gauge(
-                    zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "zilliqa_accountstore",
-                    "blockchain_gauge", "Metrics for AccountStore", "units")};
+    zil::metrics::Observable m_accountStoreCount;
 
-    zil::metrics::Observable m_evmLatency{
-            Metrics::GetInstance().CreateDoubleGauge(
-                    zil::metrics::FilterClass::ACCOUNTSTORE_EVM, "zilliqa_accountstore",
-                    "latency_gauge", "Metrics for latency", "units")};
 
-    std::atomic<double> m_evmLat;
+    static void Fetcher(opentelemetry::metrics::ObserverResult observer_result, void * state)
+    {
+        if (std::holds_alternative<
+            std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(observer_result))
+        {
+            std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
+                    observer_result)
+                    ->Observe(m_evmLatency ,{{"evm","ms"}});
+            std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
+                    observer_result)
+                    ->Observe(m_evmLatency*2.5 ,{{"scilla","ms"}});
+            std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
+                    observer_result)
+                    ->Observe(m_transactionLatency*2.5 ,{{"transaction","ms"}});
 
-    double getLetancyValu(){
-      return m_evmLat;
+        }
     }
+    std::shared_ptr<opentelemetry::metrics::ObservableInstrument>   m_simpleObservable;
+
 
     /// Contract Deployment
     /// verify the return from scilla_runner for deployment is valid
@@ -249,6 +258,10 @@ protected:
 
 public:
     /// Initialize the class
+    static double m_evmLatency;
+    static double m_scillaLatency;
+    static double m_transactionLatency;
+
     void Init() override;
 
     /// external interface for calling timeout for txn processing

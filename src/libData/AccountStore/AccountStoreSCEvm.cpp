@@ -334,30 +334,21 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
     std::chrono::system_clock::time_point tpStart;
 
 
+
     INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM)
 
     auto span = START_SPAN(ACC_EVM, {});
 
-    if (TRACE_ENABLED(ACC_EVM)) {
-        tpStart = r_timer_start();
-    }
+    tpStart = r_timer_start();
 
     bool status = UpdateAccountsEvm(params.GetBlockNumber(), unused_numShards,
                                     unused_isds, rcpt, error_code, params);
 
     if (METRICS_ENABLED(ACCOUNTSTORE_EVM)){
-        double taken = ((double)r_timer_end(tpStart)) / 1000.0 ;
-        if (taken > 0.0)
-          m_evmLat = taken;
+        auto val = r_timer_end(tpStart);
+        if (val > 0)
+            AccountStoreSC::m_evmLatency = (double) ((double)r_timer_end(tpStart)/1000);
     }
-
-//    if (TRACE_ENABLED(ACC_HISTOGRAM)) {
-//        double taken = ((double)r_timer_end(tpStart)) / 1000000.0 ;
-//        std::map<std::string, std::string> labels{{"latency","evm-ds"}};
-//       auto context           = opentelemetry::context::Context{};
-//        auto labelkv = opentelemetry::common::KeyValueIterableView<decltype(labels)>{labels};
-//        evm::histogram->Record(taken, labelkv, context);
-//    }
 
     result = params.GetEvmResult();
     params.SetEvmReceipt(rcpt);
