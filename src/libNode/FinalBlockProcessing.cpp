@@ -958,7 +958,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         LOG_GENERAL(WARNING, "Marker001: microblock details blocknum: " << it->first);
 
         for (const auto& entry : it->second) {
-          LOG_GENERAL(WARNING, "Marker001: microblock details entry: " << entry.m_microBlock.GetHeader().m_dsBlockNum);
+          LOG_GENERAL(WARNING, "Marker001: microblock details entry: " << entry.m_microBlock.GetHeader().GetEpochNum());
           LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: " << entry.m_transactions.size());
         }
 
