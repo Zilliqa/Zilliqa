@@ -16,9 +16,10 @@ describe("Scilla SetGet contract", function () {
     }
     
     const zilliqa = new Zilliqa(hre.getNetworkUrl());
-    console.log(await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress));
+    console.log("BALANCE: ", await zilliqa.blockchain.getBalance(parallelizer.zilliqaAccountAddress));
 
     contract = await parallelizer.deployScillaContract("SetGet");
+    console.log("CONTRACT: ", contract);
   });
 
   it("Should be deployed successfully", async function () {

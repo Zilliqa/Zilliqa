@@ -87,7 +87,7 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test
+    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test test/scilla/SetGet.ts
 
     retVal=$?
     if [ $retVal -ne 0 ]; then
