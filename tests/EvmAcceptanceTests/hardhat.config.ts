@@ -4,7 +4,7 @@ import "@nomiclabs/hardhat-web3";
 import "hardhat-scilla-plugin";
 import clc from "cli-color";
 import chai from "chai";
-import {scillaChaiEventMatcher} from "./helper/ScillaChaiMatchers";
+import {scillaChaiEventMatcher} from "hardhat-scilla-plugin";
 
 chai.use(scillaChaiEventMatcher);
 
