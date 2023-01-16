@@ -31,6 +31,10 @@
 #include "libNetwork/ShardStruct.h"
 #include "MessengerCommon.h"
 
+class AccountBase;
+class AccountStore;
+class AccountStoreTemp;
+
 class Messenger {
  public:
   template <class K, class V>

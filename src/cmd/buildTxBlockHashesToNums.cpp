@@ -18,6 +18,7 @@
 #include <iostream>
 
 #include <common/Constants.h>
+#include <depends/libDatabase/LevelDB.h>
 #include <libBlockchain/TxBlock.h>
 
 int main(int argc, char* argv[]) {

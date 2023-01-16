@@ -23,6 +23,7 @@
 #pragma GCC diagnostic pop
 
 #include "libCrypto/Sha2.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
