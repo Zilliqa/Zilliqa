@@ -980,6 +980,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
               break;
             }
           }
+          it++;
         }
       }
 
