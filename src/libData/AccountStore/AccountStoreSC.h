@@ -114,7 +114,7 @@ class AccountStoreSC : public AccountStoreBase {
                     ->Observe(m_evmLatency ,{{"evm","ms"}});
             std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
                     observer_result)
-                    ->Observe(m_evmLatency*2.5 ,{{"scilla","ms"}});
+                    ->Observe(m_scillaLatency ,{{"scilla","ms"}});
             std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
                     observer_result)
                     ->Observe(m_transactionLatency*2.5 ,{{"transaction","ms"}});

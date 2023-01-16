@@ -104,6 +104,7 @@ void AccountStoreSC::InvokeInterpreter(
         const boost::multiprecision::uint128_t &balance, bool &ret,
         TransactionReceipt &receipt) {
     bool call_already_finished = false;
+    std::chrono::system_clock::time_point tpStart = r_timer_start();
     auto func2 = [this, &interprinterPrint, &invoke_type, &version, &is_library,
             &available_gas, &balance,
             &call_already_finished]() mutable -> void {
@@ -159,6 +160,11 @@ void AccountStoreSC::InvokeInterpreter(
         ScillaClient::GetInstance().CheckClient(version, true);
         receipt.AddError(EXECUTE_CMD_TIMEOUT);
         ret = false;
+    }
+    if (METRICS_ENABLED(ACCOUNTSTORE_SCILLA)){
+        auto val = r_timer_end(tpStart);
+        if (val > 0)
+            AccountStoreSC::m_scillaLatency = (double) ((double)r_timer_end(tpStart)/1000);
     }
 }
 

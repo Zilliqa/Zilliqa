@@ -54,6 +54,7 @@ void Metrics::Init() {
   else if (cmp == "STDOUT"){
       InitStdOut(); // our favourite
   } else {
+      // Leave as null provider
   }
 }
 
