@@ -104,21 +104,6 @@ const config: HardhatUserConfig = {
       protocolVersion: 0x41,
       miningState: false
     },
-    isolated_server: {
-      url: "http://localhost:5555/",
-      websocketUrl: "ws://localhost:5555/",
-      accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
-        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
-        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
-      ],
-      chainId: 0x8001,
-      web3ClientVersion: "Zilliqa/v8.2",
-      protocolVersion: 0x41,
-      zilliqaNetwork: true,
-      miningState: false
-    },
     local_network: {
       url: "http://localhost:8080",
       websocketUrl: "ws://localhost:8080",
