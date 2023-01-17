@@ -706,7 +706,7 @@ def wait_for_aws_elb_ready(name):
             print('Exception when getting the creation time of service {}: {}'.format(name, e))
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def is_restarted(deploy_name):
@@ -728,7 +728,7 @@ def is_restarted(deploy_name):
             print('Exception when getting the creation time of deployment {}: {}'.format(deploy_name, e))
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def wait_for_statefulset_ready(name):
@@ -745,7 +745,7 @@ def wait_for_statefulset_ready(name):
                 break
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def get_ingress_url(name):
@@ -765,7 +765,7 @@ def get_ingress_url(name):
             print("Could not find annotation '{}' in ingress '{}'".format(https_annote_key, name))
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def get_svc_ip(name):
@@ -791,7 +791,7 @@ def get_pods_locations(testnet, typename):
             return [(i.metadata.name, i.spec.node_name, i.status.pod_ip) for i in ret.items]
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def get_pod_location(pod_name):
@@ -811,7 +811,7 @@ def get_pod_location(pod_name):
             return (ret.metadata.name, ret.spec.node_name, ret.status.pod_ip)
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def get_basic_auth_secret(secret_name):
@@ -828,7 +828,7 @@ def get_basic_auth_secret(secret_name):
             return (username, password)
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def get_node_ips():
@@ -855,7 +855,7 @@ def get_node_ips():
             return rt
         finally:
             sys.stdout.flush()
-            time.sleep(10)
+            time.sleep(1)
 
 
 def get_basic_auth_link(url, username, password):
@@ -925,7 +925,7 @@ def create_aws_route53_record(fqdn, ip, hosted_zone_id):
             if response['ChangeInfo']['Status'] == 'PENDING':
                 print('Created DNS A record {} -> {}'.format(fqdn, ip))
                 sys.stdout.flush()
-                time.sleep(10)
+                time.sleep(1)
                 return
         except Exception as e:
             print('Exception when creating DNS A record {}: {}, skip'.format(fqdn, e))
