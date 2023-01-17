@@ -27,15 +27,16 @@
 
 // To extend filter classes, you may add items, the total number is limited to
 // 64 (bit mask)
-#define TRACE_FILTER_CLASSES(M) \
-  M(EVM_CLIENT)                   \
-  M(EVM_CLIENT_LOW_LEVEL)         \
-  M(SCILLA_IPC)                   \
-  M(EVM_RPC)                      \
-  M(LOOKUP_SERVER)                \
-  M(QUEUE)                        \
-  M(ACC_EVM)
-
+#define TRACE_FILTER_CLASSES(T) \
+  T(EVM_CLIENT)                   \
+  T(EVM_CLIENT_LOW_LEVEL)         \
+  T(SCILLA_PROCESSING)            \
+  T(SCILLA_IPC)                   \
+  T(EVM_RPC)                      \
+  T(LOOKUP_SERVER)                \
+  T(QUEUE)                        \
+  T(ACC_EVM)                    \
+  T(ACC_HISTOGRAM)
 namespace zil {
 namespace trace {
 enum class FilterClass {

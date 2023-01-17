@@ -76,8 +76,6 @@ const std::string_view MsgTypeToStr(unsigned char msg_type) {
 }
 
 const std::string_view StartByteToStr(unsigned char start_byte) {
-  using namespace zil::p2p;
-
   switch (start_byte) {
     MATCH_CASE(START_BYTE_NORMAL)
     MATCH_CASE(START_BYTE_BROADCAST)
@@ -138,12 +136,12 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
 }
 
 void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
-  if (message->msg.size() >= MessageOffset::BODY) {
-    const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
+  if (message->first.size() >= MessageOffset::BODY) {
+    const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
     INCREMENT_CALLS_COUNTER2(GetMsgDispatchCounter(), MSG_DISPATCH, "Type",
                              MsgTypeToStr(msg_type), "StartByte",
-                             StartByteToStr(message->startByte));
+                             StartByteToStr(message->second.second));
 
     // To-do: Remove consensus user and peer manager placeholders
     Executable* msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
@@ -160,16 +158,17 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
       std::chrono::time_point<std::chrono::high_resolution_clock> tpStart;
       std::string msgName;
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        const auto ins_byte = message->msg.at(MessageOffset::INST);
+        const auto ins_byte = message->first.at(MessageOffset::INST);
         msgName = FormatMessageName(msg_type, ins_byte);
-        LOG_GENERAL(
-            INFO, MessageSizeKeyword << msgName << " " << message->msg.size());
+        LOG_GENERAL(INFO, MessageSizeKeyword << msgName << " "
+                                             << message->first.size());
 
         tpStart = std::chrono::high_resolution_clock::now();
       }
 
       bool result = msg_handlers[msg_type]->Execute(
-          message->msg, MessageOffset::INST, message->from, message->startByte);
+          message->first, MessageOffset::INST, message->second.first,
+          message->second.second);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         auto tpNow = std::chrono::high_resolution_clock::now();
@@ -201,9 +200,6 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_n(m_mediator, syncType, toRetrieveHistory),
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
-
-  // This will bring tracing alive
-  std::cout << Tracing::GetInstance().Version() << std::endl;
 
   if (LOG_PARAMETERS) {
     LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));

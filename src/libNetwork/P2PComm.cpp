@@ -46,14 +46,13 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-using zil::p2p::HASH_LEN;
-using zil::p2p::HDR_LEN;
-
+const unsigned int HDR_LEN = 8;
+const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_ROUND_LEN = 4;
 const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
 
-zil::p2p::Dispatcher P2PComm::m_dispatcher;
+P2PComm::Dispatcher P2PComm::m_dispatcher;
 std::mutex P2PComm::m_mutexPeerConnectionCount;
 std::map<uint128_t, uint16_t> P2PComm::m_peerConnectionCount;
 std::mutex P2PComm::m_mutexBufferEvent;
@@ -122,21 +121,18 @@ void P2PComm::ClearBroadcastHashAsync(const zbytes& message_hash) {
 
 namespace {
 
-inline std::shared_ptr<zil::p2p::Message> MakeMsg(zbytes msg, Peer peer,
-                                                  uint8_t startByte,
-                                                  std::string& traceContext) {
-  auto r = std::make_shared<zil::p2p::Message>();
-  r->msg = std::move(msg);
-  r->traceContext = std::move(traceContext);
-  r->from = std::move(peer);
-  r->startByte = startByte;
-  return r;
+inline std::shared_ptr<P2PComm::Msg> MakeMsg(zbytes msg, Peer peer,
+                                             unsigned char startByte) {
+  return std::make_shared<P2PComm::Msg>(std::make_pair(
+      std::move(msg), std::make_pair(std::move(peer), startByte)));
 }
 
 }  // namespace
 
-void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
-                                  const Peer& from, std::string& traceInfo) {
+void P2PComm::ProcessBroadCastMsg(zbytes& message, const Peer& from) {
+  zbytes msg_hash(message.begin() + HDR_LEN,
+                  message.begin() + HDR_LEN + HASH_LEN);
+
   P2PComm& p2p = P2PComm::GetInstance();
 
   // Check if this message has been received before
@@ -144,14 +140,16 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
   {
     lock_guard<mutex> guard(p2p.m_broadcastHashesMutex);
 
-    found = (p2p.m_broadcastHashes.find(hash) != p2p.m_broadcastHashes.end());
+    found =
+        (p2p.m_broadcastHashes.find(msg_hash) != p2p.m_broadcastHashes.end());
     // While we have the lock, we should quickly add the hash
     if (!found) {
       SHA256Calculator sha256;
-      sha256.Update(message);
+      sha256.Update(message, HDR_LEN + HASH_LEN,
+                    message.size() - HDR_LEN - HASH_LEN);
       zbytes this_msg_hash = sha256.Finalize();
 
-      if (this_msg_hash == hash) {
+      if (this_msg_hash == msg_hash) {
         p2p.m_broadcastHashes.insert(this_msg_hash);
       } else {
         LOG_GENERAL(WARNING, "Incorrect message hash.");
@@ -166,10 +164,10 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
     return;
   }
 
-  p2p.ClearBroadcastHashAsync(hash);
+  p2p.ClearBroadcastHashAsync(msg_hash);
 
   string msgHashStr;
-  if (!DataConversion::Uint8VecToHexStr(hash, msgHashStr)) {
+  if (!DataConversion::Uint8VecToHexStr(msg_hash, msgHashStr)) {
     return;
   }
 
@@ -177,30 +175,31 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
                        << msgHashStr.substr(0, 6) << "] RECV");
 
   // Queue the message
-  m_dispatcher(MakeMsg(std::move(message), from, zil::p2p::START_BYTE_BROADCAST,
-                       traceInfo));
+  m_dispatcher(
+      MakeMsg(zbytes(message.begin() + HDR_LEN + HASH_LEN, message.end()), from,
+              START_BYTE_BROADCAST));
 }
 
-/*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from,
-                                          std::string& traceInfo) {
-  unsigned char gossipMsgTyp = message.at(0);
+/*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from) {
+  unsigned char gossipMsgTyp = message.at(HDR_LEN);
 
-  const uint32_t gossipMsgRound = (message.at(GOSSIP_MSGTYPE_LEN) << 24) +
-                                  (message.at(GOSSIP_MSGTYPE_LEN + 1) << 16) +
-                                  (message.at(GOSSIP_MSGTYPE_LEN + 2) << 8) +
-                                  message.at(GOSSIP_MSGTYPE_LEN + 3);
+  const uint32_t gossipMsgRound =
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN) << 24) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 1) << 16) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 2) << 8) +
+      message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + 3);
 
   const uint32_t gossipSenderPort =
-      (message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN) << 24) +
-      (message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1) << 16) +
-      (message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2) << 8) +
-      message.at(GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN) << 24) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 1) << 16) +
+      (message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 2) << 8) +
+      message.at(HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + 3);
   from.m_listenPortHost = gossipSenderPort;
 
-  RumorManager::RawBytes rumor_message(message.begin() + GOSSIP_MSGTYPE_LEN +
-                                           GOSSIP_ROUND_LEN +
-                                           GOSSIP_SNDR_LISTNR_PORT_LEN,
-                                       message.end());
+  RumorManager::RawBytes rumor_message(
+      message.begin() + HDR_LEN + GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN +
+          GOSSIP_SNDR_LISTNR_PORT_LEN,
+      message.end());
 
   P2PComm& p2p = P2PComm::GetInstance();
   if (gossipMsgTyp == (uint8_t)RRS::Message::Type::FORWARD) {
@@ -215,8 +214,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
-      m_dispatcher(MakeMsg(std::move(tmp), from, zil::p2p::START_BYTE_GOSSIP,
-                           traceInfo));
+      m_dispatcher(MakeMsg(std::move(tmp), from, START_BYTE_GOSSIP));
     }
   } else {
     auto resp = p2p.m_rumorManager.RumorReceived(
@@ -225,8 +223,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
       LOG_GENERAL(INFO, "Rumor size: " << rumor_message.size());
 
       // Queue the message
-      m_dispatcher(MakeMsg(std::move(resp.second), from,
-                           zil::p2p::START_BYTE_GOSSIP, traceInfo));
+      m_dispatcher(MakeMsg(std::move(resp.second), from, START_BYTE_GOSSIP));
     }
   }
 }
@@ -315,14 +312,8 @@ void P2PComm::ClearPeerConnectionCount() {
 
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
-  struct AutoClose {
-    ~AutoClose() {
-      if (bev) {
-        CloseAndFreeBufferEvent(bev);
-      }
-    }
-    struct bufferevent* bev;
-  } auto_close{bev};
+  unique_ptr<struct bufferevent, decltype(&CloseAndFreeBufferEvent)>
+      socket_closer(bev, CloseAndFreeBufferEvent);
 
   if (events & BEV_EVENT_ERROR) {
     LOG_GENERAL(WARNING, "Error from bufferevent.");
@@ -348,82 +339,138 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
     LOG_GENERAL(WARNING, "bufferevent_get_input failure.");
     return;
   }
-
   size_t len = evbuffer_get_length(input);
-  if (len < zil::p2p::HDR_LEN) {
-    // not enough bytes received, wait for the next callback
-    auto_close.bev = nullptr;
+  if (len == 0) {
+    LOG_GENERAL(WARNING, "evbuffer_get_length failure.");
+    return;
+  }
+  zbytes message(len);
+  if (evbuffer_copyout(input, message.data(), len) !=
+      static_cast<ev_ssize_t>(len)) {
+    LOG_GENERAL(WARNING, "evbuffer_copyout failure.");
+    return;
+  }
+  if (evbuffer_drain(input, len) != 0) {
+    LOG_GENERAL(WARNING, "evbuffer_drain failure.");
     return;
   }
 
-  const uint8_t* data = evbuffer_pullup(input, len);
-  if (!data) {
-    LOG_GENERAL(WARNING, "evbuffer_pullup failure.");
+  // Reception format:
+  // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
+  // 0x11 - start byte
+  // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
+  // <message>
+
+  // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
+  // 0x22 - start byte (broadcast)
+  // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
+  // <32-byte hash> <message>
+
+  // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
+  // 0x33 - start byte (gossip)
+  // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
+  // 0x01 ~ 0x04 - Gossip_Message_Type
+  // <4-byte Age> <message>
+
+  // 0x01 ~ 0xFF - version, defined in constant file
+  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
+  // 0x33 - start byte (report)
+  // 0x00 0x00 0x00 0x01 - 4-byte length of message
+  // 0x00
+
+  // Check for minimum message size
+  if (message.size() <= HDR_LEN) {
+    LOG_GENERAL(WARNING, "Empty message received.");
     return;
   }
 
-  zil::p2p::ReadMessageResult result;
-  auto state = zil::p2p::TryReadMessage(data, len, result);
+  const unsigned char version = message[0];
 
-  if (state == zil::p2p::ReadState::NOT_ENOUGH_DATA) {
-    // not enough bytes received, wait for the next callback
-    LOG_GENERAL(DEBUG, "not enough data");
-    auto_close.bev = nullptr;
+  // Check for version requirement
+  if (version != (unsigned char)(MSG_VERSION & 0xFF)) {
+    LOG_GENERAL(WARNING, "Header version wrong, received ["
+                             << version - 0x00 << "] while expected ["
+                             << MSG_VERSION << "].");
     return;
   }
 
-  if (state != zil::p2p::ReadState::SUCCESS) {
+  const uint16_t networkid = (message[1] << 8) + message[2];
+  if (networkid != NETWORK_ID) {
+    LOG_GENERAL(WARNING, "Header networkid wrong, received ["
+                             << networkid << "] while expected [" << NETWORK_ID
+                             << "].");
     return;
   }
 
-  std::ignore = evbuffer_drain(input, result.totalMessageBytes);
+  const unsigned char startByte = message[3];
 
-  if (result.startByte == zil::p2p::START_BYTE_BROADCAST) {
-    LOG_PAYLOAD(INFO, "Incoming broadcast " << from, result.message,
-                Logger::MAX_BYTES_TO_DISPLAY);
+  const uint32_t messageLength =
+      (message[4] << 24) + (message[5] << 16) + (message[6] << 8) + message[7];
 
-    if (result.message.size() <= HASH_LEN) {
-      LOG_GENERAL(WARNING,
-                  "Hash missing or empty broadcast message (messageLength = "
-                      << result.message.size() << ")");
+  {
+    // Check for length consistency
+    uint32_t res;
+
+    if (!SafeMath<uint32_t>::sub(message.size(), HDR_LEN, res)) {
+      LOG_GENERAL(WARNING, "Unexpected subtraction operation!");
       return;
     }
 
-    ProcessBroadCastMsg(result.message, result.hash, from, result.traceInfo);
-  } else if (result.startByte == zil::p2p::START_BYTE_NORMAL) {
-    LOG_PAYLOAD(INFO, "Incoming normal " << from, result.message,
+    if (messageLength != res) {
+      LOG_GENERAL(WARNING, "Incorrect message length.");
+      return;
+    }
+  }
+
+  if (startByte == START_BYTE_BROADCAST) {
+    LOG_PAYLOAD(INFO, "Incoming broadcast " << from, message,
+                Logger::MAX_BYTES_TO_DISPLAY);
+
+    if (messageLength <= HASH_LEN) {
+      LOG_GENERAL(WARNING,
+                  "Hash missing or empty broadcast message (messageLength = "
+                      << messageLength << ")");
+      return;
+    }
+
+    ProcessBroadCastMsg(message, from);
+  } else if (startByte == START_BYTE_NORMAL) {
+    LOG_PAYLOAD(INFO, "Incoming normal " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
-    m_dispatcher(MakeMsg(std::move(result.message), from,
-                         zil::p2p::START_BYTE_NORMAL, result.traceInfo));
-  } else if (result.startByte == zil::p2p::START_BYTE_GOSSIP) {
+    m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
+                         START_BYTE_NORMAL));
+  } else if (startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
-    if (result.message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
+    if (message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
       LOG_GENERAL(WARNING,
                   "Gossip message received [Size:"
-                      << result.message.size() << "] is unexpectedly large [ >"
+                      << message.size() << "] is unexpectedly large [ >"
                       << MAX_GOSSIP_MSG_SIZE_IN_BYTES
                       << " ]. Will be strictly blacklisting the sender");
       Blacklist::GetInstance().Add(
-          from.m_ipAddress);  // so we don't spend cost sending any data to this
+          from.m_ipAddress);  // so we dont spend cost sending any data to this
                               // sender as well.
       return;
     }
-    if (result.message.size() <
+    if (messageLength <
         GOSSIP_MSGTYPE_LEN + GOSSIP_ROUND_LEN + GOSSIP_SNDR_LISTNR_PORT_LEN) {
       LOG_GENERAL(
           WARNING,
           "Gossip Msg Type and/or Gossip Round and/or SNDR LISTNR is missing "
           "(messageLength = "
-              << result.message.size() << ")");
+              << messageLength << ")");
       return;
     }
 
-    ProcessGossipMsg(result.message, from, result.traceInfo);
+    ProcessGossipMsg(message, from);
   } else {
     // Unexpected start byte. Drop this message
-    LOG_GENERAL(WARNING, "Incorrect start byte " << result.startByte);
+    LOG_GENERAL(WARNING, "Incorrect start byte.");
   }
 }
 
@@ -582,7 +629,7 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
 
   const unsigned char startByte = message[3];
 
-  if (startByte == zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST) {
+  if (startByte == START_BYTE_SEED_TO_SEED_REQUEST) {
     LOG_PAYLOAD(INFO, "Incoming request from ext seed " << from, message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
@@ -597,13 +644,11 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
       m_bufferEventMap[bufKey] = bev;
     }
     // Queue the message
-    std::string emptyStr;
     m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
-                         zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST, emptyStr));
+                         START_BYTE_SEED_TO_SEED_REQUEST));
   } else {
     // Unexpected start byte. Drop this message
-    LOG_CHECK_FAIL("Start byte", startByte,
-                   zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST);
+    LOG_CHECK_FAIL("Start byte", startByte, START_BYTE_SEED_TO_SEED_REQUEST);
     CloseAndFreeBevP2PSeedConnServer(bev);
   }
 }
@@ -693,7 +738,7 @@ void P2PComm::RemoveBevFromMap(const Peer& peer) {
 void P2PComm::RemoveBevAndCloseP2PConnServer(const Peer& peer,
                                              const unsigned& startByteType) {
   LOG_MARKER();
-  if (startByteType == zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST) {
+  if (startByteType == START_BYTE_SEED_TO_SEED_REQUEST) {
     lock(m_mutexPeerConnectionCount, m_mutexBufferEvent);
     unique_lock<mutex> lock(m_mutexPeerConnectionCount, adopt_lock);
     lock_guard<mutex> g(m_mutexBufferEvent, adopt_lock);
@@ -877,18 +922,16 @@ void P2PComm ::ReadCbClientSeed(struct bufferevent* bev, void* ctx) {
 
   const unsigned char startByte = message[3];
 
-  if (startByte == zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE) {
+  if (startByte == START_BYTE_SEED_TO_SEED_RESPONSE) {
     LOG_PAYLOAD(INFO, "Incoming normal response from server seed " << from,
                 message, Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
-    std::string emptyStr;
     m_dispatcher(MakeMsg(zbytes(message.begin() + HDR_LEN, message.end()), from,
-                         zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE, emptyStr));
+                         START_BYTE_SEED_TO_SEED_RESPONSE));
   } else {
     // Unexpected start byte. Drop this message
-    LOG_CHECK_FAIL("Start byte", startByte,
-                   zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE);
+    LOG_CHECK_FAIL("Start byte", startByte, START_BYTE_SEED_TO_SEED_RESPONSE);
   }
   CloseAndFreeBevP2PSeedConnClient(bev, ctx);
 }
@@ -954,11 +997,11 @@ void P2PComm::AcceptCbServerSeed([[gnu::unused]] evconnlistener* listener,
   bufferevent_enable(bev, EV_READ | EV_WRITE);
 }
 
-void P2PComm::StartMessagePump(zil::p2p::Dispatcher dispatcher) {
+void P2PComm::StartMessagePump(Dispatcher dispatcher) {
   LOG_MARKER();
 
   if (!m_sendJobs) {
-    m_sendJobs = zil::p2p::SendJobs::Create();
+    m_sendJobs = SendJobs::Create();
   }
 
   m_dispatcher = std::move(dispatcher);
@@ -1070,7 +1113,7 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
                                       const zbytes& message,
                                       const unsigned char& startByteType) {
   lock_guard<mutex> g(m_mutexBufferEvent);
-  if (startByteType == zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST) {
+  if (startByteType == START_BYTE_SEED_TO_SEED_REQUEST) {
     if (!MULTIPLIER_SYNC_MODE) {
       // seednode request message
       LOG_GENERAL(INFO, "P2PSeed request msg peer=" << peer);
@@ -1085,7 +1128,7 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
       unsigned char buf[HDR_LEN] = {(unsigned char)(MSG_VERSION & 0xFF),
                                     (unsigned char)((NETWORK_ID >> 8) & 0XFF),
                                     (unsigned char)(NETWORK_ID & 0xFF),
-                                    zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST,
+                                    START_BYTE_SEED_TO_SEED_REQUEST,
                                     (unsigned char)((length >> 24) & 0xFF),
                                     (unsigned char)((length >> 16) & 0xFF),
                                     (unsigned char)((length >> 8) & 0xFF),
@@ -1125,7 +1168,7 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
       auto it = m_bufferEventMap.find(bufKey);
       if (it != m_bufferEventMap.end()) {
         WriteMsgOnBufferEvent(it->second, message,
-                              zil::p2p::START_BYTE_SEED_TO_SEED_RESPONSE);
+                              START_BYTE_SEED_TO_SEED_RESPONSE);
         // TODO Remove log
         if (DEBUG_LEVEL == 4) {
           for (const auto& it1 : m_bufferEventMap) {
@@ -1148,11 +1191,10 @@ void P2PComm::SendMsgToSeedNodeOnWire(const Peer& peer, const Peer& fromPeer,
 namespace {
 
 template <typename PeerList>
-void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
+void SendMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
                      const PeerList& peers, const zbytes& message,
-                     unsigned char startByteType,
-                     bool bAllowSendToRelaxedBlacklist,
-                     bool inject_trace_context) {
+                     const unsigned char& startByteType,
+                     const bool bAllowSendToRelaxedBlacklist) {
   if (peers.empty()) {
     LOG_GENERAL(WARNING, "Error: empty peer list");
     return;
@@ -1164,8 +1206,7 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
   }
 
   static const zbytes no_hash;
-  auto raw_msg = zil::p2p::CreateMessage(message, no_hash, startByteType,
-                                         inject_trace_context);
+  auto raw_msg = sendJobs->CreateMessage(message, no_hash, startByteType);
 
   for (const auto& peer : peers) {
     sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist);
@@ -1175,51 +1216,45 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
 }  // namespace
 
 void P2PComm::SendMessage(const vector<Peer>& peers, const zbytes& message,
-                          unsigned char startByteType,
-                          bool inject_trace_context) {
-  SendMessageImpl(m_sendJobs, peers, message, startByteType, false,
-                  inject_trace_context);
+                          const unsigned char& startByteType) {
+  SendMessageImpl(m_sendJobs, peers, message, startByteType, false);
 }
 
 void P2PComm::SendMessage(const deque<Peer>& peers, const zbytes& message,
-                          unsigned char startByteType,
-                          bool bAllowSendToRelaxedBlacklist,
-                          bool inject_trace_context) {
+                          const unsigned char& startByteType,
+                          const bool bAllowSendToRelaxedBlacklist) {
   SendMessageImpl(m_sendJobs, peers, message, startByteType,
-                  bAllowSendToRelaxedBlacklist, inject_trace_context);
+                  bAllowSendToRelaxedBlacklist);
 }
 
 void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
-                          unsigned char startByteType,
-                          bool inject_trace_context) {
+                          const unsigned char& startByteType) {
   if (!m_sendJobs) {
     LOG_GENERAL(WARNING, "Message pump not started");
     return;
   }
-  m_sendJobs->SendMessageToPeer(peer, message, startByteType,
-                                inject_trace_context);
+  m_sendJobs->SendMessageToPeer(peer, message, startByteType);
 }
 
 // Overloaded for p2pseed as we need actual socket port coming in from
 // parameter. Seedpubs lookup will call this overloaded function
 void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
-                          const zbytes& message, unsigned char startByteType,
-                          bool inject_trace_context) {
+                          const zbytes& message,
+                          const unsigned char& startByteType) {
   if (ENABLE_SEED_TO_SEED_COMMUNICATION &&
-      startByteType == zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST) {
+      startByteType == START_BYTE_SEED_TO_SEED_REQUEST) {
     SendMsgToSeedNodeOnWire(peer, fromPeer, message, startByteType);
     return;
   }
-  SendMessage(peer, message, startByteType, inject_trace_context);
+  SendMessage(peer, message, startByteType);
 }
 
 namespace {
 
 template <typename PeerList>
-void SendBroadcastMessageImpl(
-    const std::shared_ptr<zil::p2p::SendJobs>& sendJobs, const PeerList& peers,
-    const Peer& selfPeer, const zbytes& message, zbytes& hash,
-    bool inject_trace_context) {
+void SendBroadcastMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
+                              const PeerList& peers, const Peer& selfPeer,
+                              const zbytes& message, zbytes& hash) {
   if (peers.empty()) {
     return;
   }
@@ -1233,8 +1268,7 @@ void SendBroadcastMessageImpl(
   sha256.Update(message);
   hash = sha256.Finalize();
 
-  auto raw_msg = zil::p2p::CreateMessage(
-      message, hash, zil::p2p::START_BYTE_BROADCAST, inject_trace_context);
+  auto raw_msg = sendJobs->CreateMessage(message, hash, START_BYTE_BROADCAST);
 
   string hashStr;
   if (selfPeer != Peer()) {
@@ -1254,13 +1288,11 @@ void SendBroadcastMessageImpl(
 }  // namespace
 
 void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
-                                   const zbytes& message,
-                                   bool inject_trace_context) {
+                                   const zbytes& message) {
   LOG_MARKER();
 
   zbytes hash;
-  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash,
-                           inject_trace_context);
+  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash);
 
   if (!hash.empty()) {
     lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -1269,13 +1301,11 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
 }
 
 void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
-                                   const zbytes& message,
-                                   bool inject_trace_context) {
+                                   const zbytes& message) {
   LOG_MARKER();
 
   zbytes hash;
-  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash,
-                           inject_trace_context);
+  SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash);
 
   if (!hash.empty()) {
     lock_guard<mutex> guard(m_broadcastHashesMutex);
@@ -1284,7 +1314,7 @@ void P2PComm::SendBroadcastMessage(const deque<Peer>& peers,
 }
 
 void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
-                                 unsigned char startByteType) {
+                                 const unsigned char& startByteType) {
   if (Blacklist::GetInstance().Exist(peer.m_ipAddress)) {
     LOG_GENERAL(INFO, "The node "
                           << peer
@@ -1293,7 +1323,7 @@ void P2PComm::SendMessageNoQueue(const Peer& peer, const zbytes& message,
   }
 
   if (!m_sendJobs) {
-    m_sendJobs = zil::p2p::SendJobs::Create();
+    m_sendJobs = SendJobs::Create();
   }
   m_sendJobs->SendMessageToPeerSynchronous(peer, message, startByteType);
 }

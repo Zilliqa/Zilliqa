@@ -22,6 +22,7 @@
 
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
+#include "libUtils/Tracing.h"
 
 namespace rpc {
 

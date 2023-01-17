@@ -235,10 +235,9 @@ bool Node::ProcessMicroBlockConsensusCore(
   if (state == ConsensusCommon::State::DONE) {
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(
-        // FIXME: same implementation as
-        // DirectoryService::ConsensusObjectToCoSig; moved from
-        //        BlockBase to remove dependency on libConsensus. Put in a
-        //        single function and reuse.
+        // FIXME: same implementation as DirectoryService::ConsensusObjectToCoSig; moved from
+        //        BlockBase to remove dependency on libConsensus. Put in a single function and
+        //        reuse.
         CoSignatures{m_consensusObject->GetCS1(), m_consensusObject->GetB1(),
                      m_consensusObject->GetCS2(), m_consensusObject->GetB2()});
 
@@ -279,7 +278,7 @@ bool Node::ProcessMicroBlockConsensusCore(
         []([[gnu::unused]] const zbytes& message,
            [[gnu::unused]] const DequeOfShard& shards,
            [[gnu::unused]] const unsigned int& my_shards_lo,
-           [[gnu::unused]] const unsigned int& my_shards_hi, bool) -> void {};
+           [[gnu::unused]] const unsigned int& my_shards_hi) -> void {};
 
     unordered_map<uint32_t, BlockBase> t_blocks;
     if (m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetEpochNum() ==
@@ -291,25 +290,19 @@ bool Node::ProcessMicroBlockConsensusCore(
 
     {
       lock_guard<mutex> g(m_mutexShardMember);
-
-      // TODO use distributed traces from here?
-      bool inject_trace_context = false;
-
       // To DS -> ProcessMicroBlock
       DataSender::GetInstance().SendDataToOthers(
           *m_microblock, *m_myShardMembers, ds_shards, t_blocks,
           m_mediator.m_lookup->GetLookupNodes(),
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-          m_consensusMyID, composeMicroBlockMessageForSender,
-          inject_trace_context, false, nullptr);
+          m_consensusMyID, composeMicroBlockMessageForSender, false, nullptr);
       // To Lookup -> ProcessMBnForwardTxn
       DataSender::GetInstance().SendDataToOthers(
           *m_microblock, *m_myShardMembers, {}, {},
           m_mediator.m_lookup->GetLookupNodes(),
           m_mediator.m_txBlockChain.GetLastBlock().GetBlockHash(),
-          m_consensusMyID, composeMBnForwardTxnMessageForSender,
-          inject_trace_context, false, SendDataToLookupFuncDefault,
-          sendMbnFowardTxnToShardNodes);
+          m_consensusMyID, composeMBnForwardTxnMessageForSender, false,
+          SendDataToLookupFuncDefault, sendMbnFowardTxnToShardNodes);
       // pending Txns
       if (!IsUnconfirmedTxnEmpty()) {
         SendPendingTxnToLookup();

@@ -35,6 +35,7 @@
   M(LOOKUP_SERVER)                \
   M(MSG_DISPATCH)                 \
   M(ACCOUNTSTORE_EVM)             \
+  M(ACCOUNTSTORE_SCILLA)          \
   M(API_SERVER)
 
 namespace zil {

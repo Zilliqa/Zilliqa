@@ -699,11 +699,7 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
     }
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message,
-                                              inject_trace_context);
+  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
 }
 
 void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
@@ -733,12 +729,7 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
     }
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(allLookupNodes, message,
-                                     zil::p2p::START_BYTE_NORMAL,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(allLookupNodes, message);
 }
 
 void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
@@ -775,12 +766,7 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
       resolved_ip);  // exclude this lookup ip from blacklisting
   Peer tmpPeer(resolved_ip, tmp[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending to Random lookup: " << tmpPeer);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(
-      tmpPeer, message, zil::p2p::START_BYTE_NORMAL, inject_trace_context);
+  P2PComm::GetInstance().SendMessage(tmpPeer, message);
 }
 
 void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
@@ -801,12 +787,7 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
       seedNodePeer.emplace_back(tmpPeer);
     }
   }
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(
-      seedNodePeer, message, zil::p2p::START_BYTE_NORMAL, inject_trace_context);
+  P2PComm::GetInstance().SendMessage(seedNodePeer, message);
 }
 
 zbytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
@@ -1324,12 +1305,9 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
     }
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
   Peer requestingNode(from.m_ipAddress, portNo);
   P2PComm::GetInstance().SendMessage(requestingNode, from, dsInfoMessage,
-                                     startByte, inject_trace_context);
+                                     startByte);
 
   return true;
 }
@@ -1356,16 +1334,11 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   Peer tmpPeer(resolved_ip,
                m_l2lDataProviders[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
-  unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
+  unsigned char startByte = START_BYTE_NORMAL;
   if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
+    startByte = START_BYTE_SEED_TO_SEED_REQUEST;
   }
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(tmpPeer, tmpPeer, message, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(tmpPeer, tmpPeer, message, startByte);
 }
 
 void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
@@ -1398,13 +1371,7 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
   LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message,
-                                     zil::p2p::START_BYTE_NORMAL,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
 
 bool Lookup::IsWhitelistedExtSeed(const PubKey& pubKey, const Peer& from,
@@ -1493,12 +1460,8 @@ bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcDSBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcDSBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCDSBlock msg to " << requestorPeer);
-
-      // TODO use distributed traces from here?
-      bool inject_trace_context = false;
-
       P2PComm::GetInstance().SendMessage(requestorPeer, from, it->second,
-                                         startByte, inject_trace_context);
+                                         startByte);
       return true;
     }
   }
@@ -1579,12 +1542,8 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
     auto it = m_mediator.m_node->m_vcFinalBlockStore.find(blockNum);
     if (it != m_mediator.m_node->m_vcFinalBlockStore.end()) {
       LOG_GENERAL(INFO, "Sending VCFinalBlock msg to " << requestorPeer);
-
-      // TODO use distributed traces from here?
-      bool inject_trace_context = false;
-
       P2PComm::GetInstance().SendMessage(requestorPeer, from, it->second,
-                                         startByte, inject_trace_context);
+                                         startByte);
       return true;
     }
   }
@@ -1648,12 +1607,8 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
         auto it2 = it->second.find(shardId);
         if (it2 != it->second.end()) {
           LOG_GENERAL(INFO, "Sending MbnForrwardTxn msg to " << requestorPeer);
-
-          // TODO use distributed traces from here?
-          bool inject_trace_context = false;
-
           P2PComm::GetInstance().SendMessage(requestorPeer, from, it2->second,
-                                             startByte, inject_trace_context);
+                                             startByte);
           return true;
         }
       } else {
@@ -1895,12 +1850,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
 
   Peer requestingNode(from.m_ipAddress, portNo);
   LOG_GENERAL(INFO, requestingNode);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
+                                     startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -1939,11 +1890,8 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
         return false;
       }
 
-      // TODO use distributed traces from here?
-      bool inject_trace_context2 = false;
-
       P2PComm::GetInstance().SendMessage(requestingNode, from, returnMsg,
-                                         startByte, inject_trace_context2);
+                                         startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -2076,12 +2024,8 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
     return false;
   }
   Peer requestingNode(from.m_ipAddress, portNo);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
   P2PComm::GetInstance().SendMessage(requestingNode, from, txBlockMessage,
-                                     startByte, inject_trace_context);
+                                     startByte);
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Sent Txblks " << lowBlockNum << " - " << highBlockNum);
   return true;
@@ -2210,12 +2154,8 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
   P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltaMessage,
-                                     startByte, inject_trace_context);
+                                     startByte);
   return true;
 }
 
@@ -2285,12 +2225,8 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
   P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltasMessage,
-                                     startByte, inject_trace_context);
+                                     startByte);
   return true;
 }
 
@@ -2322,11 +2258,7 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, msg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, msg, startByte);
 
   return true;
 }
@@ -2502,11 +2434,7 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
   return true;
 }
 
@@ -2588,11 +2516,7 @@ bool Lookup::ProcessGetMicroBlockFromL2l(const zbytes& message,
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
   return true;
 }
 
@@ -2795,11 +2719,7 @@ bool Lookup::ProcessGetCosigsRewardsFromSeed(
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, retMsg, startByte);
   return true;
 }
 
@@ -3873,11 +3793,8 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg,
+                                     startByte);
   return true;
 }
 
@@ -3966,11 +3883,8 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, from, setTxnMsg,
+                                     startByte);
   return true;
 }
 
@@ -4354,12 +4268,8 @@ bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
     }
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
   P2PComm::GetInstance().SendMessage(requestingNode, from,
-                                     offlineLookupsMessage, startByte,
-                                     inject_trace_context);
+                                     offlineLookupsMessage, startByte);
   return true;
 }
 
@@ -5033,11 +4943,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
     return false;
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(peer, from, msg, startByte,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
 
   // Send minerInfo as a separate message since it is not critical information
   if (includeMinerInfo) {
@@ -5080,11 +4986,7 @@ bool Lookup::ProcessGetDirectoryBlocksFromSeed(const zbytes& message,
         return false;
       }
 
-      // TODO use distributed traces from here?
-      bool inject_trace_context2 = false;
-
-      P2PComm::GetInstance().SendMessage(peer, from, msg, startByte,
-                                         inject_trace_context2);
+      P2PComm::GetInstance().SendMessage(peer, from, msg, startByte);
       LOG_GENERAL(INFO, "Sent miner info. Count=" << minerInfoPerDS.size());
     } else {
       LOG_GENERAL(INFO, "No miner info sent");
@@ -5606,12 +5508,7 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
         }
       }
     }
-
-    // TODO use distributed traces from here?
-    bool inject_trace_context = false;
-
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg,
-                                                inject_trace_context);
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
     DeleteTxnShardMap(shardId);
   } else {
@@ -5643,11 +5540,7 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
       }
     }
 
-    // TODO use distributed traces from here?
-    bool inject_trace_context = false;
-
-    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg,
-                                                inject_trace_context);
+    P2PComm::GetInstance().SendBroadcastMessage(toSend, msg);
 
     LOG_GENERAL(INFO, "[DSMB]"
                           << " Sent DS the txns");
@@ -5935,12 +5828,8 @@ bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
   }
 
   Peer requestingNode(from.m_ipAddress, listenPort);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
   P2PComm::GetInstance().SendMessage(requestingNode, from, dsTxBlocksMessage,
-                                     startByte, inject_trace_context);
+                                     startByte);
   return true;
 }
 
@@ -6003,13 +5892,7 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
 
   LOG_GENERAL(INFO, "[update ds guard] Sending guard node update info to "
                         << requestingNode);
-
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo,
-                                     zil::p2p::START_BYTE_NORMAL,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(requestingNode, setNewDSGuardNetworkInfo);
   return true;
 }
 
