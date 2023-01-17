@@ -448,37 +448,87 @@ bool ContractStorage::FetchExternalStateValue(
     return true;
   }
 
-  // For _evm_storage, we know the type, so we don't have to query it.
-  bool fetchType;
-  if (query.name() == "_evm_storage") {
-    type = "ByStr32";
-    fetchType = false;
-  } else {
-    fetchType = true;
-    // External state queries don't have map depth set. Get it from the
-    // database.
-    map<string, zbytes> map_depth;
-    string map_depth_key =
-        GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
-    FetchStateDataForKey(map_depth, map_depth_key, true);
+  //TODO
+  //  if (query.is_mutable()) {
+    // For _evm_storage, we know the type, so we don't have to query it.
+    bool fetchType;
+    if (query.name() == "_evm_storage") {
+      type = "ByStr32";
+      fetchType = false;
+    } else {
+      fetchType = true;
+      // External state queries don't have map depth set. Get it from the
+      // database.
+      map<string, zbytes> map_depth;
+      string map_depth_key =
+          GenerateStorageKey(target, MAP_DEPTH_INDICATOR, {query.name()});
+      FetchStateDataForKey(map_depth, map_depth_key, true);
 
-    int map_depth_val;
-    try {
-      map_depth_val = !map_depth.empty()
-                          ? std::stoi(DataConversion::CharArrayToString(
-                                map_depth[map_depth_key]))
-                          : -1;
-    } catch (const std::exception& e) {
-      LOG_GENERAL(WARNING, "invalid map depth: " << e.what());
-      return false;
+      int map_depth_val;
+      try {
+        map_depth_val = !map_depth.empty()
+                            ? std::stoi(DataConversion::CharArrayToString(
+                                  map_depth[map_depth_key]))
+                            : -1;
+      } catch (const std::exception& e) {
+        LOG_GENERAL(WARNING, "invalid map depth: " << e.what());
+        return false;
+      }
+      query.set_mapdepth(map_depth_val);
+      fetchType = true;
     }
-    query.set_mapdepth(map_depth_val);
-    fetchType = true;
-  }
 
-  // get value
-  return FetchStateValue(target, query, dst, d_offset, foundVal, fetchType,
-                         type);
+    // get value
+    return FetchStateValue(target, query, dst, d_offset, foundVal, fetchType,
+                           type);
+    
+    // TODO
+    // }
+    // else { //!query.is_mutable
+    /** TODO: Fetch the relevate data from the init file.
+        //Fetch init data
+        init_data = target.GetInitData() //(Using Account::GetInitData())
+        //Possibly also need to use Account::ParseInitDataJson(), though I'm not sure
+
+        if (init_data == null) { // This is possible if no contract exists at the address, and should not cause an error
+          foundVal = false;
+          return true;
+        }
+
+        entry = init_data.find("vname", query.name()) (entry = the data entry matching the variable name)
+        if (entry == null) { // This is possible if the parameter name is not declared, and should not cause an error
+          foundVal = false;
+          return true;
+        }
+
+        res_type = entry.find("type") //This is the type we return - if this is a map lookup, then we parse the type on the OCaml side.
+
+        if (query.ignoreval()) { //Only produce type information
+          foundVal = true;
+          type = res_type;
+          return true;
+        }
+        else { //See if there is a value to return
+          ProtoScillaVal value;
+          zbytes cur_val = entry.find("value"); // Find the value of the parameter
+          for (const auto& index : query.indices()) { //If this is a map lookup, traverse the indices
+            //This logic is similar to FetchStateValue, line 202 and forward.
+            //The difference is that we are are looking up the value in json data rather than in levelDB
+            next_entry = cur_val.find("key", index); // See if the key exists in the map.
+            if (next_entry == null) { // This is possible if the key does not exist in the map, and should not cause an error
+              foundVal = false;
+              return true;
+            }
+            cur_val = next_entry.find("val"); //Value of the map entry
+          }
+          value.set_bval(cur_val.data(), cur_val.size()); //I'm not entirely sure this is correct, but it looks like that is what happens in FetchStateValue
+          foundVal = true;
+          type = res_type;
+          return SerializeToArray(value, dst, 0);
+        }
+    */
+    //TODO
+    //  }
 }
 
 void ContractStorage::DeleteByPrefix(const string& prefix) {
