@@ -1025,10 +1025,26 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
 
     LOG_GENERAL(WARNING, "Marker001: Now we generate the TX receipts!" );
+    std::set<TxnHash> txsExecuted;
 
-    for (const auto &tx : txsToExecute) {
-      LOG_GENERAL(WARNING, "Marker001: TX: " << tx.GetTranID() );
+    for (const auto &t : txsToExecute) {
+      LOG_GENERAL(WARNING, "Marker001: TX: " << t.GetTranID() );
+
+      if(txsExecuted.insert(t.GetTranID()).second) {
+
+        TransactionReceipt tr;
+        TxnStatus error_code;
+
+        auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
+
+        LOG_GENERAL(WARNING, "Marker001: TX succ: " << succ );
+
+      } else {
+        LOG_GENERAL(WARNING, "Marker001: skipping tx duplicate: " << t.GetTranID() );
+      }
     }
+
+    LOG_GENERAL(WARNING, "Marker001: final state delta hash: " << AccountStore::GetInstance().GetStateDeltaHash() );
 
     //AccountStore::GetInstance().InitTemp();
   }
