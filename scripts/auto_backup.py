@@ -34,7 +34,7 @@ TESTNET_NAME= "TEST_NET_NAME"
 BUCKET_NAME='BUCKET_NAME'
 AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
 AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
-AWS_S3_URL= "http://"+BUCKET_NAME+".s3.amazonaws.com"
+AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
 
 FORMATTER = logging.Formatter(
     "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
@@ -46,6 +46,18 @@ rootLogger.setLevel(logging.INFO)
 std_handler = logging.StreamHandler()
 std_handler.setFormatter(FORMATTER)
 rootLogger.addHandler(std_handler)
+
+def awsS3Url():
+    if AWS_ENDPOINT_URL:
+        return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
+    else:
+        return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+
+def awsCli():
+    if AWS_ENDPOINT_URL:
+        return f"aws --endpoint-url={AWS_ENDPOINT_URL}"
+    else:
+        return "aws"
 
 def setup_logging():
   if not os.path.exists(os.path.dirname(os.path.abspath(__file__)) + "/logs"):
@@ -114,7 +126,7 @@ def GetCurrentTxBlockNum():
     return blockNum + 1
 
 def CreateTempPersistence():
-    static_folders = GetStaticFoldersFromS3(AWS_S3_URL, AWS_BLOCKCHAINDATA_FOLDERNAME)
+    static_folders = GetStaticFoldersFromS3(awsS3Url(), AWS_BLOCKCHAINDATA_FOLDERNAME)
     exclusion_string = ' '.join(['--exclude ' + s for s in static_folders])
     bashCommand = "rsync --recursive --inplace --delete -a " + exclusion_string + " persistence tempbackup"
     logging.info("Command = " + bashCommand)
@@ -132,8 +144,8 @@ def backUp(curr_blockNum):
                 fullpath = os.path.join(root, file)
                 tar.add(fullpath)
 
-    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + ".tar.gz")
-    os.system("aws s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION +  "-" + str(curr_blockNum) + ".tar.gz")
+    os.system(awsCli() + " s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + ".tar.gz")
+    os.system(awsCli() + " s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION +  "-" + str(curr_blockNum) + ".tar.gz")
     os.remove(TESTNET_NAME + ".tar.gz")
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
     return None

@@ -40,8 +40,8 @@ NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
 NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
 TESTNET_NAME= "TEST_NET_NAME"
 AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
-AWS_S3_URL= "http://"+BUCKET_NAME+".s3.amazonaws.com"
 SYNC_INTERVAL = 1
+AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
 
 FORMATTER = logging.Formatter(
     "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
@@ -53,6 +53,18 @@ rootLogger.setLevel(logging.INFO)
 std_handler = logging.StreamHandler()
 std_handler.setFormatter(FORMATTER)
 rootLogger.addHandler(std_handler)
+
+def awsS3Url():
+	if AWS_ENDPOINT_URL:
+		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
+	else:
+		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+
+def awsCli():
+    if AWS_ENDPOINT_URL:
+        return f"aws --endpoint-url={AWS_ENDPOINT_URL}"
+    else:
+        return "aws"
 
 def setup_logging():
   logfile = os.path.dirname(os.path.abspath(__file__)) + "/upload_incr_DB-log.txt"
@@ -80,7 +92,7 @@ def getBucketString(subFolder):
 	return "s3://"+BUCKET_NAME+"/"+subFolder+"/"+TESTNET_NAME
 
 def CreateTempPersistence():
-	static_folders = GetStaticFoldersFromS3(AWS_S3_URL, AWS_BLOCKCHAINDATA_FOLDERNAME)
+	static_folders = GetStaticFoldersFromS3(awsS3Url(), AWS_BLOCKCHAINDATA_FOLDERNAME)
 	exclusion_string = ' '.join(['--exclude ' + s for s in static_folders])
 	bashCommand = "rsync --recursive --inplace --delete -a " + exclusion_string + " persistence temp"
 	logging.info("Command = " + bashCommand)	
@@ -89,19 +101,19 @@ def CreateTempPersistence():
 	logging.info("Copied local persistence to temporary")
 
 def CleanS3StateDeltas():
-	bashCommand = "aws s3 rm --recursive "+getBucketString(STATEDELTA_DIFF_NAME)
+	bashCommand = awsCli() + " s3 rm --recursive "+getBucketString(STATEDELTA_DIFF_NAME)
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
 	logging.info("Cleaned S3 bucket "+getBucketString(STATEDELTA_DIFF_NAME))
 
 def CleanS3EntirePersistence():
-	bashCommand = "aws s3 rm --recursive "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)
+	bashCommand = awsCli() + " s3 rm --recursive "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	output, error = process.communicate()
 	logging.info("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME))
 
 def CleanS3PersistenceDiffs():
-	bashCommand = "aws s3 rm --recursive "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" --exclude 'persistence/*' --exclude '.lock' "
+	bashCommand = awsCli() + " s3 rm --recursive "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" --exclude 'persistence/*' --exclude '.lock' "
 	process = subprocess.Popen(bashCommand, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	logging.info("Cleaned S3 bucket "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+ " for persistence diffs!" )
@@ -110,20 +122,20 @@ def SetCurrentTxBlkNum(txBlkNum):
 	Path(".currentTxBlk").touch()
 	with open(".currentTxBlk",encoding='utf-8', mode='w') as file:
 		file.write(txBlkNum)
-	bashCommand = "aws s3 cp .currentTxBlk "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.currentTxBlk"
+	bashCommand = awsCli() + " s3 cp .currentTxBlk "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.currentTxBlk"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	logging.info("[" + str(datetime.datetime.now()) + "] SetCurrentTxBlkNum:" + txBlkNum + " for uploading process")	
 
 def SetLock():
 	Path(".lock").touch()
-	bashCommand = "aws s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
+	bashCommand = awsCli() + " s3 cp .lock "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	logging.info("[" + str(datetime.datetime.now()) + "] SetLock for uploading process")
 
 def ResetLock():
-	bashCommand = "aws s3 rm "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
+	bashCommand = awsCli() + " s3 rm "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/.lock"
 	process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 	output, error = process.communicate()
 	logging.info("[" + str(datetime.datetime.now()) + "] Removed lock for uploading process")
@@ -136,7 +148,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 
 	# Try syncing S3 with latest persistence only if NUM_DSBLOCK blocks have crossed.
 	if ((blockNum + 1) % (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW) == 0 or lastBlockNum == 0):
-		bashCommand = "aws s3 sync --delete temp/persistence "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude 'diagnosticNodes/*' --exclude 'diagnosticCoinb/*' "
+		bashCommand = awsCli() + " s3 sync --delete temp/persistence "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude 'diagnosticNodes/*' --exclude 'diagnosticCoinb/*' "
 		process = subprocess.Popen(bashCommand, universal_newlines=True, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 		output, error = process.communicate()
 		if re.match(r'^\s*$', output):
@@ -149,7 +161,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 			CleanS3PersistenceDiffs()
 	elif (result == 0):
 		# we still need to sync persistence except for state, stateroot, contractCode, contractStateData, contractStateIndex so that next time for next blocknum we can get statedelta diff and persistence diff correctly
-		bashCommand = "aws s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlockKeys/*' --include 'microBlocks*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txEpochs/*' --include 'txBodies*' --include 'extSeedPubKeys/*' --include 'state_purge/*' --include 'contractTrie_purge/*' "
+		bashCommand = awsCli() + " s3 sync --delete temp/persistence "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence --exclude '*' --include 'microBlockKeys/*' --include 'microBlocks*' --include 'dsBlocks/*' --include 'minerInfoDSComm/*' --include 'minerInfoShards/*' --include 'dsCommittee/*' --include 'shardStructure/*' --include 'txBlocks/*' --include 'VCBlocks/*' --include 'blockLinks/*' --include 'metaData/*' --include 'stateDelta/*' --include 'txEpochs/*' --include 'txBodies*' --include 'extSeedPubKeys/*' --include 'state_purge/*' --include 'contractTrie_purge/*' "
 		retry = 3
 		while (retry):
 			try:
@@ -169,7 +181,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 					t.type = tarfile.DIRTYPE
 					tf.addfile(t)
 					tf.close()
-					bashCommand = "aws s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
+					bashCommand = awsCli() + " s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
 					process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 					output, error = process.communicate()
 					logging.info("DUMMY upload: persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced")
@@ -190,7 +202,7 @@ def SyncLocalToS3Persistence(blockNum,lastBlockNum):
 							#print(x)
 							tf.add(x,arcname="diff_persistence_"+str(blockNum)+"/"+ x.split("persistence/",1)[1]) 
 						tf.close()
-						bashCommand = "aws s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
+						bashCommand = awsCli() + " s3 cp diff_persistence_"+str(blockNum)+".tar.gz "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/diff_persistence_"+str(blockNum)+".tar.gz"
 						process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 						output, error = process.communicate()
 						logging.info("Persistence Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(PERSISTENCE_SNAPSHOT_NAME)+" is Synced without state/stateroot/contractCode/contractStateData/contractStateIndex")
@@ -216,7 +228,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		tf = tarfile.open("stateDelta_"+str(blockNum)+".tar.gz", mode="w:gz")
 		tf.add("temp/persistence/stateDelta", arcname=os.path.basename("persistence/stateDelta_"+str(blockNum)))
 		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
+		bashCommand = awsCli() + " s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
 		logging.info("New state-delta snapshot for new ds epoch (TXBLK:" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
@@ -225,7 +237,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		return 0
 
 	# check if there is diff and buffer the diff_output
-	bashCommand = "aws s3 sync --dryrun --delete temp/persistence/stateDelta "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence/stateDelta"
+	bashCommand = awsCli() + " s3 sync --dryrun --delete temp/persistence/stateDelta "+ getBucketString(PERSISTENCE_SNAPSHOT_NAME)+"/persistence/stateDelta"
 	process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 	diff_output, error = process.communicate()
 	str_diff_output = diff_output.decode("utf-8")
@@ -236,7 +248,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		t.type = tarfile.DIRTYPE
 		tf.addfile(t)
 		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
+		bashCommand = awsCli() + " s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
 		logging.info("DUMMY upload: State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+ getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")
@@ -258,7 +270,7 @@ def GetAndUploadStateDeltaDiff(blockNum, lastBlockNum):
 		for x in result:
 			tf.add(x,arcname="stateDelta_"+str(blockNum)+"/"+ path_leaf(x))
 		tf.close()
-		bashCommand = "aws s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
+		bashCommand = awsCli() + " s3 cp stateDelta_"+str(blockNum)+".tar.gz "+getBucketString(STATEDELTA_DIFF_NAME)+"/stateDelta_"+str(blockNum)+".tar.gz"
 		process = subprocess.Popen(bashCommand.split(), stdout=subprocess.PIPE)
 		output, error = process.communicate()
 		logging.info("State-delta Diff for new txBlk :" + str(blockNum) + ") in Remote S3 bucket: "+getBucketString(STATEDELTA_DIFF_NAME)+" is Synced")

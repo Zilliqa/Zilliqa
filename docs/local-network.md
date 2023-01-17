@@ -38,3 +38,8 @@
 1. Check on the state of your cluster in the usual ways (`kubectl`, `k9s`, etc.).
 Note that it may take a while to download the container image and start up.
 1. Make sure devex is configured to talk to `http://localhost:8080`.
+
+# Updating the network
+
+Sadly our networks are not very resilient, so we can't rely on Kubernetes' automatic rollouts to restart nodes with a new image.
+Instead, the easiest thing to do at the moment is to tear down the network and re-create it by running `tilt down`, waiting for all the pods to be deleted and then `tilt up` again.
