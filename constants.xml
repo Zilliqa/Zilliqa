@@ -200,10 +200,10 @@
         <!-- blocking Call to read socket from evm-ds timeout -->
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
-        <LAUNCH_EVM_DAEMON>false</LAUNCH_EVM_DAEMON>
+        <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
         <!-- Sort account store delta before serialization -->
         <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
-        <!-- USE CPS -->
+        <!-- Use Continuous passing style -->
         <ENABLE_CPS>true</ENABLE_CPS>
     </jsonrpc>
     <network_composition>
