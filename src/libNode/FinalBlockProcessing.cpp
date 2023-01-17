@@ -1003,29 +1003,32 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         continue;
       }
 
-      //const auto &tranHashes = microBlockPtr->GetTranHashes();
-      //LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
-      //for (const auto &transactionHash : tranHashes) {
-      //  LOG_GENERAL(WARNING, "Marker001: loop 000: ");
-      //  TxBodySharedPtr transactionBodyPtr;
-      //  LOG_GENERAL(WARNING, "Marker001: loop 001: ");
-      //  if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-      //                                                 transactionBodyPtr)) {
-      //    LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body " );
-      //    continue;
-      //  } else {
-      //    LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
-      //    LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
-      //    txsToExecute.push_back(transactionBodyPtr);
-      //  }
-      //  LOG_GENERAL(WARNING, "Marker001: loop 002: ");
-      //}
+      const auto &tranHashes = microBlockPtr->GetTranHashes();
+
+      LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
+      for (const auto &transactionHash : tranHashes) {
+        LOG_GENERAL(WARNING, "Marker001: loop 000: ");
+        TxBodySharedPtr transactionBodyPtr;
+        LOG_GENERAL(WARNING, "Marker001: loop 001: ");
+        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                       transactionBodyPtr)) {
+          LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body for: " << transactionHash );
+          continue;
+        } else {
+          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
+          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
+          txsToExecute.push_back(transactionBodyPtr->GetTransaction());
+        }
+        LOG_GENERAL(WARNING, "Marker001: loop 002: ");
+      }
 
       //LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
     }
 
     LOG_GENERAL(WARNING, "Marker001: Now we generate the TX receipts!" );
     std::set<TxnHash> txsExecuted;
+
+    LOG_GENERAL(WARNING, "Marker001: txs to execute size: " << txsToExecute.size() );
 
     for (const auto &t : txsToExecute) {
       LOG_GENERAL(WARNING, "Marker001: TX: " << t.GetTranID() );
