@@ -424,7 +424,14 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
                   << fromAddress.hex() << ", IS: "
                   << mAccountStore.GetNonceForAccountAtomic(fromAddress));
 
-  // InstallCode(contractAddress, createData.call_data());
+  uint64_t remainingGas = result.remaining_gas();
+
+  // Adjust remainingGas and recalculate gas for resume operation
+  // Charge MIN_ETH_GAS for transfer operation
+  if (ProtoToUint(createData.value()) > 0) {
+    mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+    remainingGas -= MIN_ETH_GAS;
+  }
 
   // Set continuation (itself) to be resumed when create run is finished
   {
@@ -440,7 +447,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     const auto targetGas =
         createData.target_gas() != std::numeric_limits<uint64_t>::max()
             ? createData.target_gas()
-            : result.remaining_gas();
+            : remainingGas;
     const auto baseFee = Eth::getGasUnitsForContractDeployment(
         {}, DataConversion::StringToCharArray(createData.call_data()));
 
@@ -463,7 +470,6 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   // Push transfer operation if needed
   {
     if (ProtoToUint(createData.value()) > 0) {
-      mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
       // Push transfer to be executed first
       const auto value = Amount::fromWei(ProtoToUint(createData.value()));
       auto transferRun = std::make_shared<CpsRunTransfer>(
