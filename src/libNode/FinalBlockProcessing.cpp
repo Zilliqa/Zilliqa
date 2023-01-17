@@ -941,16 +941,15 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     LOG_GENERAL(WARNING, "Marker001: archival lookup!");
 
     auto mbi = txBlock.GetMicroBlockInfos();
-    std::vector<TxBodySharedPtr> txsToExecute;
+    std::vector<Transaction> txsToExecute;
 
     for (const auto& mb : mbi) {
       LOG_GENERAL(WARNING, "Marker001: microblock hash: " << mb.m_microBlockHash);
 
       MicroBlockSharedPtr microBlockPtr{};
 
-      auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
-
-      LOG_GENERAL(WARNING, "Marker001: microblock epoch num: " << m_mediator.m_currentEpochNum);
+      //auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
+      //LOG_GENERAL(WARNING, "Marker001: microblock epoch num: " << m_mediator.m_currentEpochNum);
 
       {
         lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
@@ -979,6 +978,10 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
               microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
             }
 
+            for(const auto &txWReceipt : entry.m_transactions) {
+              txsToExecute.push_back(txWReceipt.GetTransaction());
+            }
+
             ii++;
 
             if (ii > 200) {
@@ -990,41 +993,43 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         }
       }
 
-      LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
-
-      if (!succ) {
-        LOG_GENERAL(WARNING, "no success unf from disk unf...");
-      }
+      //LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
+      //if (!succ) {
+      //  LOG_GENERAL(WARNING, "no success unf from disk unf...");
+      //}
 
       if (!microBlockPtr) {
         LOG_GENERAL(WARNING, "Marker001: skipping...");
         continue;
       }
 
-      const auto &tranHashes = microBlockPtr->GetTranHashes();
+      //const auto &tranHashes = microBlockPtr->GetTranHashes();
+      //LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
+      //for (const auto &transactionHash : tranHashes) {
+      //  LOG_GENERAL(WARNING, "Marker001: loop 000: ");
+      //  TxBodySharedPtr transactionBodyPtr;
+      //  LOG_GENERAL(WARNING, "Marker001: loop 001: ");
+      //  if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+      //                                                 transactionBodyPtr)) {
+      //    LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body " );
+      //    continue;
+      //  } else {
+      //    LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
+      //    LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
+      //    txsToExecute.push_back(transactionBodyPtr);
+      //  }
+      //  LOG_GENERAL(WARNING, "Marker001: loop 002: ");
+      //}
 
-      LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
-
-      for (const auto &transactionHash : tranHashes) {
-        LOG_GENERAL(WARNING, "Marker001: loop 000: ");
-        TxBodySharedPtr transactionBodyPtr;
-        LOG_GENERAL(WARNING, "Marker001: loop 001: ");
-        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                       transactionBodyPtr)) {
-          LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body " );
-          continue;
-        } else {
-          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
-          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
-          txsToExecute.push_back(transactionBodyPtr);
-        }
-        LOG_GENERAL(WARNING, "Marker001: loop 002: ");
-      }
-
-      LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
+      //LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
     }
 
     LOG_GENERAL(WARNING, "Marker001: Now we generate the TX receipts!" );
+
+    for (const auto &tx : txsToExecute) {
+      LOG_GENERAL(WARNING, "Marker001: TX: " << tx.GetTranID() );
+    }
+
     //AccountStore::GetInstance().InitTemp();
   }
 
