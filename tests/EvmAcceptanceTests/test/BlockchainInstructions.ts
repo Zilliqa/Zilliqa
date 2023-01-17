@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import parallelizer from "../helper/Parallelizer";
+import {parallelizer} from "../helpers";
 
 // TODO: Change the description to something more meaningful.
 describe("Blockchain Instructions contract", function () {

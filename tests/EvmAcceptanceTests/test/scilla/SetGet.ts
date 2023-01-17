@@ -1,5 +1,7 @@
-import {deploy, ScillaContract} from "../../helper/ScillaHelper";
+import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
+import hre from "hardhat";
+import {parallelizer} from "../../helpers";
 
 // TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
 describe.skip("Scilla SetGet contract", function () {
@@ -7,7 +9,11 @@ describe.skip("Scilla SetGet contract", function () {
   const VALUE = 12;
 
   before(async function () {
-    contract = await deploy("SetGet");
+    if (!hre.isZilliqaNetworkSelected()) {
+      this.skip();
+    }
+
+    contract = await parallelizer.deployScillaContract("SetGet");
   });
 
   it("Should be deployed successfully", async function () {
