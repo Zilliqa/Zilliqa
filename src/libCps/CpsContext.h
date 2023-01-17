@@ -27,13 +27,6 @@ struct CpsContext {
   bool isStatic = false;
   bool estimate = false;
   evm::EvmEvalExtras evmExtras;
-  uint64_t gasLimit = 0;
-  uint32_t depth = 0;
-  uint64_t SubAndGetGasLimit(uint64_t subtrahend) {
-    gasLimit = gasLimit > subtrahend ? gasLimit - subtrahend : 0;
-    return gasLimit;
-  }
-  void ReclaimGas(uint64_t reclaimed) { gasLimit += reclaimed; }
 };
 }  // namespace libCps
 

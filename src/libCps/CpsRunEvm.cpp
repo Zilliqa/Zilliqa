@@ -38,11 +38,7 @@ CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
     : CpsRun(executor.GetAccStoreIface(), type),
       mProtoArgs(std::move(protoArgs)),
       mExecutor(executor),
-      mCpsContext(ctx) {
-  mCpsContext.depth += 1;
-}
-
-CpsRunEvm::~CpsRunEvm() { mCpsContext.depth -= 1; }
+      mCpsContext(ctx) {}
 
 bool CpsRunEvm::IsResumable() const {
   return mProtoArgs.has_continuation() && mProtoArgs.continuation().id() > 0;

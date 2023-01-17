@@ -78,8 +78,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
                     clientContext.GetDirect(),
                     clientContext.GetEvmArgs().estimate(),
-                    clientContext.GetEvmArgs().extras(),
-                    clientContext.GetEvmArgs().gas_limit()};
+                    clientContext.GetEvmArgs().extras()};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create
