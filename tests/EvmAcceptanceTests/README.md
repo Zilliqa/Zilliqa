@@ -11,6 +11,7 @@
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
     npx hardhat test --parallel   # to run tests in parallel
+    npx hardhat test test/scilla/*    # to run scilla tests only
 ```
 
 # Start Testing
@@ -269,7 +270,7 @@ for more tests please take look at [scilla tests](./test/scilla/).
 
 ### TODO
 
-- Support formatting complex data types such as `Map` and `List`
+- Support formatting complex data types such as `Map` and `List`.
 
 ## Tasks
 
