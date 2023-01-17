@@ -60,6 +60,39 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
+#ifndef PRODUCTION_BUILD
+namespace {
+
+[[maybe_unused]] int readAccountJsonFromFile(const string& path) {
+  ifstream in(path.c_str());
+
+  if (!in) {
+    cerr << "Cannot open file \n" << path << endl;
+    return -1;
+  }
+  Json::Value _json;
+  in >> _json;
+
+  try {
+    for (const auto& i : _json.getMemberNames()) {
+      Address addr(i);
+      uint128_t balance(_json[i]["amount"].asString());
+      if (AccountStore::GetInstance().AddAccount(
+              addr, {balance, _json[i]["nonce"].asUInt()})) {
+        LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
+      }
+    }
+  } catch (exception& e) {
+    cout << "Unable to load data " << e.what() << endl;
+    return -1;
+  }
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  return 0;
+}
+
+}
+#endif
+
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
                                 unsigned int factor = 0, const string& errMsg = "") {
@@ -279,7 +312,14 @@ void Node::Init() {
   const auto& dsBlock = m_mediator.m_dsBlockChain.GetBlock(0);
   m_mediator.m_blocklinkchain.AddBlockLink(0, 0, BlockType::DS,
                                            dsBlock.GetBlockHash());
+#ifndef PRODUCTION_VERSION
+  auto returnVal = readAccountJsonFromFile("/etc/zilliqa/isolated-server-accounts.json");
+
+  LOG_GENERAL(INFO,"Read Accounts file supplied by isolated-server-accounts.json :" << returnVal);
+#endif
 }
+
+
 
 void Node::AddGenesisInfo(SyncType syncType) {
   LOG_MARKER();
