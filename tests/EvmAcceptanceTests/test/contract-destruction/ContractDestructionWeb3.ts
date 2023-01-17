@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import parallelizer from "../../helper/Parallelizer";
+import {parallelizer} from "../../helpers";
 import hre, {web3} from "hardhat";
 import {Contract} from "web3-eth-contract";
 import BN from "bn.js";

@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import parallelizer from "../../helper/Parallelizer";
+import {parallelizer} from "../../helpers";
 import {web3} from "hardhat";
 
 describe("Contract Interaction with web3.js", function () {

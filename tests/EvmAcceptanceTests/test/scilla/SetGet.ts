@@ -1,8 +1,7 @@
 import {ScillaContract} from "hardhat-scilla-plugin";
 import {expect} from "chai";
 import hre from "hardhat";
-import parallelizer from "../../helper/Parallelizer";
-import { Zilliqa } from "@zilliqa-js/zilliqa";
+import {parallelizer} from "../../helpers";
 
 // TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
 describe.skip("Scilla SetGet contract", function () {

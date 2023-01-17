@@ -1,8 +1,8 @@
 import {assert} from "chai";
 import hre from "hardhat";
-import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {web3} from "hardhat";
-import logDebug from "../../helper/DebugHelper";
+import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_sendRawTransaction";
 

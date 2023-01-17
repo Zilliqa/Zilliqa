@@ -121,7 +121,7 @@ DEBUG=true npx hardhat test
 - We don't pollute test results with logs. So if you want to add them for debugging, please consider using `logDebug` function:
 
 ```typescript
-import logDebug from "../helper/DebugHelper";
+import {logDebug} from "../helpers";
 logDebug(result);
 ```
 
@@ -197,7 +197,7 @@ Scilla testing is done through the [hardhat scilla plugin](https://www.npmjs.com
 To deploy a contract all you need to know is its name:
 
 ```typescript
-import {parallelizer} from "../../helper";
+import {parallelizer} from "../../helpers";
 
 let contract: ScillaContract = await parallelizer.deployScillaContract("SetGet");
 let contract: ScillaContract = await parallelizer.deployScillaContract("HelloWorld", "Hello World"); // Contract with initial parameters.
