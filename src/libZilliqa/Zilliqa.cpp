@@ -41,6 +41,7 @@
 #include "libUtils/SetThreadName.h"
 #include "libUtils/UpgradeManager.h"
 #include "libValidator/Validator.h"
+#include "libUtils/Tracing.h"
 
 namespace {
 

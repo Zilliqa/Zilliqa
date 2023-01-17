@@ -30,6 +30,7 @@
 #include "libServer/WebsocketServer.h"
 #include "libUtils/Metrics.h"
 #include "libValidator/Validator.h"
+#include "libUtils/Tracing.h"
 
 #define SUCCESS 0
 #define ERROR_IN_COMMAND_LINE -1

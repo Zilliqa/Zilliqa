@@ -223,6 +223,9 @@ class AccountStore  : public AccountStoreTrie {
   std::condition_variable_any& GetPrimaryWriteAccessCond() {
     return m_writeCond;
   }
+  bool EvmProcessMessageTemp(EvmProcessContext& params, evm::EvmResult& result) {
+    return m_accountStoreTemp.EvmProcessMessage(params, result);
+  }
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_

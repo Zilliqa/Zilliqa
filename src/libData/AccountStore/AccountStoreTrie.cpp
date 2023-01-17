@@ -24,7 +24,7 @@ AccountStoreTrie::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
 
 
 void AccountStoreTrie::Init() {
-  AccountStoreSC::Init();
+  AccountStoreBase::Init();
   InitTrie();
 }
 
