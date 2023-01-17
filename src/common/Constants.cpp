@@ -307,8 +307,8 @@ const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
 // Gas constants
 const uint64_t MIN_ETH_GAS{
     ReadConstantUInt64("MIN_ETH_GAS", "node.gas.", 21000)};
-const unsigned int DS_MICROBLOCK_GAS_LIMIT{
-    ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int DS_MICROBLOCK_GAS_LIMIT = 500000;
+    //ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
     ReadConstantNumeric("SHARD_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int CONTRACT_CREATE_GAS{
