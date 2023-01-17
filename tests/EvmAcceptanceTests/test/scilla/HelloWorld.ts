@@ -10,7 +10,7 @@ describe.skip("Scilla HelloWorld contract", function () {
     if (!hre.isZilliqaNetworkSelected()) {
       this.skip();
     }
- 
+
     contract = await parallelizer.deployScillaContract("HelloWorld", parallelizer.zilliqaAccountAddress);
   });
 

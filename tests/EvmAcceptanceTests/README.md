@@ -266,6 +266,7 @@ expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world"});
 ```
 
 for more tests please take look at [scilla tests](./test/scilla/).
+
 ### TODO
 
 - Support formatting complex data types such as `Map` and `List`
