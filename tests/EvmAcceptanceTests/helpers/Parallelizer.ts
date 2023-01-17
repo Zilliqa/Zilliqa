@@ -78,5 +78,4 @@ export class Parallelizer {
   private signerPool: SignerPool = new SignerPool();
 }
 
-const parallelizer: Parallelizer = new Parallelizer();
-export default parallelizer;
+export const parallelizer: Parallelizer = new Parallelizer();

@@ -190,17 +190,17 @@ expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`)
 
 ## Testing
 
-Scilla testing can be done in the same way ethers.js is used for solidity. It's possible to deploy a scilla contract by its name and call its transitions just like a normal function call. It's also possible to get a field value through a function call. In the below sections, all of these topics are covered in detail.
+Scilla testing is done through the [hardhat scilla plugin](https://www.npmjs.com/package/hardhat-scilla-plugin). It's possible to deploy a scilla contract by its name and call its transitions just like a normal function call. It's also possible to get a field value through a function call. In the below sections, all of these topics are covered in detail.
 
 ### Deploy a contract
 
 To deploy a contract all you need to know is its name:
 
 ```typescript
-import {deploy, ScillaContract} from "../../helper/ScillaHelper";
+import {parallelizer} from "../../helper";
 
-let contract: ScillaContract = await deploy("SetGet");
-let contract: ScillaContract = await deploy("HelloWorld", "Hello World"); // Contract with initial parameters.
+let contract: ScillaContract = await parallelizer.deployScillaContract("SetGet");
+let contract: ScillaContract = await parallelizer.deployScillaContract("HelloWorld", "Hello World"); // Contract with initial parameters.
 ```
 
 ### Call a transition
