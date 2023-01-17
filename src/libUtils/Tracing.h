@@ -20,23 +20,24 @@
 
 #include <opentelemetry/trace/tracer.h>
 #include <opentelemetry/trace/tracer_provider.h>
-#include <cassert>
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include <cassert>
 
 #include "common/Singleton.h"
 #include "common/TraceFilters.h"
 
-namespace trace_api = opentelemetry::trace;
-namespace trace_sdk = opentelemetry::sdk::trace;
+namespace trace_api      = opentelemetry::trace;
+namespace trace_sdk      = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 
 namespace zil {
 namespace trace {
 class Filter : public Singleton<Filter> {
  public:
-  Filter() { init(); }
+
+  Filter(){ init();}
 
   void init();
 
@@ -48,15 +49,8 @@ class Filter : public Singleton<Filter> {
   uint64_t m_mask{};
 };
 
-/// Extract info to continue spans with distributed tracing
-void ExtractTraceInfoFromCurrentContext(std::string& serializedTraceInfo);
-
-/// Creates child span from serialized trace info
-std::shared_ptr<trace_api::Span> CreateChildSpan(
-    std::string_view name, const std::string& serializedTraceInfo);
-
-}  // namespace trace
-}  // namespace zil
+}
+}
 
 class Tracing : public Singleton<Tracing> {
  public:

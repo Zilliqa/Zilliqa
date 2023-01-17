@@ -882,12 +882,7 @@ bool DirectoryService::UpdateDSGuardIdentity() {
     }
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
-
-  P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage,
-                                     zil::p2p::START_BYTE_NORMAL,
-                                     inject_trace_context);
+  P2PComm::GetInstance().SendMessage(peerInfo, updatedsguardidentitymessage);
 
   m_awaitingToSubmitNetworkInfoUpdate = false;
 

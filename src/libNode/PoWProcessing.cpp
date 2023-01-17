@@ -41,11 +41,10 @@ using namespace std;
 using namespace boost::multiprecision;
 
 // TODO: only used in libNode. Move somewhere more appropriate.
-extern bool IsMessageSizeInappropriate(unsigned int messageSize,
-                                       unsigned int offset,
-                                       unsigned int minLengthNeeded,
-                                       unsigned int factor = 0,
-                                       const std::string& errMsg = "");
+extern bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
+                                unsigned int minLengthNeeded,
+                                unsigned int factor = 0,
+                                const std::string& errMsg = "");
 
 bool Node::GetLatestDSBlock() {
   LOG_MARKER();
@@ -374,11 +373,14 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  // TODO use distributed traces from here?
-  bool inject_trace_context = false;
+  // Instead of sending whole list at once, send 1 by 1 to prevent incidents
+  // where that particular node is down and hence the whole list is being
+  // delayed or gone
+  auto& p2pComm = P2PComm::GetInstance();
+  for (const auto& p : peerList) {
+    p2pComm.SendMessage(p, powmessage);
+  }
 
-  P2PComm::GetInstance().SendMessage(
-      peerList, powmessage, zil::p2p::START_BYTE_NORMAL, inject_trace_context);
   return true;
 }
 
