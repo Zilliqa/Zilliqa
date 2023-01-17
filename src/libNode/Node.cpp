@@ -62,7 +62,7 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #ifndef PRODUCTION_BUILD
 namespace {
-
+// testing version
 [[maybe_unused]] int readAccountJsonFromFile(const string& path) {
   ifstream in(path.c_str());
 
