@@ -22,6 +22,11 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
+#include <Schnorr.h>
+#include "common/BaseType.h"
+#include "common/Constants.h"
+#include "libUtils/DataConversion.h"
+#include "libUtils/SWInfo.h"
 #include "libUtils/UpgradeManager.h"
 
 namespace po = boost::program_options;

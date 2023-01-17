@@ -21,8 +21,8 @@
 #include "libCps/CpsExecuteValidator.h"
 #include "libCps/CpsRunEvm.h"
 
-#include "libData/AccountData/EvmProcessContext.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -68,17 +68,18 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
                            clientContext.GetEvmArgs().address()));
   LOG_GENERAL(WARNING, "CPS ENTER VALUE: " << ProtoToUint(
                            clientContext.GetEvmArgs().apparent_value()));
-  LOG_GENERAL(WARNING,
-              "CPS ENTER CODE SIZE: " << clientContext.GetCode().size());
-  LOG_GENERAL(WARNING,
-              "CPS ENTER DATA SIZE: " << clientContext.GetData().size());
+  LOG_GENERAL(WARNING, "CPS ENTER CODE SIZE: "
+                           << clientContext.GetEvmArgs().code().size());
+  LOG_GENERAL(WARNING, "CPS ENTER DATA SIZE: "
+                           << clientContext.GetEvmArgs().data().size());
   LOG_GENERAL(WARNING,
               "CPS ENTER GAS: " << clientContext.GetEvmArgs().gas_limit());
 
   CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
                     clientContext.GetDirect(),
                     clientContext.GetEvmArgs().estimate(),
-                    clientContext.GetEvmArgs().extras()};
+                    clientContext.GetEvmArgs().extras(),
+                    clientContext.GetEvmArgs().gas_limit()};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create

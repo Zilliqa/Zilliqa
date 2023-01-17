@@ -17,8 +17,8 @@
 
 #include "Messenger.h"
 #include "libCrypto/Sha2.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMessage/ZilliqaMessage.pb.h"
@@ -92,12 +92,12 @@ void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
 template <class T>
 bool SerializeToArray(const T& protoMessage, zbytes& dst,
                       const unsigned int offset) {
-  if ((offset + protoMessage.ByteSize()) > dst.size()) {
-    dst.resize(offset + protoMessage.ByteSize());
+  if ((offset + protoMessage.ByteSizeLong()) > dst.size()) {
+    dst.resize(offset + protoMessage.ByteSizeLong());
   }
 
   return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSize());
+                                       protoMessage.ByteSizeLong());
 }
 
 template bool SerializeToArray<ProtoAccountStore>(
@@ -113,7 +113,7 @@ bool RepeatableToArray(const T& repeatable, zbytes& dst,
       LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
       return false;
     }
-    tempOffset += element.ByteSize();
+    tempOffset += element.ByteSizeLong();
   }
   return true;
 }
@@ -2063,7 +2063,7 @@ bool SetConsensusAnnouncementCore(
     return false;
   }
 
-  zbytes tmp(announcement.consensusinfo().ByteSize());
+  zbytes tmp(announcement.consensusinfo().ByteSizeLong());
   announcement.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -2087,52 +2087,52 @@ bool SetConsensusAnnouncementCore(
         LOG_GENERAL(WARNING, "Announcement dsblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.dsblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.dsblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.dsblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.dsblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.dsblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::kMicroblock:
       if (!announcement.microblock().IsInitialized()) {
         LOG_GENERAL(WARNING, "Announcement microblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.microblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.microblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.microblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.microblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.microblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::kFinalblock:
       if (!announcement.finalblock().IsInitialized()) {
         LOG_GENERAL(WARNING, "Announcement finalblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.finalblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.finalblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.finalblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.finalblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.finalblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::kVcblock:
       if (!announcement.vcblock().IsInitialized()) {
         LOG_GENERAL(WARNING, "Announcement vcblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.vcblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.vcblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.vcblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.vcblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.vcblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::ANNOUNCEMENT_NOT_SET:
     default:
@@ -2212,40 +2212,40 @@ bool GetConsensusAnnouncementCore(
   zbytes tmp;
 
   if (announcement.has_dsblock() && announcement.dsblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.dsblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.dsblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.dsblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.dsblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.dsblock().ByteSizeLong());
   } else if (announcement.has_microblock() &&
              announcement.microblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.microblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.microblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.microblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.microblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.microblock().ByteSizeLong());
   } else if (announcement.has_finalblock() &&
              announcement.finalblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.finalblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.finalblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.finalblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.finalblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.finalblock().ByteSizeLong());
   } else if (announcement.has_vcblock() &&
              announcement.vcblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.vcblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.vcblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.vcblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.vcblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.vcblock().ByteSizeLong());
   } else {
     LOG_GENERAL(WARNING, "Announcement content not set");
     return false;
@@ -2624,7 +2624,17 @@ bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
   LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
+  std::vector<std::pair<Address, Account>> accountsToSerialize;
+  accountsToSerialize.reserve(accountStoreTemp.GetAddressToAccount()->size());
   for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
+    accountsToSerialize.push_back(entry);
+  }
+  if (SORT_ACC_STORE_DELTA) {
+    std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
+              [&](const auto& l, const auto& r) { return l.first < l.first; });
+  }
+
+  for (const auto& entry : accountsToSerialize) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
@@ -3826,7 +3836,7 @@ bool Messenger::SetPMHello(zbytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "PMHello.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -3869,7 +3879,7 @@ bool Messenger::GetPMHello(const zbytes& src, const unsigned int offset,
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
@@ -3927,7 +3937,7 @@ bool Messenger::SetDSPoWSubmission(
 
   result.mutable_data()->set_version(version);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   // We use MultiSig::SignKey to emphasize that this is for the
@@ -3988,7 +3998,7 @@ bool Messenger::GetDSPoWSubmission(
     govProposalId = result.data().govdata().proposalid();
     govVoteValue = result.data().govdata().votevalue();
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   version = result.data().version();
@@ -4017,7 +4027,7 @@ bool Messenger::SetDSPoWPacketSubmission(
 
   SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
@@ -4057,7 +4067,7 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSPoWPacketSubmission signature wrong");
@@ -4096,7 +4106,7 @@ bool Messenger::SetDSMicroBlockSubmission(
     return false;
   }
 
-  zbytes tmp(result.mutable_data()->ByteSize());
+  zbytes tmp(result.mutable_data()->ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -4142,7 +4152,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong");
@@ -4837,7 +4847,7 @@ bool Messenger::SetNodePendingTxn(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -4881,7 +4891,7 @@ bool Messenger::GetNodePendingTxn(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
@@ -5006,7 +5016,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn->first, *protoTxn);
-    unsigned txn_size = protoTxn->ByteSize();
+    unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
@@ -5020,7 +5030,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     }
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
-    msg_size += protoTxn->ByteSize();
+    msg_size += protoTxn->ByteSizeLong();
     txn = txnsCurrent.erase(txn);
   }
 
@@ -5031,7 +5041,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn->first, *protoTxn);
-    unsigned txn_size = protoTxn->ByteSize();
+    unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
@@ -5101,7 +5111,7 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
-    const unsigned txn_size = protoTxn->ByteSize();
+    const unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       continue;
@@ -5780,7 +5790,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
     LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -5830,7 +5840,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
     dsBlocks.emplace_back(dsblock);
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -5902,7 +5912,7 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
                 "LookupSetMinerInfoFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -5943,7 +5953,7 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in LookupSetMinerInfoFromSeed");
@@ -6032,7 +6042,7 @@ bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes& dst,
                 "LookupGetVCFinalBlockFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6075,7 +6085,7 @@ bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetVCFinalBlockFromL2l signature wrong");
@@ -6108,7 +6118,7 @@ bool Messenger::SetLookupGetDSBlockFromL2l(zbytes& dst,
     LOG_GENERAL(WARNING, "LookupGetDSBlockFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6150,7 +6160,7 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetDSBlockFromL2l signature wrong");
@@ -6183,7 +6193,7 @@ bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
                 "LookupGetMBnForwardTxnFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6226,7 +6236,7 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetMBnForwardTxnFromL2l signature wrong");
@@ -6260,7 +6270,7 @@ bool Messenger::SetLookupGetPendingTxnFromL2l(
                 "LookupGetPendingTxnFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6303,7 +6313,7 @@ bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetPendingTxnFromL2l signature wrong");
@@ -6370,7 +6380,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6398,8 +6408,8 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+
+  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);  // changed dec 2017
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
@@ -6419,7 +6429,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
     txBlocks.emplace_back(block);
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6549,7 +6559,7 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes& dst,
                 "LookupSetStateDeltaFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6590,7 +6600,7 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
                 "LookupSetStateDeltasFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6635,7 +6645,7 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes& src,
   std::copy(result.data().statedelta().begin(),
             result.data().statedelta().end(), stateDelta.begin());
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6679,7 +6689,7 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
     stateDeltas.emplace_back(tmp);
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6712,7 +6722,7 @@ bool Messenger::SetLookupSetLookupOffline(zbytes& dst,
     LOG_GENERAL(WARNING, "LookupSetLookupOffline.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6754,7 +6764,7 @@ bool Messenger::GetLookupSetLookupOffline(const zbytes& src,
   listenPort = result.data().listenport();
   msgType = result.data().msgtype();
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubkey);
@@ -6786,7 +6796,7 @@ bool Messenger::SetLookupSetLookupOnline(zbytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6826,7 +6836,7 @@ bool Messenger::GetLookupSetLookupOnline(const zbytes& src,
   msgType = result.data().msgtype();
   listenPort = result.data().listenport();
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
@@ -7178,7 +7188,7 @@ bool Messenger::SetLookupGetMicroBlockFromL2l(
                 "LookupGetMicroBlockFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -7219,7 +7229,7 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetMicroBlockFromL2l signature wrong");
@@ -7438,7 +7448,7 @@ bool Messenger::SetLookupGetTxnsFromL2l(zbytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupGetTxnsFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -7479,7 +7489,7 @@ bool Messenger::GetLookupGetTxnsFromL2l(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetTxnsFromL2l signature wrong");
@@ -7662,7 +7672,7 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -7690,8 +7700,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
@@ -7700,7 +7709,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
@@ -7788,7 +7797,7 @@ bool Messenger::SetConsensusCommit(zbytes& dst, const unsigned int offset,
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7889,7 +7898,7 @@ bool Messenger::GetConsensusCommit(const zbytes& src, const unsigned int offset,
     commitInfo.emplace_back(ci);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7935,7 +7944,7 @@ bool Messenger::SetConsensusChallenge(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8034,7 +8043,7 @@ bool Messenger::GetConsensusChallenge(
     subsetInfo.emplace_back(si);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8075,7 +8084,7 @@ bool Messenger::SetConsensusResponse(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8173,7 +8182,7 @@ bool Messenger::GetConsensusResponse(
     subsetInfo.emplace_back(si);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8214,7 +8223,7 @@ bool Messenger::SetConsensusCollectiveSig(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8324,7 +8333,7 @@ bool Messenger::GetConsensusCollectiveSig(
     bitmap.emplace_back(i);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8377,7 +8386,7 @@ bool Messenger::SetConsensusCommitFailure(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8471,7 +8480,7 @@ bool Messenger::GetConsensusCommitFailure(
   copy(result.consensusinfo().errormsg().begin(),
        result.consensusinfo().errormsg().end(), errorMsg.begin());
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8506,7 +8515,7 @@ bool Messenger::SetConsensusConsensusFailure(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8594,7 +8603,7 @@ bool Messenger::GetConsensusConsensusFailure(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8690,7 +8699,7 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes& dst,
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -8749,7 +8758,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8783,7 +8792,7 @@ bool Messenger::SetNodeNewShardNodeNetworkInfo(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8833,7 +8842,7 @@ bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, shardNodePubKey)) {
     LOG_GENERAL(WARNING, "NodeSetShardNodeNetworkInfoUpdate signature wrong");
@@ -8870,7 +8879,7 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8916,7 +8925,7 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, dsGuardPubkey)) {
     LOG_GENERAL(WARNING, "DSLookupSetDSGuardNetworkInfoUpdate signature wrong");
@@ -8942,7 +8951,7 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   if (result.data().IsInitialized()) {
-    zbytes tmp(result.data().ByteSize());
+    zbytes tmp(result.data().ByteSizeLong());
     result.data().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
@@ -8991,7 +9000,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong");
@@ -9027,7 +9036,7 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
                 "NodeSetGuardNodeNetworkInfoUpdate.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -9071,7 +9080,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.lookuppubkey(), lookupPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "NodeSetGuardNodeNetworkInfoUpdate signature wrong");
@@ -9110,7 +9119,7 @@ bool Messenger::SetNodeRemoveFromBlacklist(zbytes& dst,
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
@@ -9148,7 +9157,7 @@ bool Messenger::GetNodeRemoveFromBlacklist(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "NodeRemoveFromBlacklist signature wrong");
@@ -9179,7 +9188,7 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes& dst,
                 "LookupGetCosigsRewardsFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
@@ -9222,7 +9231,7 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetCosigRewardsFromSeed signature wrong");
@@ -9291,7 +9300,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
@@ -9334,7 +9343,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubkey)) {
     LOG_GENERAL(WARNING, "LookupSetCosigsRewardsFromSeed signature wrong");

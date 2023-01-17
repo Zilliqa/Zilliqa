@@ -21,8 +21,8 @@
 #include "libCps/CpsExecutor.h"
 #include "libCps/CpsRunTransfer.h"
 #include "libCrypto/EthCrypto.h"
-#include "libData/AccountData/EvmClient.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
@@ -120,18 +120,24 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
                               << mAccountStore.GetNonceForAccountAtomic(
                                      ProtoToAddress(mProtoArgs.origin())));
 
+  LOG_GENERAL(WARNING, "RUNNING EVM WITH GAS: " << mProtoArgs.gas_limit());
   const auto invokeResult = InvokeEvm();
   if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     return {};
   }
-
+  LOG_GENERAL(WARNING,
+              "GAS USED: " << mProtoArgs.gas_limit() -
+                                  invokeResult.value().remaining_gas());
   LOG_GENERAL(WARNING, "After invoke remaining gas: "
                            << invokeResult.value().remaining_gas());
 
   const evm::EvmResult& evmResult = invokeResult.value();
   LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(evmResult.exit_reason()));
+
+  mProtoArgs.set_gas_limit(evmResult.remaining_gas());
+  LOG_GENERAL(WARNING, "FUTURE GAS LIMIT WILL BE: " << mProtoArgs.gas_limit());
 
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
@@ -236,6 +242,15 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     return validateResult;
   }
 
+  uint64_t remainingGas = result.remaining_gas();
+
+  // Adjust remainingGas and recalculate gas for resume operation
+  // Charge MIN_ETH_GAS for transfer operation
+  if (ProtoToUint(callData.transfer().value()) > 0) {
+    mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+    remainingGas -= MIN_ETH_GAS;
+  }
+
   // Set continuation (itself) to be resumed when create run is finished
   {
     evm::EvmArgs continuation;
@@ -251,15 +266,13 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     mExecutor.PushRun(shared_from_this());
   }
 
-  const auto destContractCode =
-      mAccountStore.GetContractCode(ProtoToAddress(callData.callee_address()));
-  if (!std::empty(destContractCode)) {
+  {
     const auto targetGas =
         callData.target_gas() != std::numeric_limits<uint64_t>::max()
             ? callData.target_gas()
-            : result.remaining_gas();
-    const auto inputGas = std::min(targetGas, result.remaining_gas());
-    ;
+            : remainingGas;
+    auto inputGas = std::min(targetGas, remainingGas);
+    inputGas = std::max(remainingGas, inputGas);
     evm::EvmArgs evmCallArgs;
     *evmCallArgs.mutable_address() = ctx.destination();
     *evmCallArgs.mutable_origin() = ctx.caller();
@@ -280,18 +293,21 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   }
 
   // Push transfer to be executed first
-  const auto fromAccount = ProtoToAddress(callData.transfer().source());
-  const auto toAccount = ProtoToAddress(callData.transfer().destination());
-  const auto value = Amount::fromWei(ProtoToUint(callData.transfer().value()));
-  auto transferRun = std::make_shared<CpsRunTransfer>(
-      mExecutor, mCpsContext, fromAccount, toAccount, value);
-  mExecutor.PushRun(std::move(transferRun));
+  if (ProtoToUint(callData.transfer().value()) > 0) {
+    const auto fromAccount = ProtoToAddress(callData.transfer().source());
+    const auto toAccount = ProtoToAddress(callData.transfer().destination());
+    const auto value =
+        Amount::fromWei(ProtoToUint(callData.transfer().value()));
+    auto transferRun = std::make_shared<CpsRunTransfer>(
+        mExecutor, mCpsContext, fromAccount, toAccount, value);
+    mExecutor.PushRun(std::move(transferRun));
+  }
 
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
-                                             uint64_t /*remainingGas*/) {
+                                             uint64_t remainingGas) {
   const auto ctxDestAddr = ProtoToAddress(callData.context().destination());
   const auto ctxOriginAddr = ProtoToAddress(callData.context().caller());
   const auto isStatic = callData.is_static();
@@ -346,7 +362,15 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     if (requestedValue > currentBalance) {
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
+
+    if (remainingGas < MIN_ETH_GAS) {
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+    }
   }
+
+  LOG_GENERAL(WARNING, "Validate CALL TRAP, targetGas: "
+                           << callData.target_gas()
+                           << ", remaining: " << remainingGas);
 
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
@@ -436,11 +460,17 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     mExecutor.PushRun(std::move(createRun));
   }
 
-  // Push transfer to be executed first
-  const auto value = Amount::fromWei(ProtoToUint(createData.value()));
-  auto transferRun = std::make_shared<CpsRunTransfer>(
-      mExecutor, mCpsContext, fromAddress, contractAddress, value);
-  mExecutor.PushRun(std::move(transferRun));
+  // Push transfer operation if needed
+  {
+    if (ProtoToUint(createData.value()) > 0) {
+      mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
+      // Push transfer to be executed first
+      const auto value = Amount::fromWei(ProtoToUint(createData.value()));
+      auto transferRun = std::make_shared<CpsRunTransfer>(
+          mExecutor, mCpsContext, fromAddress, contractAddress, value);
+      mExecutor.PushRun(std::move(transferRun));
+    }
+  }
 
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
@@ -488,9 +518,12 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
           ? createData.target_gas()
           : remainingGas;
 
-  const auto baseFee = Eth::getGasUnitsForContractDeployment(
+  auto baseFee = Eth::getGasUnitsForContractDeployment(
       {}, DataConversion::StringToCharArray(createData.call_data()));
 
+  if (ProtoToUint(createData.value()) > 0) {
+    baseFee += MIN_ETH_GAS;
+  }
   if (targetGas < baseFee || targetGas > remainingGas) {
     return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
   }

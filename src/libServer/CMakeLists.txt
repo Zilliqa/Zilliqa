@@ -5,7 +5,7 @@ add_library(Server
     LookupServer.cpp
     StakingServer.cpp
     StatusServer.cpp
-    WebsocketServer.cpp
+    DedicatedWebsocketServer.cpp
     IsolatedServer.cpp
     EthRpcMethods.h
     EthRpcMethods.cpp
@@ -19,6 +19,7 @@ target_include_directories(Server PUBLIC
 
 target_link_libraries(Server PUBLIC
     jsonrpc
+    AccountStore
     AccountData
     Eth)
 

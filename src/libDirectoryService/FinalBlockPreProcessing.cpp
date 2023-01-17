@@ -26,6 +26,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -784,7 +785,12 @@ bool DirectoryService::OnNodeMissingMicroBlocks(const zbytes& errorMsg,
     return false;
   }
 
-  P2PComm::GetInstance().SendMessage(peer, mb_message);
+  // TODO use distributed traces from here?
+  bool inject_trace_context = false;
+
+  P2PComm::GetInstance().SendMessage(peer, mb_message,
+                                     zil::p2p::START_BYTE_NORMAL,
+                                     inject_trace_context);
 
   return true;
 }

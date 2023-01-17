@@ -20,13 +20,16 @@
 
 #include "APIServer.h"
 
+#include <jsonrpccpp/server/abstractserverconnector.h>
 #include <atomic>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
 #include <optional>
 
-#include <jsonrpccpp/server/abstractserverconnector.h>
-
 #include "APIThreadPool.h"
+#include "WebsocketServerBackend.h"
 #include "WebsocketServerImpl.h"
+#include "libUtils/Metrics.h"
 
 namespace rpc {
 
@@ -66,6 +69,8 @@ class APIServerImpl : public APIServer,
   bool StartListening() override;
   bool StopListening() override;
 
+  bool DoListen();
+
   /// Initiates accept async operation
   void AcceptNext();
 
@@ -92,11 +97,14 @@ class APIServerImpl : public APIServer,
   /// Started flag
   std::atomic<bool> m_started{};
 
+  /// Active flag
+  std::atomic<bool> m_active{};
+
   /// Thread pool
   std::shared_ptr<APIThreadPool> m_threadPool;
 
   /// Websocket server
-  std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
+  std::shared_ptr<WebsocketServerBackend> m_websocket;
 
   /// Listening socket
   std::optional<tcp::acceptor> m_acceptor;
@@ -109,6 +117,11 @@ class APIServerImpl : public APIServer,
 
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
+
+  zil::metrics::Observable m_metrics{
+      Metrics::GetInstance().CreateInt64Gauge(
+          zil::metrics::FilterClass::API_SERVER, "zilliqa_api_server",
+          "api_server_metrics", "API server metrics")};
 };
 
 }  // namespace rpc

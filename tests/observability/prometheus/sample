@@ -1,0 +1,544 @@
+# HELP exposer_transferred_bytes_total Transferred bytes to metrics services
+# TYPE exposer_transferred_bytes_total counter
+exposer_transferred_bytes_total 595048
+# HELP exposer_scrapes_total Number of times metrics were scraped
+# TYPE exposer_scrapes_total counter
+exposer_scrapes_total 126
+# HELP exposer_request_latencies Latencies of serving scrape requests, in microseconds
+# TYPE exposer_request_latencies summary
+exposer_request_latencies_count 126
+exposer_request_latencies_sum 434703
+exposer_request_latencies{quantile="0.5"} 1807
+exposer_request_latencies{quantile="0.9"} 1840
+exposer_request_latencies{quantile="0.99"} 1840
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615027944
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615027944
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615027944
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615027944
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615027944
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615027944
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615027944
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615027944
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615027944
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615027944
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615027944
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615027944
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615027944
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615027944
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615027944
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615027944
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615027944
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615027944
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615027944
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615027944
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615028945
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615028945
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615028945
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615028945
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615028945
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615028945
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615028945
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615028945
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615028945
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615028945
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615028945
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615028945
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615028945
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615028945
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615028945
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615028945
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615028945
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615028945
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615028945
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615028945
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615029946
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615029946
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615029946
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615029946
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615029946
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615029946
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615029946
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615029946
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615029946
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615029946
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615029946
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615029946
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615029946
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615029946
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615029946
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615029946
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615029946
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615029946
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615029946
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615029946
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615030947
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615030947
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615030947
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615030947
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615030947
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615030947
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615030947
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615030947
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615030947
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615030947
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615030947
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615030947
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615030947
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615030947
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615030947
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615030947
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615030947
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615030947
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615030948
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615030948
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615031947
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615031947
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615031947
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615031947
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615031947
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615031947
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615031948
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615031948
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615031948
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615031948
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615031948
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615031948
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615031948
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615031948
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615031948
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615031948
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615031948
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615031948
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615031948
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615031948
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615032948
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615032948
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615032948
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615032948
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615032948
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615032948
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615032948
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615032948
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615032948
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615032948
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615032948
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615032948
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615032948
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615032948
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615032948
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615032948
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615032948
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615032948
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615032948
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615032948
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615033949
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615033949
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615033949
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615033949
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615033949
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615033949
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615033949
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615033949
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615033949
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615033949
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615033949
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615033949
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615033949
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615033949
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615033949
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615033949
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615033949
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615033949
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615033949
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615033949
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615034949
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615034949
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615034949
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615034949
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615034949
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615034949
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615034949
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615034949
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615034949
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615034949
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615034949
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615034949
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615034949
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615034949
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615034949
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615034949
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615034949
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615034949
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615034950
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615034950
+# HELP zilliqa_accountstore_invocations_count Metrics for AccountStore
+# TYPE zilliqa_accountstore_invocations_count counter
+zilliqa_accountstore_invocations_count{Transaction="Create"} 116 1673615035949
+zilliqa_accountstore_invocations_count{Method="EvmCallRunner"} 371 1673615035949
+zilliqa_accountstore_invocations_count{Transaction="Contract-Call/Non Contract"} 255 1673615035949
+zilliqa_accountstore_invocations_count{lock="release-normal"} 371 1673615035949
+# HELP zilliqa_accountstore_blockchain_gauge Metrics for AccountStore
+# TYPE zilliqa_accountstore_blockchain_gauge gauge
+zilliqa_accountstore_blockchain_gauge{counter="DSBlockNumber"} 0 1673615035949
+zilliqa_accountstore_blockchain_gauge{counter="BlockNumber"} 756 1673615035949
+# HELP zilliqa_scilla_bcinfo_invocations_count Metrics for ScillaBCInfo
+# TYPE zilliqa_scilla_bcinfo_invocations_count gauge
+zilliqa_scilla_bcinfo_invocations_count{counter="DSBlockNumber"} 0 1673615035949
+zilliqa_scilla_bcinfo_invocations_count{counter="BlockNumber"} 0 1673615035949
+# HELP zilliqa_evm_invocations_count Calls to EVM-DS
+# TYPE zilliqa_evm_invocations_count counter
+zilliqa_evm_invocations_count{Method="CallRunner"} 1015 1673615035950
+zilliqa_evm_invocations_count{Method="Init"} 1 1673615035950
+zilliqa_evm_invocations_count{Method="CleanupPreviousInstances"} 1 1673615035950
+zilliqa_evm_invocations_count{Method="OpenServer"} 1 1673615035950
+zilliqa_evm_invocations_count{Method="LaunchEvmDaemon"} 1 1673615035950
+# HELP zilliqa_api_server_api_server_metrics API server metrics
+# TYPE zilliqa_api_server_api_server_metrics gauge
+zilliqa_api_server_api_server_metrics{counter="ThreadPoolQueueSize",server="API"} 0 1673615035950
+zilliqa_api_server_api_server_metrics{counter="TotalConnections",server="API"} 0 1673615035950
+# HELP zilliqa_ethrpc_invocation_count Calls to ethereum API
+# TYPE zilliqa_ethrpc_invocation_count counter
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByNumber"} 27 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockCommon"} 47 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEmptyResponse"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthCallImpl"} 346 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthCode"} 35 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetNetPeerCount"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthChainId"} 1160 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthEstimateGas"} 308 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthBlockByHash"} 24 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetProtocolVersion"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPrice"} 362 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetNetListening"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetWeb3ClientVersion"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetBalanceAndNonce"} 436 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthStorageAt"} 6 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthCoinbase"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionByHash"} 280 1673615035950
+zilliqa_ethrpc_invocation_count{Method="EnsureEvmAndLookupEnabled"} 1045 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthCallEth"} 346 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthGasPriceNum"} 668 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthSyncing"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthTransactionReceipt"} 340 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthBalance"} 52 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetTransactionIndexFromBlock"} 620 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthUncleBlock"} 4 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetBlockFromTransaction"} 620 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetWeb3Sha3"} 2 1673615035950
+zilliqa_ethrpc_invocation_count{Method="GetEthMining"} 2 1673615035950
+# HELP zilliqa_scillaipc_scilla_ipc_count Metrics for ScillaIPCServer
+# TYPE zilliqa_scillaipc_scilla_ipc_count counter
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValue"} 2930 1673615035950
+zilliqa_scillaipc_scilla_ipc_count{Method="fetchExternalStateValueB64I"} 2930 1673615035950

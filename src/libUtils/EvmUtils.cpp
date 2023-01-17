@@ -20,7 +20,6 @@
 #include <json/value.h>
 #include <boost/beast/core/detail/base64.hpp>
 #include <boost/endian.hpp>
-#include <websocketpp/base64/base64.hpp>
 
 #include "JsonUtils.h"
 #include "Logger.h"
@@ -32,6 +31,26 @@
 
 using namespace std;
 using namespace boost::multiprecision;
+
+namespace {
+std::string Base64Encode(const std::string& in) {
+  namespace b = boost::beast::detail::base64;
+
+  std::string out;
+  out.resize(b::encoded_size(in.size()));
+  out.resize(b::encode(out.data(), in.data(), in.size()));
+  return out;
+}
+
+std::string Base64Decode(const std::string& in) {
+  namespace b = boost::beast::detail::base64;
+
+  std::string out;
+  out.resize(b::decoded_size(in.size()));
+  out.resize(b::decode(out.data(), in.data(), in.size()).first);
+  return out;
+}
+}  // namespace
 
 Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   Json::Value arr_ret(Json::arrayValue);
@@ -53,13 +72,13 @@ Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
   std::string output;
   args.SerializeToString(&output);
   // Output can contain non-UTF8, so must be wrapped in base64.
-  arr_ret.append(websocketpp::base64_encode(output));
+  arr_ret.append(Base64Encode(output));
   return arr_ret;
 }
 
 evm::EvmResult& EvmUtils::GetEvmResultFromJson(const Json::Value& json,
                                                evm::EvmResult& result) {
-  std::string data = websocketpp::base64_decode(json.asString());
+  std::string data = Base64Decode(json.asString());
   if (!result.ParseFromString(data)) {
     throw std::runtime_error("Cannot parse EVM result protobuf");
   }
@@ -212,7 +231,7 @@ std::string EvmUtils::GetEvmResultJsonFromTextProto(
   google::protobuf::TextFormat::ParseFromString(text_proto, &result);
   std::string output;
   result.SerializeToString(&output);
-  return "\"" + websocketpp::base64_encode(output) + "\"";
+  return "\"" + Base64Encode(output) + "\"";
 }
 
 bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,

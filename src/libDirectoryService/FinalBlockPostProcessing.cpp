@@ -27,6 +27,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
+#include "libNode/Node.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"
@@ -476,7 +477,8 @@ void DirectoryService::CommitFinalBlockConsensusBuffer() {
   for (const auto& i : m_finalBlockConsensusBuffer[m_mediator.m_consensusID]) {
     auto runconsensus = [this, i]() {
       ProcessFinalBlockConsensusCore(std::get<NODE_MSG>(i), MessageOffset::BODY,
-                                     std::get<NODE_PEER>(i), START_BYTE_NORMAL);
+                                     std::get<NODE_PEER>(i),
+                                     zil::p2p::START_BYTE_NORMAL);
     };
     DetachedFunction(1, runconsensus);
   }

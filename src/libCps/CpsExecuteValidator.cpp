@@ -18,8 +18,9 @@
 #include "libCps/CpsExecuteValidator.h"
 #include "libCps/Amount.h"
 
-#include "libData/AccountData/EvmProcessContext.h"
+#include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
+#include "libUtils/DataConversion.h"
 #include "libUtils/SafeMath.h"
 
 namespace libCps {
@@ -47,7 +48,8 @@ CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
 
   if (context.GetContractType() == Transaction::CONTRACT_CREATION) {
     const auto baseFee = Eth::getGasUnitsForContractDeployment(
-        context.GetCode(), context.GetData());
+        DataConversion::StringToCharArray(context.GetEvmArgs().code()),
+        context.GetData());
 
     // Check if gaslimit meets the minimum requirement for contract deployment
     if (requested_limit < baseFee) {
