@@ -172,6 +172,7 @@ extern const unsigned int CONTRACT_STATE_VERSION;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
+extern bool ARCHIVAL_LOOKUP_WITH_TX_TRACES;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
 extern const unsigned int TXN_STORAGE_LIMIT;
 extern bool MULTIPLIER_SYNC_MODE;

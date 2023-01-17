@@ -36,7 +36,7 @@ Validator::~Validator() {}
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
                                         TransactionReceipt& receipt,
                                         TxnStatus& error_code) const {
-  if (LOOKUP_NODE_MODE) {
+  if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(WARNING,
                 "Validator::CheckCreatedTransaction not expected to be "
                 "called from LookUp node.");
