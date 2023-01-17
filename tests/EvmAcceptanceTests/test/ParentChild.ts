@@ -46,7 +46,7 @@ describe("Parent Child Contract Functionality", function () {
       expect(await this.childContract.read()).to.be.eq(CHILD_CONTRACT_VALUE);
     });
 
-    xit("Should create a transaction trace after child creation", async function () {
+    it("Should create a transaction trace after child creation", async function () {
       const METHOD = "debug_traceTransaction";
 
       await sendJsonRpcRequest(METHOD, 1, [this.installedChild.hash], (result, status) => {

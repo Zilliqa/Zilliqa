@@ -1821,15 +1821,35 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
-    const std::string& /*txHash*/) {
+    const std::string& txHash) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1, {{"method", "DebugTraceTransaction"}});
   }
 
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
-                           "Sent to a non-lookup");
+  //if (!LOOKUP_NODE_MODE) {
+    //throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           //"Sent to a non-lookup");
+  //}
+  std::string trace;
+
+  LOG_GENERAL(INFO, "Trace request: " << trace);
+
+  try {
+    TxnHash tranHash(txHash);
+
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
+
+    if (!isPresent) {
+      LOG_GENERAL(INFO, "Trace request failed! " << trace);
+      return Json::nullValue;
+    }
+
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
-  return Json::nullValue;
+
+  return trace;
 }

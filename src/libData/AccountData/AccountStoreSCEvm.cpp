@@ -435,6 +435,17 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           evm_call_run_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
+
+      if (result.trace_size() > 0) {
+          LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+                                                        result.trace(0))) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
+        }
+      }
+
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
       // *************************************************************************
@@ -609,6 +620,15 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
           evm_call_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
+      if (result.trace_size() > 0) {
+          LOG_GENERAL(INFO, "Inserting TX trace: " << evmContext.GetTranID());
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+                                                        result.trace(0))) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
+        }
+      }
+
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
       if (!evm_call_succeeded) {
