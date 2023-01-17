@@ -1038,6 +1038,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
 
         LOG_GENERAL(WARNING, "Marker001: TX succ: " << succ );
+        LOG_GENERAL(WARNING, "Marker001: TX return: " << error_code );
 
       } else {
         LOG_GENERAL(WARNING, "Marker001: skipping tx duplicate: " << t.GetTranID() );

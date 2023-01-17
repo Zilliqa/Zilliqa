@@ -62,10 +62,10 @@ bool TraceableDB::AddPendingPurge(const uint64_t& dsBlockNum,
 
   dev::RLPStream s(toPurge.size());
   for (const auto& it : toPurge) {
-    if (LOG_SC) {
-      LOG_GENERAL(INFO,
-                  "toPurge: " << it.hex() << " dsBlockNum: " << dsBlockNum);
-    }
+    //if (LOG_SC) {
+      //LOG_GENERAL(INFO,
+                  //"toPurge: " << it.hex() << " dsBlockNum: " << dsBlockNum);
+    //}
     s.append(it);
   }
 
