@@ -195,7 +195,7 @@ spec:
           echo "Running start.sh "
           ./start.sh  || (echo "Standalone daemon will re-launch zilliqa process") &
           # make sure the pod will be on hold
-          tail -f /dev/null
+          tail -F -n 1 /run/zilliqa/zilliqa.log
       - name: tail-container-zilliqa
         image: busybox
         imagePullPolicy: IfNotPresent
