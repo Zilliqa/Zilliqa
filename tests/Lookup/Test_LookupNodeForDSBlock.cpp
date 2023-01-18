@@ -28,7 +28,7 @@
 #include "common/Serializable.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/TimeUtils.h"

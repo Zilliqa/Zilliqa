@@ -17,8 +17,8 @@
 
 #include <jsonrpccpp/common/exception.h>
 #include <boost/test/tools/old/interface.hpp>
-#include "libData/BlockData/Block/DSBlock.h"
-#include "libData/BlockData/BlockHeader/TxBlockHeader.h"
+#include "libBlockchain/DSBlock.h"
+#include "libBlockchain/TxBlockHeader.h"
 #include "libUtils/Evm.pb.h"
 #define BOOST_TEST_MODULE EvmLookupServer
 #define BOOST_TEST_DYN_LINK

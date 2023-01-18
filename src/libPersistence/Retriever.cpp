@@ -21,6 +21,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
+#include "libData/AccountStore/AccountStore.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libMediator/Mediator.h"
 #include "libNode/Node.h"

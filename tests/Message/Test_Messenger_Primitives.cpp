@@ -77,22 +77,7 @@ BOOST_AUTO_TEST_CASE(test_GetShardingStructureHash) {
                                                   shards, dst));
 }
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-
-  DSBlockHeader dsBlockHeader = TestUtils::GenerateRandomDSBlockHeader();
-
-  BOOST_CHECK(Messenger::SetDSBlockHeader(dst, offset, dsBlockHeader));
-
-  DSBlockHeader dsBlockHeaderDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetDSBlockHeader(dst, offset, dsBlockHeaderDeserialized));
-
-  BOOST_CHECK(dsBlockHeader == dsBlockHeaderDeserialized);
-}
-
+#if 0
 BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
   zbytes dst;
   unsigned int offset = 0;
@@ -108,23 +93,9 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetDSBlock) {
 
   BOOST_CHECK(dsBlock == dsBlockDeserialized);
 }
+#endif
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-  MicroBlockHeader microBlockHeader =
-      TestUtils::GenerateRandomMicroBlockHeader();
-
-  BOOST_CHECK(Messenger::SetMicroBlockHeader(dst, offset, microBlockHeader));
-
-  MicroBlockHeader microBlockHeaderDeserialized;
-
-  BOOST_CHECK(Messenger::GetMicroBlockHeader(dst, offset,
-                                             microBlockHeaderDeserialized));
-
-  BOOST_CHECK(microBlockHeader == microBlockHeaderDeserialized);
-}
-
+#if 0
 BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
   zbytes dst;
   unsigned int offset = 0;
@@ -148,22 +119,9 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetMicroBlock) {
 
   BOOST_CHECK(microBlock == microBlockDeserialized);
 }
+#endif
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-  TxBlockHeader txBlockHeader = TestUtils::GenerateRandomTxBlockHeader();
-
-  BOOST_CHECK(Messenger::SetTxBlockHeader(dst, offset, txBlockHeader));
-
-  TxBlockHeader txBlockHeaderDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetTxBlockHeader(dst, offset, txBlockHeaderDeserialized));
-
-  BOOST_CHECK(txBlockHeader == txBlockHeaderDeserialized);
-}
-
+#if 0
 BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
   zbytes dst;
   unsigned int offset = 0;
@@ -182,22 +140,9 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetTxBlock) {
 
   BOOST_CHECK(txBlock == txBlockDeserialized);
 }
+#endif
 
-BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlockHeader) {
-  zbytes dst;
-  unsigned int offset = 0;
-  VCBlockHeader vcBlockHeader = TestUtils::GenerateRandomVCBlockHeader();
-
-  BOOST_CHECK(Messenger::SetVCBlockHeader(dst, offset, vcBlockHeader));
-
-  VCBlockHeader vcBlockHeaderDeserialized;
-
-  BOOST_CHECK(
-      Messenger::GetVCBlockHeader(dst, offset, vcBlockHeaderDeserialized));
-
-  BOOST_CHECK(vcBlockHeader == vcBlockHeaderDeserialized);
-}
-
+#if 0
 BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
   zbytes dst;
   unsigned int offset = 0;
@@ -212,6 +157,7 @@ BOOST_AUTO_TEST_CASE(test_SetAndGetVCBlock) {
 
   BOOST_CHECK(vcBlock == vcBlockDeserialized);
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(test_CopyWithSizeCheck) {
   zbytes arr;

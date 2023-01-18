@@ -25,13 +25,13 @@
 #include <sstream>
 #include <string>
 
-#include <boost/filesystem.hpp>
 #include <boost/lexical_cast.hpp>
 
 #include "BlockStorage.h"
 #include "common/Constants.h"
 #include "common/Serializable.h"
 #include "depends/libDatabase/LevelDB.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
@@ -233,8 +233,8 @@ bool BlockStorage::GetMicroBlock(const BlockHash& blockHash,
   if (blockString.empty()) {
     return false;
   }
-  microblock = make_shared<MicroBlock>(
-      zbytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>();
+  microblock->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -258,8 +258,8 @@ bool BlockStorage::GetMicroBlock(const uint64_t& epochNum,
   if (blockString.empty()) {
     return false;
   }
-  microblock = make_shared<MicroBlock>(
-      zbytes(blockString.begin(), blockString.end()), 0);
+  microblock = make_shared<MicroBlock>();
+  microblock->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -371,8 +371,12 @@ bool BlockStorage::GetDSBlock(const uint64_t& blockNum,
 
   // LOG_GENERAL(INFO, blockString);
   // LOG_GENERAL(INFO, blockString.length());
+#if 0
   block = DSBlockSharedPtr(
       new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
+#endif
+  block = std::make_shared<DSBlock>();
+  block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -389,11 +393,8 @@ bool BlockStorage::GetVCBlock(const BlockHash& blockhash,
     return false;
   }
 
-  // LOG_GENERAL(INFO, blockString);
-  // LOG_GENERAL(INFO, blockString.length());
-  block = VCBlockSharedPtr(
-      new VCBlock(zbytes(blockString.begin(), blockString.end()), 0));
-
+  block = std::make_shared<VCBlock>();
+  block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
   return true;
 }
 
@@ -492,8 +493,8 @@ bool BlockStorage::GetTxBlock(const uint64_t& blockNum,
     return false;
   }
 
-  block = TxBlockSharedPtr(
-      new TxBlock(zbytes(blockString.begin(), blockString.end()), 0));
+  block = std::make_shared<TxBlock>();
+  block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
 
   return true;
 }
@@ -705,8 +706,8 @@ bool BlockStorage::GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks) {
       return false;
     }
 
-    DSBlockSharedPtr block = DSBlockSharedPtr(
-        new DSBlock(zbytes(blockString.begin(), blockString.end()), 0));
+    auto block = std::make_shared<DSBlock>();
+    block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
     blocks.emplace_back(block);
     LOG_GENERAL(INFO, "Retrievd DsBlock Num:" << bns);
   }
@@ -837,8 +838,8 @@ bool BlockStorage::GetAllTxBlocks(std::deque<TxBlockSharedPtr>& blocks) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
       return false;
     }
-    TxBlockSharedPtr block = TxBlockSharedPtr(
-        new TxBlock(zbytes(blockString.begin(), blockString.end()), 0));
+    auto block = std::make_shared<TxBlock>();
+    block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
     blocks.emplace_back(block);
     count++;
   }
@@ -867,8 +868,8 @@ bool BlockStorage::GetAllVCBlocks(std::list<VCBlockSharedPtr>& blocks) {
       LOG_GENERAL(WARNING, "Lost one block in the chain");
       return false;
     }
-    VCBlockSharedPtr block = VCBlockSharedPtr(
-        new VCBlock(zbytes(blockString.begin(), blockString.end()), 0));
+    auto block = std::make_shared<VCBlock>();
+    block->Deserialize(zbytes(blockString.begin(), blockString.end()), 0);
     blocks.emplace_back(block);
     count++;
   }
@@ -1979,7 +1980,8 @@ void BlockStorage::BuildHashToNumberMappingForTxBlocks() {
       // There's nothing more to do at this point
       break;
     }
-    const TxBlock block{{blockContent.begin(), blockContent.end()}, 0};
+    TxBlock block;
+    block.Deserialize(zbytes{blockContent.begin(), blockContent.end()}, 0);
 
     m_txBlockHashToNumDB->Insert(block.GetBlockHash(),
                                  std::to_string(currBlock));
