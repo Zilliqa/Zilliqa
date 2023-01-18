@@ -46,6 +46,9 @@
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
+#include <chrono>
+#include <thread>
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -938,7 +941,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   }
 
   if (ARCHIVAL_LOOKUP) {
-    LOG_GENERAL(WARNING, "Marker001: archival lookup!");
+    LOG_GENERAL(WARNING, "Marker001: archival lookup! Sleeping");
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
     auto mbi = txBlock.GetMicroBlockInfos();
     std::vector<Transaction> txsToExecute;
@@ -965,16 +969,16 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
           }
 
           for (const auto& entry : it->second) {
-            LOG_GENERAL(WARNING, "Marker001: microblock details hash: "
-                                     << entry.m_microBlock.GetBlockHash());
-            LOG_GENERAL(WARNING,
-                        "Marker001: microblock details entry: "
-                            << entry.m_microBlock.GetHeader().GetEpochNum());
-            LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
-                                     << entry.m_transactions.size());
 
             if (entry.m_microBlock.GetBlockHash() == mb.m_microBlockHash) {
               LOG_GENERAL(WARNING, "Marker001: microblock details FOUND! ");
+
+              LOG_GENERAL(WARNING, "Marker001: microblock details hash: "
+                  << entry.m_microBlock.GetBlockHash());
+
+              LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
+                  << entry.m_transactions.size());
+
               microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
             }
 
@@ -990,6 +994,11 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
               break;
             }
           }
+
+          if(!microBlockPtr) {
+            LOG_GENERAL(WARNING, "Marker001: microblock details NOTFOUND! ");
+          }
+
           it++;
         }
       }
