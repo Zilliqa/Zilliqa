@@ -1031,10 +1031,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       LOG_GENERAL(WARNING, "Marker001: TX: " << t.GetTranID() );
       //LOG_GENERAL(WARNING, "Marker001: XX: " << t.G );
 
-      if(t.is) {
-
-      }
-
       if(txsExecuted.insert(t.GetTranID()).second) {
 
         TransactionReceipt tr;
