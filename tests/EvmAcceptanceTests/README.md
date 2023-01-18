@@ -12,6 +12,7 @@
     npx hardhat test folder/*    # to run tests of `folder`
     npx hardhat test --parallel   # to run tests in parallel
     npx hardhat test test/scilla/*    # to run scilla tests only
+    SCILLA=false npx hardhat test   # to disable scilla tests
 ```
 
 # Start Testing
