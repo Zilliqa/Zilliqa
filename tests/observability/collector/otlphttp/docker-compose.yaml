@@ -34,3 +34,12 @@ services:
     depends_on:
       - jaeger-all-in-one
       - zipkin-all-in-one
+#prometheus
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: always
+    volumes:
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
