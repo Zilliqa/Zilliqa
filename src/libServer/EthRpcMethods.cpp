@@ -357,7 +357,7 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
       jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
-      &EthRpcMethods::GetEthBlockReceiptsI);
+      &EthRpcMethods::DebugTraceTransactionI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(

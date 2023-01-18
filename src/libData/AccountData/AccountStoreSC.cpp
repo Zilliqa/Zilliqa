@@ -188,7 +188,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
-      // LOG_GENERAL(INFO, "Normal transaction");
+       LOG_GENERAL(INFO, "Normal transaction");
 
       // Disallow normal transaction to contract account
       Account* toAccount = this->GetAccount(toAddr);
@@ -200,6 +200,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
         }
       }
 
+      LOG_GENERAL(INFO, "Update accounts...");
       return AccountStoreBase<MAP>::UpdateAccounts(transaction, receipt,
                                                    error_code);
     }
@@ -511,6 +512,7 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
       break;
     }
     case Transaction::CONTRACT_CALL: {
+      LOG_GENERAL(INFO, "Contract call");
       // reset the storageroot update buffer atomic per transaction
       m_storageRootUpdateBufferAtomic.clear();
 
@@ -716,6 +718,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     }
   }
 
+  LOG_GENERAL(INFO, "We are here at least...");
+
   if (!this->IncreaseNonce(fromAddr)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
@@ -744,6 +748,8 @@ bool AccountStoreSC<MAP>::UpdateAccounts(const uint64_t& blockNum,
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 
+
+  LOG_GENERAL(INFO, "TRUE???" << receipt.GetString());
   return true;
 }
 
