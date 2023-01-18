@@ -26,12 +26,12 @@
 #include <unordered_map>
 
 #include "common/TxnStatus.h"
+#include "libBlockchain/Block.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountData/TxnPool.h"
-#include "libBlockchain/Block.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/Executable.h"

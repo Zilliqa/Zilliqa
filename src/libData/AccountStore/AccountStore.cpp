@@ -43,17 +43,18 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() : m_accountStoreTemp(*this),
-                               m_externalWriters{0},
-                               m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
-
+AccountStore::AccountStore()
+    : m_accountStoreTemp(*this),
+      m_externalWriters{0},
+      m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
   bool ipcScillaInit = false;
 
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServer = make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
+    m_scillaIPCServer =
+        make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
@@ -146,8 +147,7 @@ AccountStore& AccountStore::GetInstance() {
 bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreTrie::Serialize(
-      src, offset);
+  return AccountStoreTrie::Serialize(src, offset);
 }
 
 bool AccountStore::Deserialize(const zbytes& src, unsigned int offset) {
@@ -522,7 +522,8 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  AccountStoreSC::m_transactionLatency = static_cast<double>(r_timer_end(tpStart)) / 1000.0;
+  AccountStoreSC::m_transactionLatency =
+      static_cast<double>(r_timer_end(tpStart)) / 1000.0;
   return status;
 }
 

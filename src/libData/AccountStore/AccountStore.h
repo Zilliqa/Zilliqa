@@ -39,8 +39,7 @@
 
 class ScillaIPCServer;
 
-
-class AccountStore  : public AccountStoreTrie {
+class AccountStore : public AccountStoreTrie {
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   AccountStoreTemp m_accountStoreTemp;
@@ -223,7 +222,8 @@ class AccountStore  : public AccountStoreTrie {
   std::condition_variable_any& GetPrimaryWriteAccessCond() {
     return m_writeCond;
   }
-  bool EvmProcessMessageTemp(EvmProcessContext& params, evm::EvmResult& result) {
+  bool EvmProcessMessageTemp(EvmProcessContext& params,
+                             evm::EvmResult& result) {
     return m_accountStoreTemp.EvmProcessMessage(params, result);
   }
 };
