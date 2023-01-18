@@ -1,7 +1,7 @@
 import {expect} from "chai";
-import parallelizer from "../helper/Parallelizer";
+import {parallelizer} from "../helpers";
 import {ethers} from "hardhat";
-import SignerPool from "../helper/SignerPool";
+import SignerPool from "../helpers/SignerPool";
 
 describe("Gas estimation with web3.js", function () {
   const CREATE2_MIN_GAS = 32000;

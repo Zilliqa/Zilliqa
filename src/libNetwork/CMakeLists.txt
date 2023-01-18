@@ -1,7 +1,6 @@
 find_package(Libevent REQUIRED)
 
 add_library (Network
-    Peer.cpp
     P2PComm.cpp
     Guard.cpp
     Blacklist.cpp
@@ -16,5 +15,6 @@ target_link_libraries (Network PUBLIC
         libevent::core
         libevent::pthreads
         RumorSpreading
-        OpenSSL::Crypto
-        Utils)
+        Utils
+        OpenSSL::Crypto)
+

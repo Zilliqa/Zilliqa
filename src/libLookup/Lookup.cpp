@@ -32,16 +32,17 @@
 #include "Lookup.h"
 #include "common/Messages.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -55,6 +56,7 @@
 #include "libUtils/RandomGenerator.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/SysCommand.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -436,45 +438,6 @@ VectorOfNode Lookup::GetSeedNodes() const {
     lock_guard<mutex> g(m_mutexSeedNodes);
     return m_seedNodes;
   }
-}
-
-std::once_flag generateReceiverOnce;
-
-Address GenOneReceiver() {
-  static Address receiverAddr;
-  std::call_once(generateReceiverOnce, []() {
-    auto receiver = Schnorr::GenKeyPair();
-    receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
-    LOG_GENERAL(INFO, "Generate testing transaction receiver " << receiverAddr);
-  });
-  return receiverAddr;
-}
-
-Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
-                                          PubKey& fromPubKey,
-                                          const Address& toAddr,
-                                          const uint128_t& amount,
-                                          uint64_t prevNonce) {
-  unsigned int version = 0;
-  auto nonce = prevNonce + 1;
-
-  // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
-  // << " / toAddr" << toAddr);
-
-  Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
-                  amount, 1, 1, {}, {});
-
-  // bytes buf;
-  // txn.SerializeWithoutSignature(buf, 0);
-
-  // Signature sig;
-  // Schnorr::Sign(buf, fromPrivKey, fromPubKey, sig);
-
-  // bytes sigBuf;
-  // sig.Serialize(sigBuf, 0);
-  // txn.SetSignature(sigBuf);
-
-  return txn;
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,
@@ -3105,9 +3068,9 @@ bool Lookup::ProcessSetTxBlockFromSeed(
       return false;
     }
 
-    auto res = CheckTxBlocks(
-        txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
-        m_mediator.m_blocklinkchain.GetLatestBlockLink());
+    auto res =
+        CheckTxBlocks(txBlocks, m_mediator.m_blocklinkchain.GetBuiltDSComm(),
+                      m_mediator.m_blocklinkchain.GetLatestBlockLink());
     switch (res) {
       case TxBlockValidationMsg::VALID: {
 #ifdef SJ_TEST_SJ_TXNBLKS_PROCESS_SLOW

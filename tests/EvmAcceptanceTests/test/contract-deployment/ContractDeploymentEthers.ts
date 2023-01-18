@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import parallelizer from "../../helper/Parallelizer";
+import {parallelizer} from "../../helpers";
 
 describe("Contract Deployment using Ethers.js", function () {
   describe("Contract with zero parameter constructor", function () {

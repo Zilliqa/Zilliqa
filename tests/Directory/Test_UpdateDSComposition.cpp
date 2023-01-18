@@ -18,7 +18,7 @@
 #include <Schnorr.h>
 #include <string>
 #include "../libTestUtils/TestUtils.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libDirectoryService/DSComposition.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/Logger.h"

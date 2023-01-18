@@ -34,8 +34,8 @@
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -49,6 +49,7 @@
 #include "libUtils/Logger.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -1434,38 +1435,6 @@ bool GetOneGenesisAddress(Address& oAddr) {
   oAddr = Address{oAddrBytes};
   return true;
 }
-
-/// generate transation from one to many random accounts
-/*vector<Transaction> GenTransactionBulk(PrivKey& fromPrivKey, PubKey&
-fromPubKey, size_t n)
-{
-    vector<Transaction> txns;
-
-    // FIXME: it's a workaround to use the first genensis account
-    // auto receiver = Schnorr::GenKeyPair();
-    // auto receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
-
-    // alternative 1: use first genesis address
-    // Address addr;
-    // if (not GetOneGenesisAddress(addr))
-    // {
-    // return txns;
-    // }
-    // auto receiverAddr = addr;
-
-    // alternative 2: use a fresh address throughout entire lifetime
-    auto receiverAddr = GenOneReceiver();
-
-    txns.reserve(n);
-    for (auto i = 0u; i != n; i++)
-    {
-        auto txn = CreateValidTestingTransaction(fromPrivKey, fromPubKey,
-                                                 receiverAddr, i);
-        txns.emplace_back(txn);
-    }
-
-    return txns;
-}*/
 
 bool Node::ProcessSubmitMissingTxn(const zbytes& message, unsigned int offset,
                                    [[gnu::unused]] const Peer& from) {

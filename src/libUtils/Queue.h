@@ -34,6 +34,11 @@ class Queue {
   explicit Queue(size_t maxSize = std::numeric_limits<size_t>::max())
       : m_maxSize(maxSize), m_stopped(false) {}
 
+  size_t size() const {
+    std::unique_lock<Mutex> lk(m_mutex);
+    return m_queue.size();
+  }
+
   bool bounded_push(T item) {
     {
       std::lock_guard<Mutex> lk(m_mutex);
@@ -83,9 +88,15 @@ class Queue {
     m_condition.notify_all();
   }
 
+  void reset() {
+    std::lock_guard<Mutex> lk(m_mutex);
+    m_stopped = false;
+    m_queue.clear();
+  }
+
  private:
   const size_t m_maxSize;
-  Mutex m_mutex;
+  mutable Mutex m_mutex;
   Condition m_condition;
   std::deque<T> m_queue;
   bool m_stopped;

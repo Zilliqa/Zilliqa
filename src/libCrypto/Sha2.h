@@ -29,11 +29,11 @@ template <unsigned int SIZE>
 class SHA2 {
   static const constexpr unsigned int HASH_OUTPUT_SIZE = SIZE / 8;
   SHA256_CTX m_context{};
-  zbytes output;
+  zbytes m_output;
 
  public:
   /// Constructor.
-  SHA2() : output(HASH_OUTPUT_SIZE) {
+  SHA2() : m_output(HASH_OUTPUT_SIZE) {
     static_assert(SIZE == 256, "Only SHA256 is currently supported");
     Reset();
   }
@@ -73,8 +73,8 @@ class SHA2 {
 
   /// Hash finalize function.
   zbytes Finalize() {
-    SHA256_Final(output.data(), &m_context);
-    return output;
+    SHA256_Final(m_output.data(), &m_context);
+    return m_output;
   }
 
   static zbytes FromBytes(const zbytes& vec) {

@@ -19,7 +19,7 @@
 #define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DSCOMPOSITION_H_
 
 #include <Schnorr.h>
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libData/MiningData/MinerInfo.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/Peer.h"

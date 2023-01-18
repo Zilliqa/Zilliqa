@@ -27,18 +27,70 @@
 #include "common/MessageNames.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
-#include "libData/AccountData/Address.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libNetwork/Guard.h"
+#include "libNetwork/P2PComm.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/APIServer.h"
+#include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
 #include "libServer/LocalAPIServer.h"
-#include "libServer/WebsocketServer.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 #include "libUtils/UpgradeManager.h"
+#include "libValidator/Validator.h"
+#include "libUtils/Tracing.h"
+
+namespace {
+
+zil::metrics::uint64Counter_t& GetMsgDispatchCounter() {
+  static auto counter = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_msg_dispatch", "msg_dispatch", "Messages dispatched", "Calls");
+  return counter;
+}
+
+zil::metrics::uint64Counter_t& GetMsgDispatchErrorCounter() {
+  static auto counter = Metrics::GetInstance().CreateInt64Metric(
+      "zilliqa_msg_dispatch", "msg_dispatch_error", "Message dispatch errors",
+      "Calls");
+  return counter;
+}
+
+#define MATCH_CASE(CASE) \
+  case CASE:             \
+    return #CASE;
+
+const std::string_view MsgTypeToStr(unsigned char msg_type) {
+  switch (msg_type) {
+    MATCH_CASE(PEER)
+    MATCH_CASE(DIRECTORY)
+    MATCH_CASE(NODE)
+    MATCH_CASE(CONSENSUSUSER)
+    MATCH_CASE(LOOKUP)
+    default:
+      break;
+  }
+  return "UNKNOWN";
+}
+
+const std::string_view StartByteToStr(unsigned char start_byte) {
+  switch (start_byte) {
+    MATCH_CASE(START_BYTE_NORMAL)
+    MATCH_CASE(START_BYTE_BROADCAST)
+    MATCH_CASE(START_BYTE_GOSSIP)
+    MATCH_CASE(START_BYTE_SEED_TO_SEED_REQUEST)
+    MATCH_CASE(START_BYTE_SEED_TO_SEED_RESPONSE)
+    default:
+      break;
+  }
+  return "UNKNOWN";
+}
+
+#undef MATCH_CASE
+
+}  // namespace
 
 using namespace std;
 
@@ -87,6 +139,10 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
+    INCREMENT_CALLS_COUNTER2(GetMsgDispatchCounter(), MSG_DISPATCH, "Type",
+                             MsgTypeToStr(msg_type), "StartByte",
+                             StartByteToStr(message->second.second));
+
     // To-do: Remove consensus user and peer manager placeholders
     Executable* msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
 
@@ -109,6 +165,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
 
         tpStart = std::chrono::high_resolution_clock::now();
       }
+
       bool result = msg_handlers[msg_type]->Execute(
           message->first, MessageOffset::INST, message->second.first,
           message->second.second);
@@ -124,6 +181,8 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
 
       if (!result) {
         // To-do: Error recovery
+        INCREMENT_CALLS_COUNTER(GetMsgDispatchErrorCounter(), MSG_DISPATCH,
+                                "Error", "dispatch_failed");
       }
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex
@@ -139,9 +198,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_ds(m_mediator),
       m_lookup(m_mediator, syncType, multiplierSyncMode, std::move(extSeedKey)),
       m_n(m_mediator, syncType, toRetrieveHistory),
-      m_msgQueue(MSGQUEUE_SIZE)
-
-{
+      m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
 
   if (LOG_PARAMETERS) {
@@ -444,7 +501,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       }
 
       if (ENABLE_WEBSOCKET) {
-        (void)WebsocketServer::GetInstance();
+        m_mediator.m_websocketServer->Start();
       }
 
       if (m_lookupServer == nullptr) {
@@ -537,9 +594,16 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
     }
   };
   DetachedFunction(1, func);
+
+  m_msgQueueSize.SetCallback([this](auto&& result) {
+    result.Set(m_msgQueue.size(), {{"counter", "QueueSize"}});
+  });
 }
 
-Zilliqa::~Zilliqa() { m_msgQueue.stop(); }
+Zilliqa::~Zilliqa() {
+  m_msgQueue.stop();
+  m_mediator.m_websocketServer->Stop();
+}
 
 void Zilliqa::Dispatch(Zilliqa::Msg message) {
   LOG_MARKER();

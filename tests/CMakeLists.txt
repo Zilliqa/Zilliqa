@@ -1,6 +1,7 @@
 #add_subdirectory (Consensus)
 #add_subdirectory (Contracts)
 add_subdirectory (cmd)
+add_subdirectory (Blockchain)
 add_subdirectory (Data)
 add_subdirectory (Directory)
 add_subdirectory (depends)
@@ -19,7 +20,7 @@ add_subdirectory (Server)
 #add_subdirectory (EvmLookupServer)
 add_subdirectory (EvmFiltersAPI)
 add_subdirectory (Utils)
-add_subdirectory (Zilliqa)
+#add_subdirectory (Zilliqa)
 #add_subdirectory (RemoteStorageDB) Works only if you have a local mongo server running
 
 file(COPY ${CMAKE_SOURCE_DIR}/constants_local.xml DESTINATION ${CMAKE_BINARY_DIR})

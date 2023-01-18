@@ -99,7 +99,7 @@ cmake-build-*
 
 # Files from running isolated server
 persistence/
-scilla/
+/scilla/
 scilla_files/
 config.xml
 isolated-server-accounts.json

@@ -18,42 +18,123 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_METRICS_H_
 #define ZILLIQA_SRC_LIBUTILS_METRICS_H_
 
-#include "common/Constants.h"
+#include <cassert>
+
 #include "common/MetricFilters.h"
 #include "common/Singleton.h"
-#include "opentelemetry/exporters/prometheus/exporter.h"
-#include "opentelemetry/metrics/provider.h"
-#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
-#include "opentelemetry/sdk/metrics/meter_provider.h"
 
-namespace metrics_sdk = opentelemetry::sdk::metrics;
-namespace common = opentelemetry::common;
-namespace metrics_exporter = opentelemetry::exporter::metrics;
-namespace metrics_api = opentelemetry::metrics;
-namespace metrics_api = opentelemetry::metrics;
+#include "opentelemetry/metrics/async_instruments.h"
+#include "opentelemetry/metrics/sync_instruments.h"
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/sdk/resource/resource.h"
+
+class Metrics;
+
+namespace opentelemetry::metrics {
+class MeterProvider;
+}
 
 namespace zil {
 namespace metrics {
 
-using int64_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
-using double_t = std::unique_ptr<metrics_api::Counter<double_t>>;
-using int64Observable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
-using doubleObservable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
-using int64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
+namespace common = opentelemetry::common;
+namespace metrics_api = opentelemetry::metrics;
+
+using uint64Counter_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
+using doubleCounter_t = std::unique_ptr<metrics_api::Counter<double>>;
+using uint64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
 
-class Filter : public Singleton<Filter>{
+class Filter : public Singleton<Filter> {
  public:
-  void init() {
-    m_power[0]=1;
-    for (int i=1;i<65;i++) m_power[i] = pow(2, i);
-  }
+  void init();
+
   bool Enabled(FilterClass to_test) {
-    return METRIC_ZILLIQA_MASK & m_power[to_test];
+    return m_mask & (1 << static_cast<int>(to_test));
   }
+
  private:
-  uint64_t m_power[65];
+  uint64_t m_mask{};
 };
+
+class Observable {
+ public:
+  class Result {
+   public:
+    template <class T>
+    void Set(T value, const common::KeyValueIterable& attributes) {
+      static_assert(std::is_integral_v<T> || std::is_floating_point_v<T>);
+
+      if constexpr (std::is_integral_v<T>) {
+        // This looks like a bug in openTelemetry, need to investigate, clash
+        // between uint64_t and long int should be unsigned, losing precision.
+
+        SetImpl(static_cast<int64_t>(value), attributes);
+      } else {
+        SetImpl(static_cast<double>(value), attributes);
+      }
+    }
+
+    template <class T, class U,
+              std::enable_if_t<
+                  common::detail::is_key_value_iterable<U>::value>* = nullptr>
+    void Set(T value, const U& attributes) noexcept {
+      Set(value, common::KeyValueIterableView<U>{attributes});
+    }
+
+    template <class T>
+    void Set(T value, std::initializer_list<
+                          std::pair<std::string_view, common::AttributeValue>>
+                          attributes) noexcept {
+      Set(value, opentelemetry::nostd::span<
+                     const std::pair<std::string_view, common::AttributeValue>>{
+                     attributes.begin(), attributes.end()});
+    }
+
+   private:
+    friend Observable;  // for ctor
+
+    Result(opentelemetry::metrics::ObserverResult& r) : m_result(r) {}
+
+    void SetImpl(int64_t value, const common::KeyValueIterable& attributes);
+
+    void SetImpl(double value, const common::KeyValueIterable& attributes);
+
+    opentelemetry::metrics::ObserverResult& m_result;
+  };
+
+  using Callback = std::function<void(Result&& result)>;
+
+  void SetCallback(Callback cb);
+
+  /// Dtor resets callback in compliance to opentelemetry API
+  ~Observable();
+
+  // No copy-move because stability of 'this' ptr is required
+  Observable(const Observable&) = delete;
+  Observable(Observable&&) = delete;
+  Observable& operator=(const Observable&) = delete;
+  Observable& operator=(Observable&&) = delete;
+
+ private:
+  using observable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
+
+  // for ctor.
+  friend Metrics;
+
+  Observable(zil::metrics::FilterClass filter, observable_t ob)
+      : m_filter(filter), m_observable(std::move(ob)) {
+    assert(m_observable);
+  }
+
+  static void RawCallback(
+      opentelemetry::metrics::ObserverResult observer_result, void* state);
+
+  zil::metrics::FilterClass m_filter;
+  observable_t m_observable;
+  Callback m_callback;
+};
+
 }  // namespace metrics
 }  // namespace zil
 
@@ -65,55 +146,102 @@ class Filter : public Singleton<Filter>{
 class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
-  virtual ~Metrics(){};
 
-  zil::metrics::int64_t CreateInt64Metric(const std::string& family,
-                                          const std::string& name,
-                                          const std::string& desc,
-                                          std::string_view unit = "");
+  std::string Version(){ return "Initial"; }
 
-  zil::metrics::int64Observable_t CreateInt64UpDownMetric(
-      const std::string& family, const std::string& name,
-      const std::string& desc, std::string_view unit = "");
+  zil::metrics::uint64Counter_t CreateInt64Metric(const std::string& family,
+                                                  const std::string& name,
+                                                  const std::string& desc,
+                                                  std::string_view unit = "");
 
-  zil::metrics::int64Observable_t CreateInt64Gauge(const std::string& family,
+  zil::metrics::doubleCounter_t CreateDoubleMetric(const std::string& family,
                                                    const std::string& name,
                                                    const std::string& desc,
                                                    std::string_view unit = "");
 
-  zil::metrics::doubleObservable_t CreateDoubleUpDownMetric(
+  zil::metrics::uint64Historgram_t CreateUInt64Histogram(
       const std::string& family, const std::string& name,
       const std::string& desc, std::string_view unit = "");
-
-  zil::metrics::int64Observable_t CreateDoubleGauge(const std::string& family,
-                                                    const std::string& name,
-                                                    const std::string& desc,
-                                                    std::string_view unit = "");
-
-  zil::metrics::double_t CreateDoubleMetric(const std::string& family,
-                                            const std::string& name,
-                                            std::string_view unit = "");
 
   zil::metrics::doubleHistogram_t CreateDoubleHistogram(
       const std::string& family, const std::string& name,
       const std::string& desc, std::string_view unit = "");
 
-  zil::metrics::int64Historgram_t CreateUInt64Histogram(
-      const std::string& family, const std::string& name,
-      const std::string& desc, std::string_view unit = "");
+  zil::metrics::Observable CreateInt64UpDownMetric(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
 
-  zil::metrics::int64Observable_t CreateInt64ObservableCounter(
-      const std::string& family, const std::string& name,
-      const std::string& desc, std::string_view unit = "");
+  zil::metrics::Observable CreateInt64Gauge(zil::metrics::FilterClass filter,
+                                            const std::string& family,
+                                            const std::string& name,
+                                            const std::string& desc,
+                                            std::string_view unit = "");
 
-  zil::metrics::doubleObservable_t CreateDoubleObservableCounter(
-      const std::string& family, const std::string& name,
-      const std::string& desc, std::string_view unit = "");
+  zil::metrics::Observable CreateDoubleUpDownMetric(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
+
+  zil::metrics::Observable CreateDoubleGauge(zil::metrics::FilterClass filter,
+                                             const std::string& family,
+                                             const std::string& name,
+                                             const std::string& desc,
+                                             std::string_view unit = "");
+
+  zil::metrics::Observable CreateInt64ObservableCounter(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
+
+  zil::metrics::Observable CreateDoubleObservableCounter(
+      zil::metrics::FilterClass filter, const std::string& family,
+      const std::string& name, const std::string& desc,
+      std::string_view unit = "");
+
+  /// Called on main() exit explicitly
+  void Shutdown();
+
+  std::shared_ptr<opentelemetry::metrics::MeterProvider>& getProvider(){
+      return m_provider;
+  }
 
  private:
   void Init();
+  void InitPrometheus();
+  void InitOTHTTP();
+  void InitStdOut();
 
-  std::shared_ptr<metrics_api::MeterProvider> m_provider;
+  std::shared_ptr<opentelemetry::metrics::MeterProvider> m_provider;
 };
+
+#define INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE) \
+  if (zil::metrics::Filter::GetInstance().Enabled(                       \
+          zil::metrics::FilterClass::FILTER_CLASS)) {                    \
+    COUNTER->Add(1, {{ATTRIBUTE, VALUE}});                               \
+  }
+
+#define INCREMENT_CALLS_COUNTER2(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE, \
+                                 ATTRIBUTE2, VALUE2)                      \
+  if (zil::metrics::Filter::GetInstance().Enabled(                        \
+          zil::metrics::FilterClass::FILTER_CLASS)) {                     \
+    COUNTER->Add(1, {{ATTRIBUTE, VALUE}, {ATTRIBUTE2, VALUE2}});          \
+  }
+
+#define INCREMENT_METHOD_CALLS_COUNTER(COUNTER, FILTER_CLASS) \
+  if (zil::metrics::Filter::GetInstance().Enabled(            \
+          zil::metrics::FilterClass::FILTER_CLASS)) {         \
+    COUNTER->Add(1, {{"Method", __FUNCTION__}});              \
+  }
+
+#define METRICS_ENABLED(FILTER_CLASS)          \
+  zil::metrics::Filter::GetInstance().Enabled( \
+      zil::metrics::FilterClass::FILTER_CLASS)
+
+#define INCREMENT_METHOD_CALLS_COUNTER2(COUNTER, FILTER_CLASS, METHOD) \
+  if (zil::metrics::Filter::GetInstance().Enabled(                     \
+          zil::metrics::FilterClass::FILTER_CLASS)) {                  \
+    COUNTER->Add(1, {{"Method", METHOD}});                             \
+  }
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_

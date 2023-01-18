@@ -23,7 +23,7 @@
 
 #include <boost/compute/detail/lru_cache.hpp>
 
-#include "libData/BlockData/Block/DSBlock.h"
+#include "libBlockchain/DSBlock.h"
 #include "libData/DataStructures/CircularArray.h"
 #include "libPersistence/BlockStorage.h"
 
@@ -176,8 +176,8 @@ class TxBlockChain : public BlockChain<TxBlock> {
 
 class VCBlockChain : public BlockChain<VCBlock> {
  public:
-  VCBlock GetBlockFromPersistentStorage([
-      [gnu::unused]] const uint64_t& blockNum) override {
+  VCBlock GetBlockFromPersistentStorage(
+      [[gnu::unused]] const uint64_t& blockNum) override {
     throw "vc block persistent storage not supported";
   }
 };

@@ -17,33 +17,23 @@
 #ifndef ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 #define ZILLIQA_SRC_LIBMESSAGE_MESSENGER_H_
 
-#include <Schnorr.h>
 #include <boost/variant.hpp>
 #include <map>
 #include "common/BaseType.h"
-#include "common/Serializable.h"
 #include "common/TxnStatus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libData/CoinbaseData/CoinbaseStruct.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libData/MiningData/MinerInfo.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
+#include "MessengerCommon.h"
 
-#define PROTOBUFBYTEARRAYTOSERIALIZABLE(ba, s)                       \
-  if (!ProtobufByteArrayToSerializable(ba, s)) {                     \
-    LOG_GENERAL(WARNING, "ProtobufByteArrayToSerializable failed."); \
-    return false;                                                    \
-  }
-
-namespace ZilliqaMessage {
-class ByteArray;
-}
-
-bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
-                                     SerializableCrypto& serializable);
+class AccountBase;
+class AccountStore;
+class AccountStoreTemp;
 
 class Messenger {
  public:
@@ -113,63 +103,6 @@ class Messenger {
   static bool GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
                             MBInfoHash& dst);
 
-  static bool SetDSBlockHeader(zbytes& dst, const unsigned int offset,
-                               const DSBlockHeader& dsBlockHeader,
-                               bool concreteVarsOnly = false);
-  static bool GetDSBlockHeader(const zbytes& src, const unsigned int offset,
-                               DSBlockHeader& dsBlockHeader);
-  static bool GetDSBlockHeader(const std::string& src,
-                               const unsigned int offset,
-                               DSBlockHeader& dsBlockHeader);
-  static bool SetDSBlock(zbytes& dst, const unsigned int offset,
-                         const DSBlock& dsBlock);
-  static bool GetDSBlock(const zbytes& src, const unsigned int offset,
-                         DSBlock& dsBlock);
-  static bool GetDSBlock(const std::string& src, const unsigned int offset,
-                         DSBlock& dsBlock);
-
-  static bool SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
-                                  const MicroBlockHeader& microBlockHeader);
-  static bool GetMicroBlockHeader(const zbytes& src, const unsigned int offset,
-                                  MicroBlockHeader& microBlockHeader);
-  static bool GetMicroBlockHeader(const std::string& src,
-                                  const unsigned int offset,
-                                  MicroBlockHeader& microBlockHeader);
-  static bool SetMicroBlock(zbytes& dst, const unsigned int offset,
-                            const MicroBlock& microBlock);
-  static bool GetMicroBlock(const zbytes& src, const unsigned int offset,
-                            MicroBlock& microBlock);
-  static bool GetMicroBlock(const std::string& src, const unsigned int offset,
-                            MicroBlock& microBlock);
-
-  static bool SetTxBlockHeader(zbytes& dst, const unsigned int offset,
-                               const TxBlockHeader& txBlockHeader);
-  static bool GetTxBlockHeader(const zbytes& src, const unsigned int offset,
-                               TxBlockHeader& txBlockHeader);
-  static bool GetTxBlockHeader(const std::string& src,
-                               const unsigned int offset,
-                               TxBlockHeader& txBlockHeader);
-  static bool SetTxBlock(zbytes& dst, const unsigned int offset,
-                         const TxBlock& txBlock);
-  static bool GetTxBlock(const zbytes& src, const unsigned int offset,
-                         TxBlock& txBlock);
-  static bool GetTxBlock(const std::string& src, const unsigned int offset,
-                         TxBlock& txBlock);
-
-  static bool SetVCBlockHeader(zbytes& dst, const unsigned int offset,
-                               const VCBlockHeader& vcBlockHeader);
-  static bool GetVCBlockHeader(const zbytes& src, const unsigned int offset,
-                               VCBlockHeader& vcBlockHeader);
-  static bool GetVCBlockHeader(const std::string& src,
-                               const unsigned int offset,
-                               VCBlockHeader& vcBlockHeader);
-  static bool SetVCBlock(zbytes& dst, const unsigned int offset,
-                         const VCBlock& vcBlock);
-  static bool GetVCBlock(const zbytes& src, const unsigned int offset,
-                         VCBlock& vcBlock);
-  static bool GetVCBlock(const std::string& src, const unsigned int offset,
-                         VCBlock& vcBlock);
-
   static bool SetTransactionCoreInfo(zbytes& dst, const unsigned int offset,
                                      const TransactionCoreInfo& transaction);
   static bool GetTransactionCoreInfo(const zbytes& src,
@@ -209,15 +142,6 @@ class Messenger {
   static bool GetTransactionWithReceipt(
       const std::string& src, const unsigned int offset,
       TransactionWithReceipt& transactionWithReceipt);
-
-  static bool SetStateIndex(zbytes& dst, const unsigned int offset,
-                            const std::vector<Contract::Index>& indexes);
-  static bool GetStateIndex(const zbytes& src, const unsigned int offset,
-                            std::vector<Contract::Index>& indexes);
-  static bool SetStateData(zbytes& dst, const unsigned int offset,
-                           const Contract::StateEntry& entry);
-  static bool GetStateData(const zbytes& src, const unsigned int offset,
-                           Contract::StateEntry& entry, uint32_t& version);
 
   static bool SetPeer(zbytes& dst, const unsigned int offset, const Peer& peer);
   static bool GetPeer(const zbytes& src, const unsigned int offset, Peer& peer);
@@ -779,7 +703,7 @@ class Messenger {
       return false;
     }
 
-    zbytes tmp(consensus_message.consensusinfo().ByteSize());
+    zbytes tmp(consensus_message.consensusinfo().ByteSizeLong());
     consensus_message.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
     ProtobufByteArrayToSerializable(consensus_message.pubkey(), senderPubKey);
@@ -797,10 +721,10 @@ class Messenger {
 
     // Copy src into reserializedSrc, trimming away any excess bytes beyond the
     // definition of protobuf message T
-    reserializedSrc.resize(offset + consensus_message.ByteSize());
+    reserializedSrc.resize(offset + consensus_message.ByteSizeLong());
     copy(src.begin(), src.begin() + offset, reserializedSrc.begin());
     consensus_message.SerializeToArray(reserializedSrc.data() + offset,
-                                       consensus_message.ByteSize());
+                                       consensus_message.ByteSizeLong());
 
     return true;
   }

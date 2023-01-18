@@ -17,11 +17,11 @@
 
 #include "Messenger.h"
 #include "libCrypto/Sha2.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
+#include "libBlockchain/Serialization.h"
 #include "libDirectoryService/DirectoryService.h"
-#include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/SafeMath.h"
 
 #include <google/protobuf/io/coded_stream.h>
@@ -39,67 +39,6 @@ using namespace ZilliqaMessage;
 // Utility conversion functions
 // ============================================================================
 
-template <class T>
-void SerializableToProtobufByteArray(const T& serializable,
-                                     ByteArray& byteArray) {
-  zbytes tmp;
-  serializable.Serialize(tmp, 0);
-  byteArray.set_data(tmp.data(), tmp.size());
-}
-
-bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     Serializable& serializable) {
-  zbytes tmp(byteArray.data().size());
-  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
-  return serializable.Deserialize(tmp, 0) == 0;
-}
-
-bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     SerializableCrypto& serializable) {
-  zbytes tmp(byteArray.data().size());
-  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
-  return serializable.Deserialize(tmp, 0);
-}
-
-// Temporary function for use by data blocks
-void SerializableToProtobufByteArray(const SerializableDataBlock& serializable,
-                                     ByteArray& byteArray) {
-  zbytes tmp;
-  serializable.Serialize(tmp, 0);
-  byteArray.set_data(tmp.data(), tmp.size());
-}
-
-// Temporary function for use by data blocks
-bool ProtobufByteArrayToSerializable(const ByteArray& byteArray,
-                                     SerializableDataBlock& serializable) {
-  return serializable.Deserialize(byteArray.data(), 0);
-}
-
-template <class T, size_t S>
-void NumberToProtobufByteArray(const T& number, ByteArray& byteArray) {
-  zbytes tmp;
-  Serializable::SetNumber<T>(tmp, 0, number, S);
-  byteArray.set_data(tmp.data(), tmp.size());
-}
-
-template <class T, size_t S>
-void ProtobufByteArrayToNumber(const ByteArray& byteArray, T& number) {
-  zbytes tmp(byteArray.data().size());
-  copy(byteArray.data().begin(), byteArray.data().end(), tmp.begin());
-  number = Serializable::GetNumber<T>(tmp, 0, S);
-}
-
-template <class T>
-bool SerializeToArray(const T& protoMessage, zbytes& dst,
-                      const unsigned int offset) {
-  if ((offset + protoMessage.ByteSize()) > dst.size()) {
-    dst.resize(offset + protoMessage.ByteSize());
-  }
-
-  return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSize());
-}
-
 template bool SerializeToArray<ProtoAccountStore>(
     const ProtoAccountStore& protoMessage, zbytes& dst,
     const unsigned int offset);
@@ -113,7 +52,7 @@ bool RepeatableToArray(const T& repeatable, zbytes& dst,
       LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
       return false;
     }
-    tempOffset += element.ByteSize();
+    tempOffset += element.ByteSizeLong();
   }
   return true;
 }
@@ -139,51 +78,6 @@ inline bool CheckRequiredFieldsProtoBlockLink(
   return true;
 }
 
-inline bool CheckRequiredFieldsProtoDSBlockPowDSWinner(
-    const ProtoDSBlock::DSBlockHeader::PowDSWinners& powDSWinner) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return powDSWinner.has_key() && powDSWinner.has_val();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
-    const ProtoDSBlock::DSBlockHashSet& dsBlockHashSet) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return dsBlockHashSet.has_shardinghash() &&
-         dsBlockHashSet.has_reservedfield();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoDSBlockDSBlockHeader(
-    const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member dswinners
-  // Don't need to enforce check on optional members dsdifficulty, difficulty,
-  // and gasprice
-  return protoDSBlockHeader.has_leaderpubkey() &&
-         protoDSBlockHeader.has_blocknum() &&
-         protoDSBlockHeader.has_epochnum() && protoDSBlockHeader.has_swinfo() &&
-         protoDSBlockHeader.has_hash() &&
-         protoDSBlockHeader.has_blockheaderbase() &&
-         CheckRequiredFieldsProtoDSBlockDSBlockHashSet(
-             protoDSBlockHeader.hash());
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoDSBlock(const ProtoDSBlock& protoDSBlock) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoDSBlock.has_header() && protoDSBlock.has_blockbase();
-#endif
-  return true;
-}
-
 inline bool CheckRequiredFieldsProtoDSNode(const ProtoDSNode& protoDSNode) {
 // TODO: Check if default value is acceptable for each field
 #if 0
@@ -198,36 +92,6 @@ inline bool CheckRequiredFieldsProtoDSCommittee(
 #if 0
   // Don't need to enforce check on repeated member dsnodes
   return protoDSCommittee.has_version();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
-    const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoMicroBlockHeader.has_shardid() &&
-         protoMicroBlockHeader.has_gaslimit() &&
-         protoMicroBlockHeader.has_gasused() &&
-         protoMicroBlockHeader.has_rewards() &&
-         protoMicroBlockHeader.has_epochnum() &&
-         protoMicroBlockHeader.has_txroothash() &&
-         protoMicroBlockHeader.has_numtxs() &&
-         protoMicroBlockHeader.has_minerpubkey() &&
-         protoMicroBlockHeader.has_dsblocknum() &&
-         protoMicroBlockHeader.has_statedeltahash() &&
-         protoMicroBlockHeader.has_tranreceipthash() &&
-         protoMicroBlockHeader.has_blockheaderbase();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoMicroBlock(
-    const ProtoMicroBlock& protoMicroBlock) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member tranhashes
-  return protoMicroBlock.has_header() && protoMicroBlock.has_blockbase();
 #endif
   return true;
 }
@@ -254,76 +118,6 @@ inline bool CheckRequiredFieldsProtoShardingStructure(
 #if 0
   // Don't need to enforce check on repeated member shards
   return protoShardingStructure.has_version();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
-    const ProtoTxBlock::TxBlockHashSet& protoTxBlockHashSet) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoTxBlockHashSet.has_stateroothash() &&
-         protoTxBlockHashSet.has_statedeltahash() &&
-         protoTxBlockHashSet.has_mbinfohash();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoMbInfo(const ProtoMbInfo& protoMbInfo) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoMbInfo.has_mbhash() && protoMbInfo.has_txroot() &&
-         protoMbInfo.has_shardid();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoTxBlockTxBlockHeader(
-    const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoTxBlockHeader.has_gaslimit() &&
-         protoTxBlockHeader.has_gasused() && protoTxBlockHeader.has_rewards() &&
-         protoTxBlockHeader.has_blocknum() && protoTxBlockHeader.has_hash() &&
-         protoTxBlockHeader.has_numtxs() &&
-         protoTxBlockHeader.has_minerpubkey() &&
-         protoTxBlockHeader.has_dsblocknum() &&
-         protoTxBlockHeader.has_blockheaderbase() &&
-         CheckRequiredFieldsProtoTxBlockTxBlockHashSet(
-             protoTxBlockHeader.hash());
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoTxBlock(const ProtoTxBlock& protoTxBlock) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member mbinfos
-  return protoTxBlock.has_header() && protoTxBlock.has_blockbase();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoVCBlockVCBlockHeader(
-    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  // Don't need to enforce check on repeated member faultyleaders
-  return protoVCBlockHeader.has_viewchangedsepochno() &&
-         protoVCBlockHeader.has_viewchangeepochno() &&
-         protoVCBlockHeader.has_viewchangestate() &&
-         protoVCBlockHeader.has_candidateleadernetworkinfo() &&
-         protoVCBlockHeader.has_candidateleaderpubkey() &&
-         protoVCBlockHeader.has_vccounter() &&
-         protoVCBlockHeader.has_blockheaderbase();
-#endif
-  return true;
-}
-
-inline bool CheckRequiredFieldsProtoVCBlock(const ProtoVCBlock& protoVCBlock) {
-// TODO: Check if default value is acceptable for each field
-#if 0
-  return protoVCBlock.has_header() && protoVCBlock.has_blockbase();
 #endif
   return true;
 }
@@ -807,30 +601,6 @@ bool ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
   return true;
 }
 
-void FaultyLeaderToProtobuf(const VectorOfNode& faultyLeaders,
-                            ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-  for (const auto& node : faultyLeaders) {
-    ProtoDSNode* protodsnode = protoVCBlockHeader.add_faultyleaders();
-    SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
-    SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
-  }
-}
-
-bool ProtobufToFaultyDSMembers(
-    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
-    VectorOfNode& faultyDSMembers) {
-  for (const auto& dsnode : protoVCBlockHeader.faultyleaders()) {
-    PubKey pubkey;
-    Peer peer;
-
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dsnode.pubkey(), pubkey);
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dsnode.peer(), peer);
-    faultyDSMembers.emplace_back(pubkey, peer);
-  }
-
-  return true;
-}
-
 void DSCommitteeToProtoCommittee(const DequeOfNode& dsCommittee,
                                  ProtoCommittee& protoCommittee) {
   for (const auto& node : dsCommittee) {
@@ -843,163 +613,6 @@ void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
     SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                     *protoCommittee.add_members());
   }
-}
-
-void StateIndexToProtobuf(const vector<Contract::Index>& indexes,
-                          ProtoStateIndex& protoStateIndex) {
-  for (const auto& index : indexes) {
-    protoStateIndex.add_index(index.data(), index.size);
-  }
-}
-
-bool ProtobufToStateIndex(const ProtoStateIndex& protoStateIndex,
-                          vector<Contract::Index>& indexes) {
-  for (const auto& index : protoStateIndex.index()) {
-    indexes.emplace_back();
-    unsigned int size =
-        min((unsigned int)index.size(), (unsigned int)indexes.back().size);
-    copy(index.begin(), index.begin() + size, indexes.back().asArray().begin());
-  }
-
-  return true;
-}
-
-void StateDataToProtobuf(const Contract::StateEntry& entry,
-                         ProtoStateData& protoStateData) {
-  protoStateData.set_version(CONTRACT_STATE_VERSION);
-  protoStateData.set_vname(std::get<Contract::VNAME>(entry));
-  protoStateData.set_ismutable(std::get<Contract::MUTABLE>(entry));
-  protoStateData.set_type(std::get<Contract::TYPE>(entry));
-
-  string value = std::get<Contract::VALUE>(entry);
-  if (value.front() == '"') {
-    value.erase(0, 1);
-  }
-  if (value.back() == '"') {
-    value.erase(value.size() - 1);
-  }
-
-  protoStateData.set_value(value);
-}
-
-bool ProtobufToStateData(const ProtoStateData& protoStateData,
-                         Contract::StateEntry& indexes, uint32_t& version) {
-  if (!CheckRequiredFieldsProtoStateData(protoStateData)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoStateData failed");
-    return false;
-  }
-
-  version = protoStateData.version();
-
-  indexes = std::make_tuple(protoStateData.vname(), protoStateData.ismutable(),
-                            protoStateData.type(), protoStateData.value());
-  return true;
-}
-
-void BlockBaseToProtobuf(const BlockBase& base,
-                         ProtoBlockBase& protoBlockBase) {
-  // Block hash
-
-  protoBlockBase.set_blockhash(base.GetBlockHash().data(),
-                               base.GetBlockHash().size);
-
-  // Timestampo
-  protoBlockBase.set_timestamp(base.GetTimestamp());
-
-  // Serialize cosigs
-
-  ZilliqaMessage::ProtoBlockBase::CoSignatures* cosigs =
-      protoBlockBase.mutable_cosigs();
-
-  SerializableToProtobufByteArray(base.GetCS1(), *cosigs->mutable_cs1());
-  for (const auto& i : base.GetB1()) {
-    cosigs->add_b1(i);
-  }
-  SerializableToProtobufByteArray(base.GetCS2(), *cosigs->mutable_cs2());
-  for (const auto& i : base.GetB2()) {
-    cosigs->add_b2(i);
-  }
-}
-
-bool ProtobufToBlockBase(const ProtoBlockBase& protoBlockBase,
-                         BlockBase& base) {
-  if (!CheckRequiredFieldsProtoBlockBase(protoBlockBase)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoBlockBase failed");
-    return false;
-  }
-
-  // Deserialize cosigs
-  CoSignatures cosigs;
-  cosigs.m_B1.resize(protoBlockBase.cosigs().b1().size());
-  cosigs.m_B2.resize(protoBlockBase.cosigs().b2().size());
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoBlockBase.cosigs().cs1(), cosigs.m_CS1);
-  copy(protoBlockBase.cosigs().b1().begin(), protoBlockBase.cosigs().b1().end(),
-       cosigs.m_B1.begin());
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoBlockBase.cosigs().cs2(), cosigs.m_CS2);
-  copy(protoBlockBase.cosigs().b2().begin(), protoBlockBase.cosigs().b2().end(),
-       cosigs.m_B2.begin());
-
-  base.SetCoSignatures(cosigs);
-
-  // Deserialize the block hash
-  BlockHash blockHash;
-  if (!Messenger::CopyWithSizeCheck(protoBlockBase.blockhash(),
-                                    blockHash.asArray())) {
-    return false;
-  }
-  base.SetBlockHash(blockHash);
-
-  // Deserialize timestamp
-  uint64_t timestamp;
-  timestamp = protoBlockBase.timestamp();
-
-  base.SetTimestamp(timestamp);
-
-  return true;
-}
-
-void BlockHeaderBaseToProtobuf(const BlockHeaderBase& base,
-                               ProtoBlockHeaderBase& protoBlockHeaderBase) {
-  // version
-  protoBlockHeaderBase.set_version(base.GetVersion());
-  // committee hash
-  protoBlockHeaderBase.set_committeehash(base.GetCommitteeHash().data(),
-                                         base.GetCommitteeHash().size);
-  protoBlockHeaderBase.set_prevhash(base.GetPrevHash().data(),
-                                    base.GetPrevHash().size);
-}
-
-bool ProtobufToBlockHeaderBase(const ProtoBlockHeaderBase& protoBlockHeaderBase,
-                               BlockHeaderBase& base) {
-  if (!CheckRequiredFieldsProtoBlockHeaderBase(protoBlockHeaderBase)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoBlockHeaderBase failed");
-    return false;
-  }
-
-  // Deserialize the version
-  uint32_t version;
-  version = protoBlockHeaderBase.version();
-
-  base.SetVersion(version);
-
-  // Deserialize committee hash
-  CommitteeHash committeeHash;
-  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.committeehash(),
-                                    committeeHash.asArray())) {
-    return false;
-  }
-  base.SetCommitteeHash(committeeHash);
-
-  // Deserialize prev hash
-  BlockHash prevHash;
-  if (!Messenger::CopyWithSizeCheck(protoBlockHeaderBase.prevhash(),
-                                    prevHash.asArray())) {
-    return false;
-  }
-  base.SetPrevHash(prevHash);
-
-  return true;
 }
 
 void ShardingStructureToProtobuf(
@@ -1378,225 +991,6 @@ void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
   peer = Peer(ipAddress, protoPeer.listenporthost());
 }
 
-void DSBlockHeaderToProtobuf(const DSBlockHeader& dsBlockHeader,
-                             ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
-                             bool concreteVarsOnly = false) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoDSBlockHeader.mutable_blockheaderbase();
-  BlockHeaderBaseToProtobuf(dsBlockHeader, *protoBlockHeaderBase);
-
-  if (!concreteVarsOnly) {
-    protoDSBlockHeader.set_dsdifficulty(dsBlockHeader.GetDSDifficulty());
-    protoDSBlockHeader.set_difficulty(dsBlockHeader.GetDifficulty());
-    NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-        dsBlockHeader.GetGasPrice(), *protoDSBlockHeader.mutable_gasprice());
-    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::PowDSWinners* powdswinner;
-
-    for (const auto& winner : dsBlockHeader.GetDSPoWWinners()) {
-      powdswinner = protoDSBlockHeader.add_dswinners();
-      SerializableToProtobufByteArray(winner.first,
-                                      *powdswinner->mutable_key());
-      SerializableToProtobufByteArray(winner.second,
-                                      *powdswinner->mutable_val());
-    }
-
-    ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Proposal* protoproposal;
-    for (const auto& govProposal : dsBlockHeader.GetGovProposalMap()) {
-      protoproposal = protoDSBlockHeader.add_proposals();
-      protoproposal->set_proposalid(govProposal.first);
-      for (const auto& vote : govProposal.second.first) {
-        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
-        protoVote = protoproposal->add_dsvotes();
-        protoVote->set_value(vote.first);
-        protoVote->set_count(vote.second);
-      }
-      for (const auto& vote : govProposal.second.second) {
-        ZilliqaMessage::ProtoDSBlock::DSBlockHeader::Vote* protoVote;
-        protoVote = protoproposal->add_minervotes();
-        protoVote->set_value(vote.first);
-        protoVote->set_count(vote.second);
-      }
-    }
-
-    ZilliqaMessage::ByteArray* dsremoved;
-    for (const auto& removedPubKey : dsBlockHeader.GetDSRemovePubKeys()) {
-      dsremoved = protoDSBlockHeader.add_dsremoved();
-      SerializableToProtobufByteArray(removedPubKey, *dsremoved);
-    }
-  }
-
-  SerializableToProtobufByteArray(dsBlockHeader.GetLeaderPubKey(),
-                                  *protoDSBlockHeader.mutable_leaderpubkey());
-
-  protoDSBlockHeader.set_blocknum(dsBlockHeader.GetBlockNum());
-  protoDSBlockHeader.set_epochnum(dsBlockHeader.GetEpochNum());
-  SerializableToProtobufByteArray(dsBlockHeader.GetSWInfo(),
-                                  *protoDSBlockHeader.mutable_swinfo());
-
-  ZilliqaMessage::ProtoDSBlock::DSBlockHashSet* protoHeaderHash =
-      protoDSBlockHeader.mutable_hash();
-  protoHeaderHash->set_shardinghash(dsBlockHeader.GetShardingHash().data(),
-                                    dsBlockHeader.GetShardingHash().size);
-  protoHeaderHash->set_reservedfield(
-      dsBlockHeader.GetHashSetReservedField().data(),
-      dsBlockHeader.GetHashSetReservedField().size());
-}
-
-void DSBlockToProtobuf(const DSBlock& dsBlock, ProtoDSBlock& protoDSBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoDSBlock::DSBlockHeader* protoHeader =
-      protoDSBlock.mutable_header();
-
-  const DSBlockHeader& header = dsBlock.GetHeader();
-
-  DSBlockHeaderToProtobuf(header, *protoHeader);
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoDSBlock.mutable_blockbase();
-
-  BlockBaseToProtobuf(dsBlock, *protoBlockBase);
-}
-
-bool ProtobufToDSBlockHeader(
-    const ProtoDSBlock::DSBlockHeader& protoDSBlockHeader,
-    DSBlockHeader& dsBlockHeader) {
-  if (!CheckRequiredFieldsProtoDSBlockDSBlockHeader(protoDSBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlockDSBlockHeader failed");
-    return false;
-  }
-
-  PubKey leaderPubKey;
-  SWInfo swInfo;
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.leaderpubkey(),
-                                  leaderPubKey);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoDSBlockHeader.swinfo(), swInfo);
-
-  // Deserialize powDSWinners
-  map<PubKey, Peer> powDSWinners;
-  PubKey tempPubKey;
-  Peer tempWinnerNetworkInfo;
-  for (const auto& dswinner : protoDSBlockHeader.dswinners()) {
-    if (!CheckRequiredFieldsProtoDSBlockPowDSWinner(dswinner)) {
-      LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlockPowDSWinner failed");
-      return false;
-    }
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dswinner.key(), tempPubKey);
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(dswinner.val(), tempWinnerNetworkInfo);
-    powDSWinners[tempPubKey] = tempWinnerNetworkInfo;
-  }
-
-  GovDSShardVotesMap govProposalMap;
-  for (const auto& protoProposal : protoDSBlockHeader.proposals()) {
-    std::map<uint32_t, uint32_t> dsVotes;
-    std::map<uint32_t, uint32_t> shardVotes;
-    for (const auto& protovote : protoProposal.dsvotes()) {
-      dsVotes[protovote.value()] = protovote.count();
-    }
-    for (const auto& protovote : protoProposal.minervotes()) {
-      shardVotes[protovote.value()] = protovote.count();
-    }
-    govProposalMap[protoProposal.proposalid()].first = dsVotes;
-    govProposalMap[protoProposal.proposalid()].second = shardVotes;
-  }
-
-  // Deserialize removeDSNodePubkeys
-  std::vector<PubKey> removeDSNodePubKeys;
-  PubKey tempRemovePubKey;
-  for (const auto& removenode : protoDSBlockHeader.dsremoved()) {
-    PROTOBUFBYTEARRAYTOSERIALIZABLE(removenode, tempRemovePubKey);
-    removeDSNodePubKeys.emplace_back(tempRemovePubKey);
-  }
-
-  // Deserialize DSBlockHashSet
-  DSBlockHashSet hash;
-  const ZilliqaMessage::ProtoDSBlock::DSBlockHashSet& protoDSBlockHeaderHash =
-      protoDSBlockHeader.hash();
-
-  if (!Messenger::CopyWithSizeCheck(protoDSBlockHeaderHash.shardinghash(),
-                                    hash.m_shardingHash.asArray())) {
-    return false;
-  }
-
-  copy(protoDSBlockHeaderHash.reservedfield().begin(),
-       protoDSBlockHeaderHash.reservedfield().begin() +
-           min((unsigned int)protoDSBlockHeaderHash.reservedfield().size(),
-               (unsigned int)hash.m_reservedField.size()),
-       hash.m_reservedField.begin());
-
-  // Generate the new DSBlock
-
-  const uint8_t dsdifficulty = protoDSBlockHeader.dsdifficulty();
-  const uint8_t difficulty = protoDSBlockHeader.difficulty();
-  uint128_t gasprice = 0;
-
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-      protoDSBlockHeader.gasprice(), gasprice);
-
-  dsBlockHeader = DSBlockHeader(
-      dsdifficulty, difficulty, leaderPubKey, protoDSBlockHeader.blocknum(),
-      protoDSBlockHeader.epochnum(), gasprice, swInfo, powDSWinners,
-      removeDSNodePubKeys, hash, govProposalMap);
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoDSBlockHeader.blockheaderbase();
-
-  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, dsBlockHeader);
-}
-
-bool ProtobufToDSBlock(const ProtoDSBlock& protoDSBlock, DSBlock& dsBlock) {
-  // Deserialize header
-
-  if (!CheckRequiredFieldsProtoDSBlock(protoDSBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSBlock failed");
-    return false;
-  }
-
-  const ZilliqaMessage::ProtoDSBlock::DSBlockHeader& protoHeader =
-      protoDSBlock.header();
-
-  DSBlockHeader header;
-
-  if (!ProtobufToDSBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToDSBlockHeader failed");
-    return false;
-  }
-
-  dsBlock = DSBlock(header, CoSignatures());
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoDSBlock.blockbase();
-
-  return ProtobufToBlockBase(protoBlockBase, dsBlock);
-}
-
-void MicroBlockHeaderToProtobuf(
-    const MicroBlockHeader& microBlockHeader,
-    ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoMicroBlockHeader.mutable_blockheaderbase();
-  BlockHeaderBaseToProtobuf(microBlockHeader, *protoBlockHeaderBase);
-
-  protoMicroBlockHeader.set_shardid(microBlockHeader.GetShardId());
-  protoMicroBlockHeader.set_gaslimit(microBlockHeader.GetGasLimit());
-  protoMicroBlockHeader.set_gasused(microBlockHeader.GetGasUsed());
-  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-      microBlockHeader.GetRewards(), *protoMicroBlockHeader.mutable_rewards());
-  protoMicroBlockHeader.set_epochnum(microBlockHeader.GetEpochNum());
-  protoMicroBlockHeader.set_txroothash(microBlockHeader.GetTxRootHash().data(),
-                                       microBlockHeader.GetTxRootHash().size);
-  protoMicroBlockHeader.set_numtxs(microBlockHeader.GetNumTxs());
-  SerializableToProtobufByteArray(microBlockHeader.GetMinerPubKey(),
-                                  *protoMicroBlockHeader.mutable_minerpubkey());
-  protoMicroBlockHeader.set_dsblocknum(microBlockHeader.GetDSBlockNum());
-  protoMicroBlockHeader.set_statedeltahash(
-      microBlockHeader.GetStateDeltaHash().data(),
-      microBlockHeader.GetStateDeltaHash().size);
-  protoMicroBlockHeader.set_tranreceipthash(
-      microBlockHeader.GetTranReceiptHash().data(),
-      microBlockHeader.GetTranReceiptHash().size);
-}
-
 void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
                              DSPoWSubmission& dsPowSubmission) {
   dsPowSubmission.mutable_data()->set_blocknumber(powSolution.GetBlockNumber());
@@ -1663,386 +1057,6 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
   return true;
 }
 
-void MicroBlockToProtobuf(const MicroBlock& microBlock,
-                          ProtoMicroBlock& protoMicroBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader* protoHeader =
-      protoMicroBlock.mutable_header();
-
-  const MicroBlockHeader& header = microBlock.GetHeader();
-
-  MicroBlockHeaderToProtobuf(header, *protoHeader);
-
-  // Serialize body
-
-  for (const auto& hash : microBlock.GetTranHashes()) {
-    protoMicroBlock.add_tranhashes(hash.data(), hash.size);
-  }
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoMicroBlock.mutable_blockbase();
-
-  BlockBaseToProtobuf(microBlock, *protoBlockBase);
-}
-
-bool ProtobufToMicroBlockHeader(
-    const ProtoMicroBlock::MicroBlockHeader& protoMicroBlockHeader,
-    MicroBlockHeader& microBlockHeader) {
-  if (!CheckRequiredFieldsProtoMicroBlockMicroBlockHeader(
-          protoMicroBlockHeader)) {
-    LOG_GENERAL(WARNING,
-                "CheckRequiredFieldsProtoMicroBlockMicroBlockHeader failed");
-    return false;
-  }
-
-  uint64_t gasLimit;
-  uint64_t gasUsed;
-  uint128_t rewards;
-  TxnHash txRootHash;
-  PubKey minerPubKey;
-  BlockHash dsBlockHash;
-  StateHash stateDeltaHash;
-  TxnHash tranReceiptHash;
-
-  gasLimit = protoMicroBlockHeader.gaslimit();
-  gasUsed = protoMicroBlockHeader.gasused();
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-      protoMicroBlockHeader.rewards(), rewards);
-
-  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.txroothash(),
-                                    txRootHash.asArray())) {
-    return false;
-  }
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoMicroBlockHeader.minerpubkey(),
-                                  minerPubKey);
-
-  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.statedeltahash(),
-                                    stateDeltaHash.asArray())) {
-    return false;
-  }
-
-  if (!Messenger::CopyWithSizeCheck(protoMicroBlockHeader.tranreceipthash(),
-                                    tranReceiptHash.asArray())) {
-    return false;
-  }
-
-  microBlockHeader =
-      MicroBlockHeader(protoMicroBlockHeader.shardid(), gasLimit, gasUsed,
-                       rewards, protoMicroBlockHeader.epochnum(),
-                       {txRootHash, stateDeltaHash, tranReceiptHash},
-                       protoMicroBlockHeader.numtxs(), minerPubKey,
-                       protoMicroBlockHeader.dsblocknum());
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoMicroBlockHeader.blockheaderbase();
-
-  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, microBlockHeader);
-}
-
-bool ProtobufToMicroBlock(const ProtoMicroBlock& protoMicroBlock,
-                          MicroBlock& microBlock) {
-  if (!CheckRequiredFieldsProtoMicroBlock(protoMicroBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoMicroBlock failed");
-    return false;
-  }
-
-  // Deserialize header
-
-  const ZilliqaMessage::ProtoMicroBlock::MicroBlockHeader& protoHeader =
-      protoMicroBlock.header();
-
-  MicroBlockHeader header;
-
-  if (!ProtobufToMicroBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToMicroBlockHeader failed");
-    return false;
-  }
-
-  // Deserialize body
-
-  vector<TxnHash> tranHashes;
-  for (const auto& hash : protoMicroBlock.tranhashes()) {
-    tranHashes.emplace_back();
-    unsigned int size =
-        min((unsigned int)hash.size(), (unsigned int)tranHashes.back().size);
-    copy(hash.begin(), hash.begin() + size,
-         tranHashes.back().asArray().begin());
-  }
-
-  microBlock = MicroBlock(header, tranHashes, CoSignatures());
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoMicroBlock.blockbase();
-
-  return ProtobufToBlockBase(protoBlockBase, microBlock);
-}
-
-void MbInfoToProtobuf(const MicroBlockInfo& mbInfo, ProtoMbInfo& ProtoMbInfo) {
-  ProtoMbInfo.set_mbhash(mbInfo.m_microBlockHash.data(),
-                         mbInfo.m_microBlockHash.size);
-  ProtoMbInfo.set_txroot(mbInfo.m_txnRootHash.data(),
-                         mbInfo.m_txnRootHash.size);
-  ProtoMbInfo.set_shardid(mbInfo.m_shardId);
-}
-
-bool ProtobufToMbInfo(const ProtoMbInfo& ProtoMbInfo, MicroBlockInfo& mbInfo) {
-  if (!CheckRequiredFieldsProtoMbInfo(ProtoMbInfo)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoMbInfo failed");
-    return false;
-  }
-
-  copy(ProtoMbInfo.mbhash().begin(),
-       ProtoMbInfo.mbhash().begin() +
-           min((unsigned int)ProtoMbInfo.mbhash().size(),
-               (unsigned int)mbInfo.m_microBlockHash.size),
-       mbInfo.m_microBlockHash.asArray().begin());
-  copy(ProtoMbInfo.txroot().begin(),
-       ProtoMbInfo.txroot().begin() +
-           min((unsigned int)ProtoMbInfo.txroot().size(),
-               (unsigned int)mbInfo.m_txnRootHash.size),
-       mbInfo.m_txnRootHash.asArray().begin());
-  mbInfo.m_shardId = ProtoMbInfo.shardid();
-
-  return true;
-}
-
-void TxBlockHeaderToProtobuf(const TxBlockHeader& txBlockHeader,
-                             ProtoTxBlock::TxBlockHeader& protoTxBlockHeader) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoTxBlockHeader.mutable_blockheaderbase();
-  BlockHeaderBaseToProtobuf(txBlockHeader, *protoBlockHeaderBase);
-
-  protoTxBlockHeader.set_gaslimit(txBlockHeader.GetGasLimit());
-  protoTxBlockHeader.set_gasused(txBlockHeader.GetGasUsed());
-  NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
-      txBlockHeader.GetRewards(), *protoTxBlockHeader.mutable_rewards());
-  protoTxBlockHeader.set_blocknum(txBlockHeader.GetBlockNum());
-
-  ZilliqaMessage::ProtoTxBlock::TxBlockHashSet* protoHeaderHash =
-      protoTxBlockHeader.mutable_hash();
-  protoHeaderHash->set_stateroothash(txBlockHeader.GetStateRootHash().data(),
-                                     txBlockHeader.GetStateRootHash().size);
-  protoHeaderHash->set_statedeltahash(txBlockHeader.GetStateDeltaHash().data(),
-                                      txBlockHeader.GetStateDeltaHash().size);
-  protoHeaderHash->set_mbinfohash(txBlockHeader.GetMbInfoHash().data(),
-                                  txBlockHeader.GetMbInfoHash().size);
-
-  protoTxBlockHeader.set_numtxs(txBlockHeader.GetNumTxs());
-  SerializableToProtobufByteArray(txBlockHeader.GetMinerPubKey(),
-                                  *protoTxBlockHeader.mutable_minerpubkey());
-  protoTxBlockHeader.set_dsblocknum(txBlockHeader.GetDSBlockNum());
-}
-
-void TxBlockToProtobuf(const TxBlock& txBlock, ProtoTxBlock& protoTxBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoTxBlock::TxBlockHeader* protoHeader =
-      protoTxBlock.mutable_header();
-
-  const TxBlockHeader& header = txBlock.GetHeader();
-
-  TxBlockHeaderToProtobuf(header, *protoHeader);
-
-  for (const auto& mbInfo : txBlock.GetMicroBlockInfos()) {
-    auto protoMbInfo = protoTxBlock.add_mbinfos();
-    MbInfoToProtobuf(mbInfo, *protoMbInfo);
-  }
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoTxBlock.mutable_blockbase();
-
-  BlockBaseToProtobuf(txBlock, *protoBlockBase);
-}
-
-bool ProtobufToTxBlockHeader(
-    const ProtoTxBlock::TxBlockHeader& protoTxBlockHeader,
-    TxBlockHeader& txBlockHeader) {
-  if (!CheckRequiredFieldsProtoTxBlockTxBlockHeader(protoTxBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTxBlockTxBlockHeader failed");
-    return false;
-  }
-
-  uint64_t gasLimit;
-  uint64_t gasUsed;
-  uint128_t rewards;
-  TxBlockHashSet hash;
-  PubKey minerPubKey;
-
-  gasLimit = protoTxBlockHeader.gaslimit();
-  gasUsed = protoTxBlockHeader.gasused();
-  ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
-      protoTxBlockHeader.rewards(), rewards);
-
-  const ZilliqaMessage::ProtoTxBlock::TxBlockHashSet& protoTxBlockHeaderHash =
-      protoTxBlockHeader.hash();
-  copy(protoTxBlockHeaderHash.stateroothash().begin(),
-       protoTxBlockHeaderHash.stateroothash().begin() +
-           min((unsigned int)protoTxBlockHeaderHash.stateroothash().size(),
-               (unsigned int)hash.m_stateRootHash.size),
-       hash.m_stateRootHash.asArray().begin());
-  copy(protoTxBlockHeaderHash.statedeltahash().begin(),
-       protoTxBlockHeaderHash.statedeltahash().begin() +
-           min((unsigned int)protoTxBlockHeaderHash.statedeltahash().size(),
-               (unsigned int)hash.m_stateDeltaHash.size),
-       hash.m_stateDeltaHash.asArray().begin());
-  copy(protoTxBlockHeaderHash.mbinfohash().begin(),
-       protoTxBlockHeaderHash.mbinfohash().begin() +
-           min((unsigned int)protoTxBlockHeaderHash.mbinfohash().size(),
-               (unsigned int)hash.m_mbInfoHash.size),
-       hash.m_mbInfoHash.asArray().begin());
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTxBlockHeader.minerpubkey(),
-                                  minerPubKey);
-
-  txBlockHeader =
-      TxBlockHeader(gasLimit, gasUsed, rewards, protoTxBlockHeader.blocknum(),
-                    hash, protoTxBlockHeader.numtxs(), minerPubKey,
-                    protoTxBlockHeader.dsblocknum());
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoTxBlockHeader.blockheaderbase();
-
-  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, txBlockHeader);
-}
-
-bool ProtobufToTxBlock(const ProtoTxBlock& protoTxBlock, TxBlock& txBlock) {
-  if (!CheckRequiredFieldsProtoTxBlock(protoTxBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTxBlock failed");
-    return false;
-  }
-
-  // Deserialize header
-
-  const ZilliqaMessage::ProtoTxBlock::TxBlockHeader& protoHeader =
-      protoTxBlock.header();
-
-  TxBlockHeader header;
-
-  if (!ProtobufToTxBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToTxBlockHeader failed");
-    return false;
-  }
-
-  // Deserialize body
-  vector<MicroBlockInfo> mbInfos;
-
-  for (const auto& protoMbInfo : protoTxBlock.mbinfos()) {
-    MicroBlockInfo mbInfo;
-    if (!ProtobufToMbInfo(protoMbInfo, mbInfo)) {
-      return false;
-    }
-    mbInfos.emplace_back(mbInfo);
-  }
-
-  txBlock = TxBlock(header, mbInfos, CoSignatures());
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoTxBlock.blockbase();
-
-  return ProtobufToBlockBase(protoBlockBase, txBlock);
-}
-
-void VCBlockHeaderToProtobuf(const VCBlockHeader& vcBlockHeader,
-                             ProtoVCBlock::VCBlockHeader& protoVCBlockHeader) {
-  ZilliqaMessage::ProtoBlockHeaderBase* protoBlockHeaderBase =
-      protoVCBlockHeader.mutable_blockheaderbase();
-  BlockHeaderBaseToProtobuf(vcBlockHeader, *protoBlockHeaderBase);
-
-  protoVCBlockHeader.set_viewchangedsepochno(
-      vcBlockHeader.GetViewChangeDSEpochNo());
-  protoVCBlockHeader.set_viewchangeepochno(
-      vcBlockHeader.GetViewChangeEpochNo());
-  protoVCBlockHeader.set_viewchangestate(vcBlockHeader.GetViewChangeState());
-  SerializableToProtobufByteArray(
-      vcBlockHeader.GetCandidateLeaderNetworkInfo(),
-      *protoVCBlockHeader.mutable_candidateleadernetworkinfo());
-  SerializableToProtobufByteArray(
-      vcBlockHeader.GetCandidateLeaderPubKey(),
-      *protoVCBlockHeader.mutable_candidateleaderpubkey());
-  protoVCBlockHeader.set_vccounter(vcBlockHeader.GetViewChangeCounter());
-  FaultyLeaderToProtobuf(vcBlockHeader.GetFaultyLeaders(), protoVCBlockHeader);
-}
-
-void VCBlockToProtobuf(const VCBlock& vcBlock, ProtoVCBlock& protoVCBlock) {
-  // Serialize header
-
-  ZilliqaMessage::ProtoVCBlock::VCBlockHeader* protoHeader =
-      protoVCBlock.mutable_header();
-
-  const VCBlockHeader& header = vcBlock.GetHeader();
-
-  VCBlockHeaderToProtobuf(header, *protoHeader);
-
-  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
-      protoVCBlock.mutable_blockbase();
-
-  BlockBaseToProtobuf(vcBlock, *protoBlockBase);
-}
-
-bool ProtobufToVCBlockHeader(
-    const ProtoVCBlock::VCBlockHeader& protoVCBlockHeader,
-    VCBlockHeader& vcBlockHeader) {
-  if (!CheckRequiredFieldsProtoVCBlockVCBlockHeader(protoVCBlockHeader)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoVCBlockVCBlockHeader failed");
-    return false;
-  }
-
-  Peer candidateLeaderNetworkInfo;
-  PubKey candidateLeaderPubKey;
-  CommitteeHash committeeHash;
-  VectorOfNode faultyLeaders;
-
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(
-      protoVCBlockHeader.candidateleadernetworkinfo(),
-      candidateLeaderNetworkInfo);
-  PROTOBUFBYTEARRAYTOSERIALIZABLE(protoVCBlockHeader.candidateleaderpubkey(),
-                                  candidateLeaderPubKey);
-
-  if (!ProtobufToFaultyDSMembers(protoVCBlockHeader, faultyLeaders)) {
-    LOG_GENERAL(WARNING, "ProtobufToFaultyDSMembers failed");
-    return false;
-  }
-
-  vcBlockHeader = VCBlockHeader(
-      protoVCBlockHeader.viewchangedsepochno(),
-      protoVCBlockHeader.viewchangeepochno(),
-      protoVCBlockHeader.viewchangestate(), candidateLeaderNetworkInfo,
-      candidateLeaderPubKey, protoVCBlockHeader.vccounter(), faultyLeaders);
-
-  const ZilliqaMessage::ProtoBlockHeaderBase& protoBlockHeaderBase =
-      protoVCBlockHeader.blockheaderbase();
-
-  return ProtobufToBlockHeaderBase(protoBlockHeaderBase, vcBlockHeader);
-}
-
-bool ProtobufToVCBlock(const ProtoVCBlock& protoVCBlock, VCBlock& vcBlock) {
-  if (!CheckRequiredFieldsProtoVCBlock(protoVCBlock)) {
-    LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoVCBlock failed");
-    return false;
-  }
-
-  // Deserialize header
-
-  const ZilliqaMessage::ProtoVCBlock::VCBlockHeader& protoHeader =
-      protoVCBlock.header();
-
-  VCBlockHeader header;
-
-  if (!ProtobufToVCBlockHeader(protoHeader, header)) {
-    LOG_GENERAL(WARNING, "ProtobufToVCBlockHeader failed");
-    return false;
-  }
-
-  vcBlock = VCBlock(header, CoSignatures());
-
-  const ZilliqaMessage::ProtoBlockBase& protoBlockBase =
-      protoVCBlock.blockbase();
-
-  return ProtobufToBlockBase(protoBlockBase, vcBlock);
-}
-
 bool SetConsensusAnnouncementCore(
     ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, uint64_t blockNumber, const zbytes& blockHash,
@@ -2063,7 +1077,7 @@ bool SetConsensusAnnouncementCore(
     return false;
   }
 
-  zbytes tmp(announcement.consensusinfo().ByteSize());
+  zbytes tmp(announcement.consensusinfo().ByteSizeLong());
   announcement.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -2087,52 +1101,52 @@ bool SetConsensusAnnouncementCore(
         LOG_GENERAL(WARNING, "Announcement dsblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.dsblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.dsblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.dsblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.dsblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.dsblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::kMicroblock:
       if (!announcement.microblock().IsInitialized()) {
         LOG_GENERAL(WARNING, "Announcement microblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.microblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.microblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.microblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.microblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.microblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::kFinalblock:
       if (!announcement.finalblock().IsInitialized()) {
         LOG_GENERAL(WARNING, "Announcement finalblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.finalblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.finalblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.finalblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.finalblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.finalblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::kVcblock:
       if (!announcement.vcblock().IsInitialized()) {
         LOG_GENERAL(WARNING, "Announcement vcblock content not initialized");
         return false;
       }
-      inputToSigning.resize(announcement.consensusinfo().ByteSize() +
-                            announcement.vcblock().ByteSize());
+      inputToSigning.resize(announcement.consensusinfo().ByteSizeLong() +
+                            announcement.vcblock().ByteSizeLong());
       announcement.consensusinfo().SerializeToArray(
-          inputToSigning.data(), announcement.consensusinfo().ByteSize());
+          inputToSigning.data(), announcement.consensusinfo().ByteSizeLong());
       announcement.vcblock().SerializeToArray(
-          inputToSigning.data() + announcement.consensusinfo().ByteSize(),
-          announcement.vcblock().ByteSize());
+          inputToSigning.data() + announcement.consensusinfo().ByteSizeLong(),
+          announcement.vcblock().ByteSizeLong());
       break;
     case ConsensusAnnouncement::AnnouncementCase::ANNOUNCEMENT_NOT_SET:
     default:
@@ -2212,40 +1226,40 @@ bool GetConsensusAnnouncementCore(
   zbytes tmp;
 
   if (announcement.has_dsblock() && announcement.dsblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.dsblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.dsblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.dsblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.dsblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.dsblock().ByteSizeLong());
   } else if (announcement.has_microblock() &&
              announcement.microblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.microblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.microblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.microblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.microblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.microblock().ByteSizeLong());
   } else if (announcement.has_finalblock() &&
              announcement.finalblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.finalblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.finalblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.finalblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.finalblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.finalblock().ByteSizeLong());
   } else if (announcement.has_vcblock() &&
              announcement.vcblock().IsInitialized()) {
-    tmp.resize(announcement.consensusinfo().ByteSize() +
-               announcement.vcblock().ByteSize());
+    tmp.resize(announcement.consensusinfo().ByteSizeLong() +
+               announcement.vcblock().ByteSizeLong());
     announcement.consensusinfo().SerializeToArray(
-        tmp.data(), announcement.consensusinfo().ByteSize());
+        tmp.data(), announcement.consensusinfo().ByteSizeLong());
     announcement.vcblock().SerializeToArray(
-        tmp.data() + announcement.consensusinfo().ByteSize(),
-        announcement.vcblock().ByteSize());
+        tmp.data() + announcement.consensusinfo().ByteSizeLong(),
+        announcement.vcblock().ByteSizeLong());
   } else {
     LOG_GENERAL(WARNING, "Announcement content not set");
     return false;
@@ -2624,7 +1638,17 @@ bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
   LOG_GENERAL(INFO, "Account deltas to serialize: "
                         << accountStoreTemp.GetNumOfAccounts());
 
+  std::vector<std::pair<Address, Account>> accountsToSerialize;
+  accountsToSerialize.reserve(accountStoreTemp.GetAddressToAccount()->size());
   for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
+    accountsToSerialize.push_back(entry);
+  }
+  if (SORT_ACC_STORE_DELTA) {
+    std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
+              [&](const auto& l, const auto& r) { return l.first < l.first; });
+  }
+
+  for (const auto& entry : accountsToSerialize) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
     ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
@@ -2806,7 +1830,7 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
   for (const auto& mbInfo : mbInfos) {
     ProtoMbInfo ProtoMbInfo;
 
-    MbInfoToProtobuf(mbInfo, ProtoMbInfo);
+    io::MbInfoToProtobuf(mbInfo, ProtoMbInfo);
 
     if (!ProtoMbInfo.IsInitialized()) {
       LOG_GENERAL(WARNING, "ProtoMbInfo initialization failed");
@@ -2830,428 +1854,6 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
   copy(tmp.begin(), tmp.end(), dst.asArray().begin());
 
   return true;
-}
-
-bool Messenger::SetDSBlockHeader(zbytes& dst, const unsigned int offset,
-                                 const DSBlockHeader& dsBlockHeader,
-                                 bool concreteVarsOnly) {
-  ProtoDSBlock::DSBlockHeader result;
-
-  DSBlockHeaderToProtobuf(dsBlockHeader, result, concreteVarsOnly);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetDSBlockHeader(const zbytes& src, const unsigned int offset,
-                                 DSBlockHeader& dsBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoDSBlock::DSBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToDSBlockHeader(result, dsBlockHeader);
-}
-
-bool Messenger::GetDSBlockHeader(const string& src, const unsigned int offset,
-                                 DSBlockHeader& dsBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoDSBlock::DSBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock::DSBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToDSBlockHeader(result, dsBlockHeader);
-}
-
-bool Messenger::SetDSBlock(zbytes& dst, const unsigned int offset,
-                           const DSBlock& dsBlock) {
-  ProtoDSBlock result;
-
-  DSBlockToProtobuf(dsBlock, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetDSBlock(const zbytes& src, const unsigned int offset,
-                           DSBlock& dsBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoDSBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToDSBlock(result, dsBlock);
-}
-
-bool Messenger::GetDSBlock(const string& src, const unsigned int offset,
-                           DSBlock& dsBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoDSBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoDSBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToDSBlock(result, dsBlock);
-}
-
-bool Messenger::SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
-                                    const MicroBlockHeader& microBlockHeader) {
-  ProtoMicroBlock::MicroBlockHeader result;
-
-  MicroBlockHeaderToProtobuf(microBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoMicroBlock::MicroBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetMicroBlockHeader(const zbytes& src,
-                                    const unsigned int offset,
-                                    MicroBlockHeader& microBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoMicroBlock::MicroBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoMicroBlock::MicroBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToMicroBlockHeader(result, microBlockHeader);
-}
-
-bool Messenger::GetMicroBlockHeader(const string& src,
-                                    const unsigned int offset,
-                                    MicroBlockHeader& microBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoMicroBlock::MicroBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING,
-                "ProtoMicroBlock::MicroBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToMicroBlockHeader(result, microBlockHeader);
-}
-
-bool Messenger::SetMicroBlock(zbytes& dst, const unsigned int offset,
-                              const MicroBlock& microBlock) {
-  ProtoMicroBlock result;
-
-  MicroBlockToProtobuf(microBlock, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetMicroBlock(const zbytes& src, const unsigned int offset,
-                              MicroBlock& microBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoMicroBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToMicroBlock(result, microBlock);
-}
-
-bool Messenger::GetMicroBlock(const string& src, const unsigned int offset,
-                              MicroBlock& microBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoMicroBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoMicroBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToMicroBlock(result, microBlock);
-}
-
-bool Messenger::SetTxBlockHeader(zbytes& dst, const unsigned int offset,
-                                 const TxBlockHeader& txBlockHeader) {
-  ProtoTxBlock::TxBlockHeader result;
-
-  TxBlockHeaderToProtobuf(txBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetTxBlockHeader(const zbytes& src, const unsigned int offset,
-                                 TxBlockHeader& txBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoTxBlock::TxBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToTxBlockHeader(result, txBlockHeader);
-}
-
-bool Messenger::GetTxBlockHeader(const string& src, const unsigned int offset,
-                                 TxBlockHeader& txBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoTxBlock::TxBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock::TxBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToTxBlockHeader(result, txBlockHeader);
-}
-
-bool Messenger::SetTxBlock(zbytes& dst, const unsigned int offset,
-                           const TxBlock& txBlock) {
-  ProtoTxBlock result;
-
-  TxBlockToProtobuf(txBlock, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetTxBlock(const zbytes& src, const unsigned int offset,
-                           TxBlock& txBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoTxBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToTxBlock(result, txBlock);
-}
-
-bool Messenger::GetTxBlock(const string& src, const unsigned int offset,
-                           TxBlock& txBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoTxBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoTxBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToTxBlock(result, txBlock);
-}
-
-bool Messenger::SetVCBlockHeader(zbytes& dst, const unsigned int offset,
-                                 const VCBlockHeader& vcBlockHeader) {
-  ProtoVCBlock::VCBlockHeader result;
-
-  VCBlockHeaderToProtobuf(vcBlockHeader, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetVCBlockHeader(const zbytes& src, const unsigned int offset,
-                                 VCBlockHeader& vcBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoVCBlock::VCBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToVCBlockHeader(result, vcBlockHeader);
-}
-
-bool Messenger::GetVCBlockHeader(const string& src, const unsigned int offset,
-                                 VCBlockHeader& vcBlockHeader) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoVCBlock::VCBlockHeader result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock::VCBlockHeader initialization failed");
-    return false;
-  }
-
-  return ProtobufToVCBlockHeader(result, vcBlockHeader);
-}
-
-bool Messenger::SetVCBlock(zbytes& dst, const unsigned int offset,
-                           const VCBlock& vcBlock) {
-  ProtoVCBlock result;
-
-  VCBlockToProtobuf(vcBlock, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetVCBlock(const zbytes& src, const unsigned int offset,
-                           VCBlock& vcBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoVCBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToVCBlock(result, vcBlock);
-}
-
-bool Messenger::GetVCBlock(const string& src, const unsigned int offset,
-                           VCBlock& vcBlock) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoVCBlock result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoVCBlock initialization failed");
-    return false;
-  }
-
-  return ProtobufToVCBlock(result, vcBlock);
 }
 
 bool Messenger::SetTransactionCoreInfo(zbytes& dst, const unsigned int offset,
@@ -3510,72 +2112,6 @@ bool Messenger::GetTransactionWithReceipt(
   return ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
 }
 
-bool Messenger::SetStateIndex(zbytes& dst, const unsigned int offset,
-                              const vector<Contract::Index>& indexes) {
-  ProtoStateIndex result;
-
-  StateIndexToProtobuf(indexes, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateIndex initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetStateIndex(const zbytes& src, const unsigned int offset,
-                              vector<Contract::Index>& indexes) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoStateIndex result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateIndex initialization failed");
-    return false;
-  }
-
-  return ProtobufToStateIndex(result, indexes);
-}
-
-bool Messenger::SetStateData(zbytes& dst, const unsigned int offset,
-                             const Contract::StateEntry& entry) {
-  ProtoStateData result;
-
-  StateDataToProtobuf(entry, result);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateData initialization failed");
-    return false;
-  }
-
-  return SerializeToArray(result, dst, offset);
-}
-
-bool Messenger::GetStateData(const zbytes& src, const unsigned int offset,
-                             Contract::StateEntry& entry, uint32_t& version) {
-  if (offset >= src.size()) {
-    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
-                             << src.size() << ", offset " << offset);
-    return false;
-  }
-
-  ProtoStateData result;
-  result.ParseFromArray(src.data() + offset, src.size() - offset);
-
-  if (!result.IsInitialized()) {
-    LOG_GENERAL(WARNING, "ProtoStateData initialization failed");
-    return false;
-  }
-
-  return ProtobufToStateData(result, entry, version);
-}
-
 bool Messenger::SetPeer(zbytes& dst, const unsigned int offset,
                         const Peer& peer) {
   ProtoPeer result;
@@ -3826,7 +2362,7 @@ bool Messenger::SetPMHello(zbytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "PMHello.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -3869,7 +2405,7 @@ bool Messenger::GetPMHello(const zbytes& src, const unsigned int offset,
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
@@ -3927,7 +2463,7 @@ bool Messenger::SetDSPoWSubmission(
 
   result.mutable_data()->set_version(version);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   // We use MultiSig::SignKey to emphasize that this is for the
@@ -3988,7 +2524,7 @@ bool Messenger::GetDSPoWSubmission(
     govProposalId = result.data().govdata().proposalid();
     govVoteValue = result.data().govdata().votevalue();
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   version = result.data().version();
@@ -4017,7 +2553,7 @@ bool Messenger::SetDSPoWPacketSubmission(
 
   SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
@@ -4057,7 +2593,7 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSPoWPacketSubmission signature wrong");
@@ -4084,7 +2620,8 @@ bool Messenger::SetDSMicroBlockSubmission(
   result.mutable_data()->set_microblocktype(microBlockType);
   result.mutable_data()->set_epochnumber(epochNumber);
   for (const auto& microBlock : microBlocks) {
-    MicroBlockToProtobuf(microBlock, *result.mutable_data()->add_microblocks());
+    io::MicroBlockToProtobuf(microBlock,
+                             *result.mutable_data()->add_microblocks());
   }
   for (const auto& stateDelta : stateDeltas) {
     result.mutable_data()->add_statedeltas(stateDelta.data(),
@@ -4096,7 +2633,7 @@ bool Messenger::SetDSMicroBlockSubmission(
     return false;
   }
 
-  zbytes tmp(result.mutable_data()->ByteSize());
+  zbytes tmp(result.mutable_data()->ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -4142,7 +2679,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong");
@@ -4154,7 +2691,7 @@ bool Messenger::GetDSMicroBlockSubmission(
   epochNumber = result.data().epochnumber();
   for (const auto& proto_mb : result.data().microblocks()) {
     MicroBlock microBlock;
-    ProtobufToMicroBlock(proto_mb, microBlock);
+    io::ProtobufToMicroBlock(proto_mb, microBlock);
     microBlocks.emplace_back(std::move(microBlock));
   }
 
@@ -4180,7 +2717,7 @@ bool Messenger::SetDSDSBlockAnnouncement(
 
   DSDSBlockAnnouncement* dsblock = announcement.mutable_dsblock();
 
-  DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
+  io::DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
 
   AnnouncementShardingStructureToProtobuf(shards, allPoWs,
                                           *dsblock->mutable_sharding());
@@ -4273,7 +2810,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
 
-  if (!ProtobufToDSBlock(dsblock.dsblock(), dsBlock)) {
+  if (!io::ProtobufToDSBlock(dsblock.dsblock(), dsBlock)) {
     return false;
   }
 
@@ -4340,9 +2877,9 @@ bool Messenger::SetDSFinalBlockAnnouncement(
   // Set the FinalBlock announcement parameters
 
   DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
-  TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
+  io::TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
   if (microBlock != nullptr) {
-    MicroBlockToProtobuf(*microBlock, *finalblock->mutable_microblock());
+    io::MicroBlockToProtobuf(*microBlock, *finalblock->mutable_microblock());
   } else {
     LOG_GENERAL(WARNING, "microblock is nullptr");
   }
@@ -4411,12 +2948,12 @@ bool Messenger::GetDSFinalBlockAnnouncement(
   // Get the FinalBlock announcement parameters
 
   const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
-  if (!ProtobufToTxBlock(finalblock.txblock(), txBlock)) {
+  if (!io::ProtobufToTxBlock(finalblock.txblock(), txBlock)) {
     return false;
   }
 
   if (finalblock.microblock().IsInitialized()) {
-    ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
+    io::ProtobufToMicroBlock(finalblock.microblock(), *microBlock);
   } else {
     LOG_GENERAL(WARNING, "Announcement doesn't include ds microblock");
     microBlock = nullptr;
@@ -4596,10 +3133,10 @@ bool Messenger::SetNodeVCDSBlocksMessage(
   NodeDSBlock result;
 
   result.set_shardid(shardId);
-  DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
+  io::DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
 
   for (const auto& vcblock : vcBlocks) {
-    VCBlockToProtobuf(vcblock, *result.add_vcblocks());
+    io::VCBlockToProtobuf(vcblock, *result.add_vcblocks());
   }
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
                               *result.mutable_sharding());
@@ -4635,13 +3172,13 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
   }
 
   shardId = result.shardid();
-  if (!ProtobufToDSBlock(result.dsblock(), dsBlock)) {
+  if (!io::ProtobufToDSBlock(result.dsblock(), dsBlock)) {
     return false;
   }
 
   for (const auto& proto_vcblock : result.vcblocks()) {
     VCBlock vcblock;
-    if (!ProtobufToVCBlock(proto_vcblock, vcblock)) {
+    if (!io::ProtobufToVCBlock(proto_vcblock, vcblock)) {
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
       return false;
     }
@@ -4664,11 +3201,11 @@ bool Messenger::SetNodeVCFinalBlock(zbytes& dst, const unsigned int offset,
 
   result.set_dsblocknumber(dsBlockNumber);
   result.set_consensusid(consensusID);
-  TxBlockToProtobuf(txBlock, *result.mutable_txblock());
+  io::TxBlockToProtobuf(txBlock, *result.mutable_txblock());
   result.set_statedelta(stateDelta.data(), stateDelta.size());
 
   for (const auto& vcblock : vcBlocks) {
-    VCBlockToProtobuf(vcblock, *result.add_vcblocks());
+    io::VCBlockToProtobuf(vcblock, *result.add_vcblocks());
   }
 
   if (!result.IsInitialized()) {
@@ -4703,7 +3240,7 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
 
   dsBlockNumber = result.dsblocknumber();
   consensusID = result.consensusid();
-  if (!ProtobufToTxBlock(result.txblock(), txBlock)) {
+  if (!io::ProtobufToTxBlock(result.txblock(), txBlock)) {
     return false;
   }
   stateDelta.resize(result.statedelta().size());
@@ -4712,7 +3249,7 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
 
   for (const auto& proto_vcblock : result.vcblocks()) {
     VCBlock vcblock;
-    if (!ProtobufToVCBlock(proto_vcblock, vcblock)) {
+    if (!io::ProtobufToVCBlock(proto_vcblock, vcblock)) {
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
       return false;
     }
@@ -4732,7 +3269,7 @@ bool Messenger::SetNodeFinalBlock(zbytes& dst, const unsigned int offset,
 
   result.set_dsblocknumber(dsBlockNumber);
   result.set_consensusid(consensusID);
-  TxBlockToProtobuf(txBlock, *result.mutable_txblock());
+  io::TxBlockToProtobuf(txBlock, *result.mutable_txblock());
   result.set_statedelta(stateDelta.data(), stateDelta.size());
 
   if (!result.IsInitialized()) {
@@ -4765,7 +3302,7 @@ bool Messenger::GetNodeFinalBlock(const zbytes& src, const unsigned int offset,
 
   dsBlockNumber = result.dsblocknumber();
   consensusID = result.consensusid();
-  if (!ProtobufToTxBlock(result.txblock(), txBlock)) {
+  if (!io::ProtobufToTxBlock(result.txblock(), txBlock)) {
     return false;
   }
   stateDelta.resize(result.statedelta().size());
@@ -4782,7 +3319,7 @@ bool Messenger::SetNodeMBnForwardTransaction(
 
   NodeMBnForwardTransaction result;
 
-  MicroBlockToProtobuf(microBlock, *result.mutable_microblock());
+  io::MicroBlockToProtobuf(microBlock, *result.mutable_microblock());
 
   unsigned int txnsCount = 0;
 
@@ -4837,7 +3374,7 @@ bool Messenger::SetNodePendingTxn(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -4881,7 +3418,7 @@ bool Messenger::GetNodePendingTxn(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, pubKey)) {
@@ -4929,7 +3466,7 @@ bool Messenger::GetNodeMBnForwardTransaction(const zbytes& src,
     return false;
   }
 
-  ProtobufToMicroBlock(result.microblock(), entry.m_microBlock);
+  io::ProtobufToMicroBlock(result.microblock(), entry.m_microBlock);
 
   unsigned int txnsCount = 0;
 
@@ -4951,7 +3488,7 @@ bool Messenger::SetNodeVCBlock(zbytes& dst, const unsigned int offset,
 
   NodeVCBlock result;
 
-  VCBlockToProtobuf(vcBlock, *result.mutable_vcblock());
+  io::VCBlockToProtobuf(vcBlock, *result.mutable_vcblock());
 
   if (!result.IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeVCBlock initialization failed");
@@ -4979,7 +3516,7 @@ bool Messenger::GetNodeVCBlock(const zbytes& src, const unsigned int offset,
     return false;
   }
 
-  return ProtobufToVCBlock(result.vcblock(), vcBlock);
+  return io::ProtobufToVCBlock(result.vcblock(), vcBlock);
 }
 
 bool Messenger::SetNodeForwardTxnBlock(
@@ -5006,7 +3543,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn->first, *protoTxn);
-    unsigned txn_size = protoTxn->ByteSize();
+    unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
@@ -5020,7 +3557,7 @@ bool Messenger::SetNodeForwardTxnBlock(
     }
     *result.add_transactions() = *protoTxn;
     txnsCurrentCount++;
-    msg_size += protoTxn->ByteSize();
+    msg_size += protoTxn->ByteSizeLong();
     txn = txnsCurrent.erase(txn);
   }
 
@@ -5031,7 +3568,7 @@ bool Messenger::SetNodeForwardTxnBlock(
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn->first, *protoTxn);
-    unsigned txn_size = protoTxn->ByteSize();
+    unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       if (++(txn->second) >= TXN_DISPATCH_ATTEMPT_LIMIT) {
@@ -5101,7 +3638,7 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
 
     auto protoTxn = std::make_unique<ProtoTransaction>();
     TransactionToProtobuf(txn, *protoTxn);
-    const unsigned txn_size = protoTxn->ByteSize();
+    const unsigned txn_size = protoTxn->ByteSizeLong();
     if ((msg_size + txn_size) > PACKET_BYTESIZE_LIMIT &&
         txn_size >= SMALL_TXN_SIZE) {
       continue;
@@ -5190,7 +3727,7 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
   // Set the MicroBlock announcement parameters
 
   NodeMicroBlockAnnouncement* microblock = announcement.mutable_microblock();
-  MicroBlockToProtobuf(microBlock, *microblock->mutable_microblock());
+  io::MicroBlockToProtobuf(microBlock, *microblock->mutable_microblock());
 
   if (!microblock->IsInitialized()) {
     LOG_GENERAL(WARNING, "NodeMicroBlockAnnouncement initialization failed");
@@ -5256,7 +3793,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
   // Get the MicroBlock announcement parameters
 
   const NodeMicroBlockAnnouncement& microblock = announcement.microblock();
-  ProtobufToMicroBlock(microblock.microblock(), microBlock);
+  io::ProtobufToMicroBlock(microblock.microblock(), microBlock);
 
   // Get the part of the announcement that should be co-signed during the first
   // round of consensus
@@ -5772,7 +4309,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   for (const auto& dsblock : dsBlocks) {
-    DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
+    io::DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
   Signature signature;
@@ -5780,7 +4317,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
     LOG_GENERAL(WARNING, "LookupSetDSBlockFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -5823,14 +4360,14 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
 
   for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
-    if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
+    if (!io::ProtobufToDSBlock(proto_dsblock, dsblock)) {
       LOG_GENERAL(WARNING, "ProtobufToDSBlock failed");
       return false;
     }
     dsBlocks.emplace_back(dsblock);
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -5902,7 +4439,7 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
                 "LookupSetMinerInfoFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -5943,7 +4480,7 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "Invalid signature in LookupSetMinerInfoFromSeed");
@@ -6032,7 +4569,7 @@ bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes& dst,
                 "LookupGetVCFinalBlockFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6075,7 +4612,7 @@ bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetVCFinalBlockFromL2l signature wrong");
@@ -6108,7 +4645,7 @@ bool Messenger::SetLookupGetDSBlockFromL2l(zbytes& dst,
     LOG_GENERAL(WARNING, "LookupGetDSBlockFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6150,7 +4687,7 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetDSBlockFromL2l signature wrong");
@@ -6183,7 +4720,7 @@ bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
                 "LookupGetMBnForwardTxnFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6226,7 +4763,7 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetMBnForwardTxnFromL2l signature wrong");
@@ -6260,7 +4797,7 @@ bool Messenger::SetLookupGetPendingTxnFromL2l(
                 "LookupGetPendingTxnFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -6303,7 +4840,7 @@ bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetPendingTxnFromL2l signature wrong");
@@ -6359,7 +4896,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
   result.mutable_data()->set_highblocknum(highBlockNum);
 
   for (const auto& txblock : txBlocks) {
-    TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
+    io::TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
@@ -6370,7 +4907,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6398,8 +4935,8 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+
+  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);  // changed dec 2017
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
@@ -6412,14 +4949,14 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
 
   for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
-    if (!ProtobufToTxBlock(txblock, block)) {
+    if (!io::ProtobufToTxBlock(txblock, block)) {
       LOG_GENERAL(WARNING, "ProtobufToTxBlock failed");
       return false;
     }
     txBlocks.emplace_back(block);
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6549,7 +5086,7 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes& dst,
                 "LookupSetStateDeltaFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6590,7 +5127,7 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
                 "LookupSetStateDeltasFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6635,7 +5172,7 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes& src,
   std::copy(result.data().statedelta().begin(),
             result.data().statedelta().end(), stateDelta.begin());
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6679,7 +5216,7 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
     stateDeltas.emplace_back(tmp);
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
@@ -6712,7 +5249,7 @@ bool Messenger::SetLookupSetLookupOffline(zbytes& dst,
     LOG_GENERAL(WARNING, "LookupSetLookupOffline.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6754,7 +5291,7 @@ bool Messenger::GetLookupSetLookupOffline(const zbytes& src,
   listenPort = result.data().listenport();
   msgType = result.data().msgtype();
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubkey);
@@ -6786,7 +5323,7 @@ bool Messenger::SetLookupSetLookupOnline(zbytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupSetLookupOnline.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -6826,7 +5363,7 @@ bool Messenger::GetLookupSetLookupOnline(const zbytes& src,
   msgType = result.data().msgtype();
   listenPort = result.data().listenport();
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
@@ -7178,7 +5715,7 @@ bool Messenger::SetLookupGetMicroBlockFromL2l(
                 "LookupGetMicroBlockFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -7219,7 +5756,7 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetMicroBlockFromL2l signature wrong");
@@ -7279,7 +5816,7 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   LookupSetMicroBlockFromLookup result;
 
   for (const auto& mb : mbs) {
-    MicroBlockToProtobuf(mb, *result.add_microblocks());
+    io::MicroBlockToProtobuf(mb, *result.add_microblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
@@ -7347,7 +5884,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
   for (const auto& res_mb : result.microblocks()) {
     MicroBlock mb;
 
-    ProtobufToMicroBlock(res_mb, mb);
+    io::ProtobufToMicroBlock(res_mb, mb);
 
     mbs.emplace_back(mb);
   }
@@ -7438,7 +5975,7 @@ bool Messenger::SetLookupGetTxnsFromL2l(zbytes& dst, const unsigned int offset,
     LOG_GENERAL(WARNING, "LookupGetTxnsFromL2l.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, seedKey.first, seedKey.second, signature)) {
@@ -7479,7 +6016,7 @@ bool Messenger::GetLookupGetTxnsFromL2l(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "GetLookupGetTxnsFromL2l signature wrong");
@@ -7647,11 +6184,11 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     ProtoSingleDirectoryBlock* proto_dir_blocks =
         result.mutable_data()->add_dirblocks();
     if (dirblock.type() == typeid(DSBlock)) {
-      DSBlockToProtobuf(get<DSBlock>(dirblock),
-                        *proto_dir_blocks->mutable_dsblock());
+      io::DSBlockToProtobuf(get<DSBlock>(dirblock),
+                            *proto_dir_blocks->mutable_dsblock());
     } else if (dirblock.type() == typeid(VCBlock)) {
-      VCBlockToProtobuf(get<VCBlock>(dirblock),
-                        *proto_dir_blocks->mutable_vcblock());
+      io::VCBlockToProtobuf(get<VCBlock>(dirblock),
+                            *proto_dir_blocks->mutable_vcblock());
     }
   }
 
@@ -7662,7 +6199,7 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -7690,8 +6227,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
                                                  src.size() - offset);
   google::protobuf::io::CodedInputStream codedIn(&arrayIn);
-  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES,
-                             MAX_READ_WATERMARK_IN_BYTES);
+  codedIn.SetTotalBytesLimit(MAX_READ_WATERMARK_IN_BYTES);
 
   if (!result.ParseFromCodedStream(&codedIn) ||
       !codedIn.ConsumedEntireMessage() || !result.IsInitialized()) {
@@ -7700,7 +6236,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), pubKey);
@@ -7725,7 +6261,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
           LOG_GENERAL(WARNING, "DS block not initialized");
           return false;
         }
-        if (!ProtobufToDSBlock(dirblock.dsblock(), dsblock)) {
+        if (!io::ProtobufToDSBlock(dirblock.dsblock(), dsblock)) {
           LOG_GENERAL(WARNING, "ProtobufToDSBlock failed");
           return false;
         }
@@ -7736,7 +6272,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
           LOG_GENERAL(WARNING, "VC block not initialized");
           return false;
         }
-        if (!ProtobufToVCBlock(dirblock.vcblock(), vcblock)) {
+        if (!io::ProtobufToVCBlock(dirblock.vcblock(), vcblock)) {
           LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
           return false;
         }
@@ -7788,7 +6324,7 @@ bool Messenger::SetConsensusCommit(zbytes& dst, const unsigned int offset,
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7889,7 +6425,7 @@ bool Messenger::GetConsensusCommit(const zbytes& src, const unsigned int offset,
     commitInfo.emplace_back(ci);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -7935,7 +6471,7 @@ bool Messenger::SetConsensusChallenge(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8034,7 +6570,7 @@ bool Messenger::GetConsensusChallenge(
     subsetInfo.emplace_back(si);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8075,7 +6611,7 @@ bool Messenger::SetConsensusResponse(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8173,7 +6709,7 @@ bool Messenger::GetConsensusResponse(
     subsetInfo.emplace_back(si);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8214,7 +6750,7 @@ bool Messenger::SetConsensusCollectiveSig(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8324,7 +6860,7 @@ bool Messenger::GetConsensusCollectiveSig(
     bitmap.emplace_back(i);
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8377,7 +6913,7 @@ bool Messenger::SetConsensusCommitFailure(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8471,7 +7007,7 @@ bool Messenger::GetConsensusCommitFailure(
   copy(result.consensusinfo().errormsg().begin(),
        result.consensusinfo().errormsg().end(), errorMsg.begin());
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8506,7 +7042,7 @@ bool Messenger::SetConsensusConsensusFailure(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8594,7 +7130,7 @@ bool Messenger::GetConsensusConsensusFailure(
     return false;
   }
 
-  zbytes tmp(result.consensusinfo().ByteSize());
+  zbytes tmp(result.consensusinfo().ByteSizeLong());
   result.consensusinfo().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8674,11 +7210,11 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes& dst,
   VCNodeSetDSTxBlockFromSeed result;
 
   for (const auto& dsblock : DSBlocks) {
-    DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
+    io::DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
   for (const auto& txblock : txBlocks) {
-    TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
+    io::TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
@@ -8690,7 +7226,7 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes& dst,
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, lookupKey.first, lookupKey.second, signature)) {
@@ -8731,7 +7267,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
 
   for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
-    if (!ProtobufToDSBlock(proto_dsblock, dsblock)) {
+    if (!io::ProtobufToDSBlock(proto_dsblock, dsblock)) {
       LOG_GENERAL(WARNING, "ProtobufToDSBlock failed");
       return false;
     }
@@ -8740,7 +7276,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
 
   for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
-    if (!ProtobufToTxBlock(txblock, block)) {
+    if (!io::ProtobufToTxBlock(txblock, block)) {
       LOG_GENERAL(WARNING, "ProtobufToTxBlock failed");
       return false;
     }
@@ -8749,7 +7285,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8783,7 +7319,7 @@ bool Messenger::SetNodeNewShardNodeNetworkInfo(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8833,7 +7369,7 @@ bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, shardNodePubKey)) {
     LOG_GENERAL(WARNING, "NodeSetShardNodeNetworkInfoUpdate signature wrong");
@@ -8870,7 +7406,7 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -8916,7 +7452,7 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, dsGuardPubkey)) {
     LOG_GENERAL(WARNING, "DSLookupSetDSGuardNetworkInfoUpdate signature wrong");
@@ -8942,7 +7478,7 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
   if (result.data().IsInitialized()) {
-    zbytes tmp(result.data().ByteSize());
+    zbytes tmp(result.data().ByteSizeLong());
     result.data().SerializeToArray(tmp.data(), tmp.size());
 
     Signature signature;
@@ -8991,7 +7527,7 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "DSMicroBlockSubmission signature wrong");
@@ -9027,7 +7563,7 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
                 "NodeSetGuardNodeNetworkInfoUpdate.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   Signature signature;
@@ -9071,7 +7607,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.lookuppubkey(), lookupPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, lookupPubKey)) {
     LOG_GENERAL(WARNING, "NodeSetGuardNodeNetworkInfoUpdate signature wrong");
@@ -9110,7 +7646,7 @@ bool Messenger::SetNodeRemoveFromBlacklist(zbytes& dst,
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
@@ -9148,7 +7684,7 @@ bool Messenger::GetNodeRemoveFromBlacklist(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "NodeRemoveFromBlacklist signature wrong");
@@ -9179,7 +7715,7 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes& dst,
                 "LookupGetCosigsRewardsFromSeed.Data initialization failed");
     return false;
   }
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
 
   if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
@@ -9222,7 +7758,7 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes& src,
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubKey);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubKey)) {
     LOG_GENERAL(WARNING, "LookupGetCosigRewardsFromSeed signature wrong");
@@ -9256,7 +7792,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
         proto_CosigsRewardsStructure->mutable_blockbase();
 
     // cosigs
-    BlockBaseToProtobuf(mb, *protoBlockBase);
+    io::BlockBaseToProtobuf(mb, *protoBlockBase);
 
     // rewards
     NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
@@ -9276,7 +7812,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
       proto_CosigsRewardsStructure->mutable_blockbase();
 
   // cosigs
-  BlockBaseToProtobuf(txBlock, *protoBlockBase);
+  io::BlockBaseToProtobuf(txBlock, *protoBlockBase);
 
   // rewards
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
@@ -9291,7 +7827,7 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
     return false;
   }
 
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   Signature signature;
   if (!Schnorr::Sign(tmp, myKey.first, myKey.second, signature)) {
@@ -9334,7 +7870,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
 
   // Check signature
-  zbytes tmp(result.data().ByteSize());
+  zbytes tmp(result.data().ByteSizeLong());
   result.data().SerializeToArray(tmp.data(), tmp.size());
   if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubkey)) {
     LOG_GENERAL(WARNING, "LookupSetCosigsRewardsFromSeed signature wrong");
@@ -9352,14 +7888,17 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
     shardId = proto_cosigrewards.shardid();
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
         proto_cosigrewards.rewards(), rewards);
-    BlockBase cosiginfo;
-    if (!ProtobufToBlockBase(proto_cosigrewards.blockbase(), cosiginfo)) {
+
+    auto blockBaseVars =
+        io::ProtobufToBlockBase(proto_cosigrewards.blockbase());
+    if (!blockBaseVars) {
       LOG_GENERAL(WARNING, "ProtobufToBlockBase failed");
       return false;
     }
 
-    cosigrewards.emplace_back(CoinbaseStruct(
-        txBlkNum, shardId, cosiginfo.GetB1(), cosiginfo.GetB2(), rewards));
+    const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
+    cosigrewards.emplace_back(CoinbaseStruct(txBlkNum, shardId, coSigs.m_B1,
+                                             coSigs.m_B2, rewards));
     LOG_GENERAL(INFO, "Received cosig and rewards for epoch "
                           << txBlkNum << ", shard " << shardId);
   }

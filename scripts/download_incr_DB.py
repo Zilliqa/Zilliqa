@@ -35,6 +35,7 @@ PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
 TESTNET_NAME= 'TEST_NET_NAME'
+AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
 
 Exclude_txnBodies = True
 Exclude_microBlocks = True
@@ -45,7 +46,16 @@ STORAGE_PATH = BASE_PATH
 mutex = Lock()
 
 def getURL():
-	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+	if AWS_ENDPOINT_URL:
+		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
+	else:
+		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+
+def awsCli():
+	if AWS_ENDPOINT_URL:
+		return ["aws", f"--endpoint-url={AWS_ENDPOINT_URL}"]
+	else:
+		return ["aws"]
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
@@ -104,7 +114,7 @@ def GetAllObjectsFromS3(url, folderName="", subfolder=None):
 	for i in range(attempts):
 		print(f"Downloading {download_path} (attempt {i}/{attempts})")
 		try:
-			command = ["aws", "s3", "sync", "--no-sign-request", "--delete"]
+			command = awsCli() + ["s3", "sync", "--no-sign-request", "--delete"]
 			command.extend(exclude_args)
 			command.extend([download_path, dest])
 			print(" ".join(command))

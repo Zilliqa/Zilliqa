@@ -46,12 +46,6 @@
 using namespace std;
 using namespace boost::multiprecision;
 
-const unsigned char START_BYTE_NORMAL = 0x11;
-const unsigned char START_BYTE_BROADCAST = 0x22;
-const unsigned char START_BYTE_GOSSIP = 0x33;
-const unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
-const unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
-
 const unsigned int HDR_LEN = 8;
 const unsigned int HASH_LEN = 32;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
