@@ -16,7 +16,7 @@
 
 set -e
 
-if [ -z ${VCPKG_ROOT} ]; then
+if [ -z "${VCPKG_ROOT}" ]; then
   echo -e "\033[1;33mVCPKG_ROOT is not set\033[0m"
   exit 1
 fi
@@ -72,7 +72,6 @@ fi
 run_clang_format_fix=0
 run_clang_tidy_fix=0
 run_code_coverage=0
-parallelize=1
 build_type="RelWithDebInfo"
 
 ./scripts/license_checker.sh
@@ -204,12 +203,11 @@ do
     evm)
         echo "Build EVM"
 	evm_build_result=$(cd evm-ds; cargo build --release)
-	exit $evm_build_result
+	exit "$evm_build_result"
     ;;
     ninja)
         CMAKE_EXTRA_OPTIONS="-G Ninja ${CMAKE_EXTRA_OPTIONS}"
         # Ninja is parallelized by default
-        parallelize=0
         echo "Build using Ninja"
     ;;
     debug)
@@ -235,13 +233,13 @@ done
 # TODO: ideally these should be passed into the command line but at the
 #       moment the script doesn't accept argument value so for simplicity
 #       we use environment variables at the moment.
-if [ -z ${BUILD_DIR} ]; then
+if [ -z "${BUILD_DIR}" ]; then
   build_dir=build
 else
   build_dir="${BUILD_DIR}"
 fi
 
-if [ -z ${INSTALL_DIR} ]; then
+if [ -z "${INSTALL_DIR}" ]; then
   install_dir="${BUILD_DIR}/install"
 else
   install_dir="${INSTALL_DIR}"
@@ -251,12 +249,8 @@ echo "Currenct directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
-cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE=${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
-if [ ${parallelize} -ne 0 ]; then
-  cmake --build "${build_dir}" --config ${build_type} -j${n_parallel}
-else
-  cmake --build "${build_dir}" --config ${build_type}
-fi
+cmake -H. -B"${build_dir}" "${CMAKE_EXTRA_OPTIONS}" -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+cmake --build "${build_dir}" --config ${build_type} -j $(( n_parallel / 2 ))
 
 if command -v ccache &> /dev/null; then
   echo "ccache status"
