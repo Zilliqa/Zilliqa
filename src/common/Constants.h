@@ -294,7 +294,6 @@ extern const std::string EVM_LOG_CONFIG;
 extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
 extern const bool LAUNCH_EVM_DAEMON;
-extern const bool SORT_ACC_STORE_DELTA;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
