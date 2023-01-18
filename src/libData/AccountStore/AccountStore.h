@@ -75,9 +75,11 @@ class AccountStore {
   /// Store the trie root to leveldb
   bool MoveRootToDisk(const dev::h256& root);
 
+  AccountStore(AccountStoreTrie& accountStoreTrie, AccountStoreTemp& accountStoreTemp);
+
  public:
   /// Returns the singleton AccountStore instance.
-  static AccountStore& GetInstance(AccountStoreTrie& accountStore);
+  static std::unique_ptr<AccountStore> FromTrie(AccountStoreTrie& accountStore);
 
   // bool Serialize(zbytes& src, unsigned int offset) const;
 
@@ -174,17 +176,7 @@ class AccountStore {
                                        const Account& oriAccount,
                                        const bool fullCopy = false,
                                        const bool revertible = false) {
-    m_addressToAccount->insert_or_assign(address, account);
-
-    if (revertible) {
-      if (fullCopy) {
-        m_addressToAccountRevCreated.insert_or_assign(address, account);
-      } else {
-        m_addressToAccountRevChanged.insert_or_assign(address, oriAccount);
-      }
-    }
-
-    UpdateStateTrie(address, account);
+    return m_accountStore.AddAccountDuringDeserialization(address, account, oriAccount, fullCopy, revertible);
   }
 
   /// return the hash of the raw bytes of StateDelta

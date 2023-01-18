@@ -56,6 +56,7 @@ class AccountStoreTrie : public AccountStoreBase {
   bool UpdateStateTrieAll();
 
   void PrintAccountState() override;
+
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORETRIE_H_

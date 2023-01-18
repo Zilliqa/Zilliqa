@@ -17,6 +17,7 @@
 
 #include <leveldb/db.h>
 #include <boost/filesystem/operations.hpp>
+#include <memory>
 #include <regex>
 
 #include "libData/AccountStore/AccountStore.h"
@@ -138,9 +139,9 @@ void AccountStore::InitRevertibles() {
   ContractStorage::GetContractStorage().InitRevertibles();
 }
 
-AccountStore& AccountStore::GetInstance() {
-  static AccountStore accountstore;
-  return accountstore;
+std::unique_ptr<AccountStore> AccountStore::FromTrie(AccountStoreTrie &accountStore) {
+  AccountStoreTemp accountStoreTemp(accountStore);
+  return make_unique<AccountStore>(accountStore, std::move(accountStoreTemp));
 }
 
 bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
@@ -257,7 +258,7 @@ bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
 bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
                                         unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
-  return m_accountStoreTemp.DeserializeDelta(src, offset);
+  return Messenger::GetAccountStoreDelta(src, offset, m_accountStoreTemp, true);
 }
 
 bool AccountStore::MoveRootToDisk(const dev::h256& root) {
