@@ -4,7 +4,7 @@ import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
 // TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
-describe("Scilla SetGet contract", function () {
+describe.skip("Scilla SetGet contract", function () {
   let contract: ScillaContract;
   const VALUE = 12;
 
@@ -13,7 +13,6 @@ describe("Scilla SetGet contract", function () {
       this.skip();
     }
 
-    console.log("Scilla testing", hre.scillaTesting);
     contract = await parallelizer.deployScillaContract("SetGet");
   });
 
