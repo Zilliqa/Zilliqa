@@ -7,7 +7,7 @@ import {parallelizer} from "../../helpers";
 describe.skip("Scilla HelloWorld contract", function () {
   let contract: ScillaContract;
   before(async function () {
-    if (!hre.isZilliqaNetworkSelected()) {
+    if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
 
