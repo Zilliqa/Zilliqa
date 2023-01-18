@@ -1,7 +1,7 @@
-import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {assert} from "chai";
 import hre from "hardhat";
-import logDebug from "../../helper/DebugHelper";
+import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getUncleByBlockHashAndIndex";
 

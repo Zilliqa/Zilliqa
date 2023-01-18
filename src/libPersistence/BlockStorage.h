@@ -24,7 +24,8 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
+#include "libData/AccountData/Address.h"
 #include "libData/MiningData/MinerInfo.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>

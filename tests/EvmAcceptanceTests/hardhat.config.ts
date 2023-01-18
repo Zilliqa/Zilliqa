@@ -1,12 +1,10 @@
 import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
+import "hardhat-scilla-plugin";
 import clc from "cli-color";
-import {execSync} from "child_process";
-import {glob} from "glob";
-import {loadScillaContractsInfo, updateContractsInfo as updateScillaContractsInfo} from "./helper/ScillaContractsInfoUpdater";
 import chai from "chai";
-import {scillaChaiEventMatcher} from "./helper/ScillaChaiMatchers";
+import {scillaChaiEventMatcher} from "hardhat-scilla-plugin";
 
 chai.use(scillaChaiEventMatcher);
 
@@ -103,6 +101,36 @@ const config: HardhatUserConfig = {
       web3ClientVersion: "Zilliqa/v8.2",
       protocolVersion: 0x41,
       miningState: false
+    },
+    isolated_server: {
+      url: "http://localhost:5555/",
+      websocketUrl: "ws://localhost:5555/",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+      ],
+      chainId: 0x8001,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
+    },
+    local_network: {
+      url: "http://localhost:8080",
+      websocketUrl: "ws://localhost:8080",
+      accounts: [
+        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
+        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
+        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
+        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+      ],
+      chainId: 0x8001,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      zilliqaNetwork: true,
+      miningState: false
     }
   },
   mocha: {
@@ -116,7 +144,6 @@ import "./AddConfigHelpersToHre";
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
-  hre.scillaContracts = loadScillaContractsInfo();
 });
 
 task("test")
@@ -142,34 +169,6 @@ task("test")
       });
     }
     return runSuper();
-  });
-
-task("compile").setAction((taskArgs, hre, runSuper) => {
-  console.log(clc.blue.bold("Scilla Contracts: "));
-  updateScillaContractsInfo();
-  console.log(clc.blue.bold("\nSolidity Contracts: "));
-  return runSuper();
-});
-
-task("scilla-check", "Parsing scilla contracts and performing a number of static checks including typechecking.")
-  .addParam("libdir", "Path to Scilla stdlib")
-  .addOptionalVariadicPositionalParam("contracts", "An optional list of files to check", [])
-  .setAction(async (taskArgs, hre, runSuper) => {
-    let files: string[] = [];
-    if (taskArgs.contracts.length === 0) {
-      files = glob.sync("contracts/**/*.scilla");
-    } else {
-      files = taskArgs.contracts;
-    }
-    files.forEach((file) => {
-      try {
-        console.log(clc.greenBright.bold(`🔍Checking ${file}...`));
-        const value = execSync(`scilla-checker -gaslimit 10000 -libdir ${taskArgs.libdir} ${file}`);
-        console.log(value.toString());
-      } catch (error) {
-        console.error("Failed to run scilla-checker");
-      }
-    });
   });
 
 export default config;

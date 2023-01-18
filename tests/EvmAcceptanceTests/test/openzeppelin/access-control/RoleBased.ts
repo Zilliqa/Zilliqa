@@ -1,5 +1,5 @@
 import {expect} from "chai";
-import parallelizer from "../../../helper/Parallelizer";
+import {parallelizer} from "../../../helpers";
 import hre, {ethers} from "hardhat";
 import {Contract, Signer, Wallet} from "ethers";
 

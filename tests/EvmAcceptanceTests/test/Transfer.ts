@@ -1,6 +1,6 @@
-import {expect} from "chai";
-import {ethers} from "hardhat";
-import parallelizer from "../helper/Parallelizer";
+import { expect } from "chai";
+import { ethers } from "hardhat";
+import { parallelizer } from "../helpers";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 

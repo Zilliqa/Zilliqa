@@ -19,51 +19,50 @@
 #define ZILLIQA_SRC_COMMON_CONSTANTS_H_
 
 #include "BaseType.h"
-#include "depends/common/FixedHash.h"
+#include "common/Hashes.h"
 
 const size_t BLOCK_NUMERIC_DIGITS =
     std::to_string(std::numeric_limits<uint64_t>::max()).size();
 
 // Data sizes
-const unsigned int COMMON_HASH_SIZE = 32;
-const unsigned int ACC_ADDR_SIZE = 20;
-const unsigned int TRAN_HASH_SIZE = 32;
-const unsigned int TRAN_SIG_SIZE = 64;
-const unsigned int TRAN_SIG_SIZE_UNCOMPRESSED = 65;
-const unsigned int BLOCK_HASH_SIZE = 32;
-const unsigned int BLOCK_SIG_SIZE = 64;
-const unsigned int STATE_HASH_SIZE = 32;
-const unsigned int RESERVED_FIELD_SIZE = 128;
+constexpr const unsigned int COMMON_HASH_SIZE = 32;
+constexpr const unsigned int ACC_ADDR_SIZE = 20;
+constexpr const unsigned int TRAN_HASH_SIZE = TxnHash::size;
+static_assert(TRAN_HASH_SIZE == 32);
+
+constexpr const unsigned int TRAN_SIG_SIZE = 64;
+constexpr const unsigned int TRAN_SIG_SIZE_UNCOMPRESSED = 65;
+constexpr const unsigned int BLOCK_HASH_SIZE = BlockHash::size;
+static_assert(BLOCK_HASH_SIZE == 32);
+
+constexpr const unsigned int BLOCK_SIG_SIZE = 64;
+constexpr const unsigned int STATE_HASH_SIZE = StateHash::size;
+static_assert(STATE_HASH_SIZE == 32);
+
+constexpr const unsigned int RESERVED_FIELD_SIZE = 128;
 
 // Numeric types sizes
-const unsigned int UINT256_SIZE = 32;
-const unsigned int UINT128_SIZE = 16;
-const unsigned int INT256_SIZE = 32;
+constexpr const unsigned int UINT256_SIZE = 32;
+constexpr const unsigned int UINT128_SIZE = 16;
+constexpr const unsigned int INT256_SIZE = 32;
 
 // Cryptographic sizes
-const unsigned int PUB_KEY_SIZE = 33;
-const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
-const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
-const unsigned int CHALLENGE_SIZE = 32;
-const unsigned int RESPONSE_SIZE = 32;
+constexpr const unsigned int PUB_KEY_SIZE = 33;
+constexpr const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
+constexpr const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
+constexpr const unsigned int CHALLENGE_SIZE = 32;
+constexpr const unsigned int RESPONSE_SIZE = 32;
 
-const unsigned int BLOCKCHAIN_SIZE = 50;
-
-// Number of nodes sent from lookup node to newly joined node
-const unsigned int SEED_PEER_LIST_SIZE = 20;
+constexpr const unsigned int BLOCKCHAIN_SIZE = 50;
 
 // Transaction body sharing
 
-const unsigned int NUM_VACUOUS_EPOCHS = 1;
+constexpr const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
 // Networking and mining
-const unsigned int POW_SIZE = 32;
-const unsigned int IP_SIZE = 16;
-const unsigned int PORT_SIZE = 4;
+constexpr const unsigned int POW_SIZE = 32;
 
-const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-
-const unsigned int MAINNET_CHAIN_ID = 1;
+constexpr const unsigned int MAINNET_CHAIN_ID = 1;
 
 // ISOLATED SERVER TOGGLE
 
@@ -103,17 +102,6 @@ enum SyncType : unsigned int {
 };
 
 enum class ValidateState : unsigned char { IDLE = 0, INPROGRESS, DONE, ERROR };
-
-namespace Contract {
-using VName = std::string;
-using Mutable = bool;
-using Type = std::string;
-using Value = std::string;
-using StateEntry = std::tuple<VName, Mutable, Type, Value>;
-using Index = dev::h256;
-
-enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
-}  // namespace Contract
 
 const std::string RAND1_GENESIS =
     "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
@@ -515,4 +503,5 @@ extern const std::string TRACE_ZILLIQA_MASK;
 extern const std::string TRACE_ZILLIQA_PROVIDER;
 extern const std::string TRACE_ZILLIQA_HOSTNAME;
 extern const unsigned int TRACE_ZILLIQA_PORT;
+
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

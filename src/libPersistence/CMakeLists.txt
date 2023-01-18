@@ -5,4 +5,4 @@ add_library (Persistence ${PROTO_HEADER} ${PROTO_SRC} BlockStorage.cpp Retriever
 target_compile_options(Persistence PRIVATE "-Wno-unused-variable")
 target_compile_options(Persistence PRIVATE "-Wno-unused-parameter")
 target_include_directories (Persistence PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src/libPersistence)
-target_link_libraries (Persistence PUBLIC Trie Constants BlockChainData TraceableDB protobuf::libprotobuf)
+target_link_libraries (Persistence PUBLIC Blockchain Trie Constants BlockChainData TraceableDB protobuf::libprotobuf)

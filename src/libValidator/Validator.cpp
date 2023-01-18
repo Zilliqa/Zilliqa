@@ -18,8 +18,7 @@
 #include <vector>
 
 #include "Validator.h"
-#include "libData/AccountData/Account.h"
-#include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNode/Node.h"

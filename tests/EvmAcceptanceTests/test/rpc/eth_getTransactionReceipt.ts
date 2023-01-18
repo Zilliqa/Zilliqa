@@ -1,9 +1,9 @@
-import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {assert} from "chai";
 import hre from "hardhat";
-import parallelizer from "../../helper/Parallelizer";
+import {parallelizer} from "../../helpers";
 import {ethers} from "hardhat";
-import logDebug from "../../helper/DebugHelper";
+import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_getTransactionReceipt";
 
