@@ -51,10 +51,8 @@ void Metrics::Init() {
   else if (cmp == "OTLPHTTP") {
       InitOTHTTP();
   }
-  else if (cmp == "STDOUT"){
+  else {
       InitStdOut(); // our favourite
-  } else {
-      // Leave as null provider
   }
 }
 
