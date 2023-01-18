@@ -552,94 +552,92 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     receipt.AddJsonEntry(entry);
   }
 
+  Address thisContractAddress = ProtoToAddress(mProtoArgs.address());
+  Address accountToRemove;
+  Address fundsRecipient;
+  Amount funds;
+
   // parse the return values from the call to evm.
   for (const auto& it : result.apply()) {
-    Address address;
     switch (it.apply_case()) {
       case evm::Apply::ApplyCase::kDelete:
-        // Set account balance to 0 to avoid any leakage of funds in case
-        // selfdestruct is called multiple times
-        address = ProtoToAddress(it.delete_().address());
-        if (!mAccountStore.AccountExistsAtomic(address)) {
-          mAccountStore.AddAccountAtomic(address);
-        }
-        mAccountStore.SetBalanceAtomic(address, Amount::fromQa(0));
-        mAccountStore.AddAddressToUpdateBufferAtomic(address);
+        accountToRemove = ProtoToAddress(it.delete_().address());
         break;
       case evm::Apply::ApplyCase::kModify: {
         // Get the account that this apply instruction applies to
-        address = ProtoToAddress(it.modify().address());
-        if (!mAccountStore.AccountExistsAtomic(address)) {
-          mAccountStore.AddAccountAtomic(address);
+        if (!mAccountStore.AccountExistsAtomic(thisContractAddress)) {
+          mAccountStore.AddAccountAtomic(thisContractAddress);
         }
 
         if (it.modify().reset_storage()) {
-          LOG_GENERAL(WARNING,
-                      "RESETING STORAGE FOR ADDRESS: " << address.hex());
+          LOG_GENERAL(WARNING, "RESETING STORAGE FOR ADDRESS: "
+                                   << thisContractAddress.hex());
           std::map<std::string, zbytes> states;
           std::vector<std::string> toDeletes;
 
-          mAccountStore.FetchStateDataForContract(states, address, "", {},
-                                                  true);
+          mAccountStore.FetchStateDataForContract(states, thisContractAddress,
+                                                  "", {}, true);
           for (const auto& x : states) {
             toDeletes.emplace_back(x.first);
           }
 
-          if (!mAccountStore.UpdateStates(address, {}, toDeletes, true)) {
+          if (!mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes,
+                                          true)) {
             LOG_GENERAL(
                 WARNING,
                 "Failed to update states hby setting indices for deletion "
                 "for "
-                    << address);
+                    << thisContractAddress);
           }
         }
-
-        // If Instructed to reset the Code do so and call SetImmutable to reset
-        // the hash
-        /*const std::string& code = it.modify().code();
-        if (!code.empty()) {
-          LOG_GENERAL(INFO, "Saving code from apply: "
-                                << address << ", code size: " << code.size());
-          mAccountStore.SetImmutableAtomic(
-              address, DataConversion::StringToCharArray("EVM" + code), {});
-        }*/
-
         // Actually Update the state for the contract
         for (const auto& sit : it.modify().storage()) {
-          LOG_GENERAL(INFO, "Saving storage for Address: " << address);
+          LOG_GENERAL(INFO,
+                      "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(
-                  address, DataConversion::StringToCharArray(sit.key()), 0,
+                  thisContractAddress,
+                  DataConversion::StringToCharArray(sit.key()), 0,
                   DataConversion::StringToCharArray(sit.value()), 0)) {
-            LOG_GENERAL(WARNING,
-                        "Failed to update state value at address " << address);
+            LOG_GENERAL(WARNING, "Failed to update state value at address "
+                                     << thisContractAddress);
           }
         }
 
         if (it.modify().has_balance()) {
-          uint256_t balance = ProtoToUint(it.modify().balance());
+          fundsRecipient = ProtoToAddress(it.modify().address());
+          funds = Amount::fromQa(ProtoToUint(it.modify().balance()));
           if (result.exit_reason().succeed() == evm::ExitReason::SUICIDED) {
-            LOG_GENERAL(WARNING, "Balance to be applied for account: "
-                                     << address.hex() << ", val: "
-                                     << balance.convert_to<std::string>());
-            mAccountStore.SetBalanceAtomic(address, Amount::fromQa(balance));
+            LOG_GENERAL(WARNING,
+                        "Balance to be applied for account: "
+                            << fundsRecipient.hex() << ", val: "
+                            << funds.toWei().convert_to<std::string>());
+            //            mAccountStore.SetBalanceAtomic(address,
+            //            Amount::fromQa(balance));
           }
-        }
-        if (it.modify().has_nonce()) {
-          uint256_t nonce = ProtoToUint(it.modify().nonce());
-          if ((nonce >> 64) > 0) {
-            throw std::runtime_error("Nonce overflow!");
-          }
-          // account_store.SetNonceForAccountAtomic(address,
-          // nonce.convert_to<uint64_t>());
         }
         // Mark the Address as updated
-        mAccountStore.AddAddressToUpdateBufferAtomic(address);
+        mAccountStore.AddAddressToUpdateBufferAtomic(thisContractAddress);
       } break;
       case evm::Apply::ApplyCase::APPLY_NOT_SET:
         // do nothing;
         break;
     }
   }
+
+  // Allow only removal of self
+  if (accountToRemove == thisContractAddress) {
+    const auto currentFunds =
+        mAccountStore.GetBalanceForAccountAtomic(accountToRemove);
+    const auto zero = Amount::fromQa(0);
+    if (funds > zero && funds <= currentFunds) {
+      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
+                                          funds);
+    }
+    mAccountStore.SetBalanceAtomic(accountToRemove, zero);
+    mAccountStore.AddAddressToUpdateBufferAtomic(accountToRemove);
+    mAccountStore.AddAddressToUpdateBufferAtomic(fundsRecipient);
+  }
+
   if (GetType() == CpsRun::Create || GetType() == CpsRun::TrapCreate) {
     InstallCode(ProtoToAddress(mProtoArgs.address()), result.return_value());
   }

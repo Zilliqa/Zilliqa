@@ -106,7 +106,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
 
     // Likely rewrite that to std::variant and check if it's scilla type
     if (!m_queue.empty()) {
-      CpsRunEvm* nextRun = static_cast<CpsRunEvm*>(m_queue.back().get());
+      CpsRun* nextRun = m_queue.back().get();
       if (nextRun->IsResumable()) {
         nextRun->ProvideFeedback(*currentRun.get(), runResult);
       }
