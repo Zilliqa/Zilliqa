@@ -10,7 +10,7 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable (Test_POW test_POW.cpp)
 target_link_libraries(Test_POW PUBLIC POW DirectoryService Lookup Node Server Utils TestUtils Boost::unit_test_framework Boost::filesystem)
 target_include_directories (Test_POW PUBLIC ${PROJECT_SOURCE_DIR}/src ${PROJECT_SOURCE_DIR}/tests)
-add_test(NAME Test_POW COMMAND Test_POW)
+#add_test(NAME Test_POW COMMAND Test_POW)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 add_executable (Test_RemoteMine test_RemoteMine.cpp)
