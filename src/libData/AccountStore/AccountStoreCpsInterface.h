@@ -41,17 +41,6 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return mAccountStore.GetNonce(account);
   }
 
-  virtual void SetNonceForAccount(const Address& address,
-                                  uint64_t nonce) override {
-    Account* account = mAccountStore.GetAccount(address);
-    if (account != nullptr) {
-      account->SetNonce(nonce);
-    }
-  }
-
-  virtual bool AccountExists(const Address& account) override {
-    return mAccountStore.GetAccount(account) != nullptr;
-  }
   virtual bool AccountExistsAtomic(const Address& address) override {
     return mAccountStore.GetAccountAtomic(address) != nullptr;
   }
@@ -137,14 +126,6 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     }
   }
 
-  virtual void SetNonceForAccountAtomic(const Address& address,
-                                        uint64_t nonce) override {
-    Account* account = mAccountStore.GetAccountAtomic(address);
-    if (account != nullptr) {
-      account->SetNonce(nonce);
-    }
-  }
-
   virtual uint64_t GetNonceForAccountAtomic(const Address& address) override {
     Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
@@ -153,9 +134,12 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return 0;
   }
 
-  virtual void IncreaseNonceForAccountAtomic(const Address& account) override {
-    const auto nonce = GetNonceForAccountAtomic(account);
-    SetNonceForAccountAtomic(account, nonce + 1);
+  virtual void IncreaseNonceForAccountAtomic(const Address& address) override {
+    const auto nonce = GetNonceForAccountAtomic(address);
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      account->SetNonce(nonce + 1);
+    }
   };
 
   virtual void FetchStateDataForContract(

@@ -33,8 +33,6 @@ struct CpsAccountStoreInterface {
   virtual ~CpsAccountStoreInterface() = default;
   virtual Amount GetBalanceForAccountAtomic(const Address& account) = 0;
   virtual uint64_t GetNonceForAccount(const Address& account) = 0;
-  virtual void SetNonceForAccount(const Address& account, uint64_t nonce) = 0;
-  virtual bool AccountExists(const Address& account) = 0;
   virtual bool AddAccountAtomic(const Address& accont) = 0;
   virtual bool AccountExistsAtomic(const Address& accont) = 0;
   virtual Address GetAddressForContract(const Address& account,
@@ -57,7 +55,6 @@ struct CpsAccountStoreInterface {
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) = 0;
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;
-  virtual void SetNonceForAccountAtomic(const Address& account, uint64_t) = 0;
   virtual void IncreaseNonceForAccountAtomic(const Address& account) = 0;
   virtual uint64_t GetNonceForAccountAtomic(const Address& account) = 0;
   virtual void FetchStateDataForContract(
