@@ -1845,6 +1845,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
       return Json::nullValue;
     }
 
+    LOG_GENERAL(INFO, "Trace request: " << trace);
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
