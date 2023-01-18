@@ -24,7 +24,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libNetwork/Peer.h"
 
 class Mediator;

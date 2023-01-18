@@ -18,7 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_
 #define ZILLIQA_SRC_LIBDATA_BLOCKCHAINDATA_BLOCKLINKCHAIN_H_
 
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libData/DataStructures/CircularArray.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>

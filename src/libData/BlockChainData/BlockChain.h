@@ -23,7 +23,7 @@
 
 #include <boost/compute/detail/lru_cache.hpp>
 
-#include "libData/BlockData/Block/DSBlock.h"
+#include "libBlockchain/DSBlock.h"
 #include "libData/DataStructures/CircularArray.h"
 #include "libPersistence/BlockStorage.h"
 

@@ -24,6 +24,7 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libCrypto/Sha2.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/P2PComm.h"

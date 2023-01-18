@@ -19,7 +19,7 @@
 #include <string>
 #include <vector>
 
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
 

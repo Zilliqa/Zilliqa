@@ -26,6 +26,7 @@
 #include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/CommonUtils.h"
+#include "libUtils/DetachedFunction.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/JsonUtils.h"

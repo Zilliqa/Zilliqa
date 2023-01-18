@@ -36,7 +36,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -438,45 +438,6 @@ VectorOfNode Lookup::GetSeedNodes() const {
     lock_guard<mutex> g(m_mutexSeedNodes);
     return m_seedNodes;
   }
-}
-
-std::once_flag generateReceiverOnce;
-
-Address GenOneReceiver() {
-  static Address receiverAddr;
-  std::call_once(generateReceiverOnce, []() {
-    auto receiver = Schnorr::GenKeyPair();
-    receiverAddr = Account::GetAddressFromPublicKey(receiver.second);
-    LOG_GENERAL(INFO, "Generate testing transaction receiver " << receiverAddr);
-  });
-  return receiverAddr;
-}
-
-Transaction CreateValidTestingTransaction(PrivKey& fromPrivKey,
-                                          PubKey& fromPubKey,
-                                          const Address& toAddr,
-                                          const uint128_t& amount,
-                                          uint64_t prevNonce) {
-  unsigned int version = 0;
-  auto nonce = prevNonce + 1;
-
-  // LOG_GENERAL("fromPrivKey " << fromPrivKey << " / fromPubKey " << fromPubKey
-  // << " / toAddr" << toAddr);
-
-  Transaction txn(version, nonce, toAddr, make_pair(fromPrivKey, fromPubKey),
-                  amount, 1, 1, {}, {});
-
-  // bytes buf;
-  // txn.SerializeWithoutSignature(buf, 0);
-
-  // Signature sig;
-  // Schnorr::Sign(buf, fromPrivKey, fromPubKey, sig);
-
-  // bytes sigBuf;
-  // sig.Serialize(sigBuf, 0);
-  // txn.SetSignature(sigBuf);
-
-  return txn;
 }
 
 bool Lookup::GenTxnToSend(size_t num_txn, vector<Transaction>& shardTxn,

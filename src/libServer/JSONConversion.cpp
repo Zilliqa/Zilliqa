@@ -29,7 +29,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
 #include "libEth/Eth.h"
 #include "libUtils/CommonUtils.h"
 #include "libUtils/DataConversion.h"

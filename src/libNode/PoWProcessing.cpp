@@ -40,6 +40,9 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+constexpr const unsigned int IP_SIZE = 16;
+constexpr const unsigned int PORT_SIZE = 4;
+
 // TODO: only used in libNode. Move somewhere more appropriate.
 extern bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
