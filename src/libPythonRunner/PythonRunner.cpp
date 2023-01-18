@@ -28,7 +28,6 @@
 #endif
 #endif
 
-
 #include "PythonRunner.h"
 #include <boost/filesystem/operations.hpp>
 #include <boost/python.hpp>
@@ -38,9 +37,9 @@
 #endif
 #define CHOICE __VERSION__
 #if defined(__GNUC__)
-    #if __GNUC__ == 12
-      #pragma GCC diagnostic pop
-    #endif
+#if __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 #endif
 
 #include "libUtils/Logger.h"

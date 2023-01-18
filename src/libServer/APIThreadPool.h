@@ -81,9 +81,7 @@ class APIThreadPool : public std::enable_shared_from_this<APIThreadPool> {
   ~APIThreadPool();
 
   /// A metric
-  size_t GetQueueSize() const {
-    return m_requestQueue.size();
-  }
+  size_t GetQueueSize() const { return m_requestQueue.size(); }
 
   /// Owner pushes a new request
   bool PushRequest(JobId id, bool isWebsocket, std::string from,

@@ -20,18 +20,18 @@
 #include <boost/algorithm/string.hpp>
 #include "opentelemetry/exporters/otlp/otlp_http_exporter_factory.h"
 #if 0
+#include "opentelemetry/exporters/jaeger/jaeger_exporter_factory.h"
 #include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 #include "opentelemetry/exporters/zipkin/zipkin_exporter_factory.h"
-#include "opentelemetry/exporters/jaeger/jaeger_exporter_factory.h"
 #include "opentelemetry/ext/zpages/zpages.h"
 #endif
+#include "opentelemetry/context/propagation/global_propagator.h"
+#include "opentelemetry/context/propagation/text_map_propagator.h"
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
-#include "opentelemetry/trace/provider.h"
-#include "opentelemetry/context/propagation/global_propagator.h"
-#include "opentelemetry/context/propagation/text_map_propagator.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/provider.h"
 
 #include "common/Constants.h"
 #include "common/TraceFilters.h"
@@ -109,24 +109,27 @@ void Tracing::OtlpHTTPInit() {
   std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(TRACE_ZILLIQA_PORT)};
   if (!addr.empty()) {
-    opts.url = "http://localhost:4318/v1/traces";
+      opts.url = "http://" + addr + "/v1/traces";
   }
-  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"}, {"version", (uint32_t)1}};
-  auto resource                           = resource::Resource::Create(attributes);
+  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
+                                             {"version", (uint32_t)1}};
+  auto resource = resource::Resource::Create(attributes);
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
+  m_provider =
+      trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
 
   // Setup a prpogator
 
-  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
-      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
-          new opentelemetry::trace::propagation::HttpTraceContext()));
-
+  opentelemetry::context::propagation::GlobalTextMapPropagator::
+      SetGlobalPropagator(
+          opentelemetry::nostd::shared_ptr<
+              opentelemetry::context::propagation::TextMapPropagator>(
+              new opentelemetry::trace::propagation::HttpTraceContext()));
 }
 
 void Tracing::ZipkinInit() {
@@ -157,23 +160,27 @@ void Tracing::StdOutInit() {
   auto exporter = trace_exporter::OStreamSpanExporterFactory::Create();
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"}, {"version", (uint32_t)1}};
-  auto resource                           = resource::Resource::Create(attributes);
+  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
+                                             {"version", (uint32_t)1}};
+  auto resource = resource::Resource::Create(attributes);
 
-  m_provider = trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
+  m_provider =
+      trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
 
   // Set the global trace provider
   trace_api::Provider::SetTracerProvider(m_provider);
 
   // Setup a prpogator
 
-  opentelemetry::context::propagation::GlobalTextMapPropagator::SetGlobalPropagator(
-      opentelemetry::nostd::shared_ptr<opentelemetry::context::propagation::TextMapPropagator>(
-          new opentelemetry::trace::propagation::HttpTraceContext()));
+  opentelemetry::context::propagation::GlobalTextMapPropagator::
+      SetGlobalPropagator(
+          opentelemetry::nostd::shared_ptr<
+              opentelemetry::context::propagation::TextMapPropagator>(
+              new opentelemetry::trace::propagation::HttpTraceContext()));
 }
 
 std::shared_ptr<trace_api::Tracer> Tracing::get_tracer() {
- return m_provider->GetTracer("zilliqa-cpp", OPENTELEMETRY_SDK_VERSION);
+  return m_provider->GetTracer("zilliqa-cpp", OPENTELEMETRY_SDK_VERSION);
 }
 
 void Tracing::Shutdown() {

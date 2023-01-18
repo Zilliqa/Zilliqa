@@ -19,22 +19,18 @@
 #include "libMessage/MessengerAccountStoreTrie.h"
 #include "libUtils/DataConversion.h"
 
-
 AccountStoreTrie::AccountStoreTrie() : m_db("state"), m_state(&m_db) {}
-
 
 void AccountStoreTrie::Init() {
   AccountStoreBase::Init();
   InitTrie();
 }
 
-
 void AccountStoreTrie::InitTrie() {
   std::lock_guard<std::mutex> g(m_mutexTrie);
   m_state.init();
   m_prevRoot = m_state.root();
 }
-
 
 bool AccountStoreTrie::Serialize(zbytes& dst, unsigned int offset) const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -56,14 +52,11 @@ bool AccountStoreTrie::Serialize(zbytes& dst, unsigned int offset) const {
   return true;
 }
 
-
 Account* AccountStoreTrie::GetAccount(const Address& address) {
   return this->GetAccount(address, false);
 }
 
-
-Account* AccountStoreTrie::GetAccount(const Address& address,
-                                           bool resetRoot) {
+Account* AccountStoreTrie::GetAccount(const Address& address, bool resetRoot) {
   // LOG_MARKER();
   using namespace boost::multiprecision;
 
@@ -120,11 +113,9 @@ Account* AccountStoreTrie::GetAccount(const Address& address,
   return &it2.first->second;
 }
 
-
 bool AccountStoreTrie::GetProof(const Address& address,
-                                     const dev::h256& rootHash,
-                                     Account& account,
-                                     std::set<std::string>& nodes) {
+                                const dev::h256& rootHash, Account& account,
+                                std::set<std::string>& nodes) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "not lookup node");
     return false;
@@ -177,9 +168,8 @@ bool AccountStoreTrie::GetProof(const Address& address,
   return true;
 }
 
-
 bool AccountStoreTrie::UpdateStateTrie(const Address& address,
-                                            const Account& account) {
+                                       const Account& account) {
   zbytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
@@ -192,7 +182,6 @@ bool AccountStoreTrie::UpdateStateTrie(const Address& address,
   return true;
 }
 
-
 bool AccountStoreTrie::RemoveFromTrie(const Address& address) {
   // LOG_MARKER();
   std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -202,20 +191,17 @@ bool AccountStoreTrie::RemoveFromTrie(const Address& address) {
   return true;
 }
 
-
 dev::h256 AccountStoreTrie::GetStateRootHash() const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
   return m_state.root();
 }
 
-
 dev::h256 AccountStoreTrie::GetPrevRootHash() const {
   std::lock_guard<std::mutex> g(m_mutexTrie);
 
   return m_prevRoot;
 }
-
 
 bool AccountStoreTrie::UpdateStateTrieAll() {
   std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -241,7 +227,6 @@ bool AccountStoreTrie::UpdateStateTrieAll() {
 
   return true;
 }
-
 
 void AccountStoreTrie::PrintAccountState() {
   AccountStoreBase::PrintAccountState();

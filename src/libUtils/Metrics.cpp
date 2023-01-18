@@ -19,15 +19,15 @@
 
 #include <vector>
 
-#include <boost/algorithm/string.hpp>
 #include <opentelemetry/sdk/resource/resource.h>
+#include <boost/algorithm/string.hpp>
 #include "opentelemetry/exporters/ostream/metric_exporter.h"
 #include "opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
-#include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
 
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
@@ -45,89 +45,99 @@ Metrics::Metrics() { Init(); }
 void Metrics::Init() {
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
-  if (cmp == "PROMETHEUS"){
+  if (cmp == "PROMETHEUS") {
     InitPrometheus();
-  }
-  else if (cmp == "OTLPHTTP") {
-      InitOTHTTP();
-  }
-  else {
-      InitStdOut(); // our favourite
+  } else if (cmp == "OTLPHTTP") {
+    InitOTHTTP();
+  } else {
+    InitStdOut();  // our favourite
   }
 }
 
-void Metrics::InitStdOut()
-{
-    std::string name = "zilliqa";
+void Metrics::InitStdOut() {
+  std::string name = "zilliqa";
 
-    std::unique_ptr<metrics_sdk::PushMetricExporter> exporter{
-            new metrics_exporter::OStreamMetricExporter};
+  std::unique_ptr<metrics_sdk::PushMetricExporter> exporter{
+      new metrics_exporter::OStreamMetricExporter};
 
-    std::string version{"1.2.0"};
-    std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
+  std::string version{"1.2.0"};
+  std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
 
-    std::string library_name    = "metrics.cpp";
-    std::string library_version = "0.0.1";
-    std::string schema_url      = "https://zilliqa/schemas/1.2.0";
-    auto instrumentation_scope =
-            opentelemetry::sdk::instrumentationscope::InstrumentationScope::Create(library_name, library_version, schema_url);
+  std::string library_name = "metrics.cpp";
+  std::string library_version = "0.0.1";
+  std::string schema_url = "https://zilliqa/schemas/1.2.0";
+  auto instrumentation_scope =
+      opentelemetry::sdk::instrumentationscope::InstrumentationScope::Create(
+          library_name, library_version, schema_url);
 
-    resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
-                                               {"version", (uint32_t)1}};
-    auto resource = resource::Resource::Create(attributes);
+  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
+                                             {"version", (uint32_t)1}};
+  auto resource = resource::Resource::Create(attributes);
 
-    // Initialize and set the global MeterProvider
-    metrics_sdk::PeriodicExportingMetricReaderOptions options;
-    options.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
-    options.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
-    std::unique_ptr<metrics_sdk::MetricReader> reader{
-            new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter), options)};
-    auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metrics_sdk::MeterProvider());
-    auto p        = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
-    p->AddMetricReader(std::move(reader));
+  // Initialize and set the global MeterProvider
+  metrics_sdk::PeriodicExportingMetricReaderOptions options;
+  options.export_interval_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  options.export_timeout_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+  std::unique_ptr<metrics_sdk::MetricReader> reader{
+      new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
+                                                     options)};
+  auto provider = std::shared_ptr<metrics_api::MeterProvider>(
+      new metrics_sdk::MeterProvider());
+  auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
+  p->AddMetricReader(std::move(reader));
 
-    // counter view
-    std::string counter_name = name + "_counter";
-    std::unique_ptr<metrics_sdk::InstrumentSelector> instrument_selector{
-            new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kCounter, counter_name)};
-    std::unique_ptr<metrics_sdk::MeterSelector> meter_selector{
-            new metrics_sdk::MeterSelector(name, version, schema)};
-    std::unique_ptr<metrics_sdk::View> sum_view{
-            new metrics_sdk::View{name, "description", metrics_sdk::AggregationType::kSum}};
-    p->AddView(std::move(instrument_selector), std::move(meter_selector), std::move(sum_view));
+  // counter view
+  std::string counter_name = name + "_counter";
+  std::unique_ptr<metrics_sdk::InstrumentSelector> instrument_selector{
+      new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kCounter,
+                                          counter_name)};
+  std::unique_ptr<metrics_sdk::MeterSelector> meter_selector{
+      new metrics_sdk::MeterSelector(name, version, schema)};
+  std::unique_ptr<metrics_sdk::View> sum_view{new metrics_sdk::View{
+      name, "description", metrics_sdk::AggregationType::kSum}};
+  p->AddView(std::move(instrument_selector), std::move(meter_selector),
+             std::move(sum_view));
 
-    // observable counter view
-    std::string observable_counter_name = name + "_observable_counter";
-    std::unique_ptr<metrics_sdk::InstrumentSelector> observable_instrument_selector{
-            new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kObservableCounter,
-                                               observable_counter_name)};
-    std::unique_ptr<metrics_sdk::MeterSelector> observable_meter_selector{
-            new metrics_sdk::MeterSelector(name, version, schema)};
-    std::unique_ptr<metrics_sdk::View> observable_sum_view{
-            new metrics_sdk::View{name, "test_description", metrics_sdk::AggregationType::kSum}};
-    p->AddView(std::move(observable_instrument_selector), std::move(observable_meter_selector),
-               std::move(observable_sum_view));
+  // observable counter view
+  std::string observable_counter_name = name + "_observable_counter";
+  std::unique_ptr<metrics_sdk::InstrumentSelector>
+      observable_instrument_selector{new metrics_sdk::InstrumentSelector(
+          metrics_sdk::InstrumentType::kObservableCounter,
+          observable_counter_name)};
+  std::unique_ptr<metrics_sdk::MeterSelector> observable_meter_selector{
+      new metrics_sdk::MeterSelector(name, version, schema)};
+  std::unique_ptr<metrics_sdk::View> observable_sum_view{new metrics_sdk::View{
+      name, "test_description", metrics_sdk::AggregationType::kSum}};
+  p->AddView(std::move(observable_instrument_selector),
+             std::move(observable_meter_selector),
+             std::move(observable_sum_view));
 
-    // histogram view
-    std::string histogram_name = name + "_histogram";
-    std::unique_ptr<metrics_sdk::InstrumentSelector> histogram_instrument_selector{
-            new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kHistogram, histogram_name)};
-    std::unique_ptr<metrics_sdk::MeterSelector> histogram_meter_selector{
-            new metrics_sdk::MeterSelector(name, version, schema)};
-    std::shared_ptr<opentelemetry::sdk::metrics::AggregationConfig> aggregation_config{
-            new opentelemetry::sdk::metrics::HistogramAggregationConfig};
-    static_cast<opentelemetry::sdk::metrics::HistogramAggregationConfig *>(aggregation_config.get())
-            ->boundaries_ = std::list<double>{0.0,    50.0,   100.0,  250.0,   500.0,  750.0,
-                                              1000.0, 2500.0, 5000.0, 10000.0, 20000.0};
-    std::unique_ptr<metrics_sdk::View> histogram_view{new metrics_sdk::View{
-            name, "description", metrics_sdk::AggregationType::kHistogram, aggregation_config}};
-    p->AddView(std::move(histogram_instrument_selector), std::move(histogram_meter_selector),
-               std::move(histogram_view));
-    m_provider = p;
-    opentelemetry::metrics::Provider::SetMeterProvider(m_provider);
-    zil::metrics::Filter::GetInstance().init();
+  // histogram view
+  std::string histogram_name = name + "_histogram";
+  std::unique_ptr<metrics_sdk::InstrumentSelector>
+      histogram_instrument_selector{new metrics_sdk::InstrumentSelector(
+          metrics_sdk::InstrumentType::kHistogram, histogram_name)};
+  std::unique_ptr<metrics_sdk::MeterSelector> histogram_meter_selector{
+      new metrics_sdk::MeterSelector(name, version, schema)};
+  std::shared_ptr<opentelemetry::sdk::metrics::AggregationConfig>
+      aggregation_config{
+          new opentelemetry::sdk::metrics::HistogramAggregationConfig};
+  static_cast<opentelemetry::sdk::metrics::HistogramAggregationConfig*>(
+      aggregation_config.get())
+      ->boundaries_ =
+      std::list<double>{0.0,    50.0,   100.0,  250.0,   500.0,  750.0,
+                        1000.0, 2500.0, 5000.0, 10000.0, 20000.0};
+  std::unique_ptr<metrics_sdk::View> histogram_view{new metrics_sdk::View{
+      name, "description", metrics_sdk::AggregationType::kHistogram,
+      aggregation_config}};
+  p->AddView(std::move(histogram_instrument_selector),
+             std::move(histogram_meter_selector), std::move(histogram_view));
+  m_provider = p;
+  opentelemetry::metrics::Provider::SetMeterProvider(m_provider);
+  zil::metrics::Filter::GetInstance().init();
 }
-
 
 void Metrics::InitOTHTTP() {
   metrics_sdk::PeriodicExportingMetricReaderOptions opts;
@@ -147,10 +157,12 @@ void Metrics::InitOTHTTP() {
 
   // Initialize and set the global MeterProvider
 
-  opts.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
-  opts.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+  opts.export_interval_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  opts.export_timeout_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
 
-    std::unique_ptr<metrics_sdk::MetricReader> reader{
+  std::unique_ptr<metrics_sdk::MetricReader> reader{
       new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
                                                      opts)};
   m_provider = std::shared_ptr<metrics_api::MeterProvider>(

@@ -47,4 +47,3 @@ bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
                                      SerializableDataBlock& serializable) {
   return serializable.Deserialize(byteArray.data(), 0);
 }
-
