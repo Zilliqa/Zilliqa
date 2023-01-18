@@ -18,3 +18,4 @@ configMapGenerator:
   - logrotate-s3.sh
   - logrotate.conf
   - logrotates3
+  - isolated-server-accounts.json
