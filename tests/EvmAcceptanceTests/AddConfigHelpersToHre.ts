@@ -1,12 +1,12 @@
 import {extendEnvironment} from "hardhat/config";
 import {HardhatRuntimeEnvironment} from "hardhat/types/runtime";
-import { ContractMapByName as ScillaContractsMap } from "./helper/ScillaContractsInfoUpdater";
 
 declare module "hardhat/types/runtime" {
   interface HardhatRuntimeEnvironment {
     debug: boolean;
     parallel: boolean;
-    scillaContracts: ScillaContractsMap;
+    scillaTesting: boolean;
+    isScillaTestingEnabled: () => boolean;
     isZilliqaNetworkSelected: () => boolean;
     getEthChainId: () => number;
     getZilliqaChainId: () => number;
@@ -20,6 +20,10 @@ declare module "hardhat/types/runtime" {
 }
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
+  hre.isScillaTestingEnabled = () => {
+    return hre.scillaTesting;
+  }
+
   hre.isZilliqaNetworkSelected = () => {
     return (hre as any).network.config.zilliqaNetwork;
   };

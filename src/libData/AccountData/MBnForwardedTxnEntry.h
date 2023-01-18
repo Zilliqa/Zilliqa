@@ -20,8 +20,7 @@
 
 #include "Transaction.h"
 #include "TransactionReceipt.h"
-#include "libData/AccountStore/AccountStore.h"
-#include "libData/BlockData/Block/MicroBlock.h"
+#include "libBlockchain/MicroBlock.h"
 
 struct MBnForwardedTxnEntry {
   MicroBlock m_microBlock;

@@ -6,7 +6,7 @@ chai.use(deepEqualInAnyOrder);
 import {expect} from "chai";
 import {Contract, BigNumber} from "ethers";
 import hre, {ethers} from "hardhat";
-import parallelizer from "../../helper/Parallelizer";
+import {parallelizer} from "../../helpers";
 import {Event, waitForEvents} from "./shared";
 
 describe("Subscriptions functionality", function () {

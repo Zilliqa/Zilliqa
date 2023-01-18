@@ -1090,7 +1090,7 @@ TxBlock IsolatedServer::GenerateTxBlock() {
           mb.GetHeader().GetShardId(), body)) {
     LOG_GENERAL(WARNING, "Failed to put microblock in body");
   }
-  TxBlock txblock(txblockheader, {mbInfo}, CoSignatures());
+  TxBlock txblock(txblockheader, {mbInfo}, CoSignatures{});
 
   return txblock;
 }
