@@ -1832,8 +1832,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
                            //"Sent to a non-lookup");
   //}
   std::string trace;
-
-  LOG_GENERAL(INFO, "Trace request: " << trace);
+  LOG_GENERAL(INFO, "Trace request: " << txHash);
 
   try {
     TxnHash tranHash(txHash);
@@ -1842,7 +1841,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
         BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
 
     if (!isPresent) {
-      LOG_GENERAL(INFO, "Trace request failed! " << trace);
+      LOG_GENERAL(INFO, "Trace request failed! ");
       return Json::nullValue;
     }
 
