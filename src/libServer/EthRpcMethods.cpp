@@ -722,7 +722,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   evm::EvmResult result;
 
-  // Make sure the contract has 'funds' available during the gas test
   //AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\b_balance", fundsAvailableContract);
   //auto res = AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result);
   //AccountStore::GetInstance().m_scillaIPCServer->clearOverrides();
@@ -732,11 +731,18 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   LOG_GENERAL(WARNING, "To Addr to fund: " << toAddr);
 
-  AccountStore::GetInstance().UpdateAccountsTemp()
+  // Make sure the contract has 'funds' available during the gas test,
+  // anc clear it afterwards
+  bool ret = false;
+  {
+    shared_lock<shared_timed_mutex> lock(
+        AccountStore::GetInstance().GetPrimaryMutex());
+    AccountStore::GetInstance().IncreaseBalanceTemp(toAddr, fundsAvailableContract);
+    ret = AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext, result);
+    AccountStore::GetInstance().InitTemp();
+  }
 
-  if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
-                                                        result) &&
-      result.exit_reason().exit_reason_case() ==
+  if (ret && result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
