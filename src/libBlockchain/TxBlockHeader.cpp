@@ -36,7 +36,11 @@ bool SetTxBlockHeader(zbytes& dst, unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
+#ifdef __APPLE__
+template <typename RangeT>
+#else
 template <std::ranges::contiguous_range RangeT>
+#endif
 bool GetTxBlockHeader(RangeT&& src, unsigned int offset,
                       TxBlockHeader& txBlockHeader) {
   if (offset >= src.size()) {

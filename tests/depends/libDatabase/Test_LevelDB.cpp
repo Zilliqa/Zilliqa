@@ -27,7 +27,6 @@
 #include <boost/test/unit_test.hpp>
 
 #include "common/Constants.h"
-#include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/libDatabase/LevelDB.h"
 #include "libUtils/Logger.h"

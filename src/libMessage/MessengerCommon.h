@@ -22,6 +22,7 @@
 #include "libMessage/ZilliqaMessage.pb.h"
 #include "libUtils/Logger.h"
 
+#include <algorithm>
 #include <ranges>
 
 #define PROTOBUFBYTEARRAYTOSERIALIZABLE(ba, s)                       \
@@ -87,18 +88,23 @@ bool SerializeToArray(const T& protoMessage, zbytes& dst,
                                        protoMessage.ByteSizeLong());
 }
 
+#ifndef __APPLE__
 template <std::ranges::input_range InputRangeT,
           std::ranges::contiguous_range OuputRangeT>
+#else
+template <typename InputRangeT,
+          typename OuputRangeT>
+#endif
 bool CopyWithSizeCheck(const InputRangeT& src, OuputRangeT& result) {
   // Fixed length copying.
-  if (std::ranges::size(result) != std::ranges::size(src)) {
+  if (std::size(result) != std::size(src)) {
     LOG_GENERAL(WARNING, "Size check while copying failed. Size expected = "
-                             << std::ranges::size(result)
-                             << ", actual = " << std::ranges::size(src));
+                             << std::size(result)
+                             << ", actual = " << std::size(src));
     return false;
   }
 
-  std::ranges::copy(src, std::ranges::begin(result));
+  std::copy(std::begin(src), std::end(src), std::begin(result));
   return true;
 }
 

@@ -37,7 +37,11 @@ bool SetMicroBlockHeader(zbytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
+#ifdef __APPLE__
+template <typename RangeT>
+#else
 template <std::ranges::contiguous_range RangeT>
+#endif
 bool GetMicroBlockHeader(RangeT&& src, unsigned int offset,
                          MicroBlockHeader& microBlockHeader) {
   if (offset >= src.size()) {
