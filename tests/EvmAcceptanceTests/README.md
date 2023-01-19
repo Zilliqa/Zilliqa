@@ -6,13 +6,13 @@
     npx hardhat test --network devnet    # to run tests against the devnet
     npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
     npx hardhat test --log-txnid    # to run tests and print transaction ids.
-    DEBUG=true npx hardhat test    # to run tests and print log messages
+    DEBUG=true npx hardhat test    # to run tests and print log messages. `.env` file can be used as well.
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
     npx hardhat test --parallel   # to run tests in parallel
     npx hardhat test test/scilla/*    # to run scilla tests only
-    SCILLA=false npx hardhat test   # to disable scilla tests
+    SCILLA=false npx hardhat test   # to disable scilla tests. `.env` file can be used as well.
 ```
 
 # Start Testing
@@ -116,6 +116,8 @@ npx hardhat test --network ganache
 ```bash
 DEBUG=true npx hardhat test
 ```
+
+Alternatively you can change `DEBUG` variable in the `.env` file.
 
 # Testing conventions and best practices
 
@@ -294,6 +296,14 @@ npx hardhat scilla-check --libdir path_to_stdlib contracts/scilla/helloWorld.sci
 - Add `scilla-fmt` task
 
 # miscellaneous
+
+## .env File
+
+to change some of the testing behaviors environment variables are used. They can be changed using the `.env` file. Here is the list of them:
+
+- `DEBUG=true` to enable debugging logs.
+- `SCILLA=false` to ignore scilla tests.
+- `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
 
 ## Scripts
 
