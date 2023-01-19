@@ -51,4 +51,24 @@ describe("Transfer ethers", function () {
 
     expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
+
+  xit("check gas consistency", async function () {
+
+    const [owner] = await ethers.getSigners();
+    let initialBal = await ethers.provider.getBalance(owner.address);
+
+    let InitialOwnerbal = await ethers.provider.getBalance(owner.address);
+
+    const SingleTransferContract = await ethers.getContractFactory("SingleTransfer");
+    const singleTransfer = await SingleTransferContract.deploy();
+    await singleTransfer.deployed();
+
+    const fee1 = await getFee(singleTransfer.deployTransaction.hash);
+
+    const senderBal = await ethers.provider.getBalance(owner.address);
+
+    const diff = BigInt(initialBal) - BigInt(senderBal) - BigInt(fee1);
+    expect(diff).to.be.eq(BigInt(0));
+
+  });
 });
