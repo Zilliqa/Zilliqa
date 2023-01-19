@@ -115,6 +115,8 @@ COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
 COPY vcpkg.json .
 
+RUN ls -la /root/.cache/vcpkg/ || true
+RUN ls -la /ccache/ || true
 RUN ${VCPKG_CACHE} ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
 
 FROM deps AS builder
@@ -132,6 +134,8 @@ ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
 
 # Build & install Zilliqa
+RUN ls -la /root/.cache/vcpkg/ || true
+RUN ls -la /ccache/ || true
 RUN ${CCACHE_CACHE} ${VCPKG_CACHE} CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake --build "/zilliqa/build" --target install
 
 COPY evm-ds/ evm-ds

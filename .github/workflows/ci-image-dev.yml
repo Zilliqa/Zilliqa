@@ -24,7 +24,7 @@ jobs:
       context: ''
       image-name: zilliqa
       cache-key: zilliqa
-      runner: "ubuntu-latest-4-cores"
+      runner: "ubuntu-latest-16-cores"
     secrets:
       registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
       registry-username: ${{ secrets.ECR_USERNAME }}

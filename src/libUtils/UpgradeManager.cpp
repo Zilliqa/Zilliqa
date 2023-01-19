@@ -17,8 +17,6 @@
 
 #include "UpgradeManager.h"
 
-#include <MultiSig.h>
-#include <sys/wait.h>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
@@ -26,8 +24,6 @@
 #include "libUtils/Logger.h"
 
 using namespace std;
-
-#define DOWNLOAD_FOLDER "download"
 
 namespace {
 
@@ -60,23 +56,19 @@ UpgradeManager& UpgradeManager::GetInstance() {
   return um;
 }
 
-bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
-  string downloadUrl = "";
-  try {
-    vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
-    initialDSCommittee.clear();
-    for (const auto& ds_string : tempDsComm_string) {
-      zbytes pubkeyBytes;
-      if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
-        return false;
-      }
-      initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
+bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) try {
+  vector<std::string> tempDsComm_string{ReadDSCommFromFile()};
+  initialDSCommittee.clear();
+  for (const auto& ds_string : tempDsComm_string) {
+    zbytes pubkeyBytes;
+    if (!DataConversion::HexStrToUint8Vec(ds_string, pubkeyBytes)) {
+      return false;
     }
-
-    return true;
-  } catch (exception& e) {
-    LOG_GENERAL(WARNING, e.what());
-    return false;
+    initialDSCommittee.push_back(PubKey(pubkeyBytes, 0));
   }
-}
 
+  return true;
+} catch (exception& e) {
+  LOG_GENERAL(WARNING, e.what());
+  return false;
+}
