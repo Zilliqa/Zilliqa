@@ -75,6 +75,7 @@ npx hardhat test --parallel
 ETHERNAL_EMAIL="devops+ethernal@zilliqa.com" ETHERNAL_PASSWORD="YourPassword" ETHERNAL_WORKSPACE="Zilliqa Testnet" npx hardhat test --network public_testnet
 ```
 Ethernal is an [EVM-based blockchain explorer](https://tryethernal.com)
+
 For more info, see [hardhat ethernal plugin](https://github.com/tryethernal/hardhat-ethernal)
 
 # How to define a new network for hardhat
