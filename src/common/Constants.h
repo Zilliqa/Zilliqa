@@ -375,11 +375,8 @@ extern const std::string POW_SUBMISSION_VERSION_TAG;
 
 // Recovery and upgrading constants
 extern const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS;
-extern const bool GET_INITIAL_DS_FROM_REPO;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
-extern const std::string UPGRADE_HOST_ACCOUNT;
-extern const std::string UPGRADE_HOST_REPO;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
