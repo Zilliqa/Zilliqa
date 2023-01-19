@@ -2,9 +2,9 @@ import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
-import("dotenv/config");
 import yargs from "yargs/yargs";
 import "hardhat-ethernal";
+import "dotenv/config";
 
 const argv = yargs()
   .env()
@@ -145,6 +145,7 @@ extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
   hre.scillaTesting = argv.scilla;
+  hre.ethernalPlugin = process.env.ETHERNAL_PASSWORD != undefined;
 });
 
 task("test")

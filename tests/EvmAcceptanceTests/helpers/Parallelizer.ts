@@ -31,7 +31,7 @@ export class Parallelizer {
     web3.eth.getAccounts();
     const Contract = await hh_ethers.getContractFactory(contractName);
     const deployedContract = await Contract.connect(signer).deploy(...args);
-    if (process.env.ETHERNAL_PASSWORD) {
+    if (hre.isEthernalPluginEnabled()) {
       hre.ethernal.push({name: contractName, address: deployedContract.address});
     }
     return deployedContract;
@@ -56,7 +56,7 @@ export class Parallelizer {
 
     deployedContract.options.from = signerAddress;
     deployedContract.options.gas = gasLimit;
-    if (process.env.ETHERNAL_PASSWORD) {
+    if (hre.isEthernalPluginEnabled()) {
       hre.ethernal.push({name: contractName, address: deployedContract.address});
     }
     return deployedContract;
