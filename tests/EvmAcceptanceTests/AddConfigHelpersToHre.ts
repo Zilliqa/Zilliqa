@@ -22,7 +22,7 @@ declare module "hardhat/types/runtime" {
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.isScillaTestingEnabled = () => {
     return hre.scillaTesting;
-  }
+  };
 
   hre.isZilliqaNetworkSelected = () => {
     return (hre as any).network.config.zilliqaNetwork;
