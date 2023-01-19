@@ -56,7 +56,7 @@ void UpdateDSCommitteeCompositionCore(const PubKey& selfKeyPub,
       LOG_GENERAL(WARNING,
                   "[FATAL] The DS member "
                       << RemovedNode
-                      << " for removal was not found in our DS Committee.");
+                      << " for removal was not found in our DS Committee!");
       continue;
     }
 
