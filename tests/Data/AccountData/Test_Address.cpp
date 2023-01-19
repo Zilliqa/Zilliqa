@@ -15,11 +15,10 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <string>
-#include "libUtils/AddressConversion.h"
+#include "libData/AccountData/Address.h"
 #include "libUtils/DataConversion.h"
 
-#define BOOST_TEST_MODULE address_conversion
+#define BOOST_TEST_MODULE address
 #define BOOST_TEST_DYN_LINK
 
 #include <boost/test/unit_test.hpp>
@@ -32,7 +31,7 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_SUITE(address_conversion)
+BOOST_AUTO_TEST_SUITE(address)
 
 using namespace std;
 

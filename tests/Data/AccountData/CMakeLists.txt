@@ -2,6 +2,11 @@ configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
+add_executable (Test_Address Test_Address.cpp)
+target_include_directories (Test_Address PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_link_libraries (Test_Address PUBLIC AccountData Boost::unit_test_framework)
+add_test(NAME Test_Address COMMAND Test_Address)
+
 #add_executable(Test_Account Test_Account.cpp)
 #target_include_directories(Test_Account PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 #target_link_libraries(Test_Account PUBLIC AccountData Trie Utils Persistence TestUtils)

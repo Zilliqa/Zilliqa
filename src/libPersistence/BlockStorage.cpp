@@ -58,7 +58,6 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   m_blockLinkDB = std::make_shared<LevelDB>("blockLinks");
   m_shardStructureDB = std::make_shared<LevelDB>("shardStructure");
   m_stateDeltaDB = std::make_shared<LevelDB>("stateDelta");
-  m_tempStateDB = std::make_shared<LevelDB>("tempState");
   m_processedTxnTmpDB = std::make_shared<LevelDB>("processedTxnTmp");
   m_diagnosticDBNodes =
       std::make_shared<LevelDB>("diagnosticNodes", path, diagnostic);
@@ -302,56 +301,6 @@ bool BlockStorage::GetRangeMicroBlocks(const uint64_t lowEpochNum,
   if (blocks.empty()) {
     LOG_GENERAL(INFO, "Disk has no MicroBlock matching the criteria");
     return false;
-  }
-
-  return true;
-}
-
-bool BlockStorage::PutTempState(const unordered_map<Address, Account>& states) {
-  // LOG_MARKER();
-
-  unordered_map<string, string> states_str;
-  for (const auto& state : states) {
-    zbytes rawBytes;
-    if (!state.second.SerializeBase(rawBytes, 0)) {
-      LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
-      continue;
-    }
-    states_str.emplace(state.first.hex(),
-                       DataConversion::CharArrayToString(rawBytes));
-  }
-  unique_lock<shared_timed_mutex> g(m_mutexTempState);
-  return m_tempStateDB->BatchInsert(states_str);
-}
-
-bool BlockStorage::GetTempStateInBatch(leveldb::Iterator*& iter,
-                                       vector<StateSharedPtr>& states) {
-  // LOG_MARKER();
-
-  shared_lock<shared_timed_mutex> g(m_mutexTempState);
-
-  if (iter == nullptr) {
-    iter = m_tempStateDB->GetDB()->NewIterator(leveldb::ReadOptions());
-    iter->SeekToFirst();
-  }
-
-  unsigned int counter = 0;
-
-  for (; iter->Valid() && counter < ACCOUNT_IO_BATCH_SIZE;
-       iter->Next(), counter++) {
-    string addr_str = iter->key().ToString();
-    string acct_string = iter->value().ToString();
-    Address addr{addr_str};
-    Account acct;
-    if (!acct.DeserializeBase(zbytes(acct_string.begin(), acct_string.end()),
-                              0)) {
-      LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
-      continue;
-    }
-    StateSharedPtr state =
-        StateSharedPtr(new pair<Address, Account>(addr, acct));
-
-    states.emplace_back(state);
   }
 
   return true;
@@ -1652,11 +1601,6 @@ bool BlockStorage::ResetDB(DBTYPE type) {
       ret = m_stateDeltaDB->ResetDB();
       break;
     }
-    case TEMP_STATE: {
-      unique_lock<shared_timed_mutex> g(m_mutexTempState);
-      ret = m_tempStateDB->ResetDB();
-      break;
-    }
     case DIAGNOSTIC_NODES: {
       lock_guard<mutex> g(m_mutexDiagnostic);
       ret = m_diagnosticDBNodes->ResetDB();
@@ -1795,11 +1739,6 @@ bool BlockStorage::RefreshDB(DBTYPE type) {
       ret = m_stateRootDB->RefreshDB();
       break;
     }
-    case TEMP_STATE: {
-      unique_lock<shared_timed_mutex> g(m_mutexTempState);
-      ret = m_tempStateDB->RefreshDB();
-      break;
-    }
     case PROCESSED_TEMP: {
       unique_lock<shared_timed_mutex> g(m_mutexProcessTx);
       ret = m_processedTxnTmpDB->RefreshDB();
@@ -1842,7 +1781,6 @@ bool BlockStorage::ResetAll() {
            BLOCKLINK,
            SHARD_STRUCTURE,
            STATE_DELTA,
-           TEMP_STATE,
            DIAGNOSTIC_NODES,
            DIAGNOSTIC_COINBASE,
            STATE_ROOT,
@@ -1860,7 +1798,6 @@ bool BlockStorage::ResetAll() {
            BLOCKLINK,
            SHARD_STRUCTURE,
            STATE_DELTA,
-           TEMP_STATE,
            DIAGNOSTIC_NODES,
            DIAGNOSTIC_COINBASE,
            STATE_ROOT,
@@ -1893,7 +1830,6 @@ bool BlockStorage::RefreshAll() {
            BLOCKLINK,
            SHARD_STRUCTURE,
            STATE_DELTA,
-           TEMP_STATE,
            DIAGNOSTIC_NODES,
            DIAGNOSTIC_COINBASE,
            STATE_ROOT,
@@ -1911,7 +1847,6 @@ bool BlockStorage::RefreshAll() {
            BLOCKLINK,
            SHARD_STRUCTURE,
            STATE_DELTA,
-           TEMP_STATE,
            DIAGNOSTIC_NODES,
            DIAGNOSTIC_COINBASE,
            STATE_ROOT,

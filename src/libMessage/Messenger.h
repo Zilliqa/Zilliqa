@@ -32,6 +32,7 @@
 #include "MessengerCommon.h"
 
 class AccountBase;
+class Account;
 class AccountStore;
 class AccountStoreTemp;
 

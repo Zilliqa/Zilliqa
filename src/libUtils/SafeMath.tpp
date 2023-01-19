@@ -24,72 +24,62 @@
 
 template <class T>
 bool SafeMath<T>::add(const T& a, const T& b, T& result) {
-  if (IsSignedInt(a)) {
-    return add_signint(a, b, result);
-  }
+  static_assert(IsSignedInt::value || IsUnsignedInt::value);
 
-  if (IsUnsignedInt(a)) {
+  if constexpr (IsSignedInt::value) {
+    return add_signint(a, b, result);
+  } else /*if constexpr (IsUnsignedInt(a))*/ {
     return add_unsignint(a, b, result);
   }
-
-  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
-  return false;
 }
 
 template <class T>
 bool SafeMath<T>::sub(const T& a, const T& b, T& result) {
-  if (IsSignedInt(a)) {
-    return sub_signint(a, b, result);
-  }
+  static_assert(IsSignedInt::value || IsUnsignedInt::value);
 
-  if (IsUnsignedInt(a)) {
+  if constexpr (IsSignedInt::value) {
+    return sub_signint(a, b, result);
+  } else /*if constexpr (IsUnsignedInt(a))*/ {
     return sub_unsignint(a, b, result);
   }
-
-  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
-  return false;
 }
 
 template <class T>
 bool SafeMath<T>::mul(const T& a, const T& b, T& result) {
+  static_assert(IsSignedInt::value || IsUnsignedInt::value);
+
   if (a == 0 || b == 0) {
     result = 0;
     return true;
   }
 
-  if (IsSignedInt(a)) {
+  if constexpr (IsSignedInt::value) {
     return mul_signint(a, b, result);
-  }
-
-  if (IsUnsignedInt(a)) {
+  } else /* if constexpr (IsUnsignedInt::value) */ {
     return mul_unsignint(a, b, result);
   }
-
-  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
-  return false;
 }
 
 template <class T>
 bool SafeMath<T>::div(const T& a, const T& b, T& result) {
+  static_assert(IsSignedInt::value || IsUnsignedInt::value);
+
   if (b == 0) {
     LOG_GENERAL(WARNING, "Denominator cannot be zero!");
     return false;
   }
 
-  if (IsSignedInt(a)) {
+  if constexpr (IsSignedInt::value) {
     return div_signint(a, b, result);
-  }
-
-  if (IsUnsignedInt(a)) {
+  } else /* if constexpr (IsUnsignedInt::value) */ {
     return div_unsignint(a, b, result);
   }
-
-  LOG_GENERAL(WARNING, "Data type " << typeid(a).name() << " not supported!");
-  return false;
 }
 
 template <class T>
 bool SafeMath<T>::power_core(const T& base, const T& exponent, T& result) {
+  static_assert(IsSignedInt::value || IsUnsignedInt::value);
+
   if (exponent == 0) {
     result = 1;
     return true;
@@ -118,6 +108,8 @@ bool SafeMath<T>::power_core(const T& base, const T& exponent, T& result) {
 // Now only used for declare constant variable in Constants.cpp
 template <class T>
 T SafeMath<T>::power(const T& base, const T& exponent, bool isCritical) {
+  static_assert(IsSignedInt::value || IsUnsignedInt::value);
+
   T ret{};
   if (!SafeMath::power_core(base, exponent, ret)) {
     LOG_GENERAL(isCritical ? FATAL : WARNING,
@@ -131,23 +123,25 @@ T SafeMath<T>::power(const T& base, const T& exponent, bool isCritical) {
 }
 
 template <class T>
-bool SafeMath<T>::IsSignedInt(const T& a) {
-  return (typeid(a) == typeid(int8_t) || typeid(a) == typeid(int16_t) ||
-          typeid(a) == typeid(int32_t) || typeid(a) == typeid(int64_t) ||
-          typeid(a) == typeid(boost::multiprecision::int128_t) ||
-          typeid(a) == typeid(boost::multiprecision::int256_t) ||
-          typeid(a) == typeid(boost::multiprecision::int512_t) ||
-          typeid(a) == typeid(boost::multiprecision::int1024_t));
-}
+struct SafeMath<T>::IsSignedInt {
+  static constexpr const bool value =
+      std::is_same_v<T, int8_t> || std::is_same_v<T, int16_t> ||
+      std::is_same_v<T, int32_t> || std::is_same_v<T, int64_t> ||
+      std::is_same_v<T, boost::multiprecision::int128_t> ||
+      std::is_same_v<T, boost::multiprecision::int256_t> ||
+      std::is_same_v<T, boost::multiprecision::int512_t> ||
+      std::is_same_v<T, boost::multiprecision::int1024_t>;
+};
 
 template <class T>
-bool SafeMath<T>::IsUnsignedInt(const T& a) {
-  return typeid(a) == typeid(uint8_t) || typeid(a) == typeid(uint16_t) ||
-         typeid(a) == typeid(uint32_t) || typeid(a) == typeid(uint64_t) ||
-         typeid(a) == typeid(uint128_t) || typeid(a) == typeid(uint256_t) ||
-         typeid(a) == typeid(boost::multiprecision::uint512_t) ||
-         typeid(a) == typeid(boost::multiprecision::uint1024_t);
-}
+struct SafeMath<T>::IsUnsignedInt {
+  static constexpr const bool value =
+      std::is_same_v<T, uint8_t> || std::is_same_v<T, uint16_t> ||
+      std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t> ||
+      std::is_same_v<T, uint128_t> || std::is_same_v<T, uint256_t> ||
+      std::is_same_v<T, boost::multiprecision::uint512_t> ||
+      std::is_same_v<T, boost::multiprecision::uint1024_t>;
+};
 
 template <class T>
 bool SafeMath<T>::add_signint(const T& a, const T& b, T& result) {

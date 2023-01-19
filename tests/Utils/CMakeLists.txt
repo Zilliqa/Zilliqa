@@ -9,11 +9,6 @@ endif(CMAKE_CONFIGURATION_TYPES)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
 
-add_executable (Test_AddressConversion Test_AddressConversion.cpp)
-target_include_directories (Test_AddressConversion PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_AddressConversion PUBLIC Utils Boost::unit_test_framework)
-add_test(NAME Test_AddressConversion COMMAND Test_AddressConversion)
-
 add_executable (Test_Logger1 Test_Logger1.cpp)
 target_include_directories (Test_Logger1 PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Logger1 PUBLIC Utils Boost::unit_test_framework)

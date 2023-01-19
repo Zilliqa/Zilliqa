@@ -25,7 +25,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/test/included/unit_test.hpp>
 
-#include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 // #include "depends/json_spirit/JsonSpiritHeaders.h"
 
@@ -508,7 +507,7 @@ BOOST_AUTO_TEST_CASE(trieLowerBound) {
       StringMap m;
       for (int i = 0; i < 50; ++i) {
         auto k = randomWord();
-        auto v = toString(i);
+        auto v = std::to_string(i);
         m[k] = v;
         d.insert(k, v);
       }
@@ -638,7 +637,7 @@ void perfTestTrie(char const* _name) {
     size_t ki = 0;
     for (size_t i = 0; i < p; ++i) {
       auto k = h256::random();
-      auto v = toString(i);
+      auto v = std::to_string(i);
       d.insert(k, v);
 
       if (i % (p / 1000) == 0) keys[ki++] = k;
