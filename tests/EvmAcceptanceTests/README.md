@@ -299,11 +299,11 @@ npx hardhat scilla-check --libdir path_to_stdlib contracts/scilla/helloWorld.sci
 
 ## .env File
 
-to change some of the testing behaviors environment variables are used. They can be changed using the .env file. Here is the list of them:
+to change some of the testing behaviors environment variables are used. They can be changed using the `.env` file. Here is the list of them:
 
-- DEBUG=true to enable debugging logs.
-- SCILLA=false to ignore scilla tests.
-- MOCHA_TIMEOUT=3000 to set the mocha timeout in milliseconds.
+- `DEBUG=true` to enable debugging logs.
+- `SCILLA=false` to ignore scilla tests.
+- `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
 
 ## Scripts
 
