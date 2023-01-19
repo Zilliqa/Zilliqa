@@ -60,7 +60,6 @@ class CpsRunEvm final : public CpsRun {
   evm::EvmArgs mProtoArgs;
   CpsExecutor& mExecutor;
   CpsContext& mCpsContext;
-  bool mHasNullDestAddress = false;
 };
 
 }  // namespace libCps
