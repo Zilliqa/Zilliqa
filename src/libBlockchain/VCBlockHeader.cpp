@@ -36,7 +36,11 @@ bool SetVCBlockHeader(zbytes& dst, unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
+#ifdef __APPLE__
+template <typename RangeT>
+#else
 template <std::ranges::contiguous_range RangeT>
+#endif
 bool GetVCBlockHeader(RangeT&& src, unsigned int offset,
                       VCBlockHeader& vcBlockHeader) {
   if (offset >= src.size()) {
