@@ -2,8 +2,8 @@ import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
-
 import yargs from "yargs/yargs";
+import "hardhat-ethernal";
 
 const argv = yargs()
   .env()
@@ -46,6 +46,14 @@ declare module "hardhat/types/config" {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
+  ethernal: {
+    email: process.env.ETHERNAL_EMAIL,
+    password: process.env.ETHERNAL_PASSWORD,
+    workspace: process.env.ETHERNAL_WORKSPACE,
+    disableSync: false, // If set to true, plugin will not sync blocks & txs
+    disableTrace: false, // If set to true, plugin won't trace transaction
+    uploadAst: true, // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
+  },
   defaultNetwork: "isolated_server",
   networks: {
     isolated_server: {
