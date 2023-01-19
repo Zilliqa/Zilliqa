@@ -9,11 +9,12 @@ mod precompiles;
 mod protos;
 mod scillabackend;
 
+use std::default::default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::panic::{self, AssertUnwindSafe};
 use std::path::PathBuf;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
+use std::rc::{Rc, Weak};
 
 use anyhow::Context;
 use clap::Parser;
@@ -257,10 +258,8 @@ async fn run_evm_impl(
     .unwrap()
 }
 
-struct LoggingEventListener {
-    //pub traces: Vec<String>,
-    pub CallStack: Vec<Rc<LoggingEventListener>>,
-
+struct CallContext {
+    pub call_type : String,
     pub from : String,
     pub to : String,
     pub value : String,
@@ -268,11 +267,38 @@ struct LoggingEventListener {
     pub gasUsed : String,
     pub input : String,
     pub output : String,
+
+    calls: Vec<CallContext>,
+}
+
+impl CallContext {
+    fn new() -> Self {
+        CallContext{
+            call_type : Default::default(),
+            from : Default::default(),
+            to : Default::default(),
+            value : Default::default(),
+            gas : Default::default(),
+            gasUsed : Default::default(),
+            input : Default::default(),
+            output : Default::default(),
+            calls: Default::default(),
+        }
+    }
+}
+
+struct LoggingEventListener {
+    //pub traces: Vec<String>,
+    pub call_stack: Vec<CallContext>,
 }
 
 impl LoggingEventListener {
-    pub fn new() Self {
 
+    fn new() -> Self {
+        LoggingEventListener {
+            call_stack: vec![Rc::new(CallContext::new())],
+            }
+        }
     }
 }
 
@@ -306,7 +332,10 @@ impl LoggingEventListener {
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        self.traces.push(format!("{:?}", event));
+        //self.traces.push(format!("{:?}", event));
+        println!("event: {:?}", event);
+
+        self.call_stack.last().push_ba... fuck it
     }
 }
 
