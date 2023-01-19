@@ -64,13 +64,6 @@ target_include_directories(Test_SWInfo PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SO
 target_link_libraries (Test_SWInfo PUBLIC Utils TestUtils Boost::unit_test_framework)
 add_test(NAME Test_SWInfo COMMAND Test_SWInfo)
 
-add_executable(Test_UpgradeManager Test_UpgradeManager.cpp)
-target_include_directories(Test_UpgradeManager PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_UpgradeManager PUBLIC Utils AccountData Message Boost::unit_test_framework)
-
-# The network is unstable between Travis server & GitHub, thus disable Test_UpgradeManager to avoid potential Travis build failed.
-#add_test(NAME Test_UpgradeManager COMMAND Test_UpgradeManager)
-
 add_executable(Test_DataConversion Test_DataConversion.cpp)
 target_include_directories(Test_DataConversion PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries (Test_DataConversion PUBLIC Utils Boost::unit_test_framework)
