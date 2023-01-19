@@ -722,15 +722,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   evm::EvmResult result;
 
-  //AccountStore::GetInstance().m_scillaIPCServer->setOverrides(DataConversion::Uint8VecToHexStrRet(toAddr.asBytes())+"\n\b_balance", fundsAvailableContract);
-  //auto res = AccountStore::GetInstance().EvmProcessMessage(evmMessageContext, result);
-  //AccountStore::GetInstance().m_scillaIPCServer->clearOverrides();
-
-  //toAddr.asBytes()
-  //fundsAvailableContract
-
-  LOG_GENERAL(WARNING, "To Addr to fund: " << toAddr);
-
   // Make sure the contract has 'funds' available during the gas test,
   // anc clear it afterwards
   bool ret = false;
