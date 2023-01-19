@@ -1,7 +1,7 @@
-import { assert, expect } from "chai";
-import { Contract } from "ethers";
-import hre, { ethers } from "hardhat";
-import { parallelizer } from "../helpers";
+import {assert, expect} from "chai";
+import {Contract} from "ethers";
+import hre, {ethers} from "hardhat";
+import {parallelizer} from "../helpers";
 import logDebug from "../helpers/DebugHelper";
 import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 

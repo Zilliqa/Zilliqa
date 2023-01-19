@@ -1506,6 +1506,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
+    std::string gasPrice = ethResult["gasPrice"].asString();
     std::string cumGas =
         (boost::format("0x%x") %
          GasConv::GasUnitsFromCoreToEth(
@@ -1532,8 +1533,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const auto bloomLogs = Eth::GetBloomFromReceiptHex(
         transactionBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
-        hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
-        contractAddress, logs, bloomLogs, transactionIndex,
+        hashId, success, sender, toAddr, cumGas, gasPrice, blockHash,
+        blockNumber, contractAddress, logs, bloomLogs, transactionIndex,
         transactionBodyPtr->GetTransaction());
 
     return res;

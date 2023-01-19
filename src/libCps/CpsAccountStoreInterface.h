@@ -37,8 +37,8 @@ struct CpsAccountStoreInterface {
   virtual bool AccountExistsAtomic(const Address& accont) = 0;
   virtual Address GetAddressForContract(const Address& account,
                                         uint32_t transaction_version) = 0;
-  virtual bool IncreaseBalance(const Address& account, Amount amount) = 0;
-  virtual bool DecreaseBalance(const Address& account, Amount amount) = 0;
+  virtual bool IncreaseBalanceAtomic(const Address& account, Amount amount) = 0;
+  virtual bool DecreaseBalanceAtomic(const Address& account, Amount amount) = 0;
   virtual void SetBalanceAtomic(const Address& account, Amount amount) = 0;
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      Amount amount) = 0;

@@ -61,6 +61,8 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     return preValidateResult;
   }
 
+  TakeGasFromAccount(clientContext);
+
   LOG_GENERAL(WARNING, "CPS ENTER");
   LOG_GENERAL(WARNING, "CPS ENTER FROM: " << ProtoToAddress(
                            clientContext.GetEvmArgs().origin()));
@@ -74,6 +76,12 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
                            << clientContext.GetEvmArgs().data().size());
   LOG_GENERAL(WARNING,
               "CPS ENTER GAS: " << clientContext.GetEvmArgs().gas_limit());
+  LOG_GENERAL(WARNING, "CPS ENTER Funds: "
+                           << mAccountStore
+                                  .GetBalanceForAccountAtomic(ProtoToAddress(
+                                      clientContext.GetEvmArgs().origin()))
+                                  .toQa()
+                                  .convert_to<std::string>());
 
   CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
                     clientContext.GetDirect(),
@@ -91,7 +99,6 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
               "EXEC NONCE IS: " << mAccountStore.GetNonceForAccountAtomic(
                   clientContext.GetTransaction().GetSenderAddr()));
 
-  TakeGasFromAccount(clientContext);
   mAccountStore.BufferCurrentContractStorageState();
 
   CpsExecuteResult runResult;
@@ -115,6 +122,13 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
 
   LOG_GENERAL(WARNING,
               "CPS LEAVE GAS LEFT: " << runResult.evmResult.remaining_gas());
+
+  LOG_GENERAL(WARNING, "CPS Leave Funds: "
+                           << mAccountStore
+                                  .GetBalanceForAccountAtomic(ProtoToAddress(
+                                      clientContext.GetEvmArgs().origin()))
+                                  .toQa()
+                                  .convert_to<std::string>());
 
   // Increase nonce regardless of processing result
   const auto sender = clientContext.GetTransaction().GetSenderAddr();
@@ -146,11 +160,18 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     }
     mTxReceipt.update();
   } else {
-    mAccountStore.CommitAtomics();
     mTxReceipt.SetCumGas(givenGasCore - gasRemainedCore);
     mTxReceipt.SetResult(true);
     mTxReceipt.update();
     RefundGas(clientContext, runResult);
+    mAccountStore.CommitAtomics();
+
+    LOG_GENERAL(WARNING, "CPS Leave Funds After Refund: "
+                             << mAccountStore
+                                    .GetBalanceForAccountAtomic(ProtoToAddress(
+                                        clientContext.GetEvmArgs().origin()))
+                                    .toQa()
+                                    .convert_to<std::string>());
   }
   // Always mark run as successful in estimate mode
   if (isEstimate) {
@@ -166,8 +187,13 @@ void CpsExecutor::TakeGasFromAccount(const EvmProcessContext& context) {
                                 gasDepositWei)) {
     return;
   }
-  mAccountStore.DecreaseBalance(context.GetTransaction().GetSenderAddr(),
-                                Amount::fromWei(gasDepositWei));
+
+  LOG_GENERAL(
+      WARNING,
+      "Gas to be taken Qa: "
+          << Amount::fromWei(gasDepositWei).toQa().convert_to<std::string>());
+  mAccountStore.DecreaseBalanceAtomic(context.GetTransaction().GetSenderAddr(),
+                                      Amount::fromWei(gasDepositWei));
 }
 
 void CpsExecutor::RefundGas(const EvmProcessContext& context,
@@ -180,9 +206,13 @@ void CpsExecutor::RefundGas(const EvmProcessContext& context,
                                 gasRefund)) {
     return;
   }
+  LOG_GENERAL(
+      WARNING,
+      "Gas to be refunded Qa: "
+          << Amount::fromWei(gasRefund).toQa().convert_to<std::string>());
 
-  mAccountStore.IncreaseBalance(context.GetTransaction().GetSenderAddr(),
-                                Amount::fromWei(gasRefund));
+  mAccountStore.IncreaseBalanceAtomic(context.GetTransaction().GetSenderAddr(),
+                                      Amount::fromWei(gasRefund));
 }
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {

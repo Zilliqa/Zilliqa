@@ -55,14 +55,24 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return Account::GetAddressForContract(
         account, GetNonceForAccountAtomic(account), transaction_version);
   }
-  virtual bool IncreaseBalance(const Address& account,
-                               libCps::Amount amount) override {
-    return mAccountStore.IncreaseBalance(account, amount.toQa());
+  virtual bool IncreaseBalanceAtomic(const Address& address,
+                                     libCps::Amount amount) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->IncreaseBalance(amount.toQa());
+    }
+    return false;
   }
-  virtual bool DecreaseBalance(const Address& account,
-                               libCps::Amount amount) override {
-    return mAccountStore.DecreaseBalance(account, amount.toQa());
+
+  virtual bool DecreaseBalanceAtomic(const Address& address,
+                                     libCps::Amount amount) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->DecreaseBalance(amount.toQa());
+    }
+    return false;
   }
+
   virtual void SetBalanceAtomic(const Address& address,
                                 libCps::Amount amount) override {
     Account* account = mAccountStore.GetAccountAtomic(address);

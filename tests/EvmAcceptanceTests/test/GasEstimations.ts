@@ -1,6 +1,6 @@
-import { expect } from "chai";
-import { ethers } from "hardhat";
-import { parallelizer } from "../helpers";
+import {expect} from "chai";
+import {ethers} from "hardhat";
+import {parallelizer} from "../helpers";
 import SignerPool from "../helpers/SignerPool";
 
 describe("Gas estimation with web3.js", function () {
