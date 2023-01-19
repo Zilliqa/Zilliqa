@@ -1,7 +1,7 @@
-import { expect } from "chai";
-import { BigNumber } from "ethers";
-import { ethers } from "hardhat";
-import { parallelizer } from "../helpers";
+import {expect} from "chai";
+import {BigNumber} from "ethers";
+import {ethers} from "hardhat";
+import {parallelizer} from "../helpers";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
@@ -130,7 +130,7 @@ describe("Transfer ethers", function () {
   it("check gas consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
-    const FUND = BigNumber.from(1_000_000_000);
+    const FUND = BigNumber.from(100_000_000_000);
 
     await parallelizer.sendTransaction({
       to: rndAccount.address,
@@ -139,10 +139,10 @@ describe("Transfer ethers", function () {
 
     rndAccount = rndAccount.connect(ethers.provider);
 
-    const TRANSFER_VALUE = 1_000_000;
+    const TRANSFER_VALUE = 100_000_000;
 
     const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
-    const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE, gasLimit: 250000});
+    const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE});
     await singleTransfer.deployed();
 
     async function getFee(hash: string) {
