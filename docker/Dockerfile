@@ -17,7 +17,7 @@
 ARG SCILLA_VERSION=a254436b
 
 # Common dependencies of the builder and runner stages.
-FROM ubuntu:22.04 AS deps
+FROM ubuntu:22.04 AS base
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -63,7 +63,7 @@ RUN apt-get update \
     zip \
     && apt-get remove -y cmake python2  && apt-get autoremove -y
 
-FROM deps AS builder
+FROM base AS deps
 
 # Cargo
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
@@ -109,7 +109,11 @@ COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
 COPY vcpkg.json .
 
-RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
+RUN ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
+
+FROM deps AS builder
+
+ENV VCPKG_ROOT=/vcpkg
 
 COPY src/ src
 COPY cmake/ cmake
@@ -124,12 +128,10 @@ ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
 
 # Build & install Zilliqa
-RUN --mount=type=cache,target=/ccache/ \
-    --mount=type=cache,target=/root/.cache/vcpkg/ \
-    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake --build "/zilliqa/build" --target install
+RUN CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake --build "/zilliqa/build" --target install
 
 COPY evm-ds/ evm-ds
-RUN --mount=type=cache,target=/sccache/ cd evm-ds && PATH=/zilliqa/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
+RUN cd evm-ds && PATH=/zilliqa/vcpkg_installed/x64-linux-dynamic/tools/protobuf:$PATH cargo build --release --package evm-ds && sccache --show-stats
 
 RUN ls -l /zilliqa/evm-ds/target
 
@@ -180,7 +182,7 @@ FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
-FROM deps
+FROM base
 
 # make dirs for scilla and zilliqa
 RUN mkdir -p \

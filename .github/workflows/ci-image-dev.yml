@@ -23,6 +23,10 @@ jobs:
       file: docker/Dockerfile
       context: ''
       image-name: zilliqa
+      image-push: true
+      image-target: ''
+      image-tag: ''
+      cache-type: s3
       cache-key: zilliqa
       runner: "ubuntu-latest-4-cores"
     secrets:

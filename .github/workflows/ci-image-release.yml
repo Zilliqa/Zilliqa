@@ -42,7 +42,9 @@ jobs:
       context: ''
       image-name: zilliqa
       image-tag: ${{ needs.release-version.outputs.version }}
+      cache-type: s3
       cache-key: zilliqa
+      runner: "ubuntu-latest-4-cores"
     secrets:
       registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
       registry-username: ${{ secrets.ECR_USERNAME }}
@@ -60,7 +62,9 @@ jobs:
       context: ''
       image-name: zilliqa/zilliqa
       image-tag: ${{ needs.release-version.outputs.version }}
+      cache-type: s3
       cache-key: 'zilliqa'
+      runner: "ubuntu-latest-4-cores"
     secrets:
       registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
       registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
