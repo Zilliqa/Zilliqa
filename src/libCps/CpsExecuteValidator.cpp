@@ -34,8 +34,14 @@ CpsExecuteResult CpsExecuteValidator::CheckAmount(
     return {TxnStatus::MATH_ERROR, false, {}};
   }
 
-  const auto claimed =
-      Amount::fromWei(gasDepositWei + context.GetTransaction().GetAmountWei());
+  Amount claimed;
+  // Don't take gasLimit into account in estimateGas call
+  if (context.GetEstimateOnly()) {
+    claimed = Amount::fromWei(context.GetTransaction().GetAmountWei());
+  } else {
+    claimed = Amount::fromWei(gasDepositWei +
+                              context.GetTransaction().GetAmountWei());
+  }
   if (claimed > owned) {
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
