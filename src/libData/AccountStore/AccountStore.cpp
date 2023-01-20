@@ -44,19 +44,20 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() : m_db("state"),
-                               m_state(&m_db),
-                               m_accountStoreTemp(*this),
-                               m_externalWriters{0},
-                               m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
-
+AccountStore::AccountStore()
+    : m_db("state"),
+      m_state(&m_db),
+      m_accountStoreTemp(*this),
+      m_externalWriters{0},
+      m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
   bool ipcScillaInit = false;
 
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServer = make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
+    m_scillaIPCServer =
+        make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
@@ -582,7 +583,8 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  AccountStoreSC::m_transactionLatency = static_cast<double>(r_timer_end(tpStart)) / 1000.0;
+  AccountStoreSC::m_transactionLatency =
+      static_cast<double>(r_timer_end(tpStart)) / 1000.0;
   return status;
 }
 
@@ -667,10 +669,8 @@ bool AccountStore::RevertCommitTemp() {
 
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp.NotifyTimeout(); }
 
-bool AccountStore::GetProof(const Address& address,
-                            const dev::h256& rootHash,
-                            Account& account,
-                            std::set<std::string>& nodes) {
+bool AccountStore::GetProof(const Address& address, const dev::h256& rootHash,
+                            Account& account, std::set<std::string>& nodes) {
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "not lookup node");
     return false;
@@ -724,7 +724,7 @@ bool AccountStore::GetProof(const Address& address,
 }
 
 bool AccountStore::UpdateStateTrie(const Address& address,
-                                            const Account& account) {
+                                   const Account& account) {
   zbytes rawBytes;
   if (!account.SerializeBase(rawBytes, 0)) {
     LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");

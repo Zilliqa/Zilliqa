@@ -39,9 +39,9 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
+#include "libUtils/Tracing.h"
 #include "libUtils/UpgradeManager.h"
 #include "libValidator/Validator.h"
-#include "libUtils/Tracing.h"
 
 namespace {
 

@@ -23,10 +23,7 @@
 
 class AccountStoreSC;
 
-class AccountStoreAtomic
-    : public AccountStoreBase {
-
-
+class AccountStoreAtomic : public AccountStoreBase {
  public:
   AccountStoreAtomic(AccountStoreSC& parent);
 
