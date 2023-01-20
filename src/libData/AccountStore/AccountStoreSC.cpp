@@ -59,7 +59,7 @@ typedef long int observerType;
 
 namespace evm {
     void InitHistogram();
-};
+}
 
 double AccountStoreSC::m_evmLatency = 0;
 double AccountStoreSC::m_transactionLatency = 0;

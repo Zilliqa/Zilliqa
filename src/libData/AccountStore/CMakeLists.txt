@@ -2,7 +2,6 @@ add_library(AccountStore
         AccountStoreTemp.cpp
         AccountStoreBase.cpp
         AccountStoreSC.cpp
-        AccountStoreTrie.cpp
         AccountStore.cpp
         AccountStoreAtomic.cpp
         AccountStoreSCEvm.cpp
