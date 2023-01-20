@@ -66,7 +66,7 @@ describe("Transfer ethers", function () {
     const BatchTransferContract = await ethers.getContractFactory("BatchTransfer");
     const batchTransfer = await BatchTransferContract.deploy({value: ACCOUNTS_COUNT * ACCOUNT_VALUE });
     await batchTransfer.deployed();
-    batchTransfer.batchTransfer(addresses, ACCOUNT_VALUE);
+    await batchTransfer.batchTransfer(addresses, ACCOUNT_VALUE);
 
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
