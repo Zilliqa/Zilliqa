@@ -51,23 +51,25 @@ describe("Transfer ethers", function () {
 
     expect(await ethers.provider.getBalance(payee.address)).to.be.eq(FUND);
   });
+
+
+  it("should be possible to batch transfer using a smart contract", async function () {
+    const ACCOUNTS_COUNT = 3;
+    const ACCOUNT_VALUE = 1_000_000;
+
+    const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
+      ethers.Wallet.createRandom().connect(ethers.provider)
+    );
+
+    const addresses = accounts.map((signer) => signer.address);
+
+    const BatchTransferContract = await ethers.getContractFactory("BatchTransfer");
+    const batchTransfer = await BatchTransferContract.deploy({value: ACCOUNTS_COUNT * ACCOUNT_VALUE });
+    await batchTransfer.deployed();
+    batchTransfer.batchTransfer(addresses, ACCOUNT_VALUE);
+
+    const balances = await Promise.all(accounts.map((account) => account.getBalance()));
+    balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
+  });
 });
 
-it("should be possible to batch transfer using a smart contract", async function () {
-  const ACCOUNTS_COUNT = 3;
-  const ACCOUNT_VALUE = 1_000_000;
-
-  const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
-    ethers.Wallet.createRandom().connect(ethers.provider)
-  );
-
-  const addresses = accounts.map((signer) => signer.address);
-
-  const BatchTransferContract = await ethers.getContractFactory("BatchTransfer");
-  const batchTransfer = await BatchTransferContract.deploy({value: ACCOUNTS_COUNT * ACCOUNT_VALUE });
-  await batchTransfer.deployed();
-  batchTransfer.batchTransfer(addresses, ACCOUNT_VALUE);
-
-  const balances = await Promise.all(accounts.map((account) => account.getBalance()));
-  balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
-});
