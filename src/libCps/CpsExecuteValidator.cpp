@@ -29,19 +29,12 @@ CpsExecuteResult CpsExecuteValidator::CheckAmount(
     const EvmProcessContext& context, const Amount& owned) {
   uint256_t gasDepositWei;
   if (!SafeMath<uint256_t>::mul(context.GetTransaction().GetGasLimitZil(),
-                                context.GetTransaction().GetGasPriceWei(),
-                                gasDepositWei)) {
+                                GetGasPriceWei(context), gasDepositWei)) {
     return {TxnStatus::MATH_ERROR, false, {}};
   }
 
-  Amount claimed;
-  // Don't take gasLimit into account in estimateGas call
-  if (context.GetEstimateOnly()) {
-    claimed = Amount::fromWei(context.GetTransaction().GetAmountWei());
-  } else {
-    claimed = Amount::fromWei(gasDepositWei +
-                              context.GetTransaction().GetAmountWei());
-  }
+  const auto claimed =
+      Amount::fromWei(gasDepositWei + context.GetTransaction().GetAmountWei());
   if (claimed > owned) {
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
@@ -72,6 +65,12 @@ CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
     }
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
+uint128_t CpsExecuteValidator::GetGasPriceWei(
+    const EvmProcessContext& context) {
+  return context.GetEstimateOnly() ? 0
+                                   : context.GetTransaction().GetGasPriceWei();
 }
 
 }  // namespace libCps

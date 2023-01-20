@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSEXECUTEVALIDATOR_H_
 #define ZILLIQA_SRC_LIBCPS_CPSEXECUTEVALIDATOR_H_
 
+#include "common/BaseType.h"
 #include "libCps/CpsExecuteResult.h"
 
 class EvmProcessContext;
@@ -30,6 +31,7 @@ class CpsExecuteValidator final {
   static CpsExecuteResult CheckGasLimit(const EvmProcessContext& context);
   static CpsExecuteResult CheckAmount(const EvmProcessContext& context,
                                       const Amount& owned);
+  static uint128_t GetGasPriceWei(const EvmProcessContext& context);
 };
 }  // namespace libCps
 

@@ -183,7 +183,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
 void CpsExecutor::TakeGasFromAccount(const EvmProcessContext& context) {
   uint256_t gasDepositWei;
   if (!SafeMath<uint256_t>::mul(context.GetTransaction().GetGasLimitZil(),
-                                context.GetTransaction().GetGasPriceWei(),
+                                CpsExecuteValidator::GetGasPriceWei(context),
                                 gasDepositWei)) {
     return;
   }
@@ -202,7 +202,7 @@ void CpsExecutor::RefundGas(const EvmProcessContext& context,
       GasConv::GasUnitsFromEthToCore(runResult.evmResult.remaining_gas());
   uint128_t gasRefund;
   if (!SafeMath<uint128_t>::mul(gasRemainedCore,
-                                context.GetTransaction().GetGasPriceWei(),
+                                CpsExecuteValidator::GetGasPriceWei(context),
                                 gasRefund)) {
     return;
   }
