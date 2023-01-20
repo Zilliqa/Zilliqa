@@ -125,7 +125,6 @@ extendEnvironment((hre) => {
   hre.debug = ENV_VARS.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
   hre.scillaTesting = ENV_VARS.scilla;
-  hre.ethernalPlugin = ENV_VARS.ethernalPassword !== undefined;
 });
 
 task("test")
