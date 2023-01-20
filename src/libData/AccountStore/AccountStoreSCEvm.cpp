@@ -395,10 +395,13 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
   if (ENABLE_CPS) {
     LOG_GENERAL(WARNING, "Running EVM in CPS mode");
+    m_originAddr = evmContext.GetTransaction().GetSenderAddr();
     m_curGasLimit = evmContext.GetTransaction().GetGasLimitZil();
     m_curGasPrice = evmContext.GetTransaction().GetGasPriceWei();
     m_curContractAddr = evmContext.GetTransaction().GetToAddr();
     m_curAmount = evmContext.GetTransaction().GetAmountQa();
+    m_curSenderAddr = evmContext.GetTransaction().GetSenderAddr();
+    m_curEdges = 0;
     m_curNumShards = numShards;
 
     AccountStoreCpsInterface acCpsInterface{*this};
