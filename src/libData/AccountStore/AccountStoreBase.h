@@ -30,7 +30,7 @@
 
 class AccountStoreBase : public SerializableDataBlock {
  protected:
-  std::shared_ptr<std::unordered_map<Address,Account>> m_addressToAccount;
+  std::shared_ptr<std::unordered_map<Address, Account>> m_addressToAccount;
 
   AccountStoreBase();
 

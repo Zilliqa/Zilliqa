@@ -36,7 +36,8 @@ class AccountStoreTemp : public AccountStoreSC {
   // Returns the Account associated with the specified address.
   Account* GetAccount(const Address& address) override;
 
-  const std::shared_ptr<std::unordered_map<Address, Account>>& GetAddressToAccount() {
+  const std::shared_ptr<std::unordered_map<Address, Account>>&
+  GetAddressToAccount() {
     return this->m_addressToAccount;
   }
 

@@ -16,11 +16,11 @@
  */
 
 #include "Messenger.h"
+#include "libBlockchain/Serialization.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libBlockchain/Serialization.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libUtils/SafeMath.h"
 
@@ -7897,8 +7897,8 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
     }
 
     const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
-    cosigrewards.emplace_back(CoinbaseStruct(txBlkNum, shardId, coSigs.m_B1,
-                                             coSigs.m_B2, rewards));
+    cosigrewards.emplace_back(
+        CoinbaseStruct(txBlkNum, shardId, coSigs.m_B1, coSigs.m_B2, rewards));
     LOG_GENERAL(INFO, "Received cosig and rewards for epoch "
                           << txBlkNum << ", shard " << shardId);
   }

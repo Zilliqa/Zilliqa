@@ -26,9 +26,9 @@
 
 #include <Schnorr.h>
 #include "common/Constants.h"
-#include "libConsensus/Consensus.h"
 #include "libBlockchain/Block.h"
 #include "libBlockchain/BlockHashSet.h"
+#include "libConsensus/Consensus.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
@@ -545,14 +545,15 @@ class DirectoryService : public Executable {
   /// Whether ds started finalblock consensus
   std::mutex m_mutexPrepareRunFinalblockConsensus;
 
-  struct MicroBlockCompare final
-  {
+  struct MicroBlockCompare final {
     bool operator()(const MicroBlock& lhs, const MicroBlock& rhs) const;
   };
 
   std::mutex m_mutexMicroBlocks;
-  // TODO: is it possible to use an unordered data structure instead of a set of MicroBlocks?
-  std::unordered_map<uint64_t, std::set<MicroBlock, MicroBlockCompare>> m_microBlocks;
+  // TODO: is it possible to use an unordered data structure instead of a set of
+  // MicroBlocks?
+  std::unordered_map<uint64_t, std::set<MicroBlock, MicroBlockCompare>>
+      m_microBlocks;
   std::unordered_map<uint64_t, std::vector<BlockHash>> m_missingMicroBlocks;
   std::unordered_map<uint64_t, std::unordered_map<BlockHash, zbytes>>
       m_microBlockStateDeltas;
