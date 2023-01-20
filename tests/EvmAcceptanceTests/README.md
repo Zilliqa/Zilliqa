@@ -314,7 +314,9 @@ to change some of the testing behaviors environment variables are used. They can
 - `DEBUG=true` to enable debugging logs.
 - `SCILLA=false` to ignore scilla tests.
 - `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
-- `ETHERNAL=true` to enable ethernal plugin.
+- `ETHERNAL_EMAIL="devops+ethernal@zilliqa.com"` to set Ethernal email.
+- `ETHERNAL_WORKSPACE="Zilliqa Testnet"` to set Ethernal workspace.
+- `ETHERNAL_PASSWORD="Your Password"` If it's not set, ethernal plugin will be disabled.
 
 ## Scripts
 
