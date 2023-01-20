@@ -6,6 +6,7 @@ declare module "hardhat/types/runtime" {
     debug: boolean;
     parallel: boolean;
     scillaTesting: boolean;
+    isEthernalPluginEnabled: () => boolean;
     isScillaTestingEnabled: () => boolean;
     isZilliqaNetworkSelected: () => boolean;
     getEthChainId: () => number;
@@ -20,6 +21,10 @@ declare module "hardhat/types/runtime" {
 }
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
+  hre.isEthernalPluginEnabled = () => {
+    return hre.ethernalPlugin;
+  };
+
   hre.isScillaTestingEnabled = () => {
     return hre.scillaTesting;
   };
