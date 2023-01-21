@@ -201,8 +201,6 @@
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
         <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
-        <!-- Sort account store delta before serialization -->
-        <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
