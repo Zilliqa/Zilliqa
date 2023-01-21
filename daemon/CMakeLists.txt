@@ -1,4 +1,4 @@
-add_executable(zilliqad ZilliqaDaemon.cpp)
+add_executable(zilliqad ZilliqaDaemon.cpp ../tests/observability/tests/main.cpp)
 
 target_link_libraries (zilliqad Boost::program_options Boost::filesystem -s)
 
