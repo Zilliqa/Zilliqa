@@ -25,6 +25,7 @@
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libMessage/MessengerAccountStoreTrie.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #pragma GCC diagnostic push
