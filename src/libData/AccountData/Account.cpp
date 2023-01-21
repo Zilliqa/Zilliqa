@@ -19,7 +19,6 @@
 
 #include <ethash/keccak.hpp>
 #include "Account.h"
-#include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"

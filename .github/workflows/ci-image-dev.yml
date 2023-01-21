@@ -1,0 +1,34 @@
+name: CI - Development
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitOrTag:
+        description: 'Commit or tag'
+        required: false
+        default: ''
+  push:
+    branches-ignore:
+      - 'release/**'
+    paths-ignore:
+    - '**.md'
+    - 'docs/**'
+    - 'Jenkinsfile'
+
+jobs:
+  push-to-ecr:
+    uses: Zilliqa/gh-actions-workflows/.github/workflows/ci-dockerized-app-build-push-ecr.yml@main
+    with:
+      commitOrTag: ${{ inputs.commitOrTag }}
+      file: docker/Dockerfile
+      context: ''
+      image-name: zilliqa
+      cache-key: zilliqa
+      runner: "ubuntu-latest-4-cores"
+    secrets:
+      registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
+      registry-username: ${{ secrets.ECR_USERNAME }}
+      registry-password: ${{ secrets.ECR_PASSWORD }}
+      aws-region: ${{ secrets.AWS_REGION_ZILLIQA }}
+      cache-username: ${{ secrets.CACHE_USERNAME }}
+      cache-password: ${{ secrets.CACHE_PASSWORD }}

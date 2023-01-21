@@ -18,16 +18,11 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_
 #define ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_
 
-#include <curl/curl.h>
-#include <string>
-#include <vector>
+#include <Schnorr.h>
 
 class UpgradeManager {
  private:
-  CURL* m_curl;
-
-  UpgradeManager();
-  ~UpgradeManager();
+  UpgradeManager() = default;
 
   // Singleton should not implement these
   UpgradeManager(UpgradeManager const&) = delete;
@@ -37,12 +32,7 @@ class UpgradeManager {
   /// Returns the singleton UpgradeManager instance.
   static UpgradeManager& GetInstance();
 
-  /// Should be only called internally, put in public just for testing
-  std::string DownloadFile(const char* fileTail,
-                           const char* releaseUrl = nullptr);
-
-  bool LoadInitialDS(std::vector<class PubKey>& initialDSCommittee);
-  void CleanInitialDS();
+  bool LoadInitialDS(std::vector<PubKey>& initialDSCommittee);
 };
 
 #endif  // ZILLIQA_SRC_LIBUTILS_UPGRADEMANAGER_H_

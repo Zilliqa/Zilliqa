@@ -549,16 +549,10 @@ const string POW_SUBMISSION_VERSION_TAG{
 // Recovery and upgrading constants
 const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
     ReadConstantNumeric("WAIT_LOOKUP_WAKEUP_IN_SECONDS", "node.recovery.")};
-const bool GET_INITIAL_DS_FROM_REPO{
-    ReadConstantString("GET_INITIAL_DS_FROM_REPO", "node.recovery.") == "true"};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
     ReadConstantNumeric("SHARD_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
     ReadConstantNumeric("TERMINATION_COUNTDOWN_IN_SECONDS", "node.recovery.")};
-const string UPGRADE_HOST_ACCOUNT{
-    ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
-const string UPGRADE_HOST_REPO{
-    ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};

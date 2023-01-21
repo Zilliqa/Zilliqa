@@ -38,7 +38,11 @@ bool SetTxBlock(zbytes& dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
+#if defined(__APPLE__) || __GNUC__ < 11
+template <typename RangeT>
+#else
 template <std::ranges::contiguous_range RangeT>
+#endif
 bool GetTxBlock(RangeT&& src, unsigned int offset, TxBlock& txBlock) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "

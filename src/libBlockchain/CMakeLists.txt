@@ -11,4 +11,4 @@ add_library(Blockchain STATIC
   VCBlockHeader.cpp
   Serialization.cpp)
 target_include_directories(Blockchain PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries (Blockchain PRIVATE ${Schnorr_LIBRARY} MessageCommon Utils)
+target_link_libraries (Blockchain PRIVATE ${Schnorr_LIBRARY} OpenSSL::Crypto MessageCommon Utils)

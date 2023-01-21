@@ -16,25 +16,25 @@
  */
 //
 #include <json/value.h>
-#include <opentelemetry/sdk/metrics/meter_provider.h>
 #include <chrono>
 #include <future>
 #include <stdexcept>
 #include <vector>
+#include <opentelemetry/sdk/metrics/meter_provider.h>
 
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
-#include "opentelemetry/exporters/ostream/metric_exporter.h"
 #include "opentelemetry/ext/http/client/http_client_factory.h"
 #include "opentelemetry/ext/http/common/url_parser.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/semantic_conventions.h"
+#include "opentelemetry/exporters/ostream/metric_exporter.h"
 #include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 #include "opentelemetry/sdk/metrics/aggregation/histogram_aggregation.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
-#include "opentelemetry/trace/propagation/http_trace_context.h"
-#include "opentelemetry/trace/semantic_conventions.h"
 
 #include "AccountStoreSC.h"
 #include "common/Constants.h"
@@ -57,17 +57,16 @@
 namespace metric_sdk = opentelemetry::sdk::metrics;
 
 namespace evm {
-zil::metrics::doubleHistogram_t histogram;
 
+    zil::metrics::uint64Counter_t &GetInvocationsCounter() {
+        static auto counter = Metrics::GetInstance().CreateInt64Metric(
+                "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
+                "Blocks");
+        return counter;
+    }
 
-zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-  static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
-      "Blocks");
-  return counter;
-}
+}  // namespace
 
-}  // namespace evm
 
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    const evm::EvmArgs &args,           //
@@ -90,11 +89,13 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
     } catch (std::exception &e) {
+      LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
       auto constexpr str = "Exception from underlying RPC call";
       LOG_GENERAL(WARNING, str);
       TRACE_ATTRIBUTE msg{{"reason", str}};
       TRACE_EVENT(span, ACC_EVM, "return", msg);
     } catch (...) {
+      LOG_GENERAL(WARNING, "UnHandled Exception from underlying RPC call ");
       auto constexpr str = "Exception from underlying RPC call";
       LOG_GENERAL(WARNING, str);
       TRACE_ATTRIBUTE msg{{"reason", str}};
@@ -321,6 +322,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
 
   return status;
 }
+
 
 bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        const unsigned int &numShards,

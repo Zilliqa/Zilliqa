@@ -28,4 +28,13 @@ const Address NullAddress;
 
 inline bool IsNullAddress(const Address& address) { return !address; }
 
+enum class AddressConversionCode {
+  OK = 0,
+  INVALID_ADDR,
+  INVALID_BECH32_ADDR,
+  WRONG_ADDR_SIZE,
+};
+
+AddressConversionCode ToBase16Addr(const std::string& addr, Address& retAddr);
+
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTDATA_ADDRESS_H_

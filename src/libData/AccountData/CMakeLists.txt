@@ -1,5 +1,6 @@
 add_library(AccountData
     Account.cpp
+    Address.cpp
     Transaction.cpp
     LogEntry.cpp
     TransactionReceipt.cpp
