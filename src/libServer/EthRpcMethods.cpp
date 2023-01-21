@@ -714,7 +714,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
-                                      true);
+                                      true, false);
 
   evm::EvmResult result;
 
@@ -818,12 +818,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                             .GetHeader()
                             .GetBlockNum();
 
-    /*
-     * EVM estimate only is currently disabled, as per n-hutton advice.
-     */
     EvmProcessContext evmMessageContext(fromAddr, addr, code, data, gasRemained,
                                         value, blockNum, txnExtras, "eth_call",
-                                        false);
+                                        false, true);
 
     if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
                                                           result) &&

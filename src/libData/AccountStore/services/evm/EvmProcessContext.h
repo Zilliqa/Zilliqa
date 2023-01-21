@@ -73,7 +73,7 @@ struct EvmProcessContext {
                     const zbytes& code, const zbytes& data, const uint64_t& gas,
                     const uint256_t& amount, const uint64_t& blkNum,
                     const TxnExtras& extras, std::string_view context,
-                    bool estimate = false);
+                    bool estimate, bool direct);
 
   bool GetCommit() const;
 

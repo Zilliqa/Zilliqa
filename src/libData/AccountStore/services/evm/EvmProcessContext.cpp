@@ -111,11 +111,11 @@ EvmProcessContext::EvmProcessContext(
     const Address& caller, const Address& contract, const zbytes& code,
     const zbytes& data, const uint64_t& gas, const uint256_t& amount,
     const uint64_t& blkNum, const TxnExtras& extras, std::string_view context,
-    bool estimate)
+    bool estimate, bool direct)
     : m_txnCode(code),
       m_txnData(data),
       m_legacyTxn(m_dummyTransaction),
-      m_direct(true),
+      m_direct(direct),
       m_blockNumber(blkNum) {
   *m_protoData.mutable_address() = AddressToProto(contract);
   *m_protoData.mutable_origin() = AddressToProto(caller);
