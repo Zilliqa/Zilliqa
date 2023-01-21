@@ -59,40 +59,6 @@ namespace metric_sdk = opentelemetry::sdk::metrics;
 namespace evm {
 zil::metrics::doubleHistogram_t histogram;
 
-// Temporary code will be deprecated soon
-
-void InitHistogram() {
-  std::string version{"1.2.0"};
-  std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
-  std::string name{"zilliqa"};
-
-  std::string histogram_name = name + "_histogram";
-  std::unique_ptr<metric_sdk::InstrumentSelector> histogram_instrument_selector{
-      new metric_sdk::InstrumentSelector(metric_sdk::InstrumentType::kHistogram,
-                                         histogram_name)};
-  std::unique_ptr<metric_sdk::MeterSelector> histogram_meter_selector{
-      new metric_sdk::MeterSelector(name, version, schema)};
-  std::shared_ptr<opentelemetry::sdk::metrics::AggregationConfig>
-      aggregation_config{
-          new opentelemetry::sdk::metrics::HistogramAggregationConfig};
-  static_cast<opentelemetry::sdk::metrics::HistogramAggregationConfig *>(
-      aggregation_config.get())
-      ->boundaries_ = std::list<double>{0.0, 100, 250, 500, 1000, 2000, 3000};
-  std::unique_ptr<metric_sdk::View> histogram_view{new metric_sdk::View{
-      name, "description", metric_sdk::AggregationType::kHistogram,
-      aggregation_config}};
-
-  auto p = std::static_pointer_cast<metric_sdk::MeterProvider>(
-      Metrics::GetInstance().getProvider());
-
-  p->AddView(std::move(histogram_instrument_selector),
-             std::move(histogram_meter_selector), std::move(histogram_view));
-
-  std::shared_ptr<opentelemetry::metrics::Meter> meter =
-      p->GetMeter(name, "1.2.0");
-  histogram = meter->CreateDoubleHistogram(
-      histogram_name, "A histogram to measure latencies", "us");
-}
 
 zil::metrics::uint64Counter_t &GetInvocationsCounter() {
   static auto counter = Metrics::GetInstance().CreateInt64Metric(

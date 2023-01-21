@@ -24,9 +24,12 @@
 #include "common/Singleton.h"
 
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/metrics/async_instruments.h"
 #include "opentelemetry/metrics/sync_instruments.h"
 #include "opentelemetry/sdk/resource/resource.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/sdk/metrics/metric_reader.h"
 
 class Metrics;
 
@@ -202,17 +205,20 @@ class Metrics : public Singleton<Metrics> {
   /// Called on main() exit explicitly
   void Shutdown();
 
-  std::shared_ptr<opentelemetry::metrics::MeterProvider>& getProvider() {
-    return m_provider;
-  }
+  void AddCounterSumView(const std::string& name,const std::string& description);
+  void AddCounterHistogramView(const std::string& name,std::list<double>& list, std::string& description);
+  void AddCounterHistogramView(const std::string &name, const std::string& hname, std::list<double> &list, std::string &description) ;
+
+  static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
  private:
   void Init();
-  void InitPrometheus();
+  void InitPrometheus(const std::string &addr);
   void InitOTHTTP();
   void InitStdOut();
 
-  std::shared_ptr<opentelemetry::metrics::MeterProvider> m_provider;
+  std::unique_ptr<opentelemetry::sdk::metrics::MetricReader>  GetReader();
+
 };
 
 #define INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE) \
