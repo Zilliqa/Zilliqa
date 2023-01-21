@@ -616,8 +616,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   zbytes code;
   uint256_t accountFunds{};
   bool contractCreation = false;
-  uint128_t fundsAvailableContract = 0;
-
   {
     shared_lock<shared_timed_mutex> lock(
         AccountStore::GetInstance().GetPrimaryMutex());
@@ -632,7 +630,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "Sender doesn't exist");
     }
     accountFunds = sender->GetBalance();
-    fundsAvailableContract = static_cast<uint128_t>(accountFunds);
 
     const Account* toAccount =
         !IsNullAddress(toAddr)
@@ -660,7 +657,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (json.isMember("value")) {
     const auto valueStr = json["value"].asString();
     value = DataConversion::ConvertStrToInt<uint256_t>(valueStr, 0);
-    fundsAvailableContract += DataConversion::ConvertStrToInt<uint128_t>(valueStr, 0);
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
@@ -722,18 +718,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   evm::EvmResult result;
 
-  // Make sure the contract has 'funds' available during the gas test,
-  // anc clear it afterwards
-  bool ret = false;
-  {
-    shared_lock<shared_timed_mutex> lock(
-        AccountStore::GetInstance().GetPrimaryMutex());
-    AccountStore::GetInstance().IncreaseBalanceTemp(toAddr, fundsAvailableContract);
-    ret = AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext, result);
-    AccountStore::GetInstance().InitTemp();
-  }
-
-  if (ret && result.exit_reason().exit_reason_case() ==
+  if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
+                                                        result) &&
+      result.exit_reason().exit_reason_case() ==
           evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
