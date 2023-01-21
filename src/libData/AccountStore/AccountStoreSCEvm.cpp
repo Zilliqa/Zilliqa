@@ -377,6 +377,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
   }
 
+  // In the case of eth-call this path will be taken. For estimate gas,
+  // it should not be direct, or commital
   if (evmContext.GetDirect()) {
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
