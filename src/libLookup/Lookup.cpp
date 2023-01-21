@@ -31,12 +31,12 @@
 
 #include "Lookup.h"
 #include "common/Messages.h"
+#include "libBlockchain/Block.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libBlockchain/Block.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"

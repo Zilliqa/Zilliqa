@@ -62,7 +62,8 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
-                                unsigned int factor = 0, const string& errMsg = "") {
+                                unsigned int factor = 0,
+                                const string& errMsg = "") {
   if (minLengthNeeded > messageSize - offset) {
     LOG_GENERAL(WARNING, "[Message Size Insufficient] " << errMsg);
     return true;
@@ -3252,4 +3253,3 @@ void Node::CheckPeers(const vector<Peer>& peers) {
   }
   P2PComm::GetInstance().SendMessage(peers, message);
 }
-

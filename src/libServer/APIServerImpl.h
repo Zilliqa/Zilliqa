@@ -118,10 +118,9 @@ class APIServerImpl : public APIServer,
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
 
-  zil::metrics::Observable m_metrics{
-      Metrics::GetInstance().CreateInt64Gauge(
-          zil::metrics::FilterClass::API_SERVER, "zilliqa_api_server",
-          "api_server_metrics", "API server metrics")};
+  zil::metrics::Observable m_metrics{Metrics::GetInstance().CreateInt64Gauge(
+      zil::metrics::FilterClass::API_SERVER, "zilliqa_api_server",
+      "api_server_metrics", "API server metrics")};
 };
 
 }  // namespace rpc

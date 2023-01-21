@@ -47,13 +47,8 @@ add_test(NAME Test_DSPowSolution COMMAND Test_DSPowSolution)
 #target_link_libraries(Test_ContractInvoke PUBLIC AccountData Crypto Trie Utils Persistence)
 #add_test(NAME Test_ContractInvoke COMMAND Test_ContractInvoke)
 
-#add_executable(Test_Block Test_Block.cpp)
-
 #target_include_directories(Test_Transaction PUBLIC ${CMAKE_SOURCE_DIR}/src)
-#target_include_directories(Test_Block PUBLIC ${CMAKE_SOURCE_DIR}/src)
-
 #target_link_libraries(Test_Transaction PUBLIC Data Utils Crypto)
-#target_link_libraries(Test_Block PUBLIC Data Utils Crypto)
 
 add_subdirectory (BlockChainData)
 add_subdirectory (AccountData)

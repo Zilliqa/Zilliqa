@@ -50,7 +50,6 @@ MessengerAccountStoreBase::GetAccountStore<unordered_map<Address, Account>>(
     const string& src, const unsigned int offset,
     unordered_map<Address, Account>& addressToAccount);
 
-
 template <class MAP>
 bool MessengerAccountStoreBase::SetAccountStore(zbytes& dst,
                                                 const unsigned int offset,

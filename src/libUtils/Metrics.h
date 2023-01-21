@@ -23,9 +23,9 @@
 #include "common/MetricFilters.h"
 #include "common/Singleton.h"
 
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/metrics/async_instruments.h"
 #include "opentelemetry/metrics/sync_instruments.h"
-#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/sdk/resource/resource.h"
 
 class Metrics;
@@ -147,7 +147,7 @@ class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
 
-  std::string Version(){ return "Initial"; }
+  std::string Version() { return "Initial"; }
 
   zil::metrics::uint64Counter_t CreateInt64Metric(const std::string& family,
                                                   const std::string& name,
@@ -202,8 +202,8 @@ class Metrics : public Singleton<Metrics> {
   /// Called on main() exit explicitly
   void Shutdown();
 
-  std::shared_ptr<opentelemetry::metrics::MeterProvider>& getProvider(){
-      return m_provider;
+  std::shared_ptr<opentelemetry::metrics::MeterProvider>& getProvider() {
+    return m_provider;
   }
 
  private:

@@ -36,7 +36,7 @@ bool SetTxBlockHeader(zbytes& dst, unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || __GNUC__ < 11
 template <typename RangeT>
 #else
 template <std::ranges::contiguous_range RangeT>

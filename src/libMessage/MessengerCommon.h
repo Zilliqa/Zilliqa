@@ -88,12 +88,11 @@ bool SerializeToArray(const T& protoMessage, zbytes& dst,
                                        protoMessage.ByteSizeLong());
 }
 
-#ifndef __APPLE__
+#if defined(__APPLE__) || __GNUC__ < 11
+template <typename InputRangeT, typename OuputRangeT>
+#else
 template <std::ranges::input_range InputRangeT,
           std::ranges::contiguous_range OuputRangeT>
-#else
-template <typename InputRangeT,
-          typename OuputRangeT>
 #endif
 bool CopyWithSizeCheck(const InputRangeT& src, OuputRangeT& result) {
   // Fixed length copying.
