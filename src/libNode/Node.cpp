@@ -122,6 +122,12 @@ void Node::PopulateAccounts() {
 
   LOG_MARKER();
 
+#ifndef PRODCTION_BUILD  // This is a temporary feature for lccal cluster testing -- Steve White - CORE 20/01/2023
+  if (readAccountJsonFromFile("/etc/isolated-server-accounts.json") == 0){
+      LOG_GENERAL(INFO,"ADDED isolated-server-accounts.json")
+  }
+#endif
+
   try {
     string line;
     fstream keys_file(PREGENED_ACCOUNTS_FILE, ios::in);
