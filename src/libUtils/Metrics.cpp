@@ -16,8 +16,9 @@
  */
 
 #include "Metrics.h"
-
+#include "Tracing.h"
 #include <vector>
+#include <chrono>
 
 
 #include <boost/algorithm/string.hpp>
@@ -29,7 +30,10 @@
 #include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
+
+#include "Tracing.h"
 #include "common/Constants.h"
+#include "libUtils/Logger.h"
 
 namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace metrics_exporter = opentelemetry::exporter::metrics;
@@ -59,12 +63,84 @@ void Metrics::Init() {
     }
 }
 
+// TODO:: could probably optimise out the span with getcurrent span
+// Capture EMT - multipurpose talk to all capture event metric , log , trace of event
+// next step add linkage.
+
+bool
+Metrics::CaptureEMT(std::shared_ptr<opentelemetry::trace::Span> &span,
+                    zil::metrics::FilterClass fc,
+                    zil::trace::FilterClass tc,
+                    zil::metrics::uint64Counter_t &metric,
+                    const std::string &messageText,
+                    const uint8_t &code) {
+    try {
+        if (not messageText.empty()) {
+            LOG_GENERAL(WARNING, messageText);
+        }
+        if (zil::trace::Filter::GetInstance().Enabled(tc)) {
+            span->SetStatus(opentelemetry::trace::StatusCode::kError, messageText);
+        }
+        if (zil::metrics::Filter::GetInstance().Enabled(fc) && metric.get() != nullptr) {
+            metric->Add(1, {{"error", __FUNCTION__}});
+        }
+    } catch (...) {
+        return false;
+    }
+    return true;
+}
+
+namespace zil {
+    namespace metrics {
+        std::chrono::system_clock::time_point r_timer_start() {
+            return std::chrono::system_clock::now();
+        }
+
+        double r_timer_end(std::chrono::system_clock::time_point start_time) {
+            std::chrono::duration<double, std::micro> difference = std::chrono::system_clock::now() - start_time;
+            return difference.count();
+        }
+    }
+}
+
+
+Metrics::LatencyScopeMarker::LatencyScopeMarker(zil::metrics::uint64Counter_t &metric,
+                                                zil::metrics::doubleHistogram_t &latency,
+                                                zil::metrics::FilterClass fc,
+                                                const char *file,
+                                                int line,
+                                                const char *func,
+                                                bool should_print)
+        : m_file{file},
+          m_line{line},
+          m_func{func},
+          should_print{should_print},
+          m_metric(metric),
+          m_latency(latency),
+          m_filterClass(fc),
+          m_startTime(zil::metrics::r_timer_start()) {
+}
+
+Metrics::LatencyScopeMarker::~LatencyScopeMarker() {
+    // TODO: move this when go live
+    if (true or zil::metrics::Filter::GetInstance().Enabled(m_filterClass)) {
+        try {
+            double taken = zil::metrics::r_timer_end(m_startTime);
+            auto context = opentelemetry::context::Context{};
+            TRACE_ATTRIBUTE counter_attr = {{"method", m_func}};
+            m_metric->Add(1, counter_attr);
+            m_latency->Record(taken, counter_attr, context);
+        } catch (...) {
+            // TODO - Write some very specific Exception Handling.
+            std::cout << "Brute force catch" << std::endl;
+        }
+    }
+}
 
 void Metrics::InitStdOut() {
     std::unique_ptr<metrics_sdk::PushMetricExporter> exporter{new metrics_exporter::OStreamMetricExporter};
     // Initialize and set the global MeterProvider
-    metrics_sdk::PeriodicExportingMetricReaderOptions options{};
-
+    metrics_sdk::PeriodicExportingMetricReaderOptions options;
     options.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
     options.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
 
@@ -100,7 +176,6 @@ void Metrics::InitOTHTTP() {
 
     opts.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
     opts.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
-
     std::unique_ptr<metrics_sdk::MetricReader> reader{
             new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter), opts)};
     auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metrics_sdk::MeterProvider(
@@ -279,7 +354,7 @@ Metrics::AddCounterSumView(const std::string &name, const std::string &descripti
 }
 
 void
-Metrics::AddCounterHistogramView(const std::string &name, const std::string &hname, std::list<double> &list,
+Metrics::AddCounterHistogramView(const std::string &name, std::list<double> &list,
                                  std::string &description) {
     // counter view
 
