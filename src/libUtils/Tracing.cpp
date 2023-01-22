@@ -148,4 +148,96 @@ void Filter::init() {
     }
   }
 }
+
+namespace {
+
+struct TextMapCarrier
+    : public opentelemetry::context::propagation::TextMapCarrier {
+  opentelemetry::nostd::string_view Get(
+      opentelemetry::nostd::string_view key) const noexcept override {
+    if (IsTraceParent(key)) {
+      return m_traceParent;
+    } else if (IsTraceState(key)) {
+      return m_traceState;
+    }
+    std::cout << "Ignoring " << key << std::endl;
+    return "";
+  }
+
+  void Set(opentelemetry::nostd::string_view key,
+           opentelemetry::nostd::string_view value) noexcept override {
+    if (IsTraceParent(key)) {
+      m_traceParent = value;
+    } else if (IsTraceState(key)) {
+      m_traceState = value;
+    } else {
+        std::cout << "Ignoring " << key << " = " << value;
+    }
+  }
+
+  void Serialize(std::string& out) {
+    if (!m_traceState.empty()) {
+      m_traceParent.reserve(m_traceParent.size() + 1 + m_traceState.size());
+      m_traceParent += DELIMITER;
+      m_traceParent += m_traceState;
+    }
+    out = std::move(m_traceParent);
+  }
+
+  void Deserialize(const std::string& str) {
+    auto pos = str.find(DELIMITER);
+    if (pos != std::string::npos) {
+      m_traceParent = str.substr(0, pos);
+      m_traceState = str.substr(pos + 1);
+    } else {
+      m_traceParent = str;
+    }
+  }
+
+ private:
+  static constexpr char DELIMITER = ':';
+
+  static bool IsTraceParent(opentelemetry::nostd::string_view key) {
+    return (key == opentelemetry::trace::propagation::kTraceParent ||
+            key == "Traceparent");
+  }
+
+  static bool IsTraceState(opentelemetry::nostd::string_view key) {
+    return (key == opentelemetry::trace::propagation::kTraceState ||
+            key == "Tracestate");
+  }
+
+  std::string m_traceParent;
+  std::string m_traceState;
+};
+
+}  // namespace
+
+void ExtractTraceInfoFromCurrentContext(std::string& out) {
+  auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
+  TextMapCarrier carrier;
+  auto prop = opentelemetry::context::propagation::GlobalTextMapPropagator::
+      GetGlobalPropagator();
+  prop->Inject(carrier, current_ctx);
+}
+
+std::shared_ptr<trace_api::Span> CreateChildSpan(
+    std::string_view name, const std::string& serializedTraceInfo) {
+  auto prop = opentelemetry::context::propagation::GlobalTextMapPropagator::
+      GetGlobalPropagator();
+  TextMapCarrier carrier;
+  carrier.Deserialize(serializedTraceInfo);
+
+  auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
+  auto new_context = prop->Extract(carrier, current_ctx);
+
+  trace_api::StartSpanOptions options;
+
+  // child spans from deserialized parent  are of server kind
+  options.kind = trace_api::SpanKind::kServer;
+  options.parent = trace_api::GetSpan(new_context)->GetContext();
+
+  return Tracing::GetInstance().get_tracer()->StartSpan(name, options);
+}
+
 }  // namespace zil::trace

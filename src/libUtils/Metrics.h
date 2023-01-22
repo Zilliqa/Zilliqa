@@ -150,8 +150,6 @@ class Metrics : public Singleton<Metrics> {
  public:
   Metrics();
 
-  std::string Version() { return "Initial"; }
-
   zil::metrics::uint64Counter_t CreateInt64Metric(const std::string& family,
                                                   const std::string& name,
                                                   const std::string& desc,
