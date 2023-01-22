@@ -296,6 +296,6 @@ private:
   }
 
 #define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS) \
-  Metrics::LatencyScopeMarker marker{COUNTER, LATENCY, FILTER_CLASS, __FILE__, __LINE__, __FUNCTION__};
+  Metrics::LatencyScopeMarker _scopemarker{COUNTER, LATENCY, FILTER_CLASS, __FILE__, __LINE__, __FUNCTION__};
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_
