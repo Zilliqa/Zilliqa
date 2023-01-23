@@ -1,13 +1,9 @@
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
-import chai from "chai";
 import clc from "cli-color";
-import { scillaChaiEventMatcher } from "hardhat-scilla-plugin";
-
-chai.use(scillaChaiEventMatcher);
-
 import "dotenv/config";
 import "hardhat-ethernal";
+import { extendEnvironment, HardhatUserConfig, task } from "hardhat/config";
 import yargs from "yargs/yargs";
 
 const argv = yargs()
