@@ -20,11 +20,8 @@
 AccountStoreAtomic::AccountStoreAtomic(AccountStoreSC& parent)
     : m_parent(parent) {}
 
-
 Account* AccountStoreAtomic::GetAccount(const Address& address) {
-  Account* account =
-      AccountStoreBase::GetAccount(
-          address);
+  Account* account = AccountStoreBase::GetAccount(address);
   if (account != nullptr) {
     // LOG_GENERAL(INFO, "Got From Temp");
     return account;
@@ -42,9 +39,7 @@ Account* AccountStoreAtomic::GetAccount(const Address& address) {
   return nullptr;
 }
 
-
 const std::shared_ptr<std::unordered_map<Address, Account>>&
 AccountStoreAtomic::GetAddressToAccount() {
   return this->m_addressToAccount;
 }
-

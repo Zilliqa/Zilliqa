@@ -18,14 +18,14 @@
 #ifndef ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCK_H_
 #define ZILLIQA_SRC_LIBBLOCKCHAIN_BLOCK_H_
 
-#include "DSBlock.h"
-#include "MicroBlock.h"
-#include "TxBlock.h"
-#include "VCBlock.h"
 #include "BlockHashSet.h"
+#include "DSBlock.h"
 #include "DSBlockHeader.h"
+#include "MicroBlock.h"
 #include "MicroBlockHeader.h"
+#include "TxBlock.h"
 #include "TxBlockHeader.h"
+#include "VCBlock.h"
 #include "VCBlockHeader.h"
 
 enum BlockType : unsigned int { DS = 0, Tx = 1, VC = 2 };

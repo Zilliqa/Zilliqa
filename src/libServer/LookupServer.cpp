@@ -53,9 +53,8 @@ namespace paging {
 const unsigned int PAGE_SIZE = 10;
 const unsigned int NUM_PAGES_CACHE = 2;
 const unsigned int TXN_PAGE_SIZE = 100;
-}
-}
-
+}  // namespace paging
+}  // namespace zil
 
 namespace {
 
@@ -64,7 +63,6 @@ zil::metrics::uint64Counter_t& GetCallsCounter() {
       "zilliqa_lookup", "invocation_count", "Calls to Lookup Server", "Calls");
   return count;
 }
-
 
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
@@ -323,9 +321,11 @@ LookupServer::LookupServer(Mediator& mediator,
   m_StartTimeTx = 0;
   m_StartTimeDs = 0;
   m_DSBlockCache.first = 0;
-  m_DSBlockCache.second.resize(zil::paging::NUM_PAGES_CACHE * zil::paging::PAGE_SIZE);
+  m_DSBlockCache.second.resize(zil::paging::NUM_PAGES_CACHE *
+                               zil::paging::PAGE_SIZE);
   m_TxBlockCache.first = 0;
-  m_TxBlockCache.second.resize(zil::paging::NUM_PAGES_CACHE * zil::paging::PAGE_SIZE);
+  m_TxBlockCache.second.resize(zil::paging::NUM_PAGES_CACHE *
+                               zil::paging::PAGE_SIZE);
   m_RecentTransactions.resize(zil::paging::TXN_PAGE_SIZE);
   m_TxBlockCountSumPair.first = 0;
   m_TxBlockCountSumPair.second = 0;
@@ -1488,16 +1488,16 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
 
     uint64_t size = m_DSBlockCache.second.size();
 
-    for (unsigned int i = offset; i < zil::paging::PAGE_SIZE + offset && i < cacheSize;
-         i++) {
+    for (unsigned int i = offset;
+         i < zil::paging::PAGE_SIZE + offset && i < cacheSize; i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_DSBlockCache.second[size - i - 1];
       tmpJson["BlockNum"] = uint(currBlockNum - i);
       _json["data"].append(tmpJson);
     }
   } else {
-    for (uint64_t i = offset; i < zil::paging::PAGE_SIZE + offset && i <= currBlockNum;
-         i++) {
+    for (uint64_t i = offset;
+         i < zil::paging::PAGE_SIZE + offset && i <= currBlockNum; i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_mediator.m_dsBlockChain.GetBlock(currBlockNum - i + 1)
                             .GetHeader()
@@ -1588,16 +1588,16 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
 
     uint64_t size = m_TxBlockCache.second.size();
 
-    for (unsigned int i = offset; i < zil::paging::PAGE_SIZE + offset && i < cacheSize;
-         i++) {
+    for (unsigned int i = offset;
+         i < zil::paging::PAGE_SIZE + offset && i < cacheSize; i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_TxBlockCache.second[size - i - 1];
       tmpJson["BlockNum"] = uint(currBlockNum - i);
       _json["data"].append(tmpJson);
     }
   } else {
-    for (uint64_t i = offset; i < zil::paging::PAGE_SIZE + offset && i <= currBlockNum;
-         i++) {
+    for (uint64_t i = offset;
+         i < zil::paging::PAGE_SIZE + offset && i <= currBlockNum; i++) {
       tmpJson.clear();
       tmpJson["Hash"] = m_mediator.m_txBlockChain.GetBlock(currBlockNum - i + 1)
                             .GetHeader()
