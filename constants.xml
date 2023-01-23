@@ -201,6 +201,8 @@
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
         <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
+        <!-- Sort account store delta before serialization -->
+        <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -359,7 +361,7 @@
             <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
             <METRIC_ZILLIQA_VERSION>1.2.0</METRIC_ZILLIQA_VERSION>
             <!-- ALL means all metrics are enabled -->
-            <METRIC_ZILLIQA_MASK>NONE</METRIC_ZILLIQA_MASK>
+            <METRIC_ZILLIQA_MASK>ALL</METRIC_ZILLIQA_MASK>
         </zilliqa>
     </metric>
     <trace>
