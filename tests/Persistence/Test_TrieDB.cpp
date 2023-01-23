@@ -18,7 +18,6 @@
 #include <leveldb/db.h>
 #include <string>
 
-#include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/common/RLP.h"
 #include "libData/AccountData/Account.h"

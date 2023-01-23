@@ -655,7 +655,6 @@ def create_start_sh(args):
         gen_testnet_sed_string(args, "/run/zilliqa/auto_backup.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         gen_bucket_sed_string(args, "/run/zilliqa/auto_backup.py") if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
         'chmod u+x /run/zilliqa/auto_backup.py' if is_lookup(args) or is_seedpub(args) or is_dsguard(args) else '',
-        'apt update; apt install python3-pip; pip3 install requests clint',
         'storage_path=$(grep -oPm1 "(?<=<STORAGE_PATH>)[^<]+" constants.xml)' if is_new(args) or is_seedprv(args) else '',
         gen_testnet_sed_string(args, "/run/zilliqa/download_incr_DB.py"),
         gen_bucket_sed_string(args, "/run/zilliqa/download_incr_DB.py"),

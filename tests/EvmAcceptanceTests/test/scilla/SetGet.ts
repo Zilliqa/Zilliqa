@@ -9,7 +9,7 @@ describe.skip("Scilla SetGet contract", function () {
   const VALUE = 12;
 
   before(async function () {
-    if (!hre.isZilliqaNetworkSelected()) {
+    if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
       this.skip();
     }
 

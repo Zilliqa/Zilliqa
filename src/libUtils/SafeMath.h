@@ -29,8 +29,9 @@ class SafeMath {
   static T power(const T& base, const T& exponent, bool isCritical = false);
 
  private:
-  static bool IsSignedInt(const T& a);
-  static bool IsUnsignedInt(const T& a);
+  struct IsSignedInt;
+  struct IsUnsignedInt;
+
   static bool add_signint(const T& a, const T& b, T& result);
   static bool add_unsignint(const T& a, const T& b, T& result);
   static bool sub_signint(const T& a, const T& b, T& result);

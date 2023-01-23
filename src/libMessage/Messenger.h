@@ -32,6 +32,7 @@
 #include "libNetwork/ShardStruct.h"
 
 class AccountBase;
+class Account;
 class AccountStore;
 class AccountStoreTemp;
 

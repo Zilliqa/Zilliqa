@@ -59,6 +59,20 @@ message Apply {
   }
 }
 
+message Continuation {
+  enum Type {
+    CALL = 0;
+    CREATE = 1;
+  }
+
+  uint64 id = 1;
+  Type feedback_type = 2;
+  oneof feedback_data {
+    Address address = 3;
+    bytes calldata = 4;
+  }
+}
+
 message EvmArgs {
   Address address = 1;
   Address origin = 2;
@@ -69,6 +83,8 @@ message EvmArgs {
   EvmEvalExtras extras = 7;
   bool estimate = 8;
   string context = 9;
+  Continuation continuation = 10;
+  bool enable_cps = 11;
 }
 
 message EvmLog {
@@ -123,11 +139,79 @@ message ExitReason {
     string error_string = 3;
   }
 
+  message Trap {
+    enum Kind {
+      CALL = 0;
+      CREATE = 1;
+    }
+
+    Kind kind = 1;
+  }
+
   oneof exit_reason {
     Succeed succeed = 1;
     Error error = 2;
     Revert revert = 3;
     Fatal fatal = 4;
+    Trap trap = 5;
+  }
+}
+
+message TrapData {
+  
+  message Transfer {
+    Address source = 1;
+    Address destination = 2;
+    UInt256 value = 3;
+  }
+
+  message Context {
+    Address destination = 1;
+    Address caller = 2;
+    UInt256 apparent_value = 3;
+  }
+
+  message Scheme {
+    message Legacy {
+      Address caller = 1;
+    }
+    message Create2 {
+      Address caller = 1;
+      H256 code_hash = 2;
+      H256 salt = 3;
+      Address create2_address = 4;
+    }
+    message Fixed {
+      Address addres = 1;
+    }
+
+    oneof type {
+      Legacy legacy = 1;
+      Create2 create2 = 2;
+      Fixed fixed = 3;
+    }
+  }
+
+  message Call {
+    Address callee_address = 1;
+    Transfer transfer = 2;
+    bytes call_data = 3;
+    uint64 target_gas = 4;
+    bool is_static = 5;
+    Context context = 6;
+  }
+
+  message Create {
+    Address caller = 1;
+    Scheme scheme = 2;
+    UInt256 value = 3;
+    bytes call_data = 4;
+    uint64 target_gas = 5;
+  }
+
+  oneof data {
+    Call call = 1;
+    Create create = 2;
   }
 }
 
@@ -138,4 +222,7 @@ message EvmResult {
   repeated EvmLog logs = 4;
   repeated string trace = 5;
   uint64 remaining_gas = 6;
+  uint64 continuation_id = 7;
+  TrapData trap_data = 8;
 }
+

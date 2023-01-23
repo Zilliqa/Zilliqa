@@ -40,14 +40,14 @@ using namespace ZilliqaMessage;
 // ============================================================================
 
 template bool SerializeToArray<ProtoAccountStore>(
-    const ProtoAccountStore &protoMessage, zbytes &dst,
+    const ProtoAccountStore& protoMessage, zbytes& dst,
     const unsigned int offset);
 
 template <class T>
-bool RepeatableToArray(const T &repeatable, zbytes &dst,
+bool RepeatableToArray(const T& repeatable, zbytes& dst,
                        const unsigned int offset) {
   int tempOffset = offset;
-  for (const auto &element : repeatable) {
+  for (const auto& element : repeatable) {
     if (!SerializeToArray(element, dst, tempOffset)) {
       LOG_GENERAL(WARNING, "SerializeToArray failed, offset: " << tempOffset);
       return false;
@@ -58,7 +58,7 @@ bool RepeatableToArray(const T &repeatable, zbytes &dst,
 }
 
 template <class T, size_t S>
-void NumberToArray(const T &number, zbytes &dst, const unsigned int offset) {
+void NumberToArray(const T& number, zbytes& dst, const unsigned int offset) {
   Serializable::SetNumber<T>(dst, offset, number, S);
 }
 
@@ -68,75 +68,75 @@ void NumberToArray(const T &number, zbytes &dst, const unsigned int offset) {
 // ============================================================================
 
 inline bool CheckRequiredFieldsProtoBlockLink(
-    const ProtoBlockLink &protoBlockLink) {
+    const ProtoBlockLink& protoBlockLink) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoBlockLink.has_version() && protoBlockLink.has_index() &&
+  return protoBlockLink.has_version() && protoBlockLink.has_index() &&
          protoBlockLink.has_dsindex() && protoBlockLink.has_blocktype() &&
          protoBlockLink.has_blockhash();
 #endif
   return true;
 }
 
-inline bool CheckRequiredFieldsProtoDSNode(const ProtoDSNode &protoDSNode) {
+inline bool CheckRequiredFieldsProtoDSNode(const ProtoDSNode& protoDSNode) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-    return protoDSNode.has_pubkey() && protoDSNode.has_peer();
+  return protoDSNode.has_pubkey() && protoDSNode.has_peer();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoDSCommittee(
-    const ProtoDSCommittee &protoDSCommittee) {
+    const ProtoDSCommittee& protoDSCommittee) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            // Don't need to enforce check on repeated member dsnodes
+  // Don't need to enforce check on repeated member dsnodes
   return protoDSCommittee.has_version();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoShardingStructureMember(
-    const ProtoShardingStructure::Member &protoMember) {
+    const ProtoShardingStructure::Member& protoMember) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoMember.has_pubkey() && protoMember.has_peerinfo() &&
+  return protoMember.has_pubkey() && protoMember.has_peerinfo() &&
          protoMember.has_reputation();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoShardingStructureShard(
-    const ProtoShardingStructure::Shard &protoShard) {
+    const ProtoShardingStructure::Shard& protoShard) {
   // Don't need to enforce check on repeated member members
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoShardingStructure(
-    const ProtoShardingStructure &protoShardingStructure) {
+    const ProtoShardingStructure& protoShardingStructure) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            // Don't need to enforce check on repeated member shards
+  // Don't need to enforce check on repeated member shards
   return protoShardingStructure.has_version();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoBlockBaseCoSignatures(
-    const ProtoBlockBase::CoSignatures &protoCoSignatures) {
+    const ProtoBlockBase::CoSignatures& protoCoSignatures) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            // Don't need to enforce check on repeated members b1 and b2
+  // Don't need to enforce check on repeated members b1 and b2
   return protoCoSignatures.has_cs1() && protoCoSignatures.has_cs2();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoBlockBase(
-    const ProtoBlockBase &protoBlockBase) {
+    const ProtoBlockBase& protoBlockBase) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoBlockBase.has_blockhash() && protoBlockBase.has_cosigs() &&
+  return protoBlockBase.has_blockhash() && protoBlockBase.has_cosigs() &&
          protoBlockBase.has_timestamp() &&
          CheckRequiredFieldsProtoBlockBaseCoSignatures(protoBlockBase.cosigs());
 #endif
@@ -144,10 +144,10 @@ inline bool CheckRequiredFieldsProtoBlockBase(
 }
 
 inline bool CheckRequiredFieldsProtoBlockHeaderBase(
-    const ProtoBlockHeaderBase &protoBlockHeaderBase) {
+    const ProtoBlockHeaderBase& protoBlockHeaderBase) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoBlockHeaderBase.has_version() &&
+  return protoBlockHeaderBase.has_version() &&
          protoBlockHeaderBase.has_committeehash() &&
          protoBlockHeaderBase.has_prevhash();
 #endif
@@ -155,28 +155,28 @@ inline bool CheckRequiredFieldsProtoBlockHeaderBase(
 }
 
 inline bool CheckRequiredFieldsProtoAccountBase(
-    const ProtoAccountBase &protoAccountBase) {
+    const ProtoAccountBase& protoAccountBase) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoAccountBase.has_version() && protoAccountBase.has_balance() &&
+  return protoAccountBase.has_version() && protoAccountBase.has_balance() &&
          protoAccountBase.has_nonce();
 #endif
   return true;
 }
 
-inline bool CheckRequiredFieldsProtoAccount(const ProtoAccount &protoAccount) {
+inline bool CheckRequiredFieldsProtoAccount(const ProtoAccount& protoAccount) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-    return protoAccount.has_base();
+  return protoAccount.has_base();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoStateData(
-    const ProtoStateData &protoStateData) {
+    const ProtoStateData& protoStateData) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoStateData.has_version() && protoStateData.has_vname() &&
+  return protoStateData.has_version() && protoStateData.has_vname() &&
          protoStateData.has_ismutable() && protoStateData.has_type() &&
          protoStateData.has_value();
 #endif
@@ -184,20 +184,20 @@ inline bool CheckRequiredFieldsProtoStateData(
 }
 
 inline bool CheckRequiredFieldsProtoTransaction(
-    const ProtoTransaction &protoTransaction) {
+    const ProtoTransaction& protoTransaction) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoTransaction.has_tranid() && protoTransaction.has_info() &&
+  return protoTransaction.has_tranid() && protoTransaction.has_info() &&
          protoTransaction.has_signature();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoTransactionCoreInfo(
-    const ProtoTransactionCoreInfo &protoTxnCoreInfo) {
+    const ProtoTransactionCoreInfo& protoTxnCoreInfo) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoTxnCoreInfo.has_version() && protoTxnCoreInfo.has_nonce() &&
+  return protoTxnCoreInfo.has_version() && protoTxnCoreInfo.has_nonce() &&
          protoTxnCoreInfo.has_toaddr() && protoTxnCoreInfo.has_senderpubkey() &&
          protoTxnCoreInfo.has_amount() && protoTxnCoreInfo.has_gasprice() &&
          protoTxnCoreInfo.has_gaslimit();
@@ -206,20 +206,20 @@ inline bool CheckRequiredFieldsProtoTransactionCoreInfo(
 }
 
 inline bool CheckRequiredFieldsProtoTransactionReceipt(
-    const ProtoTransactionReceipt &protoTransactionReceipt) {
+    const ProtoTransactionReceipt& protoTransactionReceipt) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-                                                                                                                            return protoTransactionReceipt.has_receipt() &&
+  return protoTransactionReceipt.has_receipt() &&
          protoTransactionReceipt.has_cumgas();
 #endif
   return true;
 }
 
 inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
-    const ProtoTransactionWithReceipt &protoTxnWReceipt) {
+    const ProtoTransactionWithReceipt& protoTxnWReceipt) {
 // TODO: Check if default value is acceptable for each field
 #if 0
-    return protoTxnWReceipt.has_transaction() && protoTxnWReceipt.has_receipt();
+  return protoTxnWReceipt.has_transaction() && protoTxnWReceipt.has_receipt();
 #endif
   return true;
 }
@@ -228,8 +228,8 @@ inline bool CheckRequiredFieldsProtoTransactionWithReceipt(
 // Protobuf <-> Primitives conversion functions
 // ============================================================================
 
-void AccountBaseToProtobuf(const AccountBase &accountbase,
-                           ProtoAccountBase &protoAccountBase) {
+void AccountBaseToProtobuf(const AccountBase& accountbase,
+                           ProtoAccountBase& protoAccountBase) {
   protoAccountBase.set_version(accountbase.GetVersion());
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       accountbase.GetBalance(), *protoAccountBase.mutable_balance());
@@ -244,8 +244,8 @@ void AccountBaseToProtobuf(const AccountBase &accountbase,
   }
 }
 
-bool ProtobufToAccountBase(const ProtoAccountBase &protoAccountBase,
-                           AccountBase &accountBase) {
+bool ProtobufToAccountBase(const ProtoAccountBase& protoAccountBase,
+                           AccountBase& accountBase) {
   if (!CheckRequiredFieldsProtoAccountBase(protoAccountBase)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccountBase failed");
     return false;
@@ -280,8 +280,8 @@ bool ProtobufToAccountBase(const ProtoAccountBase &protoAccountBase,
   return true;
 }
 
-bool AccountToProtobuf(const Account &account, ProtoAccount &protoAccount) {
-  ZilliqaMessage::ProtoAccountBase *protoAccountBase =
+bool AccountToProtobuf(const Account& account, ProtoAccount& protoAccount) {
+  ZilliqaMessage::ProtoAccountBase* protoAccountBase =
       protoAccount.mutable_base();
 
   AccountBaseToProtobuf(account, *protoAccountBase);
@@ -301,26 +301,26 @@ bool AccountToProtobuf(const Account &account, ProtoAccount &protoAccount) {
       LOG_GENERAL(WARNING, "Account::GetUpdatedStates failed");
       return false;
     }
-    for (const auto &state : t_states) {
-      ProtoAccount::StorageData2 *entry = protoAccount.add_storage2();
+    for (const auto& state : t_states) {
+      ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
       entry->set_key(state.first);
       entry->set_data(state.second.data(), state.second.size());
     }
-    for (const auto &todelete : deletedIndices) {
+    for (const auto& todelete : deletedIndices) {
       protoAccount.add_todelete(todelete);
     }
   }
   return true;
 }
 
-bool ProtobufToAccount(const ProtoAccount &protoAccount, Account &account,
-                       const Address &addr) {
+bool ProtobufToAccount(const ProtoAccount& protoAccount, Account& account,
+                       const Address& addr) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
     return false;
   }
 
-  const ZilliqaMessage::ProtoAccountBase &protoAccountBase =
+  const ZilliqaMessage::ProtoAccountBase& protoAccountBase =
       protoAccount.base();
 
   if (!ProtobufToAccountBase(protoAccountBase, account)) {
@@ -357,12 +357,12 @@ bool ProtobufToAccount(const ProtoAccount &protoAccount, Account &account,
     map<string, zbytes> t_states;
     vector<std::string> toDeleteIndices;
 
-    for (const auto &entry : protoAccount.storage2()) {
+    for (const auto& entry : protoAccount.storage2()) {
       t_states.emplace(entry.key(),
                        DataConversion::StringToCharArray(entry.data()));
     }
 
-    for (const auto &entry : protoAccount.todelete()) {
+    for (const auto& entry : protoAccount.todelete()) {
       toDeleteIndices.emplace_back(entry);
     }
 
@@ -381,9 +381,9 @@ bool ProtobufToAccount(const ProtoAccount &protoAccount, Account &account,
   return true;
 }
 
-bool AccountDeltaToProtobuf(const Account *oldAccount,
-                            const Account &newAccount,
-                            ProtoAccount &protoAccount) {
+bool AccountDeltaToProtobuf(const Account* oldAccount,
+                            const Account& newAccount,
+                            ProtoAccount& protoAccount) {
   Account acc(0, 0);
 
   bool fullCopy = false;
@@ -433,18 +433,18 @@ bool AccountDeltaToProtobuf(const Account *oldAccount,
         return false;
       }
       LOG_GENERAL(INFO, "t_states size: " << t_states.size());
-      for (const auto &state : t_states) {
-        ProtoAccount::StorageData2 *entry = protoAccount.add_storage2();
+      for (const auto& state : t_states) {
+        ProtoAccount::StorageData2* entry = protoAccount.add_storage2();
         entry->set_key(state.first);
         entry->set_data(state.second.data(), state.second.size());
       }
-      for (const auto &deleted : deletedIndices) {
+      for (const auto& deleted : deletedIndices) {
         protoAccount.add_todelete(deleted);
       }
     }
   }
 
-  ZilliqaMessage::ProtoAccountBase *protoAccountBase =
+  ZilliqaMessage::ProtoAccountBase* protoAccountBase =
       protoAccount.mutable_base();
 
   AccountBaseToProtobuf(accbase, *protoAccountBase);
@@ -452,8 +452,8 @@ bool AccountDeltaToProtobuf(const Account *oldAccount,
   return true;
 }
 
-bool ProtobufToAccountDelta(const ProtoAccount &protoAccount, Account &account,
-                            const Address &addr, const bool fullCopy, bool temp,
+bool ProtobufToAccountDelta(const ProtoAccount& protoAccount, Account& account,
+                            const Address& addr, const bool fullCopy, bool temp,
                             bool revertible = false) {
   if (!CheckRequiredFieldsProtoAccount(protoAccount)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoAccount failed");
@@ -462,7 +462,7 @@ bool ProtobufToAccountDelta(const ProtoAccount &protoAccount, Account &account,
 
   AccountBase accbase;
 
-  const ZilliqaMessage::ProtoAccountBase &protoAccountBase =
+  const ZilliqaMessage::ProtoAccountBase& protoAccountBase =
       protoAccount.base();
 
   if (!ProtobufToAccountBase(protoAccountBase, accbase)) {
@@ -478,7 +478,7 @@ bool ProtobufToAccountDelta(const ProtoAccount &protoAccount, Account &account,
   }
 
 #if 0
-                                                                                                                            if (!protoAccount.has_numbersign()) {
+  if (!protoAccount.has_numbersign()) {
     LOG_GENERAL(WARNING, "numbersign is not found in ProtoAccount for Delta");
     return false;
   }
@@ -538,7 +538,7 @@ bool ProtobufToAccountDelta(const ProtoAccount &protoAccount, Account &account,
       map<string, zbytes> t_states;
       vector<std::string> toDeleteIndices;
 
-      for (const auto &entry : protoAccount.storage2()) {
+      for (const auto& entry : protoAccount.storage2()) {
         t_states.emplace(entry.key(),
                          DataConversion::StringToCharArray(entry.data()));
         if (LOG_SC) {
@@ -549,7 +549,7 @@ bool ProtobufToAccountDelta(const ProtoAccount &protoAccount, Account &account,
         }
       }
 
-      for (const auto &entry : protoAccount.todelete()) {
+      for (const auto& entry : protoAccount.todelete()) {
         toDeleteIndices.emplace_back(entry);
       }
 
@@ -565,18 +565,18 @@ bool ProtobufToAccountDelta(const ProtoAccount &protoAccount, Account &account,
 }
 
 void DSCommitteeToProtobuf(const uint32_t version,
-                           const DequeOfNode &dsCommittee,
-                           ProtoDSCommittee &protoDSCommittee) {
+                           const DequeOfNode& dsCommittee,
+                           ProtoDSCommittee& protoDSCommittee) {
   protoDSCommittee.set_version(version);
-  for (const auto &node : dsCommittee) {
-    ProtoDSNode *protodsnode = protoDSCommittee.add_dsnodes();
+  for (const auto& node : dsCommittee) {
+    ProtoDSNode* protodsnode = protoDSCommittee.add_dsnodes();
     SerializableToProtobufByteArray(node.first, *protodsnode->mutable_pubkey());
     SerializableToProtobufByteArray(node.second, *protodsnode->mutable_peer());
   }
 }
 
-bool ProtobufToDSCommittee(const ProtoDSCommittee &protoDSCommittee,
-                           uint32_t &version, DequeOfNode &dsCommittee) {
+bool ProtobufToDSCommittee(const ProtoDSCommittee& protoDSCommittee,
+                           uint32_t& version, DequeOfNode& dsCommittee) {
   if (!CheckRequiredFieldsProtoDSCommittee(protoDSCommittee)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSCommittee failed");
     return false;
@@ -584,7 +584,7 @@ bool ProtobufToDSCommittee(const ProtoDSCommittee &protoDSCommittee,
 
   version = protoDSCommittee.version();
 
-  for (const auto &dsnode : protoDSCommittee.dsnodes()) {
+  for (const auto& dsnode : protoDSCommittee.dsnodes()) {
     if (!CheckRequiredFieldsProtoDSNode(dsnode)) {
       LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoDSNode failed");
       return false;
@@ -601,30 +601,30 @@ bool ProtobufToDSCommittee(const ProtoDSCommittee &protoDSCommittee,
   return true;
 }
 
-void DSCommitteeToProtoCommittee(const DequeOfNode &dsCommittee,
-                                 ProtoCommittee &protoCommittee) {
-  for (const auto &node : dsCommittee) {
+void DSCommitteeToProtoCommittee(const DequeOfNode& dsCommittee,
+                                 ProtoCommittee& protoCommittee) {
+  for (const auto& node : dsCommittee) {
     SerializableToProtobufByteArray(node.first, *protoCommittee.add_members());
   }
 }
 
-void ShardToProtoCommittee(const Shard &shard, ProtoCommittee &protoCommittee) {
-  for (const auto &node : shard) {
+void ShardToProtoCommittee(const Shard& shard, ProtoCommittee& protoCommittee) {
+  for (const auto& node : shard) {
     SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                     *protoCommittee.add_members());
   }
 }
 
 void ShardingStructureToProtobuf(
-    const uint32_t &version, const DequeOfShard &shards,
-    ProtoShardingStructure &protoShardingStructure) {
+    const uint32_t& version, const DequeOfShard& shards,
+    ProtoShardingStructure& protoShardingStructure) {
   protoShardingStructure.set_version(version);
-  for (const auto &shard : shards) {
-    ProtoShardingStructure::Shard *proto_shard =
+  for (const auto& shard : shards) {
+    ProtoShardingStructure::Shard* proto_shard =
         protoShardingStructure.add_shards();
 
-    for (const auto &node : shard) {
-      ProtoShardingStructure::Member *proto_member = proto_shard->add_members();
+    for (const auto& node : shard) {
+      ProtoShardingStructure::Member* proto_member = proto_shard->add_members();
 
       SerializableToProtobufByteArray(std::get<SHARD_NODE_PUBKEY>(node),
                                       *proto_member->mutable_pubkey());
@@ -636,8 +636,8 @@ void ShardingStructureToProtobuf(
 }
 
 bool ProtobufToShardingStructure(
-    const ProtoShardingStructure &protoShardingStructure, uint32_t &version,
-    DequeOfShard &shards) {
+    const ProtoShardingStructure& protoShardingStructure, uint32_t& version,
+    DequeOfShard& shards) {
   if (!CheckRequiredFieldsProtoShardingStructure(protoShardingStructure)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoShardingStructure failed");
     return false;
@@ -645,7 +645,7 @@ bool ProtobufToShardingStructure(
 
   version = protoShardingStructure.version();
 
-  for (const auto &proto_shard : protoShardingStructure.shards()) {
+  for (const auto& proto_shard : protoShardingStructure.shards()) {
     if (!CheckRequiredFieldsProtoShardingStructureShard(proto_shard)) {
       LOG_GENERAL(WARNING,
                   "CheckRequiredFieldsProtoShardingStructureShard failed");
@@ -654,7 +654,7 @@ bool ProtobufToShardingStructure(
 
     shards.emplace_back();
 
-    for (const auto &proto_member : proto_shard.members()) {
+    for (const auto& proto_member : proto_shard.members()) {
       if (!CheckRequiredFieldsProtoShardingStructureMember(proto_member)) {
         LOG_GENERAL(WARNING,
                     "CheckRequiredFieldsProtoShardingStructureMember failed");
@@ -675,24 +675,24 @@ bool ProtobufToShardingStructure(
 }
 
 void AnnouncementShardingStructureToProtobuf(
-    const DequeOfShard &shards, const MapOfPubKeyPoW &allPoWs,
-    ProtoShardingStructureWithPoWSolns &protoShardingStructure) {
-  for (const auto &shard : shards) {
-    ProtoShardingStructureWithPoWSolns::Shard *proto_shard =
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+    ProtoShardingStructureWithPoWSolns& protoShardingStructure) {
+  for (const auto& shard : shards) {
+    ProtoShardingStructureWithPoWSolns::Shard* proto_shard =
         protoShardingStructure.add_shards();
 
-    for (const auto &node : shard) {
-      ProtoShardingStructureWithPoWSolns::Member *proto_member =
+    for (const auto& node : shard) {
+      ProtoShardingStructureWithPoWSolns::Member* proto_member =
           proto_shard->add_members();
 
-      const PubKey &key = std::get<SHARD_NODE_PUBKEY>(node);
+      const PubKey& key = std::get<SHARD_NODE_PUBKEY>(node);
 
       SerializableToProtobufByteArray(key, *proto_member->mutable_pubkey());
       SerializableToProtobufByteArray(std::get<SHARD_NODE_PEER>(node),
                                       *proto_member->mutable_peerinfo());
       proto_member->set_reputation(std::get<SHARD_NODE_REP>(node));
 
-      ProtoPoWSolution *proto_soln = proto_member->mutable_powsoln();
+      ProtoPoWSolution* proto_soln = proto_member->mutable_powsoln();
       const auto soln = allPoWs.find(key);
       proto_soln->set_nonce(soln->second.m_nonce);
       proto_soln->set_result(soln->second.m_result.data(),
@@ -713,18 +713,18 @@ void AnnouncementShardingStructureToProtobuf(
 }
 
 bool ProtobufToShardingStructureAnnouncement(
-    const ProtoShardingStructureWithPoWSolns &protoShardingStructure,
-    DequeOfShard &shards, MapOfPubKeyPoW &allPoWs) {
+    const ProtoShardingStructureWithPoWSolns& protoShardingStructure,
+    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs) {
   std::array<unsigned char, 32> result{};
   std::array<unsigned char, 32> mixhash{};
   uint128_t gasPrice;
   uint32_t govProposalId{};
   uint32_t govVoteValue{};
 
-  for (const auto &proto_shard : protoShardingStructure.shards()) {
+  for (const auto& proto_shard : protoShardingStructure.shards()) {
     shards.emplace_back();
 
-    for (const auto &proto_member : proto_shard.members()) {
+    for (const auto& proto_member : proto_shard.members()) {
       PubKey key;
       Peer peer;
 
@@ -759,8 +759,8 @@ bool ProtobufToShardingStructureAnnouncement(
   return true;
 }
 
-void TransactionCoreInfoToProtobuf(const TransactionCoreInfo &txnCoreInfo,
-                                   ProtoTransactionCoreInfo &protoTxnCoreInfo) {
+void TransactionCoreInfoToProtobuf(const TransactionCoreInfo& txnCoreInfo,
+                                   ProtoTransactionCoreInfo& protoTxnCoreInfo) {
   protoTxnCoreInfo.set_version(txnCoreInfo.version);
   protoTxnCoreInfo.set_nonce(txnCoreInfo.nonce);
   protoTxnCoreInfo.set_toaddr(txnCoreInfo.toAddr.data(),
@@ -781,8 +781,8 @@ void TransactionCoreInfoToProtobuf(const TransactionCoreInfo &txnCoreInfo,
 }
 
 bool ProtobufToTransactionCoreInfo(
-    const ProtoTransactionCoreInfo &protoTxnCoreInfo,
-    TransactionCoreInfo &txnCoreInfo) {
+    const ProtoTransactionCoreInfo& protoTxnCoreInfo,
+    TransactionCoreInfo& txnCoreInfo) {
   if (!CheckRequiredFieldsProtoTransactionCoreInfo(protoTxnCoreInfo)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransactionCoreInfo failed");
     return false;
@@ -814,8 +814,8 @@ bool ProtobufToTransactionCoreInfo(
   return true;
 }
 
-void TransactionToProtobuf(const Transaction &transaction,
-                           ProtoTransaction &protoTransaction) {
+void TransactionToProtobuf(const Transaction& transaction,
+                           ProtoTransaction& protoTransaction) {
   protoTransaction.set_tranid(transaction.GetTranID().data(),
                               transaction.GetTranID().size);
   TransactionCoreInfoToProtobuf(transaction.GetCoreInfo(),
@@ -825,8 +825,8 @@ void TransactionToProtobuf(const Transaction &transaction,
                                   *protoTransaction.mutable_signature());
 }
 
-bool ProtobufToTransaction(const ProtoTransaction &protoTransaction,
-                           Transaction &transaction) {
+bool ProtobufToTransaction(const ProtoTransaction& protoTransaction,
+                           Transaction& transaction) {
   if (!CheckRequiredFieldsProtoTransaction(protoTransaction)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransaction failed");
     return false;
@@ -876,40 +876,40 @@ bool ProtobufToTransaction(const ProtoTransaction &protoTransaction,
   return true;
 }
 
-void TransactionOffsetToProtobuf(const std::vector<uint32_t> &txnOffsets,
-                                 ProtoTxnFileOffset &protoTxnFileOffset) {
-  for (const auto &offset : txnOffsets) {
+void TransactionOffsetToProtobuf(const std::vector<uint32_t>& txnOffsets,
+                                 ProtoTxnFileOffset& protoTxnFileOffset) {
+  for (const auto& offset : txnOffsets) {
     protoTxnFileOffset.add_offsetinfile(offset);
   }
 }
 
-void ProtobufToTransactionOffset(const ProtoTxnFileOffset &protoTxnFileOffset,
-                                 std::vector<uint32_t> &txnOffsets) {
+void ProtobufToTransactionOffset(const ProtoTxnFileOffset& protoTxnFileOffset,
+                                 std::vector<uint32_t>& txnOffsets) {
   txnOffsets.clear();
-  for (const auto &offset : protoTxnFileOffset.offsetinfile()) {
+  for (const auto& offset : protoTxnFileOffset.offsetinfile()) {
     txnOffsets.push_back(offset);
   }
 }
 
-void TransactionArrayToProtobuf(const vector<Transaction> &txns,
-                                ProtoTransactionArray &protoTransactionArray) {
-  for (const auto &txn : txns) {
+void TransactionArrayToProtobuf(const vector<Transaction>& txns,
+                                ProtoTransactionArray& protoTransactionArray) {
+  for (const auto& txn : txns) {
     TransactionToProtobuf(txn, *protoTransactionArray.add_transactions());
   }
 }
 
-void TransactionArrayToProtobuf(const deque<pair<Transaction, uint32_t>> &txns,
-                                ProtoTransactionArray &protoTransactionArray) {
-  for (const auto &txn_and_count : txns) {
+void TransactionArrayToProtobuf(const deque<pair<Transaction, uint32_t>>& txns,
+                                ProtoTransactionArray& protoTransactionArray) {
+  for (const auto& txn_and_count : txns) {
     TransactionToProtobuf(txn_and_count.first,
                           *protoTransactionArray.add_transactions());
   }
 }
 
 bool ProtobufToTransactionArray(
-    const ProtoTransactionArray &protoTransactionArray,
-    std::vector<Transaction> &txns) {
-  for (const auto &protoTransaction : protoTransactionArray.transactions()) {
+    const ProtoTransactionArray& protoTransactionArray,
+    std::vector<Transaction>& txns) {
+  for (const auto& protoTransaction : protoTransactionArray.transactions()) {
     Transaction txn;
     if (!ProtobufToTransaction(protoTransaction, txn)) {
       LOG_GENERAL(WARNING, "ProtobufToTransaction failed");
@@ -921,16 +921,16 @@ bool ProtobufToTransactionArray(
   return true;
 }
 
-void TransactionReceiptToProtobuf(const TransactionReceipt &transReceipt,
-                                  ProtoTransactionReceipt &protoTransReceipt) {
+void TransactionReceiptToProtobuf(const TransactionReceipt& transReceipt,
+                                  ProtoTransactionReceipt& protoTransReceipt) {
   protoTransReceipt.set_receipt(transReceipt.GetString());
   // protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
   protoTransReceipt.set_cumgas(transReceipt.GetCumGas());
 }
 
 bool ProtobufToTransactionReceipt(
-    const ProtoTransactionReceipt &protoTransactionReceipt,
-    TransactionReceipt &transactionReceipt) {
+    const ProtoTransactionReceipt& protoTransactionReceipt,
+    TransactionReceipt& transactionReceipt) {
   if (!CheckRequiredFieldsProtoTransactionReceipt(protoTransactionReceipt)) {
     LOG_GENERAL(WARNING, "CheckRequiredFieldsProtoTransactionReceipt failed");
     return false;
@@ -946,19 +946,19 @@ bool ProtobufToTransactionReceipt(
 }
 
 void TransactionWithReceiptToProtobuf(
-    const TransactionWithReceipt &transWithReceipt,
-    ProtoTransactionWithReceipt &protoTransWithReceipt) {
-  auto *protoTransaction = protoTransWithReceipt.mutable_transaction();
+    const TransactionWithReceipt& transWithReceipt,
+    ProtoTransactionWithReceipt& protoTransWithReceipt) {
+  auto* protoTransaction = protoTransWithReceipt.mutable_transaction();
   TransactionToProtobuf(transWithReceipt.GetTransaction(), *protoTransaction);
 
-  auto *protoTranReceipt = protoTransWithReceipt.mutable_receipt();
+  auto* protoTranReceipt = protoTransWithReceipt.mutable_receipt();
   TransactionReceiptToProtobuf(transWithReceipt.GetTransactionReceipt(),
                                *protoTranReceipt);
 }
 
 bool ProtobufToTransactionWithReceipt(
-    const ProtoTransactionWithReceipt &protoWithTransaction,
-    TransactionWithReceipt &transactionWithReceipt) {
+    const ProtoTransactionWithReceipt& protoWithTransaction,
+    TransactionWithReceipt& transactionWithReceipt) {
   Transaction transaction;
   if (!ProtobufToTransaction(protoWithTransaction.transaction(), transaction)) {
     LOG_GENERAL(WARNING, "ProtobufToTransaction failed");
@@ -976,14 +976,14 @@ bool ProtobufToTransactionWithReceipt(
   return true;
 }
 
-void PeerToProtobuf(const Peer &peer, ProtoPeer &protoPeer) {
+void PeerToProtobuf(const Peer& peer, ProtoPeer& protoPeer) {
   NumberToProtobufByteArray<uint128_t, sizeof(uint128_t)>(
       peer.GetIpAddress(), *protoPeer.mutable_ipaddress());
 
   protoPeer.set_listenporthost(peer.GetListenPortHost());
 }
 
-void ProtobufToPeer(const ProtoPeer &protoPeer, Peer &peer) {
+void ProtobufToPeer(const ProtoPeer& protoPeer, Peer& peer) {
   uint128_t ipAddress;
   ProtobufByteArrayToNumber<uint128_t, sizeof(uint128_t)>(protoPeer.ipaddress(),
                                                           ipAddress);
@@ -991,8 +991,8 @@ void ProtobufToPeer(const ProtoPeer &protoPeer, Peer &peer) {
   peer = Peer(ipAddress, protoPeer.listenporthost());
 }
 
-void DSPowSolutionToProtobuf(const DSPowSolution &powSolution,
-                             DSPoWSubmission &dsPowSubmission) {
+void DSPowSolutionToProtobuf(const DSPowSolution& powSolution,
+                             DSPoWSubmission& dsPowSubmission) {
   dsPowSubmission.mutable_data()->set_blocknumber(powSolution.GetBlockNumber());
   dsPowSubmission.mutable_data()->set_difficultylevel(
       powSolution.GetDifficultyLevel());
@@ -1025,28 +1025,28 @@ void DSPowSolutionToProtobuf(const DSPowSolution &powSolution,
                                   *dsPowSubmission.mutable_signature());
 }
 
-bool ProtobufToDSPowSolution(const DSPoWSubmission &dsPowSubmission,
-                             DSPowSolution &powSolution) {
-  const uint64_t &blockNumber = dsPowSubmission.data().blocknumber();
-  const uint8_t &difficultyLevel = dsPowSubmission.data().difficultylevel();
+bool ProtobufToDSPowSolution(const DSPoWSubmission& dsPowSubmission,
+                             DSPowSolution& powSolution) {
+  const uint64_t& blockNumber = dsPowSubmission.data().blocknumber();
+  const uint8_t& difficultyLevel = dsPowSubmission.data().difficultylevel();
   Peer submitterPeer;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(dsPowSubmission.data().submitterpeer(),
                                   submitterPeer);
   PubKey submitterKey;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(dsPowSubmission.data().submitterpubkey(),
                                   submitterKey);
-  const uint64_t &nonce = dsPowSubmission.data().nonce();
-  const std::string &resultingHash = dsPowSubmission.data().resultinghash();
-  const std::string &mixHash = dsPowSubmission.data().mixhash();
-  const uint32_t &lookupId = dsPowSubmission.data().lookupid();
+  const uint64_t& nonce = dsPowSubmission.data().nonce();
+  const std::string& resultingHash = dsPowSubmission.data().resultinghash();
+  const std::string& mixHash = dsPowSubmission.data().mixhash();
+  const uint32_t& lookupId = dsPowSubmission.data().lookupid();
   uint128_t gasPrice;
   ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
       dsPowSubmission.data().gasprice(), gasPrice);
   Signature signature;
   PROTOBUFBYTEARRAYTOSERIALIZABLE(dsPowSubmission.signature(), signature);
 
-  const uint32_t &govProposalId = dsPowSubmission.data().govdata().proposalid();
-  const uint32_t &govVoteValue = dsPowSubmission.data().govdata().votevalue();
+  const uint32_t& govProposalId = dsPowSubmission.data().govdata().proposalid();
+  const uint32_t& govVoteValue = dsPowSubmission.data().govdata().votevalue();
 
   DSPowSolution result(blockNumber, difficultyLevel, submitterPeer,
                        submitterKey, nonce, resultingHash, mixHash, lookupId,
@@ -1058,9 +1058,9 @@ bool ProtobufToDSPowSolution(const DSPoWSubmission &dsPowSubmission,
 }
 
 bool SetConsensusAnnouncementCore(
-    ZilliqaMessage::ConsensusAnnouncement &announcement,
-    const uint32_t consensusID, uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PairOfKey &leaderKey) {
+    ZilliqaMessage::ConsensusAnnouncement& announcement,
+    const uint32_t consensusID, uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   // Set the consensus parameters
@@ -1168,9 +1168,9 @@ bool SetConsensusAnnouncementCore(
 }
 
 bool GetConsensusAnnouncementCore(
-    const ZilliqaMessage::ConsensusAnnouncement &announcement,
+    const ZilliqaMessage::ConsensusAnnouncement& announcement,
     const uint32_t consensusID, const uint64_t blockNumber,
-    const zbytes &blockHash, const uint16_t leaderID, const PubKey &leaderKey) {
+    const zbytes& blockHash, const uint16_t leaderID, const PubKey& leaderKey) {
   LOG_MARKER();
 
   // Check the consensus parameters
@@ -1189,7 +1189,7 @@ bool GetConsensusAnnouncementCore(
     return false;
   }
 
-  const auto &tmpBlockHash = announcement.consensusinfo().blockhash();
+  const auto& tmpBlockHash = announcement.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -1283,8 +1283,8 @@ bool GetConsensusAnnouncementCore(
 // Primitives
 // ============================================================================
 
-bool Messenger::GetDSCommitteeHash(const DequeOfNode &dsCommittee,
-                                   CommitteeHash &dst) {
+bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
+                                   CommitteeHash& dst) {
   ProtoCommittee protoCommittee;
 
   DSCommitteeToProtoCommittee(dsCommittee, protoCommittee);
@@ -1310,7 +1310,7 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode &dsCommittee,
   return true;
 }
 
-bool Messenger::GetShardHash(const Shard &shard, CommitteeHash &dst) {
+bool Messenger::GetShardHash(const Shard& shard, CommitteeHash& dst) {
   ProtoCommittee protoCommittee;
 
   ShardToProtoCommittee(shard, protoCommittee);
@@ -1336,9 +1336,9 @@ bool Messenger::GetShardHash(const Shard &shard, CommitteeHash &dst) {
   return true;
 }
 
-bool Messenger::GetShardingStructureHash(const uint32_t &version,
-                                         const DequeOfShard &shards,
-                                         ShardingHash &dst) {
+bool Messenger::GetShardingStructureHash(const uint32_t& version,
+                                         const DequeOfShard& shards,
+                                         ShardingHash& dst) {
   ProtoShardingStructure protoShardingStructure;
 
   ShardingStructureToProtobuf(version, shards, protoShardingStructure);
@@ -1364,8 +1364,8 @@ bool Messenger::GetShardingStructureHash(const uint32_t &version,
   return true;
 }
 
-bool Messenger::SetAccountBase(zbytes &dst, const unsigned int offset,
-                               const AccountBase &accountbase) {
+bool Messenger::SetAccountBase(zbytes& dst, const unsigned int offset,
+                               const AccountBase& accountbase) {
   ProtoAccountBase result;
 
   AccountBaseToProtobuf(accountbase, result);
@@ -1378,8 +1378,8 @@ bool Messenger::SetAccountBase(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetAccountBase(const zbytes &src, const unsigned int offset,
-                               AccountBase &accountbase) {
+bool Messenger::GetAccountBase(const zbytes& src, const unsigned int offset,
+                               AccountBase& accountbase) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1402,8 +1402,8 @@ bool Messenger::GetAccountBase(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::GetAccountBase(const string &src, const unsigned int offset,
-                               AccountBase &accountbase) {
+bool Messenger::GetAccountBase(const string& src, const unsigned int offset,
+                               AccountBase& accountbase) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1426,8 +1426,8 @@ bool Messenger::GetAccountBase(const string &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccount(zbytes &dst, const unsigned int offset,
-                           const Account &account) {
+bool Messenger::SetAccount(zbytes& dst, const unsigned int offset,
+                           const Account& account) {
   ProtoAccount result;
 
   if (!AccountToProtobuf(account, result)) {
@@ -1443,8 +1443,8 @@ bool Messenger::SetAccount(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetAccount(const zbytes &src, const unsigned int offset,
-                           Account &account) {
+bool Messenger::GetAccount(const zbytes& src, const unsigned int offset,
+                           Account& account) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1469,9 +1469,9 @@ bool Messenger::GetAccount(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccountDelta(zbytes &dst, const unsigned int offset,
-                                Account *oldAccount,
-                                const Account &newAccount) {
+bool Messenger::SetAccountDelta(zbytes& dst, const unsigned int offset,
+                                Account* oldAccount,
+                                const Account& newAccount) {
   ProtoAccount result;
 
   if (!AccountDeltaToProtobuf(oldAccount, newAccount, result)) {
@@ -1487,16 +1487,16 @@ bool Messenger::SetAccountDelta(zbytes &dst, const unsigned int offset,
 }
 
 template <class MAP>
-bool Messenger::SetAccountStore(zbytes &dst, const unsigned int offset,
-                                const MAP &addressToAccount) {
+bool Messenger::SetAccountStore(zbytes& dst, const unsigned int offset,
+                                const MAP& addressToAccount) {
   ProtoAccountStore result;
 
   LOG_GENERAL(INFO, "Accounts to serialize: " << addressToAccount.size());
 
-  for (const auto &entry : addressToAccount) {
-    ProtoAccountStore::AddressAccount *protoEntry = result.add_entries();
+  for (const auto& entry : addressToAccount) {
+    ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
-    ProtoAccount *protoEntryAccount = protoEntry->mutable_account();
+    ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     if (!AccountToProtobuf(entry.second, *protoEntryAccount)) {
       LOG_GENERAL(WARNING, "AccountToProtobuf failed");
       return false;
@@ -1516,8 +1516,8 @@ bool Messenger::SetAccountStore(zbytes &dst, const unsigned int offset,
 }
 
 template <class MAP>
-bool Messenger::GetAccountStore(const zbytes &src, const unsigned int offset,
-                                MAP &addressToAccount) {
+bool Messenger::GetAccountStore(const zbytes& src, const unsigned int offset,
+                                MAP& addressToAccount) {
   if (offset > src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1534,7 +1534,7 @@ bool Messenger::GetAccountStore(const zbytes &src, const unsigned int offset,
 
   LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
 
-  for (const auto &entry : result.entries()) {
+  for (const auto& entry : result.entries()) {
     Address address;
     Account account;
 
@@ -1554,8 +1554,8 @@ bool Messenger::GetAccountStore(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::GetAccountStore(const zbytes &src, const unsigned int offset,
-                                AccountStore &accountStore) {
+bool Messenger::GetAccountStore(const zbytes& src, const unsigned int offset,
+                                AccountStore& accountStore) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1572,7 +1572,7 @@ bool Messenger::GetAccountStore(const zbytes &src, const unsigned int offset,
 
   LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
 
-  for (const auto &entry : result.entries()) {
+  for (const auto& entry : result.entries()) {
     Address address;
     Account account;
 
@@ -1592,8 +1592,8 @@ bool Messenger::GetAccountStore(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::GetAccountStore(const string &src, const unsigned int offset,
-                                AccountStore &accountStore) {
+bool Messenger::GetAccountStore(const string& src, const unsigned int offset,
+                                AccountStore& accountStore) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1610,7 +1610,7 @@ bool Messenger::GetAccountStore(const string &src, const unsigned int offset,
 
   LOG_GENERAL(INFO, "Accounts deserialized: " << result.entries().size());
 
-  for (const auto &entry : result.entries()) {
+  for (const auto& entry : result.entries()) {
     Address address;
     Account account;
 
@@ -1630,9 +1630,9 @@ bool Messenger::GetAccountStore(const string &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetAccountStoreDelta(zbytes &dst, const unsigned int offset,
-                                     AccountStoreTemp &accountStoreTemp,
-                                     AccountStore &accountStore) {
+bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
+                                     AccountStoreTemp& accountStoreTemp,
+                                     AccountStore& accountStore) {
   ProtoAccountStore result;
 
   LOG_GENERAL(INFO, "Account deltas to serialize: "
@@ -1640,17 +1640,18 @@ bool Messenger::SetAccountStoreDelta(zbytes &dst, const unsigned int offset,
 
   std::vector<std::pair<Address, Account>> accountsToSerialize;
   accountsToSerialize.reserve(accountStoreTemp.GetAddressToAccount()->size());
-  for (const auto &entry : *accountStoreTemp.GetAddressToAccount()) {
+  for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
     accountsToSerialize.push_back(entry);
   }
+  if (SORT_ACC_STORE_DELTA) {
+    std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
+              [&](const auto& l, const auto& r) { return l.first < l.first; });
+  }
 
-  std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
-            [&](const auto &l, const auto &r) { return l.first < l.first; });
-
-  for (const auto &entry : accountsToSerialize) {
-    ProtoAccountStore::AddressAccount *protoEntry = result.add_entries();
+  for (const auto& entry : accountsToSerialize) {
+    ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
     protoEntry->set_address(entry.first.data(), entry.first.size);
-    ProtoAccount *protoEntryAccount = protoEntry->mutable_account();
+    ProtoAccount* protoEntryAccount = protoEntry->mutable_account();
     if (!AccountDeltaToProtobuf(accountStore.GetAccount(entry.first, true),
                                 entry.second, *protoEntryAccount)) {
       LOG_GENERAL(WARNING, "AccountDeltaToProtobuf failed");
@@ -1671,8 +1672,8 @@ bool Messenger::SetAccountStoreDelta(zbytes &dst, const unsigned int offset,
 }
 
 bool Messenger::StateDeltaToAddressMap(
-    const zbytes &src, const unsigned int offset,
-    unordered_map<Address, int256_t> &accountMap) {
+    const zbytes& src, const unsigned int offset,
+    unordered_map<Address, int256_t>& accountMap) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1687,7 +1688,7 @@ bool Messenger::StateDeltaToAddressMap(
     return false;
   }
 
-  for (const auto &entry : result.entries()) {
+  for (const auto& entry : result.entries()) {
     Address address;
     Account account;
 
@@ -1711,9 +1712,9 @@ bool Messenger::StateDeltaToAddressMap(
   return true;
 }
 
-bool Messenger::GetAccountStoreDelta(const zbytes &src,
+bool Messenger::GetAccountStoreDelta(const zbytes& src,
                                      const unsigned int offset,
-                                     AccountStore &accountStore,
+                                     AccountStore& accountStore,
                                      const bool revertible, bool temp) {
   ProtoAccountStore result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -1726,7 +1727,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes &src,
   LOG_GENERAL(INFO,
               "Total Number of Accounts Delta: " << result.entries().size());
 
-  for (const auto &entry : result.entries()) {
+  for (const auto& entry : result.entries()) {
     Address address;
     Account account, t_account;
 
@@ -1735,7 +1736,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes &src,
                                        (unsigned int)address.size),
          address.asArray().begin());
 
-    const Account *oriAccount = accountStore.GetAccount(address);
+    const Account* oriAccount = accountStore.GetAccount(address);
     bool fullCopy = false;
     if (oriAccount == nullptr) {
       Account acc(0, 0);
@@ -1766,9 +1767,9 @@ bool Messenger::GetAccountStoreDelta(const zbytes &src,
   return true;
 }
 
-bool Messenger::GetAccountStoreDelta(const zbytes &src,
+bool Messenger::GetAccountStoreDelta(const zbytes& src,
                                      const unsigned int offset,
-                                     AccountStoreTemp &accountStoreTemp,
+                                     AccountStoreTemp& accountStoreTemp,
                                      bool temp) {
   ProtoAccountStore result;
   result.ParseFromArray(src.data() + offset, src.size() - offset);
@@ -1781,7 +1782,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes &src,
   LOG_GENERAL(INFO,
               "Total Number of Accounts Delta: " << result.entries().size());
 
-  for (const auto &entry : result.entries()) {
+  for (const auto& entry : result.entries()) {
     Address address;
     Account account;
 
@@ -1790,7 +1791,7 @@ bool Messenger::GetAccountStoreDelta(const zbytes &src,
                                        (unsigned int)address.size),
          address.asArray().begin());
 
-    const Account *oriAccount = accountStoreTemp.GetAccount(address);
+    const Account* oriAccount = accountStoreTemp.GetAccount(address);
     bool fullCopy = false;
     if (oriAccount == nullptr) {
       Account acc(0, 0);
@@ -1822,11 +1823,11 @@ bool Messenger::GetAccountStoreDelta(const zbytes &src,
   return true;
 }
 
-bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo> &mbInfos,
-                              MBInfoHash &dst) {
+bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo>& mbInfos,
+                              MBInfoHash& dst) {
   zbytes tmp;
 
-  for (const auto &mbInfo : mbInfos) {
+  for (const auto& mbInfo : mbInfos) {
     ProtoMbInfo ProtoMbInfo;
 
     io::MbInfoToProtobuf(mbInfo, ProtoMbInfo);
@@ -1855,8 +1856,8 @@ bool Messenger::GetMbInfoHash(const std::vector<MicroBlockInfo> &mbInfos,
   return true;
 }
 
-bool Messenger::SetTransactionCoreInfo(zbytes &dst, const unsigned int offset,
-                                       const TransactionCoreInfo &transaction) {
+bool Messenger::SetTransactionCoreInfo(zbytes& dst, const unsigned int offset,
+                                       const TransactionCoreInfo& transaction) {
   ProtoTransactionCoreInfo result;
 
   TransactionCoreInfoToProtobuf(transaction, result);
@@ -1868,9 +1869,9 @@ bool Messenger::SetTransactionCoreInfo(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionCoreInfo(const zbytes &src,
+bool Messenger::GetTransactionCoreInfo(const zbytes& src,
                                        const unsigned int offset,
-                                       TransactionCoreInfo &transaction) {
+                                       TransactionCoreInfo& transaction) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1888,8 +1889,8 @@ bool Messenger::GetTransactionCoreInfo(const zbytes &src,
   return ProtobufToTransactionCoreInfo(result, transaction);
 }
 
-bool Messenger::SetTransaction(zbytes &dst, const unsigned int offset,
-                               const Transaction &transaction) {
+bool Messenger::SetTransaction(zbytes& dst, const unsigned int offset,
+                               const Transaction& transaction) {
   ProtoTransaction result;
 
   TransactionToProtobuf(transaction, result);
@@ -1901,8 +1902,8 @@ bool Messenger::SetTransaction(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransaction(const zbytes &src, const unsigned int offset,
-                               Transaction &transaction) {
+bool Messenger::GetTransaction(const zbytes& src, const unsigned int offset,
+                               Transaction& transaction) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1920,8 +1921,8 @@ bool Messenger::GetTransaction(const zbytes &src, const unsigned int offset,
   return ProtobufToTransaction(result, transaction);
 }
 
-bool Messenger::GetTransaction(const string &src, const unsigned int offset,
-                               Transaction &transaction) {
+bool Messenger::GetTransaction(const string& src, const unsigned int offset,
+                               Transaction& transaction) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1940,8 +1941,8 @@ bool Messenger::GetTransaction(const string &src, const unsigned int offset,
 }
 
 bool Messenger::SetTransactionFileOffset(
-    zbytes &dst, const unsigned int offset,
-    const std::vector<uint32_t> &txnOffsets) {
+    zbytes& dst, const unsigned int offset,
+    const std::vector<uint32_t>& txnOffsets) {
   ProtoTxnFileOffset result;
   TransactionOffsetToProtobuf(txnOffsets, result);
   if (!result.IsInitialized()) {
@@ -1951,9 +1952,9 @@ bool Messenger::SetTransactionFileOffset(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionFileOffset(const zbytes &src,
+bool Messenger::GetTransactionFileOffset(const zbytes& src,
                                          const unsigned int offset,
-                                         std::vector<uint32_t> &txnOffsets) {
+                                         std::vector<uint32_t>& txnOffsets) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -1972,8 +1973,8 @@ bool Messenger::GetTransactionFileOffset(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetTransactionArray(zbytes &dst, const unsigned int offset,
-                                    const std::vector<Transaction> &txns) {
+bool Messenger::SetTransactionArray(zbytes& dst, const unsigned int offset,
+                                    const std::vector<Transaction>& txns) {
   ProtoTransactionArray result;
   TransactionArrayToProtobuf(txns, result);
   if (!result.IsInitialized()) {
@@ -1983,9 +1984,9 @@ bool Messenger::SetTransactionArray(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionArray(const zbytes &src,
+bool Messenger::GetTransactionArray(const zbytes& src,
                                     const unsigned int offset,
-                                    std::vector<Transaction> &txns) {
+                                    std::vector<Transaction>& txns) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2004,8 +2005,8 @@ bool Messenger::GetTransactionArray(const zbytes &src,
 }
 
 bool Messenger::SetTransactionReceipt(
-    zbytes &dst, const unsigned int offset,
-    const TransactionReceipt &transactionReceipt) {
+    zbytes& dst, const unsigned int offset,
+    const TransactionReceipt& transactionReceipt) {
   ProtoTransactionReceipt result;
 
   TransactionReceiptToProtobuf(transactionReceipt, result);
@@ -2017,9 +2018,9 @@ bool Messenger::SetTransactionReceipt(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTransactionReceipt(const zbytes &src,
+bool Messenger::GetTransactionReceipt(const zbytes& src,
                                       const unsigned int offset,
-                                      TransactionReceipt &transactionReceipt) {
+                                      TransactionReceipt& transactionReceipt) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2037,9 +2038,9 @@ bool Messenger::GetTransactionReceipt(const zbytes &src,
   return ProtobufToTransactionReceipt(result, transactionReceipt);
 }
 
-bool Messenger::GetTransactionReceipt(const string &src,
+bool Messenger::GetTransactionReceipt(const string& src,
                                       const unsigned int offset,
-                                      TransactionReceipt &transactionReceipt) {
+                                      TransactionReceipt& transactionReceipt) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2058,8 +2059,8 @@ bool Messenger::GetTransactionReceipt(const string &src,
 }
 
 bool Messenger::SetTransactionWithReceipt(
-    zbytes &dst, const unsigned int offset,
-    const TransactionWithReceipt &transactionWithReceipt) {
+    zbytes& dst, const unsigned int offset,
+    const TransactionWithReceipt& transactionWithReceipt) {
   ProtoTransactionWithReceipt result;
 
   TransactionWithReceiptToProtobuf(transactionWithReceipt, result);
@@ -2072,8 +2073,8 @@ bool Messenger::SetTransactionWithReceipt(
 }
 
 bool Messenger::GetTransactionWithReceipt(
-    const zbytes &src, const unsigned int offset,
-    TransactionWithReceipt &transactionWithReceipt) {
+    const zbytes& src, const unsigned int offset,
+    TransactionWithReceipt& transactionWithReceipt) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2092,8 +2093,8 @@ bool Messenger::GetTransactionWithReceipt(
 }
 
 bool Messenger::GetTransactionWithReceipt(
-    const string &src, const unsigned int offset,
-    TransactionWithReceipt &transactionWithReceipt) {
+    const string& src, const unsigned int offset,
+    TransactionWithReceipt& transactionWithReceipt) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2111,8 +2112,8 @@ bool Messenger::GetTransactionWithReceipt(
   return ProtobufToTransactionWithReceipt(result, transactionWithReceipt);
 }
 
-bool Messenger::SetPeer(zbytes &dst, const unsigned int offset,
-                        const Peer &peer) {
+bool Messenger::SetPeer(zbytes& dst, const unsigned int offset,
+                        const Peer& peer) {
   ProtoPeer result;
 
   PeerToProtobuf(peer, result);
@@ -2125,8 +2126,8 @@ bool Messenger::SetPeer(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetPeer(const zbytes &src, const unsigned int offset,
-                        Peer &peer) {
+bool Messenger::GetPeer(const zbytes& src, const unsigned int offset,
+                        Peer& peer) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2147,9 +2148,9 @@ bool Messenger::GetPeer(const zbytes &src, const unsigned int offset,
 }
 
 bool Messenger::SetBlockLink(
-    zbytes &dst, const unsigned int offset,
-    const std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
-        &blocklink) {
+    zbytes& dst, const unsigned int offset,
+    const std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>&
+        blocklink) {
   ProtoBlockLink result;
 
   result.set_version(get<BlockLinkIndex::VERSION>(blocklink));
@@ -2167,8 +2168,8 @@ bool Messenger::SetBlockLink(
 }
 
 bool Messenger::GetBlockLink(
-    const zbytes &src, const unsigned int offset,
-    std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash> &blocklink) {
+    const zbytes& src, const unsigned int offset,
+    std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>& blocklink) {
   ProtoBlockLink result;
   BlockHash blkhash;
 
@@ -2204,11 +2205,11 @@ bool Messenger::GetBlockLink(
   return true;
 }
 
-bool Messenger::SetDiagnosticDataNodes(zbytes &dst, const unsigned int offset,
-                                       const uint32_t &shardingStructureVersion,
-                                       const DequeOfShard &shards,
-                                       const uint32_t &dsCommitteeVersion,
-                                       const DequeOfNode &dsCommittee) {
+bool Messenger::SetDiagnosticDataNodes(zbytes& dst, const unsigned int offset,
+                                       const uint32_t& shardingStructureVersion,
+                                       const DequeOfShard& shards,
+                                       const uint32_t& dsCommitteeVersion,
+                                       const DequeOfNode& dsCommittee) {
   ProtoDiagnosticDataNodes result;
 
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
@@ -2224,12 +2225,12 @@ bool Messenger::SetDiagnosticDataNodes(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDiagnosticDataNodes(const zbytes &src,
+bool Messenger::GetDiagnosticDataNodes(const zbytes& src,
                                        const unsigned int offset,
-                                       uint32_t &shardingStructureVersion,
-                                       DequeOfShard &shards,
-                                       uint32_t &dsCommitteeVersion,
-                                       DequeOfNode &dsCommittee) {
+                                       uint32_t& shardingStructureVersion,
+                                       DequeOfShard& shards,
+                                       uint32_t& dsCommitteeVersion,
+                                       DequeOfNode& dsCommittee) {
   ProtoDiagnosticDataNodes result;
 
   if (offset >= src.size()) {
@@ -2255,9 +2256,9 @@ bool Messenger::GetDiagnosticDataNodes(const zbytes &src,
                                dsCommittee);
 }
 
-bool Messenger::SetDiagnosticDataCoinbase(zbytes &dst,
+bool Messenger::SetDiagnosticDataCoinbase(zbytes& dst,
                                           const unsigned int offset,
-                                          const DiagnosticDataCoinbase &entry) {
+                                          const DiagnosticDataCoinbase& entry) {
   ProtoDiagnosticDataCoinbase result;
 
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
@@ -2294,9 +2295,9 @@ bool Messenger::SetDiagnosticDataCoinbase(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDiagnosticDataCoinbase(const zbytes &src,
+bool Messenger::GetDiagnosticDataCoinbase(const zbytes& src,
                                           const unsigned int offset,
-                                          DiagnosticDataCoinbase &entry) {
+                                          DiagnosticDataCoinbase& entry) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -2347,8 +2348,8 @@ bool Messenger::GetDiagnosticDataCoinbase(const zbytes &src,
 // Peer Manager messages
 // ============================================================================
 
-bool Messenger::SetPMHello(zbytes &dst, const unsigned int offset,
-                           const PairOfKey &key, const uint32_t listenPort) {
+bool Messenger::SetPMHello(zbytes& dst, const unsigned int offset,
+                           const PairOfKey& key, const uint32_t listenPort) {
   LOG_MARKER();
 
   PMHello result;
@@ -2380,8 +2381,8 @@ bool Messenger::SetPMHello(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetPMHello(const zbytes &src, const unsigned int offset,
-                           PubKey &pubKey, uint32_t &listenPort) {
+bool Messenger::GetPMHello(const zbytes& src, const unsigned int offset,
+                           PubKey& pubKey, uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -2420,12 +2421,12 @@ bool Messenger::GetPMHello(const zbytes &src, const unsigned int offset,
 // ============================================================================
 
 bool Messenger::SetDSPoWSubmission(
-    zbytes &dst, const unsigned int offset, const uint64_t blockNumber,
-    const uint8_t difficultyLevel, const Peer &submitterPeer,
-    const PairOfKey &submitterKey, const uint64_t nonce,
-    const string &resultingHash, const string &mixHash,
-    const uint32_t &lookupId, const uint128_t &gasPrice,
-    const GovProposalIdVotePair &govProposal, const string &version) {
+    zbytes& dst, const unsigned int offset, const uint64_t blockNumber,
+    const uint8_t difficultyLevel, const Peer& submitterPeer,
+    const PairOfKey& submitterKey, const uint64_t nonce,
+    const string& resultingHash, const string& mixHash,
+    const uint32_t& lookupId, const uint128_t& gasPrice,
+    const GovProposalIdVotePair& govProposal, const string& version) {
   LOG_MARKER();
 
   DSPoWSubmission result;
@@ -2484,11 +2485,11 @@ bool Messenger::SetDSPoWSubmission(
 }
 
 bool Messenger::GetDSPoWSubmission(
-    const zbytes &src, const unsigned int offset, uint64_t &blockNumber,
-    uint8_t &difficultyLevel, Peer &submitterPeer, PubKey &submitterPubKey,
-    uint64_t &nonce, string &resultingHash, string &mixHash,
-    Signature &signature, uint32_t &lookupId, uint128_t &gasPrice,
-    uint32_t &govProposalId, uint32_t &govVoteValue, string &version) {
+    const zbytes& src, const unsigned int offset, uint64_t& blockNumber,
+    uint8_t& difficultyLevel, Peer& submitterPeer, PubKey& submitterPubKey,
+    uint64_t& nonce, string& resultingHash, string& mixHash,
+    Signature& signature, uint32_t& lookupId, uint128_t& gasPrice,
+    uint32_t& govProposalId, uint32_t& govVoteValue, string& version) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -2539,13 +2540,13 @@ bool Messenger::GetDSPoWSubmission(
 }
 
 bool Messenger::SetDSPoWPacketSubmission(
-    zbytes &dst, const unsigned int offset,
-    const vector<DSPowSolution> &dsPowSolutions, const PairOfKey &keys) {
+    zbytes& dst, const unsigned int offset,
+    const vector<DSPowSolution>& dsPowSolutions, const PairOfKey& keys) {
   LOG_MARKER();
 
   DSPoWPacketSubmission result;
 
-  for (const auto &sol : dsPowSolutions) {
+  for (const auto& sol : dsPowSolutions) {
     DSPowSolutionToProtobuf(sol,
                             *result.mutable_data()->add_dspowsubmissions());
   }
@@ -2569,10 +2570,10 @@ bool Messenger::SetDSPoWPacketSubmission(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetDSPowPacketSubmission(const zbytes &src,
+bool Messenger::GetDSPowPacketSubmission(const zbytes& src,
                                          const unsigned int offset,
-                                         vector<DSPowSolution> &dsPowSolutions,
-                                         PubKey &pubKey) {
+                                         vector<DSPowSolution>& dsPowSolutions,
+                                         PubKey& pubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -2599,7 +2600,7 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes &src,
     return false;
   }
 
-  for (const auto &powSubmission : result.data().dspowsubmissions()) {
+  for (const auto& powSubmission : result.data().dspowsubmissions()) {
     DSPowSolution sol;
     ProtobufToDSPowSolution(powSubmission, sol);
     dsPowSolutions.emplace_back(std::move(sol));
@@ -2609,20 +2610,20 @@ bool Messenger::GetDSPowPacketSubmission(const zbytes &src,
 }
 
 bool Messenger::SetDSMicroBlockSubmission(
-    zbytes &dst, const unsigned int offset, const unsigned char microBlockType,
-    const uint64_t epochNumber, const vector<MicroBlock> &microBlocks,
-    const vector<zbytes> &stateDeltas, const PairOfKey &keys) {
+    zbytes& dst, const unsigned int offset, const unsigned char microBlockType,
+    const uint64_t epochNumber, const vector<MicroBlock>& microBlocks,
+    const vector<zbytes>& stateDeltas, const PairOfKey& keys) {
   LOG_MARKER();
 
   DSMicroBlockSubmission result;
 
   result.mutable_data()->set_microblocktype(microBlockType);
   result.mutable_data()->set_epochnumber(epochNumber);
-  for (const auto &microBlock : microBlocks) {
+  for (const auto& microBlock : microBlocks) {
     io::MicroBlockToProtobuf(microBlock,
                              *result.mutable_data()->add_microblocks());
   }
-  for (const auto &stateDelta : stateDeltas) {
+  for (const auto& stateDelta : stateDeltas) {
     result.mutable_data()->add_statedeltas(stateDelta.data(),
                                            stateDelta.size());
   }
@@ -2653,9 +2654,9 @@ bool Messenger::SetDSMicroBlockSubmission(
 }
 
 bool Messenger::GetDSMicroBlockSubmission(
-    const zbytes &src, const unsigned int offset, unsigned char &microBlockType,
-    uint64_t &epochNumber, vector<MicroBlock> &microBlocks,
-    vector<zbytes> &stateDeltas, PubKey &pubKey) {
+    const zbytes& src, const unsigned int offset, unsigned char& microBlockType,
+    uint64_t& epochNumber, vector<MicroBlock>& microBlocks,
+    vector<zbytes>& stateDeltas, PubKey& pubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -2688,13 +2689,13 @@ bool Messenger::GetDSMicroBlockSubmission(
   // Deserialize the remaining fields
   microBlockType = result.data().microblocktype();
   epochNumber = result.data().epochnumber();
-  for (const auto &proto_mb : result.data().microblocks()) {
+  for (const auto& proto_mb : result.data().microblocks()) {
     MicroBlock microBlock;
     io::ProtobufToMicroBlock(proto_mb, microBlock);
     microBlocks.emplace_back(std::move(microBlock));
   }
 
-  for (const auto &proto_delta : result.data().statedeltas()) {
+  for (const auto& proto_delta : result.data().statedeltas()) {
     stateDeltas.emplace_back(zbytes(proto_delta.size()));
     copy(proto_delta.begin(), proto_delta.end(), stateDeltas.back().begin());
   }
@@ -2703,29 +2704,29 @@ bool Messenger::GetDSMicroBlockSubmission(
 }
 
 bool Messenger::SetDSDSBlockAnnouncement(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PairOfKey &leaderKey, const DSBlock &dsBlock,
-    const DequeOfShard &shards, const MapOfPubKeyPoW &allPoWs,
-    const MapOfPubKeyPoW &dsWinnerPoWs, zbytes &messageToCosign) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey, const DSBlock& dsBlock,
+    const DequeOfShard& shards, const MapOfPubKeyPoW& allPoWs,
+    const MapOfPubKeyPoW& dsWinnerPoWs, zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
   // Set the DSBlock announcement parameters
 
-  DSDSBlockAnnouncement *dsblock = announcement.mutable_dsblock();
+  DSDSBlockAnnouncement* dsblock = announcement.mutable_dsblock();
 
   io::DSBlockToProtobuf(dsBlock, *dsblock->mutable_dsblock());
 
   AnnouncementShardingStructureToProtobuf(shards, allPoWs,
                                           *dsblock->mutable_sharding());
 
-  for (const auto &kv : dsWinnerPoWs) {
+  for (const auto& kv : dsWinnerPoWs) {
     auto protoDSWinnerPoW = dsblock->add_dswinnerpows();
     SerializableToProtobufByteArray(kv.first,
                                     *protoDSWinnerPoW->mutable_pubkey());
-    ProtoPoWSolution *proto_soln = protoDSWinnerPoW->mutable_powsoln();
+    ProtoPoWSolution* proto_soln = protoDSWinnerPoW->mutable_powsoln();
     const auto soln = kv.second;
     proto_soln->set_nonce(soln.m_nonce);
     proto_soln->set_result(soln.m_result.data(), soln.m_result.size());
@@ -2767,11 +2768,11 @@ bool Messenger::SetDSDSBlockAnnouncement(
 }
 
 bool Messenger::GetDSDSBlockAnnouncement(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PubKey &leaderKey, DSBlock &dsBlock,
-    DequeOfShard &shards, MapOfPubKeyPoW &allPoWs, MapOfPubKeyPoW &dsWinnerPoWs,
-    zbytes &messageToCosign) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, DSBlock& dsBlock,
+    DequeOfShard& shards, MapOfPubKeyPoW& allPoWs, MapOfPubKeyPoW& dsWinnerPoWs,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -2807,7 +2808,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
 
   // Get the DSBlock announcement parameters
 
-  const DSDSBlockAnnouncement &dsblock = announcement.dsblock();
+  const DSDSBlockAnnouncement& dsblock = announcement.dsblock();
 
   if (!io::ProtobufToDSBlock(dsblock.dsblock(), dsBlock)) {
     return false;
@@ -2820,7 +2821,7 @@ bool Messenger::GetDSDSBlockAnnouncement(
   }
 
   dsWinnerPoWs.clear();
-  for (const auto &protoDSWinnerPoW : dsblock.dswinnerpows()) {
+  for (const auto& protoDSWinnerPoW : dsblock.dswinnerpows()) {
     PubKey key;
     std::array<unsigned char, 32> result{};
     std::array<unsigned char, 32> mixhash{};
@@ -2865,17 +2866,17 @@ bool Messenger::GetDSDSBlockAnnouncement(
 }
 
 bool Messenger::SetDSFinalBlockAnnouncement(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PairOfKey &leaderKey, const TxBlock &txBlock,
-    const shared_ptr<MicroBlock> &microBlock, zbytes &messageToCosign) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey, const TxBlock& txBlock,
+    const shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
   // Set the FinalBlock announcement parameters
 
-  DSFinalBlockAnnouncement *finalblock = announcement.mutable_finalblock();
+  DSFinalBlockAnnouncement* finalblock = announcement.mutable_finalblock();
   io::TxBlockToProtobuf(txBlock, *finalblock->mutable_txblock());
   if (microBlock != nullptr) {
     io::MicroBlockToProtobuf(*microBlock, *finalblock->mutable_microblock());
@@ -2911,10 +2912,10 @@ bool Messenger::SetDSFinalBlockAnnouncement(
 }
 
 bool Messenger::GetDSFinalBlockAnnouncement(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PubKey &leaderKey, TxBlock &txBlock,
-    shared_ptr<MicroBlock> &microBlock, zbytes &messageToCosign) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, TxBlock& txBlock,
+    shared_ptr<MicroBlock>& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -2946,7 +2947,7 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 
   // Get the FinalBlock announcement parameters
 
-  const DSFinalBlockAnnouncement &finalblock = announcement.finalblock();
+  const DSFinalBlockAnnouncement& finalblock = announcement.finalblock();
   if (!io::ProtobufToTxBlock(finalblock.txblock(), txBlock)) {
     return false;
   }
@@ -2971,17 +2972,17 @@ bool Messenger::GetDSFinalBlockAnnouncement(
 }
 
 bool Messenger::SetDSVCBlockAnnouncement(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PairOfKey &leaderKey, const VCBlock &vcBlock,
-    zbytes &messageToCosign) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey, const VCBlock& vcBlock,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
   // Set the VCBlock announcement parameters
 
-  DSVCBlockAnnouncement *vcblock = announcement.mutable_vcblock();
+  DSVCBlockAnnouncement* vcblock = announcement.mutable_vcblock();
   SerializableToProtobufByteArray(vcBlock, *vcblock->mutable_vcblock());
 
   if (!vcblock->IsInitialized()) {
@@ -3012,10 +3013,10 @@ bool Messenger::SetDSVCBlockAnnouncement(
 }
 
 bool Messenger::GetDSVCBlockAnnouncement(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PubKey &leaderKey, VCBlock &vcBlock,
-    zbytes &messageToCosign) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, VCBlock& vcBlock,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3047,7 +3048,7 @@ bool Messenger::GetDSVCBlockAnnouncement(
 
   // Get the VCBlock announcement parameters
 
-  const DSVCBlockAnnouncement &vcblock = announcement.vcblock();
+  const DSVCBlockAnnouncement& vcblock = announcement.vcblock();
   PROTOBUFBYTEARRAYTOSERIALIZABLE(vcblock.vcblock(), vcBlock);
 
   // Get the part of the announcement that should be co-signed during the first
@@ -3063,14 +3064,14 @@ bool Messenger::GetDSVCBlockAnnouncement(
 }
 
 bool Messenger::SetDSMissingMicroBlocksErrorMsg(
-    zbytes &dst, const unsigned int offset,
-    const vector<BlockHash> &missingMicroBlockHashes, const uint64_t epochNum,
+    zbytes& dst, const unsigned int offset,
+    const vector<BlockHash>& missingMicroBlockHashes, const uint64_t epochNum,
     const uint32_t listenPort) {
   LOG_MARKER();
 
   DSMissingMicroBlocksErrorMsg result;
 
-  for (const auto &hash : missingMicroBlockHashes) {
+  for (const auto& hash : missingMicroBlockHashes) {
     result.add_mbhashes(hash.data(), hash.size);
   }
 
@@ -3086,9 +3087,9 @@ bool Messenger::SetDSMissingMicroBlocksErrorMsg(
 }
 
 bool Messenger::GetDSMissingMicroBlocksErrorMsg(
-    const zbytes &src, const unsigned int offset,
-    vector<BlockHash> &missingMicroBlockHashes, uint64_t &epochNum,
-    uint32_t &listenPort) {
+    const zbytes& src, const unsigned int offset,
+    vector<BlockHash>& missingMicroBlockHashes, uint64_t& epochNum,
+    uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3105,7 +3106,7 @@ bool Messenger::GetDSMissingMicroBlocksErrorMsg(
     return false;
   }
 
-  for (const auto &hash : result.mbhashes()) {
+  for (const auto& hash : result.mbhashes()) {
     missingMicroBlockHashes.emplace_back();
     unsigned int size = min((unsigned int)hash.size(),
                             (unsigned int)missingMicroBlockHashes.back().size);
@@ -3124,9 +3125,9 @@ bool Messenger::GetDSMissingMicroBlocksErrorMsg(
 // ============================================================================
 
 bool Messenger::SetNodeVCDSBlocksMessage(
-    zbytes &dst, const unsigned int offset, const uint32_t shardId,
-    const DSBlock &dsBlock, const std::vector<VCBlock> &vcBlocks,
-    const uint32_t &shardingStructureVersion, const DequeOfShard &shards) {
+    zbytes& dst, const unsigned int offset, const uint32_t shardId,
+    const DSBlock& dsBlock, const std::vector<VCBlock>& vcBlocks,
+    const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
   LOG_MARKER();
 
   NodeDSBlock result;
@@ -3134,7 +3135,7 @@ bool Messenger::SetNodeVCDSBlocksMessage(
   result.set_shardid(shardId);
   io::DSBlockToProtobuf(dsBlock, *result.mutable_dsblock());
 
-  for (const auto &vcblock : vcBlocks) {
+  for (const auto& vcblock : vcBlocks) {
     io::VCBlockToProtobuf(vcblock, *result.add_vcblocks());
   }
   ShardingStructureToProtobuf(shardingStructureVersion, shards,
@@ -3148,12 +3149,12 @@ bool Messenger::SetNodeVCDSBlocksMessage(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCDSBlocksMessage(const zbytes &src,
+bool Messenger::GetNodeVCDSBlocksMessage(const zbytes& src,
                                          const unsigned int offset,
-                                         uint32_t &shardId, DSBlock &dsBlock,
-                                         std::vector<VCBlock> &vcBlocks,
-                                         uint32_t &shardingStructureVersion,
-                                         DequeOfShard &shards) {
+                                         uint32_t& shardId, DSBlock& dsBlock,
+                                         std::vector<VCBlock>& vcBlocks,
+                                         uint32_t& shardingStructureVersion,
+                                         DequeOfShard& shards) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3175,7 +3176,7 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes &src,
     return false;
   }
 
-  for (const auto &proto_vcblock : result.vcblocks()) {
+  for (const auto& proto_vcblock : result.vcblocks()) {
     VCBlock vcblock;
     if (!io::ProtobufToVCBlock(proto_vcblock, vcblock)) {
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
@@ -3188,12 +3189,12 @@ bool Messenger::GetNodeVCDSBlocksMessage(const zbytes &src,
                                      shardingStructureVersion, shards);
 }
 
-bool Messenger::SetNodeVCFinalBlock(zbytes &dst, const unsigned int offset,
+bool Messenger::SetNodeVCFinalBlock(zbytes& dst, const unsigned int offset,
                                     const uint64_t dsBlockNumber,
                                     const uint32_t consensusID,
-                                    const TxBlock &txBlock,
-                                    const zbytes &stateDelta,
-                                    const std::vector<VCBlock> &vcBlocks) {
+                                    const TxBlock& txBlock,
+                                    const zbytes& stateDelta,
+                                    const std::vector<VCBlock>& vcBlocks) {
   LOG_MARKER();
 
   NodeVCFinalBlock result;
@@ -3203,7 +3204,7 @@ bool Messenger::SetNodeVCFinalBlock(zbytes &dst, const unsigned int offset,
   io::TxBlockToProtobuf(txBlock, *result.mutable_txblock());
   result.set_statedelta(stateDelta.data(), stateDelta.size());
 
-  for (const auto &vcblock : vcBlocks) {
+  for (const auto& vcblock : vcBlocks) {
     io::VCBlockToProtobuf(vcblock, *result.add_vcblocks());
   }
 
@@ -3215,12 +3216,12 @@ bool Messenger::SetNodeVCFinalBlock(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCFinalBlock(const zbytes &src,
+bool Messenger::GetNodeVCFinalBlock(const zbytes& src,
                                     const unsigned int offset,
-                                    uint64_t &dsBlockNumber,
-                                    uint32_t &consensusID, TxBlock &txBlock,
-                                    zbytes &stateDelta,
-                                    std::vector<VCBlock> &vcBlocks) {
+                                    uint64_t& dsBlockNumber,
+                                    uint32_t& consensusID, TxBlock& txBlock,
+                                    zbytes& stateDelta,
+                                    std::vector<VCBlock>& vcBlocks) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3246,7 +3247,7 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes &src,
   copy(result.statedelta().begin(), result.statedelta().end(),
        stateDelta.begin());
 
-  for (const auto &proto_vcblock : result.vcblocks()) {
+  for (const auto& proto_vcblock : result.vcblocks()) {
     VCBlock vcblock;
     if (!io::ProtobufToVCBlock(proto_vcblock, vcblock)) {
       LOG_GENERAL(WARNING, "ProtobufToVCBlock failed");
@@ -3257,11 +3258,11 @@ bool Messenger::GetNodeVCFinalBlock(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetNodeFinalBlock(zbytes &dst, const unsigned int offset,
+bool Messenger::SetNodeFinalBlock(zbytes& dst, const unsigned int offset,
                                   const uint64_t dsBlockNumber,
                                   const uint32_t consensusID,
-                                  const TxBlock &txBlock,
-                                  const zbytes &stateDelta) {
+                                  const TxBlock& txBlock,
+                                  const zbytes& stateDelta) {
   LOG_MARKER();
 
   NodeFinalBlock result;
@@ -3279,10 +3280,10 @@ bool Messenger::SetNodeFinalBlock(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeFinalBlock(const zbytes &src, const unsigned int offset,
-                                  uint64_t &dsBlockNumber,
-                                  uint32_t &consensusID, TxBlock &txBlock,
-                                  zbytes &stateDelta) {
+bool Messenger::GetNodeFinalBlock(const zbytes& src, const unsigned int offset,
+                                  uint64_t& dsBlockNumber,
+                                  uint32_t& consensusID, TxBlock& txBlock,
+                                  zbytes& stateDelta) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3312,8 +3313,8 @@ bool Messenger::GetNodeFinalBlock(const zbytes &src, const unsigned int offset,
 }
 
 bool Messenger::SetNodeMBnForwardTransaction(
-    zbytes &dst, const unsigned int offset, const MicroBlock &microBlock,
-    const vector<TransactionWithReceipt> &txns) {
+    zbytes& dst, const unsigned int offset, const MicroBlock& microBlock,
+    const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   NodeMBnForwardTransaction result;
@@ -3322,7 +3323,7 @@ bool Messenger::SetNodeMBnForwardTransaction(
 
   unsigned int txnsCount = 0;
 
-  for (const auto &txn : txns) {
+  for (const auto& txn : txns) {
     SerializableToProtobufByteArray(txn, *result.add_txnswithreceipt());
     txnsCount++;
   }
@@ -3340,9 +3341,9 @@ bool Messenger::SetNodeMBnForwardTransaction(
 }
 
 bool Messenger::SetNodePendingTxn(
-    zbytes &dst, const unsigned offset, const uint64_t &epochnum,
-    const unordered_map<TxnHash, TxnStatus> &hashCodeMap,
-    const uint32_t shardId, const PairOfKey &key) {
+    zbytes& dst, const unsigned offset, const uint64_t& epochnum,
+    const unordered_map<TxnHash, TxnStatus>& hashCodeMap,
+    const uint32_t shardId, const PairOfKey& key) {
   LOG_MARKER();
 
   NodePendingTxn result;
@@ -3354,7 +3355,7 @@ bool Messenger::SetNodePendingTxn(
 
   SHA256Calculator sha2;
 
-  for (const auto &hashCodePair : hashCodeMap) {
+  for (const auto& hashCodePair : hashCodeMap) {
     auto protoHashCodePair = result.mutable_data()->add_hashcodepair();
     protoHashCodePair->set_txnhash(hashCodePair.first.data(),
                                    hashCodePair.first.size);
@@ -3364,7 +3365,7 @@ bool Messenger::SetNodePendingTxn(
     sha2.Update(to_string(hashCodePair.second));
   }
 
-  const zbytes &txnlisthash = sha2.Finalize();
+  const zbytes& txnlisthash = sha2.Finalize();
   result.mutable_data()->set_txnlisthash(txnlisthash.data(),
                                          txnlisthash.size());
 
@@ -3393,9 +3394,9 @@ bool Messenger::SetNodePendingTxn(
 }
 
 bool Messenger::GetNodePendingTxn(
-    const zbytes &src, const unsigned offset, uint64_t &epochnum,
-    unordered_map<TxnHash, TxnStatus> &hashCodeMap, uint32_t &shardId,
-    PubKey &pubKey, zbytes &txnListHash) {
+    const zbytes& src, const unsigned offset, uint64_t& epochnum,
+    unordered_map<TxnHash, TxnStatus>& hashCodeMap, uint32_t& shardId,
+    PubKey& pubKey, zbytes& txnListHash) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3427,7 +3428,7 @@ bool Messenger::GetNodePendingTxn(
 
   SHA256Calculator sha2;
 
-  for (const auto &codeHashPair : result.data().hashcodepair()) {
+  for (const auto& codeHashPair : result.data().hashcodepair()) {
     TxnHash txhash;
     unsigned int size = min((unsigned int)codeHashPair.txnhash().size(),
                             (unsigned int)txhash.size);
@@ -3446,9 +3447,9 @@ bool Messenger::GetNodePendingTxn(
   return true;
 }
 
-bool Messenger::GetNodeMBnForwardTransaction(const zbytes &src,
+bool Messenger::GetNodeMBnForwardTransaction(const zbytes& src,
                                              const unsigned int offset,
-                                             MBnForwardedTxnEntry &entry) {
+                                             MBnForwardedTxnEntry& entry) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3469,7 +3470,7 @@ bool Messenger::GetNodeMBnForwardTransaction(const zbytes &src,
 
   unsigned int txnsCount = 0;
 
-  for (const auto &txn : result.txnswithreceipt()) {
+  for (const auto& txn : result.txnswithreceipt()) {
     TransactionWithReceipt txr;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(txn, txr);
     entry.m_transactions.emplace_back(txr);
@@ -3481,8 +3482,8 @@ bool Messenger::GetNodeMBnForwardTransaction(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetNodeVCBlock(zbytes &dst, const unsigned int offset,
-                               const VCBlock &vcBlock) {
+bool Messenger::SetNodeVCBlock(zbytes& dst, const unsigned int offset,
+                               const VCBlock& vcBlock) {
   LOG_MARKER();
 
   NodeVCBlock result;
@@ -3497,8 +3498,8 @@ bool Messenger::SetNodeVCBlock(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeVCBlock(const zbytes &src, const unsigned int offset,
-                               VCBlock &vcBlock) {
+bool Messenger::GetNodeVCBlock(const zbytes& src, const unsigned int offset,
+                               VCBlock& vcBlock) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3519,11 +3520,11 @@ bool Messenger::GetNodeVCBlock(const zbytes &src, const unsigned int offset,
 }
 
 bool Messenger::SetNodeForwardTxnBlock(
-    zbytes &dst, const unsigned int offset, const uint64_t &epochNumber,
-    const uint64_t &dsBlockNum, const uint32_t &shardId,
-    const PairOfKey &lookupKey,
-    deque<std::pair<Transaction, uint32_t>> &txnsCurrent,
-    deque<std::pair<Transaction, uint32_t>> &txnsGenerated) {
+    zbytes& dst, const unsigned int offset, const uint64_t& epochNumber,
+    const uint64_t& dsBlockNum, const uint32_t& shardId,
+    const PairOfKey& lookupKey,
+    deque<std::pair<Transaction, uint32_t>>& txnsCurrent,
+    deque<std::pair<Transaction, uint32_t>>& txnsGenerated) {
   LOG_MARKER();
 
   NodeForwardTxnBlock result;
@@ -3612,13 +3613,13 @@ bool Messenger::SetNodeForwardTxnBlock(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetNodeForwardTxnBlock(zbytes &dst, const unsigned int offset,
-                                       const uint64_t &epochNumber,
-                                       const uint64_t &dsBlockNum,
-                                       const uint32_t &shardId,
-                                       const PubKey &lookupKey,
-                                       std::vector<Transaction> &txns,
-                                       const Signature &signature) {
+bool Messenger::SetNodeForwardTxnBlock(zbytes& dst, const unsigned int offset,
+                                       const uint64_t& epochNumber,
+                                       const uint64_t& dsBlockNum,
+                                       const uint32_t& shardId,
+                                       const PubKey& lookupKey,
+                                       std::vector<Transaction>& txns,
+                                       const Signature& signature) {
   LOG_MARKER();
 
   NodeForwardTxnBlock result;
@@ -3630,7 +3631,7 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes &dst, const unsigned int offset,
 
   unsigned int txnsCount = 0, msg_size = 0;
 
-  for (const auto &txn : txns) {
+  for (const auto& txn : txns) {
     if (msg_size >= PACKET_BYTESIZE_LIMIT) {
       break;
     }
@@ -3661,9 +3662,9 @@ bool Messenger::SetNodeForwardTxnBlock(zbytes &dst, const unsigned int offset,
 }
 
 bool Messenger::GetNodeForwardTxnBlock(
-    const zbytes &src, const unsigned int offset, uint64_t &epochNumber,
-    uint64_t &dsBlockNum, uint32_t &shardId, PubKey &lookupPubKey,
-    std::vector<Transaction> &txns, Signature &signature) {
+    const zbytes& src, const unsigned int offset, uint64_t& epochNumber,
+    uint64_t& dsBlockNum, uint32_t& shardId, PubKey& lookupPubKey,
+    std::vector<Transaction>& txns, Signature& signature) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3698,7 +3699,7 @@ bool Messenger::GetNodeForwardTxnBlock(
       return false;
     }
 
-    for (const auto &txn : result.transactions()) {
+    for (const auto& txn : result.transactions()) {
       Transaction t;
       if (!ProtobufToTransaction(txn, t)) {
         LOG_GENERAL(WARNING, "ProtobufToTransaction failed");
@@ -3715,17 +3716,17 @@ bool Messenger::GetNodeForwardTxnBlock(
 }
 
 bool Messenger::SetNodeMicroBlockAnnouncement(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PairOfKey &leaderKey,
-    const MicroBlock &microBlock, zbytes &messageToCosign) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey,
+    const MicroBlock& microBlock, zbytes& messageToCosign) {
   LOG_MARKER();
 
   ConsensusAnnouncement announcement;
 
   // Set the MicroBlock announcement parameters
 
-  NodeMicroBlockAnnouncement *microblock = announcement.mutable_microblock();
+  NodeMicroBlockAnnouncement* microblock = announcement.mutable_microblock();
   io::MicroBlockToProtobuf(microBlock, *microblock->mutable_microblock());
 
   if (!microblock->IsInitialized()) {
@@ -3756,10 +3757,10 @@ bool Messenger::SetNodeMicroBlockAnnouncement(
 }
 
 bool Messenger::GetNodeMicroBlockAnnouncement(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PubKey &leaderKey, MicroBlock &microBlock,
-    zbytes &messageToCosign) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PubKey& leaderKey, MicroBlock& microBlock,
+    zbytes& messageToCosign) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3791,7 +3792,7 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
 
   // Get the MicroBlock announcement parameters
 
-  const NodeMicroBlockAnnouncement &microblock = announcement.microblock();
+  const NodeMicroBlockAnnouncement& microblock = announcement.microblock();
   io::ProtobufToMicroBlock(microblock.microblock(), microBlock);
 
   // Get the part of the announcement that should be co-signed during the first
@@ -3806,9 +3807,9 @@ bool Messenger::GetNodeMicroBlockAnnouncement(
   return true;
 }
 
-bool Messenger::ShardStructureToArray(zbytes &dst, const unsigned int offset,
-                                      const uint32_t &version,
-                                      const DequeOfShard &shards) {
+bool Messenger::ShardStructureToArray(zbytes& dst, const unsigned int offset,
+                                      const uint32_t& version,
+                                      const DequeOfShard& shards) {
   ProtoShardingStructure protoShardingStructure;
   ShardingStructureToProtobuf(version, shards, protoShardingStructure);
 
@@ -3825,9 +3826,9 @@ bool Messenger::ShardStructureToArray(zbytes &dst, const unsigned int offset,
   return true;
 }
 
-bool Messenger::ArrayToShardStructure(const zbytes &src,
+bool Messenger::ArrayToShardStructure(const zbytes& src,
                                       const unsigned int offset,
-                                      uint32_t &version, DequeOfShard &shards) {
+                                      uint32_t& version, DequeOfShard& shards) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -3841,14 +3842,14 @@ bool Messenger::ArrayToShardStructure(const zbytes &src,
 }
 
 bool Messenger::SetNodeMissingTxnsErrorMsg(
-    zbytes &dst, const unsigned int offset,
-    const vector<TxnHash> &missingTxnHashes, const uint64_t epochNum,
+    zbytes& dst, const unsigned int offset,
+    const vector<TxnHash>& missingTxnHashes, const uint64_t epochNum,
     const uint32_t listenPort) {
   LOG_MARKER();
 
   NodeMissingTxnsErrorMsg result;
 
-  for (const auto &hash : missingTxnHashes) {
+  for (const auto& hash : missingTxnHashes) {
     LOG_EPOCH(INFO, epochNum, "Missing txn: " << hash);
     result.add_txnhashes(hash.data(), hash.size);
   }
@@ -3864,11 +3865,11 @@ bool Messenger::SetNodeMissingTxnsErrorMsg(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes &src,
+bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes& src,
                                            const unsigned int offset,
-                                           vector<TxnHash> &missingTxnHashes,
-                                           uint64_t &epochNum,
-                                           uint32_t &listenPort) {
+                                           vector<TxnHash>& missingTxnHashes,
+                                           uint64_t& epochNum,
+                                           uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3885,7 +3886,7 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes &src,
     return false;
   }
 
-  for (const auto &hash : result.txnhashes()) {
+  for (const auto& hash : result.txnhashes()) {
     missingTxnHashes.emplace_back();
     unsigned int size = min((unsigned int)hash.size(),
                             (unsigned int)missingTxnHashes.back().size);
@@ -3899,7 +3900,7 @@ bool Messenger::GetNodeMissingTxnsErrorMsg(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetNodeGetVersion(zbytes &dst, const unsigned int offset,
+bool Messenger::SetNodeGetVersion(zbytes& dst, const unsigned int offset,
                                   const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -3913,8 +3914,8 @@ bool Messenger::SetNodeGetVersion(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeGetVersion(const zbytes &src, const unsigned int offset,
-                                  uint32_t &listenPort) {
+bool Messenger::GetNodeGetVersion(const zbytes& src, const unsigned int offset,
+                                  uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3936,8 +3937,8 @@ bool Messenger::GetNodeGetVersion(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetNodeSetVersion(zbytes &dst, const unsigned int offset,
-                                  const std::string &version) {
+bool Messenger::SetNodeSetVersion(zbytes& dst, const unsigned int offset,
+                                  const std::string& version) {
   LOG_MARKER();
 
   NodeSetVersion result;
@@ -3950,8 +3951,8 @@ bool Messenger::SetNodeSetVersion(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeSetVersion(const zbytes &src, const unsigned int offset,
-                                  std::string &version) {
+bool Messenger::GetNodeSetVersion(const zbytes& src, const unsigned int offset,
+                                  std::string& version) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -3977,7 +3978,7 @@ bool Messenger::GetNodeSetVersion(const zbytes &src, const unsigned int offset,
 // Lookup messages
 // ============================================================================
 
-bool Messenger::SetLookupGetSeedPeers(zbytes &dst, const unsigned int offset,
+bool Messenger::SetLookupGetSeedPeers(zbytes& dst, const unsigned int offset,
                                       const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -3993,9 +3994,9 @@ bool Messenger::SetLookupGetSeedPeers(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetSeedPeers(const zbytes &src,
+bool Messenger::GetLookupGetSeedPeers(const zbytes& src,
                                       const unsigned int offset,
-                                      uint32_t &listenPort) {
+                                      uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4017,9 +4018,9 @@ bool Messenger::GetLookupGetSeedPeers(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupSetSeedPeers(zbytes &dst, const unsigned int offset,
-                                      const PairOfKey &lookupKey,
-                                      const vector<Peer> &candidateSeeds) {
+bool Messenger::SetLookupSetSeedPeers(zbytes& dst, const unsigned int offset,
+                                      const PairOfKey& lookupKey,
+                                      const vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
   LookupSetSeedPeers result;
@@ -4066,10 +4067,10 @@ bool Messenger::SetLookupSetSeedPeers(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetSeedPeers(const zbytes &src,
+bool Messenger::GetLookupSetSeedPeers(const zbytes& src,
                                       const unsigned int offset,
-                                      PubKey &lookupPubKey,
-                                      vector<Peer> &candidateSeeds) {
+                                      PubKey& lookupPubKey,
+                                      vector<Peer>& candidateSeeds) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4088,7 +4089,7 @@ bool Messenger::GetLookupSetSeedPeers(const zbytes &src,
 
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
-  for (const auto &peer : result.candidateseeds()) {
+  for (const auto& peer : result.candidateseeds()) {
     Peer seedPeer;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(peer, seedPeer);
     candidateSeeds.emplace_back(seedPeer);
@@ -4113,7 +4114,7 @@ bool Messenger::GetLookupSetSeedPeers(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupGetDSInfoFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetDSInfoFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort,
                                            const bool initialDS) {
@@ -4132,10 +4133,10 @@ bool Messenger::SetLookupGetDSInfoFromSeed(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDSInfoFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetDSInfoFromSeed(const zbytes& src,
                                            const unsigned int offset,
-                                           uint32_t &listenPort,
-                                           bool &initialDS) {
+                                           uint32_t& listenPort,
+                                           bool& initialDS) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4158,11 +4159,11 @@ bool Messenger::GetLookupGetDSInfoFromSeed(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupSetDSInfoFromSeed(zbytes &dst,
+bool Messenger::SetLookupSetDSInfoFromSeed(zbytes& dst,
                                            const unsigned int offset,
-                                           const PairOfKey &senderKey,
-                                           const uint32_t &dsCommitteeVersion,
-                                           const DequeOfNode &dsNodes,
+                                           const PairOfKey& senderKey,
+                                           const uint32_t& dsCommitteeVersion,
+                                           const DequeOfNode& dsNodes,
                                            const bool initialDS) {
   LOG_MARKER();
 
@@ -4198,8 +4199,8 @@ bool Messenger::SetLookupSetDSInfoFromSeed(zbytes &dst,
 }
 
 bool Messenger::GetLookupSetDSInfoFromSeed(
-    const zbytes &src, const unsigned int offset, PubKey &senderPubKey,
-    uint32_t &dsCommitteeVersion, DequeOfNode &dsNodes, bool &initialDS) {
+    const zbytes& src, const unsigned int offset, PubKey& senderPubKey,
+    uint32_t& dsCommitteeVersion, DequeOfNode& dsNodes, bool& initialDS) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4242,7 +4243,7 @@ bool Messenger::GetLookupSetDSInfoFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetDSBlockFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetDSBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
@@ -4266,8 +4267,8 @@ bool Messenger::SetLookupGetDSBlockFromSeed(zbytes &dst,
 }
 
 bool Messenger::GetLookupGetDSBlockFromSeed(
-    const zbytes &src, const unsigned int offset, uint64_t &lowBlockNum,
-    uint64_t &highBlockNum, uint32_t &listenPort, bool &includeMinerInfo) {
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, uint32_t& listenPort, bool& includeMinerInfo) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4292,12 +4293,12 @@ bool Messenger::GetLookupGetDSBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupSetDSBlockFromSeed(zbytes &dst,
+bool Messenger::SetLookupSetDSBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
-                                            const PairOfKey &lookupKey,
-                                            const vector<DSBlock> &dsBlocks) {
+                                            const PairOfKey& lookupKey,
+                                            const vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
   LookupSetDSBlockFromSeed result;
@@ -4307,7 +4308,7 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes &dst,
 
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  for (const auto &dsblock : dsBlocks) {
+  for (const auto& dsblock : dsBlocks) {
     io::DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
@@ -4335,8 +4336,8 @@ bool Messenger::SetLookupSetDSBlockFromSeed(zbytes &dst,
 }
 
 bool Messenger::GetLookupSetDSBlockFromSeed(
-    const zbytes &src, const unsigned int offset, uint64_t &lowBlockNum,
-    uint64_t &highBlockNum, PubKey &lookupPubKey, vector<DSBlock> &dsBlocks) {
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, PubKey& lookupPubKey, vector<DSBlock>& dsBlocks) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4357,7 +4358,7 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
   highBlockNum = result.data().highblocknum();
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), lookupPubKey);
 
-  for (const auto &proto_dsblock : result.data().dsblocks()) {
+  for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
     if (!io::ProtobufToDSBlock(proto_dsblock, dsblock)) {
       LOG_GENERAL(WARNING, "ProtobufToDSBlock failed");
@@ -4381,25 +4382,25 @@ bool Messenger::GetLookupSetDSBlockFromSeed(
 }
 
 bool Messenger::SetLookupSetMinerInfoFromSeed(
-    zbytes &dst, const unsigned int offset, const PairOfKey &lookupKey,
-    const map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>
-        &minerInfoPerDS) {
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    const map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>&
+        minerInfoPerDS) {
   LOG_MARKER();
 
   LookupSetMinerInfoFromSeed result;
 
-  for (const auto &dsBlockAndMinerInfo : minerInfoPerDS) {
+  for (const auto& dsBlockAndMinerInfo : minerInfoPerDS) {
     LookupSetMinerInfoFromSeed::MinerInfo tmpMinerInfo;
 
     // Set the MinerInfoDSComm member for the DS block number
-    for (const auto &dsnode : dsBlockAndMinerInfo.second.first.m_dsNodes) {
-      ProtoMinerInfoDSComm::Node *protodsnode =
+    for (const auto& dsnode : dsBlockAndMinerInfo.second.first.m_dsNodes) {
+      ProtoMinerInfoDSComm::Node* protodsnode =
           tmpMinerInfo.mutable_minerinfodscomm()->add_dsnodes();
       SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
     }
-    for (const auto &dsnode :
+    for (const auto& dsnode :
          dsBlockAndMinerInfo.second.first.m_dsNodesEjected) {
-      ProtoMinerInfoDSComm::Node *protodsnode =
+      ProtoMinerInfoDSComm::Node* protodsnode =
           tmpMinerInfo.mutable_minerinfodscomm()->add_dsnodesejected();
       SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
     }
@@ -4409,12 +4410,12 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
     }
 
     // Set the MinerInfoShards member for the DS block number
-    for (const auto &shard : dsBlockAndMinerInfo.second.second.m_shards) {
-      ProtoMinerInfoShards::Shard *protoshard =
+    for (const auto& shard : dsBlockAndMinerInfo.second.second.m_shards) {
+      ProtoMinerInfoShards::Shard* protoshard =
           tmpMinerInfo.mutable_minerinfoshards()->add_shards();
       protoshard->set_shardsize(shard.m_shardSize);
-      for (const auto &shardnode : shard.m_shardNodes) {
-        ProtoMinerInfoShards::Node *protoshardnode =
+      for (const auto& shardnode : shard.m_shardNodes) {
+        ProtoMinerInfoShards::Node* protoshardnode =
             protoshard->add_shardnodes();
         SerializableToProtobufByteArray(shardnode,
                                         *protoshardnode->mutable_pubkey());
@@ -4457,8 +4458,8 @@ bool Messenger::SetLookupSetMinerInfoFromSeed(
 }
 
 bool Messenger::GetLookupSetMinerInfoFromSeed(
-    const zbytes &src, const unsigned int offset, PubKey &lookupPubKey,
-    map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>> &minerInfoPerDS) {
+    const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
+    map<uint64_t, pair<MinerInfoDSComm, MinerInfoShards>>& minerInfoPerDS) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4488,16 +4489,16 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
 
   // Populate the map
   minerInfoPerDS.clear();
-  for (const auto &dsBlockAndMinerInfo : result.data().minerinfoperds()) {
+  for (const auto& dsBlockAndMinerInfo : result.data().minerinfoperds()) {
     // Get the MinerInfoDSComm member for the DS block number
     MinerInfoDSComm tmpDSComm;
-    for (const auto &protodsnode :
+    for (const auto& protodsnode :
          dsBlockAndMinerInfo.second.minerinfodscomm().dsnodes()) {
       PubKey pubkey;
       PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
       tmpDSComm.m_dsNodes.emplace_back(pubkey);
     }
-    for (const auto &protodsnode :
+    for (const auto& protodsnode :
          dsBlockAndMinerInfo.second.minerinfodscomm().dsnodesejected()) {
       PubKey pubkey;
       PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
@@ -4506,11 +4507,11 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
 
     // Get the MinerInfoShards member for the DS block number
     MinerInfoShards tmpShards;
-    for (const auto &protoshard :
+    for (const auto& protoshard :
          dsBlockAndMinerInfo.second.minerinfoshards().shards()) {
       MinerInfoShards::MinerInfoShard shard;
       shard.m_shardSize = protoshard.shardsize();
-      for (const auto &protoshardnode : protoshard.shardnodes()) {
+      for (const auto& protoshardnode : protoshard.shardnodes()) {
         PubKey pubkey;
         PROTOBUFBYTEARRAYTOSERIALIZABLE(protoshardnode.pubkey(), pubkey);
         shard.m_shardNodes.emplace_back(pubkey);
@@ -4526,7 +4527,7 @@ bool Messenger::GetLookupSetMinerInfoFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetTxBlockFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetTxBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
@@ -4547,11 +4548,11 @@ bool Messenger::SetLookupGetTxBlockFromSeed(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes &dst,
+bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes& dst,
                                                 const unsigned int offset,
-                                                const uint64_t &blockNum,
-                                                const Peer &sender,
-                                                const PairOfKey &seedKey) {
+                                                const uint64_t& blockNum,
+                                                const Peer& sender,
+                                                const PairOfKey& seedKey) {
   LOG_MARKER();
 
   LookupGetVCFinalBlockFromL2l result;
@@ -4587,10 +4588,10 @@ bool Messenger::SetLookupGetVCFinalBlockFromL2l(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes &src,
+bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes& src,
                                                 const unsigned int offset,
-                                                uint64_t &blockNum, Peer &from,
-                                                PubKey &senderPubKey) {
+                                                uint64_t& blockNum, Peer& from,
+                                                PubKey& senderPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4624,11 +4625,11 @@ bool Messenger::GetLookupGetVCFinalBlockFromL2l(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupGetDSBlockFromL2l(zbytes &dst,
+bool Messenger::SetLookupGetDSBlockFromL2l(zbytes& dst,
                                            const unsigned int offset,
-                                           const uint64_t &blockNum,
-                                           const Peer &sender,
-                                           const PairOfKey &seedKey) {
+                                           const uint64_t& blockNum,
+                                           const Peer& sender,
+                                           const PairOfKey& seedKey) {
   LOG_MARKER();
 
   LookupGetDSBlockFromL2l result;
@@ -4663,10 +4664,10 @@ bool Messenger::SetLookupGetDSBlockFromL2l(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes &src,
+bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes& src,
                                            const unsigned int offset,
-                                           uint64_t &blockNum, Peer &from,
-                                           PubKey &senderPubKey) {
+                                           uint64_t& blockNum, Peer& from,
+                                           PubKey& senderPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4700,8 +4701,8 @@ bool Messenger::GetLookupGetDSBlockFromL2l(const zbytes &src,
 }
 
 bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
-    zbytes &dst, const unsigned int offset, const uint64_t &blockNum,
-    const uint32_t &shardId, const Peer &sender, const PairOfKey &seedKey) {
+    zbytes& dst, const unsigned int offset, const uint64_t& blockNum,
+    const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
   LOG_MARKER();
 
   LookupGetMBnForwardTxnFromL2l result;
@@ -4738,11 +4739,11 @@ bool Messenger::SetLookupGetMBnForwardTxnFromL2l(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes &src,
+bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes& src,
                                                  const unsigned int offset,
-                                                 uint64_t &blockNum,
-                                                 uint32_t &shardId, Peer &from,
-                                                 PubKey &senderPubKey) {
+                                                 uint64_t& blockNum,
+                                                 uint32_t& shardId, Peer& from,
+                                                 PubKey& senderPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4777,8 +4778,8 @@ bool Messenger::GetLookupGetMBnForwardTxnFromL2l(const zbytes &src,
 }
 
 bool Messenger::SetLookupGetPendingTxnFromL2l(
-    zbytes &dst, const unsigned int offset, const uint64_t &blockNum,
-    const uint32_t &shardId, const Peer &sender, const PairOfKey &seedKey) {
+    zbytes& dst, const unsigned int offset, const uint64_t& blockNum,
+    const uint32_t& shardId, const Peer& sender, const PairOfKey& seedKey) {
   LOG_MARKER();
 
   LookupGetPendingTxnFromL2l result;
@@ -4815,11 +4816,11 @@ bool Messenger::SetLookupGetPendingTxnFromL2l(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes &src,
+bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes& src,
                                               const unsigned int offset,
-                                              uint64_t &blockNum,
-                                              uint32_t &shardId, Peer &from,
-                                              PubKey &senderPubKey) {
+                                              uint64_t& blockNum,
+                                              uint32_t& shardId, Peer& from,
+                                              PubKey& senderPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4853,11 +4854,11 @@ bool Messenger::GetLookupGetPendingTxnFromL2l(const zbytes &src,
   return true;
 }
 
-bool Messenger::GetLookupGetTxBlockFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetTxBlockFromSeed(const zbytes& src,
                                             const unsigned int offset,
-                                            uint64_t &lowBlockNum,
-                                            uint64_t &highBlockNum,
-                                            uint32_t &listenPort) {
+                                            uint64_t& lowBlockNum,
+                                            uint64_t& highBlockNum,
+                                            uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -4881,12 +4882,12 @@ bool Messenger::GetLookupGetTxBlockFromSeed(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupSetTxBlockFromSeed(zbytes &dst,
+bool Messenger::SetLookupSetTxBlockFromSeed(zbytes& dst,
                                             const unsigned int offset,
                                             const uint64_t lowBlockNum,
                                             const uint64_t highBlockNum,
-                                            const PairOfKey &lookupKey,
-                                            const vector<TxBlock> &txBlocks) {
+                                            const PairOfKey& lookupKey,
+                                            const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
@@ -4894,7 +4895,7 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes &dst,
   result.mutable_data()->set_lowblocknum(lowBlockNum);
   result.mutable_data()->set_highblocknum(highBlockNum);
 
-  for (const auto &txblock : txBlocks) {
+  for (const auto& txblock : txBlocks) {
     io::TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
@@ -4925,8 +4926,8 @@ bool Messenger::SetLookupSetTxBlockFromSeed(zbytes &dst,
 }
 
 bool Messenger::GetLookupSetTxBlockFromSeed(
-    const zbytes &src, const unsigned int offset, uint64_t &lowBlockNum,
-    uint64_t &highBlockNum, PubKey &lookupPubKey, vector<TxBlock> &txBlocks) {
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, PubKey& lookupPubKey, vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   LookupSetTxBlockFromSeed result;
@@ -4946,7 +4947,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   lowBlockNum = result.data().lowblocknum();
   highBlockNum = result.data().highblocknum();
 
-  for (const auto &txblock : result.data().txblocks()) {
+  for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
     if (!io::ProtobufToTxBlock(txblock, block)) {
       LOG_GENERAL(WARNING, "ProtobufToTxBlock failed");
@@ -4970,7 +4971,7 @@ bool Messenger::GetLookupSetTxBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupGetStateDeltaFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetStateDeltaFromSeed(zbytes& dst,
                                                const unsigned int offset,
                                                const uint64_t blockNum,
                                                const uint32_t listenPort) {
@@ -4989,10 +4990,10 @@ bool Messenger::SetLookupGetStateDeltaFromSeed(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::SetLookupGetStateDeltasFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetStateDeltasFromSeed(zbytes& dst,
                                                 const unsigned int offset,
-                                                uint64_t &lowBlockNum,
-                                                uint64_t &highBlockNum,
+                                                uint64_t& lowBlockNum,
+                                                uint64_t& highBlockNum,
                                                 const uint32_t listenPort) {
   LOG_MARKER();
 
@@ -5010,10 +5011,10 @@ bool Messenger::SetLookupGetStateDeltasFromSeed(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetStateDeltaFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetStateDeltaFromSeed(const zbytes& src,
                                                const unsigned int offset,
-                                               uint64_t &blockNum,
-                                               uint32_t &listenPort) {
+                                               uint64_t& blockNum,
+                                               uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5036,11 +5037,11 @@ bool Messenger::GetLookupGetStateDeltaFromSeed(const zbytes &src,
   return true;
 }
 
-bool Messenger::GetLookupGetStateDeltasFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetStateDeltasFromSeed(const zbytes& src,
                                                 const unsigned int offset,
-                                                uint64_t &lowBlockNum,
-                                                uint64_t &highBlockNum,
-                                                uint32_t &listenPort) {
+                                                uint64_t& lowBlockNum,
+                                                uint64_t& highBlockNum,
+                                                uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5064,11 +5065,11 @@ bool Messenger::GetLookupGetStateDeltasFromSeed(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes &dst,
+bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes& dst,
                                                const unsigned int offset,
                                                const uint64_t blockNum,
-                                               const PairOfKey &lookupKey,
-                                               const zbytes &stateDelta) {
+                                               const PairOfKey& lookupKey,
+                                               const zbytes& stateDelta) {
   LOG_MARKER();
 
   LookupSetStateDeltaFromSeed result;
@@ -5104,9 +5105,9 @@ bool Messenger::SetLookupSetStateDeltaFromSeed(zbytes &dst,
 }
 
 bool Messenger::SetLookupSetStateDeltasFromSeed(
-    zbytes &dst, const unsigned int offset, const uint64_t lowBlockNum,
-    const uint64_t highBlockNum, const PairOfKey &lookupKey,
-    const vector<zbytes> &stateDeltas) {
+    zbytes& dst, const unsigned int offset, const uint64_t lowBlockNum,
+    const uint64_t highBlockNum, const PairOfKey& lookupKey,
+    const vector<zbytes>& stateDeltas) {
   LOG_MARKER();
 
   LookupSetStateDeltasFromSeed result;
@@ -5114,7 +5115,7 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
   result.mutable_data()->set_lowblocknum(lowBlockNum);
   result.mutable_data()->set_highblocknum(highBlockNum);
 
-  for (const auto &delta : stateDeltas) {
+  for (const auto& delta : stateDeltas) {
     result.mutable_data()->add_statedeltas(delta.data(), delta.size());
   }
 
@@ -5144,11 +5145,11 @@ bool Messenger::SetLookupSetStateDeltasFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes &src,
+bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes& src,
                                                const unsigned int offset,
-                                               uint64_t &blockNum,
-                                               PubKey &lookupPubKey,
-                                               zbytes &stateDelta) {
+                                               uint64_t& blockNum,
+                                               PubKey& lookupPubKey,
+                                               zbytes& stateDelta) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5187,8 +5188,8 @@ bool Messenger::GetLookupSetStateDeltaFromSeed(const zbytes &src,
 }
 
 bool Messenger::GetLookupSetStateDeltasFromSeed(
-    const zbytes &src, const unsigned int offset, uint64_t &lowBlockNum,
-    uint64_t &highBlockNum, PubKey &lookupPubKey, vector<zbytes> &stateDeltas) {
+    const zbytes& src, const unsigned int offset, uint64_t& lowBlockNum,
+    uint64_t& highBlockNum, PubKey& lookupPubKey, vector<zbytes>& stateDeltas) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5208,7 +5209,7 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
   lowBlockNum = result.data().lowblocknum();
   highBlockNum = result.data().highblocknum();
   stateDeltas.clear();
-  for (const auto &delta : result.data().statedeltas()) {
+  for (const auto& delta : result.data().statedeltas()) {
     zbytes tmp;
     tmp.resize(delta.size());
     std::copy(delta.begin(), delta.end(), tmp.begin());
@@ -5230,11 +5231,11 @@ bool Messenger::GetLookupSetStateDeltasFromSeed(
   return true;
 }
 
-bool Messenger::SetLookupSetLookupOffline(zbytes &dst,
+bool Messenger::SetLookupSetLookupOffline(zbytes& dst,
                                           const unsigned int offset,
                                           const uint8_t msgType,
                                           const uint32_t listenPort,
-                                          const PairOfKey &lookupKey) {
+                                          const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetLookupOffline result;
@@ -5266,11 +5267,11 @@ bool Messenger::SetLookupSetLookupOffline(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetLookupOffline(const zbytes &src,
+bool Messenger::GetLookupSetLookupOffline(const zbytes& src,
                                           const unsigned int offset,
-                                          uint8_t &msgType,
-                                          uint32_t &listenPort,
-                                          PubKey &lookupPubkey) {
+                                          uint8_t& msgType,
+                                          uint32_t& listenPort,
+                                          PubKey& lookupPubkey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5305,10 +5306,10 @@ bool Messenger::GetLookupSetLookupOffline(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupSetLookupOnline(zbytes &dst, const unsigned int offset,
+bool Messenger::SetLookupSetLookupOnline(zbytes& dst, const unsigned int offset,
                                          const uint8_t msgType,
                                          const uint32_t listenPort,
-                                         const PairOfKey &lookupKey) {
+                                         const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   LookupSetLookupOnline result;
@@ -5339,10 +5340,10 @@ bool Messenger::SetLookupSetLookupOnline(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetLookupOnline(const zbytes &src,
+bool Messenger::GetLookupSetLookupOnline(const zbytes& src,
                                          const unsigned int offset,
-                                         uint8_t &msgType, uint32_t &listenPort,
-                                         PubKey &pubKey) {
+                                         uint8_t& msgType, uint32_t& listenPort,
+                                         PubKey& pubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5377,7 +5378,7 @@ bool Messenger::GetLookupSetLookupOnline(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupGetOfflineLookups(zbytes &dst,
+bool Messenger::SetLookupGetOfflineLookups(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
   LOG_MARKER();
@@ -5394,9 +5395,9 @@ bool Messenger::SetLookupGetOfflineLookups(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetOfflineLookups(const zbytes &src,
+bool Messenger::GetLookupGetOfflineLookups(const zbytes& src,
                                            const unsigned int offset,
-                                           uint32_t &listenPort) {
+                                           uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5418,15 +5419,15 @@ bool Messenger::GetLookupGetOfflineLookups(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupSetOfflineLookups(zbytes &dst,
+bool Messenger::SetLookupSetOfflineLookups(zbytes& dst,
                                            const unsigned int offset,
-                                           const PairOfKey &lookupKey,
-                                           const vector<Peer> &nodes) {
+                                           const PairOfKey& lookupKey,
+                                           const vector<Peer>& nodes) {
   LOG_MARKER();
 
   LookupSetOfflineLookups result;
 
-  for (const auto &node : nodes) {
+  for (const auto& node : nodes) {
     SerializableToProtobufByteArray(node, *result.add_nodes());
   }
 
@@ -5455,10 +5456,10 @@ bool Messenger::SetLookupSetOfflineLookups(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetOfflineLookups(const zbytes &src,
+bool Messenger::GetLookupSetOfflineLookups(const zbytes& src,
                                            const unsigned int offset,
-                                           PubKey &lookupPubKey,
-                                           vector<Peer> &nodes) {
+                                           PubKey& lookupPubKey,
+                                           vector<Peer>& nodes) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5475,7 +5476,7 @@ bool Messenger::GetLookupSetOfflineLookups(const zbytes &src,
     return false;
   }
 
-  for (const auto &lookup : result.nodes()) {
+  for (const auto& lookup : result.nodes()) {
     Peer node;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(lookup, node);
     nodes.emplace_back(node);
@@ -5502,9 +5503,9 @@ bool Messenger::GetLookupSetOfflineLookups(const zbytes &src,
 }
 
 bool Messenger::SetForwardTxnBlockFromSeed(
-    zbytes &dst, const unsigned int offset,
-    const deque<pair<Transaction, uint32_t>> &shardTransactions,
-    const deque<pair<Transaction, uint32_t>> &dsTransactions) {
+    zbytes& dst, const unsigned int offset,
+    const deque<pair<Transaction, uint32_t>>& shardTransactions,
+    const deque<pair<Transaction, uint32_t>>& dsTransactions) {
   LookupForwardTxnsFromSeed result;
 
   if (!shardTransactions.empty()) {
@@ -5524,9 +5525,9 @@ bool Messenger::SetForwardTxnBlockFromSeed(
 }
 
 bool Messenger::GetForwardTxnBlockFromSeed(
-    const zbytes &src, const unsigned int offset,
-    vector<Transaction> &shardTransactions,
-    vector<Transaction> &dsTransactions) {
+    const zbytes& src, const unsigned int offset,
+    vector<Transaction>& shardTransactions,
+    vector<Transaction>& dsTransactions) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -5551,7 +5552,7 @@ bool Messenger::GetForwardTxnBlockFromSeed(
 }
 
 // UNUSED
-bool Messenger::SetLookupGetShardsFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetShardsFromSeed(zbytes& dst,
                                            const unsigned int offset,
                                            const uint32_t listenPort) {
   LOG_MARKER();
@@ -5569,9 +5570,9 @@ bool Messenger::SetLookupGetShardsFromSeed(zbytes &dst,
 }
 
 // UNUSED
-bool Messenger::GetLookupGetShardsFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetShardsFromSeed(const zbytes& src,
                                            const unsigned int offset,
-                                           uint32_t &listenPort) {
+                                           uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5595,8 +5596,8 @@ bool Messenger::GetLookupGetShardsFromSeed(const zbytes &src,
 
 // UNUSED
 bool Messenger::SetLookupSetShardsFromSeed(
-    zbytes &dst, const unsigned int offset, const PairOfKey &lookupKey,
-    const uint32_t &shardingStructureVersion, const DequeOfShard &shards) {
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    const uint32_t& shardingStructureVersion, const DequeOfShard& shards) {
   LOG_MARKER();
 
   LookupSetShardsFromSeed result;
@@ -5627,11 +5628,11 @@ bool Messenger::SetLookupSetShardsFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetShardsFromSeed(const zbytes &src,
+bool Messenger::GetLookupSetShardsFromSeed(const zbytes& src,
                                            const unsigned int offset,
-                                           PubKey &lookupPubKey,
-                                           uint32_t &shardingStructureVersion,
-                                           DequeOfShard &shards) {
+                                           PubKey& lookupPubKey,
+                                           uint32_t& shardingStructureVersion,
+                                           DequeOfShard& shards) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5673,15 +5674,15 @@ bool Messenger::GetLookupSetShardsFromSeed(const zbytes &src,
 }
 
 bool Messenger::SetLookupGetMicroBlockFromLookup(
-    zbytes &dst, const unsigned int offset,
-    const vector<BlockHash> &microBlockHashes, const uint32_t portNo) {
+    zbytes& dst, const unsigned int offset,
+    const vector<BlockHash>& microBlockHashes, const uint32_t portNo) {
   LOG_MARKER();
 
   LookupGetMicroBlockFromLookup result;
 
   result.set_portno(portNo);
 
-  for (const auto &hash : microBlockHashes) {
+  for (const auto& hash : microBlockHashes) {
     result.add_mbhashes(hash.data(), hash.size);
   }
 
@@ -5693,16 +5694,16 @@ bool Messenger::SetLookupGetMicroBlockFromLookup(
 }
 
 bool Messenger::SetLookupGetMicroBlockFromL2l(
-    zbytes &dst, const unsigned int offset,
-    const vector<BlockHash> &microBlockHashes, uint32_t portNo,
-    const PairOfKey &seedKey) {
+    zbytes& dst, const unsigned int offset,
+    const vector<BlockHash>& microBlockHashes, uint32_t portNo,
+    const PairOfKey& seedKey) {
   LOG_MARKER();
 
   LookupGetMicroBlockFromL2l result;
 
   result.mutable_data()->set_portno(portNo);
 
-  for (const auto &hash : microBlockHashes) {
+  for (const auto& hash : microBlockHashes) {
     result.mutable_data()->add_mbhashes(hash.data(), hash.size);
   }
 
@@ -5733,9 +5734,9 @@ bool Messenger::SetLookupGetMicroBlockFromL2l(
 }
 
 bool Messenger::GetLookupGetMicroBlockFromL2l(
-    const zbytes &src, const unsigned int offset,
-    vector<BlockHash> &microBlockHashes, uint32_t &portNo,
-    PubKey &senderPubKey) {
+    const zbytes& src, const unsigned int offset,
+    vector<BlockHash>& microBlockHashes, uint32_t& portNo,
+    PubKey& senderPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5764,7 +5765,7 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
 
   portNo = result.data().portno();
 
-  for (const auto &hash : result.data().mbhashes()) {
+  for (const auto& hash : result.data().mbhashes()) {
     microBlockHashes.emplace_back();
     unsigned int size = min((unsigned int)hash.size(),
                             (unsigned int)microBlockHashes.back().size);
@@ -5777,8 +5778,8 @@ bool Messenger::GetLookupGetMicroBlockFromL2l(
 
 // UNUSED
 bool Messenger::GetLookupGetMicroBlockFromLookup(
-    const zbytes &src, const unsigned int offset,
-    vector<BlockHash> &microBlockHashes, uint32_t &portNo) {
+    const zbytes& src, const unsigned int offset,
+    vector<BlockHash>& microBlockHashes, uint32_t& portNo) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5797,7 +5798,7 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 
   portNo = result.portno();
 
-  for (const auto &hash : result.mbhashes()) {
+  for (const auto& hash : result.mbhashes()) {
     microBlockHashes.emplace_back();
     unsigned int size = min((unsigned int)hash.size(),
                             (unsigned int)microBlockHashes.back().size);
@@ -5809,12 +5810,12 @@ bool Messenger::GetLookupGetMicroBlockFromLookup(
 }
 
 bool Messenger::SetLookupSetMicroBlockFromLookup(
-    zbytes &dst, const unsigned int offset, const PairOfKey &lookupKey,
-    const vector<MicroBlock> &mbs) {
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    const vector<MicroBlock>& mbs) {
   LOG_MARKER();
   LookupSetMicroBlockFromLookup result;
 
-  for (const auto &mb : mbs) {
+  for (const auto& mb : mbs) {
     io::MicroBlockToProtobuf(mb, *result.add_microblocks());
   }
 
@@ -5843,10 +5844,10 @@ bool Messenger::SetLookupSetMicroBlockFromLookup(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes &src,
+bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes& src,
                                                  const unsigned int offset,
-                                                 PubKey &lookupPubKey,
-                                                 vector<MicroBlock> &mbs) {
+                                                 PubKey& lookupPubKey,
+                                                 vector<MicroBlock>& mbs) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5880,7 +5881,7 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes &src,
     }
   }
 
-  for (const auto &res_mb : result.microblocks()) {
+  for (const auto& res_mb : result.microblocks()) {
     MicroBlock mb;
 
     io::ProtobufToMicroBlock(res_mb, mb);
@@ -5892,10 +5893,10 @@ bool Messenger::GetLookupSetMicroBlockFromLookup(const zbytes &src,
 }
 
 // UNUSED
-bool Messenger::SetLookupGetTxnsFromLookup(zbytes &dst,
+bool Messenger::SetLookupGetTxnsFromLookup(zbytes& dst,
                                            const unsigned int offset,
-                                           const BlockHash &mbHash,
-                                           const vector<TxnHash> &txnhashes,
+                                           const BlockHash& mbHash,
+                                           const vector<TxnHash>& txnhashes,
                                            const uint32_t portNo) {
   LOG_MARKER();
 
@@ -5904,7 +5905,7 @@ bool Messenger::SetLookupGetTxnsFromLookup(zbytes &dst,
   result.set_portno(portNo);
   result.set_mbhash(mbHash.data(), mbHash.size);
 
-  for (const auto &txhash : txnhashes) {
+  for (const auto& txhash : txnhashes) {
     result.add_txnhashes(txhash.data(), txhash.size);
   }
 
@@ -5917,11 +5918,11 @@ bool Messenger::SetLookupGetTxnsFromLookup(zbytes &dst,
 }
 
 // UNUSED
-bool Messenger::GetLookupGetTxnsFromLookup(const zbytes &src,
+bool Messenger::GetLookupGetTxnsFromLookup(const zbytes& src,
                                            const unsigned int offset,
-                                           BlockHash &mbHash,
-                                           vector<TxnHash> &txnhashes,
-                                           uint32_t &portNo) {
+                                           BlockHash& mbHash,
+                                           vector<TxnHash>& txnhashes,
+                                           uint32_t& portNo) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -5943,7 +5944,7 @@ bool Messenger::GetLookupGetTxnsFromLookup(const zbytes &src,
   unsigned int size = min((unsigned int)hash.size(), (unsigned int)mbHash.size);
   copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
-  for (const auto &hash : result.txnhashes()) {
+  for (const auto& hash : result.txnhashes()) {
     txnhashes.emplace_back();
     size = min((unsigned int)hash.size(), (unsigned int)txnhashes.back().size);
     copy(hash.begin(), hash.begin() + size, txnhashes.back().asArray().begin());
@@ -5951,11 +5952,11 @@ bool Messenger::GetLookupGetTxnsFromLookup(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupGetTxnsFromL2l(zbytes &dst, const unsigned int offset,
-                                        const BlockHash &mbHash,
-                                        const vector<TxnHash> &txnhashes,
+bool Messenger::SetLookupGetTxnsFromL2l(zbytes& dst, const unsigned int offset,
+                                        const BlockHash& mbHash,
+                                        const vector<TxnHash>& txnhashes,
                                         const uint32_t portNo,
-                                        const PairOfKey &seedKey) {
+                                        const PairOfKey& seedKey) {
   LOG_MARKER();
 
   LookupGetTxnsFromL2l result;
@@ -5963,7 +5964,7 @@ bool Messenger::SetLookupGetTxnsFromL2l(zbytes &dst, const unsigned int offset,
   result.mutable_data()->set_portno(portNo);
   result.mutable_data()->set_mbhash(mbHash.data(), mbHash.size);
 
-  for (const auto &txhash : txnhashes) {
+  for (const auto& txhash : txnhashes) {
     result.mutable_data()->add_txnhashes(txhash.data(), txhash.size);
   }
 
@@ -5994,8 +5995,8 @@ bool Messenger::SetLookupGetTxnsFromL2l(zbytes &dst, const unsigned int offset,
 
 // UNUSED
 bool Messenger::GetLookupGetTxnsFromL2l(
-    const zbytes &src, const unsigned int offset, BlockHash &mbHash,
-    vector<TxnHash> &txnhashes, uint32_t &portNo, PubKey &senderPubKey) {
+    const zbytes& src, const unsigned int offset, BlockHash& mbHash,
+    vector<TxnHash>& txnhashes, uint32_t& portNo, PubKey& senderPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6027,7 +6028,7 @@ bool Messenger::GetLookupGetTxnsFromL2l(
   unsigned int size = min((unsigned int)hash.size(), (unsigned int)mbHash.size);
   copy(hash.begin(), hash.begin() + size, mbHash.asArray().begin());
 
-  for (const auto &hash : result.data().txnhashes()) {
+  for (const auto& hash : result.data().txnhashes()) {
     txnhashes.emplace_back();
     size = min((unsigned int)hash.size(), (unsigned int)txnhashes.back().size);
     copy(hash.begin(), hash.begin() + size, txnhashes.back().asArray().begin());
@@ -6037,15 +6038,15 @@ bool Messenger::GetLookupGetTxnsFromL2l(
 
 // UNUSED
 bool Messenger::SetLookupSetTxnsFromLookup(
-    zbytes &dst, const unsigned int offset, const PairOfKey &lookupKey,
-    const BlockHash &mbHash, const vector<TransactionWithReceipt> &txns) {
+    zbytes& dst, const unsigned int offset, const PairOfKey& lookupKey,
+    const BlockHash& mbHash, const vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   LookupSetTxnsFromLookup result;
 
   result.set_mbhash(mbHash.data(), mbHash.size);
 
-  for (auto const &txn : txns) {
+  for (auto const& txn : txns) {
     SerializableToProtobufByteArray(txn, *result.add_transactions());
   }
 
@@ -6076,8 +6077,8 @@ bool Messenger::SetLookupSetTxnsFromLookup(
 
 // UNUSED
 bool Messenger::GetLookupSetTxnsFromLookup(
-    const zbytes &src, const unsigned int offset, PubKey &lookupPubKey,
-    BlockHash &mbHash, vector<TransactionWithReceipt> &txns) {
+    const zbytes& src, const unsigned int offset, PubKey& lookupPubKey,
+    BlockHash& mbHash, vector<TransactionWithReceipt>& txns) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6115,7 +6116,7 @@ bool Messenger::GetLookupSetTxnsFromLookup(
     }
   }
 
-  for (auto const &protoTxn : result.transactions()) {
+  for (auto const& protoTxn : result.transactions()) {
     TransactionWithReceipt txn;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protoTxn, txn);
     txns.emplace_back(txn);
@@ -6125,8 +6126,8 @@ bool Messenger::GetLookupSetTxnsFromLookup(
 }
 
 bool Messenger::SetLookupGetDirectoryBlocksFromSeed(
-    zbytes &dst, const unsigned int offset, const uint32_t portNo,
-    const uint64_t &indexNum, const bool includeMinerInfo) {
+    zbytes& dst, const unsigned int offset, const uint32_t portNo,
+    const uint64_t& indexNum, const bool includeMinerInfo) {
   LookupGetDirectoryBlocksFromSeed result;
 
   result.set_portno(portNo);
@@ -6142,11 +6143,11 @@ bool Messenger::SetLookupGetDirectoryBlocksFromSeed(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const zbytes& src,
                                                     const unsigned int offset,
-                                                    uint32_t &portNo,
-                                                    uint64_t &indexNum,
-                                                    bool &includeMinerInfo) {
+                                                    uint32_t& portNo,
+                                                    uint64_t& indexNum,
+                                                    bool& includeMinerInfo) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -6170,17 +6171,17 @@ bool Messenger::GetLookupGetDirectoryBlocksFromSeed(const zbytes &src,
 }
 
 bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
-    zbytes &dst, const unsigned int offset,
-    const uint32_t &shardingStructureVersion,
-    const vector<boost::variant<DSBlock, VCBlock>> &directoryBlocks,
-    const uint64_t &indexNum, const PairOfKey &lookupKey) {
+    zbytes& dst, const unsigned int offset,
+    const uint32_t& shardingStructureVersion,
+    const vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
+    const uint64_t& indexNum, const PairOfKey& lookupKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
   result.mutable_data()->set_indexnum(indexNum);
   SerializableToProtobufByteArray(lookupKey.second, *result.mutable_pubkey());
 
-  for (const auto &dirblock : directoryBlocks) {
-    ProtoSingleDirectoryBlock *proto_dir_blocks =
+  for (const auto& dirblock : directoryBlocks) {
+    ProtoSingleDirectoryBlock* proto_dir_blocks =
         result.mutable_data()->add_dirblocks();
     if (dirblock.type() == typeid(DSBlock)) {
       io::DSBlockToProtobuf(get<DSBlock>(dirblock),
@@ -6217,10 +6218,10 @@ bool Messenger::SetLookupSetDirectoryBlocksFromSeed(
 }
 
 bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
-    const zbytes &src, const unsigned int offset,
-    uint32_t &shardingStructureVersion,
-    vector<boost::variant<DSBlock, VCBlock>> &directoryBlocks,
-    uint64_t &indexNum, PubKey &pubKey) {
+    const zbytes& src, const unsigned int offset,
+    uint32_t& shardingStructureVersion,
+    vector<boost::variant<DSBlock, VCBlock>>& directoryBlocks,
+    uint64_t& indexNum, PubKey& pubKey) {
   LookupSetDirectoryBlocksFromSeed result;
 
   google::protobuf::io::ArrayInputStream arrayIn(src.data() + offset,
@@ -6251,7 +6252,7 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
 
   indexNum = result.data().indexnum();
 
-  for (const auto &dirblock : result.data().dirblocks()) {
+  for (const auto& dirblock : result.data().dirblocks()) {
     DSBlock dsblock;
     VCBlock vcblock;
     switch (dirblock.directoryblock_case()) {
@@ -6293,13 +6294,13 @@ bool Messenger::GetLookupSetDirectoryBlocksFromSeed(
 // Consensus messages
 // ============================================================================
 
-bool Messenger::SetConsensusCommit(zbytes &dst, const unsigned int offset,
+bool Messenger::SetConsensusCommit(zbytes& dst, const unsigned int offset,
                                    const uint32_t consensusID,
                                    const uint64_t blockNumber,
-                                   const zbytes &blockHash,
+                                   const zbytes& blockHash,
                                    const uint16_t backupID,
-                                   const vector<CommitInfo> &commitInfo,
-                                   const PairOfKey &backupKey) {
+                                   const vector<CommitInfo>& commitInfo,
+                                   const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommit result;
@@ -6310,8 +6311,8 @@ bool Messenger::SetConsensusCommit(zbytes &dst, const unsigned int offset,
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_backupid(backupID);
 
-  for (const auto &info : commitInfo) {
-    ConsensusCommit::CommitInfo *ci =
+  for (const auto& info : commitInfo) {
+    ConsensusCommit::CommitInfo* ci =
         result.mutable_consensusinfo()->add_commitinfo();
 
     SerializableToProtobufByteArray(info.commit, *ci->mutable_commitpoint());
@@ -6344,12 +6345,12 @@ bool Messenger::SetConsensusCommit(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetConsensusCommit(const zbytes &src, const unsigned int offset,
+bool Messenger::GetConsensusCommit(const zbytes& src, const unsigned int offset,
                                    const uint32_t consensusID,
                                    const uint64_t blockNumber,
-                                   const zbytes &blockHash, uint16_t &backupID,
-                                   vector<CommitInfo> &commitInfo,
-                                   const DequeOfNode &committeeKeys) {
+                                   const zbytes& blockHash, uint16_t& backupID,
+                                   vector<CommitInfo>& commitInfo,
+                                   const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6380,7 +6381,7 @@ bool Messenger::GetConsensusCommit(const zbytes &src, const unsigned int offset,
     return false;
   }
 
-  const auto &tmpBlockHash = result.consensusinfo().blockhash();
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -6415,7 +6416,7 @@ bool Messenger::GetConsensusCommit(const zbytes &src, const unsigned int offset,
     return false;
   }
 
-  for (const auto &proto_ci : result.consensusinfo().commitinfo()) {
+  for (const auto& proto_ci : result.consensusinfo().commitinfo()) {
     CommitInfo ci;
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_ci.commitpoint(), ci.commit);
@@ -6440,10 +6441,10 @@ bool Messenger::GetConsensusCommit(const zbytes &src, const unsigned int offset,
 }
 
 bool Messenger::SetConsensusChallenge(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const vector<ChallengeSubsetInfo> &subsetInfo,
-    const PairOfKey &leaderKey) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const vector<ChallengeSubsetInfo>& subsetInfo,
+    const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusChallenge result;
@@ -6454,8 +6455,8 @@ bool Messenger::SetConsensusChallenge(
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_leaderid(leaderID);
 
-  for (const auto &subset : subsetInfo) {
-    ConsensusChallenge::SubsetInfo *si =
+  for (const auto& subset : subsetInfo) {
+    ConsensusChallenge::SubsetInfo* si =
         result.mutable_consensusinfo()->add_subsetinfo();
 
     SerializableToProtobufByteArray(subset.aggregatedCommit,
@@ -6492,10 +6493,10 @@ bool Messenger::SetConsensusChallenge(
 }
 
 bool Messenger::GetConsensusChallenge(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, vector<ChallengeSubsetInfo> &subsetInfo,
-    const PubKey &leaderKey) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, vector<ChallengeSubsetInfo>& subsetInfo,
+    const PubKey& leaderKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6526,7 +6527,7 @@ bool Messenger::GetConsensusChallenge(
     return false;
   }
 
-  const auto &tmpBlockHash = result.consensusinfo().blockhash();
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -6558,7 +6559,7 @@ bool Messenger::GetConsensusChallenge(
     return false;
   }
 
-  for (const auto &proto_si : result.consensusinfo().subsetinfo()) {
+  for (const auto& proto_si : result.consensusinfo().subsetinfo()) {
     ChallengeSubsetInfo si;
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.aggregatedcommit(),
@@ -6585,10 +6586,10 @@ bool Messenger::GetConsensusChallenge(
 }
 
 bool Messenger::SetConsensusResponse(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t backupID, const vector<ResponseSubsetInfo> &subsetInfo,
-    const PairOfKey &backupKey) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t backupID, const vector<ResponseSubsetInfo>& subsetInfo,
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusResponse result;
@@ -6599,8 +6600,8 @@ bool Messenger::SetConsensusResponse(
                                                 blockHash.size());
   result.mutable_consensusinfo()->set_backupid(backupID);
 
-  for (const auto &subset : subsetInfo) {
-    ConsensusResponse::SubsetInfo *si =
+  for (const auto& subset : subsetInfo) {
+    ConsensusResponse::SubsetInfo* si =
         result.mutable_consensusinfo()->add_subsetinfo();
     SerializableToProtobufByteArray(subset.response, *si->mutable_response());
   }
@@ -6632,9 +6633,9 @@ bool Messenger::SetConsensusResponse(
 }
 
 bool Messenger::GetConsensusResponse(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash, uint16_t &backupID,
-    vector<ResponseSubsetInfo> &subsetInfo, const DequeOfNode &committeeKeys) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, uint16_t& backupID,
+    vector<ResponseSubsetInfo>& subsetInfo, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6665,7 +6666,7 @@ bool Messenger::GetConsensusResponse(
     return false;
   }
 
-  const auto &tmpBlockHash = result.consensusinfo().blockhash();
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -6700,7 +6701,7 @@ bool Messenger::GetConsensusResponse(
     return false;
   }
 
-  for (const auto &proto_si : result.consensusinfo().subsetinfo()) {
+  for (const auto& proto_si : result.consensusinfo().subsetinfo()) {
     ResponseSubsetInfo si;
 
     PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_si.response(), si.response);
@@ -6724,11 +6725,11 @@ bool Messenger::GetConsensusResponse(
 }
 
 bool Messenger::SetConsensusCollectiveSig(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const Signature &collectiveSig,
-    const vector<bool> &bitmap, const PairOfKey &leaderKey,
-    const zbytes &newAnnouncementMessage) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const Signature& collectiveSig,
+    const vector<bool>& bitmap, const PairOfKey& leaderKey,
+    const zbytes& newAnnouncementMessage) {
   LOG_MARKER();
 
   ConsensusCollectiveSig result;
@@ -6740,7 +6741,7 @@ bool Messenger::SetConsensusCollectiveSig(
   result.mutable_consensusinfo()->set_leaderid(leaderID);
   SerializableToProtobufByteArray(
       collectiveSig, *result.mutable_consensusinfo()->mutable_collectivesig());
-  for (const auto &i : bitmap) {
+  for (const auto& i : bitmap) {
     result.mutable_consensusinfo()->add_bitmap(i);
   }
 
@@ -6786,10 +6787,10 @@ bool Messenger::SetConsensusCollectiveSig(
 }
 
 bool Messenger::GetConsensusCollectiveSig(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, vector<bool> &bitmap, Signature &collectiveSig,
-    const PubKey &leaderKey, zbytes &newAnnouncement) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, vector<bool>& bitmap, Signature& collectiveSig,
+    const PubKey& leaderKey, zbytes& newAnnouncement) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6820,7 +6821,7 @@ bool Messenger::GetConsensusCollectiveSig(
     return false;
   }
 
-  const auto &tmpBlockHash = result.consensusinfo().blockhash();
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -6855,7 +6856,7 @@ bool Messenger::GetConsensusCollectiveSig(
   PROTOBUFBYTEARRAYTOSERIALIZABLE(result.consensusinfo().collectivesig(),
                                   collectiveSig);
 
-  for (const auto &i : result.consensusinfo().bitmap()) {
+  for (const auto& i : result.consensusinfo().bitmap()) {
     bitmap.emplace_back(i);
   }
 
@@ -6891,10 +6892,10 @@ bool Messenger::GetConsensusCollectiveSig(
 }
 
 bool Messenger::SetConsensusCommitFailure(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t backupID, const zbytes &errorMsg,
-    const PairOfKey &backupKey) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t backupID, const zbytes& errorMsg,
+    const PairOfKey& backupKey) {
   LOG_MARKER();
 
   ConsensusCommitFailure result;
@@ -6934,9 +6935,9 @@ bool Messenger::SetConsensusCommitFailure(
 }
 
 bool Messenger::GetConsensusCommitFailure(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash, uint16_t &backupID,
-    zbytes &errorMsg, const DequeOfNode &committeeKeys) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, uint16_t& backupID,
+    zbytes& errorMsg, const DequeOfNode& committeeKeys) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -6967,7 +6968,7 @@ bool Messenger::GetConsensusCommitFailure(
     return false;
   }
 
-  const auto &tmpBlockHash = result.consensusinfo().blockhash();
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -7022,9 +7023,9 @@ bool Messenger::GetConsensusCommitFailure(
 }
 
 bool Messenger::SetConsensusConsensusFailure(
-    zbytes &dst, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash,
-    const uint16_t leaderID, const PairOfKey &leaderKey) {
+    zbytes& dst, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash,
+    const uint16_t leaderID, const PairOfKey& leaderKey) {
   LOG_MARKER();
 
   ConsensusConsensusFailure result;
@@ -7063,9 +7064,9 @@ bool Messenger::SetConsensusConsensusFailure(
 }
 
 bool Messenger::GetConsensusConsensusFailure(
-    const zbytes &src, const unsigned int offset, const uint32_t consensusID,
-    const uint64_t blockNumber, const zbytes &blockHash, uint16_t &leaderID,
-    const PubKey &leaderKey) {
+    const zbytes& src, const unsigned int offset, const uint32_t consensusID,
+    const uint64_t blockNumber, const zbytes& blockHash, uint16_t& leaderID,
+    const PubKey& leaderKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7096,7 +7097,7 @@ bool Messenger::GetConsensusConsensusFailure(
     return false;
   }
 
-  const auto &tmpBlockHash = result.consensusinfo().blockhash();
+  const auto& tmpBlockHash = result.consensusinfo().blockhash();
   if (!std::equal(blockHash.begin(), blockHash.end(), tmpBlockHash.begin(),
                   tmpBlockHash.end(),
                   [](const unsigned char left, const char right) -> bool {
@@ -7149,7 +7150,7 @@ bool Messenger::GetConsensusConsensusFailure(
 // ============================================================================
 
 bool Messenger::SetLookupGetDSTxBlockFromSeed(
-    zbytes &dst, const unsigned int offset, const uint64_t dsLowBlockNum,
+    zbytes& dst, const unsigned int offset, const uint64_t dsLowBlockNum,
     const uint64_t dsHighBlockNum, const uint64_t txLowBlockNum,
     const uint64_t txHighBlockNum, const uint32_t listenPort) {
   LOG_MARKER();
@@ -7171,9 +7172,9 @@ bool Messenger::SetLookupGetDSTxBlockFromSeed(
 }
 
 bool Messenger::GetLookupGetDSTxBlockFromSeed(
-    const zbytes &src, const unsigned int offset, uint64_t &dsLowBlockNum,
-    uint64_t &dsHighBlockNum, uint64_t &txLowBlockNum, uint64_t &txHighBlockNum,
-    uint32_t &listenPort) {
+    const zbytes& src, const unsigned int offset, uint64_t& dsLowBlockNum,
+    uint64_t& dsHighBlockNum, uint64_t& txLowBlockNum, uint64_t& txHighBlockNum,
+    uint32_t& listenPort) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7199,20 +7200,20 @@ bool Messenger::GetLookupGetDSTxBlockFromSeed(
   return true;
 }
 
-bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes &dst,
+bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes& dst,
                                               const unsigned int offset,
-                                              const PairOfKey &lookupKey,
-                                              const vector<DSBlock> &DSBlocks,
-                                              const vector<TxBlock> &txBlocks) {
+                                              const PairOfKey& lookupKey,
+                                              const vector<DSBlock>& DSBlocks,
+                                              const vector<TxBlock>& txBlocks) {
   LOG_MARKER();
 
   VCNodeSetDSTxBlockFromSeed result;
 
-  for (const auto &dsblock : DSBlocks) {
+  for (const auto& dsblock : DSBlocks) {
     io::DSBlockToProtobuf(dsblock, *result.mutable_data()->add_dsblocks());
   }
 
-  for (const auto &txblock : txBlocks) {
+  for (const auto& txblock : txBlocks) {
     io::TxBlockToProtobuf(txblock, *result.mutable_data()->add_txblocks());
   }
 
@@ -7243,11 +7244,11 @@ bool Messenger::SetVCNodeSetDSTxBlockFromSeed(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes &src,
+bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes& src,
                                               const unsigned int offset,
-                                              vector<DSBlock> &dsBlocks,
-                                              vector<TxBlock> &txBlocks,
-                                              PubKey &lookupPubKey) {
+                                              vector<DSBlock>& dsBlocks,
+                                              vector<TxBlock>& txBlocks,
+                                              PubKey& lookupPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7264,7 +7265,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes &src,
     return false;
   }
 
-  for (const auto &proto_dsblock : result.data().dsblocks()) {
+  for (const auto& proto_dsblock : result.data().dsblocks()) {
     DSBlock dsblock;
     if (!io::ProtobufToDSBlock(proto_dsblock, dsblock)) {
       LOG_GENERAL(WARNING, "ProtobufToDSBlock failed");
@@ -7273,7 +7274,7 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes &src,
     dsBlocks.emplace_back(dsblock);
   }
 
-  for (const auto &txblock : result.data().txblocks()) {
+  for (const auto& txblock : result.data().txblocks()) {
     TxBlock block;
     if (!io::ProtobufToTxBlock(txblock, block)) {
       LOG_GENERAL(WARNING, "ProtobufToTxBlock failed");
@@ -7299,9 +7300,9 @@ bool Messenger::GetVCNodeSetDSTxBlockFromSeed(const zbytes &src,
 }
 
 bool Messenger::SetNodeNewShardNodeNetworkInfo(
-    zbytes &dst, const unsigned int offset, const uint64_t dsEpochNumber,
-    const Peer &shardNodeNewNetworkInfo, const uint64_t timestamp,
-    const PairOfKey &shardNodeKey) {
+    zbytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+    const Peer& shardNodeNewNetworkInfo, const uint64_t timestamp,
+    const PairOfKey& shardNodeKey) {
   LOG_MARKER();
   NodeSetShardNodeNetworkInfoUpdate result;
 
@@ -7338,12 +7339,12 @@ bool Messenger::SetNodeNewShardNodeNetworkInfo(
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes &src,
+bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes& src,
                                                const unsigned int offset,
-                                               uint64_t &dsEpochNumber,
-                                               Peer &shardNodeNewNetworkInfo,
-                                               uint64_t &timestamp,
-                                               PubKey &shardNodePubKey) {
+                                               uint64_t& dsEpochNumber,
+                                               Peer& shardNodeNewNetworkInfo,
+                                               uint64_t& timestamp,
+                                               PubKey& shardNodePubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7385,9 +7386,9 @@ bool Messenger::GetNodeNewShardNodeNetworkInfo(const zbytes &src,
 }
 
 bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
-    zbytes &dst, const unsigned int offset, const uint64_t dsEpochNumber,
-    const Peer &dsGuardNewNetworkInfo, const uint64_t timestamp,
-    const PairOfKey &dsguardkey) {
+    zbytes& dst, const unsigned int offset, const uint64_t dsEpochNumber,
+    const Peer& dsGuardNewNetworkInfo, const uint64_t timestamp,
+    const PairOfKey& dsguardkey) {
   LOG_MARKER();
   DSLookupSetDSGuardNetworkInfoUpdate result;
 
@@ -7426,8 +7427,8 @@ bool Messenger::SetDSLookupNewDSGuardNetworkInfo(
 }
 
 bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
-    const zbytes &src, const unsigned int offset, uint64_t &dsEpochNumber,
-    Peer &dsGuardNewNetworkInfo, uint64_t &timestamp, PubKey &dsGuardPubkey) {
+    const zbytes& src, const unsigned int offset, uint64_t& dsEpochNumber,
+    Peer& dsGuardNewNetworkInfo, uint64_t& timestamp, PubKey& dsGuardPubkey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7467,8 +7468,8 @@ bool Messenger::GetDSLookupNewDSGuardNetworkInfo(
 }
 
 bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
-    zbytes &dst, const unsigned int offset, const uint32_t portNo,
-    const uint64_t dsEpochNumber, const PairOfKey &lookupKey) {
+    zbytes& dst, const unsigned int offset, const uint32_t portNo,
+    const uint64_t dsEpochNumber, const PairOfKey& lookupKey) {
   LOG_MARKER();
 
   NodeGetGuardNodeNetworkInfoUpdate result;
@@ -7496,8 +7497,8 @@ bool Messenger::SetLookupGetNewDSGuardNetworkInfoFromLookup(
 }
 
 bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
-    const zbytes &src, const unsigned int offset, uint32_t &portNo,
-    uint64_t &dsEpochNumber) {
+    const zbytes& src, const unsigned int offset, uint32_t& portNo,
+    uint64_t& dsEpochNumber) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7540,14 +7541,14 @@ bool Messenger::GetLookupGetNewDSGuardNetworkInfoFromLookup(
 }
 
 bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
-    zbytes &dst, unsigned int offset,
-    const vector<DSGuardUpdateStruct> &vecOfDSGuardUpdateStruct,
-    const PairOfKey &lookupKey) {
+    zbytes& dst, unsigned int offset,
+    const vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
+    const PairOfKey& lookupKey) {
   LOG_MARKER();
   NodeSetGuardNodeNetworkInfoUpdate result;
 
-  for (const auto &dsguardupdate : vecOfDSGuardUpdateStruct) {
-    ProtoDSGuardUpdateStruct *proto_DSGuardUpdateStruct =
+  for (const auto& dsguardupdate : vecOfDSGuardUpdateStruct) {
+    ProtoDSGuardUpdateStruct* proto_DSGuardUpdateStruct =
         result.mutable_data()->add_dsguardupdatestruct();
     SerializableToProtobufByteArray(
         dsguardupdate.m_dsGuardPubkey,
@@ -7583,9 +7584,9 @@ bool Messenger::SetNodeSetNewDSGuardNetworkInfo(
 }
 
 bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
-    const zbytes &src, const unsigned int offset,
-    vector<DSGuardUpdateStruct> &vecOfDSGuardUpdateStruct,
-    PubKey &lookupPubKey) {
+    const zbytes& src, const unsigned int offset,
+    vector<DSGuardUpdateStruct>& vecOfDSGuardUpdateStruct,
+    PubKey& lookupPubKey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7613,7 +7614,7 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
     return false;
   }
 
-  for (const auto &proto_DSGuardUpdateStruct :
+  for (const auto& proto_DSGuardUpdateStruct :
        result.data().dsguardupdatestruct()) {
     PubKey tempPubk;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(proto_DSGuardUpdateStruct.dsguardpubkey(),
@@ -7628,11 +7629,11 @@ bool Messenger::SetNodeGetNewDSGuardNetworkInfo(
   return true;
 }
 
-bool Messenger::SetNodeRemoveFromBlacklist(zbytes &dst,
+bool Messenger::SetNodeRemoveFromBlacklist(zbytes& dst,
                                            const unsigned int offset,
-                                           const PairOfKey &myKey,
-                                           const uint128_t &ipAddress,
-                                           const uint64_t &dsEpochNumber) {
+                                           const PairOfKey& myKey,
+                                           const uint128_t& ipAddress,
+                                           const uint64_t& dsEpochNumber) {
   NodeRemoveFromBlacklist result;
   NumberToProtobufByteArray<uint128_t, UINT128_SIZE>(
       ipAddress, *result.mutable_data()->mutable_ipaddress());
@@ -7661,11 +7662,11 @@ bool Messenger::SetNodeRemoveFromBlacklist(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetNodeRemoveFromBlacklist(const zbytes &src,
+bool Messenger::GetNodeRemoveFromBlacklist(const zbytes& src,
                                            const unsigned int offset,
-                                           PubKey &senderPubKey,
-                                           uint128_t &ipAddress,
-                                           uint64_t &dsEpochNumber) {
+                                           PubKey& senderPubKey,
+                                           uint128_t& ipAddress,
+                                           uint64_t& dsEpochNumber) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -7696,11 +7697,11 @@ bool Messenger::GetNodeRemoveFromBlacklist(const zbytes &src,
   return true;
 }
 
-bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes &dst,
+bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes& dst,
                                                   const unsigned int offset,
                                                   const uint64_t txBlkNum,
                                                   const uint32_t listenPort,
-                                                  const PairOfKey &keys) {
+                                                  const PairOfKey& keys) {
   LOG_MARKER();
 
   LookupGetCosigsRewardsFromSeed result;
@@ -7734,11 +7735,11 @@ bool Messenger::SetLookupGetCosigsRewardsFromSeed(zbytes &dst,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes &src,
+bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes& src,
                                                   const unsigned int offset,
-                                                  PubKey &senderPubKey,
-                                                  uint64_t &txBlockNumber,
-                                                  uint32_t &port) {
+                                                  PubKey& senderPubKey,
+                                                  uint64_t& txBlockNumber,
+                                                  uint32_t& port) {
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);
@@ -7770,24 +7771,24 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes &src,
 }
 
 bool Messenger::SetLookupSetCosigsRewardsFromSeed(
-    zbytes &dst, const unsigned int offset, const PairOfKey &myKey,
-    const uint64_t &txBlkNumber, const std::vector<MicroBlock> &microblocks,
-    const TxBlock &txBlock, const uint32_t &numberOfShards) {
+    zbytes& dst, const unsigned int offset, const PairOfKey& myKey,
+    const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,
+    const TxBlock& txBlock, const uint32_t& numberOfShards) {
   LookupSetCosigsRewardsFromSeed result;
 
   // For Non-DS Shard
-  for (const auto &mb : microblocks) {
+  for (const auto& mb : microblocks) {
     if (mb.GetHeader().GetShardId() == numberOfShards) {
       continue;  // use txBlk for ds shard
     }
-    ProtoCosigsRewardsStructure *proto_CosigsRewardsStructure =
+    ProtoCosigsRewardsStructure* proto_CosigsRewardsStructure =
         result.mutable_data()->add_cosigsrewards();
 
     // txblock and shardid
     proto_CosigsRewardsStructure->set_epochnumber(txBlkNumber);
     proto_CosigsRewardsStructure->set_shardid(mb.GetHeader().GetShardId());
 
-    ZilliqaMessage::ProtoBlockBase *protoBlockBase =
+    ZilliqaMessage::ProtoBlockBase* protoBlockBase =
         proto_CosigsRewardsStructure->mutable_blockbase();
 
     // cosigs
@@ -7800,14 +7801,14 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
   }
 
   // For DS Shard
-  ProtoCosigsRewardsStructure *proto_CosigsRewardsStructure =
+  ProtoCosigsRewardsStructure* proto_CosigsRewardsStructure =
       result.mutable_data()->add_cosigsrewards();
 
   // txblock and shardid
   proto_CosigsRewardsStructure->set_epochnumber(txBlkNumber + 1);
   proto_CosigsRewardsStructure->set_shardid(-1);
 
-  ZilliqaMessage::ProtoBlockBase *protoBlockBase =
+  ZilliqaMessage::ProtoBlockBase* protoBlockBase =
       proto_CosigsRewardsStructure->mutable_blockbase();
 
   // cosigs
@@ -7844,8 +7845,8 @@ bool Messenger::SetLookupSetCosigsRewardsFromSeed(
 }
 
 bool Messenger::GetLookupSetCosigsRewardsFromSeed(
-    const zbytes &src, const unsigned int offset,
-    vector<CoinbaseStruct> &cosigrewards, PubKey &senderPubkey) {
+    const zbytes& src, const unsigned int offset,
+    vector<CoinbaseStruct>& cosigrewards, PubKey& senderPubkey) {
   LOG_MARKER();
 
   if (offset >= src.size()) {
@@ -7882,7 +7883,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   uint128_t rewards;
   cosigrewards.clear();
 
-  for (const auto &proto_cosigrewards : result.data().cosigsrewards()) {
+  for (const auto& proto_cosigrewards : result.data().cosigsrewards()) {
     txBlkNum = proto_cosigrewards.epochnumber();
     shardId = proto_cosigrewards.shardid();
     ProtobufByteArrayToNumber<uint128_t, UINT128_SIZE>(
@@ -7895,7 +7896,7 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
       return false;
     }
 
-    const auto &[blockHash, coSigs, timestamp] = *blockBaseVars;
+    const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
     cosigrewards.emplace_back(
         CoinbaseStruct(txBlkNum, shardId, coSigs.m_B1, coSigs.m_B2, rewards));
     LOG_GENERAL(INFO, "Received cosig and rewards for epoch "
@@ -7905,19 +7906,19 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
   return true;
 }
 
-bool Messenger::SetMinerInfoDSComm(zbytes &dst, const unsigned int offset,
-                                   const MinerInfoDSComm &minerInfo) {
+bool Messenger::SetMinerInfoDSComm(zbytes& dst, const unsigned int offset,
+                                   const MinerInfoDSComm& minerInfo) {
   LOG_MARKER();
 
   ProtoMinerInfoDSComm result;
 
-  for (const auto &dsnode : minerInfo.m_dsNodes) {
-    ProtoMinerInfoDSComm::Node *protodsnode = result.add_dsnodes();
+  for (const auto& dsnode : minerInfo.m_dsNodes) {
+    ProtoMinerInfoDSComm::Node* protodsnode = result.add_dsnodes();
     SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
   }
 
-  for (const auto &dsnode : minerInfo.m_dsNodesEjected) {
-    ProtoMinerInfoDSComm::Node *protodsnode = result.add_dsnodesejected();
+  for (const auto& dsnode : minerInfo.m_dsNodesEjected) {
+    ProtoMinerInfoDSComm::Node* protodsnode = result.add_dsnodesejected();
     SerializableToProtobufByteArray(dsnode, *protodsnode->mutable_pubkey());
   }
 
@@ -7929,8 +7930,8 @@ bool Messenger::SetMinerInfoDSComm(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMinerInfoDSComm(const zbytes &src, const unsigned int offset,
-                                   MinerInfoDSComm &minerInfo) {
+bool Messenger::GetMinerInfoDSComm(const zbytes& src, const unsigned int offset,
+                                   MinerInfoDSComm& minerInfo) {
   LOG_MARKER();
 
   minerInfo.m_dsNodes.clear();
@@ -7955,13 +7956,13 @@ bool Messenger::GetMinerInfoDSComm(const zbytes &src, const unsigned int offset,
     return false;
   }
 
-  for (const auto &protodsnode : result.dsnodes()) {
+  for (const auto& protodsnode : result.dsnodes()) {
     PubKey pubkey;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
     minerInfo.m_dsNodes.emplace_back(pubkey);
   }
 
-  for (const auto &protodsnode : result.dsnodesejected()) {
+  for (const auto& protodsnode : result.dsnodesejected()) {
     PubKey pubkey;
     PROTOBUFBYTEARRAYTOSERIALIZABLE(protodsnode.pubkey(), pubkey);
     minerInfo.m_dsNodesEjected.emplace_back(pubkey);
@@ -7970,17 +7971,17 @@ bool Messenger::GetMinerInfoDSComm(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetMinerInfoShards(zbytes &dst, const unsigned int offset,
-                                   const MinerInfoShards &minerInfo) {
+bool Messenger::SetMinerInfoShards(zbytes& dst, const unsigned int offset,
+                                   const MinerInfoShards& minerInfo) {
   LOG_MARKER();
 
   ProtoMinerInfoShards result;
 
-  for (const auto &shard : minerInfo.m_shards) {
-    ProtoMinerInfoShards::Shard *protoshard = result.add_shards();
+  for (const auto& shard : minerInfo.m_shards) {
+    ProtoMinerInfoShards::Shard* protoshard = result.add_shards();
     protoshard->set_shardsize(shard.m_shardSize);
-    for (const auto &shardnode : shard.m_shardNodes) {
-      ProtoMinerInfoShards::Node *protoshardnode = protoshard->add_shardnodes();
+    for (const auto& shardnode : shard.m_shardNodes) {
+      ProtoMinerInfoShards::Node* protoshardnode = protoshard->add_shardnodes();
       SerializableToProtobufByteArray(shardnode,
                                       *protoshardnode->mutable_pubkey());
     }
@@ -7994,8 +7995,8 @@ bool Messenger::SetMinerInfoShards(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMinerInfoShards(const zbytes &src, const unsigned int offset,
-                                   MinerInfoShards &minerInfo) {
+bool Messenger::GetMinerInfoShards(const zbytes& src, const unsigned int offset,
+                                   MinerInfoShards& minerInfo) {
   LOG_MARKER();
 
   minerInfo.m_shards.clear();
@@ -8019,10 +8020,10 @@ bool Messenger::GetMinerInfoShards(const zbytes &src, const unsigned int offset,
     return false;
   }
 
-  for (const auto &protoshard : result.shards()) {
+  for (const auto& protoshard : result.shards()) {
     MinerInfoShards::MinerInfoShard shard;
     shard.m_shardSize = protoshard.shardsize();
-    for (const auto &protoshardnode : protoshard.shardnodes()) {
+    for (const auto& protoshardnode : protoshard.shardnodes()) {
       PubKey pubkey;
       PROTOBUFBYTEARRAYTOSERIALIZABLE(protoshardnode.pubkey(), pubkey);
       shard.m_shardNodes.emplace_back(pubkey);
@@ -8033,9 +8034,9 @@ bool Messenger::GetMinerInfoShards(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetMicroBlockKey(zbytes &dst, const unsigned int offset,
-                                 const uint64_t &epochNum,
-                                 const uint32_t &shardID) {
+bool Messenger::SetMicroBlockKey(zbytes& dst, const unsigned int offset,
+                                 const uint64_t& epochNum,
+                                 const uint32_t& shardID) {
   ProtoMicroBlockKey result;
   result.set_epochnum(epochNum);
   result.set_shardid(shardID);
@@ -8048,8 +8049,8 @@ bool Messenger::SetMicroBlockKey(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetMicroBlockKey(const zbytes &src, const unsigned int offset,
-                                 uint64_t &epochNum, uint32_t &shardID) {
+bool Messenger::GetMicroBlockKey(const zbytes& src, const unsigned int offset,
+                                 uint64_t& epochNum, uint32_t& shardID) {
   if (src.size() == 0) {
     LOG_GENERAL(INFO, "Empty ProtoMicroBlockKey");
     return false;
@@ -8075,8 +8076,8 @@ bool Messenger::GetMicroBlockKey(const zbytes &src, const unsigned int offset,
   return true;
 }
 
-bool Messenger::SetTxEpoch(zbytes &dst, const unsigned int offset,
-                           const uint64_t &epochNum) {
+bool Messenger::SetTxEpoch(zbytes& dst, const unsigned int offset,
+                           const uint64_t& epochNum) {
   ProtoTxEpoch result;
   result.set_epochnum(epochNum);
 
@@ -8088,8 +8089,8 @@ bool Messenger::SetTxEpoch(zbytes &dst, const unsigned int offset,
   return SerializeToArray(result, dst, offset);
 }
 
-bool Messenger::GetTxEpoch(const zbytes &src, const unsigned int offset,
-                           uint64_t &epochNum) {
+bool Messenger::GetTxEpoch(const zbytes& src, const unsigned int offset,
+                           uint64_t& epochNum) {
   if (src.size() == 0) {
     LOG_GENERAL(INFO, "Empty TxEpoch");
     return true;

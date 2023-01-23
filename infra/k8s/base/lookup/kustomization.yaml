@@ -8,4 +8,4 @@ commonLabels:
   type: lookup
 replicas:
 - name: devnet-lookup
-  count: 1
+  count: 2
