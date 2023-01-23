@@ -246,7 +246,6 @@ class Metrics : public Singleton<Metrics> {
     std::chrono::system_clock::time_point m_startTime;
 
     LatencyScopeMarker(const LatencyScopeMarker &) = delete;
-
     LatencyScopeMarker &operator=(const LatencyScopeMarker &) = delete;
   };
 

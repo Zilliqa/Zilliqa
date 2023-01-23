@@ -84,6 +84,7 @@ zil::metrics::doubleHistogram_t &GetHistogramCounter() {
 double AccountStoreSC::m_transactionLatency = 0;
 
 AccountStoreSC::AccountStoreSC() {
+  Metrics::GetInstance();
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
   m_txnProcessTimeout = false;
 

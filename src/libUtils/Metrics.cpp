@@ -237,6 +237,7 @@ namespace {
 inline auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
     const std::string &family) {
+    Metrics::GetInstance(); // just to make sure this is not the first call in the API, occurred in testing
   return provider->GetMeter(family, "1.2.0");
 }
 
@@ -383,6 +384,7 @@ void Metrics::AddCounterHistogramView(const std::string &name,
 }
 
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
+
   const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
   return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
