@@ -47,7 +47,7 @@ namespace evm {
     zil::metrics::uint64Counter_t &GetInvocationsCounter() {
         static auto counter = Metrics::GetInstance().CreateInt64Metric(
                 "zilliqa.evm.invoke", "invocations_count", "Metrics for AccountStore",
-                "Blocks");
+                "calls");
         return counter;
     }
 

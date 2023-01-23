@@ -47,6 +47,7 @@ namespace zil{
             std::atomic<int64_t> blockNumberDS{0};
             std::atomic<int64_t> evmCall{0};
             std::atomic<int64_t> scillaCall{0};
+            std::atomic<int64_t> transactionCall{0};
         };
         //=======================================================================================
     }

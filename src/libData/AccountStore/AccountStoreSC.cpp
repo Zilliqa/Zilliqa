@@ -93,16 +93,19 @@ AccountStoreSC::AccountStoreSC() {
         if (not std::holds_alternative<std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(observer_result)) {
             std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
                     observer_result)
-                    ->Observe(params->blockNumber ,{{"counter", "DsBlocknumber"}});
+                    ->Observe(params->blockNumber ,{{"counter", "Blocknumber"}});
             std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
                     observer_result)
-                    ->Observe(params->blockNumberDS, {{"counter", "DsBlocknumber"}});
+                    ->Observe(params->blockNumberDS, {{"counter", "DSBlocknumber"}});
             std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
                     observer_result)
                     ->Observe(params->evmCall ,{{"latency", "evm"}});
             std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
                     observer_result)
                     ->Observe(params->scillaCall, {{"latency", "scilla"}});
+            std::get<std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
+                    observer_result)
+                    ->Observe(static_cast<uint64_t>(m_transactionLatency), {{"latency", "transaction"}});
         }
   };
 
