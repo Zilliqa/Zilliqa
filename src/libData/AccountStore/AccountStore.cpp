@@ -547,7 +547,6 @@ bool AccountStore::UpdateAccountsTemp(
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
 
-
   tpStart = r_timer_start();
   lock(g, g2);
 

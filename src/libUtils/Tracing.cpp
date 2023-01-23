@@ -18,10 +18,10 @@
 #include "Tracing.h"
 
 #include <boost/algorithm/string.hpp>
-#include "opentelemetry/exporters/otlp/otlp_http_exporter_factory.h"
 #include "opentelemetry/context/propagation/global_propagator.h"
 #include "opentelemetry/context/propagation/text_map_propagator.h"
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/exporters/otlp/otlp_http_exporter_factory.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
@@ -42,9 +42,9 @@ void Tracing::Init() {
   std::string cmp{TRACE_ZILLIQA_PROVIDER};
 
   if (cmp == "OTLPHTTP") {
-      OtlpHTTPInit();
+    OtlpHTTPInit();
   } else {
-      StdOutInit();
+    StdOutInit();
   }
 }
 
@@ -53,7 +53,7 @@ void Tracing::OtlpHTTPInit() {
   std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
                    std::to_string(TRACE_ZILLIQA_PORT)};
   if (!addr.empty()) {
-      opts.url = "http://" + addr + "/v1/traces";
+    opts.url = "http://" + addr + "/v1/traces";
   }
   resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
                                              {"version", (uint32_t)1}};
@@ -171,7 +171,7 @@ struct TextMapCarrier
     } else if (IsTraceState(key)) {
       m_traceState = value;
     } else {
-        std::cout << "Ignoring " << key << " = " << value;
+      std::cout << "Ignoring " << key << " = " << value;
     }
   }
 

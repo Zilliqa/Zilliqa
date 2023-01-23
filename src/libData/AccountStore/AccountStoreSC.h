@@ -34,24 +34,24 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
-namespace zil{
-    namespace accountstore {
-        const std::string EVM_HISTOGRAM = "zilliqa.evm.histogram";
-        const std::string SCILLA_HISTOGRAM = "zilliqa.scilla.histogram";
-        //=======================================================================================
-        // TODO : Put these into configuration as they will need tuning.
-        /// Metrics callback for block number
-        struct counter_t {
-            // These are the Non-automatic Manually set metrics
-            std::atomic<int64_t> blockNumber{0};
-            std::atomic<int64_t> blockNumberDS{0};
-            std::atomic<int64_t> evmCall{0};
-            std::atomic<int64_t> scillaCall{0};
-            std::atomic<int64_t> transactionCall{0};
-        };
-        //=======================================================================================
-    }
+namespace zil {
+namespace accountstore {
+const std::string EVM_HISTOGRAM = "zilliqa.evm.histogram";
+const std::string SCILLA_HISTOGRAM = "zilliqa.scilla.histogram";
+//=======================================================================================
+// TODO : Put these into configuration as they will need tuning.
+/// Metrics callback for block number
+struct counter_t {
+  // These are the Non-automatic Manually set metrics
+  std::atomic<int64_t> blockNumber{0};
+  std::atomic<int64_t> blockNumberDS{0};
+  std::atomic<int64_t> evmCall{0};
+  std::atomic<int64_t> scillaCall{0};
+  std::atomic<int64_t> transactionCall{0};
 };
+//=======================================================================================
+}  // namespace accountstore
+};  // namespace zil
 
 class ScillaIPCServer;
 
@@ -120,14 +120,15 @@ class AccountStoreSC : public AccountStoreBase {
 
   //=======================================================================================
   // TODO : Put these into configuration as they will need tuning.
-  std::list<double> m_latencieBoudaries{0, 1 , 2 , 4 , 6 , 8, 10, 20, 30, 40, 60, 120};
+  std::list<double> m_latencieBoudaries{0,  1,  2,  4,  6,  8,
+                                        10, 20, 30, 40, 60, 120};
 
   // The General Statistics for AccountStore.
-  std::shared_ptr<opentelemetry::metrics::ObservableInstrument>   m_generalStatistics;
+  std::shared_ptr<opentelemetry::metrics::ObservableInstrument>
+      m_generalStatistics;
   // shared Area for simply assigning metrics;
   zil::accountstore::counter_t m_storeMetrics;
   //=======================================================================================
-
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid

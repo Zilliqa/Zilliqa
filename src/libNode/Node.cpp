@@ -47,12 +47,11 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/Metrics.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
-#include "libValidator/Validator.h"
 #include "libUtils/Tracing.h"
-#include "libUtils/Metrics.h"
-
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -66,32 +65,32 @@ const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 #ifndef PRODUCTION_BUILD
 namespace {
 // testing version
-    [[maybe_unused]] int readAccountJsonFromFile(const string &path) {
-        ifstream in(path.c_str());
+[[maybe_unused]] int readAccountJsonFromFile(const string& path) {
+  ifstream in(path.c_str());
 
-        if (!in) {
-            cerr << "Cannot open file \n" << path << endl;
-            return -1;
-        }
-        Json::Value _json;
-        in >> _json;
+  if (!in) {
+    cerr << "Cannot open file \n" << path << endl;
+    return -1;
+  }
+  Json::Value _json;
+  in >> _json;
 
-        try {
-            for (const auto &i: _json.getMemberNames()) {
-                Address addr(i);
-                uint128_t balance(_json[i]["amount"].asString());
-                if (AccountStore::GetInstance().AddAccount(
-                        addr, {balance, _json[i]["nonce"].asUInt()})) {
-                    LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
-                }
-            }
-        } catch (exception &e) {
-            cout << "Unable to load data " << e.what() << endl;
-            return -1;
-        }
-        AccountStore::GetInstance().UpdateStateTrieAll();
-        return 0;
+  try {
+    for (const auto& i : _json.getMemberNames()) {
+      Address addr(i);
+      uint128_t balance(_json[i]["amount"].asString());
+      if (AccountStore::GetInstance().AddAccount(
+              addr, {balance, _json[i]["nonce"].asUInt()})) {
+        LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
+      }
     }
+  } catch (exception& e) {
+    cout << "Unable to load data " << e.what() << endl;
+    return -1;
+  }
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  return 0;
+}
 
 }  // namespace
 #endif
@@ -122,9 +121,10 @@ void Node::PopulateAccounts() {
 
   LOG_MARKER();
 
-#ifndef PRODCTION_BUILD  // This is a temporary feature for lccal cluster testing -- Steve White - CORE 20/01/2023
-  if (readAccountJsonFromFile("/etc/isolated-server-accounts.json") == 0){
-      LOG_GENERAL(INFO,"ADDED isolated-server-accounts.json")
+#ifndef PRODCTION_BUILD  // This is a temporary feature for lccal cluster
+                         // testing -- Steve White - CORE 20/01/2023
+  if (readAccountJsonFromFile("/etc/isolated-server-accounts.json") == 0) {
+    LOG_GENERAL(INFO, "ADDED isolated-server-accounts.json")
   }
 #endif
 
@@ -3295,4 +3295,3 @@ void Node::CheckPeers(const vector<Peer>& peers) {
   }
   P2PComm::GetInstance().SendMessage(peers, message);
 }
-
