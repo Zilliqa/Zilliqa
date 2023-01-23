@@ -234,7 +234,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
 
       Account *fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
-        LOG_GENERAL(WARNING, "Sender has no balance, reject");
+        LOG_GENERAL(WARNING, "Sender has no balance, so reject: " << fromAddr);
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }
@@ -544,7 +544,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
 
       Account *fromAccount = this->GetAccount(fromAddr);
       if (fromAccount == nullptr) {
-        LOG_GENERAL(WARNING, "Sender has no balance, reject");
+        LOG_GENERAL(WARNING, "Sender has no balance, reject: " << fromAddr);
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
       }

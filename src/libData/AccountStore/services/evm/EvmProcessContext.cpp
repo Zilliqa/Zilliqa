@@ -66,8 +66,7 @@ std::string txnIdToString(const TxnHash& txn) {
 /*
  *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
  *                       const TxnExtras& extras, bool commit = true)
- *   This is the traditional form of the constructor as used by the existing
- *   Zilliqa platform pre-evm for the 8.3 and beyond series.
+ *   This is the legacy form of the constructor
  *
  */
 EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
@@ -111,11 +110,13 @@ EvmProcessContext::EvmProcessContext(
     const Address& caller, const Address& contract, const zbytes& code,
     const zbytes& data, const uint64_t& gas, const uint256_t& amount,
     const uint64_t& blkNum, const TxnExtras& extras, std::string_view context,
-    bool estimate, bool direct)
+    bool estimate, bool direct, bool commit, bool contractCreation)
     : m_txnCode(code),
       m_txnData(data),
       m_legacyTxn(m_dummyTransaction),
       m_direct(direct),
+      m_commit(commit),
+      m_contractCreation(contractCreation),
       m_blockNumber(blkNum) {
   *m_protoData.mutable_address() = AddressToProto(contract);
   *m_protoData.mutable_origin() = AddressToProto(caller);
@@ -153,6 +154,27 @@ void EvmProcessContext::SetCode(const zbytes& code) {
  */
 
 const zbytes& EvmProcessContext::GetCode() const { return m_txnCode; }
+
+/*
+ * const Address GetToAddr()
+ *
+ * get the caller
+ */
+
+const Address EvmProcessContext::GetToAddr() const {
+  return ProtoToAddress(m_protoData.address());
+}
+
+/*
+ * const Address GetFromAddr()
+ *
+ * get the caller
+ */
+
+const Address EvmProcessContext::GetFromAddr() const {
+  return ProtoToAddress(m_protoData.origin());
+}
+
 
 /*
  * const zbyte& GetData()
@@ -219,6 +241,10 @@ void EvmProcessContext::SetEvmResult(const evm::EvmResult& result) {
   m_evmResult = result;
 }
 
+bool EvmProcessContext::GetEstimateOnly() const {
+  return m_protoData.estimate();
+}
+
 /*
  * SetEvmReceipt(const TransactionReceipt& tr)
  */
@@ -233,6 +259,15 @@ void EvmProcessContext::SetEvmReceipt(const TransactionReceipt& tr) {
 
 const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
   return m_evmRcpt;
+}
+
+Transaction::ContractType EvmProcessContext::GetContractType() {
+  if (m_legacyTxn == m_dummyTransaction) {
+    std::cerr << "this code path " << std::endl;
+    return Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
+  }
+  std::cerr << "this code path2 " << std::endl;
+  return Transaction::GetTransactionType(m_legacyTxn);
 }
 
 const uint64_t& EvmProcessContext::GetBlockNumber() { return m_blockNumber; }

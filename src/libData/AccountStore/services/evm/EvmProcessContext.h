@@ -73,7 +73,7 @@ struct EvmProcessContext {
                     const zbytes& code, const zbytes& data, const uint64_t& gas,
                     const uint256_t& amount, const uint64_t& blkNum,
                     const TxnExtras& extras, std::string_view context,
-                    bool estimate, bool direct);
+                    bool estimate, bool direct, bool commit, bool contractCreation);
 
   bool GetCommit() const;
 
@@ -86,6 +86,22 @@ struct EvmProcessContext {
    */
 
   void SetCode(const zbytes& code);
+
+  /*
+   * const Address GetToAddr()
+   *
+   * get the to address
+   */
+
+  const Address GetToAddr() const;
+
+  /*
+   * const Address GetFromAddr()
+   *
+   * get the to address
+   */
+
+  const Address GetFromAddr() const;
 
   /*
    * const zbyte& GetCode()
@@ -172,9 +188,7 @@ struct EvmProcessContext {
 
   bool GetDirect() { return m_direct; }
 
-  inline Transaction::ContractType GetContractType() {
-    return Transaction::GetTransactionType(m_legacyTxn);
-  }
+  Transaction::ContractType GetContractType();
 
   inline const Transaction& GetTransaction() const { return m_legacyTxn; }
 
@@ -189,6 +203,7 @@ struct EvmProcessContext {
   bool m_direct{false};
   bool m_commit{false};
   bool m_status{true};
+  bool m_contractCreation{false};
 
   evm::EvmResult m_evmResult;
   TransactionReceipt m_evmRcpt;

@@ -193,17 +193,20 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-    auto const nullAddr = IsNullAddress(tx.GetToAddr());
+    return GetTransactionType(IsNullAddress(tx.GetToAddr()), tx.GetCode(), tx.GetData());
+  }
 
-    if ((!tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
+  static ContractType GetTransactionType(bool nullAddr, zbytes const &code, zbytes const &data) {
+
+    if ((!data.empty() && !nullAddr) && code.empty()) {
       return CONTRACT_CALL;
     }
 
-    if (!tx.GetCode().empty() && nullAddr) {
+    if (!code.empty() && nullAddr) {
       return CONTRACT_CREATION;
     }
 
-    if ((tx.GetData().empty() && !nullAddr) && tx.GetCode().empty()) {
+    if ((data.empty() && !nullAddr) && code.empty()) {
       return NON_CONTRACT;
     }
 

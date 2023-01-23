@@ -391,7 +391,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
-  const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
+  //const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
+  const Address fromAddr = evmContext.GetFromAddr();
   uint64_t gasLimitEth = evmContext.GetTransaction().GetGasLimitEth();
 
   // Get the amount of deposit for running this txn
@@ -435,7 +436,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           evmContext.GetCode(), evmContext.GetData());
 
       // Check if gaslimit meets the minimum requirement for contract deployment
-      if (evmContext.GetTransaction().GetGasLimitEth() < baseFee) {
+      if (evmContext.GetTransaction().GetGasLimitEth() < baseFee && !evmContext.GetEstimateOnly()) {
         LOG_GENERAL(WARNING, "Gas limit "
                                  << evmContext.GetTransaction().GetGasLimitEth()
                                  << " less than " << baseFee);
@@ -623,7 +624,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         return true;
       }
 
-      if (evmContext.GetTransaction().GetGasLimitZil() < gasRemainedCore) {
+      if (evmContext.GetTransaction().GetGasLimitZil() < gasRemainedCore && !evmContext.GetEstimateOnly()) {
         LOG_GENERAL(WARNING, "Cumulative Gas calculated Underflow, gasLimit: "
                                  << evmContext.GetTransaction().GetGasLimitZil()
                                  << " gasRemained: " << gasRemained

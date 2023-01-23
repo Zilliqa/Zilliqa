@@ -610,6 +610,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   if (json.isMember("to")) {
     auto toAddrStr = json["to"].asString();
     DataConversion::NormalizeHexString(toAddrStr);
+    std::cerr << toAddrStr << std::endl;
+    std::cerr << "here we are 01221" << std::endl;
     toAddr = Address{toAddrStr};
   }
 
@@ -639,6 +641,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     if (toAccount != nullptr && toAccount->isContract()) {
       code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
+      std::cerr << "here we are 012" << std::endl;
       toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
                                               TRANSACTION_VERSION_ETH);
       contractCreation = true;
@@ -712,9 +715,17 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
+  std::cerr << " code size: " << code.size() << std::endl;
+  std::cerr << " data size: " << data.size() << std::endl;
+  std::cerr << " to addr: " << toAddr << std::endl;
+  std::cerr << " to addr is null: " << IsNullAddress(toAddr) << std::endl;
+  std::cerr << " sender: " << fromAddr << std::endl;
+
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
-                                      true, false);
+                                      true, false, false, contractCreation);
+
+  std::cerr << "type " << evmMessageContext.GetContractType() << std::endl;
 
   evm::EvmResult result;
 
@@ -732,8 +743,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
-                             "Base fee exceeds gas limit");
+      cerr << "we would throw here... " << retGas << " : " << gas << std::endl;
+      //throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                             ////"Base fee exceeds gas limit");
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
@@ -768,7 +780,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
         AccountStore::GetInstance().GetPrimaryMutex());
     Account* contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
+
     if (contractAccount == nullptr) {
+      LOG_GENERAL(WARNING, "Eth call to address with nothing there: " << addr);
       return "0x";
     }
     code = contractAccount->GetCode();
@@ -818,9 +832,10 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                             .GetHeader()
                             .GetBlockNum();
 
+    std::cerr << "we got here tho!!!" << std::endl;
     EvmProcessContext evmMessageContext(fromAddr, addr, code, data, gasRemained,
                                         value, blockNum, txnExtras, "eth_call",
-                                        false, true);
+                                        false, true, false, false);
 
     if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
                                                           result) &&
