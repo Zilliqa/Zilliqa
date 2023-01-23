@@ -214,7 +214,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
                                     const Transaction &transaction,
                                     TransactionReceipt &receipt,
                                     TxnStatus &error_code) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA)
+  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA);
+
   CALLS_LATENCY_MARKER(GetInvocationsCounter(),
                        zil::scilla::GetHistogramCounter(),
                        zil::metrics::FilterClass::ACCOUNTSTORE_SCILLA);

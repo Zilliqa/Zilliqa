@@ -105,12 +105,12 @@ double r_timer_end(std::chrono::system_clock::time_point start_time) {
 
 Metrics::LatencyScopeMarker::LatencyScopeMarker(
     zil::metrics::uint64Counter_t &metric,
-    zil::metrics::doubleHistogram_t &latency, zil::metrics::FilterClass fc,
-    const char *file, int line, const char *func, bool should_print)
+    zil::metrics::doubleHistogram_t &latency,
+    zil::metrics::FilterClass fc,
+    const char *file,
+    const char *func )
     : m_file{file},
-      m_line{line},
       m_func{func},
-      should_print{should_print},
       m_metric(metric),
       m_latency(latency),
       m_filterClass(fc),
@@ -234,7 +234,7 @@ void Metrics::Shutdown() {
 
 namespace {
 
-inline auto GetMeter(
+[[maybe_unused]] inline auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
     const std::string &family) {
     Metrics::GetInstance(); // just to make sure this is not the first call in the API, occurred in testing

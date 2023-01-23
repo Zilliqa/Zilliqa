@@ -230,19 +230,18 @@ class Metrics : public Singleton<Metrics> {
   struct LatencyScopeMarker final {
     LatencyScopeMarker(zil::metrics::uint64Counter_t &metric,
                        zil::metrics::doubleHistogram_t &latency,
-                       zil::metrics::FilterClass fc, const char *file, int line,
-                       const char *func, bool should_print = true);
+                       zil::metrics::FilterClass fc, const char *file,
+                       const char *func);
 
     ~LatencyScopeMarker();
 
    private:
     std::string m_file;
-    int m_line;
     std::string m_func;
-    bool should_print;
+
     zil::metrics::uint64Counter_t &m_metric;
     zil::metrics::doubleHistogram_t &m_latency;
-    zil::metrics::FilterClass &m_filterClass;
+    zil::metrics::FilterClass m_filterClass;
     std::chrono::system_clock::time_point m_startTime;
 
     LatencyScopeMarker(const LatencyScopeMarker &) = delete;
@@ -290,6 +289,6 @@ class Metrics : public Singleton<Metrics> {
 
 #define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)                 \
   Metrics::LatencyScopeMarker _scopemarker{COUNTER,  LATENCY,  FILTER_CLASS, \
-                                           __FILE__, __LINE__, __FUNCTION__};
+                                           __FILE__, __FUNCTION__};
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_
