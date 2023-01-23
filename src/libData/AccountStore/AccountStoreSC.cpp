@@ -41,9 +41,8 @@
 namespace {
 
 zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-  static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_accountstore", "invocations_count", "Metrics for AccountStore",
-      "Blocks");
+  static auto counter = Metrics::GetMeter()->CreateUInt64Counter(
+      "zilliqa.processors", "Metrics for AccountStore", "Blocks");
   return counter;
 }
 
@@ -61,9 +60,15 @@ namespace zil {
 namespace scilla {
 
 zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-  static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa.scilla.invoke", "invocations_count", "Metrics for AccountStore",
-      "calls");
+  static auto counter = Metrics::GetMeter()->CreateUInt64Counter(
+      "zilliqa.scilla", "Metrics for AccountStore", "calls");
+  return counter;
+}
+
+std::shared_ptr<opentelemetry::metrics::ObservableInstrument>
+    &GetGeneralCounters() {
+  static auto counter = Metrics::GetMeter()->CreateInt64ObservableGauge(
+      "zilliqa.general", "General Statistics", "");
   return counter;
 }
 
@@ -82,13 +87,10 @@ AccountStoreSC::AccountStoreSC() {
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
   m_txnProcessTimeout = false;
 
-  m_generalStatistics = Metrics::GetMeter()->CreateInt64ObservableGauge(
-      "zilliqa", "General Statistics", "");
-
   const auto lamda = [](opentelemetry::metrics::ObserverResult observer_result,
                         void *state) {
-    zil::accountstore::counter_t *params =
-        static_cast<zil::accountstore::counter_t *>(state);
+    AccountStoreSC *ac = static_cast<AccountStoreSC *>(state);
+
     // Do it this way around as it can only be double or int64 APPLE Clang does
     // not like long : long long
     if (not std::holds_alternative<
@@ -97,29 +99,24 @@ AccountStoreSC::AccountStoreSC() {
       std::get<
           std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
           observer_result)
-          ->Observe(params->blockNumber, {{"counter", "Blocknumber"}});
+          ->Observe(ac->m_stats.blockNumber, {{"counter", "Blocknumber"}});
       std::get<
           std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
           observer_result)
-          ->Observe(params->blockNumberDS, {{"counter", "DSBlocknumber"}});
+          ->Observe(ac->m_stats.blockNumberDS, {{"counter", "DSBlocknumber"}});
       std::get<
           std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
           observer_result)
-          ->Observe(params->evmCall, {{"latency", "evm"}});
+          ->Observe(ac->m_stats.evmCall, {{"latency", "evm"}});
       std::get<
           std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
           observer_result)
-          ->Observe(params->scillaCall, {{"latency", "scilla"}});
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
-          observer_result)
-          ->Observe(static_cast<uint64_t>(m_transactionLatency),
-                    {{"latency", "transaction"}});
+          ->Observe(ac->m_stats.scillaCall, {{"latency", "scilla"}});
     }
   };
 
-  m_generalStatistics->AddCallback(lamda,
-                                   static_cast<void *>(&m_generalStatistics));
+  zil::scilla::GetGeneralCounters()->AddCallback(lamda,
+                                                 static_cast<void *>(this));
 
   std::string boundary_name{"Latency view"};
   Metrics::GetInstance().AddCounterHistogramView(
@@ -206,7 +203,7 @@ void AccountStoreSC::InvokeInterpreter(
   }
   if (METRICS_ENABLED(ACCOUNTSTORE_SCILLA)) {
     auto val = r_timer_end(tpStart);
-    if (val > 0) m_storeMetrics.scillaCall = val;
+    if (val > 0) m_stats.scillaCall = val;
   }
 }
 

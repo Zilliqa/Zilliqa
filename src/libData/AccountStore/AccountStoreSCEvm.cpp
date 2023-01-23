@@ -305,7 +305,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   if (METRICS_ENABLED(ACCOUNTSTORE_EVM)) {
     auto val = r_timer_end(tpStart);
     if (val > 0) {
-      m_storeMetrics.evmCall = val;
+      m_stats.evmCall = val;
     }
   }
 
@@ -330,7 +330,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                        zil::metrics::FilterClass::ACCOUNTSTORE_EVM);
 
   // store into the metric holder.
-  if (blockNum > 0) m_storeMetrics.blockNumber = blockNum;
+  if (blockNum > 0) m_stats.blockNumber = blockNum;
 
   LOG_GENERAL(INFO,
               "Commit Context Mode="

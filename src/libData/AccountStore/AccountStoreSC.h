@@ -43,11 +43,10 @@ const std::string SCILLA_HISTOGRAM = "zilliqa.scilla.histogram";
 /// Metrics callback for block number
 struct counter_t {
   // These are the Non-automatic Manually set metrics
-  std::atomic<int64_t> blockNumber{0};
-  std::atomic<int64_t> blockNumberDS{0};
-  std::atomic<int64_t> evmCall{0};
-  std::atomic<int64_t> scillaCall{0};
-  std::atomic<int64_t> transactionCall{0};
+  int64_t blockNumber{0};
+  int64_t blockNumberDS{0};
+  int64_t evmCall{0};
+  int64_t scillaCall{0};
 };
 //=======================================================================================
 }  // namespace accountstore
@@ -123,11 +122,13 @@ class AccountStoreSC : public AccountStoreBase {
   std::list<double> m_latencieBoudaries{0,  1,  2,  4,  6,  8,
                                         10, 20, 30, 40, 60, 120};
 
-  // The General Statistics for AccountStore.
-  std::shared_ptr<opentelemetry::metrics::ObservableInstrument>
-      m_generalStatistics;
+  std::shared_ptr<zil::accountstore::counter_t> GetGeneralStatistics() {
+    std::shared_ptr<zil::accountstore::counter_t> stats =
+        std::make_shared<zil::accountstore::counter_t>();
+    return stats;
+  }
+
   // shared Area for simply assigning metrics;
-  zil::accountstore::counter_t m_storeMetrics;
   //=======================================================================================
 
   /// Contract Deployment
@@ -295,6 +296,8 @@ class AccountStoreSC : public AccountStoreBase {
   bool AddAccountAtomic(const Address &address, const Account &account);
 
   bool EvmProcessMessage(EvmProcessContext &params, evm::EvmResult &result);
+
+  zil::accountstore::counter_t m_stats;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_

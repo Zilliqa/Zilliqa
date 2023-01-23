@@ -49,6 +49,8 @@ const std::string ZILLIQA_METRIC_FAMILY{"zilliqa-cpp"};
 }  // namespace
 
 void Metrics::Init() {
+  zil::metrics::Filter::GetInstance().init();
+
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
   if (cmp == "PROMETHEUS") {
@@ -118,6 +120,7 @@ Metrics::LatencyScopeMarker::~LatencyScopeMarker() {
   if (zil::metrics::Filter::GetInstance().Enabled(m_filterClass)) {
     try {
       double taken = zil::metrics::r_timer_end(m_startTime);
+      if (taken > 0) taken /= 1000;  // convert to milliseconds
       auto context = opentelemetry::context::Context{};
       TRACE_ATTRIBUTE counter_attr = {{"method", m_func}};
       m_metric->Add(1, counter_attr);

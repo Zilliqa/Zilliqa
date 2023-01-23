@@ -39,6 +39,7 @@ namespace resource = opentelemetry::sdk::resource;
 Tracing::Tracing() { Init(); }
 
 void Tracing::Init() {
+  zil::trace::Filter::GetInstance().init();
   std::string cmp{TRACE_ZILLIQA_PROVIDER};
 
   if (cmp == "OTLPHTTP") {

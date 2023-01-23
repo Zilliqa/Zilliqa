@@ -543,11 +543,9 @@ bool AccountStore::UpdateAccountsTemp(
     const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
     const Transaction& transaction, const TxnExtras& txnExtras,
     TransactionReceipt& receipt, TxnStatus& error_code) {
-  std::chrono::system_clock::time_point tpStart;
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
 
-  tpStart = r_timer_start();
   lock(g, g2);
 
   bool isEvm{false};
@@ -583,8 +581,6 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  AccountStoreSC::m_transactionLatency =
-      static_cast<double>(r_timer_end(tpStart)) / 1000.0;
   return status;
 }
 
