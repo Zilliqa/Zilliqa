@@ -19,19 +19,20 @@
 
 #include <boost/variant.hpp>
 #include <map>
+#include "MessengerCommon.h"
 #include "common/BaseType.h"
 #include "common/TxnStatus.h"
-#include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libBlockchain/Block.h"
+#include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/CoinbaseData/CoinbaseStruct.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libData/MiningData/MinerInfo.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libNetwork/Peer.h"
 #include "libNetwork/ShardStruct.h"
-#include "MessengerCommon.h"
 
 class AccountBase;
+class Account;
 class AccountStore;
 class AccountStoreTemp;
 

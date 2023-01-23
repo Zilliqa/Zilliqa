@@ -42,10 +42,10 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        info!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, codeLen: {:?}, dataLen: {:?}",
+        debug!(
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate, enable_cps, code.len(), data.len());
+            backend.extras, estimate, enable_cps);
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -57,7 +57,6 @@ pub async fn run_evm_impl(
         };
         let gas_limit = gas_limit * gas_scaling_factor;
         let metadata = StackSubstateMetadata::new(gas_limit, &config);
-
         // Check if evm should resume from the point it stopped
         let (feedback_continuation, mut runtime, state) =
         if let Some(continuation) = node_continuation {
@@ -287,12 +286,12 @@ fn build_create_result(
             code_hash,
             salt,
         } => {
-            let mut scheme_crate2 = EvmProto::TrapData_Scheme_Create2::new();
-            scheme_crate2.set_caller(caller.into());
-            scheme_crate2.set_code_hash(code_hash.into());
-            scheme_crate2.set_salt(salt.into());
-            scheme_crate2.set_create2_address(interrupt.create2_address.into());
-            scheme.set_create2(scheme_crate2);
+            let mut scheme_create2 = EvmProto::TrapData_Scheme_Create2::new();
+            scheme_create2.set_caller(caller.into());
+            scheme_create2.set_code_hash(code_hash.into());
+            scheme_create2.set_salt(salt.into());
+            scheme_create2.set_create2_address(interrupt.create2_address.into());
+            scheme.set_create2(scheme_create2);
         }
         evm::CreateScheme::Fixed(address) => {
             let mut scheme_fixed = EvmProto::TrapData_Scheme_Fixed::new();

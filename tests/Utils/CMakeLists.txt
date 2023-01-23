@@ -9,11 +9,6 @@ endif(CMAKE_CONFIGURATION_TYPES)
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
 
-add_executable (Test_AddressConversion Test_AddressConversion.cpp)
-target_include_directories (Test_AddressConversion PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_AddressConversion PUBLIC Utils Boost::unit_test_framework)
-add_test(NAME Test_AddressConversion COMMAND Test_AddressConversion)
-
 add_executable (Test_Logger1 Test_Logger1.cpp)
 target_include_directories (Test_Logger1 PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Logger1 PUBLIC Utils Boost::unit_test_framework)
@@ -68,13 +63,6 @@ add_executable(Test_SWInfo Test_SWInfo.cpp)
 target_include_directories(Test_SWInfo PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries (Test_SWInfo PUBLIC Utils TestUtils Boost::unit_test_framework)
 add_test(NAME Test_SWInfo COMMAND Test_SWInfo)
-
-add_executable(Test_UpgradeManager Test_UpgradeManager.cpp)
-target_include_directories(Test_UpgradeManager PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_UpgradeManager PUBLIC Utils AccountData Message Boost::unit_test_framework)
-
-# The network is unstable between Travis server & GitHub, thus disable Test_UpgradeManager to avoid potential Travis build failed.
-#add_test(NAME Test_UpgradeManager COMMAND Test_UpgradeManager)
 
 add_executable(Test_DataConversion Test_DataConversion.cpp)
 target_include_directories(Test_DataConversion PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)

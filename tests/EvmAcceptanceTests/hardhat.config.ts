@@ -1,13 +1,13 @@
-import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
-import "hardhat-scilla-plugin";
-import clc from "cli-color";
 import chai from "chai";
-import {scillaChaiEventMatcher} from "hardhat-scilla-plugin";
+import clc from "cli-color";
+import { scillaChaiEventMatcher } from "hardhat-scilla-plugin";
 
 chai.use(scillaChaiEventMatcher);
 
+import "dotenv/config";
+import "hardhat-ethernal";
 import yargs from "yargs/yargs";
 
 const argv = yargs()
@@ -24,9 +24,20 @@ const argv = yargs()
     mochaTimeout: {
       type: "number",
       default: 300000
+    },
+    scilla: {
+      type: "boolean",
+      default: true
     }
   })
   .parseSync();
+
+if (argv.scilla) {
+  require("hardhat-scilla-plugin");
+  const chai = require("chai");
+  const {scillaChaiEventMatcher} = require("hardhat-scilla-plugin");
+  chai.use(scillaChaiEventMatcher);
+}
 
 declare module "hardhat/types/config" {
   interface HardhatNetworkUserConfig {
@@ -40,6 +51,14 @@ declare module "hardhat/types/config" {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
+  ethernal: {
+    email: process.env.ETHERNAL_EMAIL,
+    password: process.env.ETHERNAL_PASSWORD,
+    workspace: process.env.ETHERNAL_WORKSPACE,
+    disableSync: false, // If set to true, plugin will not sync blocks & txs
+    disableTrace: false, // If set to true, plugin won't trace transaction
+    uploadAst: true, // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
+  },
   defaultNetwork: "isolated_server",
   networks: {
     isolated_server: {
@@ -102,21 +121,6 @@ const config: HardhatUserConfig = {
       protocolVersion: 0x41,
       miningState: false
     },
-    isolated_server: {
-      url: "http://localhost:5555/",
-      websocketUrl: "ws://localhost:5555/",
-      accounts: [
-        "d96e9eb5b782a80ea153c937fa83e5948485fbfc8b7e7c069d7b914dbc350aba",
-        "589417286a3213dceb37f8f89bd164c3505a4cec9200c61f7c6db13a30a71b45",
-        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
-      ],
-      chainId: 0x8001,
-      web3ClientVersion: "Zilliqa/v8.2",
-      protocolVersion: 0x41,
-      zilliqaNetwork: true,
-      miningState: false
-    },
     local_network: {
       url: "http://localhost:8080",
       websocketUrl: "ws://localhost:8080",
@@ -144,6 +148,8 @@ import "./AddConfigHelpersToHre";
 extendEnvironment((hre) => {
   hre.debug = argv.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
+  hre.scillaTesting = argv.scilla;
+  hre.ethernalPlugin = process.env.ETHERNAL_PASSWORD != undefined;
 });
 
 task("test")

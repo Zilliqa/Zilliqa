@@ -20,24 +20,23 @@
 
 #include <opentelemetry/trace/tracer.h>
 #include <opentelemetry/trace/tracer_provider.h>
+#include <cassert>
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
-#include <cassert>
 
 #include "common/Singleton.h"
 #include "common/TraceFilters.h"
 
-namespace trace_api      = opentelemetry::trace;
-namespace trace_sdk      = opentelemetry::sdk::trace;
+namespace trace_api = opentelemetry::trace;
+namespace trace_sdk = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 
 namespace zil {
 namespace trace {
 class Filter : public Singleton<Filter> {
  public:
-
-  Filter(){ init();}
+  Filter() { init(); }
 
   void init();
 
@@ -49,14 +48,14 @@ class Filter : public Singleton<Filter> {
   uint64_t m_mask{};
 };
 
-}
-}
+}  // namespace trace
+}  // namespace zil
 
 class Tracing : public Singleton<Tracing> {
  public:
   Tracing();
 
-  std::string Version() { return "Initial" ;}
+  std::string Version() { return "Initial"; }
 
   std::shared_ptr<trace_api::Tracer> get_tracer();
 
@@ -89,12 +88,12 @@ class Tracing : public Singleton<Tracing> {
   ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES) \
   : trace_api::Tracer::GetCurrentSpan()
 
-#define TRACE_EVENT(SPAN,FILTER_CLASS,CLASS,ATTRIBUTES) \
-  TRACE_ENABLED(FILTER_CLASS)                    \
-  ? SPAN->AddEvent(CLASS,ATTRIBUTES) : SPAN->AddEvent(CLASS,{})
+#define TRACE_EVENT(SPAN, FILTER_CLASS, CLASS, ATTRIBUTES) \
+  TRACE_ENABLED(FILTER_CLASS)                              \
+  ? SPAN->AddEvent(CLASS, ATTRIBUTES) : SPAN->AddEvent(CLASS, {})
 
-using TRACE_ATTRIBUTE=std::map<std::string, opentelemetry::common::AttributeValue>;
-
+using TRACE_ATTRIBUTE =
+    std::map<std::string, opentelemetry::common::AttributeValue>;
 
 #define START_SPAN_WITH_PARENT(FILTER_CLASS, ATTRIBUTES, OPTIONS)            \
   TRACE_ENABLED(FILTER_CLASS)                                                \

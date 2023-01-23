@@ -234,3 +234,4 @@ message EvmResult {
   uint64 continuation_id = 7;
   TrapData trap_data = 8;
 }
+

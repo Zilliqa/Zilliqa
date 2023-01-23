@@ -1,0 +1,68 @@
+name: CI - Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitOrTag:
+        description: 'Commit or tag'
+        required: false
+        default: ''
+  push:
+    branches:
+      - 'release/**'
+    paths:
+    - 'VERSION'
+    tags:        
+      - v*
+
+jobs:
+  release-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: v${{ steps.set-release-version.outputs.major }}.${{ steps.set-release-version.outputs.minor }}.${{ steps.set-release-version.outputs.fix }}
+    steps:
+    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.commitOrTag }}
+    - name: Set release version
+      id: set-release-version
+      run: |
+        echo "major=$(tail -n +2 VERSION | head -n1)" >> $GITHUB_OUTPUT
+        echo "minor=$(tail -n +4 VERSION | head -n1)" >> $GITHUB_OUTPUT
+        echo "fix=$(tail -n +6 VERSION | head -n1)" >> $GITHUB_OUTPUT
+
+  release-to-ecr:
+    needs: release-version
+    uses: Zilliqa/gh-actions-workflows/.github/workflows/ci-dockerized-app-build-push-ecr.yml@main
+    with:
+      commitOrTag: ${{ inputs.commitOrTag }}
+      file: docker/Dockerfile
+      context: ''
+      image-name: zilliqa
+      image-tag: ${{ needs.release-version.outputs.version }}
+      cache-key: zilliqa
+    secrets:
+      registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
+      registry-username: ${{ secrets.ECR_USERNAME }}
+      registry-password: ${{ secrets.ECR_PASSWORD }}
+      aws-region: ${{ secrets.AWS_REGION_ZILLIQA }}
+      cache-username: ${{ secrets.CACHE_USERNAME }}
+      cache-password: ${{ secrets.CACHE_PASSWORD }}
+
+  release-to-dockerhub:
+    needs: release-version
+    uses: Zilliqa/gh-actions-workflows/.github/workflows/ci-dockerized-app-build-push-docker-hub.yml@main
+    with:
+      commitOrTag: ${{ inputs.commitOrTag }}
+      file: docker/Dockerfile
+      context: ''
+      image-name: zilliqa/zilliqa
+      image-tag: ${{ needs.release-version.outputs.version }}
+      cache-key: 'zilliqa'
+    secrets:
+      registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+      registry-password: ${{ secrets.DOCKERHUB_PASSWORD }}
+      cache-username: ${{ secrets.CACHE_USERNAME }}
+      cache-password: ${{ secrets.CACHE_PASSWORD }}

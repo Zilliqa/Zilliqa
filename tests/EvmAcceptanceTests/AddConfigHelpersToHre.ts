@@ -5,6 +5,9 @@ declare module "hardhat/types/runtime" {
   interface HardhatRuntimeEnvironment {
     debug: boolean;
     parallel: boolean;
+    scillaTesting: boolean;
+    isEthernalPluginEnabled: () => boolean;
+    isScillaTestingEnabled: () => boolean;
     isZilliqaNetworkSelected: () => boolean;
     getEthChainId: () => number;
     getZilliqaChainId: () => number;
@@ -18,6 +21,14 @@ declare module "hardhat/types/runtime" {
 }
 
 extendEnvironment((hre: HardhatRuntimeEnvironment) => {
+  hre.isEthernalPluginEnabled = () => {
+    return hre.ethernalPlugin;
+  };
+
+  hre.isScillaTestingEnabled = () => {
+    return hre.scillaTesting;
+  };
+
   hre.isZilliqaNetworkSelected = () => {
     return (hre as any).network.config.zilliqaNetwork;
   };

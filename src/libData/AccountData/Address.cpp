@@ -15,9 +15,9 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "AddressConversion.h"
+#include "Address.h"
 #include "Bech32/segwit_addr.h"
-#include "DataConversion.h"
+#include "libUtils/DataConversion.h"
 
 using namespace std;
 

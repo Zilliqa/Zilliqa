@@ -21,8 +21,8 @@
 #include "Synchronizer.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
-#include "libData/AccountData/Transaction.h"
 #include "libBlockchain/Block.h"
+#include "libData/AccountData/Transaction.h"
 #include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
 

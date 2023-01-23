@@ -25,21 +25,31 @@
 #include <unordered_map>
 
 #include <Schnorr.h>
+#include "AccountStoreBase.h"
 #include "common/Constants.h"
 #include "common/Hashes.h"
+#include "depends/libTrie/TrieDB.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountStore/AccountStoreSC.h"
 #include "libData/AccountStore/AccountStoreTemp.h"
-#include "libData/AccountStore/AccountStoreTrie.h"
+#include "libData/DataStructures/TraceableDB.h"
 #include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/TxnExtras.h"
 
 class ScillaIPCServer;
 
-class AccountStore : public AccountStoreTrie {
+class AccountStore : public AccountStoreBase {
+  TraceableDB m_db;
+  dev::GenericTrieDB<TraceableDB> m_state;
+  dev::h256 m_prevRoot = dev::h256();
+
+  // mutex for AccountStore DB related operations
+  std::mutex m_mutexDB;
+  mutable std::mutex m_mutexTrie;
+
   /// instantiate of AccountStoreTemp, which is serving for the StateDelta
   /// generation
   AccountStoreTemp m_accountStoreTemp;
@@ -73,6 +83,10 @@ class AccountStore : public AccountStoreTrie {
   /// Store the trie root to leveldb
   bool MoveRootToDisk(const dev::h256& root);
 
+  // From AccountStoreTrie
+  bool UpdateStateTrie(const Address& address, const Account& account);
+  bool RemoveFromTrie(const Address& address);
+
  public:
   /// Returns the singleton AccountStore instance.
   static AccountStore& GetInstance();
@@ -102,11 +116,11 @@ class AccountStore : public AccountStoreTrie {
   /// empty states data in memory
   void InitSoft();
 
+  /// Init the Trie
+  void InitTrie();
+
   /// Reset the reference to underlying leveldb
   bool RefreshDB();
-
-  /// Use the states in Temp State DB to refresh the state merkle trie
-  bool UpdateStateTrieFromTempStateDB();
 
   /// commit the in-memory states into persistent storage
   bool MoveUpdatesToDisk(uint64_t dsBlockNum = 0);
@@ -115,6 +129,10 @@ class AccountStore : public AccountStoreTrie {
   bool RetrieveFromDisk();
 
   bool RetrieveFromDiskOld();
+
+  /// From AccountStoreTrie
+  Account* GetAccount(const Address& address) override;
+  Account* GetAccount(const Address& address, bool resetRoot);
 
   /// Get the instance of an account from AccountStoreTemp
   /// [[[WARNING]]] Test utility function, don't use in core protocol
@@ -226,6 +244,16 @@ class AccountStore : public AccountStoreTrie {
                              evm::EvmResult& result) {
     return m_accountStoreTemp.EvmProcessMessage(params, result);
   }
+
+  /// From AccountStoreTrie
+  bool GetProof(const Address& address, const dev::h256& rootHash,
+                Account& account, std::set<std::string>& nodes);
+
+  dev::h256 GetStateRootHash() const;
+  dev::h256 GetPrevRootHash() const;
+  bool UpdateStateTrieAll();
+
+  void PrintAccountState() override;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORE_H_

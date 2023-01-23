@@ -24,14 +24,10 @@
 #include "libData/AccountStore/AccountStoreBase.h"
 
 AccountStoreBase::AccountStoreBase() {
-  m_addressToAccount = std::make_shared<std::unordered_map<Address,Account>>();
+  m_addressToAccount = std::make_shared<std::unordered_map<Address, Account>>();
 }
 
-
-void AccountStoreBase::Init() {
-  m_addressToAccount->clear();
-}
-
+void AccountStoreBase::Init() { m_addressToAccount->clear(); }
 
 bool AccountStoreBase::Serialize(zbytes& dst, unsigned int offset) const {
   if (!MessengerAccountStoreBase::SetAccountStore(dst, offset,
@@ -43,9 +39,7 @@ bool AccountStoreBase::Serialize(zbytes& dst, unsigned int offset) const {
   return true;
 }
 
-
-bool AccountStoreBase::Deserialize(const zbytes& src,
-                                        unsigned int offset) {
+bool AccountStoreBase::Deserialize(const zbytes& src, unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -54,10 +48,9 @@ bool AccountStoreBase::Deserialize(const zbytes& src,
 
   return true;
 }
-
 
 bool AccountStoreBase::Deserialize(const std::string& src,
-                                        unsigned int offset) {
+                                   unsigned int offset) {
   if (!MessengerAccountStoreBase::GetAccountStore(src, offset,
                                                   *m_addressToAccount)) {
     LOG_GENERAL(WARNING, "Messenger::GetAccountStore failed.");
@@ -67,10 +60,9 @@ bool AccountStoreBase::Deserialize(const std::string& src,
   return true;
 }
 
-
 bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
-                                           TransactionReceipt& receipt,
-                                           TxnStatus& error_code) {
+                                      TransactionReceipt& receipt,
+                                      TxnStatus& error_code) {
   const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();
   const uint128_t amount = transaction.GetAmountQa();
@@ -154,11 +146,10 @@ bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
   return true;
 }
 
-
 bool AccountStoreBase::CalculateGasRefund(const uint128_t& gasDeposit,
-                                               const uint64_t& gasUnit,
-                                               const uint128_t& gasPrice,
-                                               uint128_t& gasRefund) {
+                                          const uint64_t& gasUnit,
+                                          const uint128_t& gasPrice,
+                                          uint128_t& gasRefund) {
   uint128_t gasFee;
   if (!SafeMath<uint128_t>::mul(gasUnit, gasPrice, gasFee)) {
     LOG_GENERAL(WARNING, "gasUnit * gasPrice overflow!");
@@ -174,15 +165,13 @@ bool AccountStoreBase::CalculateGasRefund(const uint128_t& gasDeposit,
   return true;
 }
 
-
 bool AccountStoreBase::IsAccountExist(const Address& address) {
   // LOG_MARKER();
   return (nullptr != GetAccount(address));
 }
 
-
 bool AccountStoreBase::AddAccount(const Address& address,
-                                       const Account& account, bool toReplace) {
+                                  const Account& account, bool toReplace) {
   // LOG_MARKER();
   if (toReplace || !IsAccountExist(address)) {
     m_addressToAccount->insert_or_assign(address, account);
@@ -195,19 +184,16 @@ bool AccountStoreBase::AddAccount(const Address& address,
   return false;
 }
 
-
 bool AccountStoreBase::AddAccount(const PubKey& pubKey,
-                                       const Account& account) {
+                                  const Account& account) {
   return AddAccount(Account::GetAddressFromPublicKey(pubKey), account);
 }
-
 
 void AccountStoreBase::RemoveAccount(const Address& address) {
   if (IsAccountExist(address)) {
     m_addressToAccount->erase(address);
   }
 }
-
 
 Account* AccountStoreBase::GetAccount(const Address& address) {
   auto it = m_addressToAccount->find(address);
@@ -217,15 +203,13 @@ Account* AccountStoreBase::GetAccount(const Address& address) {
   return nullptr;
 }
 
-
 size_t AccountStoreBase::GetNumOfAccounts() const {
   // LOG_MARKER();
   return m_addressToAccount->size();
 }
 
-
 bool AccountStoreBase::IncreaseBalance(const Address& address,
-                                            const uint128_t& delta) {
+                                       const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -243,9 +227,8 @@ bool AccountStoreBase::IncreaseBalance(const Address& address,
   return false;
 }
 
-
 bool AccountStoreBase::DecreaseBalance(const Address& address,
-                                            const uint128_t& delta) {
+                                       const uint128_t& delta) {
   // LOG_MARKER();
 
   if (delta == 0) {
@@ -267,10 +250,8 @@ bool AccountStoreBase::DecreaseBalance(const Address& address,
   return true;
 }
 
-
-bool AccountStoreBase::TransferBalance(const Address& from,
-                                            const Address& to,
-                                            const uint128_t& delta) {
+bool AccountStoreBase::TransferBalance(const Address& from, const Address& to,
+                                       const uint128_t& delta) {
   // LOG_MARKER();
   // FIXME: Is there any elegent way to implement this atomic change on balance?
   if (DecreaseBalance(from, delta)) {
@@ -286,7 +267,6 @@ bool AccountStoreBase::TransferBalance(const Address& from,
   return false;
 }
 
-
 uint128_t AccountStoreBase::GetBalance(const Address& address) {
   // LOG_MARKER();
 
@@ -298,7 +278,6 @@ uint128_t AccountStoreBase::GetBalance(const Address& address) {
 
   return 0;
 }
-
 
 bool AccountStoreBase::IncreaseNonce(const Address& address) {
   // LOG_MARKER();
@@ -323,7 +302,6 @@ bool AccountStoreBase::IncreaseNonce(const Address& address) {
   }
 }
 
-
 uint64_t AccountStoreBase::GetNonce(const Address& address) {
   // LOG_MARKER();
 
@@ -335,7 +313,6 @@ uint64_t AccountStoreBase::GetNonce(const Address& address) {
 
   return 0;
 }
-
 
 void AccountStoreBase::PrintAccountState() {
   LOG_MARKER();

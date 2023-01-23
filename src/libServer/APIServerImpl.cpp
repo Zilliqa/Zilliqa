@@ -365,7 +365,6 @@ bool APIServerImpl::DoListen() {
 
   AcceptNext();
 
-
   m_metrics.SetCallback([this](auto&& result) {
     result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
                                       {"counter", "TotalConnections"}});

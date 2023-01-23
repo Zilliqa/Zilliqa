@@ -20,7 +20,6 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/test/included/unit_test.hpp>
 
-#include "depends/common/CommonIO.h"
 #include "depends/common/FixedHash.h"
 #include "depends/libTrie/TrieDB.h"
 #include "depends/libTrie/TrieHash.h"

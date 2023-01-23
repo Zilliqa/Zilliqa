@@ -39,7 +39,6 @@
 #include "libPOW/pow.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/AddressChecksum.h"
-#include "libUtils/AddressConversion.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
