@@ -121,8 +121,7 @@ Metrics::LatencyScopeMarker::LatencyScopeMarker(zil::metrics::uint64Counter_t &m
 }
 
 Metrics::LatencyScopeMarker::~LatencyScopeMarker() {
-    // TODO: move this when go live
-    if (true or zil::metrics::Filter::GetInstance().Enabled(m_filterClass)) {
+    if (zil::metrics::Filter::GetInstance().Enabled(m_filterClass)) {
         try {
             double taken = zil::metrics::r_timer_end(m_startTime);
             auto context = opentelemetry::context::Context{};
@@ -212,34 +211,6 @@ void Metrics::InitPrometheus(const std::string &addr) { // To be Deprecated in O
 
     metrics_api::Provider::SetMeterProvider(provider);
 }
-
-std::unique_ptr<metrics_sdk::MetricReader>
-Metrics::GetReader() {
-
-    std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
-                     std::to_string(METRIC_ZILLIQA_PORT)};
-
-    metrics_exporter::PrometheusExporterOptions opts;
-    if (!addr.empty()) {
-        opts.url = addr;
-    }
-
-    std::unique_ptr<metrics_sdk::PushMetricExporter> exporter{
-            new metrics_exporter::PrometheusExporter(opts)};
-
-    std::string version{METRIC_ZILLIQA_SCHEMA_VERSION};
-    std::string schema{METRIC_ZILLIQA_SCHEMA};
-
-    metrics_sdk::PeriodicExportingMetricReaderOptions options;
-    options.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
-    options.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
-
-    std::unique_ptr<metrics_sdk::MetricReader> reader{
-            new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
-                                                           options)};
-    return reader;
-}
-
 
 void Metrics::Shutdown() {
     auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(metrics_api::Provider::GetMeterProvider());

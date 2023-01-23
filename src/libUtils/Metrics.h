@@ -262,8 +262,6 @@ private:
 
     void InitStdOut();
 
-    std::unique_ptr<opentelemetry::sdk::metrics::MetricReader> GetReader();
-
 };
 
 #define INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE) \
