@@ -3,7 +3,7 @@ import { getAddressFromPrivateKey } from "@zilliqa-js/crypto";
 import BN from "bn.js";
 import { Signer, Wallet } from "ethers";
 import hre, { ethers as hh_ethers, web3 } from "hardhat";
-//import { initZilliqa, ScillaContract } from "hardhat-scilla-plugin";
+import { initZilliqa, ScillaContract } from "hardhat-scilla-plugin";
 import SignerPool from "./SignerPool";
 
 export type DeployOptions = {
@@ -16,7 +16,7 @@ export class Parallelizer {
   constructor() {
     const privateKey = "254d9924fc1dcdca44ce92d80255c6a0bb690f867abde80e626fbfef4d357004";
     this.zilliqaAccountAddress = getAddressFromPrivateKey(privateKey);
-    //initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey]);
+    initZilliqa(hre.getNetworkUrl(), hre.getZilliqaChainId(), [privateKey]);
   }
 
   async deployContract(contractName: string, ...args: any[]) {
