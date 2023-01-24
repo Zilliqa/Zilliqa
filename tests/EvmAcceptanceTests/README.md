@@ -71,9 +71,11 @@ npx hardhat test --parallel
 ```
 
 ## Run the tests with ethernal plugin
+
 ```bash
 ETHERNAL_EMAIL="devops+ethernal@zilliqa.com" ETHERNAL_PASSWORD="YourPassword" ETHERNAL_WORKSPACE="Zilliqa Testnet" npx hardhat test --network public_testnet
 ```
+
 Ethernal is an [EVM-based blockchain explorer](https://tryethernal.com)
 
 For more info, see [hardhat ethernal plugin](https://github.com/tryethernal/hardhat-ethernal)
@@ -312,6 +314,9 @@ to change some of the testing behaviors environment variables are used. They can
 - `DEBUG=true` to enable debugging logs.
 - `SCILLA=false` to ignore scilla tests.
 - `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
+- `ETHERNAL_EMAIL="devops+ethernal@zilliqa.com"` to set Ethernal email.
+- `ETHERNAL_WORKSPACE="Zilliqa Testnet"` to set Ethernal workspace.
+- `ETHERNAL_PASSWORD="Your Password"` If it's not set, ethernal plugin will be disabled.
 
 ## Scripts
 

@@ -28,6 +28,7 @@
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
+#include "libUtils/Tracing.h"
 #include "libZilliqa/Zilliqa.h"
 
 using namespace std;
@@ -163,6 +164,8 @@ int main(int argc, const char* argv[]) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
+    Metrics::GetInstance();
+    Tracing::GetInstance();
 
     boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {

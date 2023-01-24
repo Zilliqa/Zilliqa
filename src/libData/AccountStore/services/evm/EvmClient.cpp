@@ -28,8 +28,8 @@
 namespace {
 
 zil::metrics::uint64Counter_t& GetCallsCounter() {
-  static auto evmClientCount = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_evm", "invocations_count", "Calls to EVM-DS", "Calls");
+  static auto evmClientCount = Metrics::GetMeter()->CreateUInt64Counter(
+      "zilliqa.evmclient.jsonrpc", "Calls to EVM-DS over jsonrpc", "Calls");
   return evmClientCount;
 }
 
