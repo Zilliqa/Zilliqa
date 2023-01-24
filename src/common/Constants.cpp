@@ -36,9 +36,13 @@ struct PTree {
 };
 
 unsigned int ReadConstantNumeric(const string& propertyName,
-                                 const char* path = "node.general.") {
-  auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>(path + propertyName);
+                                 const char* path = "node.general.", unsigned int defaultVal = 0) {
+  try {
+    auto pt = PTree::GetInstance();
+    return pt.get<unsigned int>(path + propertyName);
+  } catch (exception& e) {
+    return defaultVal;
+  }
 }
 
 double ReadConstantDouble(const string& propertyName,
@@ -165,6 +169,8 @@ const unsigned int CONTRACT_STATE_VERSION{
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
+bool ARCHIVAL_LOOKUP_WITH_TX_TRACES{
+    ReadConstantString("ARCHIVAL_LOOKUP_WITH_TRACES", "node.seed.", "true") == "true"};
 const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
 const unsigned int TXN_STORAGE_LIMIT{
@@ -301,8 +307,8 @@ const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
 // Gas constants
 const uint64_t MIN_ETH_GAS{
     ReadConstantUInt64("MIN_ETH_GAS", "node.gas.", 21000)};
-const unsigned int DS_MICROBLOCK_GAS_LIMIT{
-    ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int DS_MICROBLOCK_GAS_LIMIT = 500000;
+    //ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
     ReadConstantNumeric("SHARD_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int CONTRACT_CREATE_GAS{
@@ -549,10 +555,16 @@ const string POW_SUBMISSION_VERSION_TAG{
 // Recovery and upgrading constants
 const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS{
     ReadConstantNumeric("WAIT_LOOKUP_WAKEUP_IN_SECONDS", "node.recovery.")};
+const bool GET_INITIAL_DS_FROM_REPO{
+    ReadConstantString("GET_INITIAL_DS_FROM_REPO", "node.recovery.") == "true"};
 const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS{
     ReadConstantNumeric("SHARD_DELAY_WAKEUP_IN_SECONDS", "node.recovery.")};
 const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS{
     ReadConstantNumeric("TERMINATION_COUNTDOWN_IN_SECONDS", "node.recovery.")};
+const string UPGRADE_HOST_ACCOUNT{
+    ReadConstantString("UPGRADE_HOST_ACCOUNT", "node.recovery.")};
+const string UPGRADE_HOST_REPO{
+    ReadConstantString("UPGRADE_HOST_REPO", "node.recovery.")};
 const bool REJOIN_NODE_NOT_IN_NETWORK{
     ReadConstantString("REJOIN_NODE_NOT_IN_NETWORK", "node.recovery.") ==
     "true"};
@@ -617,8 +629,7 @@ const bool ENABLE_SCILLA_MULTI_VERSION{
     "true"};
 bool ENABLE_SCILLA{ReadConstantString("ENABLE_SCILLA", "node.smart_contract.",
                                       "true") == "true"};
-const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") ==
-                  "true"};
+const bool LOG_SC = true;
 const bool DISABLE_SCILLA_LIB{
     ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_PENDING_IN_MS{
@@ -729,8 +740,7 @@ const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
-bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.", "true") ==
-                "true"};
+bool ENABLE_EVM = true;
 const std::string EVM_SERVER_SOCKET_PATH{ReadConstantString(
     "EVM_SERVER_SOCKET_PATH", "node.jsonrpc.", "/tmp/evm-server.sock")};
 const std::string EVM_SERVER_BINARY{ReadConstantString(
@@ -746,32 +756,19 @@ const uint64_t EVM_RPC_TIMEOUT_SECONDS{
     ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
 const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
-const bool SORT_ACC_STORE_DELTA{ReadConstantString("SORT_ACC_STORE_DELTA",
-                                                   "node.jsonrpc.",
-                                                   "true") == "false"};
 
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
-const std::string METRIC_ZILLIQA_PROVIDER{ReadConstantString(
-    "METRIC_ZILLIQA_PROVIDER", "node.metric.zilliqa.", "prometheus")};
 const unsigned int METRIC_ZILLIQA_PORT{
-    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.")};
+    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.", 8081)};
 const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(
-    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.")};
+    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.", 1000)};
 const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS{ReadConstantNumeric(
-    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.")};
+    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.", 500)};
 const std::string METRIC_ZILLIQA_SCHEMA{
     ReadConstantString("METRIC_ZILLIQA_SCHEMA", "node.metric.zilliqa.",
                        "https://opentelemetry.io/schemas/1.2.0")};
 const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
     "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
-const std::string METRIC_ZILLIQA_MASK{
-    ReadConstantString("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", "NONE")};
-const std::string TRACE_ZILLIQA_MASK{
-    ReadConstantString("TRACE_ZILLIQA_MASK", "node.trace.zilliqa.", "NONE")};
-const std::string TRACE_ZILLIQA_PROVIDER{ReadConstantString(
-    "TRACE_ZILLIQA_PROVIDER", "node.trace.zilliqa.", "STDOUT")};
-const std::string TRACE_ZILLIQA_HOSTNAME{ReadConstantString(
-    "TRACE_ZILLIQA_HOSTNAME", "node.trace.zilliqa.", "localhost")};
-const unsigned int TRACE_ZILLIQA_PORT{
-    ReadConstantNumeric("TRACE_ZILLIQA_PORT", "node.trace.zilliqa.")};
+
+const uint64_t METRIC_ZILLIQA_MASK{ReadConstantUInt64("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", 0)};
