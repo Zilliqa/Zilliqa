@@ -47,8 +47,10 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
+#include "libUtils/Metrics.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
+#include "libUtils/Tracing.h"
 #include "libValidator/Validator.h"
 
 using namespace std;
@@ -59,6 +61,39 @@ const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
+
+#ifndef PRODUCTION_BUILD
+namespace {
+// testing version
+[[maybe_unused]] int readAccountJsonFromFile(const string& path) {
+  ifstream in(path.c_str());
+
+  if (!in) {
+    cerr << "Cannot open file \n" << path << endl;
+    return -1;
+  }
+  Json::Value _json;
+  in >> _json;
+
+  try {
+    for (const auto& i : _json.getMemberNames()) {
+      Address addr(i);
+      uint128_t balance(_json[i]["amount"].asString());
+      if (AccountStore::GetInstance().AddAccount(
+              addr, {balance, _json[i]["nonce"].asUInt()})) {
+        LOG_GENERAL(INFO, "Added " << addr << " with balance " << balance);
+      }
+    }
+  } catch (exception& e) {
+    cout << "Unable to load data " << e.what() << endl;
+    return -1;
+  }
+  AccountStore::GetInstance().UpdateStateTrieAll();
+  return 0;
+}
+
+}  // namespace
+#endif
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
@@ -85,6 +120,13 @@ void Node::PopulateAccounts() {
   }
 
   LOG_MARKER();
+
+#ifndef PRODCTION_BUILD  // This is a temporary feature for lccal cluster
+                         // testing -- Steve White - CORE 20/01/2023
+  if (readAccountJsonFromFile("/etc/isolated-server-accounts.json") == 0) {
+    LOG_GENERAL(INFO, "ADDED isolated-server-accounts.json")
+  }
+#endif
 
   try {
     string line;

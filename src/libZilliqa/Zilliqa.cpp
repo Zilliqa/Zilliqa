@@ -201,6 +201,12 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
 
+  /*
+   * These are required to initialise SubSystems.
+   */
+  Metrics::GetInstance();
+  Tracing::GetInstance();
+
   if (LOG_PARAMETERS) {
     LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
   }

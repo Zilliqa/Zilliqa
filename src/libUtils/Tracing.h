@@ -48,6 +48,13 @@ class Filter : public Singleton<Filter> {
   uint64_t m_mask{};
 };
 
+/// Extract info to continue spans with distributed tracing
+void ExtractTraceInfoFromCurrentContext(std::string& serializedTraceInfo);
+
+/// Creates child span from serialized trace info
+std::shared_ptr<trace_api::Span> CreateChildSpan(
+    std::string_view name, const std::string& serializedTraceInfo);
+
 }  // namespace trace
 }  // namespace zil
 
@@ -64,11 +71,7 @@ class Tracing : public Singleton<Tracing> {
 
  private:
   void Init();
-  void ZipkinInit();
   void StdOutInit();
-  void ZPagesInit();
-  void JaegerInit();
-  void OtlpGRPCInit();
   void OtlpHTTPInit();
 
   std::shared_ptr<opentelemetry::trace::TracerProvider> m_provider;
