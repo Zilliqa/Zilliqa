@@ -592,7 +592,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
 
       Account *toAccount = this->GetAccount(toAddr);
       if (toAccount == nullptr) {
-        LOG_GENERAL(WARNING, "The target contract account doesn't exist");
+        LOG_GENERAL(WARNING, "The target contract account doesn't exist: " << toAddr);
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
         return false;
       }

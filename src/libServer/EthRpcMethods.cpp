@@ -639,7 +639,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
             : nullptr;
 
     if (toAccount != nullptr && toAccount->isContract()) {
-      code = toAccount->GetCode();
+      std::cerr << "Code set here0" << std::endl;
+      //code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
       std::cerr << "here we are 012" << std::endl;
       toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
@@ -655,6 +656,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
                              "data argument invalid");
     }
   }
+
+  std::cerr << "data size after parse: " << data.size() << std::endl;
 
   uint256_t value = 0;
   if (json.isMember("value")) {
@@ -692,6 +695,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   if (contractCreation && code.empty() && !data.empty()) {
+    std::cerr << " code swap!: " << code.size() << std::endl;
     std::swap(data, code);
   }
 
@@ -720,10 +724,14 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   std::cerr << " to addr: " << toAddr << std::endl;
   std::cerr << " to addr is null: " << IsNullAddress(toAddr) << std::endl;
   std::cerr << " sender: " << fromAddr << std::endl;
+  std::cerr << " creation: " << contractCreation << std::endl;
 
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
                                       true, false, false, contractCreation);
+
+  std::cerr << " code second size: " << code.size() << std::endl;
+  std::cerr << " data second size: " << data.size() << std::endl;
 
   std::cerr << "type " << evmMessageContext.GetContractType() << std::endl;
 

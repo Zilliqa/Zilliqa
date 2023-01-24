@@ -175,6 +175,12 @@ struct EvmProcessContext {
   bool GetEstimateOnly() const;
 
   /*
+   * GetVersionIdentifier()
+   */
+
+  uint32_t GetVersionIdentifier() const;
+
+  /*
    * SetEvmReceipt(const TransactionReceipt& tr)
    */
 
@@ -192,11 +198,28 @@ struct EvmProcessContext {
 
   inline const Transaction& GetTransaction() const { return m_legacyTxn; }
 
+
+  uint64_t GetGasLimitEth() const;
+
+
+  uint64_t GetGasLimitZil() const;
+
+  /// Returns the gas price in Qa.
+  uint128_t GetGasPriceQa() const;
+
+  /// Returns the gas price in Wei.
+  uint128_t GetGasPriceWei() const;
+
+  uint128_t GetAmountWei() const;
+
+  uint128_t GetAmountQa() const;
+
  private:
   const zbytes& m_txnCode;
   const zbytes& m_txnData;
   const Transaction& m_legacyTxn;
   const Transaction m_dummyTransaction{};
+  Transaction::ContractType m_contractType;
 
   evm::EvmArgs m_protoData;
 

@@ -97,6 +97,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
   m_protoData.set_estimate(false);
   // Initialised OK
   m_status = true;
+  m_contractType = Transaction::GetTransactionType(m_legacyTxn);
 }
 
 /*
@@ -130,9 +131,53 @@ EvmProcessContext::EvmProcessContext(
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
   }
+  m_contractType = Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
 }
 
 bool EvmProcessContext::GetCommit() const { return m_commit; }
+
+
+uint64_t EvmProcessContext::GetGasLimitEth() const {
+  if (m_legacyTxn == m_dummyTransaction) {
+    return ETH_DEFAULT_GAS_LIMIT;
+  }
+  return m_legacyTxn.GetGasLimitEth();
+}
+
+uint64_t EvmProcessContext::GetGasLimitZil() const {
+  if (m_legacyTxn == m_dummyTransaction) {
+    return ETH_DEFAULT_GAS_LIMIT;
+  }
+  return m_legacyTxn.GetGasLimitZil();
+}
+
+uint128_t EvmProcessContext::GetGasPriceQa() const {
+  if (m_legacyTxn == m_dummyTransaction) {
+    return ZIL_DEFAULT_GAS_LIMIT; // xxx
+  }
+  return m_legacyTxn.GetGasPriceQa();
+}
+
+uint128_t EvmProcessContext::GetGasPriceWei() const {
+  if (m_legacyTxn == m_dummyTransaction) {
+    return ZIL_DEFAULT_GAS_LIMIT;
+  }
+  return m_legacyTxn.GetGasPriceWei();
+}
+
+uint128_t EvmProcessContext::GetAmountWei() const {
+  if (m_legacyTxn == m_dummyTransaction) {
+    return ZIL_DEFAULT_GAS_LIMIT;
+  }
+  return m_legacyTxn.GetAmountWei();
+}
+
+uint128_t EvmProcessContext::GetAmountQa() const {
+  if (m_legacyTxn == m_dummyTransaction) {
+    return ZIL_DEFAULT_GAS_LIMIT;
+  }
+  return m_legacyTxn.GetAmountQa();
+}
 
 /*
  * SetCode(const zbytes& code)
@@ -245,6 +290,14 @@ bool EvmProcessContext::GetEstimateOnly() const {
   return m_protoData.estimate();
 }
 
+uint32_t EvmProcessContext::GetVersionIdentifier() const {
+  // Only eth style TXs use the newer constructor and API
+  if (m_legacyTxn == m_dummyTransaction) {
+    return TRANSACTION_VERSION_ETH;
+  }
+  return m_legacyTxn.GetVersionIdentifier();
+}
+
 /*
  * SetEvmReceipt(const TransactionReceipt& tr)
  */
@@ -262,12 +315,13 @@ const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
 }
 
 Transaction::ContractType EvmProcessContext::GetContractType() {
-  if (m_legacyTxn == m_dummyTransaction) {
-    std::cerr << "this code path " << std::endl;
-    return Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
-  }
-  std::cerr << "this code path2 " << std::endl;
-  return Transaction::GetTransactionType(m_legacyTxn);
+  return m_contractType;
+  //if (m_legacyTxn == m_dummyTransaction) {
+  //  std::cerr << "this code path " << std::endl;
+  //  return Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
+  //}
+  //std::cerr << "this code path2 " << std::endl;
+  //return Transaction::GetTransactionType(m_legacyTxn);
 }
 
 const uint64_t& EvmProcessContext::GetBlockNumber() { return m_blockNumber; }

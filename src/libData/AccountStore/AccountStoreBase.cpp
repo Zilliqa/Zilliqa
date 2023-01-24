@@ -172,6 +172,10 @@ bool AccountStoreBase::IsAccountExist(const Address& address) {
 
 bool AccountStoreBase::AddAccount(const Address& address,
                                   const Account& account, bool toReplace) {
+  if (IsNullAddress(address)) {
+    LOG_GENERAL(WARNING, "Attempting to add null address. This is probably incorrect!");
+  }
+
   // LOG_MARKER();
   if (toReplace || !IsAccountExist(address)) {
     m_addressToAccount->insert_or_assign(address, account);
