@@ -19,51 +19,50 @@
 #define ZILLIQA_SRC_COMMON_CONSTANTS_H_
 
 #include "BaseType.h"
-#include "depends/common/FixedHash.h"
+#include "common/Hashes.h"
 
 const size_t BLOCK_NUMERIC_DIGITS =
     std::to_string(std::numeric_limits<uint64_t>::max()).size();
 
 // Data sizes
-const unsigned int COMMON_HASH_SIZE = 32;
-const unsigned int ACC_ADDR_SIZE = 20;
-const unsigned int TRAN_HASH_SIZE = 32;
-const unsigned int TRAN_SIG_SIZE = 64;
-const unsigned int TRAN_SIG_SIZE_UNCOMPRESSED = 65;
-const unsigned int BLOCK_HASH_SIZE = 32;
-const unsigned int BLOCK_SIG_SIZE = 64;
-const unsigned int STATE_HASH_SIZE = 32;
-const unsigned int RESERVED_FIELD_SIZE = 128;
+constexpr const unsigned int COMMON_HASH_SIZE = 32;
+constexpr const unsigned int ACC_ADDR_SIZE = 20;
+constexpr const unsigned int TRAN_HASH_SIZE = TxnHash::size;
+static_assert(TRAN_HASH_SIZE == 32);
+
+constexpr const unsigned int TRAN_SIG_SIZE = 64;
+constexpr const unsigned int TRAN_SIG_SIZE_UNCOMPRESSED = 65;
+constexpr const unsigned int BLOCK_HASH_SIZE = BlockHash::size;
+static_assert(BLOCK_HASH_SIZE == 32);
+
+constexpr const unsigned int BLOCK_SIG_SIZE = 64;
+constexpr const unsigned int STATE_HASH_SIZE = StateHash::size;
+static_assert(STATE_HASH_SIZE == 32);
+
+constexpr const unsigned int RESERVED_FIELD_SIZE = 128;
 
 // Numeric types sizes
-const unsigned int UINT256_SIZE = 32;
-const unsigned int UINT128_SIZE = 16;
-const unsigned int INT256_SIZE = 32;
+constexpr const unsigned int UINT256_SIZE = 32;
+constexpr const unsigned int UINT128_SIZE = 16;
+constexpr const unsigned int INT256_SIZE = 32;
 
 // Cryptographic sizes
-const unsigned int PUB_KEY_SIZE = 33;
-const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
-const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
-const unsigned int CHALLENGE_SIZE = 32;
-const unsigned int RESPONSE_SIZE = 32;
+constexpr const unsigned int PUB_KEY_SIZE = 33;
+constexpr const unsigned int SIGNATURE_CHALLENGE_SIZE = 32;
+constexpr const unsigned int SIGNATURE_RESPONSE_SIZE = 32;
+constexpr const unsigned int CHALLENGE_SIZE = 32;
+constexpr const unsigned int RESPONSE_SIZE = 32;
 
-const unsigned int BLOCKCHAIN_SIZE = 50;
-
-// Number of nodes sent from lookup node to newly joined node
-const unsigned int SEED_PEER_LIST_SIZE = 20;
+constexpr const unsigned int BLOCKCHAIN_SIZE = 50;
 
 // Transaction body sharing
 
-const unsigned int NUM_VACUOUS_EPOCHS = 1;
+constexpr const unsigned int NUM_VACUOUS_EPOCHS = 1;
 
 // Networking and mining
-const unsigned int POW_SIZE = 32;
-const unsigned int IP_SIZE = 16;
-const unsigned int PORT_SIZE = 4;
+constexpr const unsigned int POW_SIZE = 32;
 
-const unsigned int NUM_PEERS_TO_SEND_IN_A_SHARD = 20;
-
-const unsigned int MAINNET_CHAIN_ID = 1;
+constexpr const unsigned int MAINNET_CHAIN_ID = 1;
 
 // ISOLATED SERVER TOGGLE
 
@@ -103,17 +102,6 @@ enum SyncType : unsigned int {
 };
 
 enum class ValidateState : unsigned char { IDLE = 0, INPROGRESS, DONE, ERROR };
-
-namespace Contract {
-using VName = std::string;
-using Mutable = bool;
-using Type = std::string;
-using Value = std::string;
-using StateEntry = std::tuple<VName, Mutable, Type, Value>;
-using Index = dev::h256;
-
-enum Data : unsigned int { VNAME = 0, MUTABLE, TYPE, VALUE, ITEMS_NUM };
-}  // namespace Contract
 
 const std::string RAND1_GENESIS =
     "2b740d75891749f94b6a8ec09f086889066608e4418eda656c93443e8310750a";
@@ -172,7 +160,6 @@ extern const unsigned int CONTRACT_STATE_VERSION;
 
 // Seed Node
 extern const bool ARCHIVAL_LOOKUP;
-extern bool ARCHIVAL_LOOKUP_WITH_TX_TRACES;
 extern const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC;
 extern const unsigned int TXN_STORAGE_LIMIT;
 extern bool MULTIPLIER_SYNC_MODE;
@@ -307,6 +294,7 @@ extern const std::string EVM_LOG_CONFIG;
 extern const uint64_t ETH_CHAINID;
 extern const uint64_t EVM_ZIL_SCALING_FACTOR;
 extern const bool LAUNCH_EVM_DAEMON;
+extern const bool SORT_ACC_STORE_DELTA;
 
 extern const std::string IP_TO_BIND;  // Only for non-lookup nodes
 extern const bool ENABLE_STAKING_RPC;
@@ -387,11 +375,8 @@ extern const std::string POW_SUBMISSION_VERSION_TAG;
 
 // Recovery and upgrading constants
 extern const unsigned int WAIT_LOOKUP_WAKEUP_IN_SECONDS;
-extern const bool GET_INITIAL_DS_FROM_REPO;
 extern const unsigned int SHARD_DELAY_WAKEUP_IN_SECONDS;
 extern const unsigned int TERMINATION_COUNTDOWN_IN_SECONDS;
-extern const std::string UPGRADE_HOST_ACCOUNT;
-extern const std::string UPGRADE_HOST_REPO;
 extern const bool REJOIN_NODE_NOT_IN_NETWORK;
 extern const unsigned int RESUME_BLACKLIST_DELAY_IN_SECONDS;
 extern const unsigned int INCRDB_DSNUMS_WITH_STATEDELTAS;
@@ -503,11 +488,16 @@ extern const std::vector<std::pair<uint64_t, uint32_t>>
 
 // Metrics constants
 extern const std::string METRIC_ZILLIQA_HOSTNAME;
+extern const std::string METRIC_ZILLIQA_PROVIDER;
 extern const unsigned int METRIC_ZILLIQA_PORT;
 extern const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS;
 extern const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS;
 extern const std::string METRIC_ZILLIQA_SCHEMA;
 extern const std::string METRIC_ZILLIQA_SCHEMA_VERSION;
-extern const uint64_t  METRIC_ZILLIQA_MASK;
+extern const std::string METRIC_ZILLIQA_MASK;
+extern const std::string TRACE_ZILLIQA_MASK;
+extern const std::string TRACE_ZILLIQA_PROVIDER;
+extern const std::string TRACE_ZILLIQA_HOSTNAME;
+extern const unsigned int TRACE_ZILLIQA_PORT;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_
