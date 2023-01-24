@@ -36,10 +36,6 @@ CpsExecuteResult CpsRunTransfer::Run(TransactionReceipt& /*receipt*/) {
   if (mCpsContext.isStatic) {
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
-  LOG_GENERAL(WARNING, "RUNNING CPS TRANSFER FROM: " + mFrom.hex() +
-                           ", to: " + mTo.hex() + ", with VAL: " +
-                           mAmount.toWei().convert_to<std::string>());
-
   if (!mAccountStore.TransferBalanceAtomic(mFrom, mTo, mAmount)) {
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }

@@ -11,7 +11,6 @@ use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
     Runtime, Stack, Transfer,
 };
-use log::info;
 use primitive_types::{H160, H256, U256};
 
 use crate::scillabackend::ScillaBackend;
@@ -104,12 +103,6 @@ impl<'a> CpsExecutor<'a> {
                 *runtime.return_data_buffer() = Vec::from(evm_feedback.get_calldata().get_data());
                 let offset_len: U256 = U256::from(evm_feedback.get_calldata().get_offset_len());
                 let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
-
-                info!(
-                    "INSERTING FEEDBACK CALL with len: {:?} and data: {:?}",
-                    target_len,
-                    evm_feedback.get_calldata().get_data()
-                );
 
                 match runtime.machine_mut().memory_mut().copy_large(
                     U256::from(evm_feedback.get_calldata().get_memory_offset()),
@@ -332,7 +325,6 @@ impl<'a> Handler for CpsExecutor<'a> {
                         is_static,
                     })
             {
-                info!("EXECUTED PRECOMPILE WITH ADDRESS: {:?}", code_address);
                 return match result {
                     Ok(PrecompileOutput {
                         exit_status,

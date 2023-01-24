@@ -52,15 +52,11 @@ CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
 
     // Check if gaslimit meets the minimum requirement for contract deployment
     if (requested_limit < baseFee) {
-      LOG_GENERAL(WARNING,
-                  "Gas limit " << requested_limit << " less than " << baseFee);
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
 
   } else {
     if (requested_limit < MIN_ETH_GAS) {
-      LOG_GENERAL(WARNING, "Gas limit " << requested_limit << " less than "
-                                        << MIN_ETH_GAS);
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }

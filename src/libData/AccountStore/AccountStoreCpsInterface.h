@@ -83,9 +83,6 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
 
   virtual bool TransferBalanceAtomic(const Address& from, const Address& to,
                                      libCps::Amount amount) override {
-    LOG_GENERAL(WARNING,
-                "TRANSFERRING FROM: " << from.hex() << ", TO: " << to.hex()
-                                      << ", AMOUNT: " << amount.toQa());
     return mAccountStore.TransferBalanceAtomic(from, to, amount.toQa());
   }
 

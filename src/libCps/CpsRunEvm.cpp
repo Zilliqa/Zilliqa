@@ -52,25 +52,11 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       const auto contractAddress = mAccountStore.GetAddressForContract(
           fromAddress, TRANSACTION_VERSION_ETH);
       mAccountStore.AddAccountAtomic(contractAddress);
-      LOG_GENERAL(WARNING,
-                  "ACC HAS (1): "
-                      << fromAddress.hex() << ", NONCEE: "
-                      << mAccountStore.GetNonceForAccountAtomic(fromAddress));
       mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
-      LOG_GENERAL(WARNING,
-                  "ACC HAS (2): "
-                      << fromAddress.hex() << ", NONCEE: "
-                      << mAccountStore.GetNonceForAccountAtomic(fromAddress));
-      LOG_GENERAL(WARNING, "RUNNING WITH FIRST CONTRACT ADDR: "
-                               << contractAddress.hex() << ", AND CODE SIZE: "
-                               << mProtoArgs.code().size());
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
       const auto baseFee = Eth::getGasUnitsForContractDeployment(
           {}, DataConversion::StringToCharArray(mProtoArgs.code()));
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - baseFee);
-      LOG_GENERAL(WARNING, "New gas limit for CREATEType is: "
-                               << mProtoArgs.gas_limit());
-
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
@@ -84,8 +70,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       *mProtoArgs.mutable_code() =
           DataConversion::CharArrayToString(StripEVM(code));
       mProtoArgs.set_gas_limit(mProtoArgs.gas_limit() - MIN_ETH_GAS);
-      LOG_GENERAL(WARNING,
-                  "New gas limit for CAllType is: " << mProtoArgs.gas_limit());
 
       if (!mAccountStore.TransferBalanceAtomic(
               ProtoToAddress(mProtoArgs.origin()),
@@ -96,44 +80,18 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     }
   }
 
-  if (GetType() == CpsRun::TrapCall) {
-    int a = 10;
-    a++;
-  }
-
   mAccountStore.AddAddressToUpdateBufferAtomic(
       ProtoToAddress(mProtoArgs.address()));
 
-  LOG_GENERAL(WARNING,
-              "ACC HAS (3): " << ProtoToAddress(mProtoArgs.address()).hex()
-                              << ", NONCEE: "
-                              << mAccountStore.GetNonceForAccountAtomic(
-                                     ProtoToAddress(mProtoArgs.address())));
-
-  LOG_GENERAL(WARNING,
-              "ACC HAS (4): " << ProtoToAddress(mProtoArgs.origin()).hex()
-                              << ", NONCEE: "
-                              << mAccountStore.GetNonceForAccountAtomic(
-                                     ProtoToAddress(mProtoArgs.origin())));
-
-  LOG_GENERAL(WARNING, "RUNNING EVM WITH GAS: " << mProtoArgs.gas_limit());
   const auto invokeResult = InvokeEvm();
   if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
     return {};
   }
-  LOG_GENERAL(WARNING,
-              "GAS USED: " << mProtoArgs.gas_limit() -
-                                  invokeResult.value().remaining_gas());
-  LOG_GENERAL(WARNING, "After invoke remaining gas: "
-                           << invokeResult.value().remaining_gas());
-
   const evm::EvmResult& evmResult = invokeResult.value();
-  LOG_GENERAL(WARNING, EvmUtils::ExitReasonString(evmResult.exit_reason()));
 
   mProtoArgs.set_gas_limit(evmResult.remaining_gas());
-  LOG_GENERAL(WARNING, "FUTURE GAS LIMIT WILL BE: " << mProtoArgs.gas_limit());
 
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
@@ -205,32 +163,8 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result) {
 }
 
 CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
-  const auto kind = result.exit_reason().trap().kind();
-  LOG_GENERAL(WARNING, "Kind is: " << kind);
-
   const evm::TrapData& trap_data = result.trap_data();
   const evm::TrapData_Call callData = trap_data.call();
-
-  LOG_GENERAL(WARNING, "Callee address: "
-                           << ProtoToAddress(callData.callee_address()).hex());
-  const auto& ctx = callData.context();
-  LOG_GENERAL(WARNING, "Ctx caller: " << ProtoToAddress(ctx.caller()).hex());
-  LOG_GENERAL(WARNING, "Ctx dest: " << ProtoToAddress(ctx.destination()));
-  LOG_GENERAL(WARNING, "Ctx Value: " << ProtoToUint(ctx.apparent_value()));
-
-  const auto& transfer = callData.transfer();
-
-  LOG_GENERAL(WARNING,
-              "Transfer Source: " << ProtoToAddress(transfer.source()).hex());
-  LOG_GENERAL(WARNING, "Transfer Destination: "
-                           << ProtoToAddress(transfer.destination()).hex());
-  LOG_GENERAL(WARNING, "Transfer Value: " << ProtoToUint(transfer.value()));
-
-  LOG_GENERAL(WARNING, "IsStatic Value: " << callData.is_static());
-
-  LOG_GENERAL(WARNING, "Gas: " << callData.target_gas());
-  const auto& evmData = callData.call_data();
-  LOG_GENERAL(WARNING, "CAllData: " << evmData);
 
   const auto validateResult =
       ValidateCallTrap(callData, result.remaining_gas());
@@ -270,6 +204,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     auto inputGas = std::min(targetGas, remainingGas);
     inputGas = std::max(remainingGas, inputGas);
     evm::EvmArgs evmCallArgs;
+    const auto& ctx = callData.context();
     *evmCallArgs.mutable_address() = ctx.destination();
     *evmCallArgs.mutable_origin() = ctx.caller();
     const auto code = mAccountStore.GetContractCode(
@@ -350,11 +285,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     const auto currentBalance =
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
-    LOG_GENERAL(WARNING,
-                "CallTrap: Requested balance[Wei]: "
-                    << requestedValue.toWei().convert_to<std::string>()
-                    << ", current[Wei]: "
-                    << currentBalance.toWei().convert_to<std::string>());
     if (requestedValue > currentBalance) {
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
@@ -363,10 +293,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }
-
-  LOG_GENERAL(WARNING, "Validate CALL TRAP, targetGas: "
-                           << callData.target_gas()
-                           << ", remaining: " << remainingGas);
 
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
@@ -399,27 +325,11 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
     contractAddress = ProtoToAddress(fixed.addres());
   }
 
-  LOG_GENERAL(WARNING,
-              "NONCEE FOR ACC "
-                  << fromAddress.hex() << ", IS: "
-                  << mAccountStore.GetNonceForAccountAtomic(fromAddress));
-
   if (!mAccountStore.AddAccountAtomic(contractAddress)) {
     return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
   }
 
-  LOG_GENERAL(WARNING,
-              "RUNNING WITH TRAP CONTRACT ADDR: " << contractAddress.hex());
-  LOG_GENERAL(WARNING, "RUNNING WITH TRAP FROM ADDR: " << fromAddress.hex());
-
   mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
-  // mAccountStore.AddAddressToUpdateBufferAtomic(fromAddress);
-
-  LOG_GENERAL(WARNING,
-              "NONCEE FOR 2 ACC "
-                  << fromAddress.hex() << ", IS: "
-                  << mAccountStore.GetNonceForAccountAtomic(fromAddress));
-
   uint64_t remainingGas = result.remaining_gas();
 
   // Adjust remainingGas and recalculate gas for resume operation
@@ -507,10 +417,6 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
 
   const auto currentBalance = mAccountStore.GetBalanceForAccountAtomic(address);
   const auto requestedValue = Amount::fromWei(ProtoToUint(createData.value()));
-  LOG_GENERAL(WARNING, "Requested balance[Wei]: "
-                           << requestedValue.toWei().convert_to<std::string>()
-                           << ", current[Wei]: "
-                           << currentBalance.toWei().convert_to<std::string>());
   if (requestedValue > currentBalance) {
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
@@ -570,8 +476,6 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         }
 
         if (it.modify().reset_storage()) {
-          LOG_GENERAL(WARNING, "RESETING STORAGE FOR ADDRESS: "
-                                   << thisContractAddress.hex());
           std::map<std::string, zbytes> states;
           std::vector<std::string> toDeletes;
 
@@ -581,14 +485,7 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
             toDeletes.emplace_back(x.first);
           }
 
-          if (!mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes,
-                                          true)) {
-            LOG_GENERAL(
-                WARNING,
-                "Failed to update states hby setting indices for deletion "
-                "for "
-                    << thisContractAddress);
-          }
+          mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes, true);
         }
         // Actually Update the state for the contract
         for (const auto& sit : it.modify().storage()) {
@@ -598,22 +495,12 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
                   thisContractAddress,
                   DataConversion::StringToCharArray(sit.key()), 0,
                   DataConversion::StringToCharArray(sit.value()), 0)) {
-            LOG_GENERAL(WARNING, "Failed to update state value at address "
-                                     << thisContractAddress);
           }
         }
 
         if (it.modify().has_balance()) {
           fundsRecipient = ProtoToAddress(it.modify().address());
           funds = Amount::fromQa(ProtoToUint(it.modify().balance()));
-          if (result.exit_reason().succeed() == evm::ExitReason::SUICIDED) {
-            LOG_GENERAL(WARNING,
-                        "Balance to be applied for account: "
-                            << fundsRecipient.hex() << ", val: "
-                            << funds.toWei().convert_to<std::string>());
-            //            mAccountStore.SetBalanceAtomic(address,
-            //            Amount::fromQa(balance));
-          }
         }
         // Mark the Address as updated
         mAccountStore.AddAddressToUpdateBufferAtomic(thisContractAddress);
@@ -655,8 +542,6 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
 
   // For now only Evm is supported!
   const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
-  LOG_GENERAL(WARNING, "PRovide feedback remaining gas: "
-                           << results.evmResult.remaining_gas());
   mProtoArgs.set_gas_limit(results.evmResult.remaining_gas());
 
   if (mProtoArgs.continuation().feedback_type() ==
