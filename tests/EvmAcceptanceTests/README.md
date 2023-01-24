@@ -20,7 +20,7 @@
 ## A few simple rules before start
 
 1. Please prefer ethers.js library to web3.js. Our default library to use throughout the the code is **ethers.js**.
-2. Please use typescript. Javascript is not used anymore in this test suite.
+2. Please use [typescript](./Typescript.md). Javascript is not used anymore in this test suite. You can learn more about typescript [here](./Typescript.md).
 3. Please don't add commented tests. You can't add disabled tests as well, unless you create a ticket for it.
 
 For more info, see [Testing conventions and best practices](#testing-conventions-and-best-practices).
