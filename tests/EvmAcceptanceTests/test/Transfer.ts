@@ -1,7 +1,7 @@
-import {expect} from "chai";
-import {BigNumber} from "ethers";
-import {ethers} from "hardhat";
-import {parallelizer} from "../helpers";
+import { expect } from "chai";
+import { BigNumber } from "ethers";
+import { ethers } from "hardhat";
+import { parallelizer } from "../helpers";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
@@ -127,7 +127,7 @@ describe("Transfer ethers", function () {
     expect(receivedBal).to.be.eq(TRANSFER_VALUE);
   });
 
-  it("check gas consistency", async function () {
+  it("should return check gas and funds consistency", async function () {
     let rndAccount = ethers.Wallet.createRandom();
 
     const FUND = BigNumber.from(100_000_000_000);
