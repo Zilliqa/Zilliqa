@@ -348,8 +348,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
   }
 
-  if ((!ENABLE_CPS &&
-       (evmContext.GetEstimateOnly() || evmContext.GetDirect()))) {
+  // eth_call in non-cps mode only
+  if (!ENABLE_CPS && evmContext.GetDirect()) {
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
         EvmUtils::GetEvmCallJson(evmContext.GetEvmArgs()), res);
