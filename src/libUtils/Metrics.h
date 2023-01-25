@@ -281,11 +281,6 @@ class Metrics : public Singleton<Metrics> {
   zil::metrics::Filter::GetInstance().Enabled( \
       zil::metrics::FilterClass::FILTER_CLASS)
 
-#define INCREMENT_METHOD_CALLS_COUNTER2(COUNTER, FILTER_CLASS, METHOD) \
-  if (zil::metrics::Filter::GetInstance().Enabled(                     \
-          zil::metrics::FilterClass::FILTER_CLASS)) {                  \
-    COUNTER->Add(1, {{"Method", METHOD}});                             \
-  }
 
 #define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)               \
   Metrics::LatencyScopeMarker _scopemarker{COUNTER, LATENCY, FILTER_CLASS, \
