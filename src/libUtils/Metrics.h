@@ -287,8 +287,8 @@ class Metrics : public Singleton<Metrics> {
     COUNTER->Add(1, {{"Method", METHOD}});                             \
   }
 
-#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)                 \
-  Metrics::LatencyScopeMarker _scopemarker{COUNTER,  LATENCY,  FILTER_CLASS, \
+#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)               \
+  Metrics::LatencyScopeMarker _scopemarker{COUNTER, LATENCY, FILTER_CLASS, \
                                            __FILE__, __FUNCTION__};
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_
