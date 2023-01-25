@@ -73,7 +73,7 @@ struct EvmProcessContext {
                     const zbytes& code, const zbytes& data, const uint64_t& gas,
                     const uint256_t& amount, const uint64_t& blkNum,
                     const TxnExtras& extras, std::string_view context,
-                    bool estimate = false);
+                    bool estimate, bool direct);
 
   bool GetCommit() const;
 
@@ -147,6 +147,12 @@ struct EvmProcessContext {
   const evm::EvmResult& GetEvmResult() const;
 
   /*
+   * Return internal structure of evm args
+   */
+
+  const evm::EvmArgs& GetEvmArgs() const;
+
+  /*
    * Return internal structure populated by call to evm
    */
 
@@ -172,7 +178,7 @@ struct EvmProcessContext {
 
   bool GetDirect() { return m_direct; }
 
-  inline Transaction::ContractType GetContractType() {
+  inline Transaction::ContractType GetContractType() const {
     return Transaction::GetTransactionType(m_legacyTxn);
   }
 
