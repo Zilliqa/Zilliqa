@@ -89,7 +89,9 @@ class IsolatedServer : public LookupServer,
 
     auto const fields = Eth::parseRawTxFields(rawTx);
 
+    std::cerr << "account value before raw_tx: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
     response = CreateTransactionEth(fields, pubKey);
+    std::cerr << "account value after raw_tx: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
   }
 
   inline virtual void GetEthBlockNumberI(const Json::Value& /*request*/,

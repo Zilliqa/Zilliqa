@@ -752,8 +752,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     code.clear();
   }
 
-  //return (boost::format("0x%x") % 600773).str();
-
   std::cerr << "account value before: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
 
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
@@ -770,6 +768,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   auto const exit_reason = result.exit_reason().exit_reason_case();
 
   std::cerr << "account value after: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
+
+  //return (boost::format("0x%x") % 600773).str();
 
   if (success && exit_reason == evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
