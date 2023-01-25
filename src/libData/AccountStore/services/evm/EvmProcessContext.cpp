@@ -151,8 +151,6 @@ uint64_t EvmProcessContext::GetGasLimitEth() const {
 
 uint64_t EvmProcessContext::GetGasLimitZil() const {
   if (!ContainsLegacyTx()) {
-    std::cerr << "GetGasLimitZil:  " << GasConv::GasUnitsFromEthToCore(m_protoData.gas_limit()) << std::endl;
-    std::cerr << "GetGasLimitEth:  " << GetGasLimitEth() << std::endl;
     return GasConv::GasUnitsFromEthToCore(m_protoData.gas_limit());
   }
   return m_legacyTxn.GetGasLimitZil();
@@ -169,8 +167,6 @@ uint128_t EvmProcessContext::GetGasPriceQa() const {
 
 uint128_t EvmProcessContext::GetGasPriceWei() const {
   if (!ContainsLegacyTx()) {
-    std::cerr << "GetGasPriceWei:  " << ProtoToUint(m_protoData.extras().gas_price()) << std::endl;
-    //std::cerr << "(for reference) GetGasPriceZil:  " << GetGasPriceQa << std::endl;
     uint256_t gasPrice = ProtoToUint(m_protoData.extras().gas_price());
     return static_cast<uint128_t>(gasPrice);
   }
@@ -260,10 +256,6 @@ void EvmProcessContext::SetContractAddress(const Address& addr) {
  * */
 
 dev::h256 EvmProcessContext::GetTranID() const {
-  if (!ContainsLegacyTx()) {
-    //LOG_GENERAL(FATAL, "Attempt to get TX id from context that has no TX...");
-    LOG_GENERAL(WARNING, "Attempt to get TX id from context that has no TX...");
-  }
   return m_legacyTxn.GetTranID();
 }
 

@@ -31,8 +31,6 @@ describe("ForwardZil contract functionality", function () {
   it("should be possible to transfer ethers to the contract", async function () {
     const prevBalance = await ethers.provider.getBalance(this.contract.address);
 
-    console.log("Prev balance: ", prevBalance);
-
     await parallelizer.sendTransaction({
       to: this.contract.address,
       value: FUND
@@ -40,9 +38,6 @@ describe("ForwardZil contract functionality", function () {
 
     const currentBalance = await ethers.provider.getBalance(this.contract.address);
 
-    console.log("Current balance: ", currentBalance);
-    console.log("FUND", FUND);
-    console.log("DIFF", currentBalance.sub(prevBalance));
     expect(currentBalance.sub(prevBalance)).to.be.eq(FUND);
   });
 });

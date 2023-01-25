@@ -145,8 +145,6 @@ const unsigned int MSG_VERSION{
 const unsigned int TRANSACTION_VERSION{
     ReadConstantNumeric("TRANSACTION_VERSION", "node.version.")};
 const unsigned int TRANSACTION_VERSION_ETH = 2;
-const unsigned int ETH_DEFAULT_GAS_LIMIT = 400000;
-const unsigned int ZIL_DEFAULT_GAS_LIMIT = 400000;
 const unsigned int DSBLOCK_VERSION{
     ReadConstantNumeric("DSBLOCK_VERSION", "node.version.")};
 const unsigned int TXBLOCK_VERSION{

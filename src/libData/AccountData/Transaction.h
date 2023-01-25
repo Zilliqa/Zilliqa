@@ -193,7 +193,6 @@ class Transaction : public SerializableDataBlock {
   };
 
   static ContractType GetTransactionType(const Transaction& tx) {
-    std::cerr << "get tx type... " << std::endl;
     return GetTransactionType(IsNullAddress(tx.GetToAddr()), tx.GetCode(), tx.GetData());
   }
 
@@ -211,9 +210,6 @@ class Transaction : public SerializableDataBlock {
       return NON_CONTRACT;
     }
 
-    std::cerr <<  "returning error0... " << nullAddr << std::endl;
-    std::cerr <<  "returning error1... " << code.size() << std::endl;
-    std::cerr <<  "returning error2... " << data.size() << std::endl;
     return ERROR;
   }
 
