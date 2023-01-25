@@ -22,7 +22,6 @@
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/SafeMath.h"
 #include "libUtils/TxnExtras.h"
 /* EvmProcessContext
  * *
@@ -97,7 +96,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
   m_protoData.set_estimate(false);
   // Initialised OK
   m_status = true;
-  m_contractType = Transaction::GetTransactionType(m_legacyTxn);
+  //m_contractType = Transaction::GetTransactionType(m_legacyTxn);
 }
 
 /*
@@ -131,50 +130,63 @@ EvmProcessContext::EvmProcessContext(
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
   }
-  m_contractType = Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
+  //m_contractType = Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
+}
+
+bool EvmProcessContext::ContainsLegacyTx() const {
+  return m_legacyTxn != m_dummyTransaction;
 }
 
 bool EvmProcessContext::GetCommit() const { return m_commit; }
 
 
+// Eth gas limit is the normal one that will be passed in, in the extended
+// constructor
 uint64_t EvmProcessContext::GetGasLimitEth() const {
-  if (m_legacyTxn == m_dummyTransaction) {
-    return ETH_DEFAULT_GAS_LIMIT;
+  if (!ContainsLegacyTx()) {
+    return m_protoData.gas_limit();
   }
   return m_legacyTxn.GetGasLimitEth();
 }
 
 uint64_t EvmProcessContext::GetGasLimitZil() const {
-  if (m_legacyTxn == m_dummyTransaction) {
-    return ETH_DEFAULT_GAS_LIMIT;
+  if (!ContainsLegacyTx()) {
+    std::cerr << "GetGasLimitZil:  " << GasConv::GasUnitsFromEthToCore(m_protoData.gas_limit()) << std::endl;
+    std::cerr << "GetGasLimitEth:  " << GetGasLimitEth() << std::endl;
+    return GasConv::GasUnitsFromEthToCore(m_protoData.gas_limit());
   }
   return m_legacyTxn.GetGasLimitZil();
 }
 
 uint128_t EvmProcessContext::GetGasPriceQa() const {
-  if (m_legacyTxn == m_dummyTransaction) {
-    return ZIL_DEFAULT_GAS_LIMIT; // xxx
+  if (!ContainsLegacyTx()) {
+    uint256_t gasPrice = ProtoToUint(m_protoData.extras().gas_price());
+    return static_cast<uint128_t>(gasPrice) / EVM_ZIL_SCALING_FACTOR *
+                                  GasConv::GetScalingFactor();
   }
   return m_legacyTxn.GetGasPriceQa();
 }
 
 uint128_t EvmProcessContext::GetGasPriceWei() const {
-  if (m_legacyTxn == m_dummyTransaction) {
-    return ZIL_DEFAULT_GAS_LIMIT;
+  if (!ContainsLegacyTx()) {
+    std::cerr << "GetGasPriceWei:  " << ProtoToUint(m_protoData.extras().gas_price()) << std::endl;
+    //std::cerr << "(for reference) GetGasPriceZil:  " << GetGasPriceQa << std::endl;
+    uint256_t gasPrice = ProtoToUint(m_protoData.extras().gas_price());
+    return static_cast<uint128_t>(gasPrice);
   }
   return m_legacyTxn.GetGasPriceWei();
 }
 
 uint128_t EvmProcessContext::GetAmountWei() const {
-  if (m_legacyTxn == m_dummyTransaction) {
-    return ZIL_DEFAULT_GAS_LIMIT;
+  if (!ContainsLegacyTx()) {
+    return static_cast<uint128_t>(ProtoToUint(m_protoData.apparent_value()));
   }
   return m_legacyTxn.GetAmountWei();
 }
 
 uint128_t EvmProcessContext::GetAmountQa() const {
-  if (m_legacyTxn == m_dummyTransaction) {
-    return ZIL_DEFAULT_GAS_LIMIT;
+  if (!ContainsLegacyTx()) {
+    return static_cast<uint128_t>(ProtoToUint(m_protoData.apparent_value())) / EVM_ZIL_SCALING_FACTOR;
   }
   return m_legacyTxn.GetAmountQa();
 }
@@ -184,7 +196,7 @@ uint128_t EvmProcessContext::GetAmountQa() const {
  *
  * In the case of a contract_call or non_contract then the contract already
  * exists in the account and the official version from the storage will
- * always be used regardless of what the use has passed to us.
+ * always be used regardless of what the user has passed to us.
  */
 
 void EvmProcessContext::SetCode(const zbytes& code) {
@@ -248,6 +260,10 @@ void EvmProcessContext::SetContractAddress(const Address& addr) {
  * */
 
 dev::h256 EvmProcessContext::GetTranID() const {
+  if (!ContainsLegacyTx()) {
+    //LOG_GENERAL(FATAL, "Attempt to get TX id from context that has no TX...");
+    LOG_GENERAL(WARNING, "Attempt to get TX id from context that has no TX...");
+  }
   return m_legacyTxn.GetTranID();
 }
 
@@ -292,7 +308,7 @@ bool EvmProcessContext::GetEstimateOnly() const {
 
 uint32_t EvmProcessContext::GetVersionIdentifier() const {
   // Only eth style TXs use the newer constructor and API
-  if (m_legacyTxn == m_dummyTransaction) {
+  if (!ContainsLegacyTx()) {
     return TRANSACTION_VERSION_ETH;
   }
   return m_legacyTxn.GetVersionIdentifier();
@@ -315,13 +331,10 @@ const TransactionReceipt& EvmProcessContext::GetEvmReceipt() const {
 }
 
 Transaction::ContractType EvmProcessContext::GetContractType() {
-  return m_contractType;
-  //if (m_legacyTxn == m_dummyTransaction) {
-  //  std::cerr << "this code path " << std::endl;
-  //  return Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
-  //}
-  //std::cerr << "this code path2 " << std::endl;
-  //return Transaction::GetTransactionType(m_legacyTxn);
+  if (!ContainsLegacyTx()) {
+    return Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
+  }
+  return Transaction::GetTransactionType(m_legacyTxn);
 }
 
 const uint64_t& EvmProcessContext::GetBlockNumber() { return m_blockNumber; }

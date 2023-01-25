@@ -212,104 +212,108 @@ uint64_t AccountStoreSC::InvokeEvmInterpreter(
   std::map<std::string, zbytes> states;
   std::vector<std::string> toDeletes;
   // parse the return values from the call to evm.
-  for (const auto &it : result.apply()) {
-    Address address;
-    Account *targetAccount;
-    switch (it.apply_case()) {
-      case evm::Apply::ApplyCase::kDelete:
-        // Set account balance to 0 to avoid any leakage of funds in case
-        // selfdestruct is called multiple times
-        address = ProtoToAddress(it.delete_().address());
-        targetAccount = this->GetAccountAtomic(address);
-        targetAccount->SetBalance(uint128_t(0));
-        m_storageRootUpdateBufferAtomic.emplace(address);
-        break;
-      case evm::Apply::ApplyCase::kModify: {
-        // Get the account that this apply instruction applies to
-        address = ProtoToAddress(it.modify().address());
-        targetAccount = this->GetAccountAtomic(address);
-        if (targetAccount == nullptr) {
-          if (!this->AddAccountAtomic(address, {0, 0})) {
-            LOG_GENERAL(WARNING,
-                        "AddAccount failed for address " << address.hex());
-            continue;
-          }
+  if (!args.estimate()) {
+    for (const auto &it : result.apply()) {
+      Address address;
+      Account *targetAccount;
+      switch (it.apply_case()) {
+        case evm::Apply::ApplyCase::kDelete:
+          // Set account balance to 0 to avoid any leakage of funds in case
+          // selfdestruct is called multiple times
+          address = ProtoToAddress(it.delete_().address());
+          targetAccount = this->GetAccountAtomic(address);
+          targetAccount->SetBalance(uint128_t(0));
+          m_storageRootUpdateBufferAtomic.emplace(address);
+          break;
+        case evm::Apply::ApplyCase::kModify: {
+          // Get the account that this apply instruction applies to
+          address = ProtoToAddress(it.modify().address());
           targetAccount = this->GetAccountAtomic(address);
           if (targetAccount == nullptr) {
-            LOG_GENERAL(WARNING, "failed to retrieve new account for address "
-                                     << address.hex());
-            continue;
-          }
-        }
-
-        if (it.modify().reset_storage()) {
-          states.clear();
-          toDeletes.clear();
-
-          Contract::ContractStorage::GetContractStorage()
-              .FetchStateDataForContract(states, address, "", {}, true);
-          for (const auto &x : states) {
-            toDeletes.emplace_back(x.first);
+            if (!this->AddAccountAtomic(address, {0, 0})) {
+              LOG_GENERAL(WARNING,
+                          "AddAccount failed for address " << address.hex());
+              continue;
+            }
+            targetAccount = this->GetAccountAtomic(address);
+            if (targetAccount == nullptr) {
+              LOG_GENERAL(WARNING, "failed to retrieve new account for address "
+                                       << address.hex());
+              continue;
+            }
           }
 
-          if (!targetAccount->UpdateStates(address, {}, toDeletes, true)) {
-            LOG_GENERAL(
-                WARNING,
-                "Failed to update states hby setting indices for deletion "
-                "for "
-                    << address);
-          }
-        }
+          if (it.modify().reset_storage()) {
+            states.clear();
+            toDeletes.clear();
 
-        // If Instructed to reset the Code do so and call SetImmutable to reset
-        // the hash
-        const std::string &code = it.modify().code();
-        if (!code.empty()) {
-          targetAccount->SetImmutable(
-              DataConversion::StringToCharArray("EVM" + code), {});
-        }
+            Contract::ContractStorage::GetContractStorage()
+                .FetchStateDataForContract(states, address, "", {}, true);
+            for (const auto &x : states) {
+              toDeletes.emplace_back(x.first);
+            }
 
-        // Actually Update the state for the contract
-        for (const auto &sit : it.modify().storage()) {
-          LOG_GENERAL(INFO, "Saving storage for Address: " << address);
-          if (not Contract::ContractStorage::GetContractStorage()
-                      .UpdateStateValue(
-                          address, DataConversion::StringToCharArray(sit.key()),
-                          0, DataConversion::StringToCharArray(sit.value()),
-                          0)) {
-            LOG_GENERAL(WARNING,
-                        "Failed to update state value at address " << address);
+            if (!targetAccount->UpdateStates(address, {}, toDeletes, true)) {
+              LOG_GENERAL(
+                  WARNING,
+                  "Failed to update states hby setting indices for deletion "
+                  "for "
+                      << address);
+            }
           }
-        }
 
-        if (it.modify().has_balance()) {
-          uint256_t balance = ProtoToUint(it.modify().balance());
-          if ((balance >> 128) > 0) {
-            throw std::runtime_error("Balance overflow!");
+          // If Instructed to reset the Code do so and call SetImmutable to reset the hash
+          const std::string &code = it.modify().code();
+          if (!code.empty()) {
+            targetAccount->SetImmutable(
+                DataConversion::StringToCharArray("EVM" + code), {});
           }
-          targetAccount->SetBalance(balance.convert_to<uint128_t>());
-        }
-        if (it.modify().has_nonce()) {
-          uint256_t nonce = ProtoToUint(it.modify().nonce());
-          if ((nonce >> 64) > 0) {
-            throw std::runtime_error("Nonce overflow!");
+
+          // Actually Update the state for the contract
+          for (const auto &sit : it.modify().storage()) {
+            LOG_GENERAL(INFO, "Saving storage for Address: " << address);
+            if (not Contract::ContractStorage::GetContractStorage()
+                        .UpdateStateValue(
+                            address,
+                            DataConversion::StringToCharArray(sit.key()), 0,
+                            DataConversion::StringToCharArray(sit.value()),
+                            0)) {
+              LOG_GENERAL(WARNING, "Failed to update state value at address "
+                                       << address);
+            }
           }
-          targetAccount->SetNonce(nonce.convert_to<uint64_t>());
-        }
-        // Mark the Address as updated
-        m_storageRootUpdateBufferAtomic.emplace(address);
-      } break;
-      case evm::Apply::ApplyCase::APPLY_NOT_SET:
-        // do nothing;
-        break;
+
+          if (it.modify().has_balance()) {
+            uint256_t balance = ProtoToUint(it.modify().balance());
+            if ((balance >> 128) > 0) {
+              throw std::runtime_error("Balance overflow!");
+            }
+            targetAccount->SetBalance(balance.convert_to<uint128_t>());
+          }
+          if (it.modify().has_nonce()) {
+            uint256_t nonce = ProtoToUint(it.modify().nonce());
+            if ((nonce >> 64) > 0) {
+              throw std::runtime_error("Nonce overflow!");
+            }
+            targetAccount->SetNonce(nonce.convert_to<uint64_t>());
+          }
+          // Mark the Address as updated
+          m_storageRootUpdateBufferAtomic.emplace(address);
+        } break;
+        case evm::Apply::ApplyCase::APPLY_NOT_SET:
+          // do nothing;
+          break;
+      }
     }
-  }
 
-  // send code to be executed
-  if (invoke_type == RUNNER_CREATE) {
-    contractAccount->SetImmutable(
-        DataConversion::StringToCharArray("EVM" + result.return_value()),
-        contractAccount->GetInitData());
+    // send code to be executed
+    if (invoke_type == RUNNER_CREATE) {
+      contractAccount->SetImmutable(
+          DataConversion::StringToCharArray("EVM" + result.return_value()),
+          contractAccount->GetInitData());
+    }
+  } else {
+    LOG_GENERAL(WARNING, "Only estimating. Do not add to accounts.");
   }
 
   return result.remaining_gas();
@@ -617,7 +621,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           receipt.update();
           // TODO : confirm we increase nonce on failure
           if(evmContext.GetEstimateOnly()){
-            std::cerr << "NO-NONCE-nsse" << std::endl;
+            std::cerr << "NO-NONCE-nsse 0" << std::endl;
           }
           else if (!this->IncreaseNonce(fromAddr)) {
             error_code = TxnStatus::MATH_ERROR;
@@ -861,7 +865,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         receipt.update();
 
         if(evmContext.GetEstimateOnly()){
-          std::cerr << "NO-NONCE-nsse" << std::endl;
+          std::cerr << "NO-NONCE-nsse 1" << std::endl;
         }
 
         if (!this->IncreaseNonce(fromAddr)) {
@@ -899,7 +903,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
 
   if(evmContext.GetEstimateOnly()){
-    std::cerr << "NO-NONCE-nsse..." << std::endl;
+    std::cerr << "NO-NONCE-nsse... 2" << std::endl;
   }
   else if (!this->IncreaseNonce(fromAddr)) {
     error_code = TxnStatus::MATH_ERROR;

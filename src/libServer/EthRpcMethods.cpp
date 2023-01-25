@@ -640,7 +640,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
     if (toAccount != nullptr && toAccount->isContract()) {
       std::cerr << "Code set here0" << std::endl;
-      //code = toAccount->GetCode();
+      code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
       std::cerr << "here we are 012" << std::endl;
       toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
@@ -651,6 +651,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   zbytes data;
   if (json.isMember("data")) {
+    std::cerr << "data recvd. parse. " << std::endl;
     if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");
@@ -666,12 +667,18 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   }
 
   uint256_t gasPrice = GetEthGasPriceNum();
+
+  std::cerr << "gas price before: " << gasPrice << std::endl;
+
   if (json.isMember("gasPrice")) {
     const auto gasPriceStr = json["gasPrice"].asString();
     uint256_t inputGasPrice =
         DataConversion::ConvertStrToInt<uint256_t>(gasPriceStr, 0);
     gasPrice = max(gasPrice, inputGasPrice);
   }
+
+  std::cerr << "gas price after: " << gasPrice << std::endl;
+
   uint256_t gasDeposit = 0;
   if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
@@ -699,18 +706,27 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
+  //uint64_t gas = GasConv::GasUnitsFromCoreToEth(2 * DS_MICROBLOCK_GAS_LIMIT);
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(DS_MICROBLOCK_GAS_LIMIT);
+
+  std::cerr << "initial gas: " << gas << std::endl;
 
   // Use gas specified by user
   if (json.isMember("gas")) {
     const auto gasLimitStr = json["gas"].asString();
     const uint64_t userGas =
         DataConversion::ConvertStrToInt<uint64_t>(gasLimitStr, 0);
+
+    std::cerr << "user gas: " << gas << std::endl;
     gas = min(gas, userGas);
   }
 
   const auto txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
   const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetLastBlock();
+
+  std::cerr << "gas price is: " << dsBlock.GetHeader().GetGasPrice() << std::endl;
+  std::cerr << "other gas price is: " << gasPrice << std::endl;
+
   // TODO: adapt to any block, not just latest.
   TxnExtras txnExtras{
       dsBlock.GetHeader().GetGasPrice(),
@@ -726,6 +742,20 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   std::cerr << " sender: " << fromAddr << std::endl;
   std::cerr << " creation: " << contractCreation << std::endl;
 
+  if (!code.empty() && !data.empty()) {
+    std::cerr << "* Clear the code. *" << std::endl;
+    code.clear();
+  }
+
+  if (!contractCreation) {
+    std::cerr << "* Clear the code 2. *" << std::endl;
+    code.clear();
+  }
+
+  //return (boost::format("0x%x") % 600773).str();
+
+  std::cerr << "account value before: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
+
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
                                       true, false, false, contractCreation);
@@ -736,11 +766,12 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   std::cerr << "type " << evmMessageContext.GetContractType() << std::endl;
 
   evm::EvmResult result;
+  auto const success = AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext, result);
+  auto const exit_reason = result.exit_reason().exit_reason_case();
 
-  if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
-                                                        result) &&
-      result.exit_reason().exit_reason_case() ==
-          evm::ExitReason::ExitReasonCase::kSucceed) {
+  std::cerr << "account value after: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
+
+  if (success && exit_reason == evm::ExitReason::ExitReasonCase::kSucceed) {
     const auto gasRemained = result.remaining_gas();
     const auto consumedEvmGas =
         (gas >= gasRemained) ? (gas - gasRemained) : gas;
@@ -755,11 +786,11 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
       //throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              ////"Base fee exceeds gas limit");
     }
+
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
     return (boost::format("0x%x") % retGas).str();
-  } else if (result.exit_reason().exit_reason_case() ==
-             evm::ExitReason::kRevert) {
+  } else if (exit_reason == evm::ExitReason::kRevert) {
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
@@ -777,6 +808,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
                                      const ApiKeys& apiKeys) {
   LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
+
+
+  std::cerr << "account value after eth_call: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
 
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), EVM_RPC);
 

@@ -164,8 +164,11 @@ class EthRpcMethods {
                            EVM_ZIL_SCALING_FACTOR) /
                           GasConv::GetScalingFactor();
 
+
+    std::cerr << "account value before raw_tx: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
     response = CreateTransactionEth(fields, pubKey, shards, gasPrice,
                                     m_createTransactionTarget);
+    std::cerr << "account value after raw_tx: " << this->GetEthBalance("a8cae66f62648529eb6ac2f026893fc436107510", "latest") << std::endl;
   }
 
   inline virtual void GetEthBalanceI(const Json::Value& request,

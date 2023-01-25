@@ -221,7 +221,7 @@ const uint128_t Transaction::GetGasPriceWei() const {
   if (IsEth()) {
     return m_coreInfo.gasPrice;
   } else {
-    // We know the amounts in transactions are capped, so it won't overlow.
+    // We know the amounts in transactions are capped, so it won't overflow.
     return m_coreInfo.gasPrice * EVM_ZIL_SCALING_FACTOR /
            GasConv::GetScalingFactor();
   }

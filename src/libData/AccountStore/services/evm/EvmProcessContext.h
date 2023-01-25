@@ -43,6 +43,12 @@ struct TxnExtras;
  * SCALING_FACTOR = MIN_ETH_GAS / NORMAL_TRAN_GAS;
  * Therefore this module uses a scaling factor of 21000/50 or 420
  *
+ * Since the class can hold information about execution within the class itself
+ * and also sometimes a transaction, use the api to get information you need
+ * for execution (like code, data), and only use GetTransaction if you are
+ * sure it actually contains a transaction (not in the case of eth_call,
+ * eth_estimateGas for example).
+ *
  * */
 
 #include "common/TxnStatus.h"
@@ -75,6 +81,9 @@ struct EvmProcessContext {
                     const TxnExtras& extras, std::string_view context,
                     bool estimate, bool direct, bool commit, bool contractCreation);
 
+  /*
+  * Determine whether to commit the TX after execution (not in case of estimating gas for example)
+  */
   bool GetCommit() const;
 
   /*
@@ -215,11 +224,14 @@ struct EvmProcessContext {
   uint128_t GetAmountQa() const;
 
  private:
+
+  bool ContainsLegacyTx() const;
+  
   const zbytes& m_txnCode;
   const zbytes& m_txnData;
   const Transaction& m_legacyTxn;
   const Transaction m_dummyTransaction{};
-  Transaction::ContractType m_contractType;
+  //Transaction::ContractType m_contractType;
 
   evm::EvmArgs m_protoData;
 

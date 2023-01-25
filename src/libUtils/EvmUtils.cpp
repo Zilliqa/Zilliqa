@@ -244,9 +244,16 @@ bool GetEvmEvalExtras(const uint64_t& blockNum, const TxnExtras& extras_in,
   extras_out.set_block_number(blockNum);
   uint256_t gasPrice = (extras_in.gas_price * EVM_ZIL_SCALING_FACTOR) /
                        GasConv::GetScalingFactor();
+
+  std::cerr << "gas price initial. " << gasPrice << std::endl;
+
   // The following ensures we get 'at least' that high price as it was before
   // dividing by GasScalingFactor
   gasPrice += EVM_ZIL_SCALING_FACTOR;
+
+  std::cerr << "gas price after bump. " << gasPrice << std::endl;
+  std::cerr << "gas price bump: " << EVM_ZIL_SCALING_FACTOR << std::endl;
+
   *extras_out.mutable_gas_price() = UIntToProto(gasPrice);
   return true;
 }

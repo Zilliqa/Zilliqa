@@ -211,9 +211,9 @@ class Transaction : public SerializableDataBlock {
       return NON_CONTRACT;
     }
 
-    std::cerr <<  "returning error... " << nullAddr << std::endl;
-    std::cerr <<  "returning error... " << code.size() << std::endl;
-    std::cerr <<  "returning error... " << data.size() << std::endl;
+    std::cerr <<  "returning error0... " << nullAddr << std::endl;
+    std::cerr <<  "returning error1... " << code.size() << std::endl;
+    std::cerr <<  "returning error2... " << data.size() << std::endl;
     return ERROR;
   }
 
