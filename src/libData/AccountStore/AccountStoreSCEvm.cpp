@@ -617,7 +617,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                             gasRemainedCore);
           receipt.update();
 
-          if(evmContext.GetEstimateOnly()){
+          if(evmContext.GetCommit()){
             if (!this->IncreaseNonce(fromAddr)) {
               error_code = TxnStatus::MATH_ERROR;
             }
@@ -900,7 +900,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       break;
   }
 
-  if(evmContext.GetEstimateOnly()){
+  if(evmContext.GetCommit()){
     if (!this->IncreaseNonce(fromAddr)) {
       error_code = TxnStatus::MATH_ERROR;
       return false;
