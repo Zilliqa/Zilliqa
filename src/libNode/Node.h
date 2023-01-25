@@ -278,8 +278,7 @@ class Node : public Executable {
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte);
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
-                             TxBlock& txBlock, zbytes& stateDelta,
-                             const uint64_t& messageSize);
+                             TxBlock& txBlock, zbytes& stateDelta);
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);

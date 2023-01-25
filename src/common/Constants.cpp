@@ -642,8 +642,6 @@ const unsigned int PREGEN_ACCOUNT_TIMES{
     ReadConstantNumeric("PREGEN_ACCOUNT_TIMES", "node.tests.")};
 const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
-const bool LOG_PARAMETERS{ReadConstantString("LOG_PARAMETERS", "node.tests.") ==
-                          "true"};
 
 // Transaction constants
 const uint128_t TOTAL_COINBASE_REWARD{
