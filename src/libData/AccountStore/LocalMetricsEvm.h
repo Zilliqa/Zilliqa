@@ -14,8 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H
-#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_
 
 // Soecial macro to keep code space small.
 // we will susume these in the library next version.
@@ -61,4 +61,4 @@ if (zil::metrics::Filter::GetInstance().Enabled(\
                      CALLS_LATENCY_MARKER(evm::GetInvocationsCounter(), evm::GetHistogramCounter(),\
                      zil::metrics::FilterClass::ACCOUNTSTORE_EVM);
 
-#endif //ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_
