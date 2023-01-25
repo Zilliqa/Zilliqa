@@ -1779,16 +1779,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
         }
     }
 
-    if (LOG_PARAMETERS) {
-        int64_t epoch = (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
-                        ? epochNum
-                        : m_mediator.m_currentEpochNum;
-        LOG_STATE("[TXNPKT-RCVD]["
-                          << epoch << "] PktEpoch=" << epochNum
-                          << " PktSize=" << message.size() << " Shard=" << shardId
-                          << " Lookup=" << string(lookupPubKey).substr(0, 8));
-    }
-
     if (m_mediator.m_lookup->GetSyncType() != SyncType::NO_SYNC) {
         LOG_GENERAL(WARNING, "This node already started rejoin, ignore txn packet");
         return false;
@@ -1917,16 +1907,6 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
                           [this] { return m_state == MICROBLOCK_CONSENSUS_PREP; });
     }
 
-    if (LOG_PARAMETERS) {
-        int64_t epoch = (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
-                        ? epochNum
-                        : m_mediator.m_currentEpochNum;
-        LOG_STATE("[TXNPKTPROC-BEG]["
-                          << epoch << "] PktEpoch=" << epochNum
-                          << " PktSize=" << message.size() << " Shard=" << shardId
-                          << " Lookup=" << string(lookupPubKey).substr(0, 8));
-    }
-
     // Process the txns
     unsigned int processed_count = 0;
 
@@ -1994,19 +1974,12 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
         }
     }
 
-    if (LOG_PARAMETERS) {
-        LOG_STATE("[TXNPKTPROC-END]["
-                          << m_mediator.m_currentEpochNum << "] PktEpoch=" << epochNum
-                          << " PktSize=" << message.size() << " Shard=" << shardId
-                          << " Lookup=" << string(lookupPubKey).substr(0, 8));
-    } else {
-        LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
-                                  << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                                  << "][" << m_mediator.m_currentEpochNum << "]["
-                                  << shardId << "]["
-                                  << string(lookupPubKey).substr(0, 6) << "] DONE ["
-                                  << processed_count << "]");
-    }
+    LOG_STATE("[TXNPKTPROC][" << std::setw(15) << std::left
+                              << m_mediator.m_selfPeer.GetPrintableIPAddress()
+                              << "][" << m_mediator.m_currentEpochNum << "]["
+                              << shardId << "]["
+                              << string(lookupPubKey).substr(0, 6) << "] DONE ["
+                              << processed_count << "]");
 
     if (m_txnPacketThreadOnHold > 0) {
         m_txnPacketThreadOnHold--;
