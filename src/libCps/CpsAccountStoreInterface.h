@@ -64,6 +64,13 @@ struct CpsAccountStoreInterface {
   virtual void BufferCurrentContractStorageState() = 0;
   virtual void RevertContractStorageState() = 0;
   virtual zbytes GetContractCode(const Address& account) = 0;
+
+  // Scilla specifics
+  virtual bool GetContractAuxiliaries(const Address& account, bool& is_library,
+                                      uint32_t& scilla_version,
+                                      std::vector<Address>& extlibs) = 0;
+  virtual zbytes GetContractInitData(const Address& account) = 0;
+  virtual std::string& GetScillaRootVersion() = 0;
 };
 }  // namespace libCps
 

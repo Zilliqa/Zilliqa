@@ -173,8 +173,33 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return {};
   }
 
+  // Scilla specifics
+  virtual bool GetContractAuxiliaries(const Address& address, bool& is_library,
+                                      uint32_t& scilla_version,
+                                      std::vector<Address>& extlibs) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->GetContractAuxiliaries(is_library, scilla_version,
+                                             extlibs);
+    }
+    return false;
+  }
+
+  virtual zbytes GetContractInitData(const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->GetInitData();
+    }
+    return {};
+  }
+
+  virtual std::string& GetScillaRootVersion() override {
+    return mScillaRootVersion;
+  }
+
  private:
   AccountStoreSC& mAccountStore;
+  std::string mScillaRootVersion;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORECPSINTERFACE_H_
