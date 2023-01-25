@@ -174,6 +174,18 @@ bool PutStateDeltaInLocalPersistence(uint32_t lastBlockNum,
       {
         LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
                                << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
+        LOG_GENERAL(DEBUG, "Didn't find state-delta for TxnBlk:"
+                               << i << ". This can happen. Not a problem!");
         // Do nothing
       }
     }

@@ -26,13 +26,13 @@ jobs:
       image-push: true
       image-target: ''
       image-tag: ''
-      cache-type: s3
+      cache-type: registry
       cache-key: zilliqa
-      runner: "ubuntu-latest-4-cores"
+      runner: "self-hosted"
     secrets:
       registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
       registry-username: ${{ secrets.ECR_USERNAME }}
       registry-password: ${{ secrets.ECR_PASSWORD }}
       aws-region: ${{ secrets.AWS_REGION_ZILLIQA }}
-      cache-username: ${{ secrets.CACHE_USERNAME }}
-      cache-password: ${{ secrets.CACHE_PASSWORD }}
+      cache-username: ${{ secrets.DOCKERHUB_USERNAME }}
+      cache-password: ${{ secrets.DOCKERHUB_PASSWORD }}
