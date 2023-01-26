@@ -379,7 +379,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           gasDepositWei + evmContext.GetAmountWei()) {
         std::stringstream ss;
         ss << "The account doesn't have enough gas to create a contract : "
-           << gasDepositWei;
+           << gasDepositWei << " + " << evmContext.GetAmountWei() << " vs " << fromAccountBalance;
         LOCAL_EMT(ss.str());
         return false;
       }

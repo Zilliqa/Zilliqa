@@ -23,18 +23,14 @@ AccountStoreAtomic::AccountStoreAtomic(AccountStoreSC& parent)
 Account* AccountStoreAtomic::GetAccount(const Address& address) {
   Account* account = AccountStoreBase::GetAccount(address);
   if (account != nullptr) {
-    // LOG_GENERAL(INFO, "Got From Temp");
     return account;
   }
 
   account = m_parent.GetAccount(address);
   if (account) {
-    // LOG_GENERAL(INFO, "Got From Parent");
     m_addressToAccount->insert(std::make_pair(address, *account));
     return &(m_addressToAccount->find(address))->second;
   }
-
-  // LOG_GENERAL(INFO, "Got Nullptr");
 
   return nullptr;
 }

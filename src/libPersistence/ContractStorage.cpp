@@ -388,6 +388,10 @@ bool ContractStorage::FetchExternalStateValue(
   ProtoScillaQuery query;
   query.ParseFromArray(src.data() + s_offset, src.size() - s_offset);
 
+  // LOCK the account store when we are requesting from it...
+  //shared_lock<shared_timed_mutex> lock(
+      //AccountStore::GetInstance().GetPrimaryMutex());
+
   std::string special_query;
   Account* account;
   Account* accountAtomic =

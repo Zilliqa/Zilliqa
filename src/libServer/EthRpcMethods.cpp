@@ -694,7 +694,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     std::swap(data, code);
   }
 
-  uint64_t gas = GasConv::GasUnitsFromCoreToEth(DS_MICROBLOCK_GAS_LIMIT);
+  uint64_t gas = GasConv::GasUnitsFromCoreToEth(DS_MICROBLOCK_GAS_LIMIT / 2);
 
   // Use gas specified by user
   if (json.isMember("gas")) {
