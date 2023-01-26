@@ -470,12 +470,14 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
         accountToRemove = ProtoToAddress(it.delete_().address());
         break;
       case evm::Apply::ApplyCase::kModify: {
+        const auto iterAddress = ProtoToAddress(it.modify().address());
         // Get the account that this apply instruction applies to
         if (!mAccountStore.AccountExistsAtomic(thisContractAddress)) {
           mAccountStore.AddAccountAtomic(thisContractAddress);
         }
 
-        if (it.modify().reset_storage()) {
+        // only allowed for thisContractAddress!
+        if (it.modify().reset_storage() && iterAddress == thisContractAddress) {
           std::map<std::string, zbytes> states;
           std::vector<std::string> toDeletes;
 
@@ -487,8 +489,12 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
 
           mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes, true);
         }
-        // Actually Update the state for the contract
+        // Actually Update the state for the contract (only allowed for
+        // thisContractAddress!)
         for (const auto& sit : it.modify().storage()) {
+          if (iterAddress != thisContractAddress) {
+            break;
+          }
           LOG_GENERAL(INFO,
                       "Saving storage for Address: " << thisContractAddress);
           if (!mAccountStore.UpdateStateValue(

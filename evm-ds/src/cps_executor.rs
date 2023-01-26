@@ -76,8 +76,12 @@ impl<'a> CpsExecutor<'a> {
         runtime: &mut Runtime,
         feedback: Option<EvmProto::Continuation>,
     ) -> CpsReason {
-        if let Err(r) = self.apply_feedback(runtime, feedback) {
-            return CpsReason::NormalExit(ExitReason::Fatal(evm::ExitFatal::CallErrorAsFatal(r)));
+        if self.enable_cps {
+            if let Err(r) = self.apply_feedback(runtime, feedback) {
+                return CpsReason::NormalExit(ExitReason::Fatal(evm::ExitFatal::CallErrorAsFatal(
+                    r,
+                )));
+            }
         }
         match runtime.run(self) {
             Capture::Exit(s) => CpsReason::NormalExit(s),
@@ -91,24 +95,26 @@ impl<'a> CpsExecutor<'a> {
     fn apply_feedback(
         &mut self,
         runtime: &mut Runtime,
-        feedback: Option<EvmProto::Continuation>,
+        continuation_feedback: Option<EvmProto::Continuation>,
     ) -> Result<(), evm::ExitError> {
-        if let Some(evm_feedback) = feedback {
+        if let Some(continuation_feedback) = continuation_feedback {
             // Pop placeholder placed on a stack by evm before trap
             runtime.machine_mut().stack_mut().pop()?;
-            if evm_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
-                let eth_address = H160::from(evm_feedback.get_address());
+            if continuation_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
+                let eth_address = H160::from(continuation_feedback.get_address());
                 runtime.machine_mut().stack_mut().push(eth_address.into())?;
             } else {
-                *runtime.return_data_buffer() = Vec::from(evm_feedback.get_calldata().get_data());
-                let offset_len: U256 = U256::from(evm_feedback.get_calldata().get_offset_len());
+                *runtime.return_data_buffer() =
+                    Vec::from(continuation_feedback.get_calldata().get_data());
+                let offset_len: U256 =
+                    U256::from(continuation_feedback.get_calldata().get_offset_len());
                 let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
 
                 match runtime.machine_mut().memory_mut().copy_large(
-                    U256::from(evm_feedback.get_calldata().get_memory_offset()),
+                    U256::from(continuation_feedback.get_calldata().get_memory_offset()),
                     U256::zero(),
                     target_len,
-                    evm_feedback.get_calldata().get_data(),
+                    continuation_feedback.get_calldata().get_data(),
                 ) {
                     Ok(()) => {
                         let mut value = H256::default();
@@ -313,6 +319,7 @@ impl<'a> Handler for CpsExecutor<'a> {
         offset_len: U256,
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
         if self.enable_cps {
+            // See StackExecutor precompiles handling
             if let Some(result) =
                 self.stack_executor
                     .precompiles()

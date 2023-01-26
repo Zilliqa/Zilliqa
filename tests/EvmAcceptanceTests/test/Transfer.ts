@@ -1,7 +1,7 @@
-import { expect } from "chai";
-import { BigNumber } from "ethers";
-import { ethers } from "hardhat";
-import { parallelizer } from "../helpers";
+import {expect} from "chai";
+import {BigNumber} from "ethers";
+import {ethers} from "hardhat";
+import {parallelizer} from "../helpers";
 
 const FUND = ethers.utils.parseUnits("1", "gwei");
 
@@ -63,16 +63,15 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
-    const batchTransfer = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {
+    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
-    await batchTransfer.deployed();
 
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
   });
 
+  // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
   xit("should be possible to batch transfer using a smart contract with full precision", async function () {
     const ACCOUNTS_COUNT = 3;
     const ACCOUNT_VALUE = 1_234_567;
@@ -83,11 +82,9 @@ describe("Transfer ethers", function () {
 
     const addresses = accounts.map((signer) => signer.address);
 
-    const BatchTransferContract = await ethers.getContractFactory("BatchTransferCtor");
-    const batchTransfer = await BatchTransferContract.deploy(addresses, ACCOUNT_VALUE, {
+    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
       value: ACCOUNTS_COUNT * ACCOUNT_VALUE
     });
-    await batchTransfer.deployed();
 
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
@@ -109,12 +106,8 @@ describe("Transfer ethers", function () {
     // check enough funds + gas
     expect(InitialOwnerbal).to.be.at.least(TRANSFER_VALUE * 1.1);
 
-    // Deploy with no funds at contract address, but send value
-    const SingleTransferContract = await ethers.getContractFactory("SingleTransfer");
-
     // Deploy the contract
-    const singleTransfer = await SingleTransferContract.deploy();
-    await singleTransfer.deployed();
+    const singleTransfer = await parallelizer.deployContract("SingleTransfer");
 
     // call SC with a value to move funds across
     await singleTransfer.doTransfer(randomAccount, TRANSFER_VALUE, {
@@ -141,6 +134,7 @@ describe("Transfer ethers", function () {
 
     const TRANSFER_VALUE = 100_000_000;
 
+    // We can't use parallizer here since we need a hash of the receipt to inspect gas usage later
     const SingleTransferContract = await ethers.getContractFactory("SingleTransfer", rndAccount);
     const singleTransfer = await SingleTransferContract.deploy({value: TRANSFER_VALUE});
     await singleTransfer.deployed();
