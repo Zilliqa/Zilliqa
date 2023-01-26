@@ -231,7 +231,6 @@ struct EvmProcessContext {
   const zbytes& m_txnData;
   const Transaction& m_legacyTxn;
   const Transaction m_dummyTransaction{};
-  //Transaction::ContractType m_contractType;
 
   evm::EvmArgs m_protoData;
 

@@ -743,7 +743,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
-      cerr << "we would throw here... " << retGas << " : " << gas << std::endl;
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Base fee exceeds gas limit");
     }

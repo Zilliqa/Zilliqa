@@ -654,7 +654,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       std::string runnerPrint;
       bool evm_call_succeeded{true};
 
-      // nathan - test this...
       if (!TransferBalanceAtomic(fromAddr, m_curContractAddr,
                                  evmContext.GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
@@ -699,10 +698,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         LOCAL_EMT(str);
         return false;
       }
-
-      //if (evmContext.GetEstimateOnly()) {
-      //  return false;
-      //}
 
       if (!this->IncreaseBalance(fromAddr,
 
