@@ -1,0 +1,65 @@
+name: CI - Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitOrTag:
+        description: 'Commit or tag'
+        required: false
+        default: ''
+  push:
+    branches-ignore:
+      - 'release/**'
+    paths-ignore:
+    - '**.md'
+    - 'docs/**'
+    - 'Jenkinsfile'
+
+jobs:
+  build:
+    name: build
+    runs-on: self-hosted
+    env:
+      cache-type: registry
+      cache-key-deps: zilliqa-deps
+    steps:
+    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.commitOrTag }}
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.ECR_USERNAME }}
+        aws-secret-access-key: ${{ secrets.ECR_PASSWORD }}
+        aws-region: ${{ secrets.AWS_REGION_ZILLIQA }}
+    - name: Docker cache
+      uses: ./.github/actions/docker-cache
+      if: ${{ env.cache-key-deps != '' }}
+      with:
+        type: ${{ env.cache-type }}
+        key: ${{ env.cache-key-deps }}
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+    - name: Build and push Docker images
+      id: docker-build-push
+      uses: ./.github/actions/docker-build-push
+      with:
+        file: docker/Dockerfile.deps
+        image-name: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/${{ env.cache-key-deps }}
+        push: true
+        registry: ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com
+    - name: Restore cache
+      id: cache-primes-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: |
+          /ccache
+          /sccache
+        key: ${{ runner.os }}-ccache
+    - name: Build
+      run: |
+        docker run --privileged --platform linux/amd64 --rm -i -v ${{ github.workspace }}:/zilliqa -v /ccache:/ccache -v /sccache:/sccache \
+        --workdir=/zilliqa ${{ secrets.AWS_ACCOUNT_ID_ZILLIQA }}.dkr.ecr.${{ secrets.AWS_REGION_ZILLIQA }}.amazonaws.com/${{ env.cache-key-deps }}:${{ steps.docker-build-push.outputs.image-tag }} echo "hello world"
+      shell: bash

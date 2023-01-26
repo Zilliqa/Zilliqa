@@ -1,0 +1,70 @@
+# Copyright (C) 2019 Zilliqa
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+
+# Common dependencies of the builder and runner stages.
+FROM ubuntu:22.04 AS base
+
+COPY ./docker/base_image.sh .
+# Format guideline: one package per line and keep them alphabetically sorted
+RUN ./base_image.sh
+
+FROM base AS deps
+
+# Cargo
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
+    sh install_script.sh -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN cargo install sccache
+ENV SCCACHE_CACHE_SIZE="1G"
+ENV SCCACHE_DIR="/sccache"
+ENV RUSTC_WRAPPER="/root/.cargo/bin/sccache"
+
+# CMake 3.24
+ARG CMAKE_VERSION=3.24.2
+RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh \
+    && echo "739d372726cb23129d57a539ce1432453448816e345e1545f6127296926b6754 cmake-${CMAKE_VERSION}-Linux-x86_64.sh" | sha256sum -c \ 
+    && mkdir -p "${HOME}"/.local \
+    && bash ./cmake-${CMAKE_VERSION}-Linux-x86_64.sh --skip-license --prefix="${HOME}"/.local/ \
+    && "${HOME}"/.local/bin/cmake --version \
+    && rm cmake-${CMAKE_VERSION}-Linux-x86_64.sh
+ENV PATH="/root/.local/bin:${PATH}"
+
+# Setup ccache
+RUN ln -s "$(which ccache)" /usr/local/bin/gcc \
+  && ln -s "$(which ccache)" /usr/local/bin/g++ \
+  && ln -s "$(which ccache)" /usr/local/bin/cc \
+  && ln -s "$(which ccache)" /usr/local/bin/c++
+
+# This tag must be equivalent to the hash specified by "builtin-baseline" in vcpkg.json
+ARG VCPKG_COMMIT_OR_TAG=2022.09.27
+ARG VCPKG_ROOT=/vcpkg
+
+RUN ccache -p && ccache -z
+
+# If COMMIT_OR_TAG is a branch name or a tag, clone a shallow copy which is
+# faster; if this fails, just clone the full repo and checkout the commit.
+RUN git clone https://github.com/microsoft/vcpkg ${VCPKG_ROOT} \
+  && git -C ${VCPKG_ROOT} checkout ${VCPKG_COMMIT_OR_TAG} \
+  && ${VCPKG_ROOT}/bootstrap-vcpkg.sh
+
+WORKDIR /zilliqa
+
+COPY vcpkg-registry/ vcpkg-registry
+COPY vcpkg-configuration.json .
+COPY vcpkg.json .
+
+RUN ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic

@@ -9,7 +9,7 @@ on:
         default: ''
   push:
     branches-ignore:
-      - 'release/**'
+      - '**'
     paths-ignore:
     - '**.md'
     - 'docs/**'

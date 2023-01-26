@@ -1,0 +1,57 @@
+name: 'Docker cache'
+description: 'Docker cache setup action'
+author: devops@zilliqa.com
+
+inputs:
+  region:
+    description: 'The AWS region where is hosted the cache'
+    required: false
+    default: 'us-west-2'
+  bucket:
+    description: 'The AWS bucket where is hosted the cache'
+    required: false
+    default: 'gha-cache-210478221899'
+  username:
+    description: 'The username to access the cache'
+    required: true
+  password:
+    description: 'The password to access the cache'
+    required: true
+  type:
+    description: 'The password to access the registry'
+    required: true
+    default: 'gha'
+  key:
+    description: 'The key to store/retrieve the cache'
+    required: true
+    default: 'gha'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Login to the cache registry
+      if: ${{ inputs.type == 'registry' }}
+      uses: docker/login-action@v2
+      with:
+        username: ${{ inputs.username }}
+        password: ${{ inputs.password }}
+    - name: Set cache
+      run: |
+        if [ "${{ inputs.type }}" = "registry" ]; then
+          echo CACHE_FROM_CURRENT_BRANCH="type=registry,ref=zilliqa/zilliqa-cache:$(echo '${{ github.event.repository.name }}' | sed 's/[^a-zA-Z0-9]/-/g')-$(git rev-parse --abbrev-ref HEAD | sed 's/[^a-zA-Z0-9]/-/g')-${{ inputs.key }}" >> $GITHUB_ENV
+          echo CACHE_FROM_DEFAULT_BRANCH="type=registry,ref=zilliqa/zilliqa-cache:$(echo '${{ github.event.repository.name }}' | sed 's/[^a-zA-Z0-9]/-/g')-${{ github.event.repository.default_branch }}-${{ inputs.key }}" >> $GITHUB_ENV
+          echo CACHE_TO="type=registry,ref=zilliqa/zilliqa-cache:$(echo '${{ github.event.repository.name }}' | sed 's/[^a-zA-Z0-9]/-/g')-$(git rev-parse --abbrev-ref HEAD | sed 's/[^a-zA-Z0-9]/-/g')-${{ inputs.key }},mode=max" >> $GITHUB_ENV
+        elif [ "${{ inputs.type }}" = "s3" ]; then
+          echo CACHE_FROM_CURRENT_BRANCH="name=${{ github.event.repository.name }}/$(git rev-parse --abbrev-ref HEAD | sed 's/[^a-zA-Z0-9]/-/g')/${{ inputs.key }},type=s3,region=${{ inputs.region }},bucket=${{ inputs.bucket }},access_key_id=${{ inputs.username }},secret_access_key=${{ inputs.password }}" >> $GITHUB_ENV
+          echo CACHE_FROM_DEFAULT_BRANCH="name=${{ github.event.repository.name }}/${{ github.event.repository.default_branch }}/${{ inputs.key }},type=s3,region=${{ inputs.region }},bucket=${{ inputs.bucket }},access_key_id=${{ inputs.username }},secret_access_key=${{ inputs.password }}" >> $GITHUB_ENV
+          echo CACHE_TO="name=${{ github.event.repository.name }}/$(git rev-parse --abbrev-ref HEAD | sed 's/[^a-zA-Z0-9]/-/g')/${{ inputs.key }},type=s3,region=${{ inputs.region }},bucket=${{ inputs.bucket }},access_key_id=${{ inputs.username }},secret_access_key=${{ inputs.password }},mode=max" >> $GITHUB_ENV
+        elif [ "${{ inputs.type }}" = "gha" ]; then
+          echo CACHE_FROM_CURRENT_BRANCH='type=gha' >> $GITHUB_ENV
+          echo CACHE_FROM_DEFAULT_BRANCH='' >> $GITHUB_ENV
+          echo CACHE_TO='type=gha,mode=max' >> $GITHUB_ENV
+        else
+          echo CACHE_FROM_CURRENT_BRANCH='' >> $GITHUB_ENV
+          echo CACHE_FROM_DEFAULT_BRANCH='' >> $GITHUB_ENV
+          echo CACHE_TO='' >> $GITHUB_ENV
+        fi
+      shell: bash
