@@ -32,20 +32,17 @@ struct CpsAccountStoreInterface;
 class ScillaHelpers final {
  public:
   using Address = dev::h160;
-  static bool ParseCreateContract(CpsAccountStoreInterface &acc_store,
-                                  uint64_t &gasRemained,
+  static bool ParseCreateContract(uint64_t &gasRemained,
                                   const std::string &runnerPrint,
                                   TransactionReceipt &receipt, bool is_library);
 
   /// convert the interpreter output into parsable json object for deployment
-  static bool ParseCreateContractOutput(CpsAccountStoreInterface &acc_store,
-                                        Json::Value &jsonOutput,
+  static bool ParseCreateContractOutput(Json::Value &jsonOutput,
                                         const std::string &runnerPrint,
                                         TransactionReceipt &receipt);
 
   /// parse the output from interpreter for deployment
-  static bool ParseCreateContractJsonOutput(CpsAccountStoreInterface &acc_store,
-                                            const Json::Value &_json,
+  static bool ParseCreateContractJsonOutput(const Json::Value &_json,
                                             uint64_t &gasRemained,
                                             TransactionReceipt &receipt,
                                             bool is_library);
@@ -89,28 +86,29 @@ class ScillaHelpers final {
   /// generate the files for initdata, contract state, blocknum for interpreter
   /// to call contract
   static bool ExportContractFiles(
-      CpsAccountStoreInterface &acc_store, Address &contract,
+      CpsAccountStoreInterface &acc_store, const Address &contract,
       uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>
           &extlibs_exports);
 
   /// generate the files for message from txn for interpreter to call contract
   static bool ExportCallContractFiles(
-      CpsAccountStoreInterface &acc_store, Address &contract,
-      const Transaction &transaction, uint32_t scilla_version,
+      CpsAccountStoreInterface &acc_store, const Address &sender,
+      const Address &contract, const Transaction &transaction,
+      uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>
           &extlibs_exports);
 
   /// generate the files for message from previous contract output for
   /// interpreter to call another contract
   static bool ExportCallContractFiles(
-      CpsAccountStoreInterface &acc_store, Address &contract,
+      CpsAccountStoreInterface &acc_store, const Address &contract,
       const Json::Value &contractData, uint32_t scilla_version,
       const std::map<Address, std::pair<std::string, std::string>>
           &extlibs_exports);
 
   static void CreateScillaCodeFiles(
-      CpsAccountStoreInterface &acc_store, Address &contract,
+      CpsAccountStoreInterface &acc_store, const Address &contract,
       const std::map<Address, std::pair<std::string, std::string>>
           &extlibs_exports,
       const std::string &scillaCodeExtension);

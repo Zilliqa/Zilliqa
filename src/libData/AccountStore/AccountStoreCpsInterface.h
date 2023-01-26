@@ -197,6 +197,14 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return mScillaRootVersion;
   }
 
+  bool IsAccountLibrary(const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->IsLibrary();
+    }
+    return false;
+  }
+
  private:
   AccountStoreSC& mAccountStore;
   std::string mScillaRootVersion;

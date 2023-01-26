@@ -17,18 +17,168 @@
 
 #include "common/Constants.h"
 
+#include "libData/AccountData/TransactionReceipt.h"
+
 #include "libScilla/ScillaUtils.h"
 
 #include "libCps/CpsAccountStoreInterface.h"
 #include "libCps/ScillaHelpers.h"
 
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
+#include "libUtils/Metrics.h"
 
 #include <boost/filesystem.hpp>
 #include <fstream>
 
 namespace libCps {
+
+constexpr auto MAX_SCILLA_OUTPUT_SIZE_IN_BYTES = 5120;
+
+bool ScillaHelpers::ParseCreateContract(uint64_t &gasRemained,
+                                        const std::string &runnerPrint,
+                                        TransactionReceipt &receipt,
+                                        bool is_library) {
+  Json::Value jsonOutput;
+  if (!ParseCreateContractOutput(jsonOutput, runnerPrint, receipt)) {
+    return false;
+  }
+  return ParseCreateContractJsonOutput(jsonOutput, gasRemained, receipt,
+                                       is_library);
+}
+
+bool ScillaHelpers::ParseCreateContractOutput(Json::Value &jsonOutput,
+                                              const std::string &runnerPrint,
+                                              TransactionReceipt &receipt) {
+  if (LOG_SC) {
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (runnerPrint.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? runnerPrint.substr(
+                                 0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : runnerPrint));
+  }
+
+  if (!JSONUtils::GetInstance().convertStrtoJson(runnerPrint, jsonOutput)) {
+    receipt.AddError(JSON_OUTPUT_CORRUPTED);
+
+    return false;
+  }
+  return true;
+}
+
+bool ScillaHelpers::ParseCreateContractJsonOutput(const Json::Value &_json,
+                                                  uint64_t &gasRemained,
+                                                  TransactionReceipt &receipt,
+                                                  bool is_library) {
+  // LOG_MARKER();
+  if (!_json.isMember("gas_remaining")) {
+    LOG_GENERAL(
+        WARNING,
+        "The json output of this contract didn't contain gas_remaining");
+    if (gasRemained > CONTRACT_CREATE_GAS) {
+      gasRemained -= CONTRACT_CREATE_GAS;
+    } else {
+      gasRemained = 0;
+    }
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+    return false;
+  }
+  try {
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
+                                    << " is not numeric");
+    return false;
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+
+  if (!is_library) {
+    if (!_json.isMember("messages") || !_json.isMember("events")) {
+      if (_json.isMember("errors")) {
+        LOG_GENERAL(WARNING, "Contract creation failed");
+        receipt.AddError(CREATE_CONTRACT_FAILED);
+        receipt.AddException(_json["errors"]);
+      } else {
+        LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
+        receipt.AddError(OUTPUT_ILLEGAL);
+      }
+      return false;
+    }
+
+    if (_json["messages"].type() == Json::nullValue &&
+        _json["states"].type() == Json::arrayValue &&
+        _json["events"].type() == Json::arrayValue) {
+      return true;
+    }
+
+    LOG_GENERAL(WARNING,
+                "Didn't get desired json output from the interpreter for "
+                "create contract");
+    receipt.AddError(OUTPUT_ILLEGAL);
+    return false;
+  }
+
+  return true;
+}
+
+/* bool ParseCallContract(CpsAccountStoreInterface &acc_store,
+                       uint64_t &gasRemained, const std::string &runnerPrint,
+                       TransactionReceipt &receipt, uint32_t tree_depth,
+                       uint32_t scilla_version);
+
+/// convert the interpreter output into parsable json object for calling
+bool ParseCallContractOutput(CpsAccountStoreInterface &acc_store,
+                             Json::Value &jsonOutput,
+                             const std::string &runnerPrint,
+                             TransactionReceipt &receipt);
+
+/// parse the output from interpreter for calling and update states
+bool ParseCallContractJsonOutput(CpsAccountStoreInterface &acc_store,
+                                 const Json::Value &_json,
+                                 uint64_t &gasRemained,
+                                 TransactionReceipt &receipt,
+                                 uint32_t tree_depth,
+                                 uint32_t pre_scilla_version);
+*/
+void ScillaHelpers::ExportCommonFiles(
+    CpsAccountStoreInterface &acc_store, std::ofstream &os,
+    const Address &contract,
+    const std::map<Address, std::pair<std::string, std::string>>
+        &extlibs_exports) {
+  os.open(INIT_JSON);
+  if (LOG_SC) {
+    LOG_GENERAL(INFO,
+                "init data to export: " << DataConversion::CharArrayToString(
+                    acc_store.GetContractInitData(contract)));
+  }
+  os << DataConversion::CharArrayToString(
+      acc_store.GetContractInitData(contract));
+  os.close();
+
+  for (const auto &extlib_export : extlibs_exports) {
+    std::string code_path =
+        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
+    code_path += LIBRARY_CODE_EXTENSION;
+    boost::filesystem::remove(code_path);
+
+    os.open(code_path);
+    os << extlib_export.second.first;
+    os.close();
+
+    std::string init_path =
+        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
+    boost::filesystem::remove(init_path);
+
+    os.open(init_path);
+    os << extlib_export.second.second;
+    os.close();
+  }
+}
 
 bool ScillaHelpers::ExportCreateContractFiles(
     CpsAccountStoreInterface &acc_store, const Address &address,
@@ -66,39 +216,122 @@ bool ScillaHelpers::ExportCreateContractFiles(
   return true;
 }
 
-void ScillaHelpers::ExportCommonFiles(
-    CpsAccountStoreInterface &acc_store, std::ofstream &os,
-    const Address &contract,
+bool ScillaHelpers::ExportContractFiles(
+    CpsAccountStoreInterface &acc_store, const Address &contract,
+    uint32_t scilla_version,
     const std::map<Address, std::pair<std::string, std::string>>
         &extlibs_exports) {
-  os.open(INIT_JSON);
-  if (LOG_SC) {
-    LOG_GENERAL(INFO,
-                "init data to export: " << DataConversion::CharArrayToString(
-                    acc_store.GetContractInitData(contract)));
+  LOG_MARKER();
+  std::chrono::system_clock::time_point tpStart;
+
+  boost::filesystem::remove_all("./" + SCILLA_FILES);
+  boost::filesystem::create_directories("./" + SCILLA_FILES);
+
+  if (!(boost::filesystem::exists("./" + SCILLA_LOG))) {
+    boost::filesystem::create_directories("./" + SCILLA_LOG);
   }
-  os << DataConversion::CharArrayToString(
-      acc_store.GetContractInitData(contract));
+
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = zil::metrics::r_timer_start();
+  }
+
+  if (!ScillaUtils::PrepareRootPathWVersion(scilla_version,
+                                            acc_store.GetScillaRootVersion())) {
+    LOG_GENERAL(WARNING, "PrepareRootPathWVersion failed");
+    return false;
+  }
+
+  try {
+    std::string scillaCodeExtension = CONTRACT_FILE_EXTENSION;
+    if (acc_store.IsAccountLibrary(contract)) {
+      scillaCodeExtension = LIBRARY_CODE_EXTENSION;
+    }
+    CreateScillaCodeFiles(acc_store, contract, extlibs_exports,
+                          scillaCodeExtension);
+  } catch (const std::exception &e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(INFO,
+                "LDB Read (microsec) = " << zil::metrics::r_timer_end(tpStart));
+  }
+
+  return true;
+}
+
+bool ScillaHelpers::ExportCallContractFiles(
+    CpsAccountStoreInterface &acc_store, const Address &sender,
+    const Address &contract, const Transaction &transaction,
+    uint32_t scilla_version,
+    const std::map<Address, std::pair<std::string, std::string>>
+        &extlibs_exports) {
+  LOG_MARKER();
+
+  if (!ExportContractFiles(acc_store, contract, scilla_version,
+                           extlibs_exports)) {
+    LOG_GENERAL(WARNING, "ExportContractFiles failed");
+    return false;
+  }
+
+  try {
+    // Message Json
+    std::string dataStr(transaction.GetData().begin(),
+                        transaction.GetData().end());
+    Json::Value msgObj;
+    if (!JSONUtils::GetInstance().convertStrtoJson(dataStr, msgObj)) {
+      return false;
+    }
+    const std::string prepend = "0x";
+    msgObj["_sender"] = prepend + sender.hex(),
+
+    msgObj["_origin"] = prepend + sender.hex();
+    msgObj["_amount"] = transaction.GetAmountQa().convert_to<std::string>();
+
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, msgObj);
+  } catch (const std::exception &e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
+
+  return true;
+}
+
+bool ScillaHelpers::ExportCallContractFiles(
+    CpsAccountStoreInterface &acc_store, const Address &contract,
+    const Json::Value &contractData, uint32_t scilla_version,
+    const std::map<Address, std::pair<std::string, std::string>>
+        &extlibs_exports) {
+  LOG_MARKER();
+
+  if (!ExportContractFiles(acc_store, contract, scilla_version,
+                           extlibs_exports)) {
+    LOG_GENERAL(WARNING, "ExportContractFiles failed");
+    return false;
+  }
+
+  try {
+    JSONUtils::GetInstance().writeJsontoFile(INPUT_MESSAGE_JSON, contractData);
+  } catch (const std::exception &e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
+
+  return true;
+}
+
+void ScillaHelpers::CreateScillaCodeFiles(
+    CpsAccountStoreInterface &acc_store, const Address &contract,
+    const std::map<Address, std::pair<std::string, std::string>>
+        &extlibs_exports,
+    const std::string &scillaCodeExtension) {
+  LOG_MARKER();
+  // Scilla code
+  std::ofstream os(INPUT_CODE + scillaCodeExtension);
+  os << DataConversion::CharArrayToString(acc_store.GetContractCode(contract));
   os.close();
 
-  for (const auto &extlib_export : extlibs_exports) {
-    std::string code_path =
-        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex();
-    code_path += LIBRARY_CODE_EXTENSION;
-    boost::filesystem::remove(code_path);
-
-    os.open(code_path);
-    os << extlib_export.second.first;
-    os.close();
-
-    std::string init_path =
-        EXTLIB_FOLDER + '/' + "0x" + extlib_export.first.hex() + ".json";
-    boost::filesystem::remove(init_path);
-
-    os.open(init_path);
-    os << extlib_export.second.second;
-    os.close();
-  }
+  ExportCommonFiles(acc_store, os, contract, extlibs_exports);
 }
 
 bool ScillaHelpers::PopulateExtlibsExports(
