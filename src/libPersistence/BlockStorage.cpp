@@ -125,6 +125,9 @@ bool BlockStorage::PutTxBlock(const TxBlockHeader& blockHeader,
 
 bool BlockStorage::PutTxBody(const uint64_t& epochNum, const dev::h256& key,
                              const zbytes& body) {
+
+  std::cerr << "putting tx body: " << key << std::endl;
+
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING, "Non lookup node should not trigger this.");
     return false;

@@ -989,7 +989,7 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
     const TxBlock EMPTY_BLOCK;
     const auto txBlock = GetBlockFromTransaction(*transactionBodyPtr);
     if (txBlock == EMPTY_BLOCK) {
-      LOG_GENERAL(WARNING, "Unable to get the TX from a minted block!");
+      LOG_GENERAL(WARNING, "Unable to get the TX from a minted block! For hash: " << tranHash);
       return Json::nullValue;
     }
 
@@ -1641,7 +1641,7 @@ TxBlock EthRpcMethods::GetBlockFromTransaction(
 
   try {
     if (!blockNumStr.isString() || blockNumStr.asString().empty()) {
-      LOG_GENERAL(WARNING, "Block number is string or is empty!");
+      LOG_GENERAL(WARNING, "Block number is string or is empty! Json: " << txReceipt.GetJsonValue().asString());
       return EMPTY_BLOCK;
     }
     const uint64_t blockNum =

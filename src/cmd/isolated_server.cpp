@@ -105,6 +105,7 @@ int main(int argc, const char* argv[]) {
   bool nonisoload{false};
   string uuid;
 
+  LOG_SC = true;
   ENABLE_EVM = true;
   LOOKUP_NODE_MODE = true;
   SCILLA_SERVER_LOOP_WAIT_MICROSECONDS = 100000;

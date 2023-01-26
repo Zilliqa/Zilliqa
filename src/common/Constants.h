@@ -405,7 +405,7 @@ extern const std::string EXTLIB_FOLDER;
 extern const bool ENABLE_SCILLA_MULTI_VERSION;
 extern bool ENABLE_SCILLA;
 
-extern const bool LOG_SC;
+extern bool LOG_SC;
 extern const bool DISABLE_SCILLA_LIB;
 extern const unsigned int SCILLA_SERVER_PENDING_IN_MS;
 extern unsigned int SCILLA_SERVER_LOOP_WAIT_MICROSECONDS;
