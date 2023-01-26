@@ -65,8 +65,9 @@ struct EvmProcessContext {
                     const TxnExtras& extras, bool commit = true);
   /*
    *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
-   *                       const TxnExtras& extras, bool commit = true)
-   *   This is the DirectCall format as used by 8.3 and beyond series.
+   *                       const TxnExtras& extras, bool estimate, bool commit)
+   *   This is the DirectCall/EstimateCall format as used by 8.3 and beyond
+   * series.
    *
    */
   EvmProcessContext(const Address& caller, const Address& contract,
@@ -74,6 +75,13 @@ struct EvmProcessContext {
                     const uint256_t& amount, const uint64_t& blkNum,
                     const TxnExtras& extras, std::string_view context,
                     bool estimate, bool direct);
+
+  /*
+   * bool GetCommit() const;
+   *
+   * check if any changes to account store should be commited (useful in
+   * estimate mode)
+   */
 
   bool GetCommit() const;
 

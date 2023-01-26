@@ -714,11 +714,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
 
-  LOG_GENERAL(WARNING, "ETH_ESTIMATEGAS: "
-                           << "FROM: " << fromAddr.hex()
-                           << ", TO: " << toAddr.hex()
-                           << ", CS: " << code.size() << ", DS: " << data.size()
-                           << ", V: " << value.convert_to<std::string>());
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
                                       true, false);

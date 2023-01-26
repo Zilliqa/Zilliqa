@@ -642,8 +642,6 @@ const unsigned int PREGEN_ACCOUNT_TIMES{
     ReadConstantNumeric("PREGEN_ACCOUNT_TIMES", "node.tests.")};
 const string PREGENED_ACCOUNTS_FILE{
     ReadConstantString("PREGENED_ACCOUNTS_FILE", "node.tests.")};
-const bool LOG_PARAMETERS{ReadConstantString("LOG_PARAMETERS", "node.tests.") ==
-                          "true"};
 
 // Transaction constants
 const uint128_t TOTAL_COINBASE_REWARD{
@@ -748,10 +746,6 @@ const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
 const bool ENABLE_CPS{
     ReadConstantString("ENABLE_CPS", "node.jsonrpc.", "true") == "true"};
-const bool SORT_ACC_STORE_DELTA{ReadConstantString("SORT_ACC_STORE_DELTA",
-                                                   "node.jsonrpc.",
-                                                   "true") == "false"};
-
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
 const std::string METRIC_ZILLIQA_PROVIDER{ReadConstantString(
