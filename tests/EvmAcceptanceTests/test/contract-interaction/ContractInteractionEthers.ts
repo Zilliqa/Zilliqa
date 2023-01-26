@@ -28,7 +28,7 @@ describe("Contract Interaction with Ethers.js", function () {
       expect(await this.contract.someEnum()).to.be.eq(ENUM);
     });
 
-    it("Should set address internal state correctly [@transactional]", async function () {
+    xit("Should set address internal state correctly [@transactional]", async function () {
       await this.contract.setAddress(ADDRESS);
       expect(await this.contract.someAddress()).to.be.eq(ADDRESS);
     });

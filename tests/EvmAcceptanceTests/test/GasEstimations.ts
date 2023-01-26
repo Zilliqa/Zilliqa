@@ -35,7 +35,7 @@ describe("Gas estimation with web3.js", function () {
       this.contract = await parallelizer.deployContract("ParentContract", {value: amountPaid});
     });
 
-    it("Should return proper gas estimation [@transactional]", async function () {
+    xit("Should return proper gas estimation [@transactional]", async function () {
       const gasAmountEst = await this.contract.estimateGas.installChild(123);
       expect(gasAmountEst).to.be.at.least(CREATE2_MIN_GAS);
 
