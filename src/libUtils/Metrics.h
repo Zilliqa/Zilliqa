@@ -23,14 +23,14 @@
 #include "common/MetricFilters.h"
 #include "common/Singleton.h"
 
-#include "common/TraceFilters.h"
 #include "opentelemetry/exporters/ostream/span_exporter_factory.h"
-#include "opentelemetry/metrics/async_instruments.h"
-#include "opentelemetry/metrics/provider.h"
-#include "opentelemetry/metrics/sync_instruments.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
-#include "opentelemetry/sdk/metrics/metric_reader.h"
+#include "opentelemetry/metrics/async_instruments.h"
+#include "opentelemetry/metrics/sync_instruments.h"
 #include "opentelemetry/sdk/resource/resource.h"
+#include "opentelemetry/metrics/provider.h"
+#include "opentelemetry/sdk/metrics/metric_reader.h"
+#include "common/TraceFilters.h"
 
 class Metrics;
 
@@ -42,6 +42,7 @@ namespace zil {
 namespace metrics {
 
 std::chrono::system_clock::time_point r_timer_start();
+
 
 double r_timer_end(std::chrono::system_clock::time_point start_time);
 
@@ -84,16 +85,15 @@ class Observable {
     }
 
     template <class T, class U,
-              std::enable_if_t<common::detail::is_key_value_iterable<U>::value>
-                  * = nullptr>
+                        std::enable_if_t<
+                                common::detail::is_key_value_iterable<U>::value> * = nullptr>
     void Set(T value, const U &attributes) noexcept {
       Set(value, common::KeyValueIterableView<U>{attributes});
     }
 
     template <class T>
-    void Set(
-        T value,
-        std::initializer_list<std::pair<std::string, common::AttributeValue>>
+                void Set(T value, std::initializer_list<
+                        std::pair<std::string, common::AttributeValue>>
             attributes) noexcept {
       Set(value, opentelemetry::nostd::span<
                      const std::pair<std::string, common::AttributeValue>>{
@@ -254,7 +254,7 @@ class Metrics : public Singleton<Metrics> {
   void InitPrometheus(const std::string &addr);
 
   void InitOTHTTP();
-
+  void InitOtlpGrpc();
   void InitStdOut();
 };
 
@@ -287,8 +287,8 @@ class Metrics : public Singleton<Metrics> {
     COUNTER->Add(1, {{"Method", METHOD}});                             \
   }
 
-#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)                 \
-  Metrics::LatencyScopeMarker _scopemarker{COUNTER,  LATENCY,  FILTER_CLASS, \
+#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)               \
+  Metrics::LatencyScopeMarker _scopemarker{COUNTER, LATENCY, FILTER_CLASS, \
                                            __FILE__, __FUNCTION__};
 
 #endif  // ZILLIQA_SRC_LIBUTILS_METRICS_H_
