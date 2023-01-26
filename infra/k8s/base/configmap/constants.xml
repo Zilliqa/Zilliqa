@@ -318,7 +318,6 @@
         <NUM_ACCOUNTS_PREGENERATE>0</NUM_ACCOUNTS_PREGENERATE>
         <PREGEN_ACCOUNT_TIMES>0</PREGEN_ACCOUNT_TIMES>
         <PREGENED_ACCOUNTS_FILE />
-        <LOG_PARAMETERS>false</LOG_PARAMETERS>
     </tests>
     <transactions>
         <TOTAL_COINBASE_REWARD>8400000000000000000000</TOTAL_COINBASE_REWARD>
@@ -359,7 +358,7 @@
             <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
             <METRIC_ZILLIQA_VERSION>1.2.0</METRIC_ZILLIQA_VERSION>
             <!-- ALL means all metrics are enabled -->
-            <METRIC_ZILLIQA_MASK>NONE</METRIC_ZILLIQA_MASK>
+            <METRIC_ZILLIQA_MASK>ALL</METRIC_ZILLIQA_MASK>
         </zilliqa>
     </metric>
     <trace>

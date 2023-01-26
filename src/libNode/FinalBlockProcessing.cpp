@@ -608,8 +608,7 @@ bool Node::ProcessVCFinalBlockCore(
     }
   }
 
-  if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta,
-                            message.size())) {
+  if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
       {
         unique_lock<mutex> lock(
@@ -654,7 +653,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
             return false;
           }
           if (!ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock,
-                                     stateDelta, message.size())) {
+                                     stateDelta)) {
             // ignore bufferred final blocks because rejoin must have been
             // already
             break;
@@ -673,8 +672,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
     return false;
   }
 
-  if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta,
-                            message.size())) {
+  if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
     if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && MULTIPLIER_SYNC_MODE) {
       // Reached here. Final block was processed successfully.
       // Avoid using the original message in case it contains
@@ -709,8 +707,7 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
 
 bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
-                                 TxBlock& txBlock, zbytes& stateDelta,
-                                 const uint64_t& messageSize) {
+                                 TxBlock& txBlock, zbytes& stateDelta) {
   LOG_MARKER();
 
   lock_guard<mutex> g(m_mutexFinalBlock);
@@ -800,22 +797,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   LOG_STATE("[TXBOD][" << std::setw(15) << std::left
                        << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
                        << txBlock.GetHeader().GetBlockNum() << "] FRST");
-
-  if (LOOKUP_NODE_MODE && LOG_PARAMETERS) {
-    uint64_t timeDiff = txBlock.GetTimestamp() -
-                        m_mediator.m_txBlockChain.GetLastBlock().GetTimestamp();
-
-    const double oneMillion = 1000000.0;
-
-    cpp_dec_float_50 td_float(timeDiff);
-    cpp_dec_float_50 numTxns(txBlock.GetHeader().GetNumTxs());
-    td_float = td_float / 1000;
-
-    LOG_STATE("[FBSTAT][" << m_mediator.m_currentEpochNum
-                          << "] Size=" << messageSize << " Time=" << td_float
-                          << " TPS=" << numTxns * oneMillion / timeDiff
-                          << " Gas=" << txBlock.GetHeader().GetGasUsed())
-  }
 
   // Verify the co-signature
   if (!VerifyFinalBlockCoSignature(txBlock)) {
@@ -914,15 +895,9 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
   }
 
-  if (LOG_PARAMETERS) {
-    LOG_STATE("[FLBLKRECV][" << m_mediator.m_currentEpochNum
-                             << "] Shard=" << m_myshardId);
-  } else {
-    LOG_STATE("[FLBLK][" << setw(15) << left
-                         << m_mediator.m_selfPeer.GetPrintableIPAddress()
-                         << "][" << m_mediator.m_currentEpochNum
-                         << "] RECVD FLBLK");
-  }
+  LOG_STATE("[FLBLK][" << setw(15) << left
+                       << m_mediator.m_selfPeer.GetPrintableIPAddress() << "]["
+                       << m_mediator.m_currentEpochNum << "] RECVD FLBLK");
 
   bool toSendTxnToLookup = false;
 
@@ -1191,10 +1166,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
 
   LOG_MARKER();
-  if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPUT]"
-              << "BGN")
-  }
 
   if (!entry.m_transactions.empty()) {
     uint64_t epochNum = entry.m_microBlock.GetHeader().GetEpochNum();
@@ -1245,10 +1216,6 @@ void Node::CommitForwardedTransactions(const MBnForwardedTxnEntry& entry) {
   }
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Proceessed " << entry.m_transactions.size() << " of txns.");
-  if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPUT]"
-              << "DONE [" << entry.m_transactions.size() << "]");
-  }
 }
 
 void Node::SoftConfirmForwardedTransactions(const MBnForwardedTxnEntry& entry) {
@@ -1451,14 +1418,6 @@ bool Node::ProcessMBnForwardTransaction(
       << "] RECVD MB & TXN BODIES #"
       << entry.m_microBlock.GetHeader().GetEpochNum() << " shard "
       << entry.m_microBlock.GetHeader().GetShardId());
-
-  if (LOOKUP_NODE_MODE && LOG_PARAMETERS) {
-    LOG_STATE("[MBPCKT] Size:"
-              << message.size()
-              << " Epoch:" << entry.m_microBlock.GetHeader().GetEpochNum()
-              << " Shard:" << entry.m_microBlock.GetHeader().GetShardId()
-              << " Txns:" << entry.m_microBlock.GetHeader().GetNumTxs());
-  }
 
   if ((m_mediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum() <
        entry.m_microBlock.GetHeader()

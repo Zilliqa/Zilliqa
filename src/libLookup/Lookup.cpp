@@ -5407,12 +5407,6 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
 
-    if (LOG_PARAMETERS) {
-      LOG_STATE("[TXNPKT][" << epoch << "] Shard=" << shardId << " NumTx="
-                            << (GetTxnFromShardMap(shardId).size() +
-                                m_txnShardMapGenerated[shardId].size()));
-    }
-
     if (GetTxnFromShardMap(shardId).empty() &&
         m_txnShardMapGenerated[shardId].empty()) {
       LOG_GENERAL(INFO, "No txns to send to shard " << shardId);
