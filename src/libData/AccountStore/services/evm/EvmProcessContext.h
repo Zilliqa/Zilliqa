@@ -205,7 +205,7 @@ struct EvmProcessContext {
 
   Transaction::ContractType GetContractType();
 
-  inline const Transaction& GetTransaction() const { return m_legacyTxn; }
+  //inline const Transaction& GetTransaction() const { return m_legacyTxn; }
 
 
   uint64_t GetGasLimitEth() const;

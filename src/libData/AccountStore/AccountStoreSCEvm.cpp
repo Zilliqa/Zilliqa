@@ -320,7 +320,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
   error_code = TxnStatus::NOT_PRESENT;
-  //const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
   const Address fromAddr = evmContext.GetFromAddr();
   uint64_t gasLimitEth = evmContext.GetGasLimitEth();
 
@@ -377,7 +376,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
 
       if (fromAccountBalance <
-          gasDepositWei + evmContext.GetTransaction().GetAmountWei()) {
+          gasDepositWei + evmContext.GetAmountWei()) {
         std::stringstream ss;
         ss << "The account doesn't have enough gas to create a contract : "
            << gasDepositWei;
@@ -452,7 +451,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                             << evmContext.GetGasLimitEth());
 
       if (!TransferBalanceAtomic(fromAddr, contractAddress,
-                                 evmContext.GetTransaction().GetAmountQa())) {
+                                 evmContext.GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         const std::string str{"TransferBalance Atomic failed"};
         LOCAL_EMT(str);
@@ -533,10 +532,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         return true;
       }
 
-      if (evmContext.GetTransaction().GetGasLimitZil() < gasRemainedCore) {
+      if (evmContext.GetGasLimitZil() < gasRemainedCore) {
         std::stringstream ss;
         ss << "Cumulative Gas calculated Underflow, gasLimit: "
-           << evmContext.GetTransaction().GetGasLimitZil()
+           << evmContext.GetGasLimitZil()
            << " gasRemained: " << gasRemained << ". Must be something wrong!";
 
         LOCAL_EMT(ss.str());
@@ -587,9 +586,9 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
       // Check if gaslimit meets the minimum requirement for contract call (at
       // least const fee)
-      if (evmContext.GetTransaction().GetGasLimitEth() < MIN_ETH_GAS) {
+      if (evmContext.GetGasLimitEth() < MIN_ETH_GAS) {
         std::stringstream ss;
-        ss << "Gas limit " << evmContext.GetTransaction().GetGasLimitEth()
+        ss << "Gas limit " << evmContext.GetGasLimitEth()
            << " less than " << MIN_ETH_GAS;
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
 
@@ -603,7 +602,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       const uint256_t fromAccountBalance =
           uint256_t{fromAccount->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
       if (fromAccountBalance <
-          gasDepositWei + evmContext.GetTransaction().GetAmountWei()) {
+          gasDepositWei + evmContext.GetAmountWei()) {
         std::stringstream ss;
         ss << "The account (balance: " << fromAccountBalance
            << ") "
@@ -612,7 +611,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
            << gasDepositWei
            << ") "
               "and transfer the amount ("
-           << evmContext.GetTransaction().GetAmountWei()
+           << evmContext.GetAmountWei()
            << ") in the txn, "
               "rejected";
 
@@ -721,10 +720,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         LOG_GENERAL(WARNING, "IncreaseBalance failed for gasRefund");
       }
 
-      if (evmContext.GetTransaction().GetGasLimitZil() < gasRemainedCore) {
+      if (evmContext.GetGasLimitZil() < gasRemainedCore) {
         std::stringstream ss;
         ss << "Cumulative Gas calculated Underflow, gasLimit: "
-           << evmContext.GetTransaction().GetGasLimitZil()
+           << evmContext.GetGasLimitZil()
            << " gasRemained: " << gasRemained << ". Must be something wrong!";
 
         error_code = TxnStatus::MATH_ERROR;

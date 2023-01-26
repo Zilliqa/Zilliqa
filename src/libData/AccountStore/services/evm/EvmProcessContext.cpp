@@ -96,7 +96,6 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
   m_protoData.set_estimate(false);
   // Initialised OK
   m_status = true;
-  //m_contractType = Transaction::GetTransactionType(m_legacyTxn);
 }
 
 /*
@@ -130,7 +129,6 @@ EvmProcessContext::EvmProcessContext(
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
   }
-  //m_contractType = Transaction::GetTransactionType(m_contractCreation, GetCode(), GetData());
 }
 
 bool EvmProcessContext::ContainsLegacyTx() const {
