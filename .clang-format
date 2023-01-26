@@ -142,7 +142,7 @@ SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
 Standard:        Auto
-TabWidth:        2
+TabWidth:        8
 UseTab:          Never
 ...
 
