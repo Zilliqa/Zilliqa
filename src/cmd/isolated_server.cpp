@@ -163,6 +163,10 @@ int main(int argc, const char* argv[]) {
 
     ISOLATED_SERVER = true;
 
+    // Enough to bring the instance into scope
+    Tracing::GetInstance();
+    Metrics::GetInstance();
+
     createConfigFile();
 
     PairOfKey key;

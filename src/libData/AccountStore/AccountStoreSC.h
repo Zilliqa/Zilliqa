@@ -34,6 +34,24 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
+namespace zil {
+namespace accountstore {
+const std::string EVM_HISTOGRAM = "zilliqa.evm.histogram";
+const std::string SCILLA_HISTOGRAM = "zilliqa.scilla.histogram";
+//=======================================================================================
+// TODO : Put these into configuration as they will need tuning.
+/// Metrics callback for block number
+struct counter_t {
+  // These are the Non-automatic Manually set metrics
+  int64_t blockNumber{0};
+  int64_t blockNumberDS{0};
+  int64_t evmCall{0};
+  int64_t scillaCall{0};
+};
+//=======================================================================================
+}  // namespace accountstore
+};  // namespace zil
+
 class ScillaIPCServer;
 
 class AccountStoreSC : public AccountStoreBase {
@@ -99,30 +117,19 @@ class AccountStoreSC : public AccountStoreBase {
 
   std::vector<Address> m_newLibrariesCreated;
 
-  /// Metrics callback for block number
-  zil::metrics::Observable m_accountStoreCount;
+  //=======================================================================================
+  // TODO : Put these into configuration as they will need tuning.
+  std::list<double> m_latencieBoudaries{0,  1,  2,  4,  6,  8,
+                                        10, 20, 30, 40, 60, 120};
 
-  static void Fetcher(opentelemetry::metrics::ObserverResult observer_result,
-                      void *state) {
-    if (std::holds_alternative<
-            std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
-            observer_result)) {
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
-          observer_result)
-          ->Observe(m_evmLatency, {{"evm", "ms"}});
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
-          observer_result)
-          ->Observe(m_scillaLatency, {{"scilla", "ms"}});
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
-          observer_result)
-          ->Observe(m_transactionLatency * 2.5, {{"transaction", "ms"}});
-    }
+  std::shared_ptr<zil::accountstore::counter_t> GetGeneralStatistics() {
+    std::shared_ptr<zil::accountstore::counter_t> stats =
+        std::make_shared<zil::accountstore::counter_t>();
+    return stats;
   }
-  std::shared_ptr<opentelemetry::metrics::ObservableInstrument>
-      m_simpleObservable;
+
+  // shared Area for simply assigning metrics;
+  //=======================================================================================
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
@@ -257,8 +264,6 @@ class AccountStoreSC : public AccountStoreBase {
 
  public:
   /// Initialize the class
-  static double m_evmLatency;
-  static double m_scillaLatency;
   static double m_transactionLatency;
 
   void Init() override;
@@ -291,6 +296,8 @@ class AccountStoreSC : public AccountStoreBase {
   bool AddAccountAtomic(const Address &address, const Account &account);
 
   bool EvmProcessMessage(EvmProcessContext &params, evm::EvmResult &result);
+
+  zil::accountstore::counter_t m_stats;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_

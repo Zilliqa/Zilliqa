@@ -36,6 +36,7 @@
   T(LOOKUP_SERVER)              \
   T(QUEUE)                      \
   T(ACC_EVM)                    \
+  T(NODE)                       \
   T(ACC_HISTOGRAM)
 namespace zil {
 namespace trace {

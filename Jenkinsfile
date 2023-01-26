@@ -19,9 +19,9 @@ spec:
     tty: true
     resources:
       requests:
-        ephemeral-storage: "30Gi"
+        ephemeral-storage: "40Gi"
       limits:
-        ephemeral-storage: "30Gi"
+        ephemeral-storage: "40Gi"
 """
 
 String skipciMessage = 'Aborting because commit message contains [skip ci]'

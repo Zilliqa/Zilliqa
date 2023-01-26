@@ -1,0 +1,7 @@
+scrape_configs:
+  - job_name: 'zilliqa'
+    scrape_interval: 1s
+    honor_timestamps: false
+    static_configs:
+      - targets: ['otel-collector:8889']
+      - targets: ['otel-collector:8888']
