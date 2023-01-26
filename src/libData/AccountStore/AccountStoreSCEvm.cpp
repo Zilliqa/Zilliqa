@@ -498,7 +498,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         LOG_GENERAL(FATAL, "IncreaseBalance failed for gasRefund");
       }
 
-      if (evmContext.GetCommit()){
+      if(evmContext.GetCommit()) {
         if (evm_call_run_succeeded) {
           CommitAtomics();
         } else {
@@ -509,27 +509,17 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           receipt.SetCumGas(evmContext.GetGasLimitZil() -
                             gasRemainedCore);
           receipt.update();
-
-          if(evmContext.GetCommit()) {
-            if (!this->IncreaseNonce(fromAddr)) {
-              error_code = TxnStatus::MATH_ERROR;
-            }
+          // TODO : confirm we increase nonce on failure
+          if (!this->IncreaseNonce(fromAddr)) {
+            error_code = TxnStatus::MATH_ERROR;
           }
 
           auto constexpr str =
               "Executing contract Creation transaction finished unsuccessfully";
-          LOG_GENERAL(INFO, str);
-          TRACE_ATTRIBUTE msg{{"From", fromAddr.hex()}, {"reason", str}};
-          TRACE_EVENT(span, ACC_EVM, "return", msg);
-          error_code = TxnStatus::MATH_ERROR;
+
+          LOCAL_EMT(str);
           return true;
         }
-
-        auto constexpr str =
-            "Executing contract Creation transaction finished unsuccessfully";
-
-        LOCAL_EMT(str);
-        return true;
       }
 
       if (evmContext.GetGasLimitZil() < gasRemainedCore) {
