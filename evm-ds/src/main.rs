@@ -9,12 +9,15 @@ mod precompiles;
 mod protos;
 mod scillabackend;
 
-use std::default::default;
+//use std::default::default;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::panic::{self, AssertUnwindSafe};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::rc::{Rc, Weak};
+
+use serde::ser::{Serialize, SerializeStruct, Serializer};
+use serde_json;
 
 use anyhow::Context;
 use clap::Parser;
@@ -140,6 +143,15 @@ async fn run_evm_impl(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, hex::encode(&code), hex::encode(&data),
             backend.extras, estimate);
+
+        //let mut listener = LoggingEventListener{traces : Default::default()};
+        let mut listener = LoggingEventListener::new();
+        listener.call_stack[0].call_type = "CALL".to_string();
+        listener.call_stack[0].from = backend.origin.to_string();
+        listener.call_stack[0].to = address.to_string();
+        listener.call_stack[0].value = apparent_value.to_string();
+        listener.call_stack[0].input = hex::encode(&data);
+
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -159,9 +171,6 @@ async fn run_evm_impl(
 
         let mut executor =
             evm::executor::stack::StackExecutor::new_with_precompiles(state, &config, &precompiles);
-
-        //let mut listener = LoggingEventListener{traces : Default::default()};
-        let mut listener = LoggingEventListener::new();
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -227,7 +236,15 @@ async fn run_evm_impl(
                                    result
                                  })
                                  .collect());
-                result.set_trace(listener.traces.into_iter().map(Into::into).collect());
+
+
+                // Collect the listener infos
+                listener.call_stack[0].output = hex::encode(runtime.machine().return_value());
+                let serialized_listener = serde_json::to_string(&listener.call_stack).unwrap();
+
+                println!("serialized listener: {:?}", serialized_listener);
+
+                result.set_trace(serialized_listener.into());
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
                 info!(
@@ -278,8 +295,8 @@ impl CallContext {
             from : Default::default(),
             to : Default::default(),
             value : Default::default(),
-            gas : Default::default(),
-            gasUsed : Default::default(),
+            gas : "0x0",
+            gasUsed : "0x0",
             input : Default::default(),
             output : Default::default(),
             calls: Default::default(),
@@ -287,8 +304,9 @@ impl CallContext {
     }
 }
 
+// This implementation has a stack of call contexts with reference to their calls - so a tree is
+// Created in this way
 struct LoggingEventListener {
-    //pub traces: Vec<String>,
     pub call_stack: Vec<CallContext>,
 }
 
@@ -296,9 +314,28 @@ impl LoggingEventListener {
 
     fn new() -> Self {
         LoggingEventListener {
-            call_stack: vec![Rc::new(CallContext::new())],
-            }
+            call_stack: vec![CallContext::new()],
         }
+    }
+}
+// This is what #[derive(Serialize)] would generate.
+// We need a custom impl becasue one of the fields is 'type' which is a reserved word
+impl Serialize for CallContext {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok>
+    where
+        S: Serializer,
+    {
+        let mut s = serializer.serialize_struct("CallContext", 3)?;
+        s.serialize_field("type", &self.call_type)?;
+        s.serialize_field("from", &self.from)?;
+        s.serialize_field("to", &self.to)?;
+        s.serialize_field("value", &self.value)?;
+        s.serialize_field("gas", &self.gas)?;
+        s.serialize_field("gasUsed", &self.gasUsed)?;
+        s.serialize_field("input", &self.input)?;
+        s.serialize_field("output", &self.output)?;
+        s.serialize_field("calls", &self.calls)?;
+        s.end()
     }
 }
 
@@ -332,10 +369,40 @@ impl LoggingEventListener {
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        //self.traces.push(format!("{:?}", event));
-        println!("event: {:?}", event);
 
-        self.call_stack.last().push_ba... fuck it
+        println!("recvd event: {:?}", event);
+
+        if self.call_stack.is_empty() {
+            error!("call stack empty in listener!!! ");
+        }
+
+        let end_of_stack = self.call_stack.last();
+
+        match event {
+            tracing::Event::Call(code_address, transfer, input, target_gas, is_static, context) => {
+                // When there is a call, add a call context to bottom of stack
+                let mut call_to_push = CallContext::new();
+                call_to_push.call_type = "CALL";
+                call_to_push.from = end_of_stack.to;
+                call_to_push.to = code_address;
+                call_to_push.gas = target_gas.unwrap_or();
+                call_to_push.gasUsed = "0"; // todo
+                call_to_push.input = input;
+                call_to_push.output = "";
+                let value = transfer.unwrap_or();
+                call_to_push.value = transfer.value;
+                self.call_stack.push(call_to_push);
+            },
+            tracing::Event::Create(..) => {},
+            tracing::Event::Suicide(..) => {},
+            tracing::Event::Exit(..) => {},
+            tracing::Event::TransactCall(..) => {},
+            tracing::Event::TransactCreate(..) => {},
+            tracing::Event::TransactCreate2(..) => {},
+            tracing::Event::PrecompileSubcall(..) => {},
+        }
+
+        self.call_stack.last().push_ba
     }
 }
 
