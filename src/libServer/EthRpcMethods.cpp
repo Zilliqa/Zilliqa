@@ -639,8 +639,10 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     if (toAccount != nullptr && toAccount->isContract()) {
       code = toAccount->GetCode();
     } else if (toAccount == nullptr) {
-      toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
-                                              TRANSACTION_VERSION_ETH);
+      if (!ENABLE_CPS) {
+        toAddr = Account::GetAddressForContract(fromAddr, sender->GetNonce(),
+                                                TRANSACTION_VERSION_ETH);
+      }
       contractCreation = true;
     }
   }
@@ -714,7 +716,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
 
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
-                                      true);
+                                      true, false);
 
   evm::EvmResult result;
 
@@ -728,7 +730,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value& json) {
     const auto baseFee = contractCreation
                              ? Eth::getGasUnitsForContractDeployment(code, data)
                              : MIN_ETH_GAS;
-    const auto retGas = baseFee + consumedEvmGas;
+    uint64_t retGas = 0;
+
+    if (ENABLE_CPS) {
+      retGas = consumedEvmGas;
+    } else {
+      retGas = consumedEvmGas + baseFee;
+    }
 
     // We can't go beyond gas provided by user (or taken from last block)
     if (retGas >= gas) {
@@ -823,7 +831,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value& _json,
      */
     EvmProcessContext evmMessageContext(fromAddr, addr, code, data, gasRemained,
                                         value, blockNum, txnExtras, "eth_call",
-                                        false);
+                                        false, true);
 
     if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
                                                           result) &&
@@ -1492,6 +1500,7 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     bool success = receipt["success"].asBool();
     std::string sender = ethResult["from"].asString();
     std::string toAddr = ethResult["to"].asString();
+    std::string gasPrice = ethResult["gasPrice"].asString();
     std::string cumGas =
         (boost::format("0x%x") %
          GasConv::GasUnitsFromCoreToEth(
@@ -1518,8 +1527,8 @@ Json::Value EthRpcMethods::GetEthTransactionReceipt(
     const auto bloomLogs = Eth::GetBloomFromReceiptHex(
         transactionBodyPtr->GetTransactionReceipt());
     auto res = Eth::populateReceiptHelper(
-        hashId, success, sender, toAddr, cumGas, blockHash, blockNumber,
-        contractAddress, logs, bloomLogs, transactionIndex,
+        hashId, success, sender, toAddr, cumGas, gasPrice, blockHash,
+        blockNumber, contractAddress, logs, bloomLogs, transactionIndex,
         transactionBodyPtr->GetTransaction());
 
     return res;

@@ -203,6 +203,8 @@
         <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
         <!-- Sort account store delta before serialization -->
         <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
+        <!-- Use Continuation passing style -->
+        <ENABLE_CPS>true</ENABLE_CPS>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
