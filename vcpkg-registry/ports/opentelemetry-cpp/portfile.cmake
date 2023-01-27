@@ -47,7 +47,7 @@ vcpkg_cmake_configure(
         -DWITH_EXAMPLES=OFF
         -DWITH_LOGS_PREVIEW=ON
         -DWITH_STL=ON
-        -DWITH_OTLP_GRPC=OFF
+        -DWITH_OTLP_GRPC=ON
         ${FEATURE_OPTIONS}
 )
 
