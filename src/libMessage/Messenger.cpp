@@ -1301,6 +1301,10 @@ bool Messenger::GetDSCommitteeHash(const DequeOfNode& dsCommittee,
     return false;
   }
 
+  string tmpStr;
+  DataConversion::Uint8VecToHexStr(tmp, tmpStr);
+  LOG_GENERAL(WARNING, "proto committee: " << tmpStr);
+
   SHA256Calculator sha2;
   sha2.Update(tmp);
   tmp = sha2.Finalize();
