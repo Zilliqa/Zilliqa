@@ -95,26 +95,25 @@ impl<'a> CpsExecutor<'a> {
     fn apply_feedback(
         &mut self,
         runtime: &mut Runtime,
-        continuation_feedback: Option<EvmProto::Continuation>,
+        feedback: Option<EvmProto::Continuation>,
     ) -> Result<(), evm::ExitError> {
-        if let Some(continuation_feedback) = continuation_feedback {
-            // Pop placeholder placed on a stack by evm before trap
+        if let Some(feedback) = feedback {
+            // Sputnik places empty H256 value on a stack before returning with a trap
+            // Hence, pop it before applying the feedback
             runtime.machine_mut().stack_mut().pop()?;
-            if continuation_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
-                let eth_address = H160::from(continuation_feedback.get_address());
+            if feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
+                let eth_address = H160::from(feedback.get_address());
                 runtime.machine_mut().stack_mut().push(eth_address.into())?;
             } else {
-                *runtime.return_data_buffer() =
-                    Vec::from(continuation_feedback.get_calldata().get_data());
-                let offset_len: U256 =
-                    U256::from(continuation_feedback.get_calldata().get_offset_len());
+                *runtime.return_data_buffer() = Vec::from(feedback.get_calldata().get_data());
+                let offset_len: U256 = U256::from(feedback.get_calldata().get_offset_len());
                 let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
 
                 match runtime.machine_mut().memory_mut().copy_large(
-                    U256::from(continuation_feedback.get_calldata().get_memory_offset()),
+                    U256::from(feedback.get_calldata().get_memory_offset()),
                     U256::zero(),
                     target_len,
-                    continuation_feedback.get_calldata().get_data(),
+                    feedback.get_calldata().get_data(),
                 ) {
                     Ok(()) => {
                         let mut value = H256::default();
@@ -293,6 +292,8 @@ impl<'a> Handler for CpsExecutor<'a> {
         let result =
             self.stack_executor
                 .create(caller, scheme, value, init_code.clone(), target_gas);
+
+        // Repack StackExecutor::CreateInterrupt to CpsExecutor::CreateInterrupt
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CreateInterrupt {
@@ -320,6 +321,7 @@ impl<'a> Handler for CpsExecutor<'a> {
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
         if self.enable_cps {
             // See StackExecutor precompiles handling
+            // TODO: allow precompile to return with a Trap
             if let Some(result) =
                 self.stack_executor
                     .precompiles()
@@ -377,7 +379,7 @@ impl<'a> Handler for CpsExecutor<'a> {
             memory_offset,
             offset_len,
         );
-
+        // Repack StackExecutor::CallInterrupt to CpsExecutor::CallInterrupt
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CallInterrupt {
