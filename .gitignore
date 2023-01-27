@@ -107,3 +107,11 @@ isolated-server.logs
 
 *.pyc
 .husky/
+
+# Localdev's working directory
+_localdev/
+
+# Emacs backups
+*~
+\#*
+.\#*

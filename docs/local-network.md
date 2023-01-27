@@ -43,3 +43,15 @@ Note that it may take a while to download the container image and start up.
 
 Sadly our networks are not very resilient, so we can't rely on Kubernetes' automatic rollouts to restart nodes with a new image.
 Instead, the easiest thing to do at the moment is to tear down the network and re-create it by running `tilt down`, waiting for all the pods to be deleted and then `tilt up` again.
+
+# Localdev
+
+There is a script, `scripts/localdev.py` which helps automate some of these tasks - run it with no arguments for details.
+
+# Logging
+
+You can log from nodes with command lines like:
+
+```sh
+kubectl logs --tail=100 -f -l type=normal | tee /tmp/logs.txt 2>&1
+```
