@@ -12,6 +12,6 @@ add_library(AccountStore
         services/scilla/ScillaClient.cpp
         ../../libScilla/UnixDomainSocketServer.cpp
         ../../libData/AccountData/LogEntry.cpp
-        )
+        LocalMetricsEvm.h)
 target_include_directories(AccountStore PUBLIC ${PROJECT_SOURCE_DIR}/src)
 target_link_libraries(AccountStore PUBLIC AccountData Utils Scilla Blockchain Message Trie TraceableDB EthCrypto PRIVATE Cps EthUtils)
