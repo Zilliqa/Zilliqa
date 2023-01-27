@@ -38,7 +38,7 @@ use scillabackend::{ScillaBackend, ScillaBackendConfig};
 
 use crate::precompiles::get_precompiles;
 use crate::protos::Evm as EvmProto;
-use protobuf::Message;
+use protobuf::{Chars, Message};
 
 /// EVM JSON-RPC server
 #[derive(Parser, Debug)]
@@ -244,7 +244,9 @@ async fn run_evm_impl(
 
                 println!("serialized listener: {:?}", serialized_listener);
 
-                result.set_trace(serialized_listener.into());
+                let collected: Vec<Chars> = serialized_listener.as_bytes().to_vec();
+
+                result.set_trace(collected);
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
                 info!(
