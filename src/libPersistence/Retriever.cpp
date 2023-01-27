@@ -38,7 +38,7 @@ bool Retriever::RetrieveTxBlocks() {
   bool trimIncompletedBlocks = false;
 
   if (!BlockStorage::GetBlockStorage().GetLatestTxBlock(latestTxBlock)) {
-    LOG_GENERAL(WARNING, "GetLatestTxBlock failed");
+    LOG_GENERAL(WARNING, "GetLatestTxBlock failed!");
     return false;
   }
 
