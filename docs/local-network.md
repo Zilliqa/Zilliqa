@@ -49,8 +49,8 @@
 
 Note that `mitmweb` invokes your browser on launch. If you're running
 `brave`, `brave` won't go into the background when this happens, so
-`mitmweb` won't start. To "fix" this, manually quit brave, and `mitmweb` should start.
-You can then navigate manually to `localhost:8081` to see the mitm UI.
+`mitmweb` won't start. To "fix" this, start `mitmweb` with `--no-web-open-browser`.
+You can then navigate manually to `localhost:8081` to see the UI.
 
 
 1. Check on the state of your cluster in the usual ways (`kubectl`, `k9s`, etc.).
