@@ -1,6 +1,11 @@
 find_package(CURL REQUIRED)
 find_package(opentelemetry-cpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(protobuf CONFIG REQUIRED)
+find_package(gRPC CONFIG REQUIRED)
+find_package(re2 CONFIG REQUIRED)
+
+
 
 # A workaround for incorrect link libraries in vcpkg's opentelemtry-cpp-target.cmake
 # which includes non-existent target (i.e. opentelemetry-cpp::pull & opentelemetry-cpp::core).
@@ -49,6 +54,8 @@ target_link_libraries(Utils
         opentelemetry-cpp::otlp_http_metric_exporter
         opentelemetry-cpp::otlp_http_exporter
         opentelemetry-cpp::opentelemetry_exporter_prometheus
+        opentelemetry-cpp::otlp_grpc_metrics_exporter
+        opentelemetry-cpp::otlp_grpc_exporter
 
         PRIVATE
         ${CryptoUtils_LIBRARY}

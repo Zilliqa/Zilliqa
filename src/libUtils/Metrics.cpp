@@ -16,12 +16,12 @@
  */
 
 #include "Metrics.h"
-#include <chrono>
-#include <vector>
-#include "Tracing.h"
 
-#include <opentelemetry/sdk/resource/resource.h>
+#include <vector>
+
+
 #include <boost/algorithm/string.hpp>
+#include <opentelemetry/sdk/resource/resource.h>
 #include "opentelemetry/exporters/ostream/metric_exporter.h"
 #include "opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
@@ -29,6 +29,8 @@
 #include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_factory.h"
+#include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 
 #include "Tracing.h"
 #include "common/Constants.h"
@@ -38,6 +40,7 @@ namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace metrics_exporter = opentelemetry::exporter::metrics;
 namespace metrics_api = opentelemetry::metrics;
 namespace otlp_exporter = opentelemetry::exporter::otlp;
+
 
 // The OpenTelemetry Metrics Interface.
 
@@ -53,13 +56,16 @@ void Metrics::Init() {
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
+
   if (cmp == "PROMETHEUS") {
-    InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
-                   std::to_string(METRIC_ZILLIQA_PORT));
+        InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" + std::to_string(METRIC_ZILLIQA_PORT));
+
   } else if (cmp == "OTLPHTTP") {
     InitOTHTTP();
+    } else if (cmp == "OTLPGRPC") {
+        InitOtlpGrpc();
   } else {
-    InitStdOut();
+        InitStdOut();  // our favourite
   }
 }
 
@@ -105,10 +111,8 @@ double r_timer_end(std::chrono::system_clock::time_point start_time) {
 
 Metrics::LatencyScopeMarker::LatencyScopeMarker(
     zil::metrics::uint64Counter_t &metric,
-    zil::metrics::doubleHistogram_t &latency,
-    zil::metrics::FilterClass fc,
-    const char *file,
-    const char *func )
+    zil::metrics::doubleHistogram_t &latency, zil::metrics::FilterClass fc,
+    const char *file, const char *func)
     : m_file{file},
       m_func{func},
       m_metric(metric),
@@ -168,6 +172,9 @@ void Metrics::InitOTHTTP() {
   otlp_exporter::OtlpHttpMetricExporterOptions options;
   if (!addr.empty()) {
     options.url = "http://" + addr + "/v1/metrics";
+        options.console_debug = true;
+        options.content_type = opentelemetry::exporter::otlp::HttpRequestContentType::kJson;
+        options.aggregation_temporality = opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
   }
   std::unique_ptr<metrics_sdk::PushMetricExporter> exporter =
       otlp_exporter::OtlpHttpMetricExporterFactory::Create(options);
@@ -181,13 +188,37 @@ void Metrics::InitOTHTTP() {
   opts.export_timeout_millis =
       std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
   std::unique_ptr<metrics_sdk::MetricReader> reader{
-      new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
-                                                     opts)};
-  auto provider = std::shared_ptr<metrics_api::MeterProvider>(
-      new metrics_sdk::MeterProvider(
-          std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(
-              new opentelemetry::sdk::metrics::ViewRegistry()),
+            new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter), opts)};
+    auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metrics_sdk::MeterProvider(
+            std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(new opentelemetry::sdk::metrics::ViewRegistry()),
+            resource));
+    auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
+    p->AddMetricReader(std::move(reader));
+    metrics_api::Provider::SetMeterProvider(p);
+}
+
+void Metrics::InitOtlpGrpc() {
+    otlp_exporter::OtlpGrpcMetricExporterOptions options;
+    metrics_sdk::PeriodicExportingMetricReaderOptions opts;
+    std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" + std::to_string(METRIC_ZILLIQA_PORT)};
+
+    opentelemetry::sdk::resource::ResourceAttributes attributes = {{"service.name", "zilliqa-daemon"},
+                                                                   {"version",      (double) METRICS_VERSION}};
+    auto resource = opentelemetry::sdk::resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
+
+    opts.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+    opts.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+
+    options.endpoint = addr;
+    options.aggregation_temporality = opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
+
+    auto exporter = otlp_exporter::OtlpGrpcMetricExporterFactory::Create(options);
+    std::unique_ptr<metrics_sdk::MetricReader> reader{
+            new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter), opts)};
+    auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metrics_sdk::MeterProvider(
+            std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(new opentelemetry::sdk::metrics::ViewRegistry()),
           resource));
+
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
   p->AddMetricReader(std::move(reader));
   metrics_api::Provider::SetMeterProvider(p);
@@ -237,7 +268,8 @@ namespace {
 [[maybe_unused]] inline auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
     const std::string &family) {
-    Metrics::GetInstance(); // just to make sure this is not the first call in the API, occurred in testing
+  Metrics::GetInstance();  // just to make sure this is not the first call in
+                           // the API, occurred in testing
   return provider->GetMeter(family, "1.2.0");
 }
 
@@ -384,7 +416,6 @@ void Metrics::AddCounterHistogramView(const std::string &name,
 }
 
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
-
   const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
   return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
