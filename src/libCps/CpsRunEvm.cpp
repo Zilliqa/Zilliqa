@@ -464,6 +464,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
   Amount funds;
 
   // parse the return values from the call to evm.
+  // we should expect no more that 2 apply instuctions (in case of selfdestruct:
+  // fund recipiend and deleted account)
   for (const auto& it : result.apply()) {
     switch (it.apply_case()) {
       case evm::Apply::ApplyCase::kDelete:
