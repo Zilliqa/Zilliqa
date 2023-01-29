@@ -275,15 +275,9 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   LOG_MARKER();
   std::string txnId = evmContext.GetTranID().hex();
 
-#if BROKEN
-  zil::metrics::LatencyScopeMarker sc_marker{evm::GetInvocationsCounter(),
-                                             evm::GetHistogramCounter(),
-                                             Z_FL::ACCOUNTSTORE_HISTOGRAMS ,
-                                             __FILE__,
-                                             __FUNCTION__ };
-#endif
+  INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM);
 
-  // store into the metric holder.
+    // store into the metric holder.
   if (blockNum > 0) m_stats.blockNumber = blockNum;
 
   LOG_GENERAL(INFO,

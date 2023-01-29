@@ -32,7 +32,7 @@ namespace zil {
 
         struct LatencyScopeMarker final {
             LatencyScopeMarker(
-                    zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>& metric,
+                    std::unique_ptr<metrics_api::Counter<uint64_t>> metric,
                     zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>& latency,
                     zil::metrics::FilterClass fc, const char *file, const char *func);
 
@@ -41,7 +41,7 @@ namespace zil {
         private:
             std::string m_file;
             std::string m_func;
-            uint64Counter_t& m_metric;
+            std::unique_ptr<metrics_api::Counter<uint64_t>> m_metric;
             InstrumentWrapper<DoubleHistogram>& m_latency;
             zil::metrics::FilterClass m_filterClass;
             std::chrono::system_clock::time_point m_startTime;
