@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_COMMON_METRICFILTERS_H_
-#define ZILLIQA_SRC_COMMON_METRICFILTERS_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_METRICFILTERS_H_
+#define ZILLIQA_SRC_LIBMETRICS_METRICFILTERS_H_
 
 // Currently maxes out at 64 filters, in order to increase developer should
 // change the type of the mask from uint64_t to uint128_t or uint256_t if
@@ -49,4 +49,4 @@ enum class FilterClass {
 }  // namespace metrics
 }  // namespace zil
 
-#endif  // ZILLIQA_SRC_COMMON_METRICFILTERS_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_METRICFILTERS_H_

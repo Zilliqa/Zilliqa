@@ -17,40 +17,43 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_
 
+#include "libMetrics/Api.h"
+
 // Soecial macro to keep code space small.
 // we will susume these in the library next version.
 
-namespace metric_sdk = opentelemetry::sdk::metrics;
-
 namespace evm {
 
-zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-  static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa.evm.invoke", "invocations_count", "Metrics for AccountStore",
-      "calls");
+Z_DBLMETRIC &GetInvocationsCounter() {
+  static Z_DBLMETRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.invocations.count",
+                             "Metrics for AccountStore", "calls"};
   return counter;
 }
 
 // Define it as a const because we need to set a view for the boundaries with
 // the same name
-const char *EVM_HISTOGRAM = "zilliqa.evm.histogram";
+const char *EVM_HISTOGRAM = "evm.latency.histogram";
 
-zil::metrics::doubleHistogram_t &GetHistogramCounter() {
-  static auto histogram = Metrics::GetMeter()->CreateDoubleHistogram(
-      EVM_HISTOGRAM, "evm latency histogram", "ms");
+Z_DBLHIST &GetHistogramCounter() {
+  static std::list<double> latencieBoudaries{0,  1,  2,  3,  4,  5,
+                                             10, 20, 30, 40, 60, 120};
+  static Z_DBLHIST histogram{Z_FL::ACCOUNTSTORE_EVM, EVM_HISTOGRAM,
+                             latencieBoudaries, "evm latency histogram", "ms"};
   return histogram;
 }
 
 }  // namespace evm
-
-#define LOCAL_EMT(MSG)                                                        \
-  if (zil::metrics::Filter::GetInstance().Enabled(                            \
-          zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {                     \
-    Metrics::GetInstance().CaptureEMT(                                        \
-        span, zil::metrics::FilterClass::ACCOUNTSTORE_EVM,                    \
-        zil::trace::FilterClass::ACC_EVM, evm::GetInvocationsCounter(), MSG); \
-  }
-
+// TODO : fixme
+#if 1
+#define LOCAL_EMT(MSG) std::cout << MSG << std::endl;
+#else
+if (zil::metrics::Filter::GetInstance().Enabled(
+        zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
+  Metrics::GetInstance().CaptureEMT(
+      SPAN, zil::metrics::FilterClass::ACCOUNTSTORE_EVM,
+      zil::trace::FilterClass::ACC_EVM, evm::GetInvocationsCounter(), MSG);
+}
+#endif
 #define LOCAL_CALL_INCREMENT() \
   INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM)
 

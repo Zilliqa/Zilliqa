@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_
 
 #include <json/json.h>
-#include <opentelemetry/metrics/async_instruments.h>
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -119,8 +118,6 @@ class AccountStoreSC : public AccountStoreBase {
 
   //=======================================================================================
   // TODO : Put these into configuration as they will need tuning.
-  std::list<double> m_latencieBoudaries{0,  1,  2,  4,  6,  8,
-                                        10, 20, 30, 40, 60, 120};
 
   std::shared_ptr<zil::accountstore::counter_t> GetGeneralStatistics() {
     std::shared_ptr<zil::accountstore::counter_t> stats =

@@ -20,16 +20,16 @@
 #include <boost/process/args.hpp>
 #include <boost/process/child.hpp>
 #include <thread>
+#include "libMetrics/Api.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/Metrics.h"
 
 namespace {
 
-zil::metrics::uint64Counter_t& GetCallsCounter() {
-  static auto evmClientCount = Metrics::GetMeter()->CreateUInt64Counter(
-      "zilliqa.evmclient.jsonrpc", "Calls to EVM-DS over jsonrpc", "Calls");
+Z_I64METRIC& GetCallsCounter() {
+  static Z_I64METRIC evmClientCount{Z_FL::EVM_CLIENT, "evmclient.jsonrpc",
+                                    "Calls to EVM-DS over jsonrpc", "Calls"};
   return evmClientCount;
 }
 
@@ -157,13 +157,13 @@ bool EvmClient::OpenServer() {
     }
   } catch (std::exception& e) {
     LOG_GENERAL(WARNING, "Exception caught creating child " << e.what());
-    GetCallsCounter()->Add(
-        1, {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
+    GetCallsCounter().IncrementAttr(
+        {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception caught creating child ");
-    GetCallsCounter()->Add(
-        1, {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
+    GetCallsCounter().IncrementAttr(
+        {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   }
   try {
@@ -173,8 +173,8 @@ bool EvmClient::OpenServer() {
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {
     LOG_GENERAL(WARNING, "Unhandled Exception initialising client");
-    GetCallsCounter()->Add(
-        1, {{"Error", "Serious"}, {"Exception#3", "OpenServer"}});
+    GetCallsCounter().IncrementAttr(
+        {{"Error", "Serious"}, {"Exception#3", "OpenServer"}});
     return false;
   }
   return status;
@@ -208,14 +208,14 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
     } catch (std::exception& e) {
       LOG_GENERAL(WARNING,
                   "Exception out of parsing json response " << e.what());
-      GetCallsCounter()->Add(1, {{"error", "CallRunner"}});
+      GetCallsCounter().IncrementAttr({{"error", "CallRunner"}});
       return false;
     }
   } catch (jsonrpc::JsonRpcException& e) {
     throw e;
   } catch (...) {
     LOG_GENERAL(WARNING, "Exception caught executing run ");
-    GetCallsCounter()->Add(1, {{"RPCException", "CallRunner"}});
+    GetCallsCounter().IncrementAttr({{"RPCException", "CallRunner"}});
     return false;
   }
 }

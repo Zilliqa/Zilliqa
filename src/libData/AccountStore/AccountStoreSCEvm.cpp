@@ -26,11 +26,12 @@
 #include "AccountStoreSC.h"
 #include "LocalMetricsEvm.h"
 #include "common/Constants.h"
-#include "common/TraceFilters.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
+#include "libMetrics/TraceFilters.h"
+#include "libMetrics/Tracing.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
@@ -38,7 +39,6 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/Tracing.h"
 #include "libUtils/TxnExtras.h"
 
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
@@ -286,6 +286,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
+  std::string txnId = evmContext.GetTranID().hex();
+  TRACE_ATTRIBUTE am{{"tid", txnId}, {"block", blockNum}};
+  auto span = START_SPAN(ACC_EVM, am);
+  SCOPED_SPAN(ACC_EVM, scope, span);
   LOCAL_CALLS_LATENCY_MARKER();
 
   // store into the metric holder.
@@ -294,12 +298,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   LOG_GENERAL(INFO,
               "Commit Context Mode="
                   << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
-
-  std::string txnId = evmContext.GetTranID().hex();
-
-  TRACE_ATTRIBUTE am{{"tid", txnId}, {"block", blockNum}};
-  auto span = START_SPAN(ACC_EVM, am);
-  SCOPED_SPAN(ACC_EVM, scope, span);
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());

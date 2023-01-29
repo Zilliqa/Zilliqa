@@ -20,9 +20,9 @@
 #include <boost/asio/signal_set.hpp>
 #include <deque>
 
+#include "libMetrics/Tracing.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
-#include "libUtils/Tracing.h"
 
 namespace rpc {
 
@@ -368,10 +368,6 @@ bool APIServerImpl::DoListen() {
   m_metrics.SetCallback([this](auto&& result) {
     result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
                                       {"counter", "TotalConnections"}});
-    /* TODO add this properly
-     * result.Set(m_websocket->GetConnectionsNumber(),
-               {{"server", m_options.threadPoolName},
-                {"counter", "TotalWebsocketConnections"}}); */
     result.Set(m_threadPool->GetQueueSize(),
                {{"server", m_options.threadPoolName},
                 {"counter", "ThreadPoolQueueSize"}});

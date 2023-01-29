@@ -26,6 +26,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
@@ -57,9 +58,9 @@ const unsigned int TXN_PAGE_SIZE = 100;
 
 namespace {
 
-zil::metrics::uint64Counter_t& GetCallsCounter() {
-  static auto count = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_lookup", "invocation_count", "Calls to Lookup Server", "Calls");
+Z_I64METRIC& GetCallsCounter() {
+  static Z_I64METRIC count{Z_FL::LOOKUP_SERVER, "lookup.invocation.count",
+                           "Calls to Lookup Server", "Calls"};
   return count;
 }
 

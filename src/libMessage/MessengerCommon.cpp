@@ -35,9 +35,8 @@ bool ProtobufByteArrayToSerializable(const ZilliqaMessage::ByteArray& byteArray,
 }
 
 // Temporary function for use by data blocks
-void SerializableToProtobufByteArray(
-    const SerializableDataBlock& serializable,
-    ZilliqaMessage::ByteArray& byteArray) {
+void SerializableToProtobufByteArray(const SerializableDataBlock& serializable,
+                                     ZilliqaMessage::ByteArray& byteArray) {
   zbytes tmp;
   serializable.Serialize(tmp, 0);
   byteArray.set_data(tmp.data(), tmp.size());

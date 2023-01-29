@@ -20,9 +20,9 @@
 #include <jsonrpccpp/server/abstractserver.h>
 
 #include "depends/common/FixedHash.h"
-
 #include "libData/AccountData/Address.h"
-#include "libUtils/Metrics.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/MetricFilters.h"
 
 class ScillaBCInfo {
  public:
@@ -47,10 +47,8 @@ class ScillaBCInfo {
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
 
-  zil::metrics::Observable m_bcInfoCount{
-      Metrics::GetInstance().CreateInt64Gauge(
-          zil::metrics::FilterClass::SCILLA_IPC, "zilliqa_scilla_bcinfo",
-          "invocations_count", "Metrics for ScillaBCInfo", "Blocks")};
+  Z_I64GAUGE m_bcInfoCount{Z_FL::SCILLA_IPC, "scilla_bcinfo_invocations_count",
+                           "Metrics for ScillaBCInfo", "Blocks", true};
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {

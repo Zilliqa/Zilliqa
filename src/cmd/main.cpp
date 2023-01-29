@@ -24,11 +24,11 @@
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
 #include "libUtils/Logger.h"
-#include "libUtils/Tracing.h"
 #include "libZilliqa/Zilliqa.h"
 
 using namespace std;

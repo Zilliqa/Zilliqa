@@ -35,10 +35,9 @@ using websocketpp::base64_encode;
 
 namespace {
 
-zil::metrics::uint64Counter_t &GetCallsCounter() {
-  static auto scillaIPCCount = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_scillaipc", "scilla_ipc_count", "Metrics for ScillaIPCServer",
-      "Calls");
+Z_I64METRIC &GetCallsCounter() {
+  static Z_I64METRIC scillaIPCCount(Z_FL::SCILLA_IPC, "scilla_ipc_count",
+                                    "Metrics for ScillaIPCServer", "Calls");
   return scillaIPCCount;
 }
 
