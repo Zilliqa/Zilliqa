@@ -23,9 +23,11 @@
 
 #include "opentelemetry/context/propagation/text_map_propagator.h"
 
+#include "AccountStoreCpsInterface.h"
 #include "AccountStoreSC.h"
 #include "LocalMetricsEvm.h"
 #include "common/Constants.h"
+#include "libCps/CpsExecutor.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
@@ -40,6 +42,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
+#include "libMetrics/Api.h"
 
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    const evm::EvmArgs &args,           //
@@ -304,7 +307,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   }
 
   // eth_call in non-cps mode only
-  if (evmContext.GetDirect()) {
+  if (!ENABLE_CPS && evmContext.GetDirect()) {
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
         EvmUtils::GetEvmCallJson(evmContext.GetEvmArgs()), res);
@@ -313,8 +316,27 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
+
+  if (ENABLE_CPS) {
+    LOG_GENERAL(WARNING, "Running EVM in CPS mode");
+    m_originAddr = evmContext.GetTransaction().GetSenderAddr();
+    m_curGasLimit = evmContext.GetTransaction().GetGasLimitZil();
+    m_curGasPrice = evmContext.GetTransaction().GetGasPriceWei();
+    m_curContractAddr = evmContext.GetTransaction().GetToAddr();
+    m_curAmount = evmContext.GetTransaction().GetAmountQa();
+    m_curSenderAddr = evmContext.GetTransaction().GetSenderAddr();
+    m_curEdges = 0;
+    m_curNumShards = numShards;
+
+    AccountStoreCpsInterface acCpsInterface{*this};
+    libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
+    const auto cpsRunResult = cpsExecutor.Run(evmContext);
+    error_code = cpsRunResult.txnStatus;
+    return cpsRunResult.isSuccess;
+  }
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
   uint64_t gasLimitEth = evmContext.GetTransaction().GetGasLimitEth();

@@ -86,11 +86,6 @@ pub async fn run_evm_impl(
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
-        // Provide feedback from c++ node to EVM through executor
-        //if let Some(continuation) = feedback_continuation {
-        //    provide_feedback(&continuation, &mut executor);
-       // }
-
         let mut listener = LoggingEventListener{traces : Default::default()};
 
         // We have to catch panics, as error handling in the Backend interface of
@@ -250,6 +245,8 @@ fn build_call_result(
     trap_data_call.set_call_data(interrupt.input.into());
     trap_data_call.set_is_static(interrupt.is_static);
     trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
+    trap_data_call.set_memory_offset(interrupt.memory_offset.into());
+    trap_data_call.set_offset_len(interrupt.offset_len.into());
 
     let mut trap_data = EvmProto::TrapData::new();
     trap_data.set_call(trap_data_call);

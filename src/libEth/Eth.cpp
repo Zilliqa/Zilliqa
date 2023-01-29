@@ -40,10 +40,10 @@ namespace Eth {
 Json::Value populateReceiptHelper(
     std::string const &txnhash, bool success, const std::string &from,
     const std::string &to, const std::string &gasUsed,
-    const std::string &blockHash, const std::string &blockNumber,
-    const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex,
-    const Transaction &tx) {
+    const std::string &gasPrice, const std::string &blockHash,
+    const std::string &blockNumber, const Json::Value &contractAddress,
+    const Json::Value &logs, const Json::Value &logsBloom,
+    const Json::Value &transactionIndex, const Transaction &tx) {
   Json::Value ret;
 
   ret["transactionHash"] = txnhash;
@@ -51,6 +51,7 @@ Json::Value populateReceiptHelper(
   ret["blockNumber"] = blockNumber;
   ret["contractAddress"] = contractAddress;
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
+  ret["effectiveGasPrice"] = gasPrice.empty() ? "0x0" : gasPrice;
   ret["from"] = from;
   ret["gasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["logs"] = logs;

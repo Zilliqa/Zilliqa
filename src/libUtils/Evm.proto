@@ -65,11 +65,17 @@ message Continuation {
     CREATE = 1;
   }
 
+  message Call {
+    bytes data = 1;
+    UInt256 memory_offset = 2;
+    UInt256 offset_len = 3;
+  }
+
   uint64 id = 1;
   Type feedback_type = 2;
   oneof feedback_data {
     Address address = 3;
-    bytes calldata = 4;
+    Call calldata = 4;
   }
 }
 
@@ -141,8 +147,9 @@ message ExitReason {
 
   message Trap {
     enum Kind {
-      CALL = 0;
-      CREATE = 1;
+      UNKNOWN = 0;
+      CALL = 1;
+      CREATE = 2;
     }
 
     Kind kind = 1;
@@ -199,6 +206,8 @@ message TrapData {
     uint64 target_gas = 4;
     bool is_static = 5;
     Context context = 6;
+    UInt256 memory_offset = 7;
+    UInt256 offset_len = 8;
   }
 
   message Create {
