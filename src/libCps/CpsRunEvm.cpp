@@ -24,9 +24,9 @@
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libEth/utils/EthUtils.h"
+#include "libMetrics/Api.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
-#include "libUtils/Metrics.h"
 
 #include <boost/algorithm/hex.hpp>
 
@@ -122,9 +122,8 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
     }
   };
 
-  const auto metrics = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_accountstroe", "invocations_count", "Metrics for AccountStore",
-      "Blocks");
+  //  const Z_I64METRIC metrics{ Z_FL::ACCOUNTSTORE_EVM, "invocations_count",
+  //  "Metrics for AccountStore",  "Blocks"};
   const auto fut = std::async(std::launch::async, worker);
   // check the future return and when time out log error.
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
@@ -132,7 +131,8 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
       LOG_GENERAL(WARNING, "lock released normally");
       if (zil::metrics::Filter::GetInstance().Enabled(
               zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        metrics->Add(1, {{"lock", "release-normal"}});
+        //  TODO    metrics.IncrementWithAttributes(1L, {{"lock",
+        //  "release-normal"}});
       }
       return result;
     } break;
@@ -141,12 +141,12 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      metrics->Add(1, {{"lock", "release-timeout"}});
+      //  TODO metrics->Add(1, {{"lock", "release-timeout"}});
       return std::nullopt;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      metrics->Add(1, {{"lock", "release-deferred"}});
+      // TODO metrics->Add(1, {{"lock", "release-deferred"}});
       return std::nullopt;
     }
   }

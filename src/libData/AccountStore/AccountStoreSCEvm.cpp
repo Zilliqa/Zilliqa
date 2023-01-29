@@ -32,6 +32,7 @@
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
+#include "libMetrics/Api.h"
 #include "libMetrics/TraceFilters.h"
 #include "libMetrics/Tracing.h"
 #include "libPersistence/ContractStorage.h"
@@ -42,7 +43,6 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TxnExtras.h"
-#include "libMetrics/Api.h"
 
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    const evm::EvmArgs &args,           //
