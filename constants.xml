@@ -204,7 +204,7 @@
         <!-- Sort account store delta before serialization -->
         <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
         <!-- Use Continuation passing style -->
-        <ENABLE_CPS>true</ENABLE_CPS>
+        <ENABLE_CPS>false</ENABLE_CPS>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -356,7 +356,7 @@
             <METRIC_ZILLIQA_HOSTNAME>localhost</METRIC_ZILLIQA_HOSTNAME>
             <METRIC_ZILLIQA_PORT>8090</METRIC_ZILLIQA_PORT>
             <!-- PROVIDER can be PROMETHEUS or OTLPHTTP -->
-            <METRIC_ZILLIQA_PROVIDER>PROMETHEUS</METRIC_ZILLIQA_PROVIDER>
+            <METRIC_ZILLIQA_PROVIDER>STDOUT</METRIC_ZILLIQA_PROVIDER>
             <METRIC_ZILLIQA_READER_EXPORT_MS>1000</METRIC_ZILLIQA_READER_EXPORT_MS>
             <METRIC_ZILLIQA_READER_TIMEOUT_MS>500</METRIC_ZILLIQA_READER_TIMEOUT_MS>
             <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
