@@ -20,39 +20,37 @@
 #include "mixins.h"
 
 namespace zil {
-namespace metrics {
+    namespace metrics {
 
-std::chrono::system_clock::time_point r_timer_start();
-double r_timer_end(std::chrono::system_clock::time_point start_time);
+        std::chrono::system_clock::time_point r_timer_start();
 
-class DoubleCounter;
-class DoubleHistogram;
+        double r_timer_end(std::chrono::system_clock::time_point start_time);
 
-struct LatencyScopeMarker final {
-  LatencyScopeMarker(
-      zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter> &metric,
-      zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram> &latency,
-      zil::metrics::FilterClass fc, const char *file, const char *func);
+        class DoubleCounter;
 
-  ~LatencyScopeMarker();
+        class DoubleHistogram;
 
- private:
-  std::string m_file;
-  std::string m_func;
-  InstrumentWrapper<DoubleCounter> &m_metric;
-  InstrumentWrapper<DoubleHistogram> &m_latency;
-  zil::metrics::FilterClass m_filterClass;
-  std::chrono::system_clock::time_point m_startTime;
+        struct LatencyScopeMarker final {
+            LatencyScopeMarker(
+                    zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>& metric,
+                    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>& latency,
+                    zil::metrics::FilterClass fc, const char *file, const char *func);
 
-  LatencyScopeMarker(const LatencyScopeMarker &) = delete;
+            ~LatencyScopeMarker();
 
-  LatencyScopeMarker &operator=(const LatencyScopeMarker &) = delete;
-};
-};  // namespace metrics
-};  // namespace zil
+        private:
+            std::string m_file;
+            std::string m_func;
+            uint64Counter_t& m_metric;
+            InstrumentWrapper<DoubleHistogram>& m_latency;
+            zil::metrics::FilterClass m_filterClass;
+            std::chrono::system_clock::time_point m_startTime;
 
-#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)                 \
-  zil::metrics::LatencyScopeMarker sc_marker{COUNTER, LATENCY, FILTER_CLASS, \
-                                             __FILE__, __FUNCTION__};
+            LatencyScopeMarker(const LatencyScopeMarker &) = delete;
+
+            LatencyScopeMarker &operator=(const LatencyScopeMarker &) = delete;
+        };
+    } // namespace metrics
+}  // namespace zil
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_INTERNAL_SCOPE_H_

@@ -74,32 +74,6 @@ void Metrics::Init() {
   }
 }
 
-// TODO:: could probably optimise out the span with getcurrent span
-// Capture EMT - multipurpose talk to all capture event metric , log , trace of
-// event next step add linkage.
-
-bool Metrics::CaptureEMT(std::shared_ptr<opentelemetry::trace::Span> &span,
-                         zil::metrics::FilterClass fc,
-                         zil::trace::FilterClass tc,
-                         zil::metrics::uint64Counter_t &metric,
-                         const std::string &messageText, const uint8_t &code) {
-  try {
-    if (not messageText.empty()) {
-      LOG_GENERAL(WARNING, messageText);
-    }
-    if (zil::trace::Filter::GetInstance().Enabled(tc)) {
-      span->SetStatus(opentelemetry::trace::StatusCode::kError, messageText);
-    }
-    if (zil::metrics::Filter::GetInstance().Enabled(fc) &&
-        metric.get() != nullptr) {
-      metric->Add(1, {{"error", __FUNCTION__}});
-    }
-  } catch (...) {
-    return false;
-  }
-  return true;
-}
-
 void Metrics::InitStdOut() {
   std::unique_ptr<metrics_sdk::PushMetricExporter> exporter{
       new metrics_exporter::OStreamMetricExporter};

@@ -40,12 +40,13 @@ const std::string SCILLA_HISTOGRAM = "zilliqa.scilla.histogram";
 //=======================================================================================
 // TODO : Put these into configuration as they will need tuning.
 /// Metrics callback for block number
+// Ultra important that the type matches the type required by the metric, these are I46
 struct counter_t {
   // These are the Non-automatic Manually set metrics
-  int64_t blockNumber{0};
-  int64_t blockNumberDS{0};
-  int64_t evmCall{0};
-  int64_t scillaCall{0};
+  uint64_t blockNumber{0};
+  uint64_t blockNumberDS{0};
+  uint64_t evmCall{0};
+  uint64_t scillaCall{0};
 };
 //=======================================================================================
 }  // namespace accountstore

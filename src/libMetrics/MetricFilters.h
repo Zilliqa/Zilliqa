@@ -36,6 +36,7 @@
   M(MSG_DISPATCH)                 \
   M(ACCOUNTSTORE_EVM)             \
   M(ACCOUNTSTORE_SCILLA)          \
+  M(ACCOUNTSTORE_HISTOGRAMS)\
   M(API_SERVER)
 
 namespace zil {

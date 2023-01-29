@@ -17,21 +17,21 @@
 #include <chrono>
 
 #include <boost/filesystem.hpp>
-#include <chrono>
 
-#include <opentelemetry/sdk/metrics/meter.h>
+
+
 #include <unordered_map>
 #include <vector>
 #include "libData/AccountStore/services/scilla/ScillaClient.h"
 
-#include "libMetrics/Tracing.h"
+
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
 #include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/SysCommand.h"
+
 #include "libUtils/TimeUtils.h"
 
 #include "libData/AccountStore/AccountStoreSC.h"
@@ -39,8 +39,8 @@
 
 namespace {
 
-Z_DBLMETRIC &GetInvocationsCounter() {
-  static Z_DBLMETRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "zilliqa.processors",
+Z_I64METRIC &GetInvocationsCounter() {
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "zilliqa.processors",
                              "Metrics for AccountStore", "Blocks"};
   return counter;
 }
@@ -57,30 +57,33 @@ typedef long int observerType;
 
 namespace zil {
 namespace scilla {
+
 Z_I64METRIC &GetInvocationsCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla",
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla",
                              "Metrics for AccountStore", "calls"};
   return counter;
 }
-Z_DBLGAUGE
-&GetGeneralCounters() {
-  static Z_DBLGAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "general",
+
+
+Z_I64GAUGE& GetGeneralCounters() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "general",
                             "General Statistics", "?", true};
   return counter;
 }
+
 Z_DBLHIST &GetHistogramCounter() {
   static std::list<double> latencieBoudaries{0,  1,  2,  3,  4,  5,
                                              10, 20, 30, 40, 60, 120};
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_SCILLA,
-                           "scilla.latency.histogram", latencieBoudaries,
-                           "scilla latency histogram", "ms"};
+  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS,
+                           "processing.latency.histogram", latencieBoudaries,
+                           "latency histogram", "ms"};
   return counter;
 }
 
 }  // namespace scilla
 }  // namespace zil
 
-double AccountStoreSC::m_transactionLatency = 0;
+
 
 AccountStoreSC::AccountStoreSC() {
   Metrics::GetInstance();
@@ -185,13 +188,15 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
                                     TxnStatus &error_code) {
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA);
 
-  CALLS_LATENCY_MARKER(GetInvocationsCounter(),
-                       zil::scilla::GetHistogramCounter(),
-                       zil::metrics::FilterClass::ACCOUNTSTORE_SCILLA);
-  LOG_MARKER();
+#if BROKEN
+  zil::metrics::LatencyScopeMarker scilla_mark{  zil::scilla::GetInvocationsCounter(),
+                                                 zil::scilla::GetHistogramCounter(),
+                                                 Z_FL::ACCOUNTSTORE_HISTOGRAMS ,
+                                                 __FILE__,
+                                                 __FUNCTION__ };
+#endif
 
-  auto span = START_SPAN(SCILLA_PROCESSING, {});
-  SCOPED_SPAN(SCILLA_PROCESSING, scope, span);
+  LOG_MARKER();
 
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
 

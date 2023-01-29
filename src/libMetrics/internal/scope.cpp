@@ -32,12 +32,12 @@ double r_timer_end(std::chrono::system_clock::time_point start_time) {
 }
 
 LatencyScopeMarker::LatencyScopeMarker(
-    InstrumentWrapper<DoubleCounter> &metric,
-    InstrumentWrapper<DoubleHistogram> &latency, FilterClass fc,
+    InstrumentWrapper<I64Counter>& metric,
+    InstrumentWrapper<DoubleHistogram>& latency, FilterClass fc,
     const char *file, const char *func)
     : m_file{file},
       m_func{func},
-      m_metric(metric),
+      m_metric(metric.get()),
       m_latency(latency),
       m_filterClass(fc),
       m_startTime(zil::metrics::r_timer_start()) {}
@@ -47,7 +47,7 @@ LatencyScopeMarker::~LatencyScopeMarker() {
     try {
       double taken = zil::metrics::r_timer_end(m_startTime);
       METRIC_ATTRIBUTE counter_attr = {{"method", m_func}};
-      m_metric.IncrementWithAttributes(1L, counter_attr);
+      m_metric->Add(1L, counter_attr);
       m_latency.Record(taken, counter_attr);
     } catch (...) {
       // TODO - Write some very specific Exception Handling.

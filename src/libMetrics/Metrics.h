@@ -30,6 +30,7 @@
 #include "Common.h"
 #include "TraceFilters.h"
 
+
 class Metrics;
 
 namespace zil {
@@ -211,11 +212,6 @@ class Metrics : public Singleton<Metrics> {
   void AddCounterHistogramView(const std::string name, std::list<double> list,
                                const std::string &description);
 
-  bool CaptureEMT(std::shared_ptr<opentelemetry::trace::Span> &span,
-                  zil::metrics::FilterClass fc, zil::trace::FilterClass tc,
-                  zil::metrics::uint64Counter_t &metric,
-                  const std::string &messageText = "", const uint8_t &code = 0);
-
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
  private:
@@ -230,8 +226,6 @@ class Metrics : public Singleton<Metrics> {
   void InitStdOut();
 };
 
-#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)                 \
-  zil::metrics::LatencyScopeMarker sc_marker{COUNTER, LATENCY, FILTER_CLASS, \
-                                             __FILE__, __FUNCTION__};
+
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_METRICS_H_

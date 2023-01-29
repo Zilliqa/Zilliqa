@@ -18,14 +18,15 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_
 
 #include "libMetrics/Api.h"
+#include "libMetrics/internal/scope.h"
 
 // Soecial macro to keep code space small.
 // we will susume these in the library next version.
 
 namespace evm {
 
-Z_DBLMETRIC &GetInvocationsCounter() {
-  static Z_DBLMETRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.invocations.count",
+Z_I64METRIC &GetInvocationsCounter() {
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.invocations.count",
                              "Metrics for AccountStore", "calls"};
   return counter;
 }
@@ -38,22 +39,16 @@ Z_DBLHIST &GetHistogramCounter() {
   static std::list<double> latencieBoudaries{0,  1,  2,  3,  4,  5,
                                              10, 20, 30, 40, 60, 120};
   static Z_DBLHIST histogram{Z_FL::ACCOUNTSTORE_EVM, EVM_HISTOGRAM,
-                             latencieBoudaries, "evm latency histogram", "ms"};
+                             latencieBoudaries, "latency histogram", "ms"};
   return histogram;
 }
 
 }  // namespace evm
-// TODO : fixme
-#if 1
-#define LOCAL_EMT(MSG) std::cout << MSG << std::endl;
-#else
-if (zil::metrics::Filter::GetInstance().Enabled(
-        zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-  Metrics::GetInstance().CaptureEMT(
-      SPAN, zil::metrics::FilterClass::ACCOUNTSTORE_EVM,
-      zil::trace::FilterClass::ACC_EVM, evm::GetInvocationsCounter(), MSG);
-}
-#endif
+
+#define CALLS_LATENCY_MARKER(COUNTER, LATENCY, FILTER_CLASS)                 \
+  zil::metrics::LatencyScopeMarker sc_marker{COUNTER, LATENCY, FILTER_CLASS, \
+                                             __FILE__, __FUNCTION__ };
+
 #define LOCAL_CALL_INCREMENT() \
   INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM)
 
@@ -61,9 +56,5 @@ if (zil::metrics::Filter::GetInstance().Enabled(
   INCREMENT_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM, \
                           PARAMETER_KEY, PARAMETER_VALUE);
 
-#define LOCAL_CALLS_LATENCY_MARKER()                 \
-  CALLS_LATENCY_MARKER(evm::GetInvocationsCounter(), \
-                       evm::GetHistogramCounter(),   \
-                       zil::metrics::FilterClass::ACCOUNTSTORE_EVM);
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_LOCALMETRICSEVM_H_

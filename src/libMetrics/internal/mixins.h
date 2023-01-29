@@ -47,6 +47,8 @@ class I64Counter {
 
   friend std::ostream &operator<<(std::ostream &os, const I64Counter &counter);
 
+  uint64Counter_t& get(){return m_theCounter;}
+
  private:
   uint64Counter_t m_theCounter;
 };
@@ -238,6 +240,10 @@ struct InstrumentWrapper : T {
  private:
   zil::metrics::FilterClass m_fc;
 };
+
+
+
+
 };  // namespace metrics
 };  // namespace zil
 
