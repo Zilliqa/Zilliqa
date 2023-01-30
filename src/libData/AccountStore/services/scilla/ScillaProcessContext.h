@@ -21,6 +21,8 @@
 #include "common/BaseType.h"
 #include "common/FixedHash.h"
 
+#include "libData/AccountData/Transaction.h"
+
 struct ScillaProcessContext {
   using Address = dev::h160;
   Address origin;
@@ -32,6 +34,7 @@ struct ScillaProcessContext {
   uint64_t gasLimit = 0;
   uint64_t blockNum = 0;
   uint64_t dsBlockNum = 0;
+  Transaction::ContractType contractType;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLAPROCESSCONTEXT_H_

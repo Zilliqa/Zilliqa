@@ -229,6 +229,18 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
 
+  ScillaProcessContext scillaContext = {
+      .origin = transaction.GetSenderAddr(),
+      .recipient = transaction.GetToAddr(),
+      .code = transaction.GetCode(),
+      .data = transaction.GetData(),
+      .amount = transaction.GetAmountQa(),
+      .gasPrice = transaction.GetGasPriceQa(),
+      .gasLimit = transaction.GetGasLimitZil(),
+      .blockNum = blockNum,
+      .dsBlockNum = m_curDSBlockNum,
+      .contractType = Transaction::GetTransactionType(transaction)};
+
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
 

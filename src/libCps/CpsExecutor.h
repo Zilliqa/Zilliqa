@@ -41,7 +41,9 @@ class CpsExecutor final {
   CpsAccountStoreInterface& GetAccStoreIface() { return mAccountStore; }
 
  private:
-  CpsExecuteResult PreValidateRun(const EvmProcessContext& context) const;
+  CpsExecuteResult PreValidateEvmRun(const EvmProcessContext& context) const;
+  CpsExecuteResult PreValidateScillaRun(
+      const ScillaProcessContext& context) const;
   void InitRun();
   void RefundGas(const EvmProcessContext& context,
                  const CpsExecuteResult& runResult);

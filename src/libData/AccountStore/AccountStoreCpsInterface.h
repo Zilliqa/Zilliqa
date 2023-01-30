@@ -18,10 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORECPSINTERFACE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORECPSINTERFACE_H_
 
-#include "libData/AccountStore/AccountStoreSC.h"
-
 #include "libCps/CpsAccountStoreInterface.h"
-
+#include "libData/AccountStore/AccountStoreSC.h"
 #include "libPersistence/ContractStorage.h"
 
 struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
@@ -197,12 +195,24 @@ struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return mScillaRootVersion;
   }
 
-  bool IsAccountALibrary(const Address& address) override {
+  virtual bool IsAccountALibrary(const Address& address) override {
     Account* account = mAccountStore.GetAccountAtomic(address);
     if (account != nullptr) {
       return account->IsLibrary();
     }
     return false;
+  }
+
+  virtual std::condition_variable& GetScillaCondVariable() override {
+    return mAccountStore.m_CallContractConditionVariable;
+  }
+
+  virtual std::mutex& GetScillaMutex() override {
+    return mAccountStore.m_MutexCVCallContract;
+  }
+
+  virtual bool GetProcessTimeout() const override {
+    return mAccountStore.m_txnProcessTimeout;
   }
 
  private:

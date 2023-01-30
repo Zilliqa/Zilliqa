@@ -21,6 +21,7 @@
 #include "common/FixedHash.h"
 #include "libCps/Amount.h"
 
+#include <condition_variable>
 #include <map>
 #include <string>
 #include <vector>
@@ -72,6 +73,9 @@ struct CpsAccountStoreInterface {
   virtual zbytes GetContractInitData(const Address& account) = 0;
   virtual std::string& GetScillaRootVersion() = 0;
   virtual bool IsAccountALibrary(const Address& address) = 0;
+  virtual std::condition_variable& GetScillaCondVariable() = 0;
+  virtual std::mutex& GetScillaMutex() = 0;
+  virtual bool GetProcessTimeout() const = 0;
 };
 }  // namespace libCps
 

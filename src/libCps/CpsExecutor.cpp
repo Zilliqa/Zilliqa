@@ -34,7 +34,7 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
                          TransactionReceipt& receipt)
     : mAccountStore(accountStore), mTxReceipt(receipt) {}
 
-CpsExecuteResult CpsExecutor::PreValidateRun(
+CpsExecuteResult CpsExecutor::PreValidateEvmRun(
     const EvmProcessContext& context) const {
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(
       ProtoToAddress(context.GetEvmArgs().origin()));
@@ -50,6 +50,12 @@ CpsExecuteResult CpsExecutor::PreValidateRun(
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
+CpsExecuteResult CpsExecutor::PreValidateScillaRun(
+    const ScillaProcessContext& context) const {
+  (void)context;
+  return {};
+}
+
 CpsExecutor::~CpsExecutor() = default;
 
 void CpsExecutor::InitRun() { mAccountStore.DiscardAtomics(); }
@@ -62,7 +68,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(ScillaProcessContext& context) {
 CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   InitRun();
 
-  const auto preValidateResult = PreValidateRun(clientContext);
+  const auto preValidateResult = PreValidateEvmRun(clientContext);
   if (!preValidateResult.isSuccess) {
     return preValidateResult;
   }
