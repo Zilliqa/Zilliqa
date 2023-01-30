@@ -24,8 +24,10 @@
 // These definitions will probably be changed as people will not like the Z_
 
 using Z_I64METRIC = zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>;
-using Z_DBLMETRIC = zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
-using Z_DBLHIST =  zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>;
+using Z_DBLMETRIC =
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
+using Z_DBLHIST =
+    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>;
 using Z_DBLGAUGE = zil::metrics::InstrumentWrapper<zil::metrics::DoubleGauge>;
 using Z_I64GAUGE = zil::metrics::InstrumentWrapper<zil::metrics::I64Gauge>;
 
@@ -38,19 +40,18 @@ using Z_DBLUPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::DoubleUpDown>;
 
 using Z_FL = zil::metrics::FilterClass;
 
-#define INC_CALLS(COUNTER) \
-  if (COUNTER.Enabled()){  \
-    COUNTER.IncrementAttr({{"calls", __FUNCTION__ }}); \
-  }\
+#define INC_CALLS(COUNTER)                            \
+  if (COUNTER.Enabled()) {                            \
+    COUNTER.IncrementAttr({{"calls", __FUNCTION__}}); \
+  }
 
-#define INC_STATUS(COUNTER, KEY , VALUE) \
-  if (COUNTER.Enabled()) { \
-    COUNTER.IncrementAttr({{"Method", __FUNCTION__},{ KEY , VALUE }});        \
+#define INC_STATUS(COUNTER, KEY, VALUE)                              \
+  if (COUNTER.Enabled()) {                                           \
+    COUNTER.IncrementAttr({{"Method", __FUNCTION__}, {KEY, VALUE}}); \
   }
 
 #define METRICS_ENABLED(FILTER_CLASS)          \
   zil::metrics::Filter::GetInstance().Enabled( \
       zil::metrics::FilterClass::FILTER_CLASS)
-
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_API_H_

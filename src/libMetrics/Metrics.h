@@ -30,7 +30,6 @@
 #include "Common.h"
 #include "TraceFilters.h"
 
-
 class Metrics;
 
 namespace zil {
@@ -225,7 +224,5 @@ class Metrics : public Singleton<Metrics> {
 
   void InitStdOut();
 };
-
-
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_METRICS_H_

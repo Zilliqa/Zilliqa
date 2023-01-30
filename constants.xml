@@ -204,7 +204,7 @@
         <!-- Sort account store delta before serialization -->
         <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
         <!-- Use Continuation passing style -->
-        <ENABLE_CPS>false</ENABLE_CPS>
+        <ENABLE_CPS>true</ENABLE_CPS>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->

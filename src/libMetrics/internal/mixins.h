@@ -47,7 +47,7 @@ class I64Counter {
 
   friend std::ostream &operator<<(std::ostream &os, const I64Counter &counter);
 
-  uint64Counter_t& get(){return m_theCounter;}
+  uint64Counter_t &get() { return m_theCounter; }
 
  private:
   uint64Counter_t m_theCounter;
@@ -237,16 +237,11 @@ struct InstrumentWrapper : T {
     }
   }
 
-  bool Enabled(){
-      return zil::metrics::Filter::GetInstance().Enabled(m_fc);
-  }
+  bool Enabled() { return zil::metrics::Filter::GetInstance().Enabled(m_fc); }
 
  private:
   zil::metrics::FilterClass m_fc;
 };
-
-
-
 
 };  // namespace metrics
 };  // namespace zil

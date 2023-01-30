@@ -33,15 +33,14 @@ double r_timer_end(std::chrono::system_clock::time_point start_time) {
 
 LatencyScopeMarker::LatencyScopeMarker(
     std::unique_ptr<metrics_api::Counter<uint64_t>> metric,
-    InstrumentWrapper<DoubleHistogram>& latency, FilterClass fc,
+    InstrumentWrapper<DoubleHistogram> &latency, FilterClass fc,
     const char *file, const char *func)
     : m_file{file},
       m_func{func},
       m_metric(std::move(metric)),
       m_latency(latency),
       m_filterClass(fc),
-      m_startTime(zil::metrics::r_timer_start()) {
-      }
+      m_startTime(zil::metrics::r_timer_start()) {}
 
 LatencyScopeMarker::~LatencyScopeMarker() {
   if (zil::metrics::Filter::GetInstance().Enabled(m_filterClass)) {
