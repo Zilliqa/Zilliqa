@@ -639,12 +639,12 @@ bool AccountStore::UpdateAccountsTemp(
     }
     if (zil::local::GetGasUsed().Enabled()){
         double gasUsed = receipt.GetCumGas();
-        zil::local::GetEvmLatency().Record( gasUsed , {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+        zil::local::GetGasUsed().Record( gasUsed , {{isEvm ? "evm" : "scilla", __FUNCTION__}});
     }
     if (zil::local::GetSizeUsed().Enabled()){
         if (not transaction.GetCode().empty()) {
             double size = transaction.GetCode().size();
-            zil::local::GetEvmLatency().Record(size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+            zil::local::GetSizeUsed().Record(size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
         }
     }
   }
