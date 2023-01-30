@@ -126,25 +126,61 @@ bool ScillaHelpers::ParseCreateContractJsonOutput(const Json::Value &_json,
   return true;
 }
 
-/* bool ParseCallContract(CpsAccountStoreInterface &acc_store,
-                       uint64_t &gasRemained, const std::string &runnerPrint,
-                       TransactionReceipt &receipt, uint32_t tree_depth,
-                       uint32_t scilla_version);
+bool ScillaHelpers::ParseCallContract(CpsAccountStoreInterface &acc_store,
+                                      uint64_t &gasRemained,
+                                      const std::string &runnerPrint,
+                                      TransactionReceipt &receipt,
+                                      uint32_t tree_depth,
+                                      uint32_t scilla_version) {
+  Json::Value jsonOutput;
+  if (!ParseCallContractOutput(acc_store, jsonOutput, runnerPrint, receipt)) {
+    return false;
+  }
+  return ParseCallContractJsonOutput(acc_store, jsonOutput, gasRemained,
+                                     receipt, tree_depth, scilla_version);
+}
 
 /// convert the interpreter output into parsable json object for calling
-bool ParseCallContractOutput(CpsAccountStoreInterface &acc_store,
-                             Json::Value &jsonOutput,
-                             const std::string &runnerPrint,
-                             TransactionReceipt &receipt);
+bool ScillaHelpers::ParseCallContractOutput(CpsAccountStoreInterface &acc_store,
+                                            Json::Value &jsonOutput,
+                                            const std::string &runnerPrint,
+                                            TransactionReceipt &receipt) {
+  std::chrono::system_clock::time_point tpStart;
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = zil::metrics::r_timer_start();
+  }
+
+  if (LOG_SC) {
+    LOG_GENERAL(
+        INFO,
+        "Output: " << std::endl
+                   << (runnerPrint.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                           ? runnerPrint.substr(
+                                 0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                                 "\n ... "
+                           : runnerPrint));
+  }
+
+  if (!JSONUtils::GetInstance().convertStrtoJson(runnerPrint, jsonOutput)) {
+    receipt.AddError(JSON_OUTPUT_CORRUPTED);
+    return false;
+  }
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    LOG_GENERAL(INFO, "Parse scilla-runner output (microseconds) = "
+                          << zil::metrics::r_timer_end(tpStart));
+  }
+
+  return true;
+}
 
 /// parse the output from interpreter for calling and update states
-bool ParseCallContractJsonOutput(CpsAccountStoreInterface &acc_store,
-                                 const Json::Value &_json,
-                                 uint64_t &gasRemained,
-                                 TransactionReceipt &receipt,
-                                 uint32_t tree_depth,
-                                 uint32_t pre_scilla_version);
-*/
+bool ScillaHelpers::ParseCallContractJsonOutput(
+    CpsAccountStoreInterface &acc_store, const Json::Value &_json,
+    uint64_t &gasRemained, TransactionReceipt &receipt, uint32_t tree_depth,
+    uint32_t pre_scilla_version) {
+  return {};
+}
+
 void ScillaHelpers::ExportCommonFiles(
     CpsAccountStoreInterface &acc_store, std::ofstream &os,
     const Address &contract,
@@ -243,7 +279,7 @@ bool ScillaHelpers::ExportContractFiles(
 
   try {
     std::string scillaCodeExtension = CONTRACT_FILE_EXTENSION;
-    if (acc_store.IsAccountLibrary(contract)) {
+    if (acc_store.IsAccountALibrary(contract)) {
       scillaCodeExtension = LIBRARY_CODE_EXTENSION;
     }
     CreateScillaCodeFiles(acc_store, contract, extlibs_exports,

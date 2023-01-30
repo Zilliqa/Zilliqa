@@ -71,7 +71,7 @@ struct CpsAccountStoreInterface {
                                       std::vector<Address>& extlibs) = 0;
   virtual zbytes GetContractInitData(const Address& account) = 0;
   virtual std::string& GetScillaRootVersion() = 0;
-  virtual bool IsAccountLibrary(const Address& address) = 0;
+  virtual bool IsAccountALibrary(const Address& address) = 0;
 };
 }  // namespace libCps
 
