@@ -95,7 +95,7 @@ impl<'a> CpsExecutor<'a> {
     fn apply_feedback(
         &mut self,
         runtime: &mut Runtime,
-        continuation_feedback: Option<EvmProto::Continuation>,
+        feedback: Option<EvmProto::Continuation>,
     ) -> Result<(), evm::ExitError> {
         if let Some(feedback) = feedback {
             // Sputnik places empty H256 value on a stack before returning with a trap
