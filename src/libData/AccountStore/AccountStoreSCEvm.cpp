@@ -24,7 +24,6 @@
 
 #include "AccountStoreCpsInterface.h"
 #include "AccountStoreSC.h"
-#include "LocalMetricsEvm.h"
 #include "common/Constants.h"
 #include "libCps/CpsExecutor.h"
 #include "libCrypto/EthCrypto.h"
@@ -40,13 +39,28 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
+namespace zil {
+
+    namespace local {
+
+        Z_I64METRIC &GetEvmCallsCounter() {
+            static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.calls.count",
+                                       "Engineering Metrics for AccountStore", "calls"};
+            return counter;
+        }
+
+    }
+
+}
 
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    const evm::EvmArgs &args,           //
                                    bool &ret,                          //
                                    TransactionReceipt &receipt,        //
                                    evm::EvmResult &result) {
-  LOCAL_CALL_INCREMENT();
+
+  INC_CALLS(zil::local::GetEvmCallsCounter());
+
 
   namespace context = opentelemetry::context;
 
@@ -72,14 +86,14 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
-      LOCAL_INCREMENT_CALLS_COUNTER("lock", "release-normal");
+      INC_STATUS(zil::local::GetEvmCallsCounter(),"lock", "release-normal");
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      LOCAL_INCREMENT_CALLS_COUNTER("lock", "release-timeout");
+      INC_STATUS(zil::local::GetEvmCallsCounter(),"lock", "release-timeout");
       auto constexpr str = "Timeout on lock waiting for EVM-DS";
       LOG_GENERAL(WARNING, str);
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
@@ -87,7 +101,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      LOCAL_INCREMENT_CALLS_COUNTER("lock", "release-deferred");
+      INC_STATUS(zil::local::GetEvmCallsCounter(),"lock", "release-deferred");
       auto constexpr str = "Illegal future return status";
       LOG_GENERAL(WARNING, str);
       ret = false;
@@ -245,7 +259,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   TxnStatus error_code;
   std::chrono::system_clock::time_point tpStart;
 
-  LOCAL_CALL_INCREMENT();
+  INC_CALLS(zil::local::GetEvmCallsCounter());
 
   tpStart = r_timer_start();
 
@@ -272,10 +286,11 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TransactionReceipt &receipt,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
+
   LOG_MARKER();
   std::string txnId = evmContext.GetTranID().hex();
 
-  INCREMENT_METHOD_CALLS_COUNTER(evm::GetInvocationsCounter(), ACCOUNTSTORE_EVM);
+  INC_CALLS(zil::local::GetEvmCallsCounter());
 
     // store into the metric holder.
   if (blockNum > 0) m_stats.blockNumber = blockNum;
@@ -339,7 +354,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
-      LOCAL_INCREMENT_CALLS_COUNTER("Transaction", "Create");
+      INC_STATUS(zil::local::GetEvmCallsCounter(),"Transaction", "Create");
 
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
@@ -535,8 +550,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
-      LOCAL_INCREMENT_CALLS_COUNTER("Transaction",
-                                    "Contract-Call/Non Contract");
+        INC_STATUS(zil::local::GetEvmCallsCounter(),"Transaction","Contract-Call/Non Contract");
 
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
@@ -769,7 +783,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     LOG_GENERAL(INFO, "Executing contract transaction finished");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
-
   return true;
 }
 

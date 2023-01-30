@@ -21,13 +21,11 @@
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
 
-// typedef or using which one do you prefer ??
+// These definitions will probably be changed as people will not like the Z_
 
 using Z_I64METRIC = zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>;
-using Z_DBLMETRIC =
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
-using Z_DBLHIST =
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>;
+using Z_DBLMETRIC = zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
+using Z_DBLHIST =  zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>;
 using Z_DBLGAUGE = zil::metrics::InstrumentWrapper<zil::metrics::DoubleGauge>;
 using Z_I64GAUGE = zil::metrics::InstrumentWrapper<zil::metrics::I64Gauge>;
 
@@ -40,37 +38,19 @@ using Z_DBLUPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::DoubleUpDown>;
 
 using Z_FL = zil::metrics::FilterClass;
 
-using METRIC_ATTRIBUTE =
-    std::map<std::string, opentelemetry::common::AttributeValue>;
+#define INC_CALLS(COUNTER) \
+  if (COUNTER.Enabled()){  \
+    COUNTER.IncrementAttr({{"calls", __FUNCTION__ }}); \
+  }\
 
-#define INCREMENT_CALLS_COUNTER(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE) \
-  if (zil::metrics::Filter::GetInstance().Enabled(                       \
-          zil::metrics::FilterClass::FILTER_CLASS)) {                    \
-    COUNTER.IncrementWithAttributes(1L, {{ATTRIBUTE, VALUE}});           \
-  }
-
-#define INCREMENT_CALLS_COUNTER2(COUNTER, FILTER_CLASS, ATTRIBUTE, VALUE, \
-                                 ATTRIBUTE2, VALUE2)                      \
-  if (zil::metrics::Filter::GetInstance().Enabled(                        \
-          zil::metrics::FilterClass::FILTER_CLASS)) {                     \
-    COUNTER.IncrementWithAttributes(                                      \
-        1, {{ATTRIBUTE, VALUE}, {ATTRIBUTE2, VALUE2}});                   \
-  }
-
-#define INCREMENT_METHOD_CALLS_COUNTER(COUNTER, FILTER_CLASS) \
-  if (zil::metrics::Filter::GetInstance().Enabled(            \
-          zil::metrics::FilterClass::FILTER_CLASS)) {         \
-    COUNTER.IncrementAttr({{"Method", __FUNCTION__}});        \
+#define INC_STATUS(COUNTER, KEY , VALUE) \
+  if (COUNTER.Enabled()) { \
+    COUNTER.IncrementAttr({{"Method", __FUNCTION__},{ KEY , VALUE }});        \
   }
 
 #define METRICS_ENABLED(FILTER_CLASS)          \
   zil::metrics::Filter::GetInstance().Enabled( \
       zil::metrics::FilterClass::FILTER_CLASS)
 
-#define INCREMENT_METHOD_CALLS_COUNTER2(COUNTER, FILTER_CLASS, METHOD) \
-  if (zil::metrics::Filter::GetInstance().Enabled(                     \
-          zil::metrics::FilterClass::FILTER_CLASS)) {                  \
-    COUNTER.IncrementWithAttributes(1L, {{"Method", METHOD}});         \
-  }
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_API_H_

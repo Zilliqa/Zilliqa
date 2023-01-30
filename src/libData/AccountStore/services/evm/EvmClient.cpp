@@ -36,7 +36,7 @@ Z_I64METRIC& GetCallsCounter() {
 bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& binaryPath,
                      const std::string& socketPath) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT_LOW_LEVEL);
+  INC_CALLS(GetCallsCounter());
 
   LOG_MARKER();
 
@@ -85,7 +85,7 @@ bool LaunchEvmDaemon(boost::process::child& child,
 }
 
 bool CleanupPreviousInstances() {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT_LOW_LEVEL);
+  INC_CALLS(GetCallsCounter());
 
   std::string s = "pkill -9 -f " + EVM_SERVER_BINARY;
   int sysRep = std::system(s.c_str());
@@ -97,7 +97,7 @@ bool CleanupPreviousInstances() {
 
 bool Terminate(boost::process::child& child,
                const std::unique_ptr<jsonrpc::Client>& client) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT_LOW_LEVEL);
+  INC_CALLS(GetCallsCounter());
 
   LOG_MARKER();
   Json::Value _json;
@@ -123,7 +123,7 @@ bool Terminate(boost::process::child& child,
 }  // namespace
 
 void EvmClient::Init() {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
+  INC_CALLS(GetCallsCounter());
 
   LOG_MARKER();
   LOG_GENERAL(INFO, "Intending to use " << EVM_SERVER_SOCKET_PATH
@@ -136,7 +136,7 @@ void EvmClient::Init() {
 }
 
 void EvmClient::Reset() {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
+  INC_CALLS(GetCallsCounter());
 
   Terminate(m_child, m_client);
   CleanupPreviousInstances();
@@ -145,7 +145,7 @@ void EvmClient::Reset() {
 EvmClient::~EvmClient() { LOG_MARKER(); }
 
 bool EvmClient::OpenServer() {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
+  INC_CALLS(GetCallsCounter());
 
   bool status{true};
   LOG_GENERAL(INFO, "OpenServer for EVM ");
@@ -183,7 +183,7 @@ bool EvmClient::OpenServer() {
 bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   LOG_MARKER();
 
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), EVM_CLIENT);
+  INC_CALLS(GetCallsCounter());
 
   std::lock_guard<std::mutex> g(m_mutexMain);
 

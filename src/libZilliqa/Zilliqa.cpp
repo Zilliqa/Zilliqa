@@ -185,8 +185,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
 
       if (!result) {
         // To-do: Error recovery
-        INCREMENT_CALLS_COUNTER(GetMsgDispatchErrorCounter(), MSG_DISPATCH,
-                                "Error", "dispatch_failed");
+        INC_STATUS(GetMsgDispatchErrorCounter(),"Error", "dispatch_failed");
       }
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex

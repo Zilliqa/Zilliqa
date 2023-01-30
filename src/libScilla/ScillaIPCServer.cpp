@@ -92,7 +92,7 @@ void ScillaIPCServer::setBCInfoProvider(const uint64_t curBlockNum,
                                         const Address &curContrAddr,
                                         const dev::h256 &rootHash,
                                         const uint32_t scillaVersion) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   m_BCInfo.SetUp(curBlockNum, curDSBlockNum, originAddr, curContrAddr, rootHash,
                  scillaVersion);
@@ -100,7 +100,7 @@ void ScillaIPCServer::setBCInfoProvider(const uint64_t curBlockNum,
 
 void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
                                        Json::Value &response) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   std::string value;
   bool found;
@@ -116,7 +116,7 @@ void ScillaIPCServer::fetchStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
                                                Json::Value &response) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   std::string value, type;
   bool found;
@@ -135,7 +135,7 @@ void ScillaIPCServer::fetchExternalStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
                                                   Json::Value &response) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   std::string value, type;
   bool found;
@@ -154,7 +154,7 @@ void ScillaIPCServer::fetchExternalStateValueB64I(const Json::Value &request,
 
 void ScillaIPCServer::updateStateValueI(const Json::Value &request,
                                         Json::Value &response) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   if (!updateStateValue(request["query"].asString(),
                         request["value"].asString())) {
@@ -167,7 +167,7 @@ void ScillaIPCServer::updateStateValueI(const Json::Value &request,
 
 void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
                                            Json::Value &response) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   std::string value;
   if (!fetchBlockchainInfo(request["query_name"].asString(),
@@ -183,7 +183,7 @@ void ScillaIPCServer::fetchBlockchainInfoI(const Json::Value &request,
 
 bool ScillaIPCServer::fetchStateValue(const string &query, string &value,
                                       bool &found) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   zbytes destination;
 
@@ -202,7 +202,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
                                               const string &query,
                                               string &value, bool &found,
                                               string &type) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   zbytes destination;
 
@@ -228,7 +228,7 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
 
 bool ScillaIPCServer::updateStateValue(const string &query,
                                        const string &value) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   return ContractStorage::GetContractStorage().UpdateStateValue(
       m_BCInfo.getCurContrAddr(), DataConversion::StringToCharArray(query), 0,
@@ -238,7 +238,7 @@ bool ScillaIPCServer::updateStateValue(const string &query,
 bool ScillaIPCServer::fetchBlockchainInfo(const std::string &query_name,
                                           const std::string &query_args,
                                           std::string &value) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetCallsCounter(), SCILLA_IPC);
+  INC_CALLS(GetCallsCounter());
 
   if (query_name == "BLOCKNUMBER") {
     value = std::to_string(m_BCInfo.getCurBlockNum());

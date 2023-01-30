@@ -237,6 +237,10 @@ struct InstrumentWrapper : T {
     }
   }
 
+  bool Enabled(){
+      return zil::metrics::Filter::GetInstance().Enabled(m_fc);
+  }
+
  private:
   zil::metrics::FilterClass m_fc;
 };

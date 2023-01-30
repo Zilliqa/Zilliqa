@@ -55,7 +55,7 @@ typedef long int observerType;
 #endif
 
 namespace zil {
-    namespace scilla {
+    namespace local {
 
         Z_I64METRIC &GetInvocationsCounter() {
             static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla",
@@ -63,38 +63,34 @@ namespace zil {
             return counter;
         }
 
-        zil::metrics::uint64Counter_t
-        GetNewCounter() {
-            return Metrics::GetMeter()->CreateUInt64Counter("evm.messages", "count of calls to update", "calls");
-
-        }
-
         Z_I64GAUGE &GetGeneralCounters() {
             static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "general",
                                       "General Statistics", "?", true};
             return counter;
         }
+    }  // namespace scilla
+}  // namespace zil
 
-        Z_DBLHIST &GetHistogramCounter() {
+namespace zil {
+    namespace local {
+
+        Z_DBLHIST &GetScillaLatency() {
             static std::list<double> latencieBoudaries{0, 1, 2, 3, 4, 5,
                                                        10, 20, 30, 40, 60, 120};
             static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS,
-                                     "processing.latency.histogram", latencieBoudaries,
-                                     "latency histogram", "ms"};
+                                     "evm.processing", latencieBoudaries,
+                                     "latency of evm processing", "ms"};
             return counter;
         }
 
     }  // namespace scilla
 }  // namespace zil
 
-
-
-AccountStoreSC::AccountStoreSC() {
+AccountStoreSC::AccountStoreSC(){
     Metrics::GetInstance();
     m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
     m_txnProcessTimeout = false;
-
-    zil::scilla::GetGeneralCounters().SetCallback([this](auto &&result) {
+    zil::local::GetGeneralCounters().SetCallback([this](auto &&result) {
         result.Set(m_stats.evmCall, {{"latency", "evm"}});
         result.Set(m_stats.scillaCall, {{"latency", "scilla"}});
         result.Set(m_stats.blockNumberDS, {{"counter", "BlockNumber"}});
@@ -190,8 +186,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
                                     const Transaction &transaction,
                                     TransactionReceipt &receipt,
                                     TxnStatus &error_code) {
-    INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA);
 
+    INC_CALLS(GetInvocationsCounter());
 
     LOG_MARKER();
 
@@ -224,8 +220,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
     switch (Transaction::GetTransactionType(transaction)) {
         case Transaction::NON_CONTRACT: {
             // LOG_GENERAL(INFO, "Normal transaction");
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
-                                    "Transaction", "Non-Contract");
+            INC_STATUS(GetInvocationsCounter(),"Transaction", "Non-Contract");
 
             // Disallow normal transaction to contract account
             Account *toAccount = this->GetAccount(toAddr);
@@ -241,8 +236,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
         }
         case Transaction::CONTRACT_CREATION: {
             LOG_GENERAL(INFO, "Create contract");
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
-                                    "Transaction", "Create");
+
+            INC_STATUS(GetInvocationsCounter(),"Transaction", "Create");
 
             // bool validToTransferBalance = true;
 
@@ -550,8 +545,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
         }
         case Transaction::CONTRACT_CALL: {
             // reset the storageroot update buffer atomic per transaction
-            INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
-                                    "Transaction", "Contract-Call/Non Contract");
+            INC_STATUS(GetInvocationsCounter(),"Transaction", "Contract-Call/Non Contract");
             m_storageRootUpdateBufferAtomic.clear();
 
             m_originAddr = fromAddr;
