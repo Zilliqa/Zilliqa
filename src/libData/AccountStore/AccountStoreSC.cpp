@@ -91,10 +91,12 @@ AccountStoreSC::AccountStoreSC(){
     m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
     m_txnProcessTimeout = false;
     zil::local::GetGeneralCounters().SetCallback([this](auto &&result) {
-        result.Set(m_stats.evmCall, {{"latency", "evm"}});
-        result.Set(m_stats.scillaCall, {{"latency", "scilla"}});
-        result.Set(m_stats.blockNumberDS, {{"counter", "BlockNumber"}});
-        result.Set(m_stats.blockNumberDS, {{"counter", "DSBlockNumber"}});
+        if (zil::local::GetGeneralCounters().Enabled()) {
+            result.Set(m_stats.evmCall, {{"latency", "evm"}});
+            result.Set(m_stats.scillaCall, {{"latency", "scilla"}});
+            result.Set(m_stats.blockNumberDS, {{"counter", "BlockNumber"}});
+            result.Set(m_stats.blockNumberDS, {{"counter", "DSBlockNumber"}});
+        }
     });
 }
 

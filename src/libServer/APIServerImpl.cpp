@@ -366,11 +366,13 @@ bool APIServerImpl::DoListen() {
   AcceptNext();
 
   m_metrics.SetCallback([this](auto&& result) {
-    result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
-                                      {"counter", "TotalConnections"}});
-    result.Set(m_threadPool->GetQueueSize(),
-               {{"server", m_options.threadPoolName},
-                {"counter", "ThreadPoolQueueSize"}});
+      if (m_metrics.Enabled()) {
+          result.Set(m_connections.size(), {{"server",  m_options.threadPoolName},
+                                            {"counter", "TotalConnections"}});
+          result.Set(m_threadPool->GetQueueSize(),
+                     {{"server",  m_options.threadPoolName},
+                      {"counter", "ThreadPoolQueueSize"}});
+      }
   });
 
   return true;

@@ -45,8 +45,10 @@ Z_I64METRIC &GetCallsCounter() {
 
 ScillaBCInfo::ScillaBCInfo() {
   m_bcInfoCount.SetCallback([this](auto &&result) {
-    result.Set(getCurBlockNum(), {{"counter", "BlockNumber"}});
-    result.Set(getCurDSBlockNum(), {{"counter", "DSBlockNumber"}});
+    if (m_bcInfoCount.Enabled()) {
+        result.Set(getCurBlockNum(), {{"counter", "BlockNumber"}});
+        result.Set(getCurDSBlockNum(), {{"counter", "DSBlockNumber"}});
+    }
   });
 }
 
