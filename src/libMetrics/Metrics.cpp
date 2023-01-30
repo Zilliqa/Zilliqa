@@ -350,10 +350,20 @@ void Metrics::AddCounterHistogramView(const std::string name,
 }
 
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
+  GetInstance();
+
   const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
-  return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                     METRIC_ZILLIQA_SCHEMA);
+
+  assert(p);
+
+  try {
+      return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                         METRIC_ZILLIQA_SCHEMA);
+  } catch(...) {
+      std::cout << "Initialisation problem" << std::endl;
+      abort();
+  }
 }
 
 namespace zil::metrics {

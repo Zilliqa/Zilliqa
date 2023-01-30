@@ -11,7 +11,7 @@ set_target_properties(opentelemetry-cpp::opentelemetry_exporter_prometheus PROPE
         INTERFACE_LINK_LIBRARIES "opentelemetry-cpp::metrics"
         )
 
-add_library(Metrics Metrics.cpp Tracing.cpp Api.h Metrics.h Tracing.h Common.h internal/mixins.h internal/scope.cpp internal/scope.h)
+add_library(Metrics Metrics.cpp Tracing.cpp Api.h Metrics.h Tracing.h Common.h internal/mixins.h)
 
 target_include_directories(Metrics PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS})
 target_link_libraries(Metrics

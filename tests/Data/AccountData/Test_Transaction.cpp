@@ -27,6 +27,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libValidator/Validator.h"
+#include "libMetrics/Api.h"
 
 #define BOOST_TEST_MODULE transactiontest
 #define BOOST_TEST_DYN_LINK
@@ -38,7 +39,7 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() }
+  Fixture() { INIT_STDOUT_LOGGER() Metrics::GetInstance(); }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);
