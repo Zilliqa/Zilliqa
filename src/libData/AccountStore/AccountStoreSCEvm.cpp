@@ -334,7 +334,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
-    const auto cpsRunResult = cpsExecutor.Run(evmContext);
+    const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
     error_code = cpsRunResult.txnStatus;
     return cpsRunResult.isSuccess;
   }

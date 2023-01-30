@@ -23,6 +23,7 @@
 
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
+#include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
@@ -53,7 +54,12 @@ CpsExecutor::~CpsExecutor() = default;
 
 void CpsExecutor::InitRun() { mAccountStore.DiscardAtomics(); }
 
-CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
+CpsExecuteResult CpsExecutor::RunFromScilla(ScillaProcessContext& context) {
+  (void)context;
+  return {};
+}
+
+CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   InitRun();
 
   const auto preValidateResult = PreValidateRun(clientContext);

@@ -25,6 +25,7 @@
 #include <vector>
 
 class EvmProcessContext;
+class ScillaProcessContext;
 class TransactionReceipt;
 
 namespace libCps {
@@ -34,7 +35,8 @@ class CpsExecutor final {
   explicit CpsExecutor(CpsAccountStoreInterface& account_store,
                        TransactionReceipt& receipt);
   ~CpsExecutor();
-  CpsExecuteResult Run(EvmProcessContext& context);
+  CpsExecuteResult RunFromEvm(EvmProcessContext& context);
+  CpsExecuteResult RunFromScilla(ScillaProcessContext& context);
   void PushRun(std::shared_ptr<CpsRun> run);
   CpsAccountStoreInterface& GetAccStoreIface() { return mAccountStore; }
 

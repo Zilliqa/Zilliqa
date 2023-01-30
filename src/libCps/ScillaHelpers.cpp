@@ -179,6 +179,116 @@ bool ScillaHelpers::ParseCallContractJsonOutput(
     uint64_t &gasRemained, TransactionReceipt &receipt, uint32_t tree_depth,
     uint32_t pre_scilla_version) {
   return {};
+  /*std::chrono::system_clock::time_point tpStart;
+  if (ENABLE_CHECK_PERFORMANCE_LOG) {
+    tpStart = zil::metrics::r_timer_start();
+  }
+
+  if (!_json.isMember("gas_remaining")) {
+    LOG_GENERAL(
+        WARNING,
+        "The json output of this contract didn't contain gas_remaining");
+    if (gasRemained > CONTRACT_INVOKE_GAS) {
+      gasRemained -= CONTRACT_INVOKE_GAS;
+    } else {
+      gasRemained = 0;
+    }
+    receipt.AddError(NO_GAS_REMAINING_FOUND);
+    return false;
+  }
+  //uint64_t startGas = gasRemained;
+  try {
+    gasRemained = std::min(gasRemained, boost::lexical_cast<uint64_t>(
+                                            _json["gas_remaining"].asString()));
+  } catch (...) {
+    LOG_GENERAL(WARNING, "_amount " << _json["gas_remaining"].asString()
+                                    << " is not numeric");
+    return false;
+  }
+  LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+
+  if (!_json.isMember("messages") || !_json.isMember("events")) {
+    if (_json.isMember("errors")) {
+      LOG_GENERAL(WARNING, "Call contract failed");
+      receipt.AddError(CALL_CONTRACT_FAILED);
+      receipt.AddException(_json["errors"]);
+    } else {
+      LOG_GENERAL(WARNING, "JSON output of this contract is corrupted");
+      receipt.AddError(OUTPUT_ILLEGAL);
+    }
+    return false;
+  }
+
+  if (!_json.isMember("_accepted")) {
+    LOG_GENERAL(WARNING,
+                "The json output of this contract doesn't contain _accepted");
+    receipt.AddError(NO_ACCEPTED_FOUND);
+    return false;
+  }
+
+  bool accepted = (_json["_accepted"].asString() == "true");
+  if (accepted) {
+    // LOG_GENERAL(INFO, "Contract accept amount transfer");
+    if (!TransferBalanceAtomic(m_curSenderAddr, m_curContractAddr,
+                               m_curAmount)) {
+      LOG_GENERAL(WARNING, "TransferBalance Atomic failed");
+      receipt.AddError(BALANCE_TRANSFER_FAILED);
+      return false;
+    }
+  } else {
+    LOG_GENERAL(WARNING, "Contract refuse amount transfer");
+  }
+
+  if (tree_depth == 0) {
+    // first call in a txn
+    receipt.AddAccepted(accepted);
+  } else {
+    if (!receipt.AddAcceptedForLastTransition(accepted)) {
+      LOG_GENERAL(WARNING, "AddAcceptedForLastTransition failed");
+      return false;
+    }
+  }
+
+  Account *contractAccount =
+      m_accountStoreAtomic->GetAccount(m_curContractAddr);
+  if (contractAccount == nullptr) {
+    LOG_GENERAL(WARNING, "contractAccount is null ptr");
+    receipt.AddError(CONTRACT_NOT_EXIST);
+    return false;
+  }
+
+  try {
+    for (const auto &e : _json["events"]) {
+      LogEntry entry;
+      if (!entry.Install(e, m_curContractAddr)) {
+        receipt.AddError(LOG_ENTRY_INSTALL_FAILED);
+        return false;
+      }
+      receipt.AddLogEntry(entry);
+    }
+  } catch (const std::exception &e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what());
+    return false;
+  }
+
+  bool ret = false;
+
+  if (_json["messages"].type() != Json::arrayValue) {
+    LOG_GENERAL(INFO, "messages is not in array value");
+    return false;
+  }
+
+  // If output message is null
+  if (_json["messages"].empty()) {
+    LOG_GENERAL(INFO,
+                "empty message in scilla output when invoking a "
+                "contract, transaction finished");
+    m_storageRootUpdateBufferAtomic.emplace(m_curContractAddr);
+    ret = true;
+  }
+
+  */
+  return {};
 }
 
 void ScillaHelpers::ExportCommonFiles(
