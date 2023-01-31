@@ -47,13 +47,13 @@
 namespace {
 
 Z_DBLMETRIC &GetMsgDispatchCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "msg_dispatch.msg_dispatch",
+  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p.dispatch",
                              "Messages dispatched", "Calls"};
   return counter;
 }
 
 Z_DBLMETRIC &GetMsgDispatchErrorCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "msg.dispatch.error",
+  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p.dipatch.error",
                              "Message dispatch errors", "Calls"};
   return counter;
 }
