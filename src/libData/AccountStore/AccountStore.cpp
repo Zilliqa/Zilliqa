@@ -575,7 +575,7 @@ bool AccountStore::UpdateAccountsTemp(
                                                   receipt, error_code, context);
   } else {
     status = m_accountStoreTemp.UpdateAccounts(
-        blockNum, numShards, isDS, transaction, receipt, error_code);
+        blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
   }
   LOG_GENERAL(WARNING, "[AS] Finished Processing <"
                            << transaction.GetTranID() << "> ("

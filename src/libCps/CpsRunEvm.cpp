@@ -35,7 +35,7 @@
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
                      CpsContext& ctx, CpsRun::Type type)
-    : CpsRun(executor.GetAccStoreIface(), type),
+    : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::Evm, type),
       mProtoArgs(std::move(protoArgs)),
       mExecutor(executor),
       mCpsContext(ctx) {}
@@ -549,16 +549,21 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
   }
 
   // For now only Evm is supported!
-  const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
-  mProtoArgs.set_gas_limit(results.evmResult.remaining_gas());
+  if (std::holds_alternative<evm::EvmResult>(results.result)) {
+    const auto& evmResult = std::get<evm::EvmResult>(results.result);
+    mProtoArgs.set_gas_limit(evmResult.remaining_gas());
 
-  if (mProtoArgs.continuation().feedback_type() ==
-      evm::Continuation_Type_CREATE) {
-    *mProtoArgs.mutable_continuation()->mutable_address() =
-        prevRunEvm.mProtoArgs.address();
-  } else {
-    *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
-        results.evmResult.return_value();
+    if (previousRun.GetDomain() == CpsRun::Evm) {
+      const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
+      if (mProtoArgs.continuation().feedback_type() ==
+          evm::Continuation_Type_CREATE) {
+        *mProtoArgs.mutable_continuation()->mutable_address() =
+            prevRunEvm.mProtoArgs.address();
+      } else {
+        *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
+            evmResult.return_value();
+      }
+    }
   }
 }
 

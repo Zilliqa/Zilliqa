@@ -19,6 +19,7 @@
 #include "libCps/Amount.h"
 
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
+#include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 #include "libEth/utils/EthUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/SafeMath.h"
@@ -67,6 +68,57 @@ uint128_t CpsExecuteValidator::GetGasPriceWei(
     const EvmProcessContext& context) {
   return context.GetEstimateOnly() ? 0
                                    : context.GetTransaction().GetGasPriceWei();
+}
+
+CpsExecuteResult CpsExecuteValidator::CheckAmount(
+    const ScillaProcessContext& context, const Amount& owned) {
+  uint128_t gasDepositQa;
+  if (!SafeMath<uint128_t>::mul(context.gasLimit, context.gasPrice,
+                                gasDepositQa)) {
+    return {TxnStatus::MATH_ERROR, false, {}};
+  }
+
+  const auto claimed = Amount::fromQa(gasDepositQa + context.amount);
+  if (claimed > owned) {
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+  }
+
+  return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
+CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
+    const ScillaProcessContext& context) {
+  // Regular charge for simple transfer
+  if (context.contractType == Transaction::ContractType::NON_CONTRACT) {
+    if (context.gasLimit < NORMAL_TRAN_GAS) {
+      return {TxnStatus::INSUFFICIENT_GAS, false, {}};
+    }
+    // Contract creation
+  } else if (context.contractType ==
+             Transaction::ContractType::CONTRACT_CREATION) {
+    uint64_t requiredGas = std::max(
+        CONTRACT_CREATE_GAS,
+        static_cast<unsigned int>(context.code.size() + context.data.size()));
+
+    requiredGas += SCILLA_CHECKER_INVOKE_GAS;
+    requiredGas += SCILLA_RUNNER_INVOKE_GAS;
+
+    if (context.gasLimit < requiredGas) {
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+    }
+  } else if (context.contractType == Transaction::ContractType::CONTRACT_CALL) {
+    uint64_t requiredGas = std::max(
+        CONTRACT_INVOKE_GAS, static_cast<unsigned int>(context.data.size()));
+
+    requiredGas += SCILLA_RUNNER_INVOKE_GAS;
+    if (context.gasLimit < requiredGas) {
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+    }
+
+  } else {
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 }  // namespace libCps

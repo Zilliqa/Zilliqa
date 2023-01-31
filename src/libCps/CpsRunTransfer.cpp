@@ -26,7 +26,8 @@ namespace libCps {
 CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, CpsContext& ctx,
                                const Address& from, const Address& to,
                                const Amount& amount)
-    : CpsRun(executor.GetAccStoreIface(), CpsRun::Transfer),
+    : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::None,
+             CpsRun::Transfer),
       mCpsContext(ctx),
       mFrom(from),
       mTo(to),

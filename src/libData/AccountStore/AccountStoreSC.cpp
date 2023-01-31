@@ -209,12 +209,10 @@ void AccountStoreSC::InvokeInterpreter(
   }
 }
 
-bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
-                                    const unsigned int &numShards,
-                                    const bool &isDS,
-                                    const Transaction &transaction,
-                                    TransactionReceipt &receipt,
-                                    TxnStatus &error_code) {
+bool AccountStoreSC::UpdateAccounts(
+    const uint64_t &blockNum, const unsigned int &numShards, const bool &isDS,
+    const Transaction &transaction, const TxnExtras &extras,
+    TransactionReceipt &receipt, TxnStatus &error_code) {
   INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA);
 
   CALLS_LATENCY_MARKER(GetInvocationsCounter(),
@@ -239,6 +237,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
       .gasLimit = transaction.GetGasLimitZil(),
       .blockNum = blockNum,
       .dsBlockNum = m_curDSBlockNum,
+      .blockTimestamp = extras.block_timestamp,
+      .blockDifficulty = extras.block_difficulty,
       .contractType = Transaction::GetTransactionType(transaction)};
 
   m_curIsDS = isDS;

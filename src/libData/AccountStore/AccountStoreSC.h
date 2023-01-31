@@ -257,7 +257,8 @@ class AccountStoreSC : public AccountStoreBase {
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t &blockNum, const unsigned int &numShards,
                       const bool &isDS, const Transaction &transaction,
-                      TransactionReceipt &receipt, TxnStatus &error_code);
+                      const TxnExtras &extras, TransactionReceipt &receipt,
+                      TxnStatus &error_code);
 
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address> &extlibs,

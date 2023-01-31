@@ -22,6 +22,7 @@
 #include "libCps/CpsExecuteResult.h"
 
 class EvmProcessContext;
+struct ScillaProcessContext;
 
 namespace libCps {
 class Amount;
@@ -32,6 +33,10 @@ class CpsExecuteValidator final {
   static CpsExecuteResult CheckAmount(const EvmProcessContext& context,
                                       const Amount& owned);
   static uint128_t GetGasPriceWei(const EvmProcessContext& context);
+
+  static CpsExecuteResult CheckGasLimit(const ScillaProcessContext& context);
+  static CpsExecuteResult CheckAmount(const ScillaProcessContext& context,
+                                      const Amount& owned);
 };
 }  // namespace libCps
 

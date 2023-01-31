@@ -22,6 +22,7 @@
 #include "CpsExecuteResult.h"
 
 #include <memory>
+#include <variant>
 #include <vector>
 
 class EvmProcessContext;
@@ -31,6 +32,8 @@ class TransactionReceipt;
 namespace libCps {
 class CpsRun;
 class CpsExecutor final {
+  using Address = dev::h160;
+
  public:
   explicit CpsExecutor(CpsAccountStoreInterface& account_store,
                        TransactionReceipt& receipt);
@@ -45,9 +48,11 @@ class CpsExecutor final {
   CpsExecuteResult PreValidateScillaRun(
       const ScillaProcessContext& context) const;
   void InitRun();
-  void RefundGas(const EvmProcessContext& context,
-                 const CpsExecuteResult& runResult);
-  void TakeGasFromAccount(const EvmProcessContext& context);
+  void RefundGas(
+      const std::variant<EvmProcessContext, ScillaProcessContext>& context,
+      uint64_t gasRemainedCore);
+  void TakeGasFromAccount(
+      const std::variant<EvmProcessContext, ScillaProcessContext>& context);
 
  private:
   CpsAccountStoreInterface& mAccountStore;

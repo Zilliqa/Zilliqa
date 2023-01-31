@@ -33,7 +33,7 @@ namespace libCps {
 
 CpsRunScilla::CpsRunScilla(ScillaArgs args, CpsExecutor& executor,
                            CpsContext& ctx, CpsRun::Type type)
-    : CpsRun(executor.GetAccStoreIface(), type),
+    : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::Scilla, type),
       mArgs(std::move(args)),
       mExecutor(executor),
       mCpsContext(ctx) {}

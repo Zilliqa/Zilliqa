@@ -27,9 +27,10 @@ class CpsAccountStoreInterface;
 class CpsExecuteResult;
 class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
-  enum Type { Call, Create, Transfer, TrapCreate, TrapCall };
-  CpsRun(CpsAccountStoreInterface& accountStore, Type type)
-      : mAccountStore(accountStore), mType(type) {}
+  enum Type { Call = 0, Create, Transfer, TrapCreate, TrapCall };
+  enum Domain { Evm = 0, Scilla, None };
+  CpsRun(CpsAccountStoreInterface& accountStore, Domain domain, Type type)
+      : mAccountStore(accountStore), mDomain(domain), mType(type) {}
   virtual ~CpsRun() = default;
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) = 0;
   virtual bool IsResumable() const = 0;
@@ -37,11 +38,13 @@ class CpsRun : public std::enable_shared_from_this<CpsRun> {
   virtual void ProvideFeedback(const CpsRun& prevRun,
                                const CpsExecuteResult& results) = 0;
   Type GetType() const { return mType; }
+  Domain GetDomain() const { return mDomain; }
 
  protected:
   CpsAccountStoreInterface& mAccountStore;
 
  private:
+  Domain mDomain;
   Type mType;
 };
 

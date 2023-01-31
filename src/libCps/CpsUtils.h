@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Zilliqa
+ * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -15,24 +15,22 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_
-#define ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_
+#ifndef ZILLIQA_SRC_LIBCPS_CPSUTILS_H_
+#define ZILLIQA_SRC_LIBCPS_CPSUTILS_H_
 
-#include "common/TxnStatus.h"
+#include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 #include "libUtils/Evm.pb.h"
 
-#include <variant>
+class EvmProcessContext;
 
 namespace libCps {
+class CpsUtils {
+ public:
+  static evm::EvmEvalExtras FromScillaContext(
+      const ScillaProcessContext& scillaCtx);
+  static ScillaProcessContext FromEvmContext(const EvmProcessContext& evmCtx);
+};
 
-struct ScillaResult {
-  uint64_t gasRemained = 0;
-};
-struct CpsExecuteResult {
-  TxnStatus txnStatus = TxnStatus::NOT_PRESENT;
-  bool isSuccess = false;
-  std::variant<evm::EvmResult, ScillaResult> result;
-};
 }  // namespace libCps
 
-#endif  // ZILLIQA_SRC_LIBCPS_CPSEXECUTERESULT_H_
+#endif  // ZILLIQA_SRC_LIBCPS_CPSUTILS_H_

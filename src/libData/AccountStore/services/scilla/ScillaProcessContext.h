@@ -34,6 +34,8 @@ struct ScillaProcessContext {
   uint64_t gasLimit = 0;
   uint64_t blockNum = 0;
   uint64_t dsBlockNum = 0;
+  uint128_t blockTimestamp;
+  uint8_t blockDifficulty = 0;
   Transaction::ContractType contractType;
 };
 
