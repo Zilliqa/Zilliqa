@@ -9,21 +9,19 @@ const METHOD = "eth_sendRawTransaction";
 describe("Calling " + METHOD, function () {
   describe("When on Zilliqa network", function () {
     it("should return a send raw transaction", async function () {
-      const fromAccount = web3.eth.accounts.create();
+      const pk = hre.getPrivateKeyAt(0);
+      web3.eth.accounts.wallet.add(pk);
       const destination = web3.eth.accounts.create();
       const toAddress = destination.address;
-      const nonce = await web3.eth.getTransactionCount(fromAccount.address); // nonce starts counting from 0
       const tx = {
         to: toAddress,
         value: 1_000_000,
         gas: 300000,
-        gasPrice: 2000000000000000,
-        nonce: nonce,
         chainId: hre.getEthChainId(),
         data: ""
       };
 
-      const signedTx = await fromAccount.signTransaction(tx);
+      const signedTx = await web3.eth.accounts.signTransaction(tx, pk);
 
       await sendJsonRpcRequest(METHOD, 1, [signedTx.rawTransaction], (result, status) => {
         logDebug("Result:", result);

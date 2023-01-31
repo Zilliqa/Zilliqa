@@ -17,6 +17,7 @@ declare module "hardhat/types/runtime" {
     getProtocolVersion: () => number;
     getMiningState: () => boolean;
     getNetworkName: () => string;
+    getPrivateKeyAt: (index: number) => string;
   }
 }
 
@@ -28,6 +29,10 @@ extendEnvironment((hre: HardhatRuntimeEnvironment) => {
   hre.isScillaTestingEnabled = () => {
     return hre.scillaTesting;
   };
+
+  hre.getPrivateKeyAt = (index: number): string => {
+    return (hre as any).network.config.accounts[index];
+  }
 
   hre.isZilliqaNetworkSelected = () => {
     return (hre as any).network.config.zilliqaNetwork;
