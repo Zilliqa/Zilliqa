@@ -23,11 +23,11 @@
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
+#include "libMetrics/Api.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
 #include "libValidator/Validator.h"
-#include "libMetrics/Api.h"
 
 #define BOOST_TEST_MODULE transactiontest
 #define BOOST_TEST_DYN_LINK
@@ -44,7 +44,7 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_CASE(test1, * boost::unit_test::timeout(180)) {
+BOOST_AUTO_TEST_CASE(test1, *boost::unit_test::timeout(180)) {
   LOG_MARKER();
 
   Address toAddr;
