@@ -28,9 +28,18 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 
+
 #include <boost/algorithm/hex.hpp>
 
 #include <future>
+
+Z_I64METRIC &GetCPSMetric() {
+    static Z_I64METRIC counter{Z_FL::CPS, "cps.counter",
+                              "Calls into cps", "calls"};
+    return counter;
+}
+
+
 
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
@@ -48,6 +57,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   if (!IsResumable()) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
+      INC_STATUS(GetCPSMetric(), "transaction", "create");
       const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
       const auto contractAddress = mAccountStore.GetAddressForContract(
           fromAddress, TRANSACTION_VERSION_ETH);
@@ -65,6 +75,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
+      INC_STATUS(GetCPSMetric(), "transaction", "call");
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
       *mProtoArgs.mutable_code() =
@@ -75,6 +86,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+        INC_STATUS(GetCPSMetric(), "error", "balance to low");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
     }
@@ -87,7 +99,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
-    return {};
+      INC_STATUS(GetCPSMetric(), "error", "timeout");
+      return {};
   }
   const evm::EvmResult& evmResult = invokeResult.value();
 
@@ -116,8 +129,10 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
       EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                           result);
     } catch (std::exception& e) {
-      LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
+        INC_STATUS(GetCPSMetric(), "error", "Rpc exception");
+        LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
+      INC_STATUS(GetCPSMetric(), "error", "unhandled RPC exception underlying call");
       LOG_GENERAL(WARNING, "UnHandled Exception from underlying RPC call ");
     }
   };
@@ -129,11 +144,7 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
-      if (zil::metrics::Filter::GetInstance().Enabled(
-              zil::metrics::FilterClass::ACCOUNTSTORE_EVM)) {
-        //  TODO    metrics.IncrementWithAttributes(1L, {{"lock",
-        //  "release-normal"}});
-      }
+      INC_STATUS(GetCPSMetric(), "unlock", "ok");
       return result;
     } break;
     case std::future_status::timeout: {
@@ -141,12 +152,12 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      //  TODO metrics->Add(1, {{"lock", "release-timeout"}});
+      INC_STATUS(GetCPSMetric(), "unlock", "timeout");
       return std::nullopt;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      // TODO metrics->Add(1, {{"lock", "release-deferred"}});
+      INC_STATUS(GetCPSMetric(), "unlock", "illegal");
       return std::nullopt;
     }
   }
@@ -250,11 +261,13 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   const auto calleeAddr = ProtoToAddress(callData.callee_address());
 
   if (IsNullAddress(calleeAddr)) {
-    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "Invalid account");
+      return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
 
   if (mCpsContext.isStatic && !isStatic) {
-    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "Incorect txn type");
+      return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
   const bool areTnsfAddressesEmpty =
@@ -265,7 +278,8 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   if (isStatic || isDelegate) {
     if (!areTnsfAddressesEmpty || !isValZero) {
-      return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+        INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
+        return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
   }
   const bool isOrigAddressValid =
@@ -275,22 +289,26 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       (ctxDestAddr == calleeAddr) ||
       (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
   if (!isOrigAddressValid || !isDestAddressValid) {
+    INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
   if (!areTnsfAddressesEmpty) {
     if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
-      return {TxnStatus::ERROR, false, {}};
+        INC_STATUS(GetCPSMetric(), "error", "addressing ??");
+        return {TxnStatus::ERROR, false, {}};
     }
     const auto currentBalance =
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
     if (requestedValue > currentBalance) {
+      INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
     if (remainingGas < MIN_ETH_GAS) {
-      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+        INC_STATUS(GetCPSMetric(), "error", "insuffiecient gas");
+        return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }
 
@@ -326,7 +344,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   }
 
   if (!mAccountStore.AddAccountAtomic(contractAddress)) {
-    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "Account creation failed");
+      return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
   }
 
   mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
@@ -410,6 +429,7 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
   // Caller should be the same as the contract that triggered trap
   const auto currentAddress = ProtoToAddress(mProtoArgs.address());
   if (address != currentAddress || fromAddress != currentAddress) {
+    INC_STATUS(GetCPSMetric(), "error", "Invalid from account");
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
   }
 
@@ -418,6 +438,7 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
   const auto currentBalance = mAccountStore.GetBalanceForAccountAtomic(address);
   const auto requestedValue = Amount::fromWei(ProtoToUint(createData.value()));
   if (requestedValue > currentBalance) {
+    INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
 
@@ -433,7 +454,8 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
     baseFee += MIN_ETH_GAS;
   }
   if (targetGas < baseFee || targetGas > remainingGas) {
-    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
   }
 
   return {TxnStatus::NOT_PRESENT, true, {}};

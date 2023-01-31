@@ -38,6 +38,7 @@
   M(ACCOUNTSTORE_SCILLA)          \
   M(ACCOUNTSTORE_HISTOGRAMS)      \
   M(TRANSACTION_VERIFY)           \
+  M(CPS)                          \
   M(API_SERVER)
 
 namespace zil {

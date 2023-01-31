@@ -191,8 +191,10 @@ void Metrics::InitPrometheus(
       {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
 
-  options.export_interval_millis = std::chrono::milliseconds(1000);
-  options.export_timeout_millis = std::chrono::milliseconds(500);
+  options.export_interval_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  options.export_timeout_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
   std::unique_ptr<metrics_sdk::MetricReader> reader{
       new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
                                                      options)};
@@ -295,19 +297,18 @@ zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
 
 void Metrics::AddCounterSumView(const std::string &name,
                                 const std::string &description) {
-  std::string version{"1.2.0"};
-  std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
   std::shared_ptr<opentelemetry::metrics::Meter> meter =
-      p->GetMeter("zilliqa", "1.2.0");
+      p->GetMeter("zilliqa", "1.2.0", METRIC_ZILLIQA_SCHEMA);
   // counter view
-  std::string counter_name = name + "_counter";
+  std::string counter_name = name;
   std::unique_ptr<metrics_sdk::InstrumentSelector> instrument_selector{
       new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kCounter,
                                           counter_name)};
   std::unique_ptr<metrics_sdk::MeterSelector> meter_selector{
-      new metrics_sdk::MeterSelector(name, version, schema)};
+      new metrics_sdk::MeterSelector(name, METRIC_ZILLIQA_SCHEMA_VERSION,
+                                     METRIC_ZILLIQA_SCHEMA)};
   std::unique_ptr<metrics_sdk::View> sum_view{new metrics_sdk::View{
       name, description, metrics_sdk::AggregationType::kSum}};
   p->AddView(std::move(instrument_selector), std::move(meter_selector),
@@ -358,11 +359,11 @@ std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
   assert(p);
 
   try {
-      return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                         METRIC_ZILLIQA_SCHEMA);
-  } catch(...) {
-      std::cout << "Initialisation problem" << std::endl;
-      abort();
+    return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                       METRIC_ZILLIQA_SCHEMA);
+  } catch (...) {
+    std::cout << "Initialisation problem" << std::endl;
+    abort();
   }
 }
 
