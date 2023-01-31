@@ -364,6 +364,11 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          NULL),
       &EthRpcMethods::GetEthBlockReceiptsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, nullptr),
+      &EthRpcMethods::GetDSLeaderTxnPoolI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1717,6 +1722,20 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string &blockId) {
     auto const receipt = GetEthTransactionReceipt(tx.asString());
     res.append(receipt);
   }
+
+  return res;
+}
+
+Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
+  INC_CALLS(GetInvocationsCounter());
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "Sent to a non-lookup");
+  }
+
+  Json::Value res = Json::arrayValue;
+  m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
 
   return res;
 }

@@ -1058,6 +1058,23 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
   return true;
 }
 
+bool DirectoryService::ProcessGetDSLeaderTxnPool(
+    const zbytes& /*message*/, unsigned int /*offset*/, const Peer& /*from*/,
+    const unsigned char& /*startByte*/) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessGetDSLeaderTxnPool not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
+
+  LOG_GENERAL(INFO, "DirectoryService::ProcessGetDSLeaderTxnPool invoked");
+
+  return true;
+}
+
 void DirectoryService::GetCoinbaseRewardees(
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
         coinbase_rewardees) {
@@ -1087,7 +1104,8 @@ bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
                        &DirectoryService::ProcessVCPushLatestDSTxBlock,
                        &DirectoryService::ProcessPoWPacketSubmission,
                        &DirectoryService::ProcessNewDSGuardNetworkInfo,
-                       &DirectoryService::ProcessCosigsRewardsFromSeed});
+                       &DirectoryService::ProcessCosigsRewardsFromSeed,
+                       &DirectoryService::ProcessGetDSLeaderTxnPool});
 
   const unsigned char ins_byte = message.at(offset);
 

@@ -7769,6 +7769,42 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes& src,
   return true;
 }
 
+bool Messenger::SetLookupGetDSLeaderTxnPool(zbytes& dst, unsigned int offset,
+                                          const PairOfKey& keys,
+                                          uint32_t listenPort)
+{
+  LOG_MARKER();
+
+  LookupGetDSLeaderTxnPool result;
+
+  result.mutable_data()->set_portno(listenPort);
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "SetLookupGetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+  zbytes tmp(result.data().ByteSizeLong());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign SetLookupGetDSLeaderTxnPool message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING,
+                "SetLookupGetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
 bool Messenger::SetLookupSetCosigsRewardsFromSeed(
     zbytes& dst, const unsigned int offset, const PairOfKey& myKey,
     const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,

@@ -1588,6 +1588,28 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
   return false;
 }
 
+bool Lookup::GetDSLeaderTxnPool()
+{
+  zbytes retMsg = {MessageType::DIRECTORY,
+                   DSInstructionType::GETDSLEADERTXNPOOL};
+
+  if (!Messenger::SetLookupGetDSLeaderTxnPool(
+          retMsg, MessageOffset::BODY, m_mediator.m_selfKey,
+          m_mediator.m_selfPeer.m_listenPortHost)) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return false;
+  }
+
+  std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+  auto consensusLeaderID = m_mediator.m_node->GetConsensusLeaderID();
+  const auto& dsLeader = m_mediator.m_DSCommittee->at(consensusLeaderID);
+
+  P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
+
+  return true;
+}
+
 bool Lookup::ComposeAndStoreMBnForwardTxnMessage(const uint64_t& blockNum) {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP || !MULTIPLIER_SYNC_MODE) {
     LOG_GENERAL(

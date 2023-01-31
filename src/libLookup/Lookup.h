@@ -266,6 +266,8 @@ class Lookup : public Executable {
                                       unsigned int offset, const Peer& from,
                                       const unsigned char& startByte);
 
+  bool GetDSLeaderTxnPool();
+
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
 

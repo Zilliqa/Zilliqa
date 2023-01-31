@@ -1179,6 +1179,18 @@ message LookupGetCosigsRewardsFromSeed
     ByteArray signature         = 3;
 }
 
+message LookupGetDSLeaderTxnPool
+{
+    message Data
+    {
+        uint32 portno           = 1;
+    }
+
+    Data data                       = 1;
+    ByteArray pubkey                = 2;
+    ByteArray signature             = 3;
+}
+
 // Lookup set cosigs/rewards for ds node
 message LookupSetCosigsRewardsFromSeed
 {

@@ -40,6 +40,7 @@ enum DSInstructionType : unsigned char {
   POWPACKETSUBMISSION = 0x07,
   NEWDSGUARDIDENTITY = 0x08,
   SETCOSIGSREWARDSFROMSEED = 0x09,
+  GETDSLEADERTXNPOOL = 0x0A
 };
 
 enum NodeInstructionType : unsigned char {
