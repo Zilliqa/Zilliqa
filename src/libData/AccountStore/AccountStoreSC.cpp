@@ -69,20 +69,6 @@ Z_I64GAUGE &GetGeneralCounters() {
 }  // namespace local
 }  // namespace zil
 
-namespace zil {
-namespace local {
-
-Z_DBLHIST &GetScillaLatency() {
-  static std::list<double> latencieBoudaries{0,  1,  2,  3,  4,  5,
-                                             10, 20, 30, 40, 60, 120};
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.processing",
-                           latencieBoudaries, "latency of evm processing",
-                           "ms"};
-  return counter;
-}
-
-}  // namespace local
-}  // namespace zil
 
 AccountStoreSC::AccountStoreSC() {
   Metrics::GetInstance();
