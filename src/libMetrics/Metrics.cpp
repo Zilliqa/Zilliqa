@@ -191,8 +191,8 @@ void Metrics::InitPrometheus(
       {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
 
-  options.export_interval_millis = std::chrono::milliseconds(1000);
-  options.export_timeout_millis = std::chrono::milliseconds(500);
+  options.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  options.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
   std::unique_ptr<metrics_sdk::MetricReader> reader{
       new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
                                                      options)};
