@@ -31,8 +31,8 @@ using METRIC_ATTRIBUTE =
 
 class I64Counter {
  public:
-  I64Counter(const std::string &name, const std::string &description, const std::string &units) {
-
+  I64Counter(const std::string &name, const std::string &description,
+             const std::string &units) {
     Metrics::GetInstance().AddCounterSumView(GetFullName(METRIC_FAMILY, name),
                                              "View of the Metric");
     m_theCounter = Metrics::GetMeter()->CreateUInt64Counter(

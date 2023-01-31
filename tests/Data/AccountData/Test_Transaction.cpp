@@ -44,7 +44,7 @@ struct Fixture {
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_CASE(test1, * boost::unit_test::timeout(180)) {
+BOOST_AUTO_TEST_CASE(test1, *boost::unit_test::timeout(180)) {
   LOG_MARKER();
 
   Address toAddr;

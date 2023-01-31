@@ -641,15 +641,15 @@ bool AccountStore::UpdateAccountsTemp(
   // Record and publish delay
 
   auto delay = r_timer_end(tpLatencyStart);
-  double dVal = delay/1000;
+  double dVal = delay / 1000;
   if (dVal > 0) {
     if (isEvm && zil::local::GetEvmLatency().Enabled()) {
       zil::local::GetEvmLatency().Record(
           (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
     }
     if (not isEvm && zil::local::GetScillaLatency().Enabled()) {
-          zil::local::GetScillaLatency().Record(
-                  (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
+      zil::local::GetScillaLatency().Record(
+          (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
     }
     if (zil::local::GetGasUsed().Enabled()) {
       double gasUsed = receipt.GetCumGas();

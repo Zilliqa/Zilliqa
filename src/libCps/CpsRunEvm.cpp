@@ -28,18 +28,15 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 
-
 #include <boost/algorithm/hex.hpp>
 
 #include <future>
 
-Z_I64METRIC &GetCPSMetric() {
-    static Z_I64METRIC counter{Z_FL::CPS, "cps.counter",
-                              "Calls into cps", "calls"};
-    return counter;
+Z_I64METRIC& GetCPSMetric() {
+  static Z_I64METRIC counter{Z_FL::CPS, "cps.counter", "Calls into cps",
+                             "calls"};
+  return counter;
 }
-
-
 
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
@@ -99,8 +96,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
-      INC_STATUS(GetCPSMetric(), "error", "timeout");
-      return {};
+    INC_STATUS(GetCPSMetric(), "error", "timeout");
+    return {};
   }
   const evm::EvmResult& evmResult = invokeResult.value();
 
@@ -129,10 +126,11 @@ std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
       EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                           result);
     } catch (std::exception& e) {
-        INC_STATUS(GetCPSMetric(), "error", "Rpc exception");
-        LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
+      INC_STATUS(GetCPSMetric(), "error", "Rpc exception");
+      LOG_GENERAL(WARNING, "Exception from underlying RPC call " << e.what());
     } catch (...) {
-      INC_STATUS(GetCPSMetric(), "error", "unhandled RPC exception underlying call");
+      INC_STATUS(GetCPSMetric(), "error",
+                 "unhandled RPC exception underlying call");
       LOG_GENERAL(WARNING, "UnHandled Exception from underlying RPC call ");
     }
   };
@@ -261,13 +259,13 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   const auto calleeAddr = ProtoToAddress(callData.callee_address());
 
   if (IsNullAddress(calleeAddr)) {
-      INC_STATUS(GetCPSMetric(), "error", "Invalid account");
-      return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
+    INC_STATUS(GetCPSMetric(), "error", "Invalid account");
+    return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
 
   if (mCpsContext.isStatic && !isStatic) {
-      INC_STATUS(GetCPSMetric(), "error", "Incorect txn type");
-      return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+    INC_STATUS(GetCPSMetric(), "error", "Incorect txn type");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
   const bool areTnsfAddressesEmpty =
@@ -278,8 +276,8 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   if (isStatic || isDelegate) {
     if (!areTnsfAddressesEmpty || !isValZero) {
-        INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
-        return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
+      return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
   }
   const bool isOrigAddressValid =
@@ -295,8 +293,8 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   if (!areTnsfAddressesEmpty) {
     if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
-        INC_STATUS(GetCPSMetric(), "error", "addressing ??");
-        return {TxnStatus::ERROR, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "addressing ??");
+      return {TxnStatus::ERROR, false, {}};
     }
     const auto currentBalance =
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
@@ -307,8 +305,8 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     }
 
     if (remainingGas < MIN_ETH_GAS) {
-        INC_STATUS(GetCPSMetric(), "error", "insuffiecient gas");
-        return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+      INC_STATUS(GetCPSMetric(), "error", "insuffiecient gas");
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }
 
@@ -344,8 +342,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   }
 
   if (!mAccountStore.AddAccountAtomic(contractAddress)) {
-      INC_STATUS(GetCPSMetric(), "error", "Account creation failed");
-      return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
+    INC_STATUS(GetCPSMetric(), "error", "Account creation failed");
+    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
   }
 
   mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
@@ -454,8 +452,8 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
     baseFee += MIN_ETH_GAS;
   }
   if (targetGas < baseFee || targetGas > remainingGas) {
-      INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
-      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+    INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
+    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
   }
 
   return {TxnStatus::NOT_PRESENT, true, {}};
