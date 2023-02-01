@@ -53,24 +53,24 @@ namespace zil {
 namespace local {
 
 Z_DBLHIST &GetEvmLatency() {
-  static std::list<double> latencieBoudaries{0,0.25,0.5,0.75, 1,2,3,  4,  5,
-                                             10, 20, 30, 40, 60, 120};
+  static std::list<double> latencieBoudaries{0, 0.25, 0.5, 0.75, 1,  2,  3,  4,
+                                             5, 10,   20,  30,   40, 60, 120};
   static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.latency",
                            latencieBoudaries, "latency of processing", "ms"};
   return counter;
 }
 
 Z_DBLHIST &GetScillaLatency() {
-    static std::list<double> latencieBoudaries{0,0.25,0.5,.75, 1,  2,  3,  4,  5,
-                                                   10, 20, 30, 40, 60, 120};
-    static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla.latency",
-                                 latencieBoudaries, "latency of processing", "ms"};
-    return counter;
+  static std::list<double> latencieBoudaries{0, 0.25, 0.5, .75, 1,  2,  3,  4,
+                                             5, 10,   20,  30,  40, 60, 120};
+  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla.latency",
+                           latencieBoudaries, "latency of processing", "ms"};
+  return counter;
 }
 
-
 Z_DBLHIST &GetGasUsed() {
-  static std::list<double> latencieBoudaries{0, 100, 200, 300, 400, 500, 1000, 2000, 100000, 1000000};
+  static std::list<double> latencieBoudaries{0,   100,  200,  300,    400,
+                                             500, 1000, 2000, 100000, 1000000};
 
   static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "gas",
                            latencieBoudaries, "amount of gas used", "zils"};
@@ -641,25 +641,27 @@ bool AccountStore::UpdateAccountsTemp(
   // Record and publish delay
 
   auto delay = r_timer_end(tpLatencyStart);
-  double dVal = delay/1000;
+  double dVal = delay / 1000;
   if (dVal > 0) {
     if (isEvm && zil::local::GetEvmLatency().Enabled()) {
       zil::local::GetEvmLatency().Record(
           (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
     }
     if (not isEvm && zil::local::GetScillaLatency().Enabled()) {
-          zil::local::GetScillaLatency().Record(
-                  (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
+      zil::local::GetScillaLatency().Record(
+          (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
     }
-    if (zil::local::GetGasUsed().Enabled()){
-        double gasUsed = receipt.GetCumGas();
-        zil::local::GetGasUsed().Record( gasUsed , {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+    if (zil::local::GetGasUsed().Enabled()) {
+      double gasUsed = receipt.GetCumGas();
+      zil::local::GetGasUsed().Record(
+          gasUsed, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
     }
-    if (zil::local::GetSizeUsed().Enabled()){
-        if (not transaction.GetCode().empty()) {
-            double size = transaction.GetCode().size();
-            zil::local::GetSizeUsed().Record(size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
-        }
+    if (zil::local::GetSizeUsed().Enabled()) {
+      if (not transaction.GetCode().empty()) {
+        double size = transaction.GetCode().size();
+        zil::local::GetSizeUsed().Record(
+            size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+      }
     }
   }
   return status;
