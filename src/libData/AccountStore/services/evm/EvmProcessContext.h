@@ -50,8 +50,8 @@ struct TxnExtras;
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
-struct EvmProcessContext {
-  const uint64_t& GetBlockNumber();
+class EvmProcessContext {
+
 
  public:
   /*
@@ -191,6 +191,8 @@ struct EvmProcessContext {
   }
 
   inline const Transaction& GetTransaction() const { return m_legacyTxn; }
+
+  const uint64_t& GetBlockNumber();
 
  private:
   const zbytes& m_txnCode;
