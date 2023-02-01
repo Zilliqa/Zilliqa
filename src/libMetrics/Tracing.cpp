@@ -27,8 +27,8 @@
 #include "opentelemetry/trace/propagation/http_trace_context.h"
 #include "opentelemetry/trace/provider.h"
 
+#include "TraceFilters.h"
 #include "common/Constants.h"
-#include "common/TraceFilters.h"
 
 namespace trace_api = opentelemetry::trace;
 namespace trace_sdk = opentelemetry::sdk::trace;

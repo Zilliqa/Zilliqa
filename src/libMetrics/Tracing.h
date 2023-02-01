@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBUTILS_TRACING_H_
-#define ZILLIQA_SRC_LIBUTILS_TRACING_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_TRACING_H_
+#define ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 
 #include <opentelemetry/trace/tracer.h>
 #include <opentelemetry/trace/tracer_provider.h>
@@ -25,8 +25,8 @@
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
 
+#include "TraceFilters.h"
 #include "common/Singleton.h"
-#include "common/TraceFilters.h"
 
 namespace trace_api = opentelemetry::trace;
 namespace trace_sdk = opentelemetry::sdk::trace;
@@ -81,10 +81,12 @@ class Tracing : public Singleton<Tracing> {
   zil::trace::Filter::GetInstance().Enabled( \
       zil::trace::FilterClass::FILTER_CLASS)
 
+// TODO : false case is fake
+
 #define SCOPED_SPAN(FILTER_CLASS, SCOPE_NAME, SPAN)          \
   trace_api::Scope SCOPE_NAME = TRACE_ENABLED(FILTER_CLASS)  \
                                     ? trace_api::Scope(SPAN) \
-                                    : trace_api::Scope(nullptr);
+                                    : trace_api::Scope(SPAN);
 
 #define START_SPAN(FILTER_CLASS, ATTRIBUTES)                                 \
   TRACE_ENABLED(FILTER_CLASS)                                                \
@@ -104,4 +106,4 @@ using TRACE_ATTRIBUTE =
                                                    OPTIONS)                  \
   : trace_api::Tracer::GetCurrentSpan()
 
-#endif  // ZILLIQA_SRC_LIBUTILS_TRACING_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_TRACING_H_

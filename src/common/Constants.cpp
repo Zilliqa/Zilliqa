@@ -36,7 +36,8 @@ struct PTree {
 };
 
 unsigned int ReadConstantNumeric(const string& propertyName,
-                                 const char* path = "node.general.", unsigned int defaultVal = 0) {
+                                 const char* path = "node.general.",
+                                 unsigned int defaultVal = 0) {
   try {
     auto pt = PTree::GetInstance();
     return pt.get<unsigned int>(path + propertyName);

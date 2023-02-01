@@ -174,7 +174,16 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   // Always mark run as successful in estimate mode
   if (isEstimate) {
     if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
-      const auto& evmResult = std::get<evm::EvmResult>(runResult.result);
+      auto& evmResult = std::get<evm::EvmResult>(runResult.result);
+      // In some cases revert state may be missing (if e.g. trap validation
+      // failed)
+      if (isFailure && evmResult.exit_reason().exit_reason_case() ==
+                         evm::ExitReason::EXIT_REASON_NOT_SET) {
+        evm::ExitReason exitReason;
+        exitReason.set_revert(evm::ExitReason_Revert_REVERTED);
+        *evmResult.mutable_exit_reason() = exitReason;
+        clientContext.SetEvmResult(evmResult);
+      }
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
     evm::EvmResult evmResult;
