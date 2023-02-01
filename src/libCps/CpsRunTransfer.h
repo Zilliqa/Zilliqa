@@ -24,7 +24,7 @@
 #include "libUtils/Evm.pb.h"
 
 namespace libCps {
-class CpsContext;
+struct CpsContext;
 class CpsExecutor;
 class CpsRunTransfer final : public CpsRun {
   using Address = dev::h160;
