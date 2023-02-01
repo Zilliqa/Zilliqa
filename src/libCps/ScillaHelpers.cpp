@@ -27,7 +27,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
-#include "libUtils/Metrics.h"
+#include "libUtils/TimeUtils.h"
 
 #include <boost/filesystem.hpp>
 #include <fstream>
@@ -147,7 +147,7 @@ bool ScillaHelpers::ParseCallContractOutput(CpsAccountStoreInterface &acc_store,
                                             TransactionReceipt &receipt) {
   std::chrono::system_clock::time_point tpStart;
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    tpStart = zil::metrics::r_timer_start();
+    tpStart = r_timer_start();
   }
 
   if (LOG_SC) {
@@ -167,7 +167,7 @@ bool ScillaHelpers::ParseCallContractOutput(CpsAccountStoreInterface &acc_store,
   }
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
     LOG_GENERAL(INFO, "Parse scilla-runner output (microseconds) = "
-                          << zil::metrics::r_timer_end(tpStart));
+                          << r_timer_end(tpStart));
   }
 
   return true;
@@ -378,7 +378,7 @@ bool ScillaHelpers::ExportContractFiles(
   }
 
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    tpStart = zil::metrics::r_timer_start();
+    tpStart = r_timer_start();
   }
 
   if (!ScillaUtils::PrepareRootPathWVersion(scilla_version,
@@ -399,8 +399,7 @@ bool ScillaHelpers::ExportContractFiles(
     return false;
   }
   if (ENABLE_CHECK_PERFORMANCE_LOG) {
-    LOG_GENERAL(INFO,
-                "LDB Read (microsec) = " << zil::metrics::r_timer_end(tpStart));
+    LOG_GENERAL(INFO, "LDB Read (microsec) = " << r_timer_end(tpStart));
   }
 
   return true;
