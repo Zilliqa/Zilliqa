@@ -26,7 +26,7 @@
 #include <vector>
 
 class EvmProcessContext;
-class ScillaProcessContext;
+struct ScillaProcessContext;
 class TransactionReceipt;
 
 namespace libCps {

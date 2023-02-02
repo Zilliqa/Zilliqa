@@ -217,13 +217,17 @@ void Metrics::Shutdown() {
   p->Shutdown();
 }
 
+
 namespace {
 
-inline auto GetMeter(
+
+/*
+auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
     const std::string &family) {
   return provider->GetMeter(family, "1.2.0", METRIC_ZILLIQA_SCHEMA);
 }
+ */
 
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {

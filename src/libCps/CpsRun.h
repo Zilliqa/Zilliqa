@@ -23,8 +23,8 @@
 class TransactionReceipt;
 
 namespace libCps {
-class CpsAccountStoreInterface;
-class CpsExecuteResult;
+struct CpsAccountStoreInterface;
+struct CpsExecuteResult;
 class CpsRun : public std::enable_shared_from_this<CpsRun> {
  public:
   enum Type { Call = 0, Create, Transfer, TrapCreate, TrapCall };
