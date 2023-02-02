@@ -217,9 +217,7 @@ void Metrics::Shutdown() {
   p->Shutdown();
 }
 
-
 namespace {
-
 
 /*
 auto GetMeter(

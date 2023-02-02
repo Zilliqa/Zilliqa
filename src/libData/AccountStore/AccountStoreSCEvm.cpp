@@ -59,7 +59,11 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    evm::EvmResult &result) {
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
-  namespace context = opentelemetry::context;
+  auto span = START_SPAN(ACC_EVM, {});
+  SCOPED_SPAN(ACC_EVM, scope, span);
+
+  // new code
+
 
   //
   // create a worker to be executed in the async method
@@ -256,7 +260,11 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   TxnStatus error_code;
   std::chrono::system_clock::time_point tpStart;
 
+  auto span = START_SPAN(ACC_EVM, {});
+  SCOPED_SPAN(ACC_EVM, scope, span);
+
   INC_CALLS(zil::local::GetEvmCallsCounter());
+
 
   tpStart = r_timer_start();
 
@@ -272,6 +280,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
 
   result = params.GetEvmResult();
   params.SetEvmReceipt(rcpt);
+
 
   return status;
 }
@@ -293,6 +302,11 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   LOG_GENERAL(INFO,
               "Commit Context Mode="
                   << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
+
+
+  TRACE_ATTRIBUTE am{{"tid", txnId}, {"block", blockNum}};
+  auto span = START_SPAN(ACC_EVM, am);
+  SCOPED_SPAN(ACC_EVM, scope, span);
 
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());

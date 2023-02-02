@@ -17,8 +17,8 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_INTERNAL_MIXINS_H_
 #define ZILLIQA_SRC_LIBMETRICS_INTERNAL_MIXINS_H_
 
-#include <string>
 #include <map>
+#include <string>
 
 #include "libMetrics/Metrics.h"
 
