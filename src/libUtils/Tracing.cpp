@@ -139,9 +139,10 @@ void UpdateMetricsMask(uint64_t& mask, const std::string& filter) {
 }
 }  // namespace
 
-void Filter::init() {
+void Filter::init(const std::string& arg) {
+  const std::string& mask_str = arg.empty() ? TRACE_ZILLIQA_MASK : arg;
   std::vector<std::string> flags;
-  boost::split(flags, TRACE_ZILLIQA_MASK, boost::is_any_of(","));
+  boost::split(flags, mask_str, boost::is_any_of(","));
   for (const auto& f : flags) {
     UpdateMetricsMask(m_mask, f);
     if (m_mask == ALL) {

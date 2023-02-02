@@ -21,28 +21,27 @@
 #include <vector>
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DetachedFunction.h"
+#include "libUtils/Metrics.h"
+#include "libUtils/Tracing.h"
 
 using namespace std;
 chrono::high_resolution_clock::time_point startTime;
 
-void process_message(
-    std::shared_ptr<pair<zbytes, std::pair<Peer, const unsigned char>>>
-        message) {
+void process_message(std::shared_ptr<zil::p2p::Message> message) {
   LOG_MARKER();
 
-  if (message->first.size() < 10) {
+  if (message->msg.size() < 10) {
     LOG_GENERAL(INFO, "Received message '"
-                          << (char*)&message->first.at(0) << "' at port "
-                          << message->second.first.m_listenPortHost
-                          << " from address "
-                          << message->second.first.m_ipAddress);
+                          << (char*)&message->msg.at(0) << "' at port "
+                          << message->from.m_listenPortHost << " from address "
+                          << message->from.m_ipAddress);
   } else {
     chrono::duration<double, std::milli> time_span =
         chrono::high_resolution_clock::now() - startTime;
-    LOG_GENERAL(INFO, "Received " << message->first.size() / (1024 * 1024)
+    LOG_GENERAL(INFO, "Received " << message->msg.size() / (1024 * 1024)
                                   << " MB message in " << time_span.count()
                                   << " ms");
-    LOG_GENERAL(INFO, "Benchmark: " << (1000 * message->first.size()) /
+    LOG_GENERAL(INFO, "Benchmark: " << (1000 * message->msg.size()) /
                                            (time_span.count() * 1024 * 1024)
                                     << " MBps");
   }
@@ -182,8 +181,73 @@ void TestRemoveBroadcast() {
   this_thread::sleep_for(chrono::seconds(100));
 }
 
+void TestSerialize() {
+  int num_errors = 0;
+
+  auto Test = [&num_errors](const zbytes& msg, const zbytes& hash,
+                            bool with_traces) {
+    bool ok = false;
+    do {
+      auto start_byte = hash.empty() ? zil::p2p::START_BYTE_NORMAL
+                                     : zil::p2p::START_BYTE_BROADCAST;
+
+      auto raw = zil::p2p::CreateMessage(msg, hash, start_byte, with_traces);
+      if (!raw.data) {
+        break;
+      }
+
+      zil::p2p::ReadMessageResult result;
+      auto state = zil::p2p::TryReadMessage((const uint8_t*)raw.data.get(),
+                                            raw.size, result);
+      if (state != zil::p2p::ReadState::SUCCESS) {
+        break;
+      }
+
+      ok = (result.startByte == start_byte) && (result.message == msg) &&
+           (result.hash == hash);
+      if (ok && with_traces) {
+        ok = !result.traceInfo.empty();
+      }
+    } while (false);
+    LOG_GENERAL(DEBUG, "size=" << msg.size() << " hash=" << !hash.empty()
+                               << " trace=" << with_traces << " :"
+                               << (ok ? "OK" : "FAILED"));
+    if (!ok) {
+      ++num_errors;
+    }
+  };
+
+  std::ignore = Metrics::GetInstance();
+  std::ignore = Tracing::GetInstance();
+  zil::trace::Filter::GetInstance().init("ALL");
+
+  auto span = START_SPAN(NODE, {});
+  SCOPED_SPAN(NODE, ooo, span);
+
+  zbytes short_msg(33, 'x');
+  zbytes long_msg(1024 * 1024, 'x');
+  zbytes hash(32, 1);
+  zbytes no_hash;
+
+  Test(short_msg, no_hash, false);
+  Test(short_msg, hash, false);
+  Test(short_msg, no_hash, true);
+  Test(short_msg, hash, true);
+  Test(long_msg, no_hash, false);
+  Test(long_msg, hash, false);
+  Test(long_msg, no_hash, true);
+  Test(long_msg, hash, true);
+
+  if (num_errors > 0) {
+    LOG_GENERAL(WARNING,
+                __FUNCTION__ << " failed with " << num_errors << " errors");
+  }
+}
+
 int main() {
   INIT_STDOUT_LOGGER();
+
+  TestSerialize();
 
   auto func = []() mutable -> void {
     P2PComm::GetInstance().StartMessagePump(process_message);
@@ -199,18 +263,21 @@ int main() {
   Peer peer = {ip_addr.s_addr, 33133};
   zbytes message1 = {'H', 'e', 'l', 'l', 'o', '\0'};  // Send Hello once
 
-  P2PComm::GetInstance().SendMessage(peer, message1);
+  P2PComm::GetInstance().SendMessage(peer, message1,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 
   vector<Peer> peers = {peer, peer, peer};
   zbytes message2 = {'W', 'o', 'r', 'l', 'd', '\0'};  // Send World 3x
 
-  P2PComm::GetInstance().SendMessage(peers, message2);
+  P2PComm::GetInstance().SendMessage(peers, message2,
+                                     zil::p2p::START_BYTE_NORMAL, false);
 
   zbytes longMsg(1024 * 1024 * 1024, 'z');
   longMsg.emplace_back('\0');
 
   startTime = chrono::high_resolution_clock::now();
-  P2PComm::GetInstance().SendMessage(peer, longMsg);
+  P2PComm::GetInstance().SendMessage(peer, longMsg, zil::p2p::START_BYTE_NORMAL,
+                                     false);
 
   TestRemoveBroadcast();
 

@@ -38,7 +38,8 @@ class Filter : public Singleton<Filter> {
  public:
   Filter() { init(); }
 
-  void init();
+  // non-default arg is for testing only
+  void init(const std::string& arg = {});
 
   bool Enabled(FilterClass to_test) {
     return m_mask & (1 << static_cast<int>(to_test));
