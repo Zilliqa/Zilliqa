@@ -14,6 +14,7 @@ k8s_resource(objects=["prometheus-ingress:Ingress:monitoring"], new_name="promet
 k8s_resource("prometheus-ingress", resource_deps=['ingress-nginx-controller'])
 k8s_resource(objects=["grafana-ingress:Ingress:monitoring"], new_name="grafana-ingress")
 k8s_resource("grafana-ingress", resource_deps=['ingress-nginx-controller'])
+k8s_resource("loki-loki-stack-test", resource_deps=['loki'])
 
 k8s_yaml("infra/k8s/localstack.yaml")
 k8s_resource("localstack", port_forwards="4566:4566")
