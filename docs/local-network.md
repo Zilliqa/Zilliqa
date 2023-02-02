@@ -85,6 +85,10 @@ Grafana login credentials:
 ## Tempo cluster endpoint: tempo.monitoring.svc.cluster.local
 Tempo is reachable only from pods inside the cluster. To forward any of its port use `kubectl port-forward`.
 
+ie.:
+    ```
+    kubectl port-forward -n monitoring tempo-0 3100
+    ```
 
 ## Tempo service endpoints by supported protocol:
 | endpoint | Description |
