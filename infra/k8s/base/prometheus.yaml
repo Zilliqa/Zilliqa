@@ -12,7 +12,7 @@ spec:
   ports:
   - name: metrics
     port: 8081
-    targetPort: 8081
+    targetPort: 8085
   selector:
     app: zilliqa
     testnet: devnet

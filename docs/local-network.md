@@ -9,15 +9,6 @@
     kubectl config use-context kind-kind
     ```
 
-1. __[DEPRECATED] Deploy the nginx ingress controller and wait for it to start up.__
-
-*Tilt is deploying the nginx ingress controller*
-
-    ```
-    kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
-    kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=300s
-    ```
-
 1. Run Tilt to deploy the network.
 
     ```
@@ -34,7 +25,7 @@
 (This example uses https://mitmproxy.org/)
 
     ```
-    mitmweb --mode reverse:http://$KIND_IP_ADDR --modify-headers '/~q/Host/l2api.local.z7a.xyz'
+    mitmweb --mode reverse:http://$KIND_IP_ADDR --modify-headers '/~q/Host/l2api.local.z7a.xyz' --set web_port=8082 --no-web-open-browser
     ```
 
 1. Check on the state of your cluster in the usual ways (`kubectl`, `k9s`, etc.).
@@ -46,14 +37,18 @@ Note that it may take a while to download the container image and start up.
 1. Set up a reverse proxy which will forward all the requests to the ingress nginx binded on `localhost:80`.
 (This example uses https://mitmproxy.org/)
 
+__ON UBUNTU ENSURE YOU ARE USING THE mitmproxy version 9.x+. https://mitmproxy.org/downloads/__
+
+
     ```
-     mitmweb --mode reverse:http://localhost -p 8081 --set keep_host_header=true
+     mitmweb --mode reverse:http://localhost -p 8081 --set keep_host_header=true --set web_port=8085 --no-web-open-browser
     ```
+
 ## Browser access
 1. Configure a proxy for your browser to forward all the requests for `*.local.z7a.xyz` to to mitmweb proxy
 on `127.0.0.1:8081`
 
-(This example uses Google Chrome Extension SwitchyOmega https://chrome.google.com/webstore/detail/proxy-switchyomega/)
+(This example uses Google Chrome Extension SwitchyOmega https://chrome.google.com/webstore/detail/proxy-switchyomega/padekgcemlokbadohgkifijomclgjgif)
 
 1. Download and install the Chrome extension `proxy-switchyomega`
 
