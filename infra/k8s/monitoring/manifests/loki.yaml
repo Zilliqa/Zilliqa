@@ -575,7 +575,7 @@ spec:
     - /var/lib/loki/test.sh
     env:
     - name: LOKI_SERVICE
-      value: loki
+      value: loki.monitoring.svc.cluster.local
     - name: LOKI_PORT
       value: "3100"
     volumeMounts:
