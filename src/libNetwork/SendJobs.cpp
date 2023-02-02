@@ -394,6 +394,8 @@ class SendJobsImpl : public SendJobs,
     peerCtx->Enqueue(CreateMessage(message, {}, start_byte), false);
 
     localCtx.run();
+
+    peerCtx->Close();
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
