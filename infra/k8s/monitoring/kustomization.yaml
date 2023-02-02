@@ -72,5 +72,6 @@ resources:
 - ./manifests/setup/0thanosrulerCustomResourceDefinition.yaml
 - ./manifests/tempo.yaml
 - ./manifests/setup/namespace.yaml
+- ./manifests/loki.yaml
 - ./manifests/ingresses.yaml
 

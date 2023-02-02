@@ -102,6 +102,14 @@ ie.:
 | tempo.monitoring.svc.cluster.local:4318 | OLTP HTTP |
 | tempo.monitoring.svc.cluster.local:55678 | Opencensus |
 
+## Loki cluster endpoint: loki.monitoring.svc.cluster.local:3100
+Tempo is reachable only from pods inside the cluster. To forward any of its port use `kubectl port-forward`.
+
+ie.:
+    ```
+    kubectl port-forward -n monitoring loki-0 3100
+    ```
+
 
 # How to access the localdev resources using the mitmweb proxy http://localhost:8081 from your Linux shell environment
 
