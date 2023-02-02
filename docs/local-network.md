@@ -11,7 +11,7 @@
 
 1. __[DEPRECATED] Deploy the nginx ingress controller and wait for it to start up.__
 
-*Tilt is now deploying the nginx ingress controller*
+*Tilt is deploying the nginx ingress controller*
 
     ```
     kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
@@ -52,7 +52,25 @@ Note that it may take a while to download the container image and start up.
 ## Browser access
 1. Configure a proxy for your browser to forward all the requests for `*.local.z7a.xyz` to to mitmweb proxy
 on `127.0.0.1:8081`
+
 (This example uses Google Chrome Extension SwitchyOmega https://chrome.google.com/webstore/detail/proxy-switchyomega/)
+
+1. Download and install the Chrome extension `proxy-switchyomega`
+
+1. Congiure Switchyomega auto-proxy for the domain `*.local.z7a.xyz`
+
+### Add a new auto-switch profile `localdev-auto-proxy`:
+
+![Alt text](./images/Switchyomega-create-new-profile.png)
+![Alt text](./images/Switchyomega-newprofile.png)
+
+### Download the PAC file with the auto-switch proxy profile and apply the changes
+(PAC file download URL: https://raw.githubusercontent.com/Zilliqa/Zilliqa/master/docs/local-network-proxy.pac)
+
+![Alt text](./images/Switchyomega-pac.png)
+
+### Select the localdev-auto-proxy profile and start browsing your localdev *.local.z7a.xyz URL
+![Alt text](./images/Switchyomega-selectprofile.png)
 
 ## Grafana URL: http://grafana.local.z7a.xyz
 Grafana login credentials:
@@ -63,7 +81,10 @@ Grafana login credentials:
 ```
 
 ## Prometheus URL: http://prometheus.local.z7a.xyz
+
 ## Tempo cluster endpoint: tempo.monitoring.svc.cluster.local
+Tempo is reachable only from pods inside the cluster. To forward any of its port use `kubectl port-forward`.
+
 
 ## Tempo service endpoints by supported protocol:
 | endpoint | Description |
@@ -83,6 +104,18 @@ Grafana login credentials:
 | tempo.monitoring.svc.cluster.local:55678 | Opencensus |
 
 
+# How to access the localdev resources using the mitmweb proxy http://localhost:8081 from your Linux shell environment
+
+cURL:
+```
+curl -x "http://localhost:8081" http://l2api.local.z7a.xyz
+```
+
+Using the environment variable `http_proxy`
+```
+export http_proxy=http://localhost:8081
+curl http://l2api.local.z7a.xyz
+```
 
 # Updating the network
 
