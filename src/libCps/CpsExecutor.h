@@ -30,6 +30,7 @@ struct ScillaProcessContext;
 class TransactionReceipt;
 
 namespace libCps {
+struct CpsContext;
 class CpsRun;
 class CpsExecutor final {
   using Address = dev::h160;
@@ -53,6 +54,7 @@ class CpsExecutor final {
       uint64_t gasRemainedCore);
   void TakeGasFromAccount(
       const std::variant<EvmProcessContext, ScillaProcessContext>& context);
+  CpsExecuteResult processLoop(const CpsContext& context);
 
  private:
   CpsAccountStoreInterface& mAccountStore;

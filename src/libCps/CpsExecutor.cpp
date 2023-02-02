@@ -20,6 +20,8 @@
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecuteValidator.h"
 #include "libCps/CpsRunEvm.h"
+#include "libCps/CpsRunScilla.h"
+#include "libCps/CpsRunTransfer.h"
 #include "libCps/CpsUtils.h"
 
 #include "libData/AccountData/TransactionReceipt.h"
@@ -58,10 +60,6 @@ CpsExecuteResult CpsExecutor::PreValidateScillaRun(
   if (!amountResult.isSuccess) {
     return amountResult;
   }
-  const auto gasResult = CpsExecuteValidator::CheckGasLimit(context);
-  if (!gasResult.isSuccess) {
-    return gasResult;
-  }
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
@@ -82,8 +80,36 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
                     .estimate = false,
                     .evmExtras = CpsUtils::FromScillaContext(clientContext),
                     .scillaExtras = clientContext};
-  (void)cpsCtx;
-  return {};
+
+  TakeGasFromAccount(clientContext);
+
+  // Special case for transfer only
+  if (clientContext.contractType == Transaction::NON_CONTRACT) {
+    if (!mAccountStore.TransferBalanceAtomic(
+            clientContext.origin, clientContext.recipient,
+            Amount::fromQa(clientContext.amount))) {
+      return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+    }
+    mTxReceipt.SetCumGas(NORMAL_TRAN_GAS);
+    mTxReceipt.SetResult(true);
+    mTxReceipt.update();
+    const auto gasRemainedCore = clientContext.gasLimit - NORMAL_TRAN_GAS;
+    RefundGas(clientContext, gasRemainedCore);
+    mAccountStore.CommitAtomics();
+    return {TxnStatus::NOT_PRESENT, true, {}};
+  }
+
+  const auto type = clientContext.contractType == Transaction::CONTRACT_CALL
+                        ? CpsRun::Call
+                        : CpsRun::Create;
+  auto scillaRun =
+      std::make_shared<CpsRunScilla>(ScillaArgs{}, *this, cpsCtx, type);
+
+  m_queue.push_back(std::move(scillaRun));
+
+  mAccountStore.BufferCurrentContractStorageState();
+
+  return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
@@ -178,7 +204,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
       // In some cases revert state may be missing (if e.g. trap validation
       // failed)
       if (isFailure && evmResult.exit_reason().exit_reason_case() ==
-                         evm::ExitReason::EXIT_REASON_NOT_SET) {
+                           evm::ExitReason::EXIT_REASON_NOT_SET) {
         evm::ExitReason exitReason;
         exitReason.set_revert(evm::ExitReason_Revert_REVERTED);
         *evmResult.mutable_exit_reason() = exitReason;
@@ -191,6 +217,32 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
         GasConv::GasUnitsFromCoreToEth(gasRemainedCore));
     return {TxnStatus::NOT_PRESENT, true, std::move(evmResult)};
   }
+  return runResult;
+}
+
+CpsExecuteResult CpsExecutor::processLoop(const CpsContext& context) {
+  mAccountStore.BufferCurrentContractStorageState();
+
+  CpsExecuteResult runResult;
+  while (!m_queue.empty()) {
+    const auto currentRun = std::move(m_queue.back());
+    m_queue.pop_back();
+    runResult = currentRun->Run(mTxReceipt);
+    if (!runResult.isSuccess) {
+      break;
+    }
+
+    // Likely rewrite that to std::variant and check if it's scilla type
+    if (!m_queue.empty()) {
+      CpsRun* nextRun = m_queue.back().get();
+      if (nextRun->IsResumable()) {
+        nextRun->ProvideFeedback(*currentRun.get(), runResult);
+      }
+    }
+  }
+
+  // Increase nonce regardless of processing result
+  mAccountStore.IncreaseNonceForAccountAtomic(context.origSender);
   return runResult;
 }
 
