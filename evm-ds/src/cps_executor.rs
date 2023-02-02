@@ -1,8 +1,11 @@
 use std::collections::BTreeMap;
 
-use evm::executor::stack::{MemoryStackState, PrecompileFailure, PrecompileOutput, StackExecutor};
-
 use crate::protos::Evm as EvmProto;
+use core::cmp::min;
+use evm::executor::stack::{
+    MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor,
+    StackExecutorHandle, StackState,
+};
 
 use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
@@ -73,8 +76,12 @@ impl<'a> CpsExecutor<'a> {
         runtime: &mut Runtime,
         feedback: Option<EvmProto::Continuation>,
     ) -> CpsReason {
-        if let Err(r) = self.apply_feedback(runtime, feedback) {
-            return CpsReason::NormalExit(ExitReason::Fatal(evm::ExitFatal::CallErrorAsFatal(r)));
+        if self.enable_cps {
+            if let Err(r) = self.apply_feedback(runtime, feedback) {
+                return CpsReason::NormalExit(ExitReason::Fatal(evm::ExitFatal::CallErrorAsFatal(
+                    r,
+                )));
+            }
         }
         match runtime.run(self) {
             Capture::Exit(s) => CpsReason::NormalExit(s),
@@ -90,12 +97,37 @@ impl<'a> CpsExecutor<'a> {
         runtime: &mut Runtime,
         feedback: Option<EvmProto::Continuation>,
     ) -> Result<(), evm::ExitError> {
-        if let Some(evm_feedback) = feedback {
-            if evm_feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
-                // Pop placeholder placed on a stack by evm before trap
-                runtime.machine_mut().stack_mut().pop()?;
-                let eth_address = H160::from(evm_feedback.get_address());
+        if let Some(feedback) = feedback {
+            // Sputnik places empty H256 value on a stack before returning with a trap
+            // Hence, pop it before applying the feedback
+            runtime.machine_mut().stack_mut().pop()?;
+            if feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
+                let eth_address = H160::from(feedback.get_address());
                 runtime.machine_mut().stack_mut().push(eth_address.into())?;
+            } else {
+                *runtime.return_data_buffer() = Vec::from(feedback.get_calldata().get_data());
+                let offset_len: U256 = U256::from(feedback.get_calldata().get_offset_len());
+                let target_len = min(offset_len, U256::from(runtime.return_data_buffer().len()));
+
+                match runtime.machine_mut().memory_mut().copy_large(
+                    U256::from(feedback.get_calldata().get_memory_offset()),
+                    U256::zero(),
+                    target_len,
+                    feedback.get_calldata().get_data(),
+                ) {
+                    Ok(()) => {
+                        let mut value = H256::default();
+                        let one = U256::one();
+                        one.to_big_endian(&mut value[..]);
+                        runtime.machine_mut().stack_mut().push(value)?;
+                    }
+                    Err(_) => {
+                        let mut value = H256::default();
+                        let zero = U256::zero();
+                        zero.to_big_endian(&mut value[..]);
+                        runtime.machine_mut().stack_mut().push(value)?;
+                    }
+                }
             }
         }
         Result::Ok(())
@@ -260,6 +292,8 @@ impl<'a> Handler for CpsExecutor<'a> {
         let result =
             self.stack_executor
                 .create(caller, scheme, value, init_code.clone(), target_gas);
+
+        // Repack StackExecutor::CreateInterrupt to CpsExecutor::CreateInterrupt
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CreateInterrupt {
@@ -286,6 +320,43 @@ impl<'a> Handler for CpsExecutor<'a> {
         offset_len: U256,
     ) -> Capture<(ExitReason, Vec<u8>), Self::CallInterrupt> {
         if self.enable_cps {
+            // See StackExecutor precompiles handling
+            // TODO: allow precompile to return with a Trap
+            if let Some(result) =
+                self.stack_executor
+                    .precompiles()
+                    .execute(&mut StackExecutorHandle {
+                        executor: &mut self.stack_executor,
+                        code_address,
+                        input: &input,
+                        gas_limit: target_gas,
+                        context: &context,
+                        is_static,
+                    })
+            {
+                return match result {
+                    Ok(PrecompileOutput {
+                        exit_status,
+                        output,
+                    }) => Capture::Exit((ExitReason::Succeed(exit_status), output)),
+                    Err(PrecompileFailure::Error { exit_status }) => {
+                        Capture::Exit((ExitReason::Error(exit_status), Vec::new()))
+                    }
+                    Err(PrecompileFailure::Revert {
+                        exit_status,
+                        output,
+                    }) => Capture::Exit((ExitReason::Revert(exit_status), output)),
+                    Err(PrecompileFailure::Fatal { exit_status }) => {
+                        self.stack_executor
+                            .state_mut()
+                            .metadata_mut()
+                            .gasometer_mut()
+                            .fail();
+                        Capture::Exit((ExitReason::Fatal(exit_status), Vec::new()))
+                    }
+                };
+            }
+
             return Capture::Trap(Self::CallInterrupt {
                 code_address,
                 transfer,
@@ -308,7 +379,7 @@ impl<'a> Handler for CpsExecutor<'a> {
             memory_offset,
             offset_len,
         );
-
+        // Repack StackExecutor::CallInterrupt to CpsExecutor::CallInterrupt
         match result {
             Capture::Exit(s) => Capture::Exit(s),
             Capture::Trap(_) => Capture::Trap(Self::CallInterrupt {

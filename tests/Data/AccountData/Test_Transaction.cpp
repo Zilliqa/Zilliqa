@@ -23,6 +23,7 @@
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
+#include "libMetrics/Api.h"
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -38,12 +39,12 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() }
+  Fixture() { INIT_STDOUT_LOGGER() Metrics::GetInstance(); }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);
 
-BOOST_AUTO_TEST_CASE(test1) {
+BOOST_AUTO_TEST_CASE(test1, *boost::unit_test::timeout(180)) {
   LOG_MARKER();
 
   Address toAddr;

@@ -39,6 +39,6 @@ services:
     image: prom/prometheus:latest
     restart: always
     volumes:
-      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"

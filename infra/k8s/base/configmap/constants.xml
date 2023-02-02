@@ -200,8 +200,6 @@
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
         <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
-        <!-- Sort account store delta before serialization -->
-        <SORT_ACC_STORE_DELTA>false</SORT_ACC_STORE_DELTA>
     </jsonrpc>
     <network_composition>
         
@@ -349,12 +347,12 @@
     </transactions>
     <metric>
         <zilliqa>
-            <METRIC_ZILLIQA_HOSTNAME>localhost</METRIC_ZILLIQA_HOSTNAME>
+            <METRIC_ZILLIQA_HOSTNAME>0.0.0.0</METRIC_ZILLIQA_HOSTNAME>
             <METRIC_ZILLIQA_PORT>8085</METRIC_ZILLIQA_PORT>
-            <!-- PROVIDER can be PROMETHEUS or OTLPHTTP -->
+            <!-- PROVIDER can be PROMETHEUS or OTLPHTTP or STDOUT -->
             <METRIC_ZILLIQA_PROVIDER>PROMETHEUS</METRIC_ZILLIQA_PROVIDER>
-            <METRIC_ZILLIQA_READER_EXPORT_MS>1000</METRIC_ZILLIQA_READER_EXPORT_MS>
-            <METRIC_ZILLIQA_READER_TIMEOUT_MS>500</METRIC_ZILLIQA_READER_TIMEOUT_MS>
+            <METRIC_ZILLIQA_READER_EXPORT_MS>5000</METRIC_ZILLIQA_READER_EXPORT_MS>
+            <METRIC_ZILLIQA_READER_TIMEOUT_MS>2000</METRIC_ZILLIQA_READER_TIMEOUT_MS>
             <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
             <METRIC_ZILLIQA_VERSION>1.2.0</METRIC_ZILLIQA_VERSION>
             <!-- ALL means all metrics are enabled -->
@@ -363,12 +361,12 @@
     </metric>
     <trace>
         <zilliqa>
-            <TRACE_ZILLIQA_HOSTNAME>0.0.0.0</TRACE_ZILLIQA_HOSTNAME>
+            <TRACE_ZILLIQA_HOSTNAME>localhost</TRACE_ZILLIQA_HOSTNAME>
             <TRACE_ZILLIQA_PORT>4318</TRACE_ZILLIQA_PORT>
             <!-- PROVIDER can be OTLPHTTP or STDOUT -->
-            <TRACE_ZILLIQA_PROVIDER>OTLPHTTP</TRACE_ZILLIQA_PROVIDER>
+            <TRACE_ZILLIQA_PROVIDER>STDOUT</TRACE_ZILLIQA_PROVIDER>
             <!-- ALL means all metrics are enabled -->
-            <TRACE_ZILLIQA_MASK>NONE</TRACE_ZILLIQA_MASK>
+            <TRACE_ZILLIQA_MASK>ALL</TRACE_ZILLIQA_MASK>
         </zilliqa>
     </trace>
     <verifier>

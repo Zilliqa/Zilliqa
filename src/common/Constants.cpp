@@ -36,9 +36,14 @@ struct PTree {
 };
 
 unsigned int ReadConstantNumeric(const string& propertyName,
-                                 const char* path = "node.general.") {
-  auto pt = PTree::GetInstance();
-  return pt.get<unsigned int>(path + propertyName);
+                                 const char* path = "node.general.",
+                                 unsigned int defaultVal = 0) {
+  try {
+    auto pt = PTree::GetInstance();
+    return pt.get<unsigned int>(path + propertyName);
+  } catch (exception& e) {
+    return defaultVal;
+  }
 }
 
 double ReadConstantDouble(const string& propertyName,
@@ -744,16 +749,18 @@ const uint64_t EVM_RPC_TIMEOUT_SECONDS{
     ReadConstantUInt64("EVM_RPC_TIMEOUT_SECONDS", "node.jsonrpc.", 60)};
 const bool LAUNCH_EVM_DAEMON{
     ReadConstantString("LAUNCH_EVM_DAEMON", "node.jsonrpc.", "true") == "true"};
+const bool ENABLE_CPS{
+    ReadConstantString("ENABLE_CPS", "node.jsonrpc.", "true") == "true"};
 const std::string METRIC_ZILLIQA_HOSTNAME{ReadConstantString(
     "METRIC_ZILLIQA_HOSTNAME", "node.metric.zilliqa.", "localhost")};
 const std::string METRIC_ZILLIQA_PROVIDER{ReadConstantString(
     "METRIC_ZILLIQA_PROVIDER", "node.metric.zilliqa.", "prometheus")};
 const unsigned int METRIC_ZILLIQA_PORT{
-    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.")};
+    ReadConstantNumeric("METRIC_ZILLIQA_PORT", "node.metric.zilliqa.", 8090)};
 const unsigned int METRIC_ZILLIQA_READER_EXPORT_MS{ReadConstantNumeric(
-    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.")};
+    "METRIC_ZILLIQA_READER_EXPORT_MS", "node.metric.zilliqa.", 1000)};
 const unsigned int METRIC_ZILLIQA_READER_TIMEOUT_MS{ReadConstantNumeric(
-    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.")};
+    "METRIC_ZILLIQA_READER_TIMEOUT_MS", "node.metric.zilliqa.", 500)};
 const std::string METRIC_ZILLIQA_SCHEMA{
     ReadConstantString("METRIC_ZILLIQA_SCHEMA", "node.metric.zilliqa.",
                        "https://opentelemetry.io/schemas/1.2.0")};
@@ -768,4 +775,4 @@ const std::string TRACE_ZILLIQA_PROVIDER{ReadConstantString(
 const std::string TRACE_ZILLIQA_HOSTNAME{ReadConstantString(
     "TRACE_ZILLIQA_HOSTNAME", "node.trace.zilliqa.", "localhost")};
 const unsigned int TRACE_ZILLIQA_PORT{
-    ReadConstantNumeric("TRACE_ZILLIQA_PORT", "node.trace.zilliqa.")};
+    ReadConstantNumeric("TRACE_ZILLIQA_PORT", "node.trace.zilliqa.", 4318)};

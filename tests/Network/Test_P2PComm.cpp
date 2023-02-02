@@ -19,10 +19,10 @@
 #include <chrono>
 #include <iostream>
 #include <vector>
+#include "libMetrics/Metrics.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DetachedFunction.h"
-#include "libUtils/Metrics.h"
-#include "libUtils/Tracing.h"
 
 using namespace std;
 chrono::high_resolution_clock::time_point startTime;

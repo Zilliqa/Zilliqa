@@ -17,9 +17,7 @@
 #include <chrono>
 
 #include <boost/filesystem.hpp>
-#include <chrono>
 
-#include <opentelemetry/sdk/metrics/meter.h>
 #include <unordered_map>
 #include <vector>
 #include "libData/AccountStore/services/scilla/ScillaClient.h"
@@ -30,19 +28,17 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/SysCommand.h"
+
 #include "libUtils/TimeUtils.h"
-#include "libUtils/Tracing.h"
 
 #include "libData/AccountStore/AccountStoreSC.h"
-#include "opentelemetry/context/context.h"
-#include "opentelemetry/metrics/provider.h"
+#include "libMetrics/Api.h"
 
 namespace {
 
-zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-  static auto counter = Metrics::GetMeter()->CreateUInt64Counter(
-      "zilliqa.processors", "Metrics for AccountStore", "Blocks");
+Z_I64METRIC &GetInvocationsCounter() {
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "zilliqa.processors",
+                             "Metrics for AccountStore", "Blocks"};
   return counter;
 }
 
@@ -57,73 +53,76 @@ typedef long int observerType;
 #endif
 
 namespace zil {
-namespace scilla {
+namespace local {
 
-zil::metrics::uint64Counter_t &GetInvocationsCounter() {
-  static auto counter = Metrics::GetMeter()->CreateUInt64Counter(
-      "zilliqa.scilla", "Metrics for AccountStore", "calls");
+Z_I64METRIC &GetInvocationsCounter() {
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla",
+                             "Metrics for AccountStore", "calls"};
   return counter;
 }
 
-std::shared_ptr<opentelemetry::metrics::ObservableInstrument>
-    &GetGeneralCounters() {
-  static auto counter = Metrics::GetMeter()->CreateInt64ObservableGauge(
-      "zilliqa.general", "General Statistics", "");
+Z_I64GAUGE &GetEvmLatencyCounter() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "evm.latency.counter",
+                            "Simple EVM latency gauge", "?", true};
   return counter;
 }
 
-zil::metrics::doubleHistogram_t &GetHistogramCounter() {
-  static auto counter = Metrics::GetMeter()->CreateDoubleHistogram(
-      zil::accountstore::SCILLA_HISTOGRAM, "scilla latency histogram", "ms");
+Z_I64GAUGE &GetScillaLatencyCounter() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla.latency.counter",
+                            "Simple Scilla latency gauge", "?", true};
   return counter;
 }
 
-}  // namespace scilla
+Z_I64GAUGE &GetProcessorBNCounters() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
+                            "Block number seen by processor", "?", true};
+  return counter;
+}
+
+Z_I64GAUGE &GetProcessorDSBNCounters() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
+                            "Ds Block number seen by processor", "?", true};
+  return counter;
+}
+}  // namespace local
 }  // namespace zil
-
-double AccountStoreSC::m_transactionLatency = 0;
 
 AccountStoreSC::AccountStoreSC() {
   Metrics::GetInstance();
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
   m_txnProcessTimeout = false;
 
-  const auto lamda = [](opentelemetry::metrics::ObserverResult observer_result,
-                        void *state) {
-    AccountStoreSC *ac = static_cast<AccountStoreSC *>(state);
-
-    // Do it this way around as it can only be double or int64 APPLE Clang does
-    // not like long : long long
-    if (not std::holds_alternative<
-            std::shared_ptr<opentelemetry::metrics::ObserverResultT<double>>>(
-            observer_result)) {
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
-          observer_result)
-          ->Observe(ac->m_stats.blockNumber, {{"counter", "Blocknumber"}});
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
-          observer_result)
-          ->Observe(ac->m_stats.blockNumberDS, {{"counter", "DSBlocknumber"}});
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
-          observer_result)
-          ->Observe(ac->m_stats.evmCall, {{"latency", "evm"}});
-      std::get<
-          std::shared_ptr<opentelemetry::metrics::ObserverResultT<int64_t>>>(
-          observer_result)
-          ->Observe(ac->m_stats.scillaCall, {{"latency", "scilla"}});
+  zil::local::GetEvmLatencyCounter().SetCallback([this](auto &&result) {
+    if (zil::local::GetEvmLatencyCounter().Enabled()) {
+      if (m_stats.evmCall > 0) {
+        result.Set(m_stats.evmCall, {});
+      }
     }
-  };
+  });
 
-  zil::scilla::GetGeneralCounters()->AddCallback(lamda,
-                                                 static_cast<void *>(this));
+  zil::local::GetScillaLatencyCounter().SetCallback([this](auto &&result) {
+    if (zil::local::GetScillaLatencyCounter().Enabled()) {
+      if (m_stats.scillaCall > 0) {
+        result.Set(m_stats.scillaCall, {});
+      }
+    }
+  });
 
-  std::string boundary_name{"Latency view"};
-  Metrics::GetInstance().AddCounterHistogramView(
-      zil::accountstore::EVM_HISTOGRAM, m_latencieBoudaries, boundary_name);
-  Metrics::GetInstance().AddCounterHistogramView(
-      zil::accountstore::SCILLA_HISTOGRAM, m_latencieBoudaries, boundary_name);
+  zil::local::GetProcessorBNCounters().SetCallback([this](auto &&result) {
+    if (zil::local::GetProcessorBNCounters().Enabled()) {
+      if (m_stats.blockNumber > 0) {
+        result.Set(m_stats.blockNumber, {});
+      }
+    }
+  });
+
+  zil::local::GetProcessorDSBNCounters().SetCallback([this](auto &&result) {
+    if (zil::local::GetProcessorBNCounters().Enabled()) {
+      if (m_stats.blockNumberDS > 0) {
+        result.Set(m_stats.blockNumberDS, {});
+      }
+    }
+  });
 }
 
 void AccountStoreSC::Init() {
@@ -214,15 +213,9 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
                                     const Transaction &transaction,
                                     TransactionReceipt &receipt,
                                     TxnStatus &error_code) {
-  INCREMENT_METHOD_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA);
+  INC_CALLS(GetInvocationsCounter());
 
-  CALLS_LATENCY_MARKER(GetInvocationsCounter(),
-                       zil::scilla::GetHistogramCounter(),
-                       zil::metrics::FilterClass::ACCOUNTSTORE_SCILLA);
   LOG_MARKER();
-
-  auto span = START_SPAN(SCILLA_PROCESSING, {});
-  SCOPED_SPAN(SCILLA_PROCESSING, scope, span);
 
   LOG_GENERAL(INFO, "Process txn: " << transaction.GetTranID());
 
@@ -253,8 +246,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
       // LOG_GENERAL(INFO, "Normal transaction");
-      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
-                              "Transaction", "Non-Contract");
+      INC_STATUS(GetInvocationsCounter(), "Transaction", "Non-Contract");
 
       // Disallow normal transaction to contract account
       Account *toAccount = this->GetAccount(toAddr);
@@ -270,8 +262,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
     }
     case Transaction::CONTRACT_CREATION: {
       LOG_GENERAL(INFO, "Create contract");
-      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
-                              "Transaction", "Create");
+
+      INC_STATUS(GetInvocationsCounter(), "Transaction", "Create");
 
       // bool validToTransferBalance = true;
 
@@ -579,8 +571,8 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
     }
     case Transaction::CONTRACT_CALL: {
       // reset the storageroot update buffer atomic per transaction
-      INCREMENT_CALLS_COUNTER(GetInvocationsCounter(), ACCOUNTSTORE_SCILLA,
-                              "Transaction", "Contract-Call/Non Contract");
+      INC_STATUS(GetInvocationsCounter(), "Transaction",
+                 "Contract-Call/Non Contract");
       m_storageRootUpdateBufferAtomic.clear();
 
       m_originAddr = fromAddr;

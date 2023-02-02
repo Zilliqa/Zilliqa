@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Zilliqa
+ * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,19 +16,27 @@
  */
 
 #include "Metrics.h"
-#include <chrono>
-#include <vector>
-#include "Tracing.h"
 
-#include <opentelemetry/sdk/resource/resource.h>
+#include <vector>
+
 #include <boost/algorithm/string.hpp>
+
+#include <opentelemetry/sdk/metrics/view/view.h>
+#include "opentelemetry/common/attribute_value.h"
+#include "opentelemetry/common/key_value_iterable.h"
 #include "opentelemetry/exporters/ostream/metric_exporter.h"
+#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
+#include "opentelemetry/exporters/otlp/otlp_grpc_metric_exporter_factory.h"
 #include "opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h"
 #include "opentelemetry/exporters/prometheus/exporter.h"
+#include "opentelemetry/metrics/async_instruments.h"
 #include "opentelemetry/metrics/provider.h"
-#include "opentelemetry/sdk/instrumentationscope/instrumentation_scope.h"
+#include "opentelemetry/metrics/sync_instruments.h"
+#include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
+#include "opentelemetry/sdk/metrics/metric_reader.h"
+#include "opentelemetry/sdk/resource/resource.h"
 
 #include "Tracing.h"
 #include "common/Constants.h"
@@ -56,79 +64,13 @@ void Metrics::Init() {
   if (cmp == "PROMETHEUS") {
     InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT));
+
   } else if (cmp == "OTLPHTTP") {
     InitOTHTTP();
+  } else if (cmp == "OTLPGRPC") {
+    InitOtlpGrpc();
   } else {
-    InitStdOut();
-  }
-}
-
-// TODO:: could probably optimise out the span with getcurrent span
-// Capture EMT - multipurpose talk to all capture event metric , log , trace of
-// event next step add linkage.
-
-bool Metrics::CaptureEMT(std::shared_ptr<opentelemetry::trace::Span> &span,
-                         zil::metrics::FilterClass fc,
-                         zil::trace::FilterClass tc,
-                         zil::metrics::uint64Counter_t &metric,
-                         const std::string &messageText, const uint8_t &code) {
-  try {
-    if (not messageText.empty()) {
-      LOG_GENERAL(WARNING, messageText);
-    }
-    if (zil::trace::Filter::GetInstance().Enabled(tc)) {
-      span->SetStatus(opentelemetry::trace::StatusCode::kError, messageText);
-    }
-    if (zil::metrics::Filter::GetInstance().Enabled(fc) &&
-        metric.get() != nullptr) {
-      metric->Add(1, {{"error", __FUNCTION__}});
-    }
-  } catch (...) {
-    return false;
-  }
-  return true;
-}
-
-namespace zil {
-namespace metrics {
-std::chrono::system_clock::time_point r_timer_start() {
-  return std::chrono::system_clock::now();
-}
-
-double r_timer_end(std::chrono::system_clock::time_point start_time) {
-  std::chrono::duration<double, std::micro> difference =
-      std::chrono::system_clock::now() - start_time;
-  return difference.count();
-}
-}  // namespace metrics
-}  // namespace zil
-
-Metrics::LatencyScopeMarker::LatencyScopeMarker(
-    zil::metrics::uint64Counter_t &metric,
-    zil::metrics::doubleHistogram_t &latency,
-    zil::metrics::FilterClass fc,
-    const char *file,
-    const char *func )
-    : m_file{file},
-      m_func{func},
-      m_metric(metric),
-      m_latency(latency),
-      m_filterClass(fc),
-      m_startTime(zil::metrics::r_timer_start()) {}
-
-Metrics::LatencyScopeMarker::~LatencyScopeMarker() {
-  if (zil::metrics::Filter::GetInstance().Enabled(m_filterClass)) {
-    try {
-      double taken = zil::metrics::r_timer_end(m_startTime);
-      if (taken > 0) taken /= 1000;  // convert to milliseconds
-      auto context = opentelemetry::context::Context{};
-      TRACE_ATTRIBUTE counter_attr = {{"method", m_func}};
-      m_metric->Add(1, counter_attr);
-      m_latency->Record(taken, counter_attr, context);
-    } catch (...) {
-      // TODO - Write some very specific Exception Handling.
-      std::cout << "Brute force catch" << std::endl;
-    }
+    InitStdOut();  // our favourite
   }
 }
 
@@ -168,13 +110,19 @@ void Metrics::InitOTHTTP() {
   otlp_exporter::OtlpHttpMetricExporterOptions options;
   if (!addr.empty()) {
     options.url = "http://" + addr + "/v1/metrics";
+    options.console_debug = true;
+    options.content_type =
+        opentelemetry::exporter::otlp::HttpRequestContentType::kJson;
+    options.aggregation_temporality =
+        opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
   }
   std::unique_ptr<metrics_sdk::PushMetricExporter> exporter =
       otlp_exporter::OtlpHttpMetricExporterFactory::Create(options);
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
       {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
-  auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
+  auto resource = opentelemetry::sdk::resource::Resource::Create(
+      attributes, METRIC_ZILLIQA_SCHEMA);
 
   opts.export_interval_millis =
       std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
@@ -188,6 +136,41 @@ void Metrics::InitOTHTTP() {
           std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(
               new opentelemetry::sdk::metrics::ViewRegistry()),
           resource));
+  auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
+  p->AddMetricReader(std::move(reader));
+  metrics_api::Provider::SetMeterProvider(p);
+}
+
+void Metrics::InitOtlpGrpc() {
+  otlp_exporter::OtlpGrpcMetricExporterOptions options;
+  metrics_sdk::PeriodicExportingMetricReaderOptions opts;
+  std::string addr{std::string(METRIC_ZILLIQA_HOSTNAME) + ":" +
+                   std::to_string(METRIC_ZILLIQA_PORT)};
+
+  opentelemetry::sdk::resource::ResourceAttributes attributes = {
+      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
+  auto resource = opentelemetry::sdk::resource::Resource::Create(
+      attributes, METRIC_ZILLIQA_SCHEMA);
+
+  opts.export_interval_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  opts.export_timeout_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+
+  options.endpoint = addr;
+  options.aggregation_temporality =
+      opentelemetry::sdk::metrics::AggregationTemporality::kCumulative;
+
+  auto exporter = otlp_exporter::OtlpGrpcMetricExporterFactory::Create(options);
+  std::unique_ptr<metrics_sdk::MetricReader> reader{
+      new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
+                                                     opts)};
+  auto provider = std::shared_ptr<metrics_api::MeterProvider>(
+      new metrics_sdk::MeterProvider(
+          std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(
+              new opentelemetry::sdk::metrics::ViewRegistry()),
+          resource));
+
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(provider);
   p->AddMetricReader(std::move(reader));
   metrics_api::Provider::SetMeterProvider(p);
@@ -208,8 +191,10 @@ void Metrics::InitPrometheus(
       {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
 
-  options.export_interval_millis = std::chrono::milliseconds(1000);
-  options.export_timeout_millis = std::chrono::milliseconds(500);
+  options.export_interval_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  options.export_timeout_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
   std::unique_ptr<metrics_sdk::MetricReader> reader{
       new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
                                                      options)};
@@ -232,14 +217,17 @@ void Metrics::Shutdown() {
   p->Shutdown();
 }
 
+
 namespace {
 
-[[maybe_unused]] inline auto GetMeter(
+
+/*
+auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
     const std::string &family) {
-    Metrics::GetInstance(); // just to make sure this is not the first call in the API, occurred in testing
-  return provider->GetMeter(family, "1.2.0");
+  return provider->GetMeter(family, "1.2.0", METRIC_ZILLIQA_SCHEMA);
 }
+ */
 
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {
@@ -254,103 +242,86 @@ inline std::string GetFullName(const std::string &family,
 }  // namespace
 
 zil::metrics::uint64Counter_t Metrics::CreateInt64Metric(
-    const std::string &family, const std::string &name, const std::string &desc,
-    std::string_view unit) {
-  return GetMeter()->CreateUInt64Counter(GetFullName(family, name), desc, unit);
+    const std::string &name, const std::string &desc, std::string unit) {
+  return GetMeter()->CreateUInt64Counter(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
 }
 
 zil::metrics::doubleCounter_t Metrics::CreateDoubleMetric(
-    const std::string &family, const std::string &name, const std::string &desc,
-    std::string_view unit) {
-  return GetMeter()->CreateDoubleCounter(GetFullName(family, name), desc, unit);
-}
-
-zil::metrics::Observable Metrics::CreateInt64UpDownMetric(
-    zil::metrics::FilterClass filter, const std::string &family,
-    const std::string &name, const std::string &desc, std::string_view unit) {
-  return zil::metrics::Observable(
-      filter, GetMeter()->CreateInt64ObservableUpDownCounter(
-                  GetFullName(family, name), desc, unit));
-}
-
-zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
-    zil::metrics::FilterClass filter, const std::string &family,
-    const std::string &name, const std::string &desc, std::string_view unit) {
-  return zil::metrics::Observable(
-      filter, GetMeter()->CreateDoubleObservableUpDownCounter(
-                  GetFullName(family, name), desc, unit));
-}
-
-zil::metrics::Observable Metrics::CreateInt64Gauge(
-    zil::metrics::FilterClass filter, const std::string &family,
-    const std::string &name, const std::string &desc, std::string_view unit) {
-  return zil::metrics::Observable(
-      filter, GetMeter()->CreateInt64ObservableGauge(GetFullName(family, name),
-                                                     desc, unit));
-}
-
-zil::metrics::Observable Metrics::CreateDoubleGauge(
-    zil::metrics::FilterClass filter, const std::string &family,
-    const std::string &name, const std::string &desc, std::string_view unit) {
-  return zil::metrics::Observable(
-      filter, GetMeter()->CreateDoubleObservableGauge(GetFullName(family, name),
-                                                      desc, unit));
+    const std::string &name, const std::string &desc, std::string unit) {
+  return GetMeter()->CreateDoubleCounter(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
 }
 
 zil::metrics::doubleHistogram_t Metrics::CreateDoubleHistogram(
-    const std::string &family, const std::string &name, const std::string &desc,
-    std::string_view unit) {
-  return GetMeter()->CreateDoubleHistogram(GetFullName(family, name), desc,
-                                           unit);
+    const std::string &name, const std::string &desc, std::string unit) {
+  return GetMeter()->CreateDoubleHistogram(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::uint64Historgram_t Metrics::CreateUInt64Histogram(
-    const std::string &family, const std::string &name, const std::string &desc,
-    std::string_view unit) {
-  return GetMeter()->CreateUInt64Histogram(GetFullName(family, name), desc,
-                                           unit);
+zil::metrics::Observable Metrics::CreateInt64UpDownMetric(
+    const std::string &name, const std::string &desc, std::string unit) {
+  return zil::metrics::Observable(
+      GetMeter()->CreateInt64ObservableUpDownCounter(
+          GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+}
+
+zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
+    const std::string &name, const std::string &desc, std::string unit) {
+  return zil::metrics::Observable(
+      GetMeter()->CreateDoubleObservableUpDownCounter(
+          GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+}
+
+zil::metrics::Observable Metrics::CreateInt64Gauge(const std::string &name,
+                                                   const std::string &desc,
+                                                   std::string unit) {
+  return zil::metrics::Observable(GetMeter()->CreateInt64ObservableGauge(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+}
+
+zil::metrics::Observable Metrics::CreateDoubleGauge(const std::string &name,
+                                                    const std::string &desc,
+                                                    std::string unit) {
+  return zil::metrics::Observable(GetMeter()->CreateDoubleObservableGauge(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateInt64ObservableCounter(
-    zil::metrics::FilterClass filter, const std::string &family,
-    const std::string &name, const std::string &desc, std::string_view unit) {
-  return zil::metrics::Observable(filter,
-                                  GetMeter()->CreateInt64ObservableCounter(
-                                      GetFullName(family, name), desc, unit));
+    const std::string &name, const std::string &desc, std::string unit) {
+  return zil::metrics::Observable(GetMeter()->CreateInt64ObservableCounter(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
-    zil::metrics::FilterClass filter, const std::string &family,
-    const std::string &name, const std::string &desc, std::string_view unit) {
-  return zil::metrics::Observable(filter,
-                                  GetMeter()->CreateDoubleObservableCounter(
-                                      GetFullName(family, name), desc, unit));
+    const std::string &name, const std::string &desc, std::string unit) {
+  return zil::metrics::Observable(GetMeter()->CreateDoubleObservableCounter(
+      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
 }
 
 void Metrics::AddCounterSumView(const std::string &name,
                                 const std::string &description) {
-  std::string version{"1.2.0"};
-  std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
   std::shared_ptr<opentelemetry::metrics::Meter> meter =
-      p->GetMeter("zilliqa", "1.2.0");
+      p->GetMeter("zilliqa", "1.2.0", METRIC_ZILLIQA_SCHEMA);
   // counter view
-  std::string counter_name = name + "_counter";
+  std::string counter_name = name;
   std::unique_ptr<metrics_sdk::InstrumentSelector> instrument_selector{
       new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kCounter,
                                           counter_name)};
   std::unique_ptr<metrics_sdk::MeterSelector> meter_selector{
-      new metrics_sdk::MeterSelector(name, version, schema)};
+      new metrics_sdk::MeterSelector(name, METRIC_ZILLIQA_SCHEMA_VERSION,
+                                     METRIC_ZILLIQA_SCHEMA)};
   std::unique_ptr<metrics_sdk::View> sum_view{new metrics_sdk::View{
       name, description, metrics_sdk::AggregationType::kSum}};
   p->AddView(std::move(instrument_selector), std::move(meter_selector),
              std::move(sum_view));
 }
 
-void Metrics::AddCounterHistogramView(const std::string &name,
-                                      std::list<double> &list,
-                                      std::string &description) {
+void Metrics::AddCounterHistogramView(const std::string name,
+                                      std::list<double> list,
+                                      const std::string &description) {
   // counter view
 
   std::unique_ptr<metrics_sdk::InstrumentSelector>
@@ -384,11 +355,20 @@ void Metrics::AddCounterHistogramView(const std::string &name,
 }
 
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
+  GetInstance();
 
   const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
-  return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                     METRIC_ZILLIQA_SCHEMA);
+
+  assert(p);
+
+  try {
+    return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                       METRIC_ZILLIQA_SCHEMA);
+  } catch (...) {
+    std::cout << "Initialisation problem" << std::endl;
+    abort();
+  }
 }
 
 namespace zil::metrics {
@@ -409,8 +389,7 @@ void SetT(opentelemetry::metrics::ObserverResult &result, T value,
 
     if (holds_double) {
       // ignore assert in release mode
-      // TODO : Replace with a new logger
-      // LOG_GENERAL(WARNING, "Integer metric expected");
+      LOG_GENERAL(WARNING, "Integer metric expected");
       return;
     }
   } else {
@@ -418,8 +397,7 @@ void SetT(opentelemetry::metrics::ObserverResult &result, T value,
 
     if (!holds_double) {
       // ignore assert in release mode
-      // TDOD : Replace wait a new Logger
-      // LOG_GENERAL(WARNING, "Floating point metric expected");
+      LOG_GENERAL(WARNING, "Floating point metric expected");
       return;
     }
   }
@@ -456,10 +434,8 @@ void Observable::RawCallback(
   assert(state);
   auto *self = static_cast<Observable *>(state);
 
-  if (Filter::GetInstance().Enabled(self->m_filter)) {
-    assert(self->m_callback);
-    self->m_callback(Result(observer_result));
-  }
+  assert(self->m_callback);
+  self->m_callback(Result(observer_result));
 }
 
 namespace {

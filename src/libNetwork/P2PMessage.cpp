@@ -19,7 +19,7 @@
 
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
-#include "libUtils/Tracing.h"
+#include "libMetrics/Tracing.h"
 
 namespace zil::p2p {
 

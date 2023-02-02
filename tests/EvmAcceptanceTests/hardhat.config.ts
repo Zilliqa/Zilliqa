@@ -1,10 +1,9 @@
-import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
-import "hardhat-ethernal";
 import "dotenv/config";
-import {ENV_VARS} from "./helpers/EnvVarParser";
+import "hardhat-ethernal";
+import { ENV_VARS } from "./helpers/EnvVarParser";
 
 if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
