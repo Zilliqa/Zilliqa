@@ -16,6 +16,7 @@
  */
 
 #include "libBlockchain/VCBlock.h"
+#include "libUtils/Logger.h"
 
 #define BOOST_TEST_MODULE vcblocktest
 #define BOOST_TEST_DYN_LINK

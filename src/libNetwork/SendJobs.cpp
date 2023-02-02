@@ -159,8 +159,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Close() {
-    m_closed = true;
-    CloseGracefully(std::move(m_socket));
+    if (!m_closed) {
+      m_closed = true;
+      CloseGracefully(std::move(m_socket));
+    }
   }
 
  private:
@@ -392,6 +394,8 @@ class SendJobsImpl : public SendJobs,
     peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();
+
+    peerCtx->Close();
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
