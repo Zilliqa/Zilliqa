@@ -32,6 +32,18 @@
 Note that it may take a while to download the container image and start up.
 1. Make sure devex is configured to talk to `http://localhost:8080`.
 
+# Enable the observability framework
+1. Export the environment variable `OBSERVABILITY=True`
+    ```
+    export OBSERVABILITY=True
+    ```
+
+1. Run tilt to deploy the observability framework
+
+    ```
+    tilt up
+    ```
+
 # Access the observability framework
 
 1. Set up a reverse proxy which will forward all the requests to the ingress nginx binded on `localhost:80`.
