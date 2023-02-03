@@ -135,29 +135,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
                                             cpsCtx, runType);
   m_queue.push_back(std::move(evmRun));
 
-  mAccountStore.BufferCurrentContractStorageState();
-
-  CpsExecuteResult runResult;
-  while (!m_queue.empty()) {
-    const auto currentRun = std::move(m_queue.back());
-    m_queue.pop_back();
-    runResult = currentRun->Run(mTxReceipt);
-    if (!runResult.isSuccess) {
-      break;
-    }
-
-    // Likely rewrite that to std::variant and check if it's scilla type
-    if (!m_queue.empty()) {
-      CpsRun* nextRun = m_queue.back().get();
-      if (nextRun->IsResumable()) {
-        nextRun->ProvideFeedback(*currentRun.get(), runResult);
-      }
-    }
-  }
-
-  // Increase nonce regardless of processing result
-  const auto sender = clientContext.GetTransaction().GetSenderAddr();
-  mAccountStore.IncreaseNonceForAccountAtomic(sender);
+  auto runResult = processLoop(cpsCtx);
 
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
@@ -294,6 +272,7 @@ void CpsExecutor::RefundGas(
       return;
     }
     amount = Amount::fromWei(gasRefund);
+    // Scilla initiates
   } else {
     const auto& scillaCtx = std::get<ScillaProcessContext>(context);
     account = scillaCtx.origin;
