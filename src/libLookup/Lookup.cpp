@@ -1315,8 +1315,9 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
+      // TODO: revert
       if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
-          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
+          m_mediator.m_selfPeer != node.second) {
         notBlackListedSeedNodes.push_back(
             Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
       }
@@ -1588,8 +1589,7 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
   return false;
 }
 
-bool Lookup::GetDSLeaderTxnPool()
-{
+bool Lookup::GetDSLeaderTxnPool() {
   zbytes retMsg = {MessageType::DIRECTORY,
                    DSInstructionType::GETDSLEADERTXNPOOL};
 
@@ -1604,6 +1604,15 @@ bool Lookup::GetDSLeaderTxnPool()
 
   auto consensusLeaderID = m_mediator.m_node->GetConsensusLeaderID();
   const auto& dsLeader = m_mediator.m_DSCommittee->at(consensusLeaderID);
+  if (consensusLeaderID >= m_mediator.m_DSCommittee->size()) {
+    LOG_GENERAL(WARNING, "consensusLeaderID = "
+                             << consensusLeaderID << " >= DS committee size = "
+                             << m_mediator.m_DSCommittee->size());
+    return true;
+  }
+
+  LOG_GENERAL(INFO, "Sending GETDSLEADERTXNPOOL to consensusLeaderID = "
+                        << consensusLeaderID << " at " << dsLeader.second);
 
   P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
 
