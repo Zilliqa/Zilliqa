@@ -38,6 +38,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
+
 namespace zil {
 
 namespace local {
@@ -283,6 +284,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
+
+  auto span = START_SPAN(ACC_EVM, {});
+  SCOPED_SPAN(ACC_EVM, scope, span);
+
   std::string txnId = evmContext.GetTranID().hex();
 
   INC_CALLS(zil::local::GetEvmCallsCounter());

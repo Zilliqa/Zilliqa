@@ -18,6 +18,7 @@
 #define ZILLIQA_SRC_LIBMETRICS_API_H_
 
 #include "Metrics.h"
+#include "Tracing.h"
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
 
