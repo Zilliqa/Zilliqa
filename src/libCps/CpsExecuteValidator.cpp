@@ -96,12 +96,12 @@ CpsExecuteResult CpsExecuteValidator::CheckGasLimit(
     // Contract creation
   } else if (context.contractType ==
              Transaction::ContractType::CONTRACT_CREATION) {
-    uint64_t requiredGas = std::max(
+    const auto createPenalty = std::max(
         CONTRACT_CREATE_GAS,
         static_cast<unsigned int>(context.code.size() + context.data.size()));
 
-    requiredGas += SCILLA_CHECKER_INVOKE_GAS;
-    requiredGas += SCILLA_RUNNER_INVOKE_GAS;
+    const auto scillaGas = SCILLA_CHECKER_INVOKE_GAS + SCILLA_RUNNER_INVOKE_GAS;
+    const auto requiredGas = std::max(scillaGas, createPenalty);
 
     if (context.gasLimit < requiredGas) {
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};

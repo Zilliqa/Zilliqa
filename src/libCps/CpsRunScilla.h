@@ -26,8 +26,8 @@ class TransactionReceipt;
 
 namespace libCps {
 class Address;
-class CpsAccountStoreInterface;
-class CpsContext;
+struct CpsAccountStoreInterface;
+struct CpsContext;
 class CpsExecutor;
 
 struct ScillaInvokeResult {
@@ -40,7 +40,11 @@ struct ScillaArgs {
   Address from;
   Address dest;
   Amount value;
+  zbytes code;
+  zbytes data;
   uint64_t gasLimit = 0;
+  uint64_t blockNum = 0;
+  uint64_t dsBlockNum = 0;
 };
 
 class CpsRunScilla final : public CpsRun {
@@ -63,6 +67,9 @@ class CpsRunScilla final : public CpsRun {
     DISAMBIGUATE
   };
   ScillaInvokeResult InvokeScillaInterpreter(INVOKE_TYPE type);
+  CpsExecuteResult checkGas();
+  CpsExecuteResult runCreate(TransactionReceipt& receipt);
+  CpsExecuteResult runCall(TransactionReceipt& receipt);
 
  private:
   ScillaArgs mArgs;

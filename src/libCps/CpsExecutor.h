@@ -55,6 +55,7 @@ class CpsExecutor final {
   void TakeGasFromAccount(
       const std::variant<EvmProcessContext, ScillaProcessContext>& context);
   CpsExecuteResult processLoop(const CpsContext& context);
+  uint64_t GetRemainedGasCore(const CpsExecuteResult& execResult) const;
 
  private:
   CpsAccountStoreInterface& mAccountStore;

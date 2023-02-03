@@ -21,14 +21,12 @@
 #include "libCps/CpsExecuteValidator.h"
 #include "libCps/CpsRunEvm.h"
 #include "libCps/CpsRunScilla.h"
-#include "libCps/CpsRunTransfer.h"
 #include "libCps/CpsUtils.h"
 
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 #include "libUtils/GasConv.h"
-#include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
 namespace libCps {
@@ -55,6 +53,9 @@ CpsExecuteResult CpsExecutor::PreValidateEvmRun(
 
 CpsExecuteResult CpsExecutor::PreValidateScillaRun(
     const ScillaProcessContext& context) const {
+  if (!mAccountStore.AccountExistsAtomic(context.origin)) {
+    return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
+  }
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(context.origin);
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
   if (!amountResult.isSuccess) {
@@ -107,9 +108,27 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 
   m_queue.push_back(std::move(scillaRun));
 
-  mAccountStore.BufferCurrentContractStorageState();
+  const auto execResult = processLoop(cpsCtx);
 
-  return {TxnStatus::NOT_PRESENT, true, {}};
+  const auto gasRemainedCore = GetRemainedGasCore(execResult);
+
+  const bool isFailure = !m_queue.empty() || !execResult.isSuccess;
+
+  if (isFailure) {
+    mAccountStore.RevertContractStorageState();
+    mAccountStore.DiscardAtomics();
+    mTxReceipt.SetCumGas(clientContext.gasLimit - gasRemainedCore);
+    mTxReceipt.SetResult(false);
+    mTxReceipt.update();
+  } else {
+    mTxReceipt.SetCumGas(clientContext.gasLimit - gasRemainedCore);
+    mTxReceipt.SetResult(true);
+    mTxReceipt.update();
+    RefundGas(clientContext, gasRemainedCore);
+    mAccountStore.CommitAtomics();
+  }
+
+  return execResult;
 }
 
 CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
@@ -140,17 +159,11 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
 
-  uint64_t gasRemainedCore = 0;
-  // EvmRun was the last one
+  uint64_t gasRemainedCore = GetRemainedGasCore(runResult);
+
   if (std::holds_alternative<evm::EvmResult>(runResult.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(runResult.result);
     clientContext.SetEvmResult(evmResult);
-    gasRemainedCore = GasConv::GasUnitsFromEthToCore(evmResult.remaining_gas());
-  }
-  // ScillaRun was the last one
-  else {
-    const auto& scillaResult = std::get<ScillaResult>(runResult.result);
-    gasRemainedCore = scillaResult.gasRemained;
   }
 
   const bool isFailure = !m_queue.empty() || !runResult.isSuccess;
@@ -285,6 +298,20 @@ void CpsExecutor::RefundGas(
   }
 
   mAccountStore.IncreaseBalanceAtomic(account, amount);
+}
+
+uint64_t CpsExecutor::GetRemainedGasCore(
+    const CpsExecuteResult& execResult) const {
+  // EvmRun was the last one
+  if (std::holds_alternative<evm::EvmResult>(execResult.result)) {
+    const auto& evmResult = std::get<evm::EvmResult>(execResult.result);
+    return GasConv::GasUnitsFromEthToCore(evmResult.remaining_gas());
+  }
+  // ScillaRun was the last one
+  else {
+    const auto& scillaResult = std::get<ScillaResult>(execResult.result);
+    return scillaResult.gasRemained;
+  }
 }
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {

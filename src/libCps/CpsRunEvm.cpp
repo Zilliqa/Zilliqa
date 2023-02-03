@@ -590,7 +590,8 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
 void CpsRunEvm::InstallCode(const Address& address, const std::string& code) {
   std::map<std::string, zbytes> t_newmetadata;
 
-  t_newmetadata.emplace(mAccountStore.GenerateContractStorageKey(address),
+  t_newmetadata.emplace(mAccountStore.GenerateContractStorageKey(
+                            address, CONTRACT_ADDR_INDICATOR, {}),
                         address.asBytes());
   mAccountStore.UpdateStates(address, t_newmetadata, {}, true);
 

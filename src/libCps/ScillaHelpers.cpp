@@ -479,6 +479,111 @@ void ScillaHelpers::CreateScillaCodeFiles(
   ExportCommonFiles(acc_store, os, contract, extlibs_exports);
 }
 
+bool ScillaHelpers::ParseContractCheckerOutput(
+    CpsAccountStoreInterface &acc_store, const Address &addr,
+    const std::string &checkerPrint, TransactionReceipt &receipt,
+    std::map<std::string, zbytes> &metadata, uint64_t &gasRemained,
+    bool is_library) {
+  LOG_MARKER();
+
+  LOG_GENERAL(
+      INFO,
+      "Output: " << std::endl
+                 << (checkerPrint.length() > MAX_SCILLA_OUTPUT_SIZE_IN_BYTES
+                         ? checkerPrint.substr(
+                               0, MAX_SCILLA_OUTPUT_SIZE_IN_BYTES) +
+                               "\n ... "
+                         : checkerPrint));
+
+  Json::Value root;
+  try {
+    if (!JSONUtils::GetInstance().convertStrtoJson(checkerPrint, root)) {
+      receipt.AddError(JSON_OUTPUT_CORRUPTED);
+      return false;
+    }
+
+    if (!root.isMember("gas_remaining")) {
+      LOG_GENERAL(
+          WARNING,
+          "The json output of this contract didn't contain gas_remaining");
+      if (gasRemained > CONTRACT_CREATE_GAS) {
+        gasRemained -= CONTRACT_CREATE_GAS;
+      } else {
+        gasRemained = 0;
+      }
+      receipt.AddError(NO_GAS_REMAINING_FOUND);
+      return false;
+    }
+    try {
+      gasRemained = std::min(
+          gasRemained,
+          boost::lexical_cast<uint64_t>(root["gas_remaining"].asString()));
+    } catch (...) {
+      LOG_GENERAL(WARNING, "_amount " << root["gas_remaining"].asString()
+                                      << " is not numeric");
+      return false;
+    }
+    LOG_GENERAL(INFO, "gasRemained: " << gasRemained);
+
+    if (is_library) {
+      if (root.isMember("errors")) {
+        receipt.AddException(root["errors"]);
+        return false;
+      }
+    } else {
+      if (!root.isMember("contract_info")) {
+        receipt.AddError(CHECKER_FAILED);
+
+        if (root.isMember("errors")) {
+          receipt.AddException(root["errors"]);
+        }
+        return false;
+      }
+      bool hasMap = false;
+
+      auto handleTypeForStateVar = [&](const Json::Value &stateVars) {
+        if (!stateVars.isArray()) {
+          LOG_GENERAL(WARNING, "An array of state variables expected."
+                                   << stateVars.toStyledString());
+          return false;
+        }
+        for (const auto &field : stateVars) {
+          if (field.isMember("vname") && field.isMember("depth") &&
+              field["depth"].isNumeric() && field.isMember("type")) {
+            metadata.emplace(
+                acc_store.GenerateContractStorageKey(
+                    addr, MAP_DEPTH_INDICATOR, {field["vname"].asString()}),
+                DataConversion::StringToCharArray(field["depth"].asString()));
+            if (!hasMap && field["depth"].asInt() > 0) {
+              hasMap = true;
+            }
+            metadata.emplace(
+                acc_store.GenerateContractStorageKey(
+                    addr, TYPE_INDICATOR, {field["vname"].asString()}),
+                DataConversion::StringToCharArray(field["type"].asString()));
+          } else {
+            LOG_GENERAL(WARNING,
+                        "Unexpected field detected" << field.toStyledString());
+            return false;
+          }
+        }
+        return true;
+      };
+      if (root["contract_info"].isMember("fields")) {
+        if (!handleTypeForStateVar(root["contract_info"]["fields"])) {
+          return false;
+        }
+      }
+    }
+  } catch (const std::exception &e) {
+    LOG_GENERAL(WARNING, "Exception caught: " << e.what() << " checkerPrint: "
+                                              << checkerPrint);
+    return false;
+  }
+
+  return true;
+}
+
 bool ScillaHelpers::PopulateExtlibsExports(
     CpsAccountStoreInterface &acc_store, uint32_t scilla_version,
     const std::vector<Address> &extlibs,

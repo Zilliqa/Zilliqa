@@ -52,7 +52,9 @@ struct CpsAccountStoreInterface {
   virtual bool UpdateStateValue(const Address& addr, const zbytes& q,
                                 unsigned int q_offset, const zbytes& v,
                                 unsigned int v_offset) = 0;
-  virtual std::string GenerateContractStorageKey(const Address& addr) = 0;
+  virtual std::string GenerateContractStorageKey(
+      const Address& addr, const std::string& key,
+      const std::vector<std::string>& indices) = 0;
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) = 0;
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;
@@ -76,6 +78,13 @@ struct CpsAccountStoreInterface {
   virtual std::condition_variable& GetScillaCondVariable() = 0;
   virtual std::mutex& GetScillaMutex() = 0;
   virtual bool GetProcessTimeout() const = 0;
+  virtual bool InitContract(const Address& address, const zbytes& code,
+                            const zbytes& data, uint64_t blockNum) = 0;
+  virtual bool SetBCInfoProvider(uint64_t blockNum, uint64_t dsBlockNum,
+                                 const Address& origin,
+                                 const Address& destAddress,
+                                 uint32_t scillaVersion) = 0;
+  virtual void MarkNewLibraryCreated(const Address& address) = 0;
 };
 }  // namespace libCps
 

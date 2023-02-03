@@ -50,7 +50,7 @@ struct counter_t {
 class ScillaIPCServer;
 
 class AccountStoreSC : public AccountStoreBase {
-  friend struct AccountStoreCpsInterface;
+  friend class AccountStoreCpsInterface;
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;

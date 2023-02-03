@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBCPS_SCILLAHELPERS_H_
 
 #include "common/BaseType.h"
+#include "common/FixedHash.h"
 
 #include <json/json.h>
 
