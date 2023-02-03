@@ -9,7 +9,6 @@ resources:
 
 - multiplier.yaml
 - origin.yaml
-- prometheus.yaml
 
 - explorer.yaml
 - services.yaml
