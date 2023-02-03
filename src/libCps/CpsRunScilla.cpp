@@ -159,6 +159,8 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::ERROR, false, ScillaResult{mArgs.gasLimit}};
   }
 
+  mAccountStore.MarkNewLibraryCreated(mArgs.dest);
+
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
 
