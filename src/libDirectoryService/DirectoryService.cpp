@@ -1070,7 +1070,14 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
     return true;
   }
 
-  LOG_GENERAL(INFO, "DirectoryService::ProcessGetDSLeaderTxnPool invoked");
+  LOG_GENERAL(INFO,
+              "Returning created transactions for " << m_mediator.m_selfPeer);
+  auto txns = m_mediator.m_node->GetCreatedTxns();
+  for (const auto& txn : txns) {
+    LOG_GENERAL(INFO, "Transaction ID: "
+                          << txn.GetTranID() << ", To Addr: " << txn.GetToAddr()
+                          << " (hex: " << txn.GetToAddr().hex() << ')');
+  }
 
   return true;
 }
