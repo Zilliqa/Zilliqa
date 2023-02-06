@@ -11,6 +11,7 @@ on:
         description: 'Commit or tag'
         required: false
         default: ''
+  pull_request:
   push:
     branches-ignore:
       - 'release/**'
