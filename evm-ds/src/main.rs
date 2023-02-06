@@ -241,9 +241,15 @@ async fn run_evm_impl(
 
                 // Collect the listener infos
                 listener.call_stack[0].output = hex::encode(runtime.machine().return_value());
-                let serialized_listener = serde_json::to_string_pretty(&listener.call_stack).unwrap();
 
-                //println!("serialized listener: {:?}", serialized_listener);
+                // Call stack SHOULD be 0, now.
+                if listener.call_stack.len() != 1 {
+                    println!("call stack should be at final/top after");
+                }
+
+                let serialized_listener = serde_json::to_string_pretty(&listener.call_stack.first().unwrap()).unwrap();
+
+                println!("serialized listener: {:?}", serialized_listener);
 
                 //let collected: Vec<Chars> = serialized_listener.as_bytes().to_vec();
 
@@ -391,11 +397,11 @@ impl tracing::EventListener for LoggingEventListener {
 
                 call_to_push.call_type = "CALL".to_string();
                 call_to_push.from = end_of_stack.to.clone();
-                call_to_push.to = code_address.to_string();
+                call_to_push.to = format!("{:?}", code_address);
                 call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
                 call_to_push.gasUsed = "0x0".to_string(); // todo
                 call_to_push.input = hex::encode(input);
-                call_to_push.output = "0x0".to_string();
+                call_to_push.output = "0x0".to_string(); // todo
                 if let Some(trans) = transfer {
                     call_to_push.value = trans.value.to_string();
                 }

@@ -28,25 +28,32 @@ describe("Chained Contract Calls Functionality", function () {
       console.log("contractAddr1: ", contractTwo.address);
       console.log("contractAddr2: ", contractThree.address);
 
-      //////////////////////////////////
-      const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
-        ethers.Wallet.createRandom().connect(ethers.provider)
-      );
+      ////////////////////////////////////
+      //const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
+      //  ethers.Wallet.createRandom().connect(ethers.provider)
+      //);
 
-      const addresses = accounts.map((signer) => signer.address);
-      //////////////////////////////////
+      //const addresses = accounts.map((signer) => signer.address);
+      ////////////////////////////////////
 
-      let res0 = await contractOne.chainedCallTempEmpty();
-      let res1 = await contractOne.chainedCallTemp(addresses);
-      let res = await contractOne.chainedCall(addresses, 0);
+      //let res0 = await contractOne.chainedCallTempEmpty();
+      //let res1 = await contractOne.chainedCallTemp(addresses);
+      let res = await contractOne.chainedCall([contractTwo.address, contractThree.address, contractOne.address], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
 
-      await sendJsonRpcRequest(METHOD, 1, ["0x00ff"], (result, status) => {
+      await sendJsonRpcRequest(METHOD, 1, [res.hash], (result, status) => {
         logDebug(result);
 
         assert.equal(status, 200, "has status code");
         assert.isString(result.result, "Expected to be populated");
+        console.log("RES: ", result);
+
+        let jsonObject = JSON.parse(result.result);
+
+        console.log("RES2: ", jsonObject);
+        console.log("RES2: ", jsonObject["calls"]);
+
       });
     });
 
