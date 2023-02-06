@@ -160,7 +160,6 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/bin/genaccounts \
    /usr/local/bin/sendcmd \
    /usr/local/bin/gentxn \
-   /usr/local/bin/gensigninitialds \
    /usr/local/bin/validateDB \
    /usr/local/bin/genTxnBodiesFromS3 \
    /usr/local/bin/getnetworkhistory \

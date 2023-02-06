@@ -51,14 +51,6 @@ add_custom_command(TARGET zilliqa
 target_include_directories(verifymultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(verifymultisig PUBLIC ${Schnorr_LIBRARY} Utils Boost::program_options)
 
-add_executable(gensigninitialds gen_sign_initial_ds.cpp)
-add_custom_command(TARGET zilliqa
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gensigninitialds> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gensigninitialds PUBLIC Utils Persistence ${Schnorr_LIBRARY} Boost::program_options)
-
-
 add_executable(grepperf grepperf.cpp)
 target_include_directories(grepperf PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(grepperf PUBLIC Boost::program_options -s)

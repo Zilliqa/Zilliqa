@@ -287,7 +287,7 @@ endif()
 # installation
 
 set_target_properties(buildTxBlockHashesToNums genaccounts genkeypair genTxnBodiesFromS3
-                      getpub getaddr gentxn signmultisig verifymultisig gensigninitialds getnetworkhistory grepperf  
+                      getpub getaddr gentxn signmultisig verifymultisig getnetworkhistory grepperf  
                       getrewardhistory isolatedServer sendcmd validateDB zilliqa zilliqad
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
