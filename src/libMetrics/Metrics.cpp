@@ -49,12 +49,11 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
 
+constexpr double METRICS_VERSION = 8.6;
+const std::string ZILLIQA_METRIC_FAMILY{"zilliqa-cpp"};
+
 Metrics::Metrics() { Init(); }
 
-namespace {
-const double METRICS_VERSION{8.6};
-const std::string ZILLIQA_METRIC_FAMILY{"zilliqa-cpp"};
-}  // namespace
 
 void Metrics::Init() {
   zil::metrics::Filter::GetInstance().init();
@@ -69,9 +68,19 @@ void Metrics::Init() {
     InitOTHTTP();
   } else if (cmp == "OTLPGRPC") {
     InitOtlpGrpc();
+  } else if (cmp == "STDOUT"){
+    InitStdOut();
   } else {
-    InitStdOut();  // our favourite
+    LOG_GENERAL(WARNING,"Telemetry provider has defaulted to NOOP provider due to no configuration");
+    InitNoop();
   }
+}
+
+void Metrics::InitNoop() {
+  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill = opentelemetry::metrics::Provider::GetMeterProvider();
+
+  auto tf = opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(new opentelemetry::metrics::NoopMeterProvider());
+  opentelemetry::metrics::Provider::SetMeterProvider(tf);
 }
 
 void Metrics::InitStdOut() {
@@ -89,7 +98,7 @@ void Metrics::InitStdOut() {
                                                      options)};
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
+      {"service.name", "zilliqa-daemon"}, {"version", (double)8.6}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
   auto provider = std::shared_ptr<metrics_api::MeterProvider>(
       new metrics_sdk::MeterProvider(
@@ -221,14 +230,6 @@ void Metrics::Shutdown() {
 namespace {
 
 
-/*
-auto GetMeter(
-    std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
-    const std::string &family) {
-  return provider->GetMeter(family, "1.2.0", METRIC_ZILLIQA_SCHEMA);
-}
- */
-
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {
   std::string full_name;
@@ -356,19 +357,11 @@ void Metrics::AddCounterHistogramView(const std::string name,
 
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
   GetInstance();
+  auto p1 = metrics_api::Provider::GetMeterProvider();
+  auto p2 = p1->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                        METRIC_ZILLIQA_SCHEMA);
 
-  const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
-      metrics_api::Provider::GetMeterProvider());
-
-  assert(p);
-
-  try {
-    return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                       METRIC_ZILLIQA_SCHEMA);
-  } catch (...) {
-    std::cout << "Initialisation problem" << std::endl;
-    abort();
-  }
+  return p2;
 }
 
 namespace zil::metrics {
