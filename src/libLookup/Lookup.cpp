@@ -1611,8 +1611,8 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
     return std::nullopt;
   }
 
-  LOG_GENERAL(INFO, "Sending GETDSLEADERTXNPOOL to consensusLeaderID = "
-                        << consensusLeaderID << " at " << dsLeader.second);
+  LOG_GENERAL(INFO, "Requesting transaction pool from consensusLeaderID = "
+                        << consensusLeaderID << " (" << dsLeader.second << ')');
 
   P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
 
@@ -1628,7 +1628,6 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
     return std::nullopt;
   }
 
-  LOG_GENERAL(INFO, "Received reply to GETDSLEADERTXNPOOL");
   return m_dsLeaderTxnPool;
 }
 
@@ -3902,24 +3901,17 @@ bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
     return true;
   }
 
-  if (offset >= message.size()) {
-    LOG_GENERAL(WARNING, "Invalid txn message, message size: "
-                             << message.size()
-                             << ", txn data offset: " << offset);
-    return false;
-  }
-
   std::vector<Transaction> txns;
-  if (!Messenger::GetTransactionArray(message, offset, txns)) {
-    LOG_GENERAL(WARNING, "Messenger::GetTransactionArray failed");
+  if (!Messenger::GetLookupSetDSLeaderTxnPool(message, offset, txns)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupSetDSLeaderTxnPool failed.");
     return false;
   }
-
-  LOG_GENERAL(INFO, "Received " << txns.size() << " transactions");
 
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
   m_dsLeaderTxnPool = std::move(txns);
   cv_dsLeaderTxnPool.notify_all();
+
   return true;
 }
 

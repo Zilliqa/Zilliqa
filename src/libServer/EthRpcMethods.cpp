@@ -1734,8 +1734,15 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
                            "Sent to a non-lookup");
   }
 
+  auto txns = m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
+  if (!txns) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+
   Json::Value res = Json::arrayValue;
-  m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
+  for (const auto &txn : *txns) {
+    res.append(JSONConversion::convertTxtoJson(txn));
+  }
 
   return res;
 }

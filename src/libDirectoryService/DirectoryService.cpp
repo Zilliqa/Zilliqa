@@ -1088,12 +1088,14 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
 
   LOG_GENERAL(INFO,
               "Returning created transactions for " << m_mediator.m_selfPeer);
-  zbytes txnPoolMessage = {MessageType::DIRECTORY,
+  zbytes txnPoolMessage = {MessageType::LOOKUP,
                            LookupInstructionType::SETDSLEADERTXNPOOL};
 
-  if (!Messenger::SetTransactionArray(txnPoolMessage, MessageOffset::BODY,
-                                      m_mediator.m_node->GetCreatedTxns())) {
-    LOG_GENERAL(WARNING, "Messenger::SetTransactionArray failed");
+  if (!Messenger::SetLookupSetDSLeaderTxnPool(
+          txnPoolMessage, MessageOffset::BODY,
+          m_mediator.m_node->GetCreatedTxns())) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::SetLookupSetDSLeaderTxnPool failed.");
     return false;
   }
 

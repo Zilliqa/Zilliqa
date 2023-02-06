@@ -558,7 +558,7 @@ class EthRpcMethods {
    * @param request : no parameters
    * @param response : Json array of transactions from the DSLeader txn pool.
    */
-  inline virtual void GetDSLeaderTxnPoolI(const Json::Value& request,
+  inline virtual void GetDSLeaderTxnPoolI(const Json::Value& /*request*/,
                                                Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
     response = this->GetDSLeaderTxnPool();
