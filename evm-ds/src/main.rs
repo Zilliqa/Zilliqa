@@ -140,7 +140,7 @@ async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        debug!(
+        println!(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}",
             backend.origin, address, gas_limit, apparent_value, hex::encode(&code), hex::encode(&data),
             backend.extras, estimate);
@@ -148,8 +148,8 @@ async fn run_evm_impl(
         //let mut listener = LoggingEventListener{traces : Default::default()};
         let mut listener = LoggingEventListener::new();
         listener.call_stack[0].call_type = "CALL".to_string();
-        listener.call_stack[0].from = backend.origin.to_string();
-        listener.call_stack[0].to = address.to_string();
+        listener.call_stack[0].from = format!("{:?}", backend.origin);
+        listener.call_stack[0].to = format!("{:?}", address);
         listener.call_stack[0].value = apparent_value.to_string();
         listener.call_stack[0].input = hex::encode(&data);
 
@@ -241,7 +241,7 @@ async fn run_evm_impl(
 
                 // Collect the listener infos
                 listener.call_stack[0].output = hex::encode(runtime.machine().return_value());
-                let serialized_listener = serde_json::to_string(&listener.call_stack).unwrap();
+                let serialized_listener = serde_json::to_string_pretty(&listener.call_stack).unwrap();
 
                 println!("serialized listener: {:?}", serialized_listener);
 
@@ -251,7 +251,7 @@ async fn run_evm_impl(
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}, result: {:?}", evm_context,
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}, result: {:?}\n", evm_context,
                     backend.origin, address, gas_limit, apparent_value, hex::encode(code.as_ref()), hex::encode(data.as_ref()),
                     backend.extras, estimate, result);
                 result
@@ -280,7 +280,7 @@ async fn run_evm_impl(
 
 #[derive(Debug,Serialize)]
 struct CallContext {
-    //#[serde(serialize_with = "type")]
+    #[serde(rename = "type")]
     pub call_type : String,
     pub from : String,
     pub to : String,

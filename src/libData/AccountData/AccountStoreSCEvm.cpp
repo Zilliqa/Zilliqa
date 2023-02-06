@@ -438,6 +438,7 @@ bool AccountStoreSC<MAP>::UpdateAccountsEvm(const uint64_t& blockNum,
 
       if (result.trace_size() > 0) {
           LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+          LOG_GENERAL(INFO, "" << result.trace(0));
 
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         result.trace(0))) {
