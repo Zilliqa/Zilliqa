@@ -1,9 +1,5 @@
 name: CI - Development
 
-
-
-
-
 on:
   workflow_dispatch:
     inputs:
