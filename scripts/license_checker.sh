@@ -53,6 +53,7 @@ scope=$(find . -type f \( \
             ! -path "./tests/observability/*" \
             ! -path "./vcpkg_installed/*" \
             ! -path "./infra/*" \
+            ! -path "./infra-devops/*" \
             ! -path "./src/depends/*" \
             ! -path "./scilla/deps/*" \
             ! -path "./scilla/_build/*" \
