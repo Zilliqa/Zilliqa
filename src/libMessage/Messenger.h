@@ -899,6 +899,11 @@ class Messenger {
                                           const PairOfKey& keys,
                                           uint32_t listenPort);
 
+  static bool GetLookupGetDSLeaderTxnPool(const zbytes& src,
+                                          unsigned int offset,
+                                          PubKey& senderPubkey,
+                                          uint32_t& listenPort);
+
   static bool SetLookupSetCosigsRewardsFromSeed(
       zbytes& dst, const unsigned int offset, const PairOfKey& myKey,
       const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,

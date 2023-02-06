@@ -105,7 +105,8 @@ enum LookupInstructionType : unsigned char {
   GETPENDINGTXNFROML2LDATAPROVIDER =
       0x24,  // UNUSED GETPENDINGTXNFROML2LDATAPROVIDER
   GETMICROBLOCKFROML2LDATAPROVIDER = 0x25,  // ProcessGetMicroBlockFromL2l,
-  GETTXNSFROML2LDATAPROVIDER = 0x26         // ProcessGetTxnsFromL2l
+  GETTXNSFROML2LDATAPROVIDER = 0x26,         // ProcessGetTxnsFromL2l
+  SETDSLEADERTXNPOOL = 0x27
 };
 
 enum TxSharingMode : unsigned char {

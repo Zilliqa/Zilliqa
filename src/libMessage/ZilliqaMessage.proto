@@ -1191,6 +1191,11 @@ message LookupGetDSLeaderTxnPool
     ByteArray signature             = 3;
 }
 
+message LookupSetDSLeaderTxnPool
+{
+    ProtoTransactionArray dsLeaderTxnPool = 1;
+}
+
 // Lookup set cosigs/rewards for ds node
 message LookupSetCosigsRewardsFromSeed
 {

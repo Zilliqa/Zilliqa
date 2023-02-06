@@ -266,7 +266,7 @@ class Lookup : public Executable {
                                       unsigned int offset, const Peer& from,
                                       const unsigned char& startByte);
 
-  bool GetDSLeaderTxnPool();
+  std::optional<std::vector<Transaction>> GetDSLeaderTxnPool();
 
   // Get the offline lookup nodes from lookup nodes
   bool GetOfflineLookupNodes();
@@ -339,6 +339,9 @@ class Lookup : public Executable {
                                 const unsigned char& startByte);
 
   bool ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
+                             const Peer& from, const unsigned char& startByte);
+
+  bool ProcessSetDSLeaderTxnPoolFromSeed(const zbytes& message, unsigned int offset,
                              const Peer& from, const unsigned char& startByte);
 
   bool ProcessSetTxnsFromLookup(const zbytes& message, unsigned int offset,
@@ -571,6 +574,10 @@ class Lookup : public Executable {
   std::mutex m_mutexVCFinalBlockProcessed;
   std::condition_variable cv_vcFinalBlockProcessed;
   bool m_vcFinalBlockProcessed = false;
+
+  std::mutex m_mutexDSLeaderTxnPool;
+  std::condition_variable cv_dsLeaderTxnPool;
+  std::vector<Transaction> m_dsLeaderTxnPool;
 
   // exit trigger
   std::atomic<bool> m_exitPullThread{};

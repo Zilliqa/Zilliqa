@@ -1059,7 +1059,7 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
 }
 
 bool DirectoryService::ProcessGetDSLeaderTxnPool(
-    const zbytes& /*message*/, unsigned int /*offset*/, const Peer& /*from*/,
+    const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& /*startByte*/) {
   LOG_MARKER();
 
@@ -1070,15 +1070,35 @@ bool DirectoryService::ProcessGetDSLeaderTxnPool(
     return true;
   }
 
-  LOG_GENERAL(INFO,
-              "Returning created transactions for " << m_mediator.m_selfPeer);
-  auto txns = m_mediator.m_node->GetCreatedTxns();
-  for (const auto& txn : txns) {
-    LOG_GENERAL(INFO, "Transaction ID: "
-                          << txn.GetTranID() << ", To Addr: " << txn.GetToAddr()
-                          << " (hex: " << txn.GetToAddr().hex() << ')');
+  PubKey lookupPubKey;
+  uint32_t listenPort = 0;
+  if (!Messenger::GetLookupGetDSLeaderTxnPool(message, offset, lookupPubKey,
+                                              listenPort)) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return false;
   }
 
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO,
+              "Returning created transactions for " << m_mediator.m_selfPeer);
+  zbytes txnPoolMessage = {MessageType::DIRECTORY,
+                           LookupInstructionType::SETDSLEADERTXNPOOL};
+
+  if (!Messenger::SetTransactionArray(txnPoolMessage, MessageOffset::BODY,
+                                      m_mediator.m_node->GetCreatedTxns())) {
+    LOG_GENERAL(WARNING, "Messenger::SetTransactionArray failed");
+    return false;
+  }
+
+  Peer requestingNode(from.m_ipAddress, listenPort);
+  P2PComm::GetInstance().SendMessage(requestingNode, txnPoolMessage);
   return true;
 }
 
