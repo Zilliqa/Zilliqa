@@ -43,7 +43,10 @@ CpsExecuteResult CpsRunScilla::Run(TransactionReceipt& receipt) {
   if (GetType() != CpsRun::Call && GetType() != CpsRun::Create) {
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
-  checkGas();
+  const auto gasCheckRes = checkGas();
+  if (!gasCheckRes.isSuccess) {
+    return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+  }
 
   if (GetType() == CpsRun::Create) {
     return runCreate(receipt);
@@ -63,30 +66,39 @@ CpsExecuteResult CpsRunScilla::checkGas() {
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   } else if (GetType() == CpsRun::Call) {
-    uint64_t requiredGas = std::max(
+    const auto callPenalty = std::max(
         CONTRACT_INVOKE_GAS, static_cast<unsigned int>(mArgs.data.size()));
 
-    requiredGas += SCILLA_RUNNER_INVOKE_GAS;
-    mArgs.gasLimit -= requiredGas;
+    const auto requiredGas = std::max(SCILLA_RUNNER_INVOKE_GAS, callPenalty);
+    if (mArgs.gasLimit < requiredGas) {
+      return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
+    }
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
 CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
+  const auto createPenalty = std::max(
+      CONTRACT_CREATE_GAS,
+      static_cast<unsigned int>(mArgs.code.size() + mArgs.data.size()));
+
+  // Original gas passed from user (not the one in current ctx)
+  auto retScillaVal =
+      ScillaResult{mCpsContext.scillaExtras.gasLimit - createPenalty};
   mArgs.dest =
       mAccountStore.GetAddressForContract(mArgs.from, TRANSACTION_VERSION);
   if (!mAccountStore.AddAccountAtomic(mArgs.dest)) {
-    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
+    return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, retScillaVal};
   }
 
   if (!mAccountStore.TransferBalanceAtomic(mArgs.from, mArgs.dest,
                                            mArgs.value)) {
-    return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, retScillaVal};
   }
 
   if (!mAccountStore.InitContract(mArgs.dest, mArgs.code, mArgs.data,
                                   mArgs.blockNum)) {
-    return {TxnStatus::FAIL_CONTRACT_INIT, false, {}};
+    return {TxnStatus::FAIL_CONTRACT_INIT, false, retScillaVal};
   }
 
   std::vector<Address> extlibs;
@@ -96,35 +108,40 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
 
   if (!mAccountStore.GetContractAuxiliaries(mArgs.dest, isLibrary,
                                             scillaVersion, extlibs)) {
-    return {TxnStatus::FAIL_SCILLA_LIB, false, {}};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
   }
 
   if (DISABLE_SCILLA_LIB && isLibrary) {
-    return {TxnStatus::FAIL_SCILLA_LIB, false, {}};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
   }
 
   if (!ScillaHelpers::PopulateExtlibsExports(mAccountStore, scillaVersion,
                                              extlibs, extlibsExports)) {
-    return {TxnStatus::FAIL_SCILLA_LIB, false, {}};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
   }
 
   if (!ScillaHelpers::ExportCreateContractFiles(mAccountStore, mArgs.dest,
                                                 isLibrary, scillaVersion,
                                                 extlibsExports)) {
-    return {TxnStatus::FAIL_SCILLA_LIB, false, {}};
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
   }
 
   if (!mAccountStore.SetBCInfoProvider(mArgs.blockNum, mArgs.dsBlockNum,
-                                       mArgs.from, mArgs.dest, scillaVersion)) {
-    return {TxnStatus::ERROR, false, {}};
+                                       mCpsContext.scillaExtras.origin,
+                                       mArgs.dest, scillaVersion)) {
+    return {TxnStatus::ERROR, false, retScillaVal};
   }
 
   mArgs.gasLimit -= SCILLA_CHECKER_INVOKE_GAS;
 
+  retScillaVal =
+      ScillaResult{std::min(retScillaVal.gasRemained,
+                            mCpsContext.scillaExtras.gasLimit - createPenalty)};
+
   const auto checkerResult = InvokeScillaInterpreter(INVOKE_TYPE::CHECKER);
   if (!checkerResult.isSuccess) {
     receipt.AddError(CHECKER_FAILED);
-    return {TxnStatus::ERROR, false, ScillaResult{mArgs.gasLimit}};
+    return {TxnStatus::ERROR, false, retScillaVal};
   }
 
   std::map<std::string, zbytes> t_metadata;
@@ -136,19 +153,19 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   if (!ScillaHelpers::ParseContractCheckerOutput(
           mAccountStore, mArgs.dest, checkerResult.returnVal, receipt,
           t_metadata, mArgs.gasLimit, isLibrary)) {
-    return {TxnStatus::ERROR, false, ScillaResult{mArgs.gasLimit}};
+    return {TxnStatus::ERROR, false, retScillaVal};
   }
 
   mArgs.gasLimit -= SCILLA_RUNNER_INVOKE_GAS;
   const auto runnerResult = InvokeScillaInterpreter(INVOKE_TYPE::RUNNER_CREATE);
   if (!runnerResult.isSuccess) {
     receipt.AddError(RUNNER_FAILED);
-    return {TxnStatus::ERROR, false, ScillaResult{mArgs.gasLimit}};
+    return {TxnStatus::ERROR, false, retScillaVal};
   }
 
   if (ScillaHelpers::ParseCreateContract(mArgs.gasLimit, runnerResult.returnVal,
                                          receipt, isLibrary)) {
-    return {TxnStatus::ERROR, false, ScillaResult{mArgs.gasLimit}};
+    return {TxnStatus::ERROR, false, retScillaVal};
   }
 
   t_metadata.emplace(mAccountStore.GenerateContractStorageKey(
@@ -156,7 +173,7 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
                      mArgs.dest.asBytes());
 
   if (!mAccountStore.UpdateStates(mArgs.dest, t_metadata, {}, true)) {
-    return {TxnStatus::ERROR, false, ScillaResult{mArgs.gasLimit}};
+    return {TxnStatus::ERROR, false, retScillaVal};
   }
 
   mAccountStore.MarkNewLibraryCreated(mArgs.dest);
@@ -164,14 +181,70 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
 
-  (void)mExecutor;
-  (void)mCpsContext;
-  return {TxnStatus::NOT_PRESENT, true, ScillaResult{mArgs.gasLimit}};
+  return {TxnStatus::NOT_PRESENT, true, retScillaVal};
 }
 
 CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
-  (void)receipt;
-  return {};
+  const auto callPenalty = std::max(
+      CONTRACT_INVOKE_GAS, static_cast<unsigned int>(mArgs.data.size()));
+  auto retScillaVal = ScillaResult{std::min(
+      mCpsContext.scillaExtras.gasLimit - callPenalty, mArgs.gasLimit)};
+
+  if (!mAccountStore.AccountExistsAtomic(mArgs.dest)) {
+    return {TxnStatus::INVALID_TO_ACCOUNT, false, retScillaVal};
+  }
+
+  const auto currBalance = mAccountStore.GetBalanceForAccountAtomic(mArgs.from);
+  if (currBalance < mArgs.value) {
+    return {TxnStatus::INSUFFICIENT_BALANCE, false, retScillaVal};
+  }
+
+  mArgs.gasLimit -= SCILLA_RUNNER_INVOKE_GAS;
+  retScillaVal = ScillaResult{std::min(
+      mCpsContext.scillaExtras.gasLimit - callPenalty, mArgs.gasLimit)};
+
+  std::vector<Address> extlibs;
+  bool isLibrary = false;
+  uint32_t scillaVersion;
+  std::map<Address, std::pair<std::string, std::string>> extlibsExports;
+
+  if (!mAccountStore.GetContractAuxiliaries(mArgs.dest, isLibrary,
+                                            scillaVersion, extlibs)) {
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+  }
+
+  if (DISABLE_SCILLA_LIB && isLibrary) {
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+  }
+
+  if (!ScillaHelpers::PopulateExtlibsExports(mAccountStore, scillaVersion,
+                                             extlibs, extlibsExports)) {
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+  }
+
+  if (!ScillaHelpers::ExportCallContractFiles(
+          mAccountStore, mArgs.from, mArgs.dest, mArgs.data, mArgs.value,
+          scillaVersion, extlibsExports)) {
+    return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
+  }
+
+  if (!mAccountStore.SetBCInfoProvider(mArgs.blockNum, mArgs.dsBlockNum,
+                                       mCpsContext.scillaExtras.origin,
+                                       mArgs.dest, scillaVersion)) {
+    return {TxnStatus::ERROR, false, retScillaVal};
+  }
+
+  const auto runnerResult = InvokeScillaInterpreter(INVOKE_TYPE::RUNNER_CALL);
+
+  if (!runnerResult.isSuccess) {
+    return {TxnStatus::ERROR, false, retScillaVal};
+  }
+
+  const auto parseCallResults = ScillaHelpers::ParseCallContract(
+      mAccountStore, mArgs.gasLimit, runnerResult.returnVal, receipt,
+      mArgs.edge, scillaVersion);
+
+  return {TxnStatus::NOT_PRESENT, true, retScillaVal};
 }
 
 ScillaInvokeResult CpsRunScilla::InvokeScillaInterpreter(INVOKE_TYPE type) {

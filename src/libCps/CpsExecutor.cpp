@@ -117,6 +117,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   if (isFailure) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
+    mTxReceipt.RemoveAllTransitions();
     mTxReceipt.SetCumGas(clientContext.gasLimit - gasRemainedCore);
     mTxReceipt.SetResult(false);
     mTxReceipt.update();

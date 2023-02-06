@@ -42,6 +42,7 @@ struct ScillaArgs {
   Amount value;
   zbytes code;
   zbytes data;
+  uint32_t edge = 0;
   uint64_t gasLimit = 0;
   uint64_t blockNum = 0;
   uint64_t dsBlockNum = 0;
