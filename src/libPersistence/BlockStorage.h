@@ -196,23 +196,10 @@ class BlockStorage : boost::noncopyable {
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
 
-  /// Deletes the requested DS block
-  bool DeleteDSBlock(const uint64_t& blocknum);
-
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
 
-  // /// Deletes the requested Micro block
-  // bool DeleteMicroBlock(const dev::h256 & key);
-
-  /// Deletes the requested transaction body
-  bool DeleteTxBody(const dev::h256& key);
-
-  bool DeleteVCBlock(const BlockHash& blockhash);
-
   bool DeleteStateDelta(const uint64_t& finalBlockNum);
-
-  bool DeleteMicroBlock(const BlockHash& blockHash);
 
   /// Retrieves all the DSBlocks
   bool GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks);
