@@ -40,6 +40,7 @@ RUN apt-get update \
     lcov \
     libcurl4-openssl-dev \
     libgmp-dev \
+    libsecp256k1-dev \
     libssl-dev \
     libtool \
     libxml2-utils \
@@ -106,7 +107,11 @@ COPY vcpkg-registry/ vcpkg-registry
 COPY vcpkg-configuration.json .
 COPY vcpkg.json .
 
+# python3 is unfortunately needed for upb which has a problem finding the
+# vcpkg compiled python.
+RUN apt-get install -y python3-dev
 RUN --mount=type=cache,target=/root/.cache/vcpkg/ ${VCPKG_ROOT}/vcpkg install --triplet=x64-linux-dynamic
+RUN apt-get remove -y python3-dev && apt-get autoremove -y
 
 ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
@@ -231,6 +236,11 @@ RUN rm -f /usr/local/bin/gcc \
 ARG PYTHON3_ENV_PATH=/usr/local
 RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
   && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
+
+RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
+  && chmod a+x /usr/bin/pip3 \
+  && rm -f /usr/bin/pip \
+  && ln -s /usr/bin/pip3 /usr/bin/pip
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 

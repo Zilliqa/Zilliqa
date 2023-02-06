@@ -1315,9 +1315,8 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
 
     for (const auto& node : m_seedNodes) {
       auto seedNodeIpToSend = TryGettingResolvedIP(node.second);
-      // TODO: revert
       if (!Blacklist::GetInstance().Exist(seedNodeIpToSend) &&
-          m_mediator.m_selfPeer != node.second) {
+          (m_mediator.m_selfPeer.GetIpAddress() != seedNodeIpToSend)) {
         notBlackListedSeedNodes.push_back(
             Peer(seedNodeIpToSend, node.second.GetListenPortHost()));
       }
@@ -1600,22 +1599,28 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
     return std::nullopt;
   }
 
-  std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+  // Request the transaction pool from the DS leader
+  {
+    std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
 
-  auto consensusLeaderID = m_mediator.m_node->GetConsensusLeaderID();
-  const auto& dsLeader = m_mediator.m_DSCommittee->at(consensusLeaderID);
-  if (consensusLeaderID >= m_mediator.m_DSCommittee->size()) {
-    LOG_GENERAL(WARNING, "consensusLeaderID = "
-                             << consensusLeaderID << " >= DS committee size = "
-                             << m_mediator.m_DSCommittee->size());
-    return std::nullopt;
+    auto consensusLeaderID = m_mediator.m_node->GetConsensusLeaderID();
+    if (consensusLeaderID >= m_mediator.m_DSCommittee->size()) {
+      LOG_GENERAL(WARNING,
+                  "consensusLeaderID = " << consensusLeaderID
+                                         << " >= DS committee size = "
+                                         << m_mediator.m_DSCommittee->size());
+      return std::nullopt;
+    }
+
+    const auto& dsLeader = m_mediator.m_DSCommittee->at(consensusLeaderID);
+    LOG_GENERAL(INFO, "Requesting transaction pool from consensusLeaderID = "
+                          << consensusLeaderID << " (" << dsLeader.second
+                          << ')');
+
+    P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
   }
 
-  LOG_GENERAL(INFO, "Requesting transaction pool from consensusLeaderID = "
-                        << consensusLeaderID << " (" << dsLeader.second << ')');
-
-  P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
-
+  // Wait for the reply from the DS leader
   static constexpr const chrono::seconds GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS{
       3};
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
@@ -1628,7 +1633,9 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
     return std::nullopt;
   }
 
-  return m_dsLeaderTxnPool;
+  std::vector<Transaction> result;
+  result.swap(m_dsLeaderTxnPool);
+  return result;
 }
 
 bool Lookup::ComposeAndStoreMBnForwardTxnMessage(const uint64_t& blockNum) {
