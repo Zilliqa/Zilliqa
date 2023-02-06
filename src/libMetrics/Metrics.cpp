@@ -49,11 +49,12 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
 
-constexpr double METRICS_VERSION = 8.6;
-const std::string ZILLIQA_METRIC_FAMILY{"zilliqa-cpp"};
-
 Metrics::Metrics() { Init(); }
 
+namespace {
+const double METRICS_VERSION{8.6};
+const std::string ZILLIQA_METRIC_FAMILY{"zilliqa-cpp"};
+}  // namespace
 
 void Metrics::Init() {
   zil::metrics::Filter::GetInstance().init();
@@ -98,7 +99,7 @@ void Metrics::InitStdOut() {
                                                      options)};
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"}, {"version", (double)8.6}};
+      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
   auto provider = std::shared_ptr<metrics_api::MeterProvider>(
       new metrics_sdk::MeterProvider(
