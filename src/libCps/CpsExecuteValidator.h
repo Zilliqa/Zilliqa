@@ -21,7 +21,7 @@
 #include "common/BaseType.h"
 #include "libCps/CpsExecuteResult.h"
 
-class EvmProcessContext;
+struct EvmProcessContext;
 
 namespace libCps {
 class Amount;

@@ -321,7 +321,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   AsioContext& m_asioContext;
-  const DoneCallback& m_doneCallback;
+  DoneCallback m_doneCallback;
 
   Peer m_peer;
 
@@ -377,7 +377,7 @@ class SendJobsImpl : public SendJobs,
 
     AsioContext localCtx(1);
 
-    auto doneCallback = [&](const Peer& peer, ErrorCode ec) {
+    auto doneCallback = [&localCtx](const Peer& peer, ErrorCode ec) {
       auto peerStr = peer.GetPrintableIPAddress();
       if (ec) {
         LOG_GENERAL(WARNING, "Send message to "
