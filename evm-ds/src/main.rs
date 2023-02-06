@@ -16,8 +16,9 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::rc::{Rc, Weak};
 
-use serde::ser::{Serialize, SerializeStruct, Serializer};
-use serde_json;
+use serde::ser::{SerializeStruct, Serializer};
+//use serde_json::Serializer::;
+use serde::{Deserialize, Serialize};
 
 use anyhow::Context;
 use clap::Parser;
@@ -244,9 +245,9 @@ async fn run_evm_impl(
 
                 println!("serialized listener: {:?}", serialized_listener);
 
-                let collected: Vec<Chars> = serialized_listener.as_bytes().to_vec();
+                //let collected: Vec<Chars> = serialized_listener.as_bytes().to_vec();
 
-                result.set_trace(collected);
+                result.set_trace(vec![serialized_listener].into_iter().map(Into::into).collect());
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
                 info!(
@@ -266,7 +267,7 @@ async fn run_evm_impl(
                 let mut exit_reason = EvmProto::ExitReason::new();
                 exit_reason.set_fatal(fatal);
                 result.set_exit_reason(exit_reason);
-                result.set_trace(listener.traces.into_iter().map(Into::into).collect());
+                //result.set_trace(listener.traces.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
                 result
             }
@@ -277,7 +278,9 @@ async fn run_evm_impl(
     .unwrap()
 }
 
+#[derive(Debug,Serialize)]
 struct CallContext {
+    //#[serde(serialize_with = "type")]
     pub call_type : String,
     pub from : String,
     pub to : String,
@@ -297,8 +300,8 @@ impl CallContext {
             from : Default::default(),
             to : Default::default(),
             value : Default::default(),
-            gas : "0x0",
-            gasUsed : "0x0",
+            gas : "0x0".to_string(),
+            gasUsed : "0x0".to_string(),
             input : Default::default(),
             output : Default::default(),
             calls: Default::default(),
@@ -306,8 +309,10 @@ impl CallContext {
     }
 }
 
-// This implementation has a stack of call contexts with reference to their calls - so a tree is
-// Created in this way
+// This implementation has a stack of call contexts each with reference to their calls - so a tree is
+// Created in this way.
+// Each new call gets added to the end of the stack and becomes the current context.
+// On returning from a call, the end of the stack gets put into the item above's calls
 struct LoggingEventListener {
     pub call_stack: Vec<CallContext>,
 }
@@ -320,26 +325,26 @@ impl LoggingEventListener {
         }
     }
 }
-// This is what #[derive(Serialize)] would generate.
-// We need a custom impl becasue one of the fields is 'type' which is a reserved word
-impl Serialize for CallContext {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok>
-    where
-        S: Serializer,
-    {
-        let mut s = serializer.serialize_struct("CallContext", 3)?;
-        s.serialize_field("type", &self.call_type)?;
-        s.serialize_field("from", &self.from)?;
-        s.serialize_field("to", &self.to)?;
-        s.serialize_field("value", &self.value)?;
-        s.serialize_field("gas", &self.gas)?;
-        s.serialize_field("gasUsed", &self.gasUsed)?;
-        s.serialize_field("input", &self.input)?;
-        s.serialize_field("output", &self.output)?;
-        s.serialize_field("calls", &self.calls)?;
-        s.end()
-    }
-}
+//// This is what #[derive(Serialize)] would generate.
+//// We need a custom impl becasue one of the fields is 'type' which is a reserved word
+//impl Serialize for CallContext {
+//    fn serialize<S>(&self, serializer: S) -> serde::ser::Result<S::Ok, S::Error>
+//    where
+//        S: Serializer,
+//    {
+//        let mut s = serializer.serialize_struct("CallContext", 3)?;
+//        s.serialize_field("type", &self.call_type)?;
+//        s.serialize_field("from", &self.from)?;
+//        s.serialize_field("to", &self.to)?;
+//        s.serialize_field("value", &self.value)?;
+//        s.serialize_field("gas", &self.gas)?;
+//        s.serialize_field("gasUsed", &self.gasUsed)?;
+//        s.serialize_field("input", &self.input)?;
+//        s.serialize_field("output", &self.output)?;
+//        s.serialize_field("calls", &self.calls)?;
+//        s.end()
+//    }
+//}
 
 // "type": "CALL",
 //    "from": "0x5067c042e35881843f2b31dfc2db1f4f272ef48c",
@@ -378,33 +383,43 @@ impl tracing::EventListener for LoggingEventListener {
             error!("call stack empty in listener!!! ");
         }
 
-        let end_of_stack = self.call_stack.last();
-
         match event {
-            tracing::Event::Call(code_address, transfer, input, target_gas, is_static, context) => {
+            tracing::Event::Call{code_address, transfer, input, target_gas, is_static, context} => {
                 // When there is a call, add a call context to bottom of stack
                 let mut call_to_push = CallContext::new();
-                call_to_push.call_type = "CALL";
-                call_to_push.from = end_of_stack.to;
-                call_to_push.to = code_address;
-                call_to_push.gas = target_gas.unwrap_or();
-                call_to_push.gasUsed = "0"; // todo
-                call_to_push.input = input;
-                call_to_push.output = "";
-                let value = transfer.unwrap_or();
-                call_to_push.value = transfer.value;
+                let mut end_of_stack = self.call_stack.last().unwrap();
+
+                call_to_push.call_type = "CALL".to_string();
+                call_to_push.from = end_of_stack.to.clone();
+                call_to_push.to = code_address.to_string();
+                call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
+                call_to_push.gasUsed = "0x0".to_string(); // todo
+                call_to_push.input = hex::encode(input);
+                call_to_push.output = "0x0".to_string();
+                if let Some(trans) = transfer {
+                    call_to_push.value = trans.value.to_string();
+                }
+
+                // Now we have constructed our new call context, it gets added to the end of
+                // the stack
+                //end_of_stack.calls.push(call_to_push);
                 self.call_stack.push(call_to_push);
             },
-            tracing::Event::Create(..) => {},
-            tracing::Event::Suicide(..) => {},
-            tracing::Event::Exit(..) => {},
-            tracing::Event::TransactCall(..) => {},
-            tracing::Event::TransactCreate(..) => {},
-            tracing::Event::TransactCreate2(..) => {},
-            tracing::Event::PrecompileSubcall(..) => {},
+            tracing::Event::Create{..} => {},
+            tracing::Event::Suicide{..} => {},
+            tracing::Event::Exit{..} => {
+                // The call has now completed - adjust the stack if neccessary
+                if self.call_stack.len() > 1 {
+                    let end = self.call_stack.pop().unwrap();
+                    let new_end = self.call_stack.last_mut().unwrap();
+                    new_end.calls.push(end);
+                }
+            },
+            tracing::Event::TransactCall{..} => {},
+            tracing::Event::TransactCreate{..} => {},
+            tracing::Event::TransactCreate2{..} => {},
+            tracing::Event::PrecompileSubcall{..} => {},
         }
-
-        self.call_stack.last().push_ba
     }
 }
 
