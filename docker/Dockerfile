@@ -150,8 +150,7 @@ RUN ${VCPKG_PYTHON3} -m ensurepip \
   && cp -R /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
 
 # strip all exes
-RUN strip /usr/local/bin/grepperf \
-   /usr/local/bin/zilliqad \
+RUN strip /usr/local/bin/zilliqad \
    /usr/local/bin/genkeypair \
    /usr/local/bin/signmultisig \
    /usr/local/bin/verifymultisig \
