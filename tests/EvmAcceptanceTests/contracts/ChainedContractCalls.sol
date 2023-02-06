@@ -6,8 +6,13 @@ contract ContractOne {
 
     event DebugMessage(uint index, string message);
 
+    constructor() payable
+    {
+        emit DebugMessage(0, "Contract one constructor...");
+    }
 
-    function chainedCall(address payable[] memory destinations, uint256 index) public returns(bool success)
+
+    function chainedCall(address payable[] memory destinations, uint index) public returns(bool success)
     {
         emit DebugMessage(index, "Chained call of contract one!");
 
@@ -40,11 +45,16 @@ contract ContractTwo {
 
     event DebugMessage(uint index, string message);
 
+    constructor() payable
+    {
+        emit DebugMessage(0, "Contract two constructor...");
+    }
+
     //fallback() external payable {
     //    emit Received(msg.sender, msg.value, "Fallback was called");
     //}
 
-    function chainedCall(address payable[] memory destinations, uint256 index) public returns(bool success)
+    function chainedCall(address payable[] memory destinations, uint index) public returns(bool success)
     {
         emit DebugMessage(index, "Chained call of contract two!");
 
@@ -78,6 +88,11 @@ contract ContractThree {
 
     event DebugMessage(uint index, string message);
 
+    constructor() payable
+    {
+        emit DebugMessage(0, "Contract three constructor...");
+    }
+
     //fallback() external payable {
     //    emit Received(msg.sender, msg.value, "Fallback was called");
     //}
@@ -92,7 +107,7 @@ contract ContractThree {
 //    }
 
 
-    function chainedCall(address payable[] memory destinations, uint256 index) public returns(bool success)
+    function chainedCall(address payable[] memory destinations, uint index) public returns(bool success)
     {
         emit DebugMessage(index, "Chained call of contract two!");
 

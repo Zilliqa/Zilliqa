@@ -47,3 +47,4 @@ jsonrpc-server-utils = { git = 'https://github.com/valeryz/jsonrpc', branch = "v
 jsonrpc-core = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
 jsonrpc-core-client = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
 jsonrpc-client-transports = { git = 'https://github.com/valeryz/jsonrpc', branch = "valeryz_fix_stream_eof" }
+evm = { path = "./evm"}
