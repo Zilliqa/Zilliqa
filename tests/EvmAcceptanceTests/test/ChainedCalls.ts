@@ -22,12 +22,23 @@ describe("Chained Contract Calls Functionality", function () {
 
     it("Should create a transaction trace after child creation", async function () {
       const METHOD = "debug_traceTransaction";
+      const ACCOUNTS_COUNT = 3;
 
       console.log("contractAddr0: ", contractOne.address);
       console.log("contractAddr1: ", contractTwo.address);
       console.log("contractAddr2: ", contractThree.address);
 
-      let res = await contractOne.chainedCall([contractOne.address, contractTwo.address, contractThree.address], 0);
+      //////////////////////////////////
+      const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
+        ethers.Wallet.createRandom().connect(ethers.provider)
+      );
+
+      const addresses = accounts.map((signer) => signer.address);
+      //////////////////////////////////
+
+      let res0 = await contractOne.chainedCallTempEmpty();
+      let res1 = await contractOne.chainedCallTemp(addresses);
+      let res = await contractOne.chainedCall(addresses, 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
 

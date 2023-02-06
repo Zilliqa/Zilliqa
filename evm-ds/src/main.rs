@@ -192,7 +192,7 @@ async fn run_evm_impl(
                 match exit_reason {
                     evm::ExitReason::Succeed(_) => {}
                     _ => {
-                        debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
+                        println!("NO SUCC. Machine: position: {:?}, memory: {:?}, stack: {:?}",
                                runtime.machine().position(),
                                &runtime.machine().memory().data().iter().take(128).collect::<Vec<_>>(),
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
@@ -243,7 +243,7 @@ async fn run_evm_impl(
                 listener.call_stack[0].output = hex::encode(runtime.machine().return_value());
                 let serialized_listener = serde_json::to_string_pretty(&listener.call_stack).unwrap();
 
-                println!("serialized listener: {:?}", serialized_listener);
+                //println!("serialized listener: {:?}", serialized_listener);
 
                 //let collected: Vec<Chars> = serialized_listener.as_bytes().to_vec();
 
@@ -251,9 +251,9 @@ async fn run_evm_impl(
                 result.set_logs(logs.into_iter().map(Into::into).collect());
                 result.set_remaining_gas(remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}, result: {:?}\n", evm_context,
+                    "EVM execution summary: result: {:?}, context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?} code: {:?} data: {:?}, extras: {:?}, estimate: {:?}\n", result, evm_context,
                     backend.origin, address, gas_limit, apparent_value, hex::encode(code.as_ref()), hex::encode(data.as_ref()),
-                    backend.extras, estimate, result);
+                    backend.extras, estimate);
                 result
             },
             Err(panic) => {

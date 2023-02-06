@@ -11,6 +11,16 @@ contract ContractOne {
         emit DebugMessage(0, "Contract one constructor...");
     }
 
+    function chainedCallTemp(address []memory destinations) public
+    {
+        emit DebugMessage(0, "Contract one temp call......");
+    }
+
+
+    function chainedCallTempEmpty() public
+    {
+        emit DebugMessage(0, "Contract one XXX call......");
+    }
 
     function chainedCall(address payable[] memory destinations, uint index) public returns(bool success)
     {
