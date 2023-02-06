@@ -51,18 +51,6 @@ add_custom_command(TARGET zilliqa
 target_include_directories(verifymultisig PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(verifymultisig PUBLIC ${Schnorr_LIBRARY} Utils Boost::program_options)
 
-add_executable(gensigninitialds gen_sign_initial_ds.cpp)
-add_custom_command(TARGET zilliqa
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:gensigninitialds> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(gensigninitialds PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(gensigninitialds PUBLIC Utils Persistence ${Schnorr_LIBRARY} Boost::program_options)
-
-
-add_executable(grepperf grepperf.cpp)
-target_include_directories(grepperf PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(grepperf PUBLIC Boost::program_options -s)
-
 add_executable(getaddr GetAddressFromPubKey.cpp)
 add_custom_command(TARGET zilliqa
         POST_BUILD
@@ -83,13 +71,6 @@ add_custom_command(TARGET zilliqa
         COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:validateDB> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
 target_include_directories(validateDB PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(validateDB PUBLIC Node Mediator Validator -s)
-
-add_executable(restore restore.cpp)
-add_custom_command(TARGET zilliqa
-        POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:restore> ${CMAKE_BINARY_DIR}/tests/Zilliqa)
-target_include_directories(restore PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries(restore PUBLIC Node Mediator Validator -s)
 
 add_executable(genTxnBodiesFromS3 genTxnBodiesFromS3.cpp)
 add_custom_command(TARGET zilliqa
