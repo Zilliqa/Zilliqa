@@ -22,6 +22,41 @@ use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
 use protobuf::Message;
 
+fn address_to_string(address: &EvmProto::Address) -> String {
+    let mut buffer = [0; 20];
+    buffer[..4].clone_from_slice(&address.get_x0().to_be_bytes());
+    buffer[4..12].clone_from_slice(&address.get_x1().to_be_bytes());
+    buffer[12..].clone_from_slice(&address.get_x2().to_be_bytes());
+    hex::encode(buffer)
+}
+
+fn log_apply_modify(modify: &EvmProto::Apply_Modify) {
+    println!("  modify {{\n    address: {},\n    balance: {:?},\n    nonce: {:?},\n    storage: {:?}\n  }}",
+            address_to_string(modify.get_address()), modify.get_balance(), modify.get_nonce(),
+            modify.get_storage());
+}
+
+fn log_apply_delete(delete: &EvmProto::Apply_Delete) {
+    println!(
+        "  delete {{\n    address: {} \n  }}",
+        address_to_string(delete.get_address())
+    );
+}
+
+fn log_evm_result(result: &EvmProto::EvmResult) {
+    println!("saeed: exit_reason: {:#?}", result.get_exit_reason());
+    result.get_apply().into_iter().for_each(|optional_apply| {
+        if let Some(apply) = &optional_apply.apply {
+            println!("apply {{");
+            match apply {
+                EvmProto::Apply_oneof_apply::modify(ref modify) => log_apply_modify(modify),
+                EvmProto::Apply_oneof_apply::delete(ref delete) => log_apply_delete(delete),
+            }
+            println!("}}");
+        }
+    })
+}
+
 pub async fn run_evm_impl(
     address: H160,
     code: Vec<u8>,
@@ -129,9 +164,11 @@ pub async fn run_evm_impl(
                 }
                 let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?},  result: {:?}",
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, 
+                    extras: {:?}, estimate: {:?}, cps: {:?}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate, enable_cps, result);
+                    backend.extras, estimate, enable_cps);
+                log_evm_result(&result);
                 result
             },
             CpsReason::CallInterrupt(i) => {
@@ -322,4 +359,19 @@ fn handle_panic(traces: Vec<String>, remaining_gas: u64, reason: &str) -> EvmPro
     result.set_trace(traces.into_iter().map(Into::into).collect());
     result.set_remaining_gas(remaining_gas);
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn address_to_string_test() {
+        let mut address = EvmProto::Address::default();
+        address.set_x0(1383840601);
+        address.set_x1(1643823253561742928);
+        address.set_x2(596286955265148733);
+        let addr_string = address_to_string(&address);
+        println!("{}", addr_string);
+        assert_eq!(addr_string, "527bbb5916d0088a2e13165008466fd398c7473d");
+    }
 }
