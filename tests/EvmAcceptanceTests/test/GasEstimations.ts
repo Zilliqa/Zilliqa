@@ -1,7 +1,7 @@
 import {expect} from "chai";
-import parallelizer from "../helper/Parallelizer";
 import {ethers} from "hardhat";
-import SignerPool from "../helper/SignerPool";
+import {parallelizer} from "../helpers";
+import SignerPool from "../helpers/SignerPool";
 
 describe("Gas estimation with web3.js", function () {
   const CREATE2_MIN_GAS = 32000;
@@ -46,8 +46,8 @@ describe("Gas estimation with web3.js", function () {
       const receipt = await result.wait();
       const actualGas = receipt.gasUsed;
 
-      expect(gasAmountEst).to.be.at.least(actualGas * 0.9);
-      expect(gasAmountEst).to.be.at.most(actualGas * 1.1);
+      expect(gasAmountEst).to.be.at.least(Math.floor(actualGas * 0.9));
+      expect(gasAmountEst).to.be.at.most(Math.floor(actualGas * 1.1));
     });
   });
 });

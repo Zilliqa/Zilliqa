@@ -6,7 +6,7 @@ spec:
     beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
-    image: "zilliqa/scilla:v0.13.1-alpha"
+    image: "zilliqa/scilla:v0.13.1"
     imagePullPolicy: Always
     command:
     - cat
@@ -19,9 +19,9 @@ spec:
     tty: true
     resources:
       requests:
-        ephemeral-storage: "20Gi"
+        ephemeral-storage: "40Gi"
       limits:
-        ephemeral-storage: "20Gi"
+        ephemeral-storage: "40Gi"
 """
 
 String skipciMessage = 'Aborting because commit message contains [skip ci]'
@@ -29,7 +29,7 @@ String skipciMessage = 'Aborting because commit message contains [skip ci]'
 timestamps {
   ansiColor('gnome-terminal') {
     podTemplate(yaml: podDefinition) {
-      timeout(time: 60, unit: 'MINUTES') {
+      timeout(time: 120, unit: 'MINUTES') {
         node(POD_LABEL) {
           try {
             stage('Checkout scm') {
@@ -37,7 +37,7 @@ timestamps {
                 def pr_skipci = "0"
                 try {
                   if (env.CHANGE_TITLE != null && env.CHANGE_TITLE != "") {
-                    pr_skipci = sh(script: "echo ${env.CHANGE_TITLE.replace("(","").replace(")","").replace("'","")} | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
+                    pr_skipci = sh(script: "echo '${env.CHANGE_TITLE.replace("(","").replace(")","").replace("'","")}' | fgrep -ie '[skip ci]' -e '[ci skip]' | wc -l", returnStdout: true).trim()
                   }
                 } catch (err) {
                   println err.getMessage()

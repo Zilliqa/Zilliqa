@@ -32,7 +32,7 @@ The current live version on the Zilliqa Mainnet is Zilliqa [v8.1.2](https://gith
 
 ## Developer Testnet
 
-The current live version on the Developer Testnet is Zilliqa [v8.1.0-alpha.7](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.1.0-alpha.7) and Scilla [v0.11.0-alpha.0](https://github.com/Zilliqa/scilla/releases/tag/v0.11.0-alpha.0).
+The current live version on the Developer Testnet is Zilliqa [v8.5.0rc0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.5.0rc0) and Scilla [v0.13.1-alpha](https://github.com/Zilliqa/scilla/releases/tag/v0.13.1-alpha).
 
 |          | URL(s) |
 |:---------|:-------|
@@ -82,19 +82,33 @@ To run Zilliqa, we recommend the minimum system requirements specified in our [M
 
 ## Build from Source Code
 
-Starting with Zilliqa [v8.4.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.4.0), the officially supported operating system is **Ubuntu 20.04**.
+Starting with Zilliqa [v8.6.0](https://github.com/Zilliqa/Zilliqa/releases/tag/v8.6.0), the officially supported operating system is **Ubuntu 22.04**.
 
-If you'd like to experiment with a different distro (including the previously supported Ubuntu 18.04), please make sure to install gcc >= 9.4.
+If you'd like to experiment with a different distro (including the previously supported Ubuntu 18.04), please make sure to install gcc >= 11.
 
 Run the following to install the build dependencies:
 
 ```bash
 sudo apt-get update
-sudo apt-get install git \
-    libmicrohttpd-dev bison \
-    libjsonrpccpp-dev build-essential pkg-config \
-    libcurl4-openssl-dev python3-dev \
-    python3-setuptools python3-pip gawk clang clang-format ccache
+sudo apt-get install autoconf \
+    build-essential \
+    ccache \
+    clang-format \
+    clang-tidy \
+    git \
+    lcov \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    libtool \
+    libxml2-utils \
+    ninja-build \
+    ocl-icd-opencl-dev \
+    pkg-config \
+    python3-dev \
+    python3-pip \
+    libgmp-dev \
+    bison \
+    gawk
 git submodule update --init --recursive
 ```
 Run the following to install latest version of cmake. CMake version >= 3.19 must be used:

@@ -23,6 +23,7 @@
 #pragma GCC diagnostic pop
 
 #include "libCrypto/Sha2.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMessage/Messenger.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/JsonUtils.h"
@@ -79,16 +80,6 @@ zbytes ContractStorage::GetInitData(const dev::h160& address) {
 
 // State
 // ========================================
-template <class T>
-bool SerializeToArray(const T& protoMessage, zbytes& dst,
-                      const unsigned int offset) {
-  if ((offset + protoMessage.ByteSize()) > dst.size()) {
-    dst.resize(offset + protoMessage.ByteSize());
-  }
-
-  return protoMessage.SerializeToArray(dst.data() + offset,
-                                       protoMessage.ByteSize());
-}
 
 string ContractStorage::GenerateStorageKey(const dev::h160& addr,
                                            const string& vname,

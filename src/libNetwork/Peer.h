@@ -18,9 +18,9 @@
 #ifndef ZILLIQA_SRC_LIBNETWORK_PEER_H_
 #define ZILLIQA_SRC_LIBNETWORK_PEER_H_
 
-#include <functional>
-
 #include "common/Serializable.h"
+#include "libUtils/IPConverter.h"
+#include "libUtils/Logger.h"
 
 /// Stores IP information on a single Zilliqa peer.
 struct Peer : public Serializable {
@@ -33,26 +33,41 @@ struct Peer : public Serializable {
   /// Peer hostname
   std::string m_hostname;  // optional
 
-  /// Default constructor.
-  Peer();
-
   /// Constructor with specified IP info.
-  Peer(const uint128_t& ip_address, uint32_t listen_port_host);
+  Peer(const uint128_t& ip_address = 0, uint32_t listen_port_host = 0)
+      : m_ipAddress(ip_address), m_listenPortHost(listen_port_host) {}
 
   /// Constructor for loading peer information from a byte stream.
-  Peer(const zbytes& src, unsigned int offset);
+  Peer(const zbytes& src, unsigned int offset)
+      : m_ipAddress(0), m_listenPortHost(0) {
+    if (Deserialize(src, offset) != 0) {
+      LOG_GENERAL(WARNING, "We failed to init Peer.");
+    }
+  }
 
   /// Equality comparison operator.
-  bool operator==(const Peer& r) const;
+  bool operator==(const Peer& r) const {
+    return (m_ipAddress == r.m_ipAddress) &&
+           (m_listenPortHost == r.m_listenPortHost);
+  }
 
   /// Inequality comparison operator.
-  bool operator!=(const Peer& r) const;
+  bool operator!=(const Peer& r) const {
+    return (m_ipAddress != r.m_ipAddress) ||
+           (m_listenPortHost != r.m_listenPortHost);
+  }
 
   /// Less-than comparison operator.
-  bool operator<(const Peer& r) const;
+  bool operator<(const Peer& r) const {
+    return (m_ipAddress < r.m_ipAddress) ||
+           ((m_ipAddress == r.m_ipAddress) &&
+            (m_listenPortHost < r.m_listenPortHost));
+  }
 
   /// Utility function for printing peer IP info.
-  const std::string GetPrintableIPAddress() const;
+  std::string GetPrintableIPAddress() const {
+    return IPConverter::ToStrFromNumericalIP(m_ipAddress);
+  }
 
   /// Utility std::string conversion function for peer IP info.
   explicit operator std::string() const {
@@ -61,18 +76,35 @@ struct Peer : public Serializable {
   }
 
   /// Implements the Serialize function inherited from Serializable.
-  unsigned int Serialize(zbytes& dst, unsigned int offset) const;
+  unsigned int Serialize(zbytes& dst, unsigned int offset) const {
+    Serializable::SetNumber<uint128_t>(dst, offset, m_ipAddress, UINT128_SIZE);
+    Serializable::SetNumber<uint32_t>(dst, offset + UINT128_SIZE,
+                                      m_listenPortHost, sizeof(uint32_t));
+
+    return UINT128_SIZE + sizeof(uint32_t);
+  }
 
   /// Implements the Deserialize function inherited from Serializable.
-  int Deserialize(const zbytes& src, unsigned int offset);
+  int Deserialize(const zbytes& src, unsigned int offset) {
+    try {
+      m_ipAddress =
+          Serializable::GetNumber<uint128_t>(src, offset, UINT128_SIZE);
+      m_listenPortHost = Serializable::GetNumber<uint32_t>(
+          src, offset + UINT128_SIZE, sizeof(uint32_t));
+    } catch (const std::exception& e) {
+      LOG_GENERAL(WARNING, "Error with Peer::Deserialize." << ' ' << e.what());
+      return -1;
+    }
+    return 0;
+  }
 
   /// Setter
-  void SetHostname(const std::string& hostname);
+  void SetHostname(const std::string& hostname) { m_hostname = hostname; }
 
   /// Getters.
-  const uint128_t& GetIpAddress() const;
-  const uint32_t& GetListenPortHost() const;
-  const std::string GetHostname() const;
+  const uint128_t& GetIpAddress() const { return m_ipAddress; }
+  uint32_t GetListenPortHost() const { return m_listenPortHost; }
+  std::string GetHostname() const { return m_hostname; }
 };
 namespace IPCHECK {
 static inline bool IsPortValid(const uint32_t listenPort) {

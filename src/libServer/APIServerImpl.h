@@ -20,13 +20,16 @@
 
 #include "APIServer.h"
 
+#include <jsonrpccpp/server/abstractserverconnector.h>
 #include <atomic>
+#include <boost/beast/core.hpp>
+#include <boost/beast/http.hpp>
 #include <optional>
 
-#include <jsonrpccpp/server/abstractserverconnector.h>
-
 #include "APIThreadPool.h"
+#include "WebsocketServerBackend.h"
 #include "WebsocketServerImpl.h"
+#include "libMetrics/Api.h"
 
 namespace rpc {
 
@@ -66,6 +69,8 @@ class APIServerImpl : public APIServer,
   bool StartListening() override;
   bool StopListening() override;
 
+  bool DoListen();
+
   /// Initiates accept async operation
   void AcceptNext();
 
@@ -92,11 +97,14 @@ class APIServerImpl : public APIServer,
   /// Started flag
   std::atomic<bool> m_started{};
 
+  /// Active flag
+  std::atomic<bool> m_active{};
+
   /// Thread pool
   std::shared_ptr<APIThreadPool> m_threadPool;
 
   /// Websocket server
-  std::shared_ptr<ws::WebsocketServerImpl> m_websocket;
+  std::shared_ptr<WebsocketServerBackend> m_websocket;
 
   /// Listening socket
   std::optional<tcp::acceptor> m_acceptor;
@@ -109,6 +117,10 @@ class APIServerImpl : public APIServer,
 
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
+
+  Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
+                       "api.server.metrics", "API server metrics", "units",
+                       true};
 };
 
 }  // namespace rpc

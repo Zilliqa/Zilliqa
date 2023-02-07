@@ -21,10 +21,10 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountData/TxnOrderVerifier.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libPOW/pow.h"
@@ -35,6 +35,7 @@
 #include "libUtils/SysCommand.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
+#include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -283,8 +284,8 @@ bool Node::OnNodeMissingTxns(const zbytes& errorMsg, const unsigned int offset,
   return true;
 }
 
-bool Node::OnCommitFailure([
-    [gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
+bool Node::OnCommitFailure(
+    [[gnu::unused]] const std::map<unsigned int, zbytes>& commitFailureMap) {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::OnCommitFailure not expected to be called from "
@@ -339,8 +340,6 @@ void Node::ProcessTransactionWhenShardLeader(
     const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
 
-  auto startTime = std::chrono::high_resolution_clock::now();
-
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
   }
@@ -353,12 +352,6 @@ void Node::ProcessTransactionWhenShardLeader(
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
   m_TxnOrder.clear();
-
-  if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPROC-BEG][" << m_mediator.m_currentEpochNum
-                               << "] Shard=" << m_myshardId
-                               << " NumTx=" << t_createdTxns.size());
-  }
 
   bool txnProcTimeout = false;
 
@@ -548,16 +541,6 @@ void Node::ProcessTransactionWhenShardLeader(
     SaveTxnsToS3(t_processedTransactions);
   }
 
-  if (LOG_PARAMETERS) {
-    double elaspedTimeMs =
-        std::chrono::duration<double, std::milli>(
-            std::chrono::high_resolution_clock::now() - startTime)
-            .count();
-    LOG_STATE("[TXNPROC-END][" << m_mediator.m_currentEpochNum
-                               << "] Shard=" << m_myshardId
-                               << " NumTx=" << t_createdTxns.size()
-                               << " Time=" << elaspedTimeMs);
-  }
   // Put txns in map back into pool
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer, droppedTxns);
 }
@@ -660,8 +643,6 @@ void Node::ProcessTransactionWhenShardBackup(
     const uint64_t& microblock_gas_limit) {
   LOG_MARKER();
 
-  auto startTime = std::chrono::high_resolution_clock::now();
-
   if (ENABLE_ACCOUNTS_POPULATING && UPDATE_PREGENED_ACCOUNTS) {
     UpdateBalanceForPreGeneratedAccounts();
   }
@@ -672,12 +653,6 @@ void Node::ProcessTransactionWhenShardBackup(
   m_expectedTranOrdering.clear();
   map<Address, map<uint64_t, Transaction>> t_addrNonceTxnMap;
   t_processedTransactions.clear();
-
-  if (LOG_PARAMETERS) {
-    LOG_STATE("[TXNPROC-BEG][" << m_mediator.m_currentEpochNum
-                               << "] Shard=" << m_myshardId
-                               << " NumTx=" << t_createdTxns.size());
-  }
 
   bool txnProcTimeout = false;
   m_txnProcessingFinished = false;
@@ -868,17 +843,6 @@ void Node::ProcessTransactionWhenShardBackup(
 
   PutTxnsInTempDataBase(t_processedTransactions);
 
-  if (LOG_PARAMETERS) {
-    double elaspedTimeMs =
-        std::chrono::duration<double, std::milli>(
-            std::chrono::high_resolution_clock::now() - startTime)
-            .count();
-    LOG_STATE("[TXNPROC-END][" << m_mediator.m_currentEpochNum
-                               << "] Shard=" << m_myshardId
-                               << " NumTx=" << t_createdTxns.size()
-                               << " Time=" << elaspedTimeMs);
-  }
-
   ReinstateMemPool(t_addrNonceTxnMap, gasLimitExceededTxnBuffer, droppedTxns);
 }
 
@@ -929,7 +893,7 @@ void Node::SaveTxnsToS3(
                 "upload txns file : " << txns_filename << " successfully");
   }
 
-  !SHARDLDR_SAVE_TXN_LOCALLY && std::remove(txns_filename.c_str());
+  !SHARDLDR_SAVE_TXN_LOCALLY&& std::remove(txns_filename.c_str());
 }
 
 std::string Node::GetAwsS3CpString(const std::string& uploadFilePath) {

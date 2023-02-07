@@ -31,6 +31,7 @@
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
+#include "libNode/Node.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
@@ -709,7 +710,8 @@ void DirectoryService::ProcessDSBlockConsensusWhenDone() {
     }
 
     // Update the DS Block with the co-signatures from the consensus
-    m_pendingDSBlock->SetCoSignatures(ConsensusObjectToCoSig(*m_consensusObject));
+    m_pendingDSBlock->SetCoSignatures(
+        ConsensusObjectToCoSig(*m_consensusObject));
 
     if (m_pendingDSBlock->GetHeader().GetBlockNum() >
         m_mediator.m_dsBlockChain.GetLastBlock().GetHeader().GetBlockNum() +

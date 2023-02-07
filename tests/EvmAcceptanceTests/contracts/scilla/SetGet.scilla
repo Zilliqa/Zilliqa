@@ -1,0 +1,17 @@
+scilla_version 0
+(***************************************************)
+(*               Basic setter and getter           *)
+(***************************************************)
+contract SetGet
+()
+field value: Uint128 = Uint128 0
+
+transition set(v : Uint128)
+  value := v
+end
+
+transition emit()
+  v <- value;
+  ev = {_eventname: "Emit"; sender: _sender; value: v};
+  event ev
+end

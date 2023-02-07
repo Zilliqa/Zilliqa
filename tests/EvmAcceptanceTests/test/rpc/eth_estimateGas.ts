@@ -1,4 +1,4 @@
-import sendJsonRpcRequest from "../../helper/JsonRpcHelper";
+import sendJsonRpcRequest from "../../helpers/JsonRpcHelper";
 import {assert} from "chai";
 
 const METHOD = "eth_estimateGas";

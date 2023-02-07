@@ -24,15 +24,15 @@
 #include <vector>
 
 #include <Schnorr.h>
-#include "depends/libDatabase/LevelDB.h"
-#include "libData/BlockData/Block.h"
+#include "libBlockchain/Block.h"
+#include "libData/AccountData/Address.h"
 #include "libData/MiningData/MinerInfo.h"
 
 typedef std::tuple<uint32_t, uint64_t, uint64_t, BlockType, BlockHash>
     BlockLink;
 
 class TransactionWithReceipt;
-class Account;
+class LevelDB;
 
 typedef std::shared_ptr<DSBlock> DSBlockSharedPtr;
 typedef std::shared_ptr<TxBlock> TxBlockSharedPtr;
@@ -40,7 +40,6 @@ typedef std::shared_ptr<VCBlock> VCBlockSharedPtr;
 typedef std::shared_ptr<BlockLink> BlockLinkSharedPtr;
 typedef std::shared_ptr<MicroBlock> MicroBlockSharedPtr;
 typedef std::shared_ptr<TransactionWithReceipt> TxBodySharedPtr;
-typedef std::shared_ptr<std::pair<Address, Account>> StateSharedPtr;
 
 struct DiagnosticDataNodes {
   DequeOfShard shards;
@@ -96,7 +95,6 @@ class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> m_blockLinkDB;
   std::shared_ptr<LevelDB> m_shardStructureDB;
   std::shared_ptr<LevelDB> m_stateDeltaDB;
-  std::shared_ptr<LevelDB> m_tempStateDB;
   std::shared_ptr<LevelDB> m_processedTxnTmpDB;
   // m_diagnosticDBNodes is needed only for LOOKUP_NODE_MODE, but to make the
   // unit test and monitoring tools work with the default setting of
@@ -131,7 +129,6 @@ class BlockStorage : boost::noncopyable {
     BLOCKLINK,
     SHARD_STRUCTURE,
     STATE_DELTA,
-    TEMP_STATE,
     DIAGNOSTIC_NODES,
     DIAGNOSTIC_COINBASE,
     STATE_ROOT,
@@ -210,17 +207,7 @@ class BlockStorage : boost::noncopyable {
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
 
-  // /// Deletes the requested Micro block
-  // bool DeleteMicroBlock(const dev::h256 & key);
-
-  /// Deletes the requested transaction body
-  bool DeleteTxBody(const dev::h256& key);
-
-  bool DeleteVCBlock(const BlockHash& blockhash);
-
   bool DeleteStateDelta(const uint64_t& finalBlockNum);
-
-  bool DeleteMicroBlock(const BlockHash& blockHash);
 
   /// Retrieves all the DSBlocks
   bool GetAllDSBlocks(std::list<DSBlockSharedPtr>& blocks);
@@ -286,13 +273,6 @@ class BlockStorage : boost::noncopyable {
 
   /// Retrieve state delta
   bool GetStateDelta(const uint64_t& finalBlockNum, zbytes& stateDelta);
-
-  /// Write state to tempState in batch
-  bool PutTempState(const std::unordered_map<Address, Account>& states);
-
-  /// Get state from tempState in batch
-  bool GetTempStateInBatch(leveldb::Iterator*& iter,
-                           std::vector<StateSharedPtr>& states);
 
   /// Save data for diagnostic / monitoring purposes (nodes in network)
   bool PutDiagnosticDataNodes(const uint64_t& dsBlockNum,

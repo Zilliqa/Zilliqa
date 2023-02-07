@@ -52,10 +52,10 @@ struct EthFields {
 Json::Value populateReceiptHelper(
     std::string const &txnhash, bool success, const std::string &from,
     const std::string &to, const std::string &gasUsed,
-    const std::string &blockHash, const std::string &blockNumber,
-    const Json::Value &contractAddress, const Json::Value &logs,
-    const Json::Value &logsBloom, const Json::Value &transactionIndex,
-    const Transaction &txn);
+    const std::string &gasPrice, const std::string &blockHash,
+    const std::string &blockNumber, const Json::Value &contractAddress,
+    const Json::Value &logs, const Json::Value &logsBloom,
+    const Json::Value &transactionIndex, const Transaction &txn);
 
 EthFields parseRawTxFields(std::string const &message);
 

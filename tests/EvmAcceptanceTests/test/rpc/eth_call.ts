@@ -1,7 +1,7 @@
-import callJsonRpc from "../../helper/JsonRpcHelper";
+import callJsonRpc from "../../helpers/JsonRpcHelper";
 import {assert} from "chai";
 import {ethers} from "hardhat";
-import logDebug from "../../helper/DebugHelper";
+import logDebug from "../../helpers/DebugHelper";
 
 const METHOD = "eth_call";
 

@@ -14,10 +14,10 @@
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-ARG SCILLA_VERSION=v0.13.1-alpha
+ARG SCILLA_VERSION=v0.13.1
 
 # Common dependencies of the builder and runner stages.
-FROM ubuntu:20.04 AS deps
+FROM ubuntu:22.04 AS deps
 # Format guideline: one package per line and keep them alphabetically sorted
 RUN apt-get update \
     && apt-get install -y software-properties-common \
@@ -27,7 +27,7 @@ RUN apt-get update \
     build-essential \
     ca-certificates \
     ccache \
-    clang-format-7 \
+    clang-format \
     clang-tidy \
     cron \
     curl \
@@ -39,6 +39,7 @@ RUN apt-get update \
     iproute2 \
     lcov \
     libcurl4-openssl-dev \
+    libgmp-dev \
     libsecp256k1-dev \
     libssl-dev \
     libtool \
@@ -150,8 +151,7 @@ RUN ${VCPKG_PYTHON3} -m ensurepip \
   && cp -R /zilliqa/build/vcpkg_installed/x64-linux-dynamic/lib/python3.10 ${PYTHON3_ENV_PATH}/lib/
 
 # strip all exes
-RUN strip /usr/local/bin/grepperf \
-   /usr/local/bin/zilliqad \
+RUN strip /usr/local/bin/zilliqad \
    /usr/local/bin/genkeypair \
    /usr/local/bin/signmultisig \
    /usr/local/bin/verifymultisig \
@@ -160,8 +160,6 @@ RUN strip /usr/local/bin/grepperf \
    /usr/local/bin/genaccounts \
    /usr/local/bin/sendcmd \
    /usr/local/bin/gentxn \
-   /usr/local/bin/restore \
-   /usr/local/bin/gensigninitialds \
    /usr/local/bin/validateDB \
    /usr/local/bin/genTxnBodiesFromS3 \
    /usr/local/bin/getnetworkhistory \
@@ -199,6 +197,17 @@ COPY --from=builder /usr/local/lib/*.so* /usr/local/lib/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
 COPY --from=builder /zilliqa/evm-ds/target/release/evm-ds /usr/local/bin/
 COPY --from=builder /zilliqa/evm-ds/log4rs.yml /usr/local/etc/
+
+# The above COPY doesn't preserve symlinks which causes gcc/g++/cc/c++
+# to hang as stand-alone binaries on Ubuntu 22.04.
+RUN rm -f /usr/local/bin/gcc \
+      /usr/local/bin/g++ \
+      /usr/local/bin/cc \
+      /usr/local/bin/c++ \
+    && ln -s "$(which ccache)" /usr/local/bin/gcc \
+    && ln -s "$(which ccache)" /usr/local/bin/g++ \
+    && ln -s "$(which ccache)" /usr/local/bin/cc \
+    && ln -s "$(which ccache)" /usr/local/bin/c++
 
 ADD https://github.com/krallin/tini/releases/latest/download/tini /tini
 

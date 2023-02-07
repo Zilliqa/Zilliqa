@@ -35,6 +35,14 @@ PERSISTENCE_SNAPSHOT_NAME='incremental'
 STATEDELTA_DIFF_NAME='statedelta'
 BUCKET_NAME='BUCKET_NAME'
 TESTNET_NAME= 'TEST_NET_NAME'
+AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
+CHUNK_SIZE = 4096
+EXPEC_LEN = 2
+MAX_WORKER_JOBS = 50
+S3_MULTIPART_CHUNK_SIZE_IN_MB = 8
+NUM_DSBLOCK= "PUT_INCRDB_DSNUMS_WITH_STATEDELTAS_HERE"
+NUM_FINAL_BLOCK_PER_POW= "PUT_NUM_FINAL_BLOCK_PER_POW_HERE"
+MAX_FAILED_DOWNLOAD_RETRY = 2
 
 Exclude_txnBodies = True
 Exclude_microBlocks = True
@@ -44,8 +52,14 @@ BASE_PATH = os.path.dirname(os.path.realpath(sys.argv[0]))
 STORAGE_PATH = BASE_PATH
 mutex = Lock()
 
+DOWNLOADED_LIST = []
+DOWNLOAD_STARTED_LIST = []
+
 def getURL():
-	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+	if AWS_ENDPOINT_URL:
+		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
+	else:
+		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
 
 def UploadLock():
 	response = requests.get(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/.lock")
@@ -61,14 +75,53 @@ def GetCurrentTxBlkNum():
 		return -1
 
 def GetEntirePersistenceFromS3():
+	CleanupDir(STORAGE_PATH + "/persistence")
+	CleanupDir(STORAGE_PATH+'/persistenceDiff')
 	CreateAndChangeDir(STORAGE_PATH)
-	if GetAllObjectsFromS3(getURL(), PERSISTENCE_SNAPSHOT_NAME, "persistence") == 1 :
+	if GetAllObjectsFromS3(getURL(),PERSISTENCE_SNAPSHOT_NAME) == 1 :
 		exit(1)
+
+def GetPersistenceDiffFromS3(txnBlkList):
+	CleanupCreateAndChangeDir(STORAGE_PATH+'/persistenceDiff')
+	for key in txnBlkList:
+		filename = "diff_persistence_"+str(key)
+		print("Fetching persistence diff for block = " + str(key))
+		GetPersistenceKey(getURL()+"/"+PERSISTENCE_SNAPSHOT_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
+		if os.path.exists(filename+".tar.gz") :
+			ExtractAllGzippedObjects()
+			copy_tree(filename, STORAGE_PATH+"/persistence/")
+			shutil.rmtree(filename)
+	os.chdir(STORAGE_PATH)
+	CleanupDir(STORAGE_PATH+'/persistenceDiff')
+
+def GetStateDeltaDiffFromS3(txnBlkList):
+	if txnBlkList:
+		CreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
+		for key in txnBlkList:
+			filename = "stateDelta_"+str(key)
+			print("Fetching statedelta for block = " + str(key))
+			GetPersistenceKey(getURL()+"/"+STATEDELTA_DIFF_NAME+"/"+TESTNET_NAME+"/"+filename+".tar.gz")
+	else:
+		CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
+		GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
+	ExtractAllGzippedObjects()
+	os.chdir(STORAGE_PATH)
 
 def GetStateDeltaFromS3():
 	CleanupCreateAndChangeDir(STORAGE_PATH+'/StateDeltaFromS3')
 	GetAllObjectsFromS3(getURL(), STATEDELTA_DIFF_NAME)
 	ExtractAllGzippedObjects()
+
+# When the DS epoch crossover happens, currTxBlk and newTxBlk will be from different DSepoch.
+# As per the current behavior, Persistence is overwritten after every NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW.
+# This function ensures that if currTxBlk DS epoch is different from the persistence overwritten DS epoch, then the node restart the download again.
+# If we don't restart the download, In such a case, the node will receive 404 during persistence download and the node can get leveldb related issues.
+def IsDownloadRestartRequired(currTxBlk, latestTxBlk) :
+    print("currTxBlk = "+ str(currTxBlk) + " latestTxBlk = "+ str(latestTxBlk) + " NUM_DSBLOCK = " +str(NUM_DSBLOCK))
+    if((latestTxBlk // (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW)) != (currTxBlk // (NUM_DSBLOCK * NUM_FINAL_BLOCK_PER_POW))):
+        return True
+    return False
+
 
 def RsyncBlockChainData(source,destination):
 	bashCommand = "rsync --recursive --inplace "
@@ -79,47 +132,128 @@ def RsyncBlockChainData(source,destination):
 	output, error = process.communicate()
 	print("Copied local historical-data persistence to main persistence!")
 
-def GetAllObjectsFromS3(url, folderName="", subfolder=None):
-	excludes = ["diff_persistence"]
-	if Exclude_txnBodies:
-		excludes.append("txEpochs")
-		excludes.append("txBodies")
-	if Exclude_microBlocks:
-		excludes.append("microBlock")
-	if Exclude_minerInfo:
-		excludes.append("minerInfo")
-	exclude_args = []
-	for exclude in excludes:
-		exclude_args.extend(["--exclude", f"*{exclude}*"])
+def Diff(list1, list2):
+	return (list(list(set(list1)-set(list2)) + list(set(list2)-set(list1))))
 
-	attempts = 3
-	download_path = f"s3://{BUCKET_NAME}/{folderName}/{TESTNET_NAME}"
-	if subfolder:
-		download_path += f"/{subfolder}"
-	dest = f"./{subfolder}" if subfolder is not None else "."
-	latest_exception = None
-	# We can usually expect a single failure during a large sync, because a file will disappear between the start and
-	# end of the invocation. There's no harm in retrying a few times, since we'll only download the delta between the
-	# each attempt.
-	for i in range(attempts):
-		print(f"Downloading {download_path} (attempt {i}/{attempts})")
+def LaunchParallelUrlFetch(list_of_keyurls):
+	with ThreadPoolExecutor(max_workers=MAX_WORKER_JOBS) as pool:
+		pool.map(GetPersistenceKey,list_of_keyurls)
+		pool.shutdown(wait=True)
+
+def GetAllObjectsFromS3(url, folderName=""):
+	MARKER = ''
+	global DOWNLOADED_LIST
+	global DOWNLOAD_STARTED_LIST
+	DOWNLOADED_LIST = []
+	DOWNLOAD_STARTED_LIST = []
+	list_of_keyurls = []
+	failed_list_of_keyurls = []
+	prefix = ""
+	if folderName:
+		prefix = folderName+"/"+TESTNET_NAME
+	# Try get the entire persistence keys.
+	# S3 limitation to get only max 1000 keys. so work around using marker.
+	while True:
+		response = requests.get(url, params={"prefix":prefix, "max-keys":1000, "marker": MARKER})
+		tree = ET.fromstring(response.text)
+		startInd = 5
+		if(tree[startInd:] == []):
+			print("Empty response")
+			return 1
+		print("[" + str(datetime.datetime.now()) + "] Files to be downloaded:")
+		lastkey = ''
+		for key in tree[startInd:]:
+			key_url = key[0].text
+			if (not (Exclude_txnBodies and "txEpochs" in key_url) and not (Exclude_txnBodies and "txBodies" in key_url) and not (Exclude_microBlocks and "microBlock" in key_url) and not (Exclude_minerInfo and "minerInfo" in key_url) and not ("diff_persistence" in key_url)):
+				list_of_keyurls.append(url+"/"+key_url)
+				print(key_url)
+			lastkey = key_url
+		istruncated=tree[4].text
+		if istruncated == 'true':
+			MARKER=lastkey
+			print(istruncated)
+		else:
+			break
+
+	LaunchParallelUrlFetch(list_of_keyurls)
+	DOWNLOADED_LIST.sort()
+	DOWNLOAD_STARTED_LIST.sort()
+	list_of_keyurls.sort()
+	failed_list_of_keyurls = Diff(list_of_keyurls, DOWNLOAD_STARTED_LIST) + Diff(list_of_keyurls, DOWNLOADED_LIST)
+	failed_retry_download_count = 0
+
+	print("DIFF keyurls vs download started = " + pformat(Diff(list_of_keyurls, DOWNLOAD_STARTED_LIST)))
+	print("DIFF keyurls vs downloaded = " + pformat(Diff(list_of_keyurls, DOWNLOADED_LIST)))
+
+	# retry download missing files
+	while(len(failed_list_of_keyurls) > 0 and failed_retry_download_count < MAX_FAILED_DOWNLOAD_RETRY):
+		LaunchParallelUrlFetch(failed_list_of_keyurls)
+		failed_list_of_keyurls = Diff(list_of_keyurls, DOWNLOAD_STARTED_LIST) + Diff(list_of_keyurls, DOWNLOADED_LIST)
+		failed_retry_download_count = failed_retry_download_count + 1
+
+	if(len(failed_list_of_keyurls) > 0):
+		print("DIFF after retry, keyurls vs download started = " + pformat(Diff(list_of_keyurls, DOWNLOAD_STARTED_LIST)))
+		print("DIFF after retry, keyurls vs downloaded = " + pformat(Diff(list_of_keyurls, DOWNLOADED_LIST)))
+
+	print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
+	return 0
+
+
+def GetPersistenceKey(key_url):
+	global DOWNLOADED_LIST
+	global DOWNLOAD_STARTED_LIST
+	retry_counter = 0
+	mutex.acquire()
+	DOWNLOAD_STARTED_LIST.append(key_url)
+	mutex.release()
+	while True:
 		try:
-			command = ["aws", "s3", "sync", "--no-sign-request", "--delete"]
-			command.extend(exclude_args)
-			command.extend([download_path, dest])
-			print(" ".join(command))
-			process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-			for line in iter(process.stdout.readline, b''):
-				print(line.rstrip().decode("utf-8"))
-			if process.returncode:
-				raise Exception(f"sync failed with return code {process.returncode}")
-			print("[" + str(datetime.datetime.now()) + "]"+" All objects from " + url + " completed!")
-			return
+			response = requests.get(key_url, stream=True)
 		except Exception as e:
-			print(f"Download failed: {e}")
-			latest_exception = e
-	raise Exception(f"Download failed {attempts} times: {latest_exception}")
+			print("Exception occurred while downloading " + key_url + ": " + str(e))
+			retry_counter+=1
+			if retry_counter > 3:
+				print("Failed to download " + key_url + " after " + str(retry_counter) + " retries")
+				break
+			time.sleep(5)
+			print("[Retry: " + str(retry_counter) + "] Downloading again " + key_url)
+			continue
+		if response.status_code != 200:
+			print("Error in downloading file " + key_url + " status_code " + str(response.status_code))
+			break
+		filename = key_url.replace(key_url[:key_url.index(TESTNET_NAME+"/")+len(TESTNET_NAME+"/")],"").strip()
 
+		dirname = os.path.dirname(filename).strip()
+		if dirname != "":
+			mutex.acquire()
+			if not os.path.exists(dirname):
+				os.makedirs(dirname)
+			mutex.release()
+
+		with open(filename,'wb') as f:
+			total_length = response.headers.get('content-length')
+			total_length = int(total_length)
+			md5_hash = response.headers.get('ETag')
+			for chunk in progress.bar(response.iter_content(chunk_size=CHUNK_SIZE), expected_size=(total_length/CHUNK_SIZE) + 1):
+				if chunk:
+					f.write(chunk)
+					f.flush()
+			print("[" + str(datetime.datetime.now()) + "]"+" Downloaded " + filename + " successfully")
+			mutex.acquire()
+			DOWNLOADED_LIST.append(key_url)
+			mutex.release()
+		calc_md5_hash = calculate_multipart_etag(filename, S3_MULTIPART_CHUNK_SIZE_IN_MB * 1024 *1024)
+		if calc_md5_hash != md5_hash:
+			print("md5 checksum mismatch for " + filename + ". Expected: " + md5_hash + ", Actual: " + calc_md5_hash)
+			os.remove(filename)
+			retry_counter += 1
+			if retry_counter > 3:
+				print("Giving up after " + str(retry_counter) + " retries for file: " + filename + " ! Please check with support team.")
+				time.sleep(5)
+				os._exit(1)
+			print("[Retry: " + str(retry_counter) + "] Downloading again " + filename)
+		else:
+			break
 
 def CleanupDir(folderName):
 	if os.path.exists(folderName):
@@ -147,6 +281,39 @@ def ExtractAllGzippedObjects():
 				os.remove(f)
 			else:
 				shutil.rmtree(f)
+
+
+def calculate_multipart_etag(source_path, chunk_size):
+
+	"""
+	calculates a multipart upload etag for amazon s3
+	Arguments:
+	source_path -- The file to calculate the etage for
+	chunk_size -- The chunk size to calculate for.
+	"""
+
+	md5s = []
+	with open(source_path,'rb') as fp:
+		first = True
+		while True:
+			data = fp.read(chunk_size)
+			if not data:
+				if first:
+					md5s.append(hashlib.md5())
+				break
+			md5s.append(hashlib.md5(data))
+			first = False
+
+	if len(md5s) > 1:
+		digests = b"".join(m.digest() for m in md5s)
+		new_md5 = hashlib.md5(digests)
+		new_etag = '"%s-%s"' % (new_md5.hexdigest(),len(md5s))
+	elif len(md5s) == 1: # file smaller than chunk size
+		new_etag = '"%s"' % md5s[0].hexdigest()
+	else: # empty file
+		new_etag = '""'
+
+	return new_etag
 				
 def run():
 	dir_name = STORAGE_PATH + "/historical-data"
@@ -174,23 +341,37 @@ def run():
 			if(UploadLock() == False):
 				currTxBlk = GetCurrentTxBlkNum()
 				if(currTxBlk < 0): # wait until current txblk is known
-					print("Current TX block unknown, sleeping")
 					time.sleep(1)
 					continue
 				print("[" + str(datetime.datetime.now()) + "] Started downloading entire persistence")
 				GetEntirePersistenceFromS3()
 			else:
-				print("Upload lock acquired, sleeping")
 				time.sleep(1)
 				continue
 
 			print("Started downloading State-Delta")
 			GetStateDeltaFromS3()
+			#time.sleep(30) // uncomment it for test purpose.
 			newTxBlk = GetCurrentTxBlkNum()
-			# Loop until we've caught up
-			if (currTxBlk == newTxBlk):
-				print(f"Downloaded persistence at {newTxBlk}")
+			if(currTxBlk < newTxBlk):
+				# To get new files from S3 if new files where uploaded in meantime
+				while(UploadLock() == True):
+					time.sleep(1)
+			else:
 				break
+			if(IsDownloadRestartRequired(currTxBlk, newTxBlk)):
+				print("Redownload persistence as the persistence is overwritten")
+				continue
+			#get diff of persistence and stadedeltas for newly mined txblocks
+			lst = []
+			while(currTxBlk < newTxBlk):
+				lst.append(currTxBlk+1)
+				currTxBlk += 1
+			if lst:
+				GetPersistenceDiffFromS3(lst)
+				GetStateDeltaDiffFromS3(lst)
+			break
+
 		except Exception as e:
 			print(e)
 			print("Error downloading!! Will try again")

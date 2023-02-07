@@ -16,11 +16,10 @@
  */
 
 #include "TimeUtils.h"
+#include <g3log/g3log.hpp>
 #include <mutex>
-#include "depends/common/CommonIO.h"
 
 using namespace std::chrono;
-using namespace boost::multiprecision;
 
 system_clock::time_point r_timer_start() { return system_clock::now(); }
 

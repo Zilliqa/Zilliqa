@@ -21,12 +21,7 @@
 #include "common/BaseType.h"
 
 class BitVector {
-  static unsigned int GetBitVectorLengthInBytes(unsigned int length_in_bits);
-  static unsigned int GetBitVectorSerializedSize(unsigned int length_in_bits);
  public:
-  static std::vector<bool> GetBitVector(const zbytes& src, unsigned int offset,
-                                        unsigned int expected_length);
-  static std::vector<bool> GetBitVector(const zbytes& src, unsigned int offset);
   static unsigned int SetBitVector(zbytes& dst, unsigned int offset,
                                    const std::vector<bool>& value);
 };

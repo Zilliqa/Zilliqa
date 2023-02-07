@@ -1,0 +1,16 @@
+scrape_configs:
+  - job_name: 'otel-collector'
+    scrape_interval: 5s
+    honor_timestamps: false
+    static_configs:
+      - targets: ['localhost:9990']
+      - targets: ['localhost:9991']
+      - targets: ['localhost:9992']
+      - targets: ['localhost:9993']
+      - targets: ['localhost:9994']
+      - targets: ['localhost:9995']
+      - targets: ['localhost:9996']
+      - targets: ['localhost:9997']
+      - targets: ['localhost:9998']
+      - targets: ['localhost:9999']
+      - targets: ['localhost:8999']

@@ -6,22 +6,24 @@
     npx hardhat test --network devnet    # to run tests against the devnet
     npx hardhat test --log-jsonrpc    # to run tests and print JSON-RPC requests/responses
     npx hardhat test --log-txnid    # to run tests and print transaction ids.
-    DEBUG=true npx hardhat test    # to run tests and print log messages
+    DEBUG=true npx hardhat test    # to run tests and print log messages. `.env` file can be used as well.
     npx hardhat test --grep something    # to run tests containing `something` in the description
     npx hardhat test filename    # to run tests of `filename`
     npx hardhat test folder/*    # to run tests of `folder`
     npx hardhat test --parallel   # to run tests in parallel
+    npx hardhat test test/scilla/*    # to run scilla tests only
+    SCILLA=false npx hardhat test   # to disable scilla tests. `.env` file can be used as well.
 ```
 
 # Start Testing
 
 ## A few simple rules before start
+
 1. Please prefer ethers.js library to web3.js. Our default library to use throughout the the code is **ethers.js**.
-2. Please use typescript. Javascript is not used anymore in this test suite.
+2. Please use [typescript](./Typescript.md). Javascript is not used anymore in this test suite. You can learn more about typescript [here](./Typescript.md).
 3. Please don't add commented tests. You can't add disabled tests as well, unless you create a ticket for it.
 
 For more info, see [Testing conventions and best practices](#testing-conventions-and-best-practices).
-
 
 ## Add a new contract
 
@@ -67,6 +69,16 @@ npx hardhat test --grep "something"     # Run tests containing "something" in th
 npx hardhat test --bail     # Stop running tests after the first test failure
 npx hardhat test --parallel
 ```
+
+## Run the tests with ethernal plugin
+
+```bash
+ETHERNAL_EMAIL="devops+ethernal@zilliqa.com" ETHERNAL_PASSWORD="YourPassword" ETHERNAL_WORKSPACE="Zilliqa Testnet" npx hardhat test --network public_testnet
+```
+
+Ethernal is an [EVM-based blockchain explorer](https://tryethernal.com)
+
+For more info, see [hardhat ethernal plugin](https://github.com/tryethernal/hardhat-ethernal)
 
 # How to define a new network for hardhat
 
@@ -115,13 +127,15 @@ npx hardhat test --network ganache
 DEBUG=true npx hardhat test
 ```
 
+Alternatively you can change `DEBUG` variable in the `.env` file.
+
 # Testing conventions and best practices
 
 - File names tries to tell us the scenario we're testing.
 - We don't pollute test results with logs. So if you want to add them for debugging, please consider using `logDebug` function:
 
 ```typescript
-import logDebug from "../helper/DebugHelper";
+import {logDebug} from "../helpers";
 logDebug(result);
 ```
 
@@ -186,19 +200,123 @@ const txn = await payer.sendTransaction({
 expect(await ethers.provider.getBalance(payee.address), `Txn Hash: ${txn.hash}`).to.be.eq(FUND);
 ```
 
-# Scilla Testing Tools
-## Scilla checker task
+# Scilla
+
+## Testing
+
+Scilla testing is done through the [hardhat scilla plugin](https://www.npmjs.com/package/hardhat-scilla-plugin). It's possible to deploy a scilla contract by its name and call its transitions just like a normal function call. It's also possible to get a field value through a function call. In the below sections, all of these topics are covered in detail.
+
+### Deploy a contract
+
+To deploy a contract all you need to know is its name:
+
+```typescript
+import {parallelizer} from "../../helpers";
+
+let contract: ScillaContract = await parallelizer.deployScillaContract("SetGet");
+let contract: ScillaContract = await parallelizer.deployScillaContract("HelloWorld", "Hello World"); // Contract with initial parameters.
+```
+
+### Call a transition
+
+It's not harder than calling a normal function in typescript.
+Let's assume we have a transition named `Set` which accepts a `number` as its parameter. Here is how to call it:
+
+```typescript
+await contract.Set(12);
+```
+
+### Get field value
+
+If a given contract has a filed named `msg` is possible to get its current value using a function call to `msg()`
+
+```typescript
+const msg = await contract.msg();
+```
+
+### Expect a result
+
+Chai matchers can be used to expect a value:
+
+```typescript
+it("Should set state correctly", async function () {
+  const VALUE = 12;
+  await contract.Set(VALUE);
+  expect(await contract.value()).to.be.eq(VALUE);
+});
+```
+
+There are two custom chai matchers specially developed to `expect` scilla events. `eventLog` and `eventLogWithParams`.
+Use `eventLog` if you just need to expect event name:
+
+```typescript
+it("Should contain event data if emit function is called", async function () {
+  const tx = await contract.emit();
+  expect(tx).to.have.eventLog("Emit");
+});
+```
+
+Otherwise, if you need to deeply expect an event, you should use `eventLogWithParams`. The first parameter is again the event name. The rest are parameters of the expected event. If you expect to have an event like `getHello` sending a parameter named `msg` with a `"hello world"` value:
+
+```typescript
+it("Should send getHello() event when getHello() transition is called", async function () {
+  const tx = await contract.getHello();
+  expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", vname: "msg"});
+});
+```
+
+You can even expect data type of the parameter(s):
+
+```typescript
+expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world", vname: "msg", type: "String"});
+```
+
+Type should be a valid Scilla type.
+
+But if you just want to expect on the value of a event parameter do this:
+
+```typescript
+expect(tx).to.have.eventLogWithParams("getHello()", {value: "hello world"});
+```
+
+for more tests please take look at [scilla tests](./test/scilla/).
+
+### TODO
+
+- Support formatting complex data types such as `Map` and `List`.
+
+## Tasks
+
+### Scilla checker task
+
 To run `scilla-checker` on all of the scilla contracts in the [contracts directory](./contracts/) run:
+
 ```bash
 npx hardhat scilla-check --libdir path_to_stdlib
 ```
 
 alternatively, you can check a specific file(s):
+
 ```bash
 npx hardhat scilla-check --libdir path_to_stdlib contracts/scilla/helloWorld.scilla
 ```
 
+### TODO
+
+- Add `scilla-fmt` task
+
 # miscellaneous
+
+## .env File
+
+to change some of the testing behaviors environment variables are used. They can be changed using the `.env` file. Here is the list of them:
+
+- `DEBUG=true` to enable debugging logs.
+- `SCILLA=false` to ignore scilla tests.
+- `MOCHA_TIMEOUT=3000` to set the mocha timeout in milliseconds.
+- `ETHERNAL_EMAIL="devops+ethernal@zilliqa.com"` to set Ethernal email.
+- `ETHERNAL_WORKSPACE="Zilliqa Testnet"` to set Ethernal workspace.
+- `ETHERNAL_PASSWORD="Your Password"` If it's not set, ethernal plugin will be disabled.
 
 ## Scripts
 

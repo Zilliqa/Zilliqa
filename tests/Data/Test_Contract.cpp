@@ -30,11 +30,10 @@
 #include <Schnorr.h>
 #include "common/Constants.h"
 #include "common/TxnStatus.h"
-#include "depends/common/CommonIO.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"

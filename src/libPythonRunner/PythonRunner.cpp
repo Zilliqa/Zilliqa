@@ -21,6 +21,12 @@
 #pragma clang diagnostic ignored "-Wmissing-field-initializers"
 #pragma clang diagnostic ignored "-Wdeprecated-copy-with-user-provided-copy"
 #endif
+#if defined(__GNUC__)
+#if __GNUC__ == 12
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#endif
 
 #include "PythonRunner.h"
 #include <boost/filesystem/operations.hpp>
@@ -28,6 +34,12 @@
 
 #if defined(__APPLE__) && defined(__clang__)
 #pragma clang diagnostic pop
+#endif
+#define CHOICE __VERSION__
+#if defined(__GNUC__)
+#if __GNUC__ == 12
+#pragma GCC diagnostic pop
+#endif
 #endif
 
 #include "libUtils/Logger.h"

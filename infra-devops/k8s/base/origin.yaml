@@ -1,0 +1,165 @@
+# TODO(#314): reduce the scope of the permission
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: devnet-origin
+rules:
+- apiGroups: ["apps"]
+  resources: ["statefulsets"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["pods", "nodes"]
+  verbs: ["get", "list"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: devnet-origin
+  labels:
+    testnet: devnet
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: devnet-origin-binding
+  namespace: default
+  labels:
+    testnet: devnet
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: devnet-origin
+subjects:
+- kind: ServiceAccount
+  name: devnet-origin
+  namespace: default
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: devnet-origin-passwd
+  labels:
+    testnet: devnet
+type: Opaque
+data:
+  username: amgtZGV2bmV0LW9yaWdpbi1jbGllbnQ=
+  password: d0ZTOTRqWmRobEo2VG10Uw==
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: devnet-origin-bauth
+  labels:
+    testnet: devnet
+type: Opaque
+data:
+  auth: amgtZGV2bmV0LW9yaWdpbi1jbGllbnQ6JGFwcjEkejJlVEZHM1MkbTNkREVYckNNLlNQMzlsRTQ2RzduMAoK
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devnet-origin
+  labels:
+    testnet: devnet
+data:
+  default.conf: |
+    server {
+        listen       80;
+        server_name  localhost;
+        location / {
+            root   /usr/share/nginx/html;
+            autoindex on;
+        }
+    }
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: devnet-origin-pv-claim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: devnet-origin
+  labels:
+    testnet: devnet
+spec:
+  selector:
+    matchLabels:
+      testnet: devnet
+      app: nginx
+      task: origin
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        testnet: devnet
+        app: nginx
+        task: origin
+    spec:
+      serviceAccountName: devnet-origin
+      # tolerations can be always on
+      tolerations:
+      - key: dedicated
+        operator: Equal
+        value: webapp
+        effect: NoSchedule
+      affinity:
+        nodeAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1 # not need a very high value since tolerations is used
+            preference:
+              matchExpressions:
+              - key: k8s.z7a.xyz/group
+                operator: In
+                values:
+                - webapp
+      volumes:
+      - name: html
+        persistentVolumeClaim:
+          claimName: devnet-origin-pv-claim
+      - name: config
+        configMap:
+          name: devnet-origin
+      - name: zilliqa-config
+        configMap:
+          name: devnet-config
+      initContainers:
+      - name: build
+        image: zilliqa/zilliqa
+        volumeMounts:
+        - name: html
+          mountPath: /tmp/html
+          subPath: html
+        - name: zilliqa-config
+          mountPath: /etc/zilliqa
+        command:
+        - /bin/bash
+        - -c
+        - |
+          set -e
+          mkdir /run/zilliqa && cd /run/zilliqa
+          python /etc/zilliqa/init.py --testnet devnet --origin -n 8 -d 4 -l 2 --port 30303 --websocket=seedpub  --seed-multiplier --multiplier-fanout=1  --seed-node --transaction-sender=0 --ds-guard=4 --shard-guard=4    --bucket=devnet-bucket
+          cp -v *.txt /tmp/html
+          echo "IP list files created"
+      containers:
+      - name: nginx
+        image: nginx
+        volumeMounts:
+        - name: html
+          mountPath: /usr/share/nginx/html
+          subPath: html
+        - name: config
+          mountPath: /etc/nginx/conf.d
+        workingDir: /usr/share/nginx/html  
+        ports:
+        - containerPort: 80
+      imagePullSecrets:
+      - name: ecr-creds

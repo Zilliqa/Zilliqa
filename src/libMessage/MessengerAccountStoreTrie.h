@@ -22,7 +22,7 @@
 #include "libData/AccountData/Account.h"
 #include "libData/DataStructures/TraceableDB.h"
 
-// This class is only used by AccountStoreTrie template class
+// This class is only used by AccountStore class.
 // If AccountStoreBase.tpp included Messenger.h, we enter into some circular
 // dependency issue Putting the messenger functions below into this new class
 // avoids that issue

@@ -28,10 +28,10 @@
 #include <vector>
 
 #include <Schnorr.h>
+#include "libBlockchain/DSBlock.h"
+#include "libBlockchain/MicroBlock.h"
+#include "libBlockchain/TxBlock.h"
 #include "libData/AccountData/Transaction.h"
-#include "libData/BlockData/Block/DSBlock.h"
-#include "libData/BlockData/Block/MicroBlock.h"
-#include "libData/BlockData/Block/TxBlock.h"
 #include "libNetwork/Executable.h"
 #include "libNetwork/ShardStruct.h"
 #include "libUtils/IPConverter.h"

@@ -26,8 +26,8 @@
 #include "common/Messages.h"
 #include "common/Serializable.h"
 #include "libData/AccountData/Account.h"
-#include "libData/AccountData/AccountStore.h"
 #include "libData/AccountData/Transaction.h"
+#include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
@@ -40,11 +40,15 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+constexpr const unsigned int IP_SIZE = 16;
+constexpr const unsigned int PORT_SIZE = 4;
+
 // TODO: only used in libNode. Move somewhere more appropriate.
-extern bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
-                                unsigned int minLengthNeeded,
-                                unsigned int factor = 0,
-                                const std::string& errMsg = "");
+extern bool IsMessageSizeInappropriate(unsigned int messageSize,
+                                       unsigned int offset,
+                                       unsigned int minLengthNeeded,
+                                       unsigned int factor = 0,
+                                       const std::string& errMsg = "");
 
 bool Node::GetLatestDSBlock() {
   LOG_MARKER();

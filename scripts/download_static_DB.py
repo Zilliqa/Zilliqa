@@ -42,9 +42,13 @@ mutex = Lock()
 DOWNLOADED_LIST = []
 DOWNLOAD_STARTED_LIST = []
 CREATED_FOLDER_LIST = []
+AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
 
 def getURL():
-	return "http://"+BUCKET_NAME+".s3.amazonaws.com"
+	if AWS_ENDPOINT_URL:
+		return f"{AWS_ENDPOINT_URL}/{BUCKET_NAME}"
+	else:
+		return "http://"+BUCKET_NAME+".s3.amazonaws.com"
 
 def Diff(list1, list2):
 	return (list(list(set(list1)-set(list2)) + list(set(list2)-set(list1))))

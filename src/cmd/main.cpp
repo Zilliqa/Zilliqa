@@ -24,6 +24,7 @@
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
@@ -163,6 +164,8 @@ int main(int argc, const char* argv[]) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
+    Metrics::GetInstance();
+    Tracing::GetInstance();
 
     boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
@@ -248,6 +251,11 @@ int main(int argc, const char* argv[]) {
       P2PComm::GetInstance().EnableListener(my_network_info.m_listenPortHost,
                                             ENABLE_SEED_TO_SEED_COMMUNICATION);
     }
+
+    LOG_GENERAL(INFO, "Shutting down metrics...");
+    Metrics::GetInstance().Shutdown();
+    LOG_GENERAL(INFO, "Metrics shut down");
+
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
