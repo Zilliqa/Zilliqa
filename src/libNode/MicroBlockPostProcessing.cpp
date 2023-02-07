@@ -235,9 +235,10 @@ bool Node::ProcessMicroBlockConsensusCore(
   if (state == ConsensusCommon::State::DONE) {
     // Update the micro block with the co-signatures from the consensus
     m_microblock->SetCoSignatures(
-        // FIXME: same implementation as DirectoryService::ConsensusObjectToCoSig; moved from
-        //        BlockBase to remove dependency on libConsensus. Put in a single function and
-        //        reuse.
+        // FIXME: same implementation as
+        // DirectoryService::ConsensusObjectToCoSig; moved from
+        //        BlockBase to remove dependency on libConsensus. Put in a
+        //        single function and reuse.
         CoSignatures{m_consensusObject->GetCS1(), m_consensusObject->GetB1(),
                      m_consensusObject->GetCS2(), m_consensusObject->GetB2()});
 
@@ -246,11 +247,6 @@ bool Node::ProcessMicroBlockConsensusCore(
                                << m_mediator.m_selfPeer.GetPrintableIPAddress()
                                << "][" << m_mediator.m_currentEpochNum << "]["
                                << m_myshardId << "]");
-
-      if (LOG_PARAMETERS) {
-        LOG_STATE("[MITXN][" << m_microblock->GetHeader().GetNumTxs() << "]");
-        LOG_STATE("[MIGAS][" << m_microblock->GetHeader().GetGasUsed() << "]");
-      }
     }
 
     // shard

@@ -26,12 +26,12 @@
 #include <unordered_map>
 
 #include "common/TxnStatus.h"
+#include "libBlockchain/Block.h"
 #include "libConsensus/Consensus.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountData/TxnPool.h"
-#include "libBlockchain/Block.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/Executable.h"
@@ -278,8 +278,7 @@ class Node : public Executable {
                          const Peer& from,
                          [[gnu::unused]] const unsigned char& startByte);
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
-                             TxBlock& txBlock, zbytes& stateDelta,
-                             const uint64_t& messageSize);
+                             TxBlock& txBlock, zbytes& stateDelta);
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);

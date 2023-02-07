@@ -31,12 +31,12 @@
 
 #include "Lookup.h"
 #include "common/Messages.h"
+#include "libBlockchain/Block.h"
 #include "libData/AccountData/Account.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libBlockchain/Block.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
@@ -5406,12 +5406,6 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
     auto transactionNumber = m_txnShardMapGenerated[shardId].size();
 
     LOG_GENERAL(INFO, "Txn number generated: " << transactionNumber);
-
-    if (LOG_PARAMETERS) {
-      LOG_STATE("[TXNPKT][" << epoch << "] Shard=" << shardId << " NumTx="
-                            << (GetTxnFromShardMap(shardId).size() +
-                                m_txnShardMapGenerated[shardId].size()));
-    }
 
     if (GetTxnFromShardMap(shardId).empty() &&
         m_txnShardMapGenerated[shardId].empty()) {

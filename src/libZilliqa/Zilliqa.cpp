@@ -29,6 +29,8 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -41,20 +43,18 @@
 #include "libUtils/SetThreadName.h"
 #include "libUtils/UpgradeManager.h"
 #include "libValidator/Validator.h"
-#include "libUtils/Tracing.h"
 
 namespace {
 
-zil::metrics::uint64Counter_t& GetMsgDispatchCounter() {
-  static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_msg_dispatch", "msg_dispatch", "Messages dispatched", "Calls");
+Z_DBLMETRIC &GetMsgDispatchCounter() {
+  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p.dispatch",
+                             "Messages dispatched", "Calls"};
   return counter;
 }
 
-zil::metrics::uint64Counter_t& GetMsgDispatchErrorCounter() {
-  static auto counter = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_msg_dispatch", "msg_dispatch_error", "Message dispatch errors",
-      "Calls");
+Z_DBLMETRIC &GetMsgDispatchErrorCounter() {
+  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p.dipatch.error",
+                             "Message dispatch errors", "Calls"};
   return counter;
 }
 
@@ -94,7 +94,7 @@ const std::string_view StartByteToStr(unsigned char start_byte) {
 
 using namespace std;
 
-void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
+void Zilliqa::LogSelfNodeInfo(const PairOfKey &key, const Peer &peer) {
   zbytes tmp1;
   zbytes tmp2;
 
@@ -108,7 +108,7 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
   zbytes message;
   key.second.Serialize(message, 0);
   sha2.Update(message, 0, PUB_KEY_SIZE);
-  const zbytes& tmp3 = sha2.Finalize();
+  const zbytes &tmp3 = sha2.Finalize();
   Address toAddr;
   copy(tmp3.end() - ACC_ADDR_SIZE, tmp3.end(), toAddr.asArray().begin());
 
@@ -135,19 +135,23 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey& key, const Peer& peer) {
          MessageTypeInstructionStrings[msgType][instruction];
 }
 
-void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
+void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
-    INCREMENT_CALLS_COUNTER2(GetMsgDispatchCounter(), MSG_DISPATCH, "Type",
-                             MsgTypeToStr(msg_type), "StartByte",
-                             StartByteToStr(message->second.second));
+    if (zil::metrics::Filter::GetInstance().Enabled(
+            zil::metrics::FilterClass::MSG_DISPATCH)) {
+      GetMsgDispatchCounter().IncrementWithAttributes(
+          1L,
+          {{"Type", std::string(MsgTypeToStr(msg_type))},
+           {"StartByte", std::string(StartByteToStr(message->second.second))}});
+    }
 
     // To-do: Remove consensus user and peer manager placeholders
-    Executable* msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
+    Executable *msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
 
     const unsigned int msg_handlers_count =
-        sizeof(msg_handlers) / sizeof(Executable*);
+        sizeof(msg_handlers) / sizeof(Executable *);
 
     if (msg_type < msg_handlers_count) {
       if (msg_handlers[msg_type] == NULL) {
@@ -181,8 +185,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
 
       if (!result) {
         // To-do: Error recovery
-        INCREMENT_CALLS_COUNTER(GetMsgDispatchErrorCounter(), MSG_DISPATCH,
-                                "Error", "dispatch_failed");
+        INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
       }
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex
@@ -191,7 +194,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg& message) {
   }
 }
 
-Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
+Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
                  bool toRetrieveHistory, bool multiplierSyncMode,
                  PairOfKey extSeedKey)
     : m_mediator(key, peer),
@@ -201,9 +204,11 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
 
-  if (LOG_PARAMETERS) {
-    LOG_STATE("[IDENT] " << string(key.second).substr(0, 8));
-  }
+  /*
+   * These are required to initialise SubSystems.
+   */
+  Metrics::GetInstance();
+  Tracing::GetInstance();
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
@@ -323,7 +328,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       } else {
         m_mediator.m_lookup->SetSyncType(SyncType::NO_SYNC);
         bool isDsNode = false;
-        for (const auto& ds : *m_mediator.m_DSCommittee) {
+        for (const auto &ds : *m_mediator.m_DSCommittee) {
           if (ds.first == m_mediator.m_selfKey.second) {
             isDsNode = true;
             m_ds.RejoinAsDS(false);
@@ -372,7 +377,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
                0)  // Can fetch dsblock and txblks from new ds epoch
               || m_mediator.m_lookup
                      ->GetDSInfo()) {  // have same ds committee as upper seeds
-                                       // to confirm if no new ds epoch started
+            // to confirm if no new ds epoch started
             m_mediator.m_lookup->InitSync();
           } else {
             // Sync from S3 again
@@ -431,10 +436,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       case SyncType::DB_VERIF:
         LOG_GENERAL(FATAL, "Use of deprecated syncType=DB_VERIF");
 #if 0
-        LOG_GENERAL(INFO, "Intitialize DB verification");
-        m_n.ValidateDB();
-        std::this_thread::sleep_for(std::chrono::seconds(10));
-        raise(SIGKILL);
+                LOG_GENERAL(INFO, "Intitialize DB verification");
+                m_n.ValidateDB();
+                std::this_thread::sleep_for(std::chrono::seconds(10));
+                raise(SIGKILL);
 #endif
         break;
       default:
@@ -488,7 +493,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
         if (ENABLE_EVM) {
           m_mediator.m_filtersAPICache->EnableWebsocketAPI(
               apiRPC->GetWebsocketServer(),
-              [this](const std::string& blockHash) -> Json::Value {
+              [this](const std::string &blockHash) -> Json::Value {
                 try {
                   return m_lookupServer->GetEthBlockByHash(blockHash, false);
                 } catch (...) {
@@ -579,7 +584,7 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
       utility::SetThreadName("RPCAPI");
 
       boost::asio::signal_set sig(*asioCtx, SIGINT, SIGTERM);
-      sig.async_wait([&](const boost::system::error_code&, int) {
+      sig.async_wait([&](const boost::system::error_code &, int) {
         if (apiRPC) {
           apiRPC->Close();
         }
@@ -595,8 +600,10 @@ Zilliqa::Zilliqa(const PairOfKey& key, const Peer& peer, SyncType syncType,
   };
   DetachedFunction(1, func);
 
-  m_msgQueueSize.SetCallback([this](auto&& result) {
-    result.Set(m_msgQueue.size(), {{"counter", "QueueSize"}});
+  m_msgQueueSize.SetCallback([this](auto &&result) {
+    if (m_msgQueueSize.Enabled()) {
+      result.Set(m_msgQueue.size(), {{"counter", "QueueSize"}});
+    }
   });
 }
 

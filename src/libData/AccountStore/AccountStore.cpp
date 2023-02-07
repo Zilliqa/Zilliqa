@@ -25,13 +25,19 @@
 
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libMessage/MessengerAccountStoreTrie.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+
 #include "libPersistence/ScillaMessage.pb.h"
+
 #pragma GCC diagnostic pop
+
 #include "libData/AccountStore/services/evm/EvmClient.h"
+#include "libMetrics/Api.h"
 #include "libScilla/ScillaIPCServer.h"
 #include "libScilla/ScillaUtils.h"
 #include "libScilla/UnixDomainSocketServer.h"
@@ -43,17 +49,65 @@ using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
 
-AccountStore::AccountStore() : m_accountStoreTemp(*this),
-                               m_externalWriters{0},
-                               m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
+namespace zil {
+namespace local {
 
+Z_DBLHIST &GetEvmLatency() {
+  static std::list<double> latencieBoudaries{0,0.25,0.5,0.75, 1,2,3,  4,  5,
+                                             10, 20, 30, 40, 60, 120};
+  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.latency",
+                           latencieBoudaries, "latency of processing", "ms"};
+  return counter;
+}
+
+Z_DBLHIST &GetScillaLatency() {
+    static std::list<double> latencieBoudaries{0,0.25,0.5,.75, 1,  2,  3,  4,  5,
+                                                   10, 20, 30, 40, 60, 120};
+    static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla.latency",
+                                 latencieBoudaries, "latency of processing", "ms"};
+    return counter;
+}
+
+
+Z_DBLHIST &GetGasUsed() {
+  static std::list<double> latencieBoudaries{0, 100, 200, 300, 400, 500, 1000, 2000, 100000, 1000000};
+
+  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "gas",
+                           latencieBoudaries, "amount of gas used", "zils"};
+  return counter;
+}
+
+Z_DBLHIST &GetSizeUsed() {
+  static std::list<double> latencieBoudaries{0, 1000, 2000, 3000, 4000, 5000};
+
+  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "size",
+                           latencieBoudaries, "size of contract", "bytes"};
+  return counter;
+}
+
+Z_I64METRIC &GetCallCounter() {
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "processing.failed",
+                             "Errors for AccountStore", "calls"};
+  return counter;
+}
+
+}  // namespace local
+}  // namespace zil
+
+AccountStore::AccountStore()
+    : m_db("state"),
+      m_state(&m_db),
+      m_accountStoreTemp(*this),
+      m_externalWriters{0},
+      m_scillaIPCServerConnector(SCILLA_IPC_SOCKET_PATH) {
   bool ipcScillaInit = false;
 
   if (ENABLE_SC || ENABLE_EVM || ISOLATED_SERVER) {
     /// Scilla IPC Server
     /// clear path
     boost::filesystem::remove_all(SCILLA_IPC_SOCKET_PATH);
-    m_scillaIPCServer = make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
+    m_scillaIPCServer =
+        make_shared<ScillaIPCServer>(m_scillaIPCServerConnector);
 
     if (!LOOKUP_NODE_MODE || ISOLATED_SERVER) {
       ScillaClient::GetInstance().Init();
@@ -99,16 +153,84 @@ void AccountStore::Init() {
   m_db.ResetDB();
 }
 
+void AccountStore::InitTrie() {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+  m_state.init();
+  m_prevRoot = m_state.root();
+}
+
 void AccountStore::InitSoft() {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
 
-  AccountStoreTrie::Init();
+  AccountStoreBase::Init();
+  InitTrie();
 
   m_externalWriters = 0;
 
   InitRevertibles();
 
   InitTemp();
+}
+
+Account *AccountStore::GetAccount(const Address &address) {
+  return this->GetAccount(address, false);
+}
+
+Account *AccountStore::GetAccount(const Address &address, bool resetRoot) {
+  // LOG_MARKER();
+  using namespace boost::multiprecision;
+
+  Account *account = AccountStoreBase::GetAccount(address);
+  if (account != nullptr) {
+    return account;
+  }
+
+  std::string rawAccountBase;
+
+  {
+    std::lock(m_mutexTrie, m_mutexDB);
+    std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+    std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
+
+    if (LOOKUP_NODE_MODE && resetRoot) {
+      if (m_prevRoot != dev::h256()) {
+        try {
+          auto t_state = m_state;
+          t_state.setRoot(m_prevRoot);
+          rawAccountBase =
+              t_state.at(DataConversion::StringToCharArray(address.hex()));
+        } catch (std::exception &e) {
+          LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed, "
+                                              << e.what());
+          return nullptr;
+        }
+      }
+    } else {
+      rawAccountBase =
+          m_state.at(DataConversion::StringToCharArray(address.hex()));
+    }
+  }
+  if (rawAccountBase.empty()) {
+    return nullptr;
+  }
+
+  account = new Account();
+  if (!account->DeserializeBase(
+          zbytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
+    LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+    delete account;
+    return nullptr;
+  }
+
+  if (account->isContract()) {
+    account->SetAddress(address);
+  }
+
+  auto it2 = this->m_addressToAccount->emplace(address, *account);
+
+  delete account;
+
+  return &it2.first->second;
 }
 
 bool AccountStore::RefreshDB() {
@@ -138,19 +260,34 @@ void AccountStore::InitRevertibles() {
   ContractStorage::GetContractStorage().InitRevertibles();
 }
 
-AccountStore& AccountStore::GetInstance() {
+AccountStore &AccountStore::GetInstance() {
   static AccountStore accountstore;
   return accountstore;
 }
 
-bool AccountStore::Serialize(zbytes& src, unsigned int offset) const {
+bool AccountStore::Serialize(zbytes &dst, unsigned int offset) const {
   LOG_MARKER();
   shared_lock<shared_timed_mutex> lock(m_mutexPrimary);
-  return AccountStoreTrie::Serialize(
-      src, offset);
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+  if (LOOKUP_NODE_MODE) {
+    if (m_prevRoot != dev::h256()) {
+      try {
+        m_state.setRoot(m_prevRoot);
+      } catch (...) {
+        return false;
+      }
+    }
+  }
+  if (!MessengerAccountStoreTrie::SetAccountStoreTrie(
+          dst, offset, m_state, this->m_addressToAccount)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountStoreTrie failed.");
+    return false;
+  }
+
+  return true;
 }
 
-bool AccountStore::Deserialize(const zbytes& src, unsigned int offset) {
+bool AccountStore::Deserialize(const zbytes &src, unsigned int offset) {
   LOG_MARKER();
 
   this->Init();
@@ -167,7 +304,7 @@ bool AccountStore::Deserialize(const zbytes& src, unsigned int offset) {
   return true;
 }
 
-bool AccountStore::Deserialize(const string& src, unsigned int offset) {
+bool AccountStore::Deserialize(const string &src, unsigned int offset) {
   LOG_MARKER();
 
   this->Init();
@@ -200,7 +337,7 @@ bool AccountStore::SerializeDelta() {
   return true;
 }
 
-void AccountStore::GetSerializedDelta(zbytes& dst) {
+void AccountStore::GetSerializedDelta(zbytes &dst) {
   lock_guard<mutex> g(m_mutexDelta);
 
   dst.clear();
@@ -209,7 +346,7 @@ void AccountStore::GetSerializedDelta(zbytes& dst) {
        back_inserter(dst));
 }
 
-bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
+bool AccountStore::DeserializeDelta(const zbytes &src, unsigned int offset,
                                     bool revertible) {
   if (LOOKUP_NODE_MODE) {
     std::lock_guard<std::mutex> g(m_mutexTrie);
@@ -254,13 +391,13 @@ bool AccountStore::DeserializeDelta(const zbytes& src, unsigned int offset,
   return true;
 }
 
-bool AccountStore::DeserializeDeltaTemp(const zbytes& src,
+bool AccountStore::DeserializeDeltaTemp(const zbytes &src,
                                         unsigned int offset) {
   lock_guard<mutex> g(m_mutexDelta);
   return m_accountStoreTemp.DeserializeDelta(src, offset);
 }
 
-bool AccountStore::MoveRootToDisk(const dev::h256& root) {
+bool AccountStore::MoveRootToDisk(const dev::h256 &root) {
   // convert h256 to bytes
   if (!BlockStorage::GetBlockStorage().PutStateRoot(root.asBytes())) {
     LOG_GENERAL(INFO, "FAIL: Put state root failed " << root.hex());
@@ -279,7 +416,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   unordered_map<string, string> code_batch;
   unordered_map<string, string> initdata_batch;
 
-  for (const auto& i : *m_addressToAccount) {
+  for (const auto &i : *m_addressToAccount) {
     if (i.second.isContract() || i.second.IsLibrary()) {
       if (ContractStorage::GetContractStorage()
               .GetContractCode(i.first)
@@ -317,7 +454,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
   }
 
   if (!ret) {
-    for (const auto& it : code_batch) {
+    for (const auto &it : code_batch) {
       if (!ContractStorage::GetContractStorage().DeleteContractCode(
               h160(it.first))) {
         LOG_GENERAL(WARNING, "Failed to delete contract code for " << it.first);
@@ -335,7 +472,7 @@ bool AccountStore::MoveUpdatesToDisk(uint64_t dsBlockNum) {
       LOG_GENERAL(WARNING, "MoveRootToDisk failed " << m_state.root().hex());
       return false;
     }
-  } catch (const boost::exception& e) {
+  } catch (const boost::exception &e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::MoveUpdatesToDisk(). "
                              << boost::diagnostic_information(e));
     return false;
@@ -398,7 +535,7 @@ bool AccountStore::RetrieveFromDisk() {
         return false;
       }
     }
-  } catch (const boost::exception& e) {
+  } catch (const boost::exception &e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
                              << boost::diagnostic_information(e));
     return false;
@@ -436,7 +573,7 @@ bool AccountStore::RetrieveFromDiskOld() {
     LOG_GENERAL(INFO, "StateRootHash:" << root.hex());
     lock_guard<mutex> g(m_mutexTrie);
     m_state.setRoot(root);
-  } catch (const boost::exception& e) {
+  } catch (const boost::exception &e) {
     LOG_GENERAL(WARNING, "Error with AccountStore::RetrieveFromDisk. "
                              << boost::diagnostic_information(e));
     return false;
@@ -444,23 +581,25 @@ bool AccountStore::RetrieveFromDiskOld() {
   return true;
 }
 
-Account* AccountStore::GetAccountTemp(const Address& address) {
+Account *AccountStore::GetAccountTemp(const Address &address) {
   return m_accountStoreTemp.GetAccount(address);
 }
 
-Account* AccountStore::GetAccountTempAtomic(const Address& address) {
+Account *AccountStore::GetAccountTempAtomic(const Address &address) {
   return m_accountStoreTemp.GetAccountAtomic(address);
 }
 
 bool AccountStore::UpdateAccountsTemp(
-    const uint64_t& blockNum, const unsigned int& numShards, const bool& isDS,
-    const Transaction& transaction, const TxnExtras& txnExtras,
-    TransactionReceipt& receipt, TxnStatus& error_code) {
-  std::chrono::system_clock::time_point tpStart;
+    const uint64_t &blockNum, const unsigned int &numShards, const bool &isDS,
+    const Transaction &transaction, const TxnExtras &txnExtras,
+    TransactionReceipt &receipt, TxnStatus &error_code) {
   unique_lock<shared_timed_mutex> g(m_mutexPrimary, defer_lock);
   unique_lock<mutex> g2(m_mutexDelta, defer_lock);
 
-  tpStart = r_timer_start();
+  // start the clock
+
+  std::chrono::system_clock::time_point tpLatencyStart = r_timer_start();
+
   lock(g, g2);
 
   bool isEvm{false};
@@ -471,7 +610,7 @@ bool AccountStore::UpdateAccountsTemp(
   } else {
     // We need to look at the code for any transaction type. Even if it is a
     // simple transfer, it might actually be a call.
-    Account* contractAccount = this->GetAccountTemp(transaction.GetToAddr());
+    Account *contractAccount = this->GetAccountTemp(transaction.GetToAddr());
     if (contractAccount != nullptr) {
       isEvm = EvmUtils::isEvm(contractAccount->GetCode());
     }
@@ -479,6 +618,9 @@ bool AccountStore::UpdateAccountsTemp(
   if (ENABLE_EVM == false && isEvm) {
     LOG_GENERAL(WARNING,
                 "EVM is disabled so not processing this EVM transaction ");
+    if (zil::local::GetCallCounter().Enabled()) {
+      zil::local::GetCallCounter().IncrementAttr({{"not.evm", __FUNCTION__}});
+    }
     return false;
   }
   bool status;
@@ -496,13 +638,36 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  AccountStoreSC::m_transactionLatency = static_cast<double>(r_timer_end(tpStart)) / 1000.0;
+  // Record and publish delay
+
+  auto delay = r_timer_end(tpLatencyStart);
+  double dVal = delay/1000;
+  if (dVal > 0) {
+    if (isEvm && zil::local::GetEvmLatency().Enabled()) {
+      zil::local::GetEvmLatency().Record(
+          (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
+    }
+    if (not isEvm && zil::local::GetScillaLatency().Enabled()) {
+          zil::local::GetScillaLatency().Record(
+                  (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
+    }
+    if (zil::local::GetGasUsed().Enabled()){
+        double gasUsed = receipt.GetCumGas();
+        zil::local::GetGasUsed().Record( gasUsed , {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+    }
+    if (zil::local::GetSizeUsed().Enabled()){
+        if (not transaction.GetCode().empty()) {
+            double size = transaction.GetCode().size();
+            zil::local::GetSizeUsed().Record(size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+        }
+    }
+  }
   return status;
 }
 
-bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
-                                      const Address& genesisAddress,
-                                      const uint128_t& amount) {
+bool AccountStore::UpdateCoinbaseTemp(const Address &rewardee,
+                                      const Address &genesisAddress,
+                                      const uint128_t &amount) {
   lock_guard<mutex> g(m_mutexDelta);
 
   if (m_accountStoreTemp.GetAccount(rewardee) == nullptr) {
@@ -512,7 +677,7 @@ bool AccountStore::UpdateCoinbaseTemp(const Address& rewardee,
   // Should the nonce increase ??
 }
 
-uint128_t AccountStore::GetNonceTemp(const Address& address) {
+uint128_t AccountStore::GetNonceTemp(const Address &address) {
   lock_guard<mutex> g(m_mutexDelta);
 
   if (m_accountStoreTemp.GetAddressToAccount()->find(address) !=
@@ -565,11 +730,11 @@ bool AccountStore::RevertCommitTemp() {
 
   unique_lock<shared_timed_mutex> g(m_mutexPrimary);
   // Revert changed
-  for (auto const& entry : m_addressToAccountRevChanged) {
+  for (auto const &entry : m_addressToAccountRevChanged) {
     m_addressToAccount->insert_or_assign(entry.first, entry.second);
     UpdateStateTrie(entry.first, entry.second);
   }
-  for (auto const& entry : m_addressToAccountRevCreated) {
+  for (auto const &entry : m_addressToAccountRevCreated) {
     RemoveAccount(entry.first);
     RemoveFromTrie(entry.first);
   }
@@ -580,3 +745,122 @@ bool AccountStore::RevertCommitTemp() {
 }
 
 void AccountStore::NotifyTimeoutTemp() { m_accountStoreTemp.NotifyTimeout(); }
+
+bool AccountStore::GetProof(const Address &address, const dev::h256 &rootHash,
+                            Account &account, std::set<std::string> &nodes) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING, "not lookup node");
+    return false;
+  }
+
+  std::string rawAccountBase;
+
+  dev::h256 t_rootHash = (rootHash == dev::h256()) ? m_prevRoot : rootHash;
+
+  LOG_GENERAL(INFO, "RootHash " << t_rootHash.hex());
+
+  {
+    std::lock(m_mutexTrie, m_mutexDB);
+    std::lock_guard<std::mutex> lock1(m_mutexTrie, std::adopt_lock);
+    std::lock_guard<std::mutex> lock2(m_mutexDB, std::adopt_lock);
+
+    auto t_state = m_state;
+
+    if (t_rootHash != dev::h256()) {
+      try {
+        t_state.setRoot(t_rootHash);
+      } catch (std::exception &e) {
+        LOG_GENERAL(WARNING, "setRoot for " << t_rootHash.hex() << " failed "
+                                            << e.what());
+        return false;
+      }
+    }
+
+    rawAccountBase = t_state.getProof(
+        DataConversion::StringToCharArray(address.hex()), nodes);
+  }
+
+  if (rawAccountBase.empty()) {
+    return false;
+  }
+
+  Account t_account;
+  if (!t_account.DeserializeBase(
+          zbytes(rawAccountBase.begin(), rawAccountBase.end()), 0)) {
+    LOG_GENERAL(WARNING, "Account::DeserializeBase failed");
+    return false;
+  }
+
+  if (t_account.isContract()) {
+    t_account.SetAddress(address);
+  }
+
+  account = std::move(t_account);
+
+  return true;
+}
+
+bool AccountStore::UpdateStateTrie(const Address &address,
+                                   const Account &account) {
+  zbytes rawBytes;
+  if (!account.SerializeBase(rawBytes, 0)) {
+    LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
+    return false;
+  }
+
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+  m_state.insert(DataConversion::StringToCharArray(address.hex()), rawBytes);
+
+  return true;
+}
+
+bool AccountStore::RemoveFromTrie(const Address &address) {
+  // LOG_MARKER();
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+
+  m_state.remove(DataConversion::StringToCharArray(address.hex()));
+
+  return true;
+}
+
+dev::h256 AccountStore::GetStateRootHash() const {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+
+  return m_state.root();
+}
+
+dev::h256 AccountStore::GetPrevRootHash() const {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+
+  return m_prevRoot;
+}
+
+bool AccountStore::UpdateStateTrieAll() {
+  std::lock_guard<std::mutex> g(m_mutexTrie);
+  if (m_prevRoot != dev::h256()) {
+    try {
+      m_state.setRoot(m_prevRoot);
+    } catch (...) {
+      LOG_GENERAL(WARNING, "setRoot for " << m_prevRoot.hex() << " failed");
+      return false;
+    }
+  }
+  for (auto const &entry : *(this->m_addressToAccount)) {
+    zbytes rawBytes;
+    if (!entry.second.SerializeBase(rawBytes, 0)) {
+      LOG_GENERAL(WARNING, "Messenger::SetAccountBase failed");
+      return false;
+    }
+    m_state.insert(DataConversion::StringToCharArray(entry.first.hex()),
+                   rawBytes);
+  }
+
+  m_prevRoot = m_state.root();
+
+  return true;
+}
+
+void AccountStore::PrintAccountState() {
+  AccountStoreBase::PrintAccountState();
+  LOG_GENERAL(INFO, "State Root: " << GetStateRootHash());
+}

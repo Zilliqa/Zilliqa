@@ -24,6 +24,7 @@
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
@@ -163,6 +164,8 @@ int main(int argc, const char* argv[]) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
+    Metrics::GetInstance();
+    Tracing::GetInstance();
 
     boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {

@@ -16,11 +16,11 @@
  */
 
 #include "Messenger.h"
+#include "libBlockchain/Serialization.h"
 #include "libCrypto/Sha2.h"
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libBlockchain/Serialization.h"
 #include "libDirectoryService/DirectoryService.h"
 #include "libUtils/SafeMath.h"
 
@@ -1643,10 +1643,9 @@ bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
   for (const auto& entry : *accountStoreTemp.GetAddressToAccount()) {
     accountsToSerialize.push_back(entry);
   }
-  if (SORT_ACC_STORE_DELTA) {
-    std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
-              [&](const auto& l, const auto& r) { return l.first < l.first; });
-  }
+
+  std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
+            [&](const auto& l, const auto& r) { return l.first < l.first; });
 
   for (const auto& entry : accountsToSerialize) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
@@ -7897,8 +7896,8 @@ bool Messenger::GetLookupSetCosigsRewardsFromSeed(
     }
 
     const auto& [blockHash, coSigs, timestamp] = *blockBaseVars;
-    cosigrewards.emplace_back(CoinbaseStruct(txBlkNum, shardId, coSigs.m_B1,
-                                             coSigs.m_B2, rewards));
+    cosigrewards.emplace_back(
+        CoinbaseStruct(txBlkNum, shardId, coSigs.m_B1, coSigs.m_B2, rewards));
     LOG_GENERAL(INFO, "Received cosig and rewards for epoch "
                           << txBlkNum << ", shard " << shardId);
   }

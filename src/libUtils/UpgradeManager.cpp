@@ -79,4 +79,3 @@ bool UpgradeManager::LoadInitialDS(vector<PubKey>& initialDSCommittee) {
     return false;
   }
 }
-

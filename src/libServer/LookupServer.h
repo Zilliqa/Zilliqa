@@ -20,7 +20,7 @@
 
 #include "EthRpcMethods.h"
 #include "Server.h"
-#include "libUtils/Metrics.h"
+#include "libMetrics/Api.h"
 
 class Mediator;
 
@@ -44,8 +44,8 @@ class LookupServer : public Server,
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
 
-  zil::metrics::uint64Counter_t m_callCount = Metrics::GetInstance().CreateInt64Metric(
-      "zilliqa_lookup", "invocation_count", "Calls to Lookup Server", "Calls");
+  Z_I64METRIC m_callCount{Z_FL::API_SERVER, "lookup_invocation_count",
+                          "Calls to Lookup Server", "Calls"};
 
   CreateTransactionTargetFunc m_createTransactionTarget =
       [this](const Transaction& tx, uint32_t shardId) -> bool {

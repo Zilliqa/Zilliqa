@@ -21,8 +21,24 @@
 #include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
+
+namespace zil {
+
+namespace local {
+
+Z_I64METRIC &GetTxnCallsCounter() {
+  static Z_I64METRIC counter{Z_FL::TRANSACTION_VERIFY, "transactions.info",
+                             "Engineering Metrics for Transactions",
+                             "transactions"};
+  return counter;
+}
+
+}  // namespace local
+
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -32,21 +48,21 @@ unsigned char LOW_BITS_MASK = 0x0F;
 unsigned char ACC_COND = 0x1;
 unsigned char TX_COND = 0x2;
 
-bool Transaction::SerializeCoreFields(zbytes& dst, unsigned int offset) const {
+bool Transaction::SerializeCoreFields(zbytes &dst, unsigned int offset) const {
   return Messenger::SetTransactionCoreInfo(dst, offset, m_coreInfo);
 }
 
 Transaction::Transaction() {}
 
-Transaction::Transaction(const zbytes& src, unsigned int offset) {
+Transaction::Transaction(const zbytes &src, unsigned int offset) {
   Deserialize(src, offset);
 }
 
-Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
-                         const Address& toAddr, const PairOfKey& senderKeyPair,
-                         const uint128_t& amount, const uint128_t& gasPrice,
-                         const uint64_t& gasLimit, const zbytes& code,
-                         const zbytes& data)
+Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
+                         const Address &toAddr, const PairOfKey &senderKeyPair,
+                         const uint128_t &amount, const uint128_t &gasPrice,
+                         const uint64_t &gasLimit, const zbytes &code,
+                         const zbytes &data)
     : m_coreInfo(version, nonce, toAddr, senderKeyPair.second, amount, gasPrice,
                  gasLimit, code, data) {
   zbytes txnData;
@@ -57,7 +73,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
     zbytes signature;
     zbytes digest = GetOriginalHash(m_coreInfo, ETH_CHAINID);
     zbytes pk_bytes;
-    const PrivKey& privKey{senderKeyPair.first};
+    const PrivKey &privKey{senderKeyPair.first};
     privKey.Serialize(pk_bytes, 0);
     if (!SignEcdsaSecp256k1(digest, pk_bytes, signature)) {
       LOG_GENERAL(WARNING, "We failed to generate EDDSA m_signature.");
@@ -67,31 +83,33 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
     if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
                        m_signature)) {
       LOG_GENERAL(WARNING, "We failed to generate m_signature.");
+      INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "signature-gen");
     }
   }
 
   if (!SetHash(txnData)) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "gen-id");
     return;
   }
 }
 
-Transaction::Transaction(const TxnHash& tranID, const uint32_t& version,
-                         const uint64_t& nonce, const Address& toAddr,
-                         const PubKey& senderPubKey, const uint128_t& amount,
-                         const uint128_t& gasPrice, const uint64_t& gasLimit,
-                         const zbytes& code, const zbytes& data,
-                         const Signature& signature)
+Transaction::Transaction(const TxnHash &tranID, const uint32_t &version,
+                         const uint64_t &nonce, const Address &toAddr,
+                         const PubKey &senderPubKey, const uint128_t &amount,
+                         const uint128_t &gasPrice, const uint64_t &gasLimit,
+                         const zbytes &code, const zbytes &data,
+                         const Signature &signature)
     : m_tranID(tranID),
       m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {}
 
-Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
-                         const Address& toAddr, const PubKey& senderPubKey,
-                         const uint128_t& amount, const uint128_t& gasPrice,
-                         const uint64_t& gasLimit, const zbytes& code,
-                         const zbytes& data, const Signature& signature)
+Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
+                         const Address &toAddr, const PubKey &senderPubKey,
+                         const uint128_t &amount, const uint128_t &gasPrice,
+                         const uint64_t &gasLimit, const zbytes &code,
+                         const zbytes &data, const Signature &signature)
     : m_coreInfo(version, nonce, toAddr, senderPubKey, amount, gasPrice,
                  gasLimit, code, data),
       m_signature(signature) {
@@ -100,6 +118,7 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
 
   if (!SetHash(txnData)) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "gen-id");
     return;
   }
 
@@ -107,44 +126,51 @@ Transaction::Transaction(const uint32_t& version, const uint64_t& nonce,
   if (!IsSigned(txnData)) {
     LOG_GENERAL(WARNING,
                 "We failed to verify the input signature! Just a warning...");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "verify_signed");
   }
 }
 
-Transaction::Transaction(const TxnHash& tranID,
-                         const TransactionCoreInfo& coreInfo,
-                         const Signature& signature)
+Transaction::Transaction(const TxnHash &tranID,
+                         const TransactionCoreInfo &coreInfo,
+                         const Signature &signature)
     : m_tranID(tranID), m_coreInfo(coreInfo), m_signature(signature) {}
 
-bool Transaction::Serialize(zbytes& dst, unsigned int offset) const {
+bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::SetTransaction failed.");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
+               "Messenger::SetTransaction");
     return false;
   }
 
   return true;
 }
 
-bool Transaction::Deserialize(const zbytes& src, unsigned int offset) {
+bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
+               "Messenger::GetTranscation");
     return false;
   }
 
   return true;
 }
 
-bool Transaction::Deserialize(const string& src, unsigned int offset) {
+bool Transaction::Deserialize(const string &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
     LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
+               "Messenger::GetTranscation");
     return false;
   }
 
   return true;
 }
 
-const TxnHash& Transaction::GetTranID() const { return m_tranID; }
+const TxnHash &Transaction::GetTranID() const { return m_tranID; }
 
-const TransactionCoreInfo& Transaction::GetCoreInfo() const {
+const TransactionCoreInfo &Transaction::GetCoreInfo() const {
   return m_coreInfo;
 }
 
@@ -162,11 +188,11 @@ bool Transaction::VersionCorrect() const {
   return (version == TRANSACTION_VERSION || version == TRANSACTION_VERSION_ETH);
 }
 
-const uint64_t& Transaction::GetNonce() const { return m_coreInfo.nonce; }
+const uint64_t &Transaction::GetNonce() const { return m_coreInfo.nonce; }
 
-const Address& Transaction::GetToAddr() const { return m_coreInfo.toAddr; }
+const Address &Transaction::GetToAddr() const { return m_coreInfo.toAddr; }
 
-const PubKey& Transaction::GetSenderPubKey() const {
+const PubKey &Transaction::GetSenderPubKey() const {
   return m_coreInfo.senderPubKey;
 }
 
@@ -185,7 +211,7 @@ bool Transaction::IsEth() const {
   return version == TRANSACTION_VERSION_ETH;
 }
 
-const uint128_t& Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
+const uint128_t &Transaction::GetAmountRaw() const { return m_coreInfo.amount; }
 
 const uint128_t Transaction::GetAmountQa() const {
   if (IsEth()) {
@@ -204,7 +230,7 @@ const uint128_t Transaction::GetAmountWei() const {
   }
 }
 
-const uint128_t& Transaction::GetGasPriceRaw() const {
+const uint128_t &Transaction::GetGasPriceRaw() const {
   return m_coreInfo.gasPrice;
 }
 
@@ -243,11 +269,11 @@ uint64_t Transaction::GetGasLimitEth() const {
 
 uint64_t Transaction::GetGasLimitRaw() const { return m_coreInfo.gasLimit; }
 
-const zbytes& Transaction::GetCode() const { return m_coreInfo.code; }
+const zbytes &Transaction::GetCode() const { return m_coreInfo.code; }
 
-const zbytes& Transaction::GetData() const { return m_coreInfo.data; }
+const zbytes &Transaction::GetData() const { return m_coreInfo.data; }
 
-const Signature& Transaction::GetSignature() const { return m_signature; }
+const Signature &Transaction::GetSignature() const { return m_signature; }
 
 bool Transaction::IsSignedECDSA() const {
   std::string pubKeyStr = std::string(GetCoreInfo().senderPubKey);
@@ -266,7 +292,7 @@ bool Transaction::IsSignedECDSA() const {
 }
 
 // Set what the hash of the transaction is, depending on its type
-bool Transaction::SetHash(zbytes const& txnData) {
+bool Transaction::SetHash(zbytes const &txnData) {
   if (IsEth()) {
     uint64_t recid{0};
     auto const asRLP = GetTransmittedRLP(GetCoreInfo(), ETH_CHAINID,
@@ -278,9 +304,9 @@ bool Transaction::SetHash(zbytes const& txnData) {
           WARNING,
           "We failed to generate an eth m_tranID. Wrong size! Expected: "
               << TRAN_HASH_SIZE << " got: " << output.size());
+      INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "wrong-size");
       return false;
     }
-
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
     return true;
   }
@@ -288,9 +314,10 @@ bool Transaction::SetHash(zbytes const& txnData) {
   // Generate the transaction ID
   SHA256Calculator sha2;
   sha2.Update(txnData);
-  const zbytes& output = sha2.Finalize();
+  const zbytes &output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
     LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "failed-gen-id");
     return false;
   }
 
@@ -299,7 +326,7 @@ bool Transaction::SetHash(zbytes const& txnData) {
 }
 
 // Function to return whether the TX is signed
-bool Transaction::IsSigned(zbytes const& txnData) const {
+bool Transaction::IsSigned(zbytes const &txnData) const {
   // Use the version number to tell which signature scheme it is using
   // If a V2 TX
   if (IsEth()) {
@@ -309,11 +336,11 @@ bool Transaction::IsSigned(zbytes const& txnData) const {
   return Schnorr::Verify(txnData, GetSignature(), GetCoreInfo().senderPubKey);
 }
 
-void Transaction::SetSignature(const Signature& signature) {
+void Transaction::SetSignature(const Signature &signature) {
   m_signature = signature;
 }
 
-unsigned int Transaction::GetShardIndex(const Address& fromAddr,
+unsigned int Transaction::GetShardIndex(const Address &fromAddr,
                                         unsigned int numShards) {
   uint32_t x = 0;
 
@@ -331,12 +358,12 @@ unsigned int Transaction::GetShardIndex(const Address& fromAddr,
 }
 
 unsigned int Transaction::GetShardIndex(unsigned int numShards) const {
-  const auto& fromAddr = GetSenderAddr();
+  const auto &fromAddr = GetSenderAddr();
 
   return GetShardIndex(fromAddr, numShards);
 }
 
-bool Transaction::Verify(const Transaction& tran) {
+bool Transaction::Verify(const Transaction &tran) {
   zbytes txnData;
   tran.SerializeCoreFields(txnData, 0);
 
@@ -345,19 +372,21 @@ bool Transaction::Verify(const Transaction& tran) {
   if (!result) {
     LOG_GENERAL(WARNING,
                 "Failed to verify transaction signature - will delete");
+    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
+               "gig-gen-failed-delete");
   }
 
   return result;
 }
 
-bool Transaction::operator==(const Transaction& tran) const {
+bool Transaction::operator==(const Transaction &tran) const {
   return ((m_tranID == tran.m_tranID) && (m_signature == tran.m_signature));
 }
 
-bool Transaction::operator<(const Transaction& tran) const {
+bool Transaction::operator<(const Transaction &tran) const {
   return tran.m_tranID > m_tranID;
 }
 
-bool Transaction::operator>(const Transaction& tran) const {
+bool Transaction::operator>(const Transaction &tran) const {
   return tran < *this;
 }

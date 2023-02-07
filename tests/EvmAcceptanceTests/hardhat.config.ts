@@ -1,34 +1,11 @@
-import {extendEnvironment, HardhatUserConfig, task} from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import clc from "cli-color";
-require("dotenv").config();
+import "dotenv/config";
+import "hardhat-ethernal";
+import { ENV_VARS } from "./helpers/EnvVarParser";
 
-import yargs from "yargs/yargs";
-
-const argv = yargs()
-  .env()
-  .options({
-    debug: {
-      type: "boolean",
-      default: false
-    },
-    mochaWorkers: {
-      type: "number",
-      default: 4
-    },
-    mochaTimeout: {
-      type: "number",
-      default: 300000
-    },
-    scilla: {
-      type: "boolean",
-      default: true
-    }
-  })
-  .parseSync();
-
-if (argv.scilla) {
+if (ENV_VARS.scilla) {
   require("hardhat-scilla-plugin");
   const chai = require("chai");
   const {scillaChaiEventMatcher} = require("hardhat-scilla-plugin");
@@ -47,6 +24,16 @@ declare module "hardhat/types/config" {
 
 const config: HardhatUserConfig = {
   solidity: "0.8.9",
+
+  ethernal: {
+    disabled: ENV_VARS.ethernalPassword === undefined,
+    email: ENV_VARS.ethernalEmail,
+    password: ENV_VARS.ethernalPassword,
+    workspace: ENV_VARS.ethernalWorkspace,
+    disableSync: false, // If set to true, plugin will not sync blocks & txs
+    disableTrace: false, // If set to true, plugin won't trace transaction
+    uploadAst: true // If set to true, plugin will upload AST, and you'll be able to use the storage feature (longer sync time though)
+  },
   defaultNetwork: "isolated_server",
   networks: {
     isolated_server: {
@@ -126,17 +113,17 @@ const config: HardhatUserConfig = {
     }
   },
   mocha: {
-    timeout: argv.mochaTimeout,
-    jobs: argv.mochaWorkers
+    timeout: ENV_VARS.mochaTimeout,
+    jobs: ENV_VARS.mochaWorkers
   }
 };
 
 // Extend hardhat runtime environment to have some utility functions and variables.
 import "./AddConfigHelpersToHre";
 extendEnvironment((hre) => {
-  hre.debug = argv.debug;
+  hre.debug = ENV_VARS.debug;
   hre.parallel = process.env.MOCHA_WORKER_ID !== undefined;
-  hre.scillaTesting = argv.scilla;
+  hre.scillaTesting = ENV_VARS.scilla;
 });
 
 task("test")

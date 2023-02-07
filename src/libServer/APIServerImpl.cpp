@@ -20,9 +20,9 @@
 #include <boost/asio/signal_set.hpp>
 #include <deque>
 
+#include "libMetrics/Tracing.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
-#include "libUtils/Tracing.h"
 
 namespace rpc {
 
@@ -36,7 +36,7 @@ class APIServerImpl::Connection
 
   /// Ctor, called from the owner on socket accept
   Connection(std::weak_ptr<APIServerImpl> owner, ConnectionId id,
-             std::string from, Socket&& socket, size_t inputBodyLimit)
+             std::string from, Socket &&socket, size_t inputBodyLimit)
       : m_owner(std::move(owner)),
         m_id(id),
         m_from(std::move(from)),
@@ -57,7 +57,7 @@ class APIServerImpl::Connection
   }
 
   /// Writes asyn response from thread pool
-  void WriteResponse(http::status status, std::string&& body) {
+  void WriteResponse(http::status status, std::string &&body) {
     if (status != http::status::ok) {
       ReplyError(m_clientKeepAlive, m_clientHttpVersion, status,
                  std::move(body));
@@ -127,7 +127,7 @@ class APIServerImpl::Connection
   }
 
   /// Client upgrades to Websocket protocol
-  void OnWebsocketUpgrade(HttpRequest&& request) {
+  void OnWebsocketUpgrade(HttpRequest &&request) {
     auto owner = m_owner.lock();
     if (owner) {
       owner->OnWebsocketUpgrade(m_id, std::move(m_from),
@@ -137,8 +137,8 @@ class APIServerImpl::Connection
   }
 
   /// Client sent API request
-  void OnRequest(HttpRequest&& request) {
-    static const char* METHOD("method");
+  void OnRequest(HttpRequest &&request) {
+    static const char *METHOD("method");
 
     if (request.body().find(METHOD) == std::string::npos) {
       // definitely not a jsonrpc call, don't bother the threadpool
@@ -213,7 +213,7 @@ class APIServerImpl::Connection
       return;
     }
 
-    auto& msg = m_writeQueue.front();
+    auto &msg = m_writeQueue.front();
 
     http::async_write(
         m_stream, msg,
@@ -295,10 +295,10 @@ APIServerImpl::APIServerImpl(Options options) : m_options(std::move(options)) {
   m_threadPool = std::make_shared<APIThreadPool>(
       *m_options.asio, m_options.threadPoolName, m_options.numThreads,
       m_options.maxQueueSize,
-      [this](const APIThreadPool::Request& req) -> APIThreadPool::Response {
+      [this](const APIThreadPool::Request &req) -> APIThreadPool::Response {
         return ProcessRequestInThreadPool(req);
       },
-      [this](APIThreadPool::Response&& res) {
+      [this](APIThreadPool::Response &&res) {
         OnResponseFromThreadPool(std::move(res));
       });
 
@@ -365,31 +365,29 @@ bool APIServerImpl::DoListen() {
 
   AcceptNext();
 
+  m_metrics.SetCallback([this](auto &&result) {
+    if (m_metrics.Enabled()) {
+      result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
+                                        {"counter", "TotalConnections"}});
 
-  m_metrics.SetCallback([this](auto&& result) {
-    result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
-                                      {"counter", "TotalConnections"}});
-    /* TODO add this properly
-     * result.Set(m_websocket->GetConnectionsNumber(),
-               {{"server", m_options.threadPoolName},
-                {"counter", "TotalWebsocketConnections"}}); */
-    result.Set(m_threadPool->GetQueueSize(),
-               {{"server", m_options.threadPoolName},
-                {"counter", "ThreadPoolQueueSize"}});
+      result.Set(m_threadPool->GetQueueSize(),
+                 {{"server", m_options.threadPoolName},
+                  {"counter", "ThreadPoolQueueSize"}});
+    }
   });
 
   return true;
 }
 
-void APIServerImpl::OnWebsocketUpgrade(ConnectionId id, std::string&& from,
-                                       Socket&& socket, HttpRequest&& request) {
+void APIServerImpl::OnWebsocketUpgrade(ConnectionId id, std::string &&from,
+                                       Socket &&socket, HttpRequest &&request) {
   m_connections.erase(id);
   m_websocket->NewConnection(std::move(from), std::move(socket),
                              std::move(request));
 }
 
 void APIServerImpl::OnRequest(ConnectionId id, std::string from,
-                              HttpRequest&& request) {
+                              HttpRequest &&request) {
   if (!m_threadPool->PushRequest(id, false, std::move(from),
                                  std::move(request.body()))) {
     LOG_GENERAL(WARNING, "Request queue is full");
@@ -402,7 +400,7 @@ std::shared_ptr<WebsocketServer> APIServerImpl::GetWebsocketServer() {
   return m_websocket;
 }
 
-jsonrpc::AbstractServerConnector& APIServerImpl::GetRPCServerBackend() {
+jsonrpc::AbstractServerConnector &APIServerImpl::GetRPCServerBackend() {
   return *this;
 }
 
@@ -439,7 +437,7 @@ bool APIServerImpl::StopListening() {
 
     m_options.asio->post([self = shared_from_this()] {
       self->m_acceptor.reset();
-      for (auto& conn : self->m_connections) {
+      for (auto &conn : self->m_connections) {
         conn.second->Close();
       }
       self->m_connections.clear();
@@ -480,7 +478,7 @@ void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
 }
 
 APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
-    const APIThreadPool::Request& request) {
+    const APIThreadPool::Request &request) {
   APIThreadPool::Response response;
   bool error = false;
   try {
@@ -489,7 +487,7 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
 
     // Connection handler was not installed - internal error
     error = response.body.empty();
-  } catch (const std::exception& e) {
+  } catch (const std::exception &e) {
     LOG_GENERAL(WARNING,
                 "Unhandled exception in API thread pool: " << e.what());
     error = true;
@@ -508,7 +506,7 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
 }
 
 void APIServerImpl::OnResponseFromThreadPool(
-    APIThreadPool::Response&& response) {
+    APIThreadPool::Response &&response) {
   if (!m_active) {
     // ignoring response if not active
     return;
@@ -542,7 +540,7 @@ void APIServerImpl::EventLoopThread() {
   }
 
   boost::asio::signal_set sig(*m_options.asio, SIGABRT);
-  sig.async_wait([](const boost::system::error_code&, int) {});
+  sig.async_wait([](const boost::system::error_code &, int) {});
 
   m_options.asio->run();
 }

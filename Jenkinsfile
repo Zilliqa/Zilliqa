@@ -6,7 +6,7 @@ spec:
     beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
-    image: "zilliqa/scilla:a254436b"
+    image: "zilliqa/scilla:v0.13.1"
     imagePullPolicy: Always
     command:
     - cat
@@ -19,9 +19,9 @@ spec:
     tty: true
     resources:
       requests:
-        ephemeral-storage: "30Gi"
+        ephemeral-storage: "40Gi"
       limits:
-        ephemeral-storage: "30Gi"
+        ephemeral-storage: "40Gi"
 """
 
 String skipciMessage = 'Aborting because commit message contains [skip ci]'

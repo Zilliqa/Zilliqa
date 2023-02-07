@@ -104,6 +104,10 @@ scilla_files/
 config.xml
 isolated-server-accounts.json
 isolated-server.logs
+tests/observability/collector/data/
+tests/observability/prometheus/data/
+vcpkg_installed/
+
 
 *.pyc
 .husky/
