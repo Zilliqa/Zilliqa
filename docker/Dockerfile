@@ -162,11 +162,13 @@ COPY constants.xml .
 COPY constants_local.xml .
 COPY build.sh .
 COPY CMakeLists.txt .
+COPY tests/ tests
+COPY isolated-server-accounts.json .
 
 # Build & install Zilliqa
 RUN --mount=type=cache,target=/ccache/ \
     --mount=type=cache,target=/root/.cache/vcpkg/ \
-    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja && cmake --build "/zilliqa/build" --target install
+    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja debug tests && cmake --build "/zilliqa/build" --target install
 
 # Make sure all DLLs / shared libraries are installed
 RUN ldd /usr/local/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} /usr/local/lib
@@ -194,6 +196,9 @@ RUN strip /usr/local/bin/zilliqad \
    /usr/local/lib/libNAT.so \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
+
+RUN scripts/integration_test.sh --setup-env
+RUN scripts/integration_test_js.sh --setup-env
 
 FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
 
