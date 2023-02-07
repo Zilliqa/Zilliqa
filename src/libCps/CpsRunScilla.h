@@ -22,6 +22,9 @@
 #include "libCps/CpsExecuteResult.h"
 #include "libCps/CpsRun.h"
 
+#include <json/json.h>
+#include <variant>
+
 class TransactionReceipt;
 
 namespace libCps {
@@ -37,15 +40,18 @@ struct ScillaInvokeResult {
 
 struct ScillaArgs {
   using Address = dev::h160;
+  struct CodeData {
+    zbytes code;
+    zbytes data;
+  };
   Address from;
   Address dest;
+  Address origin;
   Amount value;
-  zbytes code;
-  zbytes data;
+  std::variant<CodeData, Json::Value> calldata;
   uint32_t edge = 0;
+  uint32_t depth = 0;
   uint64_t gasLimit = 0;
-  uint64_t blockNum = 0;
-  uint64_t dsBlockNum = 0;
 };
 
 class CpsRunScilla final : public CpsRun {

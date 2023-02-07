@@ -103,8 +103,24 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   const auto type = clientContext.contractType == Transaction::CONTRACT_CALL
                         ? CpsRun::Call
                         : CpsRun::Create;
+
+  auto args = ScillaArgs{
+      .from = cpsCtx.scillaExtras.origin,
+      .dest = cpsCtx.scillaExtras.recipient,
+      .origin = cpsCtx.scillaExtras.origin,
+      .value = Amount::fromQa(cpsCtx.scillaExtras.amount),
+      .calldata =
+          ScillaArgs::CodeData{
+              cpsCtx.scillaExtras.code,
+              cpsCtx.scillaExtras.data,
+          },
+      .edge = 0,
+      .depth = 0,
+      .gasLimit = cpsCtx.scillaExtras.gasLimit,
+  };
+
   auto scillaRun =
-      std::make_shared<CpsRunScilla>(ScillaArgs{}, *this, cpsCtx, type);
+      std::make_shared<CpsRunScilla>(std::move(args), *this, cpsCtx, type);
 
   m_queue.push_back(std::move(scillaRun));
 
