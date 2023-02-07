@@ -45,6 +45,17 @@ describe("Parent Child Contract Functionality", function () {
       expect(await this.childContract.read()).to.be.eq(CHILD_CONTRACT_VALUE);
     });
 
+    xit("Should create a transaction trace after child creation", async function () {
+      const METHOD = "debug_traceTransaction";
+
+      await sendJsonRpcRequest(METHOD, 1, [this.installedChild.hash], (result, status) => {
+        logDebug(result);
+
+        assert.equal(status, 200, "has status code");
+        assert.isString(result.result, "Expected to be populated");
+      });
+    });
+
     it("Should return parent address if sender function of child is called", async function () {
       expect(await this.childContract.sender()).to.be.eq(parentContract.address);
     });

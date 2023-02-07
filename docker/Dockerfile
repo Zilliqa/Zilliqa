@@ -122,7 +122,6 @@ COPY CMakeLists.txt .
 
 ENV INSTALL_DIR=/usr/local
 ENV CCACHE_DIR="/ccache"
-# note: 360M
 
 # Build & install Zilliqa
 RUN --mount=type=cache,target=/ccache/ \
