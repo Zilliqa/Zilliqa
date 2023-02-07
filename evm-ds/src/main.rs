@@ -12,6 +12,7 @@ mod ipc_connect;
 mod precompiles;
 mod protos;
 mod scillabackend;
+mod pretty_printer;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
