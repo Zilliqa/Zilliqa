@@ -198,6 +198,9 @@ RUN strip /usr/local/bin/zilliqad \
    /usr/local/lib/libCommon.so \
    /usr/local/lib/libTrie.so
 
+RUN scripts/integration_test.sh --setup-env
+RUN scripts/integration_test_js.sh --setup-env
+
 FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
 
 # run a copy -L to unfold the symlinkes, and strip all exes
