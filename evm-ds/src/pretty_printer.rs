@@ -1,6 +1,7 @@
 use primitive_types::H256;
+use protobuf::Message;
 
-use crate::protos::Evm as EvmProto;
+use crate::protos::{Evm as EvmProto, ScillaMessage};
 
 fn address_to_string(address: &EvmProto::Address) -> String {
     let mut buffer = [0; 20];
@@ -16,11 +17,38 @@ fn uint256_to_string(number: &EvmProto::UInt256) -> String {
     number_string.to_string()
 }
 
+fn decode_storage(storage: &EvmProto::Storage) -> (H256, H256) {
+    let query = ScillaMessage::ProtoScillaQuery::parse_from_bytes(&storage.key).unwrap();
+    // query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
+    let val = ScillaMessage::ProtoScillaVal::parse_from_bytes(&storage.value).unwrap();
+    (H256::default(), H256::from_slice(val.get_bval()))
+    //(H256::from_slice(&query.get_indices()[0]), H256::from_slice(val.get_bval()))
+}
+
+fn storage_key_to_string(storage: &EvmProto::Storage) -> String {
+    "1".to_string()
+}
+
+fn storage_value_to_string(storage: &EvmProto::Storage) -> String {
+    println!("KHAR {:?}", storage.get_value().to_vec());
+    "1".to_string()
+}
+
 fn log_apply_modify(modify: &EvmProto::Apply_Modify) {
-    println!("  modify {{\n    address: {},\n    balance: {:?},\n    nonce: {:?},\n    storage: {:?}\n  }}",
+    print!("  modify {{\n    address: {},\n    balance: {:?},\n    nonce: {:?},\n",
             address_to_string(modify.get_address()), uint256_to_string(modify.get_balance()),
-            uint256_to_string(modify.get_nonce()),
-            modify.get_storage());
+            uint256_to_string(modify.get_nonce()));
+
+    if modify.get_storage().len() > 0 {
+        println!("    storage: [");
+        modify.get_storage().into_iter().for_each(|s| {
+            let (key, value) = decode_storage(s);
+            println!("      {{\n        key: {}, \n        value: {}\n      }}", "khar", value.to_string());
+        });
+        println!("    ]");
+    }
+
+    println!("  }}");
 }
 
 fn log_apply_delete(delete: &EvmProto::Apply_Delete) {
@@ -30,6 +58,7 @@ fn log_apply_delete(delete: &EvmProto::Apply_Delete) {
     );
 }
 
+/// TODO: REMOVE SAEED
 pub fn log_evm_result(result: &EvmProto::EvmResult) {
     println!("saeed: \n\n\n{:#?} exit_reason: {:#?}", result, result.get_exit_reason());
     result.get_apply().into_iter().for_each(|optional_apply| {
