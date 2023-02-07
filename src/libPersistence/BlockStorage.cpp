@@ -611,11 +611,11 @@ bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
   return (ret == 0);
 }
 
-bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
-  unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
-  int ret = m_VCBlockDB->DeleteKey(blockhash);
-  return (ret == 0);
-}
+//bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
+//  unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
+//  int ret = m_VCBlockDB->DeleteKey(blockhash);
+//  return (ret == 0);
+//}
 
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);

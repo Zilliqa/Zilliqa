@@ -1725,11 +1725,12 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string &blockId) {
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& txHash, const Json::Value& json) {
-  if (zil::metrics::Filter::GetInstance().Enabled(
-          zil::metrics::FilterClass::EVM_RPC)) {
-    m_apiCallCount->Add(1, {{"method", "DebugTraceTransaction"}});
-  }
-  INC_CALLS(GetInvocationsCounter());
+  // todo: figure it out...
+  //if (zil::metrics::Filter::GetInstance().Enabled(
+  //        zil::metrics::FilterClass::EVM_RPC)) {
+  //  m_apiCallCount->Add(1, {{"method", "DebugTraceTransaction"}});
+  //}
+  //INC_CALLS(GetInvocationsCounter());
 
   if (!json.isMember("tracer")) {
     LOG_GENERAL(WARNING, "Missing tracer field");

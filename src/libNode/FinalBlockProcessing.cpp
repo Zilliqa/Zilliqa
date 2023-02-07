@@ -1018,12 +1018,14 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       if(txsExecuted.insert(t.GetTranID()).second) {
 
         TransactionReceipt tr;
-        TxnStatus error_code;
+        //TxnStatus error_code;
 
-        auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
+        // todo: figure this out......
+        //auto succ = m_mediator.m_validator->;
+        // auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
 
-        LOG_GENERAL(WARNING, "Marker001: TX succ: " << succ );
-        LOG_GENERAL(WARNING, "Marker001: TX return: " << error_code );
+        //LOG_GENERAL(WARNING, "Marker001: TX succ: " << succ );
+        //LOG_GENERAL(WARNING, "Marker001: TX return: " << error_code );
 
       } else {
         LOG_GENERAL(WARNING, "Marker001: skipping tx duplicate: " << t.GetTranID() );
