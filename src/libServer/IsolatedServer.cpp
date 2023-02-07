@@ -443,7 +443,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_traceTransaction",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::DebugTraceTransactionI);
   }
 }

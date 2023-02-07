@@ -22,40 +22,75 @@ describe("Chained Contract Calls Functionality", function () {
 
     it("Should create a transaction trace after child creation", async function () {
       const METHOD = "debug_traceTransaction";
-      const ACCOUNTS_COUNT = 3;
 
-      console.log("contractAddr0: ", contractOne.address);
-      console.log("contractAddr1: ", contractTwo.address);
-      console.log("contractAddr2: ", contractThree.address);
+      let addrOne   = contractOne.address.toLowerCase();
+      let addrTwo   = contractTwo.address.toLowerCase();
+      let addrThree = contractThree.address.toLowerCase();
 
-      ////////////////////////////////////
-      //const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
-      //  ethers.Wallet.createRandom().connect(ethers.provider)
-      //);
-
-      //const addresses = accounts.map((signer) => signer.address);
-      ////////////////////////////////////
-
-      //let res0 = await contractOne.chainedCallTempEmpty();
-      //let res1 = await contractOne.chainedCallTemp(addresses);
-      let res = await contractOne.chainedCall([contractTwo.address, contractThree.address, contractOne.address], 0);
+      let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
+      let tracer = {'tracer' : 'callTracer'};
 
-      await sendJsonRpcRequest(METHOD, 1, [res.hash], (result, status) => {
+      await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
         logDebug(result);
 
         assert.equal(status, 200, "has status code");
-        assert.isString(result.result, "Expected to be populated");
-        console.log("RES: ", result);
 
         let jsonObject = JSON.parse(result.result);
 
-        console.log("RES2: ", jsonObject);
-        console.log("RES2: ", jsonObject["calls"]);
+        // Ok, so check that there is 1 call to contract one, 1 to two, 2 to three, 2 to one (via three)
+        assert.equal(addrOne, jsonObject["to"].toLowerCase(), "has correct to field for top level call");
+        assert.equal(addrTwo, jsonObject["calls"][0]["to"].toLowerCase(), "has correct to field for second level call");
 
+        assert.equal(addrThree, jsonObject["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field for third level call (2x)");
+        assert.equal(addrThree, jsonObject["calls"][0]["calls"][1]["to"].toLowerCase(), "has correct to field for third level call (2x)");
+
+        assert.equal(addrOne, jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
+        assert.equal(addrOne, jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
       });
     });
-
   });
 });
+
+
+//RES0:  {
+//  type: 'CALL',
+//  from: '0xf0cb24ac66ba7375bf9b9c4fa91e208d9eaabd2e',
+//  to: '0xa8cae66f62648529eb6ac2f026893fc436107510',
+//  value: '0',
+//  gas: '0x0',
+//  gasUsed: '0x0',
+//  input: '12cbb1ad000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000920279cb2096e34b6f7b8c787cb6c8000b13814f0000000000000000000000009fb20310353b553e99904b2e71cddadad76a3612000000000000000000000000a8cae66f62648529eb6ac2f026893fc436107510',
+//  output: '0000000000000000000000000000000000000000000000000000000000000000',
+//  calls: [
+//    {
+//      type: 'CALL',
+//      from: '0xa8cae66f62648529eb6ac2f026893fc436107510',
+//      to: '0x920279cb2096e34b6f7b8c787cb6c8000b13814f',
+//      value: '0',
+//      gas: '155b0',
+//      gasUsed: '0x0',
+//      input: '12cbb1ad000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003000000000000000000000000920279cb2096e34b6f7b8c787cb6c8000b13814f0000000000000000000000009fb20310353b553e99904b2e71cddadad76a3612000000000000000000000000a8cae66f62648529eb6ac2f026893fc436107510',
+//      output: '0x0',
+//      calls: [Array]
+//    }
+//  ]
+//}
+//RES1:  [
+//  {
+//    type: 'CALL',
+//    from: '0xa8cae66f62648529eb6ac2f026893fc436107510',
+//    to: '0x920279cb2096e34b6f7b8c787cb6c8000b13814f',
+//    value: '0',
+//    gas: '155b0',
+//    gasUsed: '0x0',
+//    input: '12cbb1ad000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003000000000000000000000000920279cb2096e34b6f7b8c787cb6c8000b13814f0000000000000000000000009fb20310353b553e99904b2e71cddadad76a3612000000000000000000000000a8cae66f62648529eb6ac2f026893fc436107510',
+//    output: '0x0',
+//    calls: [ [Object], [Object] ]
+//  }
+//]
+//RES2:  undefined
+//      ✔ Should create a transaction trace after child creation (151ms)
+//
+//

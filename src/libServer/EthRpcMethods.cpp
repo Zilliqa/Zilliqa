@@ -356,7 +356,7 @@ void EthRpcMethods::Init(LookupServer* lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         NULL),
+                         "param02", jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceTransactionI);
 }
 
@@ -1821,16 +1821,25 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string& blockId) {
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
-    const std::string& txHash) {
+    const std::string& txHash, const Json::Value& json) {
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::EVM_RPC)) {
     m_apiCallCount->Add(1, {{"method", "DebugTraceTransaction"}});
   }
 
-  //if (!LOOKUP_NODE_MODE) {
-    //throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
-                           //"Sent to a non-lookup");
-  //}
+  //auto tracer = _json
+
+  if (!json.isMember("tracer")) {
+    LOG_GENERAL(WARNING, "Missing tracer field");
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing tracer field");
+  } else {
+    auto tracer = json["tracer"].asString();
+
+    if(tracer.compare("callTracer") != 0) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer is supported. Received: ") + tracer);
+    }
+  }
+
   std::string trace;
   LOG_GENERAL(INFO, "Trace request: " << txHash);
 

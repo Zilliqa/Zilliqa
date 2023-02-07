@@ -31,6 +31,7 @@ const config: any = {
   //defaultNetwork: "ganache",
   defaultNetwork: "isolated_server",
   networks: {
+    // Corresponds to: provide kit tragic grid entry buffalo cherry balcony age exhibit pitch artwork
     ganache: {
       url: "http://localhost:7545",
       websocketUrl: "ws://localhost:7545",
@@ -38,10 +39,10 @@ const config: any = {
       web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
       protocolVersion: 0x3f,
       accounts: [
-        "c95690aed4461afd835b17492ff889af72267a8bdf7d781e305576cd8f7eb182",
-        "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad",
-        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+        "17f8b324a522c4ae49e2a71ddee56fd887630d38af326db56eda46c82c45e709",
+        "789a106e6217d2a8faa830422a3e0ea3004a6bbdb1c218dafad8e1b6f5a88308",
+        "ac93195387641eed9d1d5523bebf5ee90faee84b8b3fb6e0816ab7d4858a31ca",
+        "4d93cd9774b89831ebc81f7e94c20f499cb36a35b0a659b783c08e26be1f59d8"
       ],
       zilliqaNetwork: false,
       miningState: true

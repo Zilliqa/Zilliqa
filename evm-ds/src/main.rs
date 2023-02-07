@@ -250,7 +250,6 @@ async fn run_evm_impl(
                 let serialized_listener = serde_json::to_string_pretty(&listener.call_stack.first().unwrap()).unwrap();
 
                 println!("serialized listener: {:?}", serialized_listener);
-
                 //let collected: Vec<Chars> = serialized_listener.as_bytes().to_vec();
 
                 result.set_trace(vec![serialized_listener].into_iter().map(Into::into).collect());
