@@ -1,5 +1,7 @@
 use primitive_types::H256;
 use protobuf::Message;
+use log::debug;
+use std::fmt::Write;
 
 use crate::protos::{Evm as EvmProto, ScillaMessage};
 
@@ -17,60 +19,50 @@ fn uint256_to_string(number: &EvmProto::UInt256) -> String {
     number_string.to_string()
 }
 
-fn decode_storage(storage: &EvmProto::Storage) -> (H256, H256) {
-    let query = ScillaMessage::ProtoScillaQuery::parse_from_bytes(&storage.key).unwrap();
-    // query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
-    let val = ScillaMessage::ProtoScillaVal::parse_from_bytes(&storage.value).unwrap();
-    (H256::default(), H256::from_slice(val.get_bval()))
-    //(H256::from_slice(&query.get_indices()[0]), H256::from_slice(val.get_bval()))
-}
-
-fn storage_key_to_string(storage: &EvmProto::Storage) -> String {
-    "1".to_string()
-}
-
-fn storage_value_to_string(storage: &EvmProto::Storage) -> String {
-    println!("KHAR {:?}", storage.get_value().to_vec());
-    "1".to_string()
-}
-
-fn log_apply_modify(modify: &EvmProto::Apply_Modify) {
-    print!("  modify {{\n    address: {},\n    balance: {:?},\n    nonce: {:?},\n",
+fn apply_modify_to_string(modify: &EvmProto::Apply_Modify) -> String {
+    let mut modify_string = String::new();
+    write!(modify_string, "  modify {{\n    address: {},\n    balance: {:?},\n    nonce: {:?},\n",
             address_to_string(modify.get_address()), uint256_to_string(modify.get_balance()),
-            uint256_to_string(modify.get_nonce()));
+            uint256_to_string(modify.get_nonce())).unwrap();
 
     if modify.get_storage().len() > 0 {
-        println!("    storage: [");
+        write!(modify_string, "    storage: [").unwrap();
         modify.get_storage().into_iter().for_each(|s| {
-            let (key, value) = decode_storage(s);
-            println!("      {{\n        key: {}, \n        value: {}\n      }}", "khar", value.to_string());
+            let query = ScillaMessage::ProtoScillaQuery::parse_from_bytes(&s.key).unwrap();
+            let value = ScillaMessage::ProtoScillaVal::parse_from_bytes(&s.value).unwrap();
+            write!(modify_string, "      {{\n        key: {:?}, \n        value: {}\n      }},\n",
+                query.get_indices(), H256::from_slice(&value.get_bval())).unwrap();
         });
-        println!("    ]");
+        write!(modify_string, "    ]\n").unwrap();
     }
 
-    println!("  }}");
+    modify_string.push_str("  }\n");
+    modify_string
 }
 
-fn log_apply_delete(delete: &EvmProto::Apply_Delete) {
-    println!(
-        "  delete {{\n    address: {} \n  }}",
+fn apply_delete_to_string(delete: &EvmProto::Apply_Delete) -> String {
+    format!("  delete {{\n    address: {} \n  }}\n",
         address_to_string(delete.get_address())
-    );
+    )
 }
 
-/// TODO: REMOVE SAEED
 pub fn log_evm_result(result: &EvmProto::EvmResult) {
-    println!("saeed: \n\n\n{:#?} exit_reason: {:#?}", result, result.get_exit_reason());
+    let mut result_string = String::new();
+
+    debug!("evm_result: {:#?}", result);
+    write!(result_string, "\nexit_reason: {:#?}", result.get_exit_reason()).unwrap();
     result.get_apply().into_iter().for_each(|optional_apply| {
         if let Some(apply) = &optional_apply.apply {
-            println!("apply {{");
+            result_string.push_str("apply {\n");
             match apply {
-                EvmProto::Apply_oneof_apply::modify(ref modify) => log_apply_modify(modify),
-                EvmProto::Apply_oneof_apply::delete(ref delete) => log_apply_delete(delete),
+                EvmProto::Apply_oneof_apply::modify(ref modify) => result_string.push_str(&apply_modify_to_string(modify)),
+                EvmProto::Apply_oneof_apply::delete(ref delete) => result_string.push_str(&apply_delete_to_string(delete)),
             }
-            println!("}}");
+            result_string.push_str("}");
         }
-    })
+    });
+
+    debug!("{}", result_string);
 }
 
 #[cfg(test)]
