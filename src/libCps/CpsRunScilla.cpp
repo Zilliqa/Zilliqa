@@ -152,6 +152,7 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
   const auto checkerResult = InvokeScillaInterpreter(INVOKE_TYPE::CHECKER);
   if (!checkerResult.isSuccess) {
     receipt.AddError(CHECKER_FAILED);
+    LOG_GENERAL(WARNING, "CHECKER out: " << checkerResult.returnVal);
     return {TxnStatus::ERROR, false, retScillaVal};
   }
 
@@ -174,8 +175,8 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::ERROR, false, retScillaVal};
   }
 
-  if (ScillaHelpers::ParseCreateContract(mArgs.gasLimit, runnerResult.returnVal,
-                                         receipt, isLibrary)) {
+  if (!ScillaHelpers::ParseCreateContract(
+          mArgs.gasLimit, runnerResult.returnVal, receipt, isLibrary)) {
     return {TxnStatus::ERROR, false, retScillaVal};
   }
 
@@ -196,6 +197,20 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
 }
 
 CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
+  LOG_GENERAL(WARNING, "Executing call from: "
+                           << mArgs.from.hex() << ", to: " << mArgs.dest.hex()
+                           << ", value: "
+                           << mArgs.value.toQa().convert_to<std::string>());
+  LOG_GENERAL(WARNING,
+              "FROM has balance: "
+                  << mAccountStore.GetBalanceForAccountAtomic(mArgs.from)
+                         .toQa()
+                         .convert_to<std::string>());
+  LOG_GENERAL(
+      WARNING,
+      "To has balance: " << mAccountStore.GetBalanceForAccountAtomic(mArgs.dest)
+                                .toQa()
+                                .convert_to<std::string>());
   const auto callPenalty =
       std::max(CONTRACT_INVOKE_GAS,
                static_cast<unsigned int>(mCpsContext.scillaExtras.data.size()));
@@ -244,7 +259,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   } else {
     const auto& jsonData = std::get<Json::Value>(mArgs.calldata);
-    if (!ScillaHelpers::ExportCallContractFiles(mAccountStore, mArgs.from,
+    if (!ScillaHelpers::ExportCallContractFiles(mAccountStore, mArgs.dest,
                                                 jsonData, scillaVersion,
                                                 extlibsExports)) {
       return {TxnStatus::FAIL_SCILLA_LIB, false, retScillaVal};
@@ -273,6 +288,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   // Only transfer funds when accepted is true
   if (parseCallResults.accepted) {
+    LOG_GENERAL(WARNING, "Contract accepted amount, transferring");
     if (!mAccountStore.TransferBalanceAtomic(mArgs.from, mArgs.dest,
                                              mArgs.value)) {
       return {TxnStatus::INSUFFICIENT_BALANCE, false, retScillaVal};
@@ -281,6 +297,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   auto availableGas = mArgs.gasLimit;
 
+  LOG_GENERAL(WARNING,
+              "NUMBER OF MESSAGES: " << std::size(parseCallResults.entries));
   for (const auto& nextRunInput : parseCallResults.entries) {
     if (availableGas < CONTRACT_INVOKE_GAS) {
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, retScillaVal};
@@ -296,14 +314,14 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
           nextRunInput.amount);
       mExecutor.PushRun(std::move(nextRun));
     } else {
-      const auto newArgs = ScillaArgs{.from = mArgs.dest,
-                                      .dest = nextRunInput.nextAddress,
-                                      .origin = mArgs.origin,
-                                      .value = nextRunInput.amount,
-                                      .calldata = nextRunInput.nextInputMessage,
-                                      .edge = mArgs.edge,
-                                      .depth = mArgs.depth + 1,
-                                      .gasLimit = availableGas};
+      auto newArgs = ScillaArgs{.from = mArgs.dest,
+                                .dest = nextRunInput.nextAddress,
+                                .origin = mArgs.origin,
+                                .value = nextRunInput.amount,
+                                .calldata = nextRunInput.nextInputMessage,
+                                .edge = mArgs.edge,
+                                .depth = mArgs.depth + 1,
+                                .gasLimit = availableGas};
 
       auto nextRun = std::make_shared<CpsRunScilla>(
           std::move(newArgs), mExecutor, mCpsContext, CpsRun::Call);
@@ -311,6 +329,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
     }
   }
 
+  mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
+  mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
   return {TxnStatus::NOT_PRESENT, true, retScillaVal};
 }
 
@@ -357,7 +377,8 @@ ScillaInvokeResult CpsRunScilla::InvokeScillaInterpreter(INVOKE_TYPE type) {
                 scillaVersion,
                 ScillaUtils::GetCallContractJson(
                     mAccountStore.GetScillaRootVersion(), mArgs.gasLimit,
-                    mArgs.value.toQa(), isLibrary),
+                    mAccountStore.GetBalanceForAccountAtomic(mArgs.dest).toQa(),
+                    isLibrary),
                 interprinterPrint)) {
         }
         break;

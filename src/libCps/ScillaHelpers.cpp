@@ -170,7 +170,7 @@ ScillaCallParseResult ScillaHelpers::ParseCallContractOutput(
                           << r_timer_end(tpStart));
   }
 
-  return {};
+  return {true, false, {}};
 }
 
 /// parse the output from interpreter for calling and update states
@@ -317,6 +317,14 @@ ScillaCallParseResult ScillaHelpers::ParseCallContractJsonOutput(
     // Recipient is contract
     // _tag field is empty
     const bool isNextContract = !msg["_tag"].asString().empty();
+
+    // Stop going further as transaction has been finished
+    if (!isNextContract) {
+      results.entries.emplace_back(ScillaCallParseResult::SingleResult{
+          {}, recipient, amount, isNextContract});
+      continue;
+    }
+
     receipt.AddTransition(scillaArgs.dest, msg, scillaArgs.depth);
     receipt.AddEdge();
     ++scillaArgs.edge;
@@ -576,7 +584,9 @@ bool ScillaHelpers::ExportCallContractFiles(
     const std::map<Address, std::pair<std::string, std::string>>
         &extlibs_exports) {
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "ExportCallContractFiles:, contract: "
+                           << contract.hex() << ", sender: " << sender.hex()
+                           << ", origin: " << sender.hex());
   if (!ExportContractFiles(acc_store, contract, scilla_version,
                            extlibs_exports)) {
     LOG_GENERAL(WARNING, "ExportContractFiles failed");
@@ -611,7 +621,7 @@ bool ScillaHelpers::ExportCallContractFiles(
     const std::map<Address, std::pair<std::string, std::string>>
         &extlibs_exports) {
   LOG_MARKER();
-
+  LOG_GENERAL(WARNING, "ExportCallContractFiles: contract: " << contract.hex());
   if (!ExportContractFiles(acc_store, contract, scilla_version,
                            extlibs_exports)) {
     LOG_GENERAL(WARNING, "ExportContractFiles failed");
@@ -704,7 +714,11 @@ bool ScillaHelpers::ParseContractCheckerOutput(
       }
       bool hasMap = false;
 
-      auto handleTypeForStateVar = [&](const Json::Value &stateVars) {
+      /*auto handleTypeForStateVar = [addr = std::cref(addr)](
+                                       const Json::Value &stateVars,
+                                       std::map<std::string, zbytes> &metadata,
+                                       CpsAccountStoreInterface &acc_store,
+                                       bool &hasMap) {
         if (!stateVars.isArray()) {
           LOG_GENERAL(WARNING, "An array of state variables expected."
                                    << stateVars.toStyledString());
@@ -731,11 +745,39 @@ bool ScillaHelpers::ParseContractCheckerOutput(
           }
         }
         return true;
-      };
+      };*/
       if (root["contract_info"].isMember("fields")) {
-        if (!handleTypeForStateVar(root["contract_info"]["fields"])) {
+        const Json::Value &fields = root["contract_info"]["fields"];
+        ///----------------------
+        if (!fields.isArray()) {
+          LOG_GENERAL(WARNING, "An array of state variables expected."
+                                   << fields.toStyledString());
           return false;
         }
+        for (const auto &field : fields) {
+          if (field.isMember("vname") && field.isMember("depth") &&
+              field["depth"].isNumeric() && field.isMember("type")) {
+            metadata.emplace(
+                acc_store.GenerateContractStorageKey(
+                    addr, MAP_DEPTH_INDICATOR, {field["vname"].asString()}),
+                DataConversion::StringToCharArray(field["depth"].asString()));
+            if (!hasMap && field["depth"].asInt() > 0) {
+              hasMap = true;
+            }
+            metadata.emplace(
+                acc_store.GenerateContractStorageKey(
+                    addr, TYPE_INDICATOR, {field["vname"].asString()}),
+                DataConversion::StringToCharArray(field["type"].asString()));
+          } else {
+            LOG_GENERAL(WARNING,
+                        "Unexpected field detected" << field.toStyledString());
+            return false;
+          }
+        }
+        /// ----------------------
+        // if (!handleTypeForStateVar(root["contract_info"]["fields"], metadata,
+        // acc_store, hasMap)) { return false;
+        // }
       }
     }
   } catch (const std::exception &e) {

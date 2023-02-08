@@ -117,8 +117,7 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
   virtual std::string GenerateContractStorageKey(
       const Address& addr, const std::string& key,
       const std::vector<std::string>& indices) override {
-    return Contract::ContractStorage::GenerateStorageKey(
-        addr, CONTRACT_ADDR_INDICATOR, {});
+    return Contract::ContractStorage::GenerateStorageKey(addr, key, indices);
   };
 
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) override {
