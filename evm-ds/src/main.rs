@@ -69,6 +69,8 @@ struct LoggingEventListener {
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
+
+        println!("**** EVENT RECVD... {:?}", event);
         self.traces.push(format!("{:?}", event));
     }
 }
