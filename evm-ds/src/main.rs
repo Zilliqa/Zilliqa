@@ -10,9 +10,9 @@ mod evm_server;
 mod evm_server_run;
 mod ipc_connect;
 mod precompiles;
+mod pretty_printer;
 mod protos;
 mod scillabackend;
-mod pretty_printer;
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
