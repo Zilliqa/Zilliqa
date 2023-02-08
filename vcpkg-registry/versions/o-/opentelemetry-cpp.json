@@ -2,8 +2,8 @@
   "versions": [
     {
       "path": "$/ports/opentelemetry-cpp",
-      "version": "1.8.0",
-      "port-version": 2
+      "version": "1.8.2",
+      "port-version": 1
     }
   ]
 }
