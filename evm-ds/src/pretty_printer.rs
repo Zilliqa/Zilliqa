@@ -1,29 +1,15 @@
-use primitive_types::H256;
+use primitive_types::{H256, H160, U256};
 use protobuf::Message;
 use log::debug;
 use std::fmt::Write;
 
 use crate::protos::{Evm as EvmProto, ScillaMessage};
 
-fn address_to_string(address: &EvmProto::Address) -> String {
-    let mut buffer = [0; 20];
-    buffer[..4].clone_from_slice(&address.get_x0().to_be_bytes());
-    buffer[4..12].clone_from_slice(&address.get_x1().to_be_bytes());
-    buffer[12..].clone_from_slice(&address.get_x2().to_be_bytes());
-    hex::encode(buffer)
-}
-
-fn uint256_to_string(number: &EvmProto::UInt256) -> String {
-    let buffer = [number.get_x0().to_be_bytes(), number.get_x1().to_be_bytes(), number.get_x2().to_be_bytes(), number.get_x3().to_be_bytes()].concat();
-    let number_string = H256::from_slice(&buffer);
-    number_string.to_string()
-}
-
 fn apply_modify_to_string(modify: &EvmProto::Apply_Modify) -> String {
     let mut modify_string = String::new();
     write!(modify_string, "  modify {{\n    address: {},\n    balance: {:?},\n    nonce: {:?},\n",
-            address_to_string(modify.get_address()), uint256_to_string(modify.get_balance()),
-            uint256_to_string(modify.get_nonce())).unwrap();
+            H160::from(modify.get_address()), U256::from(modify.get_balance()),
+            U256::from(modify.get_nonce())).unwrap();
 
     if modify.get_storage().len() > 0 {
         write!(modify_string, "    storage: [").unwrap();
@@ -42,7 +28,7 @@ fn apply_modify_to_string(modify: &EvmProto::Apply_Modify) -> String {
 
 fn apply_delete_to_string(delete: &EvmProto::Apply_Delete) -> String {
     format!("  delete {{\n    address: {} \n  }}\n",
-        address_to_string(delete.get_address())
+        H160::from(delete.get_address())
     )
 }
 
@@ -63,26 +49,4 @@ pub fn log_evm_result(result: &EvmProto::EvmResult) {
     });
 
     debug!("{}", result_string);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn address_to_string_test() {
-        let mut address = EvmProto::Address::default();
-        address.set_x0(1383840601);
-        address.set_x1(1643823253561742928);
-        address.set_x2(596286955265148733);
-        let addr_string = address_to_string(&address);
-        assert_eq!(addr_string, "527bbb5916d0088a2e13165008466fd398c7473d");
-    }
-
-    #[test]
-    fn uint256_to_string_test() {
-        let mut number = EvmProto::UInt256::default();
-        number.set_x3(300000);
-        let number_string = uint256_to_string(&number);
-        assert_eq!(number_string, "0x0000…93e0");
-    }
 }
