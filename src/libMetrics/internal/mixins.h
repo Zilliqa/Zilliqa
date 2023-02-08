@@ -32,10 +32,18 @@ using METRIC_ATTRIBUTE =
 
 class I64Counter {
  public:
-  I64Counter(const std::string &name, const std::string &description,
-             const std::string &units) {
-    m_theCounter = Metrics::GetMeter()->CreateUInt64Counter(
-        GetFullName(METRIC_FAMILY, name), description, units);
+  I64Counter(zil::metrics::FilterClass fc, const std::string &name,
+             const std::string &description, const std::string &units) {
+    //   Metrics::GetInstance().AddCounterSumView(GetFullName(METRIC_FAMILY,
+    //   name),
+    //                                            "View of the Metric");
+    if (Filter::GetInstance().Enabled(fc)) {
+      m_theCounter = Metrics::GetMeter()->CreateUInt64Counter(
+          GetFullName(METRIC_FAMILY, name), description, units);
+    } else {
+      m_theCounter = static_cast<uint64Counter_t>(
+          new opentelemetry::metrics::NoopCounter<uint64_t>("test", "none", "unitless"));
+    }
   }
 
   void Increment() { m_theCounter->Add(1); }
@@ -59,10 +67,15 @@ class I64Counter {
 
 class DoubleCounter {
  public:
-  DoubleCounter(const std::string &name, const std::string &description,
-                const std::string &units) {
-    m_theCounter = Metrics::GetMeter()->CreateDoubleCounter(
-        GetFullName(METRIC_FAMILY, name), description, units);
+  DoubleCounter(zil::metrics::FilterClass fc, const std::string &name,
+                const std::string &description, const std::string &units) {
+    if (Filter::GetInstance().Enabled(fc)) {
+      m_theCounter = Metrics::GetMeter()->CreateDoubleCounter(
+          GetFullName(METRIC_FAMILY, name), description, units);
+    } else {
+      m_theCounter = static_cast<doubleCounter_t>(
+          new opentelemetry::metrics::NoopCounter<double>(GetFullName(METRIC_FAMILY, name), "none", "unitless"));
+    }
   }
 
   void Increment() { m_theCounter->Add(1); }
@@ -80,14 +93,19 @@ class DoubleCounter {
 
 class DoubleHistogram {
  public:
-  DoubleHistogram(const std::string &name, const std::vector<double> &boundaries,
-                  const std::string &description, const std::string &units)
+  DoubleHistogram(zil::metrics::FilterClass fc, const std::string &name, const std::vector<double> &boundaries, const std::string &description, const std::string &units)
       : m_boundaries(boundaries) {
-    Metrics::GetInstance().AddCounterHistogramView(
-        GetFullName(METRIC_FAMILY, name), boundaries, description);
-    m_theCounter = Metrics::GetMeter()->CreateDoubleHistogram(
-        GetFullName(METRIC_FAMILY, name), description, units);
+    if (Filter::GetInstance().Enabled(fc)) {
+      Metrics::GetInstance().AddCounterHistogramView(
+          GetFullName(METRIC_FAMILY, name), boundaries, description);
+      m_theCounter = Metrics::GetMeter()->CreateDoubleHistogram(
+          GetFullName(METRIC_FAMILY, name), description, units);
+    } else {
+      m_theCounter = static_cast<doubleHistogram_t>(
+          new opentelemetry::metrics::NoopHistogram<double>(GetFullName(METRIC_FAMILY, name), "none","unitless"));
+    }
   }
+
 
   void Record(double val) {
     auto context = opentelemetry::context::Context{};
@@ -122,7 +140,7 @@ class DoubleGauge {
 
 class I64Gauge {
  public:
-  I64Gauge(const std::string &name, const std::string &description,
+  I64Gauge(zil::metrics::FilterClass fc, const std::string &name, const std::string &description,
            const std::string &units, bool obs)
       : m_theGauge(Metrics::GetInstance().CreateInt64Gauge(
             GetFullName(METRIC_FAMILY, name), description, units)) {}
@@ -137,7 +155,7 @@ class I64Gauge {
 
 class I64UpDown {
  public:
-  I64UpDown(const std::string &name, const std::string &description,
+  I64UpDown(zil::metrics::FilterClass fc, const std::string &name, const std::string &description,
             const std::string &units, bool obs)
       : m_theGauge(Metrics::GetInstance().CreateInt64UpDownMetric(
             GetFullName(METRIC_FAMILY, name), description, units)) {}
@@ -152,7 +170,7 @@ class I64UpDown {
 
 class DoubleUpDown {
  public:
-  DoubleUpDown(const std::string &name, const std::string &description,
+  DoubleUpDown(zil::metrics::FilterClass fc, const std::string &name, const std::string &description,
                const std::string &units, bool obs)
       : m_theGauge(Metrics::GetInstance().CreateDoubleUpDownMetric(
             GetFullName(METRIC_FAMILY, name), description, units)) {}
@@ -169,7 +187,7 @@ template <typename T>
 struct InstrumentWrapper : T {
   InstrumentWrapper(zil::metrics::FilterClass fc, const std::string &name,
                     const std::string &description, const std::string &units)
-      : T(name, description, units) {
+      : T(fc, name, description, units) {
     m_fc = fc;
   }
 
@@ -178,14 +196,14 @@ struct InstrumentWrapper : T {
   InstrumentWrapper(zil::metrics::FilterClass fc, const std::string &name,
                     const std::vector<double> &list,
                     const std::string &description, const std::string &units)
-      : T(name, list, description, units) {
+      : T(fc, name, list, description, units) {
     m_fc = fc;
   }
 
   InstrumentWrapper(zil::metrics::FilterClass fc, const std::string &name,
                     const std::string &description, const std::string &units,
                     bool obs)
-      : T(name, description, units, obs) {
+      : T(fc, name, description, units, obs) {
     m_fc = fc;
   }
 
