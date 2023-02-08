@@ -322,7 +322,7 @@ void Metrics::AddCounterSumView(const std::string &name,
 }
 
 void Metrics::AddCounterHistogramView(const std::string name,
-                                      std::list<double> list,
+                                      std::vector<double> list,
                                       const std::string &description) {
   // counter view
 
