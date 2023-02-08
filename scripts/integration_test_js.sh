@@ -87,7 +87,9 @@ else
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test --parallel > npx_logs.txt 2>&1
+    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test --parallel 
+
+    echo "second"
 
     npx hardhat test ./test/ChainedCalls.ts
 
