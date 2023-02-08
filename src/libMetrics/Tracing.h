@@ -73,8 +73,9 @@ class Tracing : public Singleton<Tracing> {
   void Init();
   void StdOutInit();
   void OtlpHTTPInit();
+  void NoopInit();
+  void InitOtlpGrpc();
 
-  std::shared_ptr<opentelemetry::trace::TracerProvider> m_provider;
 };
 
 #define TRACE_ENABLED(FILTER_CLASS)          \
