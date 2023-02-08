@@ -41,7 +41,7 @@ Returns: a dictionary of the form:
     "apply": [ {"A": "modify", "address": "<address>", "balance": 12345, "nonce": 2,
                 "code": "608060405234801561001057600080fd5b50600436106100415", // new EVM code for address
                 "storage": [["<key in hex>", "<value in hex>"], ["<key in hex>", "<value in hex>"] ... ],
-                "reset_storage": false,  // whether to wipe the account storage before appying changes.
+                "reset_storage": false,  // whether to wipe the account storage before applying changes.
                 },
                ...
                {"A": "delete", "address": "<address of account to delete">},
