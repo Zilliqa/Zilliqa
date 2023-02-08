@@ -307,11 +307,13 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
     if (!mAccountStore.AccountExistsAtomic(nextRunInput.nextAddress)) {
       mAccountStore.AddAccountAtomic(nextRunInput.nextAddress);
     }
+    retScillaVal = ScillaResult{std::min(
+        mCpsContext.scillaExtras.gasLimit - callPenalty, availableGas)};
     // If next run is non-contract -> transfer only
     if (!nextRunInput.isNextContract) {
       auto nextRun = std::make_shared<CpsRunTransfer>(
-          mExecutor, mCpsContext, mArgs.from, nextRunInput.nextAddress,
-          nextRunInput.amount);
+          mExecutor, mCpsContext, retScillaVal, mArgs.dest,
+          nextRunInput.nextAddress, nextRunInput.amount);
       mExecutor.PushRun(std::move(nextRun));
     } else {
       auto newArgs = ScillaArgs{.from = mArgs.dest,
@@ -331,6 +333,9 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.from);
   mAccountStore.AddAddressToUpdateBufferAtomic(mArgs.dest);
+  LOG_GENERAL(WARNING,
+              "GAS, left: " << mCpsContext.scillaExtras.gasLimit - callPenalty
+                            << ", margs.gasLimit: " << mArgs.gasLimit);
   return {TxnStatus::NOT_PRESENT, true, retScillaVal};
 }
 

@@ -129,7 +129,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
   const auto gasRemainedCore = GetRemainedGasCore(execResult);
 
   const bool isFailure = !m_queue.empty() || !execResult.isSuccess;
-
+  LOG_GENERAL(WARNING, "GAS remained core: " << gasRemainedCore);
   if (isFailure) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();

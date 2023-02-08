@@ -239,7 +239,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     const auto value =
         Amount::fromWei(ProtoToUint(callData.transfer().value()));
     auto transferRun = std::make_shared<CpsRunTransfer>(
-        mExecutor, mCpsContext, fromAccount, toAccount, value);
+        mExecutor, mCpsContext, evm::EvmResult{}, fromAccount, toAccount,
+        value);
     mExecutor.PushRun(std::move(transferRun));
   }
 
@@ -396,7 +397,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
       // Push transfer to be executed first
       const auto value = Amount::fromWei(ProtoToUint(createData.value()));
       auto transferRun = std::make_shared<CpsRunTransfer>(
-          mExecutor, mCpsContext, fromAddress, contractAddress, value);
+          mExecutor, mCpsContext, evm::EvmResult{}, fromAddress,
+          contractAddress, value);
       mExecutor.PushRun(std::move(transferRun));
     }
   }

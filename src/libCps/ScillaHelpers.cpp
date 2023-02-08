@@ -290,6 +290,9 @@ ScillaCallParseResult ScillaHelpers::ParseCallContractJsonOutput(
 
     const auto recipient = Address(msg["_recipient"].asString());
 
+    LOG_GENERAL(WARNING, "NEW message: from: " << scillaArgs.dest
+                                               << ", to: " << recipient);
+
     /*if (IsNullAddress(recipient)) {
       LOG_GENERAL(WARNING, "The recipient can't be null address");
       receipt.AddError(RECEIPT_IS_NULL);

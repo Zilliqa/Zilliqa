@@ -31,7 +31,8 @@ struct ScillaResult {
 struct CpsExecuteResult {
   TxnStatus txnStatus = TxnStatus::NOT_PRESENT;
   bool isSuccess = false;
-  std::variant<evm::EvmResult, ScillaResult> result;
+  using ResultType = std::variant<evm::EvmResult, ScillaResult>;
+  ResultType result;
 };
 }  // namespace libCps
 
