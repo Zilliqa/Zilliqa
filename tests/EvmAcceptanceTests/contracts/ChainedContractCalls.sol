@@ -87,7 +87,7 @@ contract ContractThree {
         } {
             emit DebugMessage(index, "Reached end of array.");
         }
-        //emit DebugMessage(index, "Chained call of contract three fin!");
+        emit DebugMessage(index, "Chained call of contract three fin!");
     }
 
     // Calling a function that does not exist triggers the fallback function.
