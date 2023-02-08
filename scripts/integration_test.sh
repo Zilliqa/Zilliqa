@@ -77,7 +77,8 @@ else
 
     if [[ -d /home/jenkins ]]; then
         pwd
-        ls /home/jenkins/agent/workspace/ZilliqaCIJenkinsfile_PR-*/evm-ds/target/release/evm-ds
+        ls /tmp
+        ls /home/jenkins/agent/workspace/*/evm-ds/target/release/evm-ds
 
         # For convenience move the required files to tmp directory
         cp /home/jenkins/agent/workspace/*/evm-ds/target/release/evm-ds /tmp || exit 1
