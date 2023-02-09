@@ -168,6 +168,14 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
         tpStart = std::chrono::high_resolution_clock::now();
       }
 
+      // TODO Active span to check
+      std::shared_ptr<trace_api::Span> traceSpan;
+      if (!message->traceContext.empty()) {
+        traceSpan =
+            zil::trace::CreateChildSpan("Dispatch", message->traceContext);
+      }
+      zil::trace::Scope scope(traceSpan);
+
       bool result = msg_handlers[msg_type]->Execute(
           message->msg, MessageOffset::INST, message->from, message->startByte);
 

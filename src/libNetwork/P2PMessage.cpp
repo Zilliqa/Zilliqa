@@ -18,12 +18,19 @@
 #include "P2PMessage.h"
 
 #include "common/Constants.h"
-#include "libUtils/Logger.h"
 #include "libMetrics/Tracing.h"
+#include "libUtils/Logger.h"
 
 namespace zil::p2p {
 
-static const uint8_t MSG_VERSION_WITH_TRACES = MSG_VERSION + 128;
+namespace {
+
+inline uint8_t MsgVersionWithTraces() {
+  assert(MSG_VERSION < 128);
+  return uint8_t(MSG_VERSION) + 128;
+}
+
+}  // namespace
 
 RawMessage::RawMessage(uint8_t* buf, size_t sz)
     : data(buf, [](void* d) { free(d); }), size(sz) {}
@@ -42,7 +49,7 @@ RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
   // TODO make build setting #if TRACES_ENABLED from Cmake
 
   if (inject_trace_context) {
-    trace::ExtractTraceInfoFromCurrentContext(trace_info);
+    trace::ExtractTraceInfoFromActiveSpan(trace_info);
   }
 
   size_t trace_size = trace_info.size();
@@ -57,9 +64,7 @@ RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
   }
   auto buf = buf_base;
 
-  assert(MSG_VERSION < 128);
-
-  uint8_t version = (trace_size != 0) ? MSG_VERSION_WITH_TRACES : MSG_VERSION;
+  uint8_t version = (trace_size != 0) ? MsgVersionWithTraces() : MSG_VERSION;
   *buf++ = version;
 
   *buf++ = (NETWORK_ID >> 8) & 0xFF;
@@ -105,11 +110,11 @@ ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
 
   // Check for version requirement
   if (version != (unsigned char)(MSG_VERSION & 0xFF) &&
-      version != MSG_VERSION_WITH_TRACES) {
+      version != MsgVersionWithTraces()) {
     LOG_GENERAL(WARNING, "Header version wrong, received ["
                              << version - 0x00 << "] while expected ["
                              << MSG_VERSION << "] or ["
-                             << MSG_VERSION_WITH_TRACES << "]");
+                             << MsgVersionWithTraces() << "]");
     return ReadState::WRONG_MSG_VERSION;
   }
 
@@ -133,13 +138,11 @@ ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
 
   uint32_t trace_length = 0;
 
-  if (version == MSG_VERSION_WITH_TRACES) {
+  if (version == MsgVersionWithTraces()) {
     if (total_length < 5) {
       LOG_GENERAL(WARNING, "Invalid length [" << total_length << "]");
       return ReadState::WRONG_MESSAGE_LENGTH;
     }
-
-    total_length -= 4;
 
     trace_length = (buf[8] << 24) + (buf[9] << 16) + (buf[10] << 8) + buf[11];
     if (trace_length == 0 || trace_length > total_length) {

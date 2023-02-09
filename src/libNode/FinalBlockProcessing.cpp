@@ -30,6 +30,7 @@
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -1552,7 +1553,13 @@ bool Node::SendPendingTxnToLookup() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "Sent lookup Pending txns");
+  LOG_GENERAL(
+      INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
+
+  auto span = Tracing::GetInstance().get_tracer()->StartSpan("PendingTxnsSend");
+  span->SetAttribute("Count", pendingTxns.size());
+  auto scope = trace_api::Scope(span);
+
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 
   return true;

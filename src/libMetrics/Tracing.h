@@ -50,11 +50,26 @@ class Filter : public Singleton<Filter> {
 };
 
 /// Extract info to continue spans with distributed tracing
-void ExtractTraceInfoFromCurrentContext(std::string& serializedTraceInfo);
+void ExtractTraceInfoFromActiveSpan(std::string& serializedTraceInfo);
 
 /// Creates child span from serialized trace info
 std::shared_ptr<trace_api::Span> CreateChildSpan(
     std::string_view name, const std::string& serializedTraceInfo);
+
+class Scope {
+ public:
+  // No-op scope
+  Scope() = default;
+
+  Scope(const std::shared_ptr<trace_api::Span>& span) noexcept {
+    token_ = opentelemetry::context::RuntimeContext::Attach(
+        opentelemetry::context::RuntimeContext::GetCurrent().SetValue(
+            trace_api::kSpanKey, span));
+  }
+
+ private:
+  std::unique_ptr<opentelemetry::context::Token> token_;
+};
 
 }  // namespace trace
 }  // namespace zil
@@ -76,19 +91,16 @@ class Tracing : public Singleton<Tracing> {
   void OtlpHTTPInit();
   void NoopInit();
   void InitOtlpGrpc();
-
 };
 
 #define TRACE_ENABLED(FILTER_CLASS)          \
   zil::trace::Filter::GetInstance().Enabled( \
       zil::trace::FilterClass::FILTER_CLASS)
 
-// TODO : false case is fake
-
-#define SCOPED_SPAN(FILTER_CLASS, SCOPE_NAME, SPAN)          \
-  trace_api::Scope SCOPE_NAME = TRACE_ENABLED(FILTER_CLASS)  \
-                                    ? trace_api::Scope(SPAN) \
-                                    : trace_api::Scope(SPAN);
+#define SCOPED_SPAN(FILTER_CLASS, SCOPE_NAME, SPAN)            \
+  zil::trace::Scope SCOPE_NAME = TRACE_ENABLED(FILTER_CLASS)   \
+                                     ? zil::trace::Scope(SPAN) \
+                                     : zil::trace::Scope();
 
 #define START_SPAN(FILTER_CLASS, ATTRIBUTES)                                 \
   TRACE_ENABLED(FILTER_CLASS)                                                \

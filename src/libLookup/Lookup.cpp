@@ -660,7 +660,8 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
     }
   }
 
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  // Sending with current d-trace info (if there is an active span)
+  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message, true);
 }
 
 void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
