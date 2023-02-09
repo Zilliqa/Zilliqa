@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+bases:
+  - ../zilliqa/
+nameSuffix: seedpub
+commonLabels:
+  type: seedpub
+replicas:
+- name: devnet-seedpub
+  count: 1

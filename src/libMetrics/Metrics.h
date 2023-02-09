@@ -203,18 +203,20 @@ class Metrics : public Singleton<Metrics> {
       const std::string &name, const std::string &desc, std::string unit = "");
 
   /// Called on main() exit explicitly
+  void Init();
   void Shutdown();
 
   void AddCounterSumView(const std::string &name,
                          const std::string &description);
 
-  void AddCounterHistogramView(const std::string name, std::list<double> list,
+  void AddCounterHistogramView(const std::string name, std::vector<double> list,
                                const std::string &description);
 
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
  private:
-  void Init();
+
+  friend class api_test;
 
   void InitPrometheus(const std::string &addr);
 
@@ -223,6 +225,8 @@ class Metrics : public Singleton<Metrics> {
   void InitOtlpGrpc();
 
   void InitStdOut();
+
+  void InitNoop();
 };
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_METRICS_H_

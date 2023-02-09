@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<node>
+    <accounts>
+        <account>
+            <private_key>7E6E9373E11D178F945AD50D8845201B6477CF6A84FB56722985D9CDECD9452F</private_key>
+            <wallet_address>5c2d46955de58033638f552bfd1bca408e6fc8ac</wallet_address>
+        </account>
+        <account>
+            <private_key>8577ECED05C4CA89FC53B25A28C0F8F486783ECD26E996B2A7C7F4B0D4FD33B3</private_key>
+            <wallet_address>cd29fc58645412123c7d8b97be648d9c1849eafd</wallet_address>
+        </account>
+        <account>
+            <private_key>82B5B737A059E81B1FC07DF16EE5CB41CA98827851ECDE8A34C93BC3CEC5FE39</private_key>
+            <wallet_address>566800e69bc297521b0552106a3d9f32f8bc30a3</wallet_address>
+        </account>
+        <account>
+            <private_key>4254C8EA68090517F122D0FD2A4B4925DBBE3BBA1161CF561699494CC38284CB</private_key>
+            <wallet_address>6ead413fa49904495ab581810f54209472481fa1</wallet_address>
+        </account>
+        <account>
+            <private_key>8325959F52BC701E1D6595DD2487A0CB522B8A439036EF55479812B2C139F53C</private_key>
+            <wallet_address>74c01f5c8e1ef41e234b9034d90c35d55ffffcc1</wallet_address>
+        </account>
+        <account>
+            <private_key>3741A727324302D3781FB85A6AF023902F006C980FA53A80053BE1C005E8F1F0</private_key>
+            <wallet_address>e724c3dae62f93ab8e45a138642a8c39b5d07591</wallet_address>
+        </account>
+    </accounts>
+    <ds_accounts>
+        <account>
+            <private_key>079AB4D08F99DCD5C333EE2A7016E325D00313A42BC22C515DDF594FA10BD134</private_key>
+            <wallet_address>7fcf8cbf5147108314c803a5f7800906cd8edcd7</wallet_address>
+        </account>
+        <account>
+            <private_key>0A84708990791756F37DC438D400C6E045DCD3046204E18837C1ACF75DFD617E</private_key>
+            <wallet_address>a5a8888a6857fac06342d4e14423b575f861a6af</wallet_address>
+        </account>
+        <account>
+            <private_key>E45364E61382D573F8902D0A1D40F71E3C8F74F4175A1FB806D3A733C10B521C</private_key>
+            <wallet_address>8c8ab396e6427758d97d57f9f0ac96e271d497d1</wallet_address>
+        </account>
+        <account>
+            <private_key>F3974E45ED5408FF01FD927560F0977518E10B4DCE391DC9FB5D18DB9CAFA45D</private_key>
+            <wallet_address>8abc2bca964ea60ca5a08e3857bd97a28abc1c18</wallet_address>
+        </account>
+    </ds_accounts>
+</node>

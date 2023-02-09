@@ -18,6 +18,7 @@ use scillabackend::ScillaBackend;
 use crate::continuations::Continuations;
 use crate::cps_executor::{CpsCallInterrupt, CpsCreateInterrupt, CpsExecutor, CpsReason};
 use crate::precompiles::get_precompiles;
+use crate::pretty_printer::log_evm_result;
 use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
 use protobuf::Message;
@@ -129,9 +130,11 @@ pub async fn run_evm_impl(
                 }
                 let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?},  result: {:?}",
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, 
+                    extras: {:?}, estimate: {:?}, cps: {:?}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate, enable_cps, result);
+                    backend.extras, estimate, enable_cps);
+                log_evm_result(&result);
                 result
             },
             CpsReason::CallInterrupt(i) => {

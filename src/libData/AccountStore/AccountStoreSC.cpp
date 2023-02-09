@@ -67,25 +67,25 @@ Z_I64METRIC &GetInvocationsCounter() {
 
 Z_I64GAUGE &GetEvmLatencyCounter() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "evm.latency.counter",
-                            "Simple EVM latency gauge", "?", true};
+                            "Simple EVM latency gauge", "calls", true};
   return counter;
 }
 
 Z_I64GAUGE &GetScillaLatencyCounter() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla.latency.counter",
-                            "Simple Scilla latency gauge", "?", true};
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla_latency_counter",
+                            "Simple Scilla latency gauge", "ms", true};
   return counter;
 }
 
 Z_I64GAUGE &GetProcessorBNCounters() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
-                            "Block number seen by processor", "?", true};
+                            "Block number seen by processor", "block", true};
   return counter;
 }
 
 Z_I64GAUGE &GetProcessorDSBNCounters() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
-                            "Ds Block number seen by processor", "?", true};
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "dsblocknumber",
+                            "Ds Block number seen by processor", "block", true};
   return counter;
 }
 }  // namespace local
