@@ -21,6 +21,8 @@
 #include "libCps/CpsExecutor.h"
 #include "libCps/CpsRunTransfer.h"
 #include "libCps/ScillaHelpers.h"
+#include "libCps/ScillaHelpersCall.h"
+#include "libCps/ScillaHelpersCreate.h"
 #include "libData/AccountData/TransactionReceipt.h"
 #include "libData/AccountStore/services/scilla/ScillaClient.h"
 #include "libScilla/ScillaUtils.h"
@@ -175,7 +177,7 @@ CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
     return {TxnStatus::ERROR, false, retScillaVal};
   }
 
-  if (!ScillaHelpers::ParseCreateContract(
+  if (!ScillaHelpersCreate::ParseCreateContract(
           mArgs.gasLimit, runnerResult.returnVal, receipt, isLibrary)) {
     return {TxnStatus::ERROR, false, retScillaVal};
   }
@@ -279,7 +281,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
     return {TxnStatus::ERROR, false, retScillaVal};
   }
 
-  const auto parseCallResults = ScillaHelpers::ParseCallContract(
+  const auto parseCallResults = ScillaHelpersCall::ParseCallContract(
       mAccountStore, mArgs, runnerResult.returnVal, receipt, scillaVersion);
 
   if (!parseCallResults.success) {

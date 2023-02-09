@@ -30,59 +30,10 @@ namespace libCps {
 
 struct CpsAccountStoreInterface;
 struct ScillaArgs;
-struct ScillaProcessContext;
-
-struct ScillaCallParseResult {
-  using Address = dev::h160;
-  bool success = false;
-  // if contract accepted sent amount from a call (should be succeeded by a
-  // transfer)
-  bool accepted = false;
-  struct SingleResult {
-    Json::Value nextInputMessage;
-    Address nextAddress;
-    Amount amount;
-    bool isNextContract = false;
-  };
-  std::vector<SingleResult> entries;
-};
 
 class ScillaHelpers final {
  public:
   using Address = dev::h160;
-  static bool ParseCreateContract(uint64_t &gasRemained,
-                                  const std::string &runnerPrint,
-                                  TransactionReceipt &receipt, bool is_library);
-
-  /// convert the interpreter output into parsable json object for deployment
-  static bool ParseCreateContractOutput(Json::Value &jsonOutput,
-                                        const std::string &runnerPrint,
-                                        TransactionReceipt &receipt);
-
-  /// parse the output from interpreter for deployment
-  static bool ParseCreateContractJsonOutput(const Json::Value &_json,
-                                            uint64_t &gasRemained,
-                                            TransactionReceipt &receipt,
-                                            bool is_library);
-
-  /// Contract Calling
-  /// verify the return from scilla_runner for calling is valid
-  static ScillaCallParseResult ParseCallContract(
-      CpsAccountStoreInterface &acc_store, ScillaArgs &args,
-      const std::string &runnerPrint, TransactionReceipt &receipt,
-      uint32_t scilla_version);
-
-  /// convert the interpreter output into parsable json object for calling
-  static ScillaCallParseResult ParseCallContractOutput(
-      CpsAccountStoreInterface &acc_store, Json::Value &jsonOutput,
-      const std::string &runnerPrint, TransactionReceipt &receipt);
-
-  /// parse the output from interpreter for calling and update states
-  static ScillaCallParseResult ParseCallContractJsonOutput(
-      CpsAccountStoreInterface &acc_store, ScillaArgs &args,
-      const Json::Value &_json, TransactionReceipt &receipt,
-      uint32_t pre_scilla_version);
-
   /// export files that ExportCreateContractFiles and ExportContractFiles
   /// both needs
   static void ExportCommonFiles(
