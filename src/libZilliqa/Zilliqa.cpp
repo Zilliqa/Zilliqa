@@ -141,6 +141,8 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->msg.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
 
+
+
     GetMsgDispatchCounter().IncrementWithAttributes(
         1L, {{"Type", std::string(MsgTypeToStr(msg_type))},
              {"StartByte", std::string(StartByteToStr(message->startByte))}});

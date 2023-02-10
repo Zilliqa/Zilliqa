@@ -47,6 +47,13 @@
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
+
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include "opentelemetry/trace/propagation/b3_propagator.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/provider.h"
+
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -1556,11 +1563,33 @@ bool Node::SendPendingTxnToLookup() {
   LOG_GENERAL(
       INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
 
-  auto span = Tracing::GetInstance().get_tracer()->StartSpan("PendingTxnsSend");
-  span->SetAttribute("Count", pendingTxns.size());
-  auto scope = trace_api::Scope(span);
+
+  auto provider = opentelemetry::trace::Provider::GetTracerProvider();
+  static auto scoped_span = opentelemetry::trace::Scope(provider->GetTracer("manual")
+                               ->StartSpan("PendingTxnsSend", {
+                                                          {"hello", "world"}
+                                                      }));
+
+  auto current_ctx = opentelemetry::context::RuntimeContext::GetCurrent();
+  auto parent   = opentelemetry::trace::GetSpan(current_ctx)->GetContext();
+
+  LOG_GENERAL(WARNING,"parent isValid " << std::boolalpha << parent.trace_id().IsValid());
+
+
+
+
+
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
+
+  auto aSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+
+  if (not aSpan->GetContext().IsValid()) {
+    LOG_GENERAL(INFO, "no spans active");
+  } else {
+    LOG_GENERAL(INFO, "spans active");
+  };
+
 
   return true;
 }
