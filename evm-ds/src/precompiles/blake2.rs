@@ -200,7 +200,7 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    type PrecompileResult = Result<PrecompileOutput, PrecompileFailure>;
+    type PrecompileResult = Result<(PrecompileOutput, u64), PrecompileFailure>;
 
     // [4 bytes for rounds]
     // [64 bytes for h]
@@ -310,6 +310,7 @@ mod tests {
 
         blake2(&input, Some(12), &new_context(), false)
             .unwrap()
+            .0
             .output
     }
 
@@ -318,6 +319,7 @@ mod tests {
 
         blake2(&input, Some(12), &new_context(), false)
             .unwrap()
+            .0
             .output
     }
 
@@ -338,6 +340,7 @@ mod tests {
         .unwrap();
         blake2(&input, Some(12), &new_context(), false)
             .unwrap()
+            .0
             .output
     }
 

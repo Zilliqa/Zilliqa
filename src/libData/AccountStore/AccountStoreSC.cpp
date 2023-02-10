@@ -61,29 +61,66 @@ Z_I64METRIC &GetInvocationsCounter() {
   return counter;
 }
 
-Z_I64GAUGE &GetGeneralCounters() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "general",
-                            "General Statistics", "?", true};
+Z_I64GAUGE &GetEvmLatencyCounter() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "evm.latency.counter",
+                            "Simple EVM latency gauge", "calls", true};
+  return counter;
+}
+
+Z_I64GAUGE &GetScillaLatencyCounter() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla_latency_counter",
+                            "Simple Scilla latency gauge", "ms", true};
+  return counter;
+}
+
+Z_I64GAUGE &GetProcessorBNCounters() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
+                            "Block number seen by processor", "block", true};
+  return counter;
+}
+
+Z_I64GAUGE &GetProcessorDSBNCounters() {
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "dsblocknumber",
+                            "Ds Block number seen by processor", "block", true};
   return counter;
 }
 }  // namespace local
 }  // namespace zil
 
-
 AccountStoreSC::AccountStoreSC() {
   Metrics::GetInstance();
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
   m_txnProcessTimeout = false;
-  zil::local::GetGeneralCounters().SetCallback([this](auto &&result) {
-    if (zil::local::GetGeneralCounters().Enabled()) {
-        if (m_stats.evmCall>0)
-            result.Set(m_stats.evmCall, {{"latency", "evm"}});
-        if (m_stats.scillaCall>0)
-            result.Set(m_stats.scillaCall, {{"latency", "scilla"}});
-        if (m_stats.blockNumber>0)
-            result.Set(m_stats.blockNumber, {{"counter", "BlockNumber"}});
-        if (m_stats.blockNumberDS>0)
-            result.Set(m_stats.blockNumberDS, {{"counter", "DSBlockNumber"}});
+
+  zil::local::GetEvmLatencyCounter().SetCallback([this](auto &&result) {
+    if (zil::local::GetEvmLatencyCounter().Enabled()) {
+      if (m_stats.evmCall > 0) {
+        result.Set(m_stats.evmCall, {});
+      }
+    }
+  });
+
+  zil::local::GetScillaLatencyCounter().SetCallback([this](auto &&result) {
+    if (zil::local::GetScillaLatencyCounter().Enabled()) {
+      if (m_stats.scillaCall > 0) {
+        result.Set(m_stats.scillaCall, {});
+      }
+    }
+  });
+
+  zil::local::GetProcessorBNCounters().SetCallback([this](auto &&result) {
+    if (zil::local::GetProcessorBNCounters().Enabled()) {
+      if (m_stats.blockNumber > 0) {
+        result.Set(m_stats.blockNumber, {});
+      }
+    }
+  });
+
+  zil::local::GetProcessorDSBNCounters().SetCallback([this](auto &&result) {
+    if (zil::local::GetProcessorBNCounters().Enabled()) {
+      if (m_stats.blockNumberDS > 0) {
+        result.Set(m_stats.blockNumberDS, {});
+      }
     }
   });
 }

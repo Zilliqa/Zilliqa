@@ -47,13 +47,13 @@
 namespace {
 
 Z_DBLMETRIC &GetMsgDispatchCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "msg_dispatch.msg_dispatch",
+  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch",
                              "Messages dispatched", "Calls"};
   return counter;
 }
 
 Z_DBLMETRIC &GetMsgDispatchErrorCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "msg.dispatch.error",
+  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch_error",
                              "Message dispatch errors", "Calls"};
   return counter;
 }
@@ -139,13 +139,10 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->first.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
-    if (zil::metrics::Filter::GetInstance().Enabled(
-            zil::metrics::FilterClass::MSG_DISPATCH)) {
-      GetMsgDispatchCounter().IncrementWithAttributes(
+    GetMsgDispatchCounter().IncrementWithAttributes(
           1L,
           {{"Type", std::string(MsgTypeToStr(msg_type))},
            {"StartByte", std::string(StartByteToStr(message->second.second))}});
-    }
 
     // To-do: Remove consensus user and peer manager placeholders
     Executable *msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};

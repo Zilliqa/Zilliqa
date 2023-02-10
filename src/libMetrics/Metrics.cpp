@@ -69,9 +69,19 @@ void Metrics::Init() {
     InitOTHTTP();
   } else if (cmp == "OTLPGRPC") {
     InitOtlpGrpc();
+  } else if (cmp == "STDOUT"){
+    InitStdOut();
   } else {
-    InitStdOut();  // our favourite
+    LOG_GENERAL(WARNING,"Telemetry provider has defaulted to NOOP provider due to no configuration");
+    InitNoop();
   }
+}
+
+void Metrics::InitNoop() {
+  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill = opentelemetry::metrics::Provider::GetMeterProvider();
+
+  auto tf = opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(new opentelemetry::metrics::NoopMeterProvider());
+  opentelemetry::metrics::Provider::SetMeterProvider(tf);
 }
 
 void Metrics::InitStdOut() {
@@ -191,8 +201,10 @@ void Metrics::InitPrometheus(
       {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
 
-  options.export_interval_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
-  options.export_timeout_millis = std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
+  options.export_interval_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_EXPORT_MS);
+  options.export_timeout_millis =
+      std::chrono::milliseconds(METRIC_ZILLIQA_READER_TIMEOUT_MS);
   std::unique_ptr<metrics_sdk::MetricReader> reader{
       new metrics_sdk::PeriodicExportingMetricReader(std::move(exporter),
                                                      options)};
@@ -215,13 +227,9 @@ void Metrics::Shutdown() {
   p->Shutdown();
 }
 
+
 namespace {
 
-inline auto GetMeter(
-    std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
-    const std::string &family) {
-  return provider->GetMeter(family, "1.2.0", METRIC_ZILLIQA_SCHEMA);
-}
 
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {
@@ -295,19 +303,18 @@ zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
 
 void Metrics::AddCounterSumView(const std::string &name,
                                 const std::string &description) {
-  std::string version{"1.2.0"};
-  std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
   std::shared_ptr<opentelemetry::metrics::Meter> meter =
-      p->GetMeter("zilliqa", "1.2.0");
+      p->GetMeter("zilliqa", "1.2.0", METRIC_ZILLIQA_SCHEMA);
   // counter view
-  std::string counter_name = name + "_counter";
+  std::string counter_name = name;
   std::unique_ptr<metrics_sdk::InstrumentSelector> instrument_selector{
       new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kCounter,
                                           counter_name)};
   std::unique_ptr<metrics_sdk::MeterSelector> meter_selector{
-      new metrics_sdk::MeterSelector(name, version, schema)};
+      new metrics_sdk::MeterSelector(name, METRIC_ZILLIQA_SCHEMA_VERSION,
+                                     METRIC_ZILLIQA_SCHEMA)};
   std::unique_ptr<metrics_sdk::View> sum_view{new metrics_sdk::View{
       name, description, metrics_sdk::AggregationType::kSum}};
   p->AddView(std::move(instrument_selector), std::move(meter_selector),
@@ -315,7 +322,7 @@ void Metrics::AddCounterSumView(const std::string &name,
 }
 
 void Metrics::AddCounterHistogramView(const std::string name,
-                                      std::list<double> list,
+                                      std::vector<double> list,
                                       const std::string &description) {
   // counter view
 
@@ -351,19 +358,11 @@ void Metrics::AddCounterHistogramView(const std::string name,
 
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
   GetInstance();
+  auto p1 = metrics_api::Provider::GetMeterProvider();
+  auto p2 = p1->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                        METRIC_ZILLIQA_SCHEMA);
 
-  const auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
-      metrics_api::Provider::GetMeterProvider());
-
-  assert(p);
-
-  try {
-      return p->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                         METRIC_ZILLIQA_SCHEMA);
-  } catch(...) {
-      std::cout << "Initialisation problem" << std::endl;
-      abort();
-  }
+  return p2;
 }
 
 namespace zil::metrics {

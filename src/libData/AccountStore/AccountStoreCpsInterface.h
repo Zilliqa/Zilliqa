@@ -24,7 +24,7 @@
 
 #include "libPersistence/ContractStorage.h"
 
-struct AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
+class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
  public:
   explicit AccountStoreCpsInterface(AccountStoreSC& accStore)
       : mAccountStore(accStore) {}

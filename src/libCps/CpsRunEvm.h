@@ -26,8 +26,8 @@ class TransactionReceipt;
 
 namespace libCps {
 class Address;
-class CpsAccountStoreInterface;
-class CpsContext;
+struct CpsAccountStoreInterface;
+struct CpsContext;
 class CpsExecutor;
 class CpsRunEvm final : public CpsRun {
   using Address = dev::h160;

@@ -6,7 +6,7 @@ spec:
     beta.kubernetes.io/os: "linux"
   containers:
   - name: "scilla"
-    image: "zilliqa/scilla:a254436b"
+    image: "zilliqa/scilla:v0.13.1"
     imagePullPolicy: Always
     command:
     - cat

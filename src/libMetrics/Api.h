@@ -18,8 +18,12 @@
 #define ZILLIQA_SRC_LIBMETRICS_API_H_
 
 #include "Metrics.h"
+#include "Tracing.h"
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
+
+
+
 
 // These definitions will probably be changed as people will not like the Z_
 
@@ -40,24 +44,23 @@ using Z_DBLUPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::DoubleUpDown>;
 
 using Z_FL = zil::metrics::FilterClass;
 
-#define INC_CALLS(COUNTER)                            \
-  if (COUNTER.Enabled()) {                            \
-    try {\
-       COUNTER.IncrementAttr({{"calls", __FUNCTION__}}); \
-    } catch(...){                                     \
-       std::cout << "caught user error" << std::endl; \
-    }\
-  }\
+#define INC_CALLS(COUNTER)                              \
+  if (COUNTER.Enabled()) {                              \
+    try {                                               \
+      COUNTER.IncrementAttr({{"calls", __FUNCTION__}}); \
+    } catch (...) {                                     \
+      std::cout << "caught user error" << std::endl;    \
+    }                                                   \
+  }
 
-#define INC_STATUS(COUNTER, KEY, VALUE)                              \
-  if (COUNTER.Enabled()) {                                           \
-    try {\
-       COUNTER.IncrementAttr({{"Method", __FUNCTION__}, {KEY, VALUE}}); \
-    } catch(...){                                                    \
-       std::cout << "caught  user error" << std::endl;            \
-    }\
-  }\
-
+#define INC_STATUS(COUNTER, KEY, VALUE)                                \
+  if (COUNTER.Enabled()) {                                             \
+    try {                                                              \
+      COUNTER.IncrementAttr({{"Method", __FUNCTION__}, {KEY, VALUE}}); \
+    } catch (...) {                                                    \
+      std::cout << "caught  user error" << std::endl;                  \
+    }                                                                  \
+  }
 
 #define METRICS_ENABLED(FILTER_CLASS)          \
   zil::metrics::Filter::GetInstance().Enabled( \

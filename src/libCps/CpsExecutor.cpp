@@ -129,6 +129,15 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   }
   // Always mark run as successful in estimate mode
   if (isEstimate) {
+    // In some cases revert state may be missing (if e.g. trap validation
+    // failed)
+    if (isFailure && runResult.evmResult.exit_reason().exit_reason_case() ==
+                         evm::ExitReason::EXIT_REASON_NOT_SET) {
+      evm::ExitReason exitReason;
+      exitReason.set_revert(evm::ExitReason_Revert_REVERTED);
+      *runResult.evmResult.mutable_exit_reason() = exitReason;
+      clientContext.SetEvmResult(runResult.evmResult);
+    }
     return {TxnStatus::NOT_PRESENT, true, runResult.evmResult};
   }
   return runResult;

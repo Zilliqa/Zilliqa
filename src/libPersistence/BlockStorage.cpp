@@ -552,83 +552,10 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   return GetTxBodyDB(epochNum)->Exists(keyBytes);
 }
 
-bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
-  LOG_GENERAL(INFO, "Delete DSBlock Num: " << blocknum);
-  unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
-  int ret = m_dsBlockchainDB->DeleteKey(blocknum);
-  return (ret == 0);
-}
-
-bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
-  unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
-  int ret = m_VCBlockDB->DeleteKey(blockhash);
-  return (ret == 0);
-}
-
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
   unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
   int ret = m_txBlockchainDB->DeleteKey(blocknum);
-  return (ret == 0);
-}
-
-bool BlockStorage::DeleteTxBody(const dev::h256& key) {
-  if (!LOOKUP_NODE_MODE) {
-    LOG_GENERAL(WARNING, "Non lookup node should not trigger this");
-    return false;
-  }
-
-  const zbytes& keyBytes = key.asBytes();
-
-  lock_guard<mutex> g(m_mutexTxBody);
-
-  if (!m_txEpochDB) {
-    LOG_GENERAL(
-        WARNING,
-        "Attempt to access non initialized DB! Are you in lookup mode? ");
-    return false;
-  }
-
-  string epochString = m_txEpochDB->Lookup(keyBytes);
-  if (epochString.empty()) {
-    return false;
-  }
-
-  zbytes epochBytes(epochString.begin(), epochString.end());
-  uint64_t epochNum = 0;
-  if (!Messenger::GetTxEpoch(epochBytes, 0, epochNum)) {
-    LOG_GENERAL(WARNING, "Messenger::GetTxEpoch failed.");
-    return false;
-  }
-
-  return (m_txEpochDB->DeleteKey(keyBytes) == 0) &&
-         (GetTxBodyDB(epochNum)->DeleteKey(keyBytes) == 0);
-}
-
-bool BlockStorage::DeleteMicroBlock(const BlockHash& blockHash) {
-  lock_guard<mutex> g(m_mutexMicroBlock);
-
-  // Get key from microBlockKeys DB
-  string keyString = m_microBlockKeyDB->Lookup(blockHash);
-  if (keyString.empty()) {
-    return false;
-  }
-
-  // Delete key
-  int ret = m_microBlockKeyDB->DeleteKey(blockHash);
-
-  // Delete body
-  if (ret == 0) {
-    zbytes keyBytes(keyString.begin(), keyString.end());
-    uint64_t epochNum = 0;
-    uint32_t shardID = 0;
-    if (!Messenger::GetMicroBlockKey(keyBytes, 0, epochNum, shardID)) {
-      LOG_GENERAL(WARNING, "Messenger::GetMicroBlockKey failed.");
-      return false;
-    }
-    ret = GetMicroBlockDB(epochNum)->DeleteKey(keyString);
-  }
-
   return (ret == 0);
 }
 
@@ -1823,6 +1750,7 @@ bool BlockStorage::RefreshAll() {
     dbs = {META,
            DS_BLOCK,
            TX_BLOCK,
+           TX_BLOCK_AUX,
            TX_BLOCK_HASH_TO_NUM,
            MICROBLOCK,
            DS_COMMITTEE,
@@ -1839,6 +1767,7 @@ bool BlockStorage::RefreshAll() {
     dbs = {META,
            DS_BLOCK,
            TX_BLOCK,
+           TX_BLOCK_AUX,
            TX_BLOCK_HASH_TO_NUM,
            TX_BODY,
            MICROBLOCK,
