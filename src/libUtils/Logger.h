@@ -18,9 +18,10 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
-#include <boost/filesystem/path.hpp>
 #include "common/Constants.h"
 #include "g3log/logworker.hpp"
+
+#include <filesystem>
 
 #define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
@@ -53,22 +54,22 @@ class Logger {
   //@{
   /// @name Sink addition.
   void AddGeneralSink(const std::string& filePrefix,
-                      const boost::filesystem::path& filePath,
+                      const std::filesystem::path& filePath,
                       int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                       int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStateSink(const std::string& filePrefix,
-                    const boost::filesystem::path& filePath,
+                    const std::filesystem::path& filePath,
                     int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                     int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddEpochInfoSink(const std::string& filePrefix,
-                        const boost::filesystem::path& filePath,
+                        const std::filesystem::path& filePath,
                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddJsonSink(const std::string& filePrefix,
-                   const boost::filesystem::path& filePath,
+                   const std::filesystem::path& filePath,
                    int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                    int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
