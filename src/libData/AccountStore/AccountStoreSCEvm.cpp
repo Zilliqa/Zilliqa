@@ -283,6 +283,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
+
+  auto span = START_SPAN(EVM_RPC, {});
+  SCOPED_SPAN(EVM_RPC, scope, span);
+
   std::string txnId = evmContext.GetTranID().hex();
 
   INC_CALLS(zil::local::GetEvmCallsCounter());

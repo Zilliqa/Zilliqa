@@ -245,6 +245,12 @@ trace_api::SpanContext ExtractSpanContextFromTraceInfo(
 
 void ExtractTraceInfoFromActiveSpan(std::string& out) {
   auto activeSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+
+  if (!activeSpan) {
+    LOG_GENERAL(FATAL, "activeSpan is always not null");
+    return;
+  }
+
   auto spanContext = activeSpan->GetContext();
   if (!spanContext.IsValid()) {
     LOG_GENERAL(WARNING, "No active spans");

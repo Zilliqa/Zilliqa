@@ -182,6 +182,10 @@ void TestRemoveBroadcast() {
 }
 
 void TestSerialize() {
+  std::string info;
+  zil::trace::ExtractTraceInfoFromActiveSpan(info);
+  assert(info.empty());
+
   int num_errors = 0;
 
   auto Test = [&num_errors](const zbytes& msg, const zbytes& hash,

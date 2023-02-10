@@ -1645,7 +1645,7 @@ bool Messenger::SetAccountStoreDelta(zbytes& dst, const unsigned int offset,
   }
 
   std::sort(std::begin(accountsToSerialize), std::end(accountsToSerialize),
-            [&](const auto& l, const auto& r) { return l.first < l.first; });
+            [&](const auto& l, const auto& r) { return l.first < r.first; });
 
   for (const auto& entry : accountsToSerialize) {
     ProtoAccountStore::AddressAccount* protoEntry = result.add_entries();
