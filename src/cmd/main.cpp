@@ -20,7 +20,6 @@
 #include <algorithm>
 #include <iostream>
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
@@ -174,7 +173,7 @@ int main(int argc, const char* argv[]) {
     auto span =
         zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE, "Main");
 
-    boost::filesystem::path logBasePath = logpath;
+    std::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
       INIT_STDOUT_LOGGER();
     } else {

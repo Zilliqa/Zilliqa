@@ -35,5 +35,4 @@ target_link_libraries(Utils
         PRIVATE
         ${CryptoUtils_LIBRARY}
         ${g3sinks_LOGROTATE_LIBRARY}
-        websocketpp::websocketpp
-        Boost::filesystem)
+        websocketpp::websocketpp)
