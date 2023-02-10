@@ -1,2 +1,0 @@
-*/10 * * * * root /run/zilliqa/logrotate-s3.sh
-
