@@ -22,12 +22,15 @@
 #include "g3log/logworker.hpp"
 
 #include <filesystem>
+#include <typeinfo>
 
 #define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
   std::unique_ptr<g3::LogWorker> m_logWorker;
+  static std::vector<std::reference_wrapper<const std::type_info>>
+      m_externalSinkTypeIds;
 
   Logger();
 
@@ -74,6 +77,14 @@ class Logger {
                    int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStdoutSink();
+
+  template <typename SinkT, typename MemFuncT>
+  void AddSink(std::unique_ptr<SinkT> sink, MemFuncT memFunc) {
+    auto handle = m_logWorker->addSink(std::move(sink), memFunc);
+    if (handle) {
+      m_externalSinkTypeIds.emplace_back(typeid(handle));
+    }
+  }
   //@}
 
   /// Setup the display debug level
