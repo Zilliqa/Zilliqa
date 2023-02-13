@@ -79,11 +79,18 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
 
   CpsExecuteResult runResult;
   while (!m_queue.empty()) {
+    LOG_GENERAL(WARNING, "Run queue height: " << m_queue.size());
+
     const auto currentRun = std::move(m_queue.back());
     m_queue.pop_back();
+
     runResult = currentRun->Run(mTxReceipt);
+
     if (!runResult.isSuccess) {
+      LOG_GENERAL(WARNING, "Run is not a success...");
       break;
+    } else {
+      LOG_GENERAL(WARNING, "Run IS a success...");
     }
 
     // Likely rewrite that to std::variant and check if it's scilla type
@@ -129,6 +136,10 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   }
   // Always mark run as successful in estimate mode
   if (isEstimate) {
+    if(isFailure) {
+      LOG_GENERAL(WARNING, "*********** failed when estimating!");
+    }
+
     // In some cases revert state may be missing (if e.g. trap validation
     // failed)
     if (isFailure && runResult.evmResult.exit_reason().exit_reason_case() ==
@@ -140,6 +151,13 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     }
     return {TxnStatus::NOT_PRESENT, true, runResult.evmResult};
   }
+
+  LOG_GENERAL(WARNING, "Finished run...");
+
+  for (const auto &i : runResult.evmResult.trace()){
+    LOG_GENERAL(WARNING, "Trace run result: " << i);
+  }
+
   return runResult;
 }
 
@@ -169,6 +187,7 @@ void CpsExecutor::RefundGas(const EvmProcessContext& context,
 }
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
+  LOG_GENERAL(WARNING, "Pushing run on... " << m_queue.size());
   m_queue.push_back(std::move(run));
 }
 

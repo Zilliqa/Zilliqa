@@ -91,6 +91,7 @@ message EvmArgs {
   string context = 9;
   Continuation continuation = 10;
   bool enable_cps = 11;
+  string trace = 12;
 }
 
 message EvmLog {

@@ -744,6 +744,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
+    retGas *= 2;
+
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {

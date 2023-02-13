@@ -328,6 +328,18 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.Run(evmContext);
     error_code = cpsRunResult.txnStatus;
+
+    if (cpsRunResult.evmResult.trace_size() > 0) {
+      LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+      //LOG_GENERAL(INFO, "" << cpsRunResult.evmResult);
+
+      if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+                                                      cpsRunResult.evmResult.trace(0))) {
+        LOG_GENERAL(INFO,
+                    "FAIL: Put TX trace failed " << evmContext.GetTranID());
+      }
+    }
+
     return cpsRunResult.isSuccess;
   }
   error_code = TxnStatus::NOT_PRESENT;

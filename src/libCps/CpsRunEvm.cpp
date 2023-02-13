@@ -55,6 +55,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
+      LOG_GENERAL(WARNING, "TX create");
       const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
       const auto contractAddress = mAccountStore.GetAddressForContract(
           fromAddress, TRANSACTION_VERSION_ETH);
@@ -72,6 +73,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
+      LOG_GENERAL(WARNING, "TX call");
       INC_STATUS(GetCPSMetric(), "transaction", "call");
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
@@ -83,7 +85,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
-        INC_STATUS(GetCPSMetric(), "error", "balance to low");
+        INC_STATUS(GetCPSMetric(), "error", "balance too low");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
     }
@@ -106,15 +108,21 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
+
+    LOG_GENERAL(WARNING, "path0");
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
     HandleApply(evmResult, receipt);
+    LOG_GENERAL(WARNING, "path1");
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
     // Allow CPS to continune since caller may expect failures
     if (GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate) {
+      LOG_GENERAL(WARNING, "path2");
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
+
+    LOG_GENERAL(WARNING, "path3");
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }
@@ -259,11 +267,13 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   const auto calleeAddr = ProtoToAddress(callData.callee_address());
 
   if (IsNullAddress(calleeAddr)) {
+    LOG_GENERAL(WARNING, "Invalid account called...");
     INC_STATUS(GetCPSMetric(), "error", "Invalid account");
     return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
 
   if (mCpsContext.isStatic && !isStatic) {
+    LOG_GENERAL(WARNING, "Invalid txn type...");
     INC_STATUS(GetCPSMetric(), "error", "Incorect txn type");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
@@ -276,6 +286,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   if (isStatic || isDelegate) {
     if (!areTnsfAddressesEmpty || !isValZero) {
+      LOG_GENERAL(WARNING, "Invalid txn type2...");
       INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
       return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
@@ -287,12 +298,14 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       (ctxDestAddr == calleeAddr) ||
       (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
   if (!isOrigAddressValid || !isDestAddressValid) {
+    LOG_GENERAL(WARNING, "Invalid txn type3...");
     INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
   if (!areTnsfAddressesEmpty) {
     if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
+      LOG_GENERAL(WARNING, "Invalid when addressing...");
       INC_STATUS(GetCPSMetric(), "error", "addressing ??");
       return {TxnStatus::ERROR, false, {}};
     }
@@ -300,12 +313,14 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
     if (requestedValue > currentBalance) {
+      LOG_GENERAL(WARNING, "insufficient bal.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
     if (remainingGas < MIN_ETH_GAS) {
-      INC_STATUS(GetCPSMetric(), "error", "insuffiecient gas");
+      LOG_GENERAL(WARNING, "insufficient gas.");
+      INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }

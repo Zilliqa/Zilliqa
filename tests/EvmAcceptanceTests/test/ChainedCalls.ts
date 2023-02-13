@@ -36,23 +36,22 @@ describe("Chained Contract Calls Functionality", function () {
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
       console.log(receipt);
 
-      //await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
-      //  logDebug(result);
+      await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
+        logDebug(result);
 
-      //  assert.equal(status, 200, "has status code");
+        assert.equal(status, 200, "has status code");
+        let jsonObject = JSON.parse(result.result);
 
-      //  let jsonObject = JSON.parse(result.result);
+        // Ok, so check that there is 1 call to contract one, 1 to two, 2 to three, 2 to one (via three)
+        assert.equal(addrOne, jsonObject["to"].toLowerCase(), "has correct to field for top level call");
+        assert.equal(addrTwo, jsonObject["calls"][0]["to"].toLowerCase(), "has correct to field for second level call");
 
-      //  // Ok, so check that there is 1 call to contract one, 1 to two, 2 to three, 2 to one (via three)
-      //  assert.equal(addrOne, jsonObject["to"].toLowerCase(), "has correct to field for top level call");
-      //  assert.equal(addrTwo, jsonObject["calls"][0]["to"].toLowerCase(), "has correct to field for second level call");
+        assert.equal(addrThree, jsonObject["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field for third level call (2x)");
+        assert.equal(addrThree, jsonObject["calls"][0]["calls"][1]["to"].toLowerCase(), "has correct to field for third level call (2x)");
 
-      //  assert.equal(addrThree, jsonObject["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field for third level call (2x)");
-      //  assert.equal(addrThree, jsonObject["calls"][0]["calls"][1]["to"].toLowerCase(), "has correct to field for third level call (2x)");
-
-      //  assert.equal(addrOne, jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
-      //  assert.equal(addrOne, jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
-      //});
+        assert.equal(addrOne, jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
+        assert.equal(addrOne, jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
+      });
     });
   });
 });

@@ -42,7 +42,7 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        debug!(
+        println!(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}",
             backend.origin, address, gas_limit, apparent_value,
             backend.extras, estimate, enable_cps);
@@ -60,6 +60,7 @@ pub async fn run_evm_impl(
         // Check if evm should resume from the point it stopped
         let (feedback_continuation, mut runtime, state) =
         if let Some(continuation) = node_continuation {
+            println!("We had a continuation");
             let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
             if let None = recorded_cont {
                 let result = handle_panic(vec![], gas_limit, "Continuation not found!");
@@ -76,6 +77,7 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
+            println!("We had no continuation");
             let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
@@ -86,7 +88,8 @@ pub async fn run_evm_impl(
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
-        let mut listener = LoggingEventListener{traces : Default::default()};
+        //let mut listener = LoggingEventListener{traces : Default::default()};
+        let mut listener = LoggingEventListener{traces : vec!["one".to_string(), "two".to_string(), "three".to_string()]};
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -115,12 +118,12 @@ pub async fn run_evm_impl(
 
         let cps_result = executor_result.unwrap();
 
-
         let result = match cps_result {
             CpsReason::NormalExit(exit_reason) => {
                 match exit_reason {
                     evm::ExitReason::Succeed(_) => {}
                     _ => {
+                        println!("argh... we had a failure..");
                         debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
                                runtime.machine().position(),
                                &runtime.machine().memory().data().iter().take(128).collect::<Vec<_>>(),
@@ -128,20 +131,24 @@ pub async fn run_evm_impl(
                     }
                 }
                 let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
-                info!(
+                println!(
                     "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?},  result: {:?}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
                     backend.extras, estimate, enable_cps, result);
+                println!();
+
                 result
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
                 let result = build_call_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
+                println!("CPS call interrupt {:?}", result);
                 result
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
                 let result = build_create_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
+                println!("CPS create interrupt");
                 result
             }
         };
