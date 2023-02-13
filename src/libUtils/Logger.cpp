@@ -245,6 +245,9 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
 
 }  // namespace
 
+std::vector<std::reference_wrapper<const std::type_info>>
+    Logger::m_externalSinkTypeIds;
+
 Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
   initializeLogging(m_logWorker.get());
 }
@@ -289,7 +292,10 @@ void Logger::AddStdoutSink() {
 bool Logger::IsGeneralSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<GeneralLogSink>) ||
          typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
-         typeid(sink) == typeid(internal::Sink<StdoutSink>);
+         typeid(sink) == typeid(internal::Sink<StdoutSink>) ||
+         std::find(std::begin(m_externalSinkTypeIds),
+                   std::end(m_externalSinkTypeIds),
+                   typeid(sink)) != std::end(m_externalSinkTypeIds);
 }
 
 bool Logger::IsStateSink(internal::SinkWrapper& sink, LogMessage&) {
