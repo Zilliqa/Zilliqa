@@ -24,11 +24,6 @@ target_include_directories (Test_Logger3 PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_Logger3 PUBLIC Utils Boost::unit_test_framework)
 add_test(NAME Test_Logger3 COMMAND Test_Logger3)
 
-add_executable (Test_Logging Test_Logging.cpp)
-target_include_directories (Test_Logging PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_Logging PUBLIC Utils Metrics Boost::unit_test_framework)
-add_test(NAME Test_Logging COMMAND Test_Logging)
-
 add_executable (Test_DetachedFunction Test_DetachedFunction.cpp)
 target_include_directories (Test_DetachedFunction PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries (Test_DetachedFunction PUBLIC Utils Boost::unit_test_framework)

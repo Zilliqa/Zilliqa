@@ -15,22 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#ifndef ZILLIQA_SRC_LIBMETRICS_LOGGING_H_
+#define ZILLIQA_SRC_LIBMETRICS_LOGGING_H_
+
 #include "common/Singleton.h"
 
-#include <opentelemetry/metrics/provider.h>
-
-namespace zil {
-namespace metrics {
-
-namespace common = opentelemetry::common;
-namespace metrics_api = opentelemetry::metrics;
-
+/**
+ * @brief Wrapper around OTel Logging.
+ */
 class Logging : public Singleton<Logging> {
  public:
   Logging();
 
+  /// Called on main() exit explicitly
   void Shutdown();
 };
 
-}  // namespace metrics
-}  // namespace zil
+#endif  // ZILLIQA_SRC_LIBMETRICS_LOGGING_H_

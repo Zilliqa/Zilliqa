@@ -19,6 +19,7 @@
 #include "Metrics.h"
 
 #include "libUtils/Logger.h"
+#include "libUtils/SWInfo.h"
 
 #include "opentelemetry/exporters/ostream/log_record_exporter.h"
 #include "opentelemetry/exporters/otlp/otlp_grpc_exporter.h"
@@ -39,21 +40,28 @@ namespace logs_sdk = opentelemetry::sdk::logs;
 namespace logs = opentelemetry::logs;
 
 namespace {
-const double LOGGING_VERSION{8.6};
 const std::string ZILLIQA_LOGGING_FAMILY{"zilliqa-cpp"};
 
 struct OTelLoggingSink {
-  OTelLoggingSink(std::shared_ptr<logs::Logger> logger)
-      : m_logger{std::move(logger)} {}
-
   static void Shutdown() { m_shutdown = true; }
 
   void forwardToOTel(g3::LogMessageMover logEntry) {
+    // Since both the logger & OTel are essentially singletons and could be
+    // destroyed after main() exists, we use this atomic boolean to prevent
+    // a crash.
     if (m_shutdown) return;
 
-    const auto& logMessage = logEntry.get();
-    auto logRecord = m_logger->CreateLogRecord();
+    auto provider = opentelemetry::logs::Provider::GetLoggerProvider();
+    if (!provider) return;
 
+    auto logger =
+        provider->GetLogger(ZILLIQA_LOGGING_FAMILY, "zilliqa", VERSION_TAG);
+    if (!logger) return;
+
+    auto logRecord = logger->CreateLogRecord();
+    if (!logRecord) return;
+
+    const auto& logMessage = logEntry.get();
     if (logMessage._level.value <= G3LOG_DEBUG.value)
       logRecord->SetSeverity(logs::Severity::kDebug);
     else if (logMessage._level.value <= INFO.value)
@@ -68,12 +76,11 @@ struct OTelLoggingSink {
     logRecord->SetTimestamp(
         opentelemetry::common::SystemTimestamp{logMessage._timestamp});
 
-    m_logger->EmitLogRecord(std::move(logRecord));
+    logger->EmitLogRecord(std::move(logRecord));
   }
 
  private:
   static std::atomic_bool m_shutdown;
-  std::shared_ptr<logs::Logger> m_logger;
 };
 
 std::atomic_bool OTelLoggingSink::m_shutdown{false};
@@ -110,33 +117,15 @@ std::shared_ptr<logs::LoggerProvider> InitOtlpGrpc() {
 
 std::shared_ptr<logs::LoggerProvider> InitStdOut() {
   return InitFromExporter(
-      std::make_unique<
-          opentelemetry::exporter::logs::OStreamLogRecordExporter>());
+      std::make_unique<logs_exporter::OStreamLogRecordExporter>());
 }
 
 std::shared_ptr<logs::LoggerProvider> InitNoop() {
   return std::make_shared<opentelemetry::logs::NoopLoggerProvider>();
 }
 
-class ZilliqaLogRecordProcessor : public logs_sdk::SimpleLogRecordProcessor {
-  using BaseType = logs_sdk::SimpleLogRecordProcessor;
-
- public:
-  ZilliqaLogRecordProcessor(
-      std::unique_ptr<logs_sdk::LogRecordExporter>&& exporter)
-      : BaseType{std::move(exporter)} {}
-
-  virtual bool Shutdown(
-      std::chrono::microseconds timeout =
-          std::chrono::microseconds::max()) noexcept override {
-    return BaseType::Shutdown(timeout);
-  }
-};
-
 }  // namespace
 
-namespace zil {
-namespace metrics {
 Logging::Logging() {
   std::string cmp(LOGGING_ZILLIQA_PROVIDER);
 
@@ -157,8 +146,7 @@ Logging::Logging() {
 
   opentelemetry::logs::Provider::SetLoggerProvider(provider);
 
-  Logger::GetLogger().AddSink(std::make_unique<OTelLoggingSink>(
-                                  provider->GetLogger("Zilliqa", "zilliqa")),
+  Logger::GetLogger().AddSink(std::make_unique<OTelLoggingSink>(),
                               &OTelLoggingSink::forwardToOTel);
 }
 
@@ -167,6 +155,3 @@ void Logging::Shutdown() {
   opentelemetry::logs::Provider::SetLoggerProvider(
       std::make_unique<opentelemetry::logs::NoopLoggerProvider>());
 }
-
-}  // namespace metrics
-}  // namespace zil
