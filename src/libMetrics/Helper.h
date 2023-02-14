@@ -26,10 +26,10 @@
 
 std::string ExtractTraceInfoFromActiveSpan();
 
-trace_api::SpanContext ExtractSpanContextFromTraceInfo(
+opentelemetry::trace::SpanContext ExtractSpanContextFromTraceInfo(
     const std::string &traceInfo);
 
-std::shared_ptr<trace_api::Span> CreateChildSpan(std::string_view name,
+std::shared_ptr<opentelemetry::trace::Span> CreateChildSpan(std::string_view name,
                                                  const std::string &traceInfo);
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_HELPER_H_
