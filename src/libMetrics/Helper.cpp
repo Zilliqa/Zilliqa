@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
@@ -24,7 +24,6 @@
 #include "opentelemetry/trace/propagation/b3_propagator.h"
 #include "opentelemetry/trace/provider.h"
 
-
 namespace {
 constexpr size_t FLAGS_OFFSET = 0;
 constexpr size_t FLAGS_SIZE = 2;
@@ -32,7 +31,8 @@ constexpr size_t SPAN_ID_OFFSET = FLAGS_SIZE + 1;
 constexpr size_t SPAN_ID_SIZE = 16;
 constexpr size_t TRACE_ID_OFFSET = SPAN_ID_OFFSET + SPAN_ID_SIZE + 1;
 constexpr size_t TRACE_ID_SIZE = 32;
-constexpr size_t TRACE_INFO_SIZE = FLAGS_SIZE + 1 + SPAN_ID_SIZE + 1 + TRACE_ID_SIZE;
+constexpr size_t TRACE_INFO_SIZE =
+    FLAGS_SIZE + 1 + SPAN_ID_SIZE + 1 + TRACE_ID_SIZE;
 }  // namespace
 
 std::string ExtractTraceInfoFromActiveSpan() {
@@ -45,31 +45,38 @@ std::string ExtractTraceInfoFromActiveSpan() {
 
   std::string result(TRACE_INFO_SIZE, '-');
 
-  spanContext.trace_flags().ToLowerBase16(std::span<char, FLAGS_SIZE>(result.data() + FLAGS_OFFSET, FLAGS_SIZE));
-  spanContext.span_id().ToLowerBase16(std::span<char, SPAN_ID_SIZE>(result.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE));
-  spanContext.trace_id().ToLowerBase16(std::span<char, TRACE_ID_SIZE>(result.data() + TRACE_ID_OFFSET, TRACE_ID_SIZE));
+  spanContext.trace_flags().ToLowerBase16(
+      std::span<char, FLAGS_SIZE>(result.data() + FLAGS_OFFSET, FLAGS_SIZE));
+  spanContext.span_id().ToLowerBase16(std::span<char, SPAN_ID_SIZE>(
+      result.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE));
+  spanContext.trace_id().ToLowerBase16(std::span<char, TRACE_ID_SIZE>(
+      result.data() + TRACE_ID_OFFSET, TRACE_ID_SIZE));
 
   return result;
 }
 
-trace_api::SpanContext ExtractSpanContextFromTraceInfo(const std::string &traceInfo) {
+trace_api::SpanContext ExtractSpanContextFromTraceInfo(
+    const std::string &traceInfo) {
   if (traceInfo.size() != TRACE_INFO_SIZE) {
     LOG_GENERAL(WARNING, "Unexpected trace info size " << traceInfo.size());
     return trace_api::SpanContext::GetInvalid();
   }
 
-  if (traceInfo[SPAN_ID_OFFSET - 1] != '-' || traceInfo[TRACE_ID_OFFSET - 1] != '-') {
+  if (traceInfo[SPAN_ID_OFFSET - 1] != '-' ||
+      traceInfo[TRACE_ID_OFFSET - 1] != '-') {
     LOG_GENERAL(WARNING, "Invalid format of trace info " << traceInfo);
     return trace_api::SpanContext::GetInvalid();
   }
 
-  std::string_view trace_id_hex(traceInfo.data() + TRACE_ID_OFFSET, TRACE_ID_SIZE);
+  std::string_view trace_id_hex(traceInfo.data() + TRACE_ID_OFFSET,
+                                TRACE_ID_SIZE);
   std::string_view span_id_hex(traceInfo.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE);
   std::string_view trace_flags_hex(traceInfo.data() + FLAGS_OFFSET, FLAGS_SIZE);
 
   using trace_api::propagation::detail::IsValidHex;
 
-  if (!IsValidHex(trace_id_hex) || !IsValidHex(span_id_hex) || !IsValidHex(trace_flags_hex)) {
+  if (!IsValidHex(trace_id_hex) || !IsValidHex(span_id_hex) ||
+      !IsValidHex(trace_flags_hex)) {
     LOG_GENERAL(WARNING, "Invalid hex of trace info fields: " << traceInfo);
     return trace_api::SpanContext::GetInvalid();
   }
@@ -88,12 +95,14 @@ trace_api::SpanContext ExtractSpanContextFromTraceInfo(const std::string &traceI
   return trace_api::SpanContext(trace_id, span_id, trace_flags, true);
 }
 
-std::shared_ptr<trace_api::Span> CreateChildSpan(std::string_view name, const std::string &traceInfo) {
+std::shared_ptr<trace_api::Span> CreateChildSpan(std::string_view name,
+                                                 const std::string &traceInfo) {
   auto spanCtx = ExtractSpanContextFromTraceInfo(traceInfo);
   if (!spanCtx.IsValid()) {
     return trace_api::Tracer::GetCurrentSpan();
   }
-  //  std::shared_ptr<trace_api::Span> parent = std::make_shared<trace_api::DefaultSpan>(spanCtx);
+  //  std::shared_ptr<trace_api::Span> parent =
+  //  std::make_shared<trace_api::DefaultSpan>(spanCtx);
 
   trace_api::StartSpanOptions options;
 

@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
@@ -26,8 +26,10 @@
 
 std::string ExtractTraceInfoFromActiveSpan();
 
-trace_api::SpanContext ExtractSpanContextFromTraceInfo(const std::string &traceInfo);
+trace_api::SpanContext ExtractSpanContextFromTraceInfo(
+    const std::string &traceInfo);
 
-std::shared_ptr<trace_api::Span> CreateChildSpan(std::string_view name, const std::string &traceInfo);
+std::shared_ptr<trace_api::Span> CreateChildSpan(std::string_view name,
+                                                 const std::string &traceInfo);
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_HELPER_H_

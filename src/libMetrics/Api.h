@@ -17,14 +17,11 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_API_H_
 #define ZILLIQA_SRC_LIBMETRICS_API_H_
 
+#include "Helper.h"
 #include "Metrics.h"
 #include "Tracing.h"
-#include "Helper.h"
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
-
-
-
 
 // These definitions will probably be changed as people will not like the Z_
 
