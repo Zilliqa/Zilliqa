@@ -209,7 +209,7 @@ class Metrics : public Singleton<Metrics> {
   void AddCounterSumView(const std::string &name,
                          const std::string &description);
 
-  void AddCounterHistogramView(const std::string name, std::vector<double> list,
+  void AddCounterHistogramView(const std::string name, std::list<double> list,
                                const std::string &description);
 
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();

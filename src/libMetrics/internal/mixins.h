@@ -94,7 +94,7 @@ class DoubleCounter {
 class DoubleHistogram {
  public:
   DoubleHistogram(zil::metrics::FilterClass fc, const std::string &name,
-                  const std::vector<double> &boundaries,
+                  const std::list<double> &boundaries,
                   const std::string &description, const std::string &units)
       : m_boundaries(boundaries) {
     if (Filter::GetInstance().Enabled(fc)) {
@@ -120,7 +120,7 @@ class DoubleHistogram {
   }
 
  private:
-  std::vector<double> m_boundaries;
+  std::list<double> m_boundaries;
   doubleHistogram_t m_theCounter;
 };
 
@@ -216,7 +216,7 @@ struct InstrumentWrapper : T {
   // Special for the histogram.
 
   InstrumentWrapper(zil::metrics::FilterClass fc, const std::string &name,
-                    const std::vector<double> &list,
+                    const std::list<double> &list,
                     const std::string &description, const std::string &units)
       : T(fc, name, list, description, units) {
     m_fc = fc;

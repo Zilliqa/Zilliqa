@@ -53,7 +53,7 @@ namespace zil {
 namespace local {
 
 Z_DBLHIST &GetEvmLatency() {
-  static std::vector<double> latencieBoudaries{
+  static std::list<double> latencieBoudaries{
       0, 0.25, 0.5, 0.75, 1, 2, 3, 4, 5, 10, 20, 30, 40, 60, 120};
   static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.latency",
                            latencieBoudaries, "latency of processing", "ms"};
@@ -61,7 +61,7 @@ Z_DBLHIST &GetEvmLatency() {
 }
 
 Z_DBLHIST &GetScillaLatency() {
-  static std::vector<double> latencieBoudaries{0, 0.25, 0.5, .75, 1,  2,  3,  4,
+  static std::list<double> latencieBoudaries{0, 0.25, 0.5, .75, 1,  2,  3,  4,
                                                5, 10,   20,  30,  40, 60, 120};
   static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla.latency",
                            latencieBoudaries, "latency of processing", "ms"};
@@ -69,7 +69,7 @@ Z_DBLHIST &GetScillaLatency() {
 }
 
 Z_DBLHIST &GetGasUsed() {
-  static std::vector<double> latencieBoudaries{
+  static std::list<double> latencieBoudaries{
       0, 100, 200, 300, 400, 500, 1000, 2000, 100000, 1000000};
 
   static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "gas",
@@ -78,7 +78,7 @@ Z_DBLHIST &GetGasUsed() {
 }
 
 Z_DBLHIST &GetSizeUsed() {
-  static std::vector<double> latencieBoudaries{0, 1000, 2000, 3000, 4000, 5000};
+  static std::list<double> latencieBoudaries{0, 1000, 2000, 3000, 4000, 5000};
 
   static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "size",
                            latencieBoudaries, "size of contract", "bytes"};

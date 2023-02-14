@@ -47,6 +47,8 @@ namespace metrics_exporter = opentelemetry::exporter::metrics;
 namespace metrics_api = opentelemetry::metrics;
 namespace otlp_exporter = opentelemetry::exporter::otlp;
 
+#define V1_8_0 true
+
 // The OpenTelemetry Metrics Interface.
 
 Metrics::Metrics() { Init(); }
@@ -325,7 +327,7 @@ void Metrics::AddCounterSumView(const std::string &name,
 }
 
 void Metrics::AddCounterHistogramView(const std::string name,
-                                      std::vector<double> list,
+                                      std::list<double> list,
                                       const std::string &description) {
   // counter view
 
