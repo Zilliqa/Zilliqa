@@ -28,4 +28,4 @@ trace_api::SpanContext ExtractSpanContextFromTraceInfo(const std::string &traceI
 
 std::shared_ptr<trace_api::Span> CreateChildSpan(std::string_view name, const std::string &traceInfo);
 
-#endif  // ZILLIQA_SRC_HELPER_METRICS_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_HELPER_H_
