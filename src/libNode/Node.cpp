@@ -38,6 +38,8 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -47,10 +49,8 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/Metrics.h"
 #include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/Tracing.h"
 #include "libValidator/Validator.h"
 
 using namespace std;

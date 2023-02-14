@@ -270,7 +270,7 @@ if (ENABLE_COVERAGE AND CMAKE_COMPILER_IS_GNUCXX)
     link_libraries(--coverage)
     add_custom_target(ctest COMMAND ${CMAKE_CTEST_COMMAND})
     # TODO: remove the hardcoded number in -j option
-    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "--output-on-failure;--timeout;90")
+    setup_target_for_coverage(${PROJECT_NAME}_coverage ctest coverage "--output-on-failure;--timeout;100")
 endif()
 
 # using internal jsonrpc variant
@@ -287,8 +287,8 @@ endif()
 # installation
 
 set_target_properties(buildTxBlockHashesToNums genaccounts genkeypair genTxnBodiesFromS3
-                      getpub getaddr gentxn signmultisig verifymultisig gensigninitialds getnetworkhistory grepperf  
-                      getrewardhistory isolatedServer restore sendcmd validateDB zilliqa zilliqad
+                      getpub getaddr gentxn signmultisig verifymultisig getnetworkhistory
+                      getrewardhistory isolatedServer sendcmd validateDB zilliqa zilliqad
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 set_target_properties(Common Trie NAT

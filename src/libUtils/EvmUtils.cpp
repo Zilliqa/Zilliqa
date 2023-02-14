@@ -64,6 +64,7 @@ Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
     LOG_GENERAL(WARNING, "Data: " << DataConversion::Uint8VecToHexStrRet(
                              toZbytes(args.data())));
     LOG_GENERAL(WARNING, "Value: " << args.apparent_value().DebugString());
+    LOG_GENERAL(WARNING, "GasLimit: " << args.gas_limit());
     LOG_GENERAL(WARNING, "Estimating gas: " << args.estimate());
     LOG_GENERAL(WARNING, "Extras: \n" << args.extras().DebugString());
   }

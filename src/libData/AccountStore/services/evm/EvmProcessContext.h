@@ -50,8 +50,8 @@ struct TxnExtras;
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 
-struct EvmProcessContext {
-  const uint64_t& GetBlockNumber();
+class EvmProcessContext {
+
 
  public:
   /*
@@ -65,15 +65,23 @@ struct EvmProcessContext {
                     const TxnExtras& extras, bool commit = true);
   /*
    *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,
-   *                       const TxnExtras& extras, bool commit = true)
-   *   This is the DirectCall format as used by 8.3 and beyond series.
+   *                       const TxnExtras& extras, bool estimate, bool commit)
+   *   This is the DirectCall/EstimateCall format as used by 8.3 and beyond
+   * series.
    *
    */
   EvmProcessContext(const Address& caller, const Address& contract,
                     const zbytes& code, const zbytes& data, const uint64_t& gas,
                     const uint256_t& amount, const uint64_t& blkNum,
                     const TxnExtras& extras, std::string_view context,
-                    bool estimate = false);
+                    bool estimate, bool direct);
+
+  /*
+   * bool GetCommit() const;
+   *
+   * check if any changes to account store should be commited (useful in
+   * estimate mode)
+   */
 
   bool GetCommit() const;
 
@@ -147,6 +155,12 @@ struct EvmProcessContext {
   const evm::EvmResult& GetEvmResult() const;
 
   /*
+   * Return internal structure of evm args
+   */
+
+  const evm::EvmArgs& GetEvmArgs() const;
+
+  /*
    * Return internal structure populated by call to evm
    */
 
@@ -172,11 +186,13 @@ struct EvmProcessContext {
 
   bool GetDirect() { return m_direct; }
 
-  inline Transaction::ContractType GetContractType() {
+  inline Transaction::ContractType GetContractType() const {
     return Transaction::GetTransactionType(m_legacyTxn);
   }
 
   inline const Transaction& GetTransaction() const { return m_legacyTxn; }
+
+  const uint64_t& GetBlockNumber();
 
  private:
   const zbytes& m_txnCode;

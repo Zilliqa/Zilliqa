@@ -190,12 +190,16 @@
         <CONNECTION_ALL_TIMEOUT>1</CONNECTION_ALL_TIMEOUT>
         <!-- Timeout in seconds for ONLY connection that reach our callback function, 0 means no timeout-->
         <CONNECTION_CALLBACK_TIMEOUT>0</CONNECTION_CALLBACK_TIMEOUT>
-        <ENABLE_EVM>false</ENABLE_EVM>
+        <ENABLE_EVM>true</ENABLE_EVM>
         <EVM_SERVER_BINARY>/usr/local/bin/evm-ds</EVM_SERVER_BINARY>
         <EVM_SERVER_SOCKET_PATH>/tmp/evm-server.sock</EVM_SERVER_SOCKET_PATH>
         <EVM_LOG_CONFIG>/usr/local/etc/log4rs.yml</EVM_LOG_CONFIG>
         <!-- eth chain id : Test net = 0x814d, main net: 0x8001 -->
         <EVM_ZIL_SCALING_FACTOR>1000000</EVM_ZIL_SCALING_FACTOR>
+        <!-- blocking Call to read socket from evm-ds timeout -->
+        <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
+        <!-- manage the evm-ds instance or not -->
+        <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
     </jsonrpc>
     <network_composition>
         <!-- Shard size will be automatically calculated if COMM_SIZE = 0 -->
@@ -345,7 +349,9 @@
     <metric>
         <zilliqa>
             <METRIC_ZILLIQA_HOSTNAME>localhost</METRIC_ZILLIQA_HOSTNAME>
-            <METRIC_ZILLIQA_PORT>8081</METRIC_ZILLIQA_PORT>
+            <METRIC_ZILLIQA_PORT>8090</METRIC_ZILLIQA_PORT>
+            <!-- PROVIDER can be PROMETHEUS or OTLPHTTP -->
+            <METRIC_ZILLIQA_PROVIDER>PROMETHEUS</METRIC_ZILLIQA_PROVIDER>
             <METRIC_ZILLIQA_READER_EXPORT_MS>1000</METRIC_ZILLIQA_READER_EXPORT_MS>
             <METRIC_ZILLIQA_READER_TIMEOUT_MS>500</METRIC_ZILLIQA_READER_TIMEOUT_MS>
             <METRIC_ZILLIQA_SCHEMA>https://opentelemetry.io/schemas/1.2.0</METRIC_ZILLIQA_SCHEMA>
@@ -354,6 +360,16 @@
             <METRIC_ZILLIQA_MASK>ALL</METRIC_ZILLIQA_MASK>
         </zilliqa>
     </metric>
+    <trace>
+        <zilliqa>
+            <TRACE_ZILLIQA_HOSTNAME>0.0.0.0</TRACE_ZILLIQA_HOSTNAME>
+            <TRACE_ZILLIQA_PORT>4318</TRACE_ZILLIQA_PORT>
+            <!-- PROVIDER can be OTLPHTTP or STDOUT -->
+            <TRACE_ZILLIQA_PROVIDER>OTLPHTTP</TRACE_ZILLIQA_PROVIDER>
+            <!-- ALL means all metrics are enabled -->
+            <TRACE_ZILLIQA_MASK>NONE</TRACE_ZILLIQA_MASK>
+        </zilliqa>
+    </trace>
     <verifier>
         <exclusion_list>
             <entry>

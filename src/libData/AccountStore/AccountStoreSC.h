@@ -19,7 +19,6 @@
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_
 
 #include <json/json.h>
-#include <opentelemetry/metrics/async_instruments.h>
 #include <atomic>
 #include <condition_variable>
 #include <functional>
@@ -35,26 +34,23 @@
 #include "libUtils/TxnExtras.h"
 
 namespace zil {
-namespace accountstore {
-const std::string EVM_HISTOGRAM = "zilliqa.evm.histogram";
-const std::string SCILLA_HISTOGRAM = "zilliqa.scilla.histogram";
-//=======================================================================================
-// TODO : Put these into configuration as they will need tuning.
-/// Metrics callback for block number
+namespace local {
+
 struct counter_t {
   // These are the Non-automatic Manually set metrics
-  int64_t blockNumber{0};
-  int64_t blockNumberDS{0};
-  int64_t evmCall{0};
-  int64_t scillaCall{0};
+  uint64_t blockNumber{0};
+  uint64_t blockNumberDS{0};
+  uint64_t evmCall{0};
+  uint64_t scillaCall{0};
 };
-//=======================================================================================
-}  // namespace accountstore
+
+}  // namespace local
 };  // namespace zil
 
 class ScillaIPCServer;
 
 class AccountStoreSC : public AccountStoreBase {
+  friend struct AccountStoreCpsInterface;
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
@@ -117,19 +113,11 @@ class AccountStoreSC : public AccountStoreBase {
 
   std::vector<Address> m_newLibrariesCreated;
 
-  //=======================================================================================
-  // TODO : Put these into configuration as they will need tuning.
-  std::list<double> m_latencieBoudaries{0,  1,  2,  4,  6,  8,
-                                        10, 20, 30, 40, 60, 120};
-
-  std::shared_ptr<zil::accountstore::counter_t> GetGeneralStatistics() {
-    std::shared_ptr<zil::accountstore::counter_t> stats =
-        std::make_shared<zil::accountstore::counter_t>();
+  std::shared_ptr<zil::local::counter_t> GetGeneralStatistics() {
+    std::shared_ptr<zil::local::counter_t> stats =
+        std::make_shared<zil::local::counter_t>();
     return stats;
   }
-
-  // shared Area for simply assigning metrics;
-  //=======================================================================================
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
@@ -297,7 +285,7 @@ class AccountStoreSC : public AccountStoreBase {
 
   bool EvmProcessMessage(EvmProcessContext &params, evm::EvmResult &result);
 
-  zil::accountstore::counter_t m_stats;
+  zil::local::counter_t m_stats;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_

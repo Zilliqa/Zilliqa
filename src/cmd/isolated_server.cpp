@@ -22,14 +22,14 @@
 #include <iostream>
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
+#include "libMetrics/Api.h"
+#include "libMetrics/Tracing.h"
 #include "libNode/Node.h"
 #include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/IsolatedServer.h"
 #include "libServer/LookupServer.h"
 #include "libServer/WebsocketServer.h"
-#include "libUtils/Metrics.h"
-#include "libUtils/Tracing.h"
 #include "libValidator/Validator.h"
 
 #define SUCCESS 0

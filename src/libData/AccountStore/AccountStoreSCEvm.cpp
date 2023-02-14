@@ -21,16 +21,15 @@
 #include <stdexcept>
 #include <vector>
 
-#include "opentelemetry/context/propagation/text_map_propagator.h"
-
+#include "AccountStoreCpsInterface.h"
 #include "AccountStoreSC.h"
-#include "LocalMetricsEvm.h"
 #include "common/Constants.h"
-#include "common/TraceFilters.h"
+#include "libCps/CpsExecutor.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
+#include "libMetrics/Api.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
@@ -38,35 +37,44 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
-#include "libUtils/Tracing.h"
-#include "libUtils/TxnExtras.h"
+
+namespace zil {
+
+namespace local {
+
+Z_I64METRIC &GetEvmCallsCounter() {
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.calls.count",
+                             "Engineering Metrics for AccountStore", "calls"};
+  return counter;
+}
+
+}  // namespace local
+
+}  // namespace zil
 
 void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    const evm::EvmArgs &args,           //
                                    bool &ret,                          //
                                    TransactionReceipt &receipt,        //
                                    evm::EvmResult &result) {
-  LOCAL_CALL_INCREMENT();
-
-  auto span = START_SPAN(ACC_EVM, {});
-  SCOPED_SPAN(ACC_EVM, scope, span);
+  INC_CALLS(zil::local::GetEvmCallsCounter());
 
   namespace context = opentelemetry::context;
 
   //
   // create a worker to be executed in the async method
-  const auto worker = [&span, &args, &ret, &result]() -> void {
+  const auto worker = [&args, &ret, &result]() -> void {
     try {
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
     } catch (std::exception &e) {
       std::stringstream ss;
       ss << "Exception from underlying RPC call " << e.what();
-      LOCAL_EMT(ss.str());
+      LOG_GENERAL(WARNING, ss.str());
     } catch (...) {
       std::stringstream ss;
       ss << "UnHandled Exception from underlying RPC call ";
-      LOCAL_EMT(ss.str());
+      LOG_GENERAL(WARNING, ss.str());
     }
   };
 
@@ -75,29 +83,24 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
-      LOCAL_INCREMENT_CALLS_COUNTER("lock", "release-normal");
+      INC_STATUS(zil::local::GetEvmCallsCounter(), "lock", "release-normal");
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      LOCAL_INCREMENT_CALLS_COUNTER("lock", "release-timeout");
+      INC_STATUS(zil::local::GetEvmCallsCounter(), "lock", "release-timeout");
       auto constexpr str = "Timeout on lock waiting for EVM-DS";
       LOG_GENERAL(WARNING, str);
-      TRACE_ATTRIBUTE msg{{"reason", str}};
-      TRACE_EVENT(span, ACC_EVM, "return", msg);
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
       ret = false;
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      LOCAL_INCREMENT_CALLS_COUNTER("lock", "release-deferred");
+      INC_STATUS(zil::local::GetEvmCallsCounter(), "lock", "release-deferred");
       auto constexpr str = "Illegal future return status";
       LOG_GENERAL(WARNING, str);
-      TRACE_ATTRIBUTE msg{{"reason", str}};
-      TRACE_EVENT(span, ACC_EVM, "return", msg);
-
       ret = false;
     }
   }
@@ -253,9 +256,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   TxnStatus error_code;
   std::chrono::system_clock::time_point tpStart;
 
-  LOCAL_CALL_INCREMENT();
-
-  auto span = START_SPAN(ACC_EVM, {});
+  INC_CALLS(zil::local::GetEvmCallsCounter());
 
   tpStart = r_timer_start();
 
@@ -272,10 +273,6 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   result = params.GetEvmResult();
   params.SetEvmReceipt(rcpt);
 
-  if (TRACE_ENABLED(ACC_EVM)) {
-    span->End();
-  }
-
   return status;
 }
 
@@ -286,7 +283,9 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
-  LOCAL_CALLS_LATENCY_MARKER();
+  std::string txnId = evmContext.GetTranID().hex();
+
+  INC_CALLS(zil::local::GetEvmCallsCounter());
 
   // store into the metric holder.
   if (blockNum > 0) m_stats.blockNumber = blockNum;
@@ -295,18 +294,12 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
               "Commit Context Mode="
                   << (evmContext.GetCommit() ? "Commit" : "Non-Commital"));
 
-  std::string txnId = evmContext.GetTranID().hex();
-
-  TRACE_ATTRIBUTE am{{"tid", txnId}, {"block", blockNum}};
-  auto span = START_SPAN(ACC_EVM, am);
-  SCOPED_SPAN(ACC_EVM, scope, span);
-
   if (LOG_SC) {
     LOG_GENERAL(INFO, "Process txn: " << evmContext.GetTranID());
   }
 
   // eth_call in non-cps mode only
-  if (evmContext.GetDirect()) {
+  if (!ENABLE_CPS && evmContext.GetDirect()) {
     evm::EvmResult res;
     bool status = EvmClient::GetInstance().CallRunner(
         EvmUtils::GetEvmCallJson(evmContext.GetEvmArgs()), res);
@@ -315,8 +308,27 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   }
 
   std::lock_guard<std::mutex> g(m_mutexUpdateAccounts);
+
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
+
+  if (ENABLE_CPS) {
+    LOG_GENERAL(WARNING, "Running EVM in CPS mode");
+    m_originAddr = evmContext.GetTransaction().GetSenderAddr();
+    m_curGasLimit = evmContext.GetTransaction().GetGasLimitZil();
+    m_curGasPrice = evmContext.GetTransaction().GetGasPriceWei();
+    m_curContractAddr = evmContext.GetTransaction().GetToAddr();
+    m_curAmount = evmContext.GetTransaction().GetAmountQa();
+    m_curSenderAddr = evmContext.GetTransaction().GetSenderAddr();
+    m_curEdges = 0;
+    m_curNumShards = numShards;
+
+    AccountStoreCpsInterface acCpsInterface{*this};
+    libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
+    const auto cpsRunResult = cpsExecutor.Run(evmContext);
+    error_code = cpsRunResult.txnStatus;
+    return cpsRunResult.isSuccess;
+  }
   error_code = TxnStatus::NOT_PRESENT;
   const Address fromAddr = evmContext.GetTransaction().GetSenderAddr();
   uint64_t gasLimitEth = evmContext.GetTransaction().GetGasLimitEth();
@@ -329,9 +341,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     error_code = TxnStatus::MATH_ERROR;
     auto constexpr str = "Math Error";
     LOG_GENERAL(WARNING, str);
-    TRACE_ATTRIBUTE msg{{"Gas", evmContext.GetTransaction().GetGasLimitEth()},
-                        {"reason", str}};
-    TRACE_EVENT(span, ACC_EVM, "return", msg);
     return false;
   }
 
@@ -340,7 +349,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
-      LOCAL_INCREMENT_CALLS_COUNTER("Transaction", "Create");
+      INC_STATUS(zil::local::GetEvmCallsCounter(), "Transaction", "Create");
 
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
@@ -350,7 +359,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       if (fromAccount == nullptr) {
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
 
-        LOCAL_EMT("Sender has no balance, reject");
+        LOG_GENERAL(WARNING, "Sender has no balance, reject");
 
         return false;
       }
@@ -364,7 +373,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                  << " less than " << baseFee);
 
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
-        LOCAL_EMT("Insufficient Gas");
+        LOG_GENERAL(WARNING, "Insufficient Gas");
 
         return false;
       }
@@ -378,7 +387,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         std::stringstream ss;
         ss << "The account doesn't have enough gas to create a contract : "
            << gasDepositWei;
-        LOCAL_EMT(ss.str());
+        LOG_GENERAL(WARNING, ss.str());
         return false;
       }
 
@@ -398,19 +407,19 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         constexpr auto str = "AddAccount failed for contract address ";
         error_code = TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION;
 
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
       contractAccount = this->GetAccountAtomic(contractAddress);
       if (contractAccount == nullptr) {
         constexpr auto str = "contractAccount is null ptr";
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
       if (evmContext.GetCode().empty()) {
         constexpr auto str =
             "Creating a contract with empty code is not feasible.";
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
 
@@ -421,14 +430,14 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         if (!this->DecreaseBalance(fromAddr, decreaseAmount)) {
           error_code = TxnStatus::FAIL_CONTRACT_INIT;
           constexpr auto str = "Decrease Balance failed.";
-          LOCAL_EMT(str);
+          LOG_GENERAL(WARNING, str);
           return false;
         }
       } catch (const std::exception &e) {
         std::stringstream ss;
         ss << "Evm Exception caught in Decrease Balance " << e.what();
         error_code = TxnStatus::FAIL_CONTRACT_INIT;
-        LOCAL_EMT(ss.str());
+        LOG_GENERAL(WARNING, ss.str());
         return false;
       }
 
@@ -452,7 +461,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                  evmContext.GetTransaction().GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         const std::string str{"TransferBalance Atomic failed"};
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
 
@@ -464,7 +473,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
       if (!contractAccount->UpdateStates(contractAddress, t_newmetadata, {},
                                          true)) {
-        LOCAL_EMT("Account::UpdateStates failed");
+        LOG_GENERAL(WARNING, "Account::UpdateStates failed");
         return false;
       }
 
@@ -487,7 +496,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
               gasRemainedCore, evmContext.GetTransaction().GetGasPriceWei(),
               gasRefund)) {
         const std::string str{"Math Error"};
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
 
@@ -513,7 +522,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         auto constexpr str =
             "Executing contract Creation transaction finished unsuccessfully";
 
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return true;
       }
 
@@ -523,7 +532,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
            << evmContext.GetTransaction().GetGasLimitZil()
            << " gasRemained: " << gasRemained << ". Must be something wrong!";
 
-        LOCAL_EMT(ss.str());
+        LOG_GENERAL(WARNING, ss.str());
         return false;
       }
 
@@ -536,8 +545,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
-      LOCAL_INCREMENT_CALLS_COUNTER("Transaction",
-                                    "Contract-Call/Non Contract");
+      INC_STATUS(zil::local::GetEvmCallsCounter(), "Transaction",
+                 "Contract-Call/Non Contract");
 
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
@@ -552,7 +561,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       if (fromAccount == nullptr) {
         auto constexpr str = "Sender has no balance, reject";
 
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
 
         error_code = TxnStatus::INVALID_FROM_ACCOUNT;
         return false;
@@ -564,7 +573,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         error_code = TxnStatus::INVALID_TO_ACCOUNT;
         auto constexpr str = "The target contract account doesn't exist";
 
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
 
         return false;
       }
@@ -577,7 +586,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
            << " less than " << MIN_ETH_GAS;
         error_code = TxnStatus::INSUFFICIENT_GAS_LIMIT;
 
-        LOCAL_EMT(ss.str());
+        LOG_GENERAL(WARNING, ss.str());
 
         return false;
       }
@@ -602,7 +611,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
 
-        LOCAL_EMT(ss.str());
+        LOG_GENERAL(WARNING, ss.str());
 
         return false;
       }
@@ -615,7 +624,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         auto constexpr str =
             "Trying to call a smart contract that has no code will fail";
 
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
 
         return false;
       }
@@ -628,7 +637,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       if (!this->DecreaseBalance(fromAddr, amountToDecrease)) {
         auto constexpr str = "DecreaseBalance failed";
         LOG_GENERAL(WARNING, str);
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
 
         return false;
       }
@@ -653,7 +662,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                  evmContext.GetTransaction().GetAmountQa())) {
         error_code = TxnStatus::INSUFFICIENT_BALANCE;
         auto constexpr str = "TransferBalance Atomic failed";
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
 
@@ -687,7 +696,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
               gasRefund)) {
         error_code = TxnStatus::MATH_ERROR;
         auto constexpr str = "MATH ERROR";
-        LOCAL_EMT(str);
+        LOG_GENERAL(WARNING, str);
         return false;
       }
 
@@ -705,7 +714,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
         error_code = TxnStatus::MATH_ERROR;
 
-        LOCAL_EMT(ss.str());
+        LOG_GENERAL(WARNING, ss.str());
         return false;
       }
 
@@ -721,7 +730,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         if (!this->IncreaseNonce(fromAddr)) {
           error_code = TxnStatus::MATH_ERROR;
           auto constexpr str = "Increase Nonce failed on bad txn";
-          LOCAL_EMT(str);
+          LOG_GENERAL(WARNING, str);
           return false;
         }
         return true;
@@ -731,19 +740,19 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     default: {
       error_code = TxnStatus::INCORRECT_TXN_TYPE;
       auto constexpr str = "CRITICAL Txn is not typed correctly";
-      LOCAL_EMT(str);
+      LOG_GENERAL(WARNING, str);
       return false;
     }
     case Transaction::ERROR:
       auto constexpr str = "Transaction of type ERROR";
-      LOCAL_EMT(str);
+      LOG_GENERAL(WARNING, str);
       break;
   }
 
   if (!this->IncreaseNonce(fromAddr)) {
     error_code = TxnStatus::MATH_ERROR;
     const std::string str{"Increase Nonce Failed"};
-    LOCAL_EMT(str);
+    LOG_GENERAL(WARNING, str);
     return false;
   }
 
@@ -770,10 +779,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     LOG_GENERAL(INFO, "Executing contract transaction finished");
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
-
-  span->SetStatus(opentelemetry::trace::StatusCode::kOk,
-                  "Executing contract finished OK");
-
   return true;
 }
 

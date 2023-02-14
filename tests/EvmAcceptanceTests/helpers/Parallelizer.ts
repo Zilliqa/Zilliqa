@@ -1,10 +1,10 @@
 import {TransactionRequest} from "@ethersproject/providers";
+import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
+import BN from "bn.js";
 import {Signer, Wallet} from "ethers";
 import hre, {ethers as hh_ethers, web3} from "hardhat";
-import SignerPool from "./SignerPool";
-import BN from "bn.js";
 import {initZilliqa, ScillaContract} from "hardhat-scilla-plugin";
-import {getAddressFromPrivateKey} from "@zilliqa-js/crypto";
+import SignerPool from "./SignerPool";
 
 export type DeployOptions = {
   gasPrice?: string;
@@ -28,7 +28,6 @@ export class Parallelizer {
       signer = await SignerPool.getSignerForCurrentWorker();
     }
 
-    web3.eth.getAccounts();
     const Contract = await hh_ethers.getContractFactory(contractName);
     const deployedContract = await Contract.connect(signer).deploy(...args);
     if (hre.isEthernalPluginEnabled()) {

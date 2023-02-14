@@ -5,11 +5,10 @@ endif()
 vcpkg_from_github(
     OUT_SOURCE_PATH SOURCE_PATH
     REPO open-telemetry/opentelemetry-cpp
-    REF v1.8.0
-    SHA512 2fa7fe9b8c2c5e57c79ee09a3d925b11b8180c22f1e8bcf73955ad596d5e8f0b34efe9620c6e33adc080ed0f0f2bf04320d3068d6c9778335797973358913d63
+    REF v1.8.2
+    SHA512 5d3efb7c31626acd9655b795da497ef3829a88f1e33532f26d011fda01ec41e08e88539900151224f5c19161d9bc1f76e502f14a358c4e01440d832432cd0c0b
     HEAD_REF main
     PATCHES
-        support_absl_cxx17.patch
         mac-fix.patch
 )
 
@@ -21,6 +20,7 @@ vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
         elasticsearch WITH_ELASTICSEARCH
         jaeger WITH_JAEGER
         otlp WITH_OTLP
+        otlp WITH_OTLP_HTTP
         zpages WITH_ZPAGES
 )
 

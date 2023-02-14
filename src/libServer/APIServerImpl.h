@@ -29,7 +29,7 @@
 #include "APIThreadPool.h"
 #include "WebsocketServerBackend.h"
 #include "WebsocketServerImpl.h"
-#include "libUtils/Metrics.h"
+#include "libMetrics/Api.h"
 
 namespace rpc {
 
@@ -118,9 +118,9 @@ class APIServerImpl : public APIServer,
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
 
-  zil::metrics::Observable m_metrics{Metrics::GetInstance().CreateInt64Gauge(
-      zil::metrics::FilterClass::API_SERVER, "zilliqa_api_server",
-      "api_server_metrics", "API server metrics")};
+  Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
+                       "api.server.metrics", "API server metrics", "units",
+                       true};
 };
 
 }  // namespace rpc
