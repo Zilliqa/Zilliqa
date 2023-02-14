@@ -17,13 +17,11 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_API_H_
 #define ZILLIQA_SRC_LIBMETRICS_API_H_
 
+#include "Helper.h"
 #include "Metrics.h"
 #include "Tracing.h"
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
-
-
-
 
 // These definitions will probably be changed as people will not like the Z_
 
@@ -49,7 +47,7 @@ using Z_FL = zil::metrics::FilterClass;
     try {                                               \
       COUNTER.IncrementAttr({{"calls", __FUNCTION__}}); \
     } catch (...) {                                     \
-      std::cout << "caught user error" << std::endl;    \
+      LOG_GENERAL(WARNING, "caught user error");        \
     }                                                   \
   }
 
@@ -58,7 +56,7 @@ using Z_FL = zil::metrics::FilterClass;
     try {                                                              \
       COUNTER.IncrementAttr({{"Method", __FUNCTION__}, {KEY, VALUE}}); \
     } catch (...) {                                                    \
-      std::cout << "caught  user error" << std::endl;                  \
+      LOG_GENERAL(WARNING, "caught user error");                       \
     }                                                                  \
   }
 

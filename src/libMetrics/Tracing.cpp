@@ -27,7 +27,6 @@
 #include "opentelemetry/exporters/otlp/otlp_http_exporter_factory.h"
 #include "opentelemetry/sdk/trace/simple_processor_factory.h"
 #include "opentelemetry/sdk/trace/tracer_provider_factory.h"
-#include "opentelemetry/trace/propagation/b3_propagator.h"
 #include "opentelemetry/trace/propagation/http_trace_context.h"
 #include "opentelemetry/trace/provider.h"
 
@@ -40,6 +39,14 @@ namespace trace_sdk = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
 namespace resource = opentelemetry::sdk::resource;
+
+#if defined(__APPLE__) || defined(__FreeBSD__)
+const char* appname = getprogname();
+#elif defined(_GNU_SOURCE)
+const char* appname = program_invocation_name;
+#else
+const char* appname = "?";
+#endif
 
 Tracing::Tracing() { Init(); }
 
@@ -73,12 +80,18 @@ void Tracing::NoopInit() {
 
 void Tracing::OtlpHTTPInit() {
   opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts;
-  std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" +
-                   boost::lexical_cast<std::string>(TRACE_ZILLIQA_PORT)};
+  std::stringstream ss;
+  ss << TRACE_ZILLIQA_PORT;
+
+  std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" + ss.str()};
+
   if (!addr.empty()) {
     opts.url = "http://" + addr + "/v1/traces";
   }
-  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
+
+  std::string nice_name{appname};
+  nice_name += ":" + Naming::GetInstance().name();
+  resource::ResourceAttributes attributes = {{"service.name", nice_name},
                                              {"version", (uint32_t)1}};
 
   auto resource = resource::Resource::Create(attributes);
@@ -93,7 +106,7 @@ void Tracing::OtlpHTTPInit() {
   // Default is an always-on sampler.
   std::shared_ptr<opentelemetry::sdk::trace::TracerContext> context =
       opentelemetry::sdk::trace::TracerContextFactory::Create(
-          std::move(processors));
+          std::move(processors), resource);
 
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
       opentelemetry::sdk::trace::TracerProviderFactory::Create(context);
@@ -179,108 +192,15 @@ void UpdateMetricsMask(uint64_t& mask, const std::string& filter) {
 }  // namespace
 
 void Filter::init(const std::string& arg) {
-  const std::string& mask_str = arg.empty() ? TRACE_ZILLIQA_MASK : arg;
+  const std::string& mask = arg.empty() ? TRACE_ZILLIQA_MASK : arg;
   std::vector<std::string> flags;
-  boost::split(flags, mask_str, boost::is_any_of(","));
+  boost::split(flags, mask, boost::is_any_of(","));
   for (const auto& f : flags) {
     UpdateMetricsMask(m_mask, f);
     if (m_mask == ALL) {
       break;
     }
   }
-}
-
-namespace {
-
-constexpr size_t FLAGS_OFFSET = 0;
-constexpr size_t FLAGS_SIZE = 2;
-constexpr size_t SPAN_ID_OFFSET = FLAGS_SIZE + 1;
-constexpr size_t SPAN_ID_SIZE = 16;
-constexpr size_t TRACE_ID_OFFSET = SPAN_ID_OFFSET + SPAN_ID_SIZE + 1;
-constexpr size_t TRACE_ID_SIZE = 32;
-constexpr size_t TRACE_INFO_SIZE =
-    FLAGS_SIZE + 1 + SPAN_ID_SIZE + 1 + TRACE_ID_SIZE;
-
-trace_api::SpanContext ExtractSpanContextFromTraceInfo(
-    const std::string& traceInfo) {
-  if (traceInfo.size() != TRACE_INFO_SIZE) {
-    LOG_GENERAL(WARNING, "Unexpected trace info size " << traceInfo.size());
-    return trace_api::SpanContext::GetInvalid();
-  }
-
-  if (traceInfo[SPAN_ID_OFFSET - 1] != '-' ||
-      traceInfo[TRACE_ID_OFFSET - 1] != '-') {
-    LOG_GENERAL(WARNING, "Invalid format of trace info " << traceInfo);
-    return trace_api::SpanContext::GetInvalid();
-  }
-
-  std::string_view trace_id_hex(traceInfo.data() + TRACE_ID_OFFSET,
-                                TRACE_ID_SIZE);
-  std::string_view span_id_hex(traceInfo.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE);
-  std::string_view trace_flags_hex(traceInfo.data() + FLAGS_OFFSET, FLAGS_SIZE);
-
-  using trace_api::propagation::detail::IsValidHex;
-
-  if (!IsValidHex(trace_id_hex) || !IsValidHex(span_id_hex) ||
-      !IsValidHex(trace_flags_hex)) {
-    LOG_GENERAL(WARNING, "Invalid hex of trace info fields: " << traceInfo);
-    return trace_api::SpanContext::GetInvalid();
-  }
-
-  using trace_api::propagation::B3PropagatorExtractor;
-
-  auto trace_id = B3PropagatorExtractor::TraceIdFromHex(trace_id_hex);
-  auto span_id = B3PropagatorExtractor::SpanIdFromHex(span_id_hex);
-  auto trace_flags = B3PropagatorExtractor::TraceFlagsFromHex(trace_flags_hex);
-
-  if (!trace_id.IsValid() || !span_id.IsValid()) {
-    LOG_GENERAL(WARNING, "Invalid trace_id or span_id in " << traceInfo);
-    return trace_api::SpanContext::GetInvalid();
-  }
-
-  return trace_api::SpanContext(trace_id, span_id, trace_flags, true);
-}
-
-}  // namespace
-
-void ExtractTraceInfoFromActiveSpan(std::string& out) {
-  auto activeSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
-
-  if (!activeSpan) {
-    LOG_GENERAL(FATAL, "activeSpan is always not null");
-    return;
-  }
-
-  auto spanContext = activeSpan->GetContext();
-  if (!spanContext.IsValid()) {
-    LOG_GENERAL(WARNING, "No active spans");
-    out.clear();
-    return;
-  }
-
-  out.assign(TRACE_INFO_SIZE, '-');
-  spanContext.trace_flags().ToLowerBase16(
-      std::span<char, FLAGS_SIZE>(out.data() + FLAGS_OFFSET, FLAGS_SIZE));
-  spanContext.span_id().ToLowerBase16(
-      std::span<char, SPAN_ID_SIZE>(out.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE));
-  spanContext.trace_id().ToLowerBase16(std::span<char, TRACE_ID_SIZE>(
-      out.data() + TRACE_ID_OFFSET, TRACE_ID_SIZE));
-}
-
-std::shared_ptr<trace_api::Span> CreateChildSpan(
-    std::string_view name, const std::string& serializedTraceInfo) {
-  auto spanCtx = ExtractSpanContextFromTraceInfo(serializedTraceInfo);
-  if (!spanCtx.IsValid()) {
-    return trace_api::Tracer::GetCurrentSpan();
-  }
-
-  trace_api::StartSpanOptions options;
-
-  // child spans from deserialized parent  are of server kind
-  options.kind = trace_api::SpanKind::kServer;
-  options.parent = spanCtx;
-
-  return Tracing::GetInstance().get_tracer()->StartSpan(name, options);
 }
 
 }  // namespace zil::trace

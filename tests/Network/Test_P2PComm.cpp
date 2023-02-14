@@ -21,6 +21,7 @@
 #include <vector>
 #include "libMetrics/Metrics.h"
 #include "libMetrics/Tracing.h"
+#include "libMetrics/Helper.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DetachedFunction.h"
 

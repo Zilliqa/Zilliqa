@@ -167,6 +167,21 @@ int main(int argc, const char* argv[]) {
     Metrics::GetInstance();
     Tracing::GetInstance();
 
+    Naming::GetInstance().name("zil");
+
+
+    // This just creates us a context that we may use anywhere in the program
+    // We do not use this - just an example that you can use and create contexts for anything
+    // opentelemetry::context::Context  ctx{"version",opentelemetry::context::ContextValue(8.6)};
+
+
+    opentelemetry::trace::StartSpanOptions options;
+    options.kind = opentelemetry::trace::SpanKind::kClient;
+    std::string span_name = "Main";
+    auto span = Tracing::GetInstance().get_tracer()->StartSpan(span_name, {{"main", "startup"}}, options);
+    // calling this makes it the active span
+    auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
+
     boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
       INIT_STDOUT_LOGGER();

@@ -15,21 +15,25 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBMETRICS_COMMON_H_
-#define ZILLIQA_SRC_LIBMETRICS_COMMON_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_HELPER_H_
+#define ZILLIQA_SRC_LIBMETRICS_HELPER_H_
 
+#include <opentelemetry/trace/span.h>
+#include <opentelemetry/trace/span_context.h>
 #include <string>
 
-namespace zil {
-namespace metrics {
+namespace zil::trace {
 
-const std::string METRIC_FAMILY{"zilliqa"};
-const std::string METRIC_SCHEMA_VERSION{"1.2.0"};
-const std::string METRIC_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
+opentelemetry::trace::SpanContext ExtractSpanContextFromTraceInfo(
+    const std::string& traceInfo);
 
-}  // namespace metrics
-}  // namespace zil
+/// Extract info to continue spans with distributed tracing
+void ExtractTraceInfoFromActiveSpan(std::string& serializedTraceInfo);
 
-const double METRICS_VERSION{8.6};
+/// Creates child span from serialized trace info
+std::shared_ptr<opentelemetry::trace::Span> CreateChildSpan(
+    std::string_view name, const std::string& serializedTraceInfo);
 
-#endif  // ZILLIQA_SRC_LIBMETRICS_COMMON_H_
+}  // namespace zil::trace
+
+#endif  // ZILLIQA_SRC_LIBMETRICS_HELPER_H_

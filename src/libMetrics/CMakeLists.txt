@@ -6,28 +6,28 @@ find_package(prometheus-cpp CONFIG REQUIRED)
 find_package(gRPC CONFIG REQUIRED)
 find_package(re2 CONFIG REQUIRED)
 
-add_library(Metrics Metrics.cpp Tracing.cpp Api.h Metrics.h Tracing.h Common.h internal/mixins.h)
+
+set_target_properties(opentelemetry-cpp::prometheus_exporter PROPERTIES
+    INTERFACE_LINK_LIBRARIES "opentelemetry-cpp::metrics"
+    )
+
+add_library(Metrics Metrics.cpp Tracing.cpp Api.h Metrics.h Tracing.h Common.h internal/mixins.h Helper.cpp Helper.h Logger.cpp)
 
 target_include_directories(Metrics PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS})
 target_link_libraries(Metrics
-        INTERFACE
-        Threads::Threads
-        CURL::libcurl
-        PUBLIC
-        g3log
-        Constants
-        protobuf::libprotobuf
-        opentelemetry-cpp::api
-        opentelemetry-cpp::sdk
-        opentelemetry-cpp::logs
-        opentelemetry-cpp::trace
-        opentelemetry-cpp::ostream_span_exporter
-        opentelemetry-cpp::ostream_metrics_exporter
-        opentelemetry-cpp::otlp_http_metric_exporter
-        opentelemetry-cpp::otlp_http_exporter
-        opentelemetry-cpp::prometheus_exporter
-        opentelemetry-cpp::otlp_grpc_metrics_exporter
-        opentelemetry-cpp::otlp_grpc_exporter
-        PRIVATE
-        ${g3sinks_LOGROTATE_LIBRARY}
-        Boost::filesystem)
+    INTERFACE
+    Threads::Threads
+    CURL::libcurl
+    PUBLIC
+    protobuf::libprotobuf
+    opentelemetry-cpp::api
+    opentelemetry-cpp::sdk
+    opentelemetry-cpp::logs
+    opentelemetry-cpp::trace
+    opentelemetry-cpp::ostream_span_exporter
+    opentelemetry-cpp::ostream_metrics_exporter
+    opentelemetry-cpp::otlp_http_metric_exporter
+    opentelemetry-cpp::otlp_http_exporter
+    opentelemetry-cpp::prometheus_exporter
+    opentelemetry-cpp::otlp_grpc_metrics_exporter
+    opentelemetry-cpp::otlp_grpc_exporter)

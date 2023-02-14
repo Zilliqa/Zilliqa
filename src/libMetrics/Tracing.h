@@ -49,13 +49,6 @@ class Filter : public Singleton<Filter> {
   uint64_t m_mask{};
 };
 
-/// Extract info to continue spans with distributed tracing
-void ExtractTraceInfoFromActiveSpan(std::string& serializedTraceInfo);
-
-/// Creates child span from serialized trace info
-std::shared_ptr<trace_api::Span> CreateChildSpan(
-    std::string_view name, const std::string& serializedTraceInfo);
-
 class Scope {
  public:
   // No-op scope
@@ -73,6 +66,16 @@ class Scope {
 
 }  // namespace trace
 }  // namespace zil
+
+class Naming : public Singleton<Naming> {
+ public:
+
+  std::string name() { return m_name; }
+  void name(const std::string& name){ m_name = name ;}
+
+ private:
+  std::string m_name;
+};
 
 class Tracing : public Singleton<Tracing> {
  public:

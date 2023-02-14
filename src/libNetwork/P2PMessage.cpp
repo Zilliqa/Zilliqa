@@ -18,7 +18,7 @@
 #include "P2PMessage.h"
 
 #include "common/Constants.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Helper.h"
 #include "libUtils/Logger.h"
 
 namespace zil::p2p {

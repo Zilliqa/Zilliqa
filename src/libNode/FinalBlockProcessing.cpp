@@ -1557,8 +1557,8 @@ bool Node::SendPendingTxnToLookup() {
       INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
 
   auto span = Tracing::GetInstance().get_tracer()->StartSpan("PendingTxnsSend");
+  auto scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
   span->SetAttribute("Count", pendingTxns.size());
-  auto scope = trace_api::Scope(span);
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 
