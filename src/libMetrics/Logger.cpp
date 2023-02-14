@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
@@ -48,8 +48,10 @@ void InitLogger() {
   logger_opts.console_debug = true;
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpLogRecordExporterFactory::Create(logger_opts);
-  auto processor = logs_sdk::SimpleLogRecordProcessorFactory::Create(std::move(exporter));
-  std::shared_ptr<logs::LoggerProvider> provider = logs_sdk::LoggerProviderFactory::Create(std::move(processor));
+  auto processor =
+      logs_sdk::SimpleLogRecordProcessorFactory::Create(std::move(exporter));
+  std::shared_ptr<logs::LoggerProvider> provider =
+      logs_sdk::LoggerProviderFactory::Create(std::move(processor));
 
   opentelemetry::logs::Provider::SetLoggerProvider(provider);
 }
@@ -61,17 +63,16 @@ nostd::shared_ptr<logs::Logger> get_logger() {
 
 void log(std::string /*msg*/) {
   std::cout << "Logging..." << std::endl;
-/*
-  auto span = get_tracer()->StartSpan("log span");
-  auto scoped_span = trace::Scope(get_tracer()->StartSpan("hash_set"));
-  auto ctx = span->GetContext();
-  auto logger = get_logger();
-  logger->Log(opentelemetry::logs::Severity::kDebug, msg, {}, ctx.trace_id(), ctx.span_id(), ctx.trace_flags(),
-              opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
-              */
+  /*
+    auto span = get_tracer()->StartSpan("log span");
+    auto scoped_span = trace::Scope(get_tracer()->StartSpan("hash_set"));
+    auto ctx = span->GetContext();
+    auto logger = get_logger();
+    logger->Log(opentelemetry::logs::Severity::kDebug, msg, {}, ctx.trace_id(),
+    ctx.span_id(), ctx.trace_flags(),
+                opentelemetry::common::SystemTimestamp(std::chrono::system_clock::now()));
+                */
 }
-
-
 
 }  // namespace Metrics
 

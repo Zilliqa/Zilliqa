@@ -69,18 +69,23 @@ void Metrics::Init() {
     InitOTHTTP();
   } else if (cmp == "OTLPGRPC") {
     InitOtlpGrpc();
-  } else if (cmp == "STDOUT"){
+  } else if (cmp == "STDOUT") {
     InitStdOut();
   } else {
-    LOG_GENERAL(WARNING,"Telemetry provider has defaulted to NOOP provider due to no configuration");
+    LOG_GENERAL(WARNING,
+                "Telemetry provider has defaulted to NOOP provider due to no "
+                "configuration");
     InitNoop();
   }
 }
 
 void Metrics::InitNoop() {
-  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill = opentelemetry::metrics::Provider::GetMeterProvider();
+  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill =
+      opentelemetry::metrics::Provider::GetMeterProvider();
 
-  auto tf = opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(new opentelemetry::metrics::NoopMeterProvider());
+  auto tf =
+      opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(
+          new opentelemetry::metrics::NoopMeterProvider());
   opentelemetry::metrics::Provider::SetMeterProvider(tf);
 }
 
@@ -227,9 +232,7 @@ void Metrics::Shutdown() {
   p->Shutdown();
 }
 
-
 namespace {
-
 
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {
@@ -360,7 +363,7 @@ std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
   GetInstance();
   auto p1 = metrics_api::Provider::GetMeterProvider();
   auto p2 = p1->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                        METRIC_ZILLIQA_SCHEMA);
+                         METRIC_ZILLIQA_SCHEMA);
 
   return p2;
 }

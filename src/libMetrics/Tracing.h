@@ -60,9 +60,8 @@ std::shared_ptr<trace_api::Span> CreateChildSpan(
 
 class Naming : public Singleton<Naming> {
  public:
-
- std::string name() { return m_name; }
- void name(const std::string& name){ m_name = name ;}
+  std::string name() { return m_name; }
+  void name(const std::string& name) { m_name = name; }
 
  private:
   std::string m_name;
@@ -85,7 +84,6 @@ class Tracing : public Singleton<Tracing> {
   void OtlpHTTPInit();
   void NoopInit();
   void InitOtlpGrpc();
-
 };
 
 #define TRACE_ENABLED(FILTER_CLASS)          \

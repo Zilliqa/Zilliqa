@@ -140,9 +140,9 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
     const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
 
     GetMsgDispatchCounter().IncrementWithAttributes(
-          1L,
-          {{"Type", std::string(MsgTypeToStr(msg_type))},
-           {"StartByte", std::string(StartByteToStr(message->second.second))}});
+        1L,
+        {{"Type", std::string(MsgTypeToStr(msg_type))},
+         {"StartByte", std::string(StartByteToStr(message->second.second))}});
 
     // To-do: Remove consensus user and peer manager placeholders
     Executable *msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
