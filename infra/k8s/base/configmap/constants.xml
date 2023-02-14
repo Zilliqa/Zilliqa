@@ -364,7 +364,7 @@
             <TRACE_ZILLIQA_HOSTNAME>localhost</TRACE_ZILLIQA_HOSTNAME>
             <TRACE_ZILLIQA_PORT>4318</TRACE_ZILLIQA_PORT>
             <!-- PROVIDER can be OTLPHTTP or STDOUT -->
-            <TRACE_ZILLIQA_PROVIDER>STDOUT</TRACE_ZILLIQA_PROVIDER>
+            <TRACE_ZILLIQA_PROVIDER>OTLPHTTP</TRACE_ZILLIQA_PROVIDER>
             <!-- ALL means all metrics are enabled -->
             <TRACE_ZILLIQA_MASK>ALL</TRACE_ZILLIQA_MASK>
         </zilliqa>
