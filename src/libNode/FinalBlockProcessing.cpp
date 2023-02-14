@@ -47,6 +47,11 @@
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include "opentelemetry/trace/propagation/b3_propagator.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/provider.h"
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -646,8 +651,8 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
       if (!m_seedTxnBlksBuffer.empty()) {
         LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
-        for (const auto& message : m_seedTxnBlksBuffer) {
-          if (!Messenger::GetNodeFinalBlock(message, offset, dsBlockNumber,
+        for (const auto& m : m_seedTxnBlksBuffer) {
+          if (!Messenger::GetNodeFinalBlock(m, offset, dsBlockNumber,
                                             consensusID, txBlock, stateDelta)) {
             LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                       "Messenger::GetNodeFinalBlock failed.");
@@ -1561,6 +1566,14 @@ bool Node::SendPendingTxnToLookup() {
   span->SetAttribute("Count", pendingTxns.size());
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
+
+  auto aSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+
+  if (not aSpan->GetContext().IsValid()) {
+    LOG_GENERAL(INFO, "no spans active");
+  } else {
+    LOG_GENERAL(INFO, "spans active");
+  };
 
   return true;
 }

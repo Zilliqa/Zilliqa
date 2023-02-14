@@ -43,6 +43,8 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SafeMath.h"
 
+#include "libMetrics/Api.h"
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -1257,6 +1259,13 @@ void P2PComm::SendBroadcastMessage(const vector<Peer>& peers,
                                    const zbytes& message,
                                    bool inject_trace_context) {
   LOG_MARKER();
+  auto cSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
+
+  if (not cSpan->GetContext().IsValid()) {
+    LOG_GENERAL(INFO, "no spans active");
+  } else {
+    LOG_GENERAL(INFO, "spans active");
+  };
 
   zbytes hash;
   SendBroadcastMessageImpl(m_sendJobs, peers, m_selfPeer, message, hash,

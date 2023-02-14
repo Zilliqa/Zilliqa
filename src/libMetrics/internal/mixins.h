@@ -74,7 +74,6 @@ class DoubleCounter {
   void Increment() { m_theCounter->Add(1); }
 
   void IncrementWithAttributes(double val, const METRIC_ATTRIBUTE &attr) {
-
     m_theCounter->Add(val, attr);
   }
 
