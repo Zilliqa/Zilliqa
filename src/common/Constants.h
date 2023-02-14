@@ -500,5 +500,8 @@ extern const std::string TRACE_ZILLIQA_MASK;
 extern const std::string TRACE_ZILLIQA_PROVIDER;
 extern const std::string TRACE_ZILLIQA_HOSTNAME;
 extern const unsigned int TRACE_ZILLIQA_PORT;
+extern const std::string LOGGING_ZILLIQA_HOSTNAME;
+extern const std::string LOGGING_ZILLIQA_PROVIDER;
+extern const unsigned int LOGGING_ZILLIQA_PORT;
 
 #endif  // ZILLIQA_SRC_COMMON_CONSTANTS_H_

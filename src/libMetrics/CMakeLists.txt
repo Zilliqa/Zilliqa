@@ -29,6 +29,7 @@ target_link_libraries(Metrics
         opentelemetry-cpp::logs
         opentelemetry-cpp::trace
         opentelemetry-cpp::ostream_span_exporter
+        opentelemetry-cpp::ostream_log_record_exporter
         opentelemetry-cpp::ostream_metrics_exporter
         opentelemetry-cpp::otlp_http_metric_exporter
         opentelemetry-cpp::otlp_http_exporter

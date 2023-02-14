@@ -28,6 +28,8 @@ namespace metrics_api = opentelemetry::metrics;
 class Logging : public Singleton<Logging> {
  public:
   Logging();
+
+  void Shutdown();
 };
 
 }  // namespace metrics

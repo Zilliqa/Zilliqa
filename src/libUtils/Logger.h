@@ -82,7 +82,7 @@ class Logger {
   void AddSink(std::unique_ptr<SinkT> sink, MemFuncT memFunc) {
     auto handle = m_logWorker->addSink(std::move(sink), memFunc);
     if (handle) {
-      m_externalSinkTypeIds.emplace_back(typeid(handle));
+      m_externalSinkTypeIds.emplace_back(typeid(g3::internal::Sink<SinkT>));
     }
   }
   //@}
