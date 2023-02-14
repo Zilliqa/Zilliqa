@@ -22,6 +22,8 @@
 #include <opentelemetry/trace/span_context.h>
 #include <string>
 
+// our implementations
+
 std::string ExtractTraceInfoFromActiveSpan();
 
 trace_api::SpanContext ExtractSpanContextFromTraceInfo(const std::string &traceInfo);
