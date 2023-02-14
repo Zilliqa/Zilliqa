@@ -53,7 +53,7 @@ int main(int argc, const char* argv[]) {
     PrivKey extSeedPrivKey;
     PubKey extSeedPubKey;
     string address;
-    string logpath(boost::filesystem::absolute("./").string());
+    string logpath(std::filesystem::absolute("./").string());
     string identity;
     int port = -1;
     unique_ptr<NAT> nt;
