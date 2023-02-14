@@ -23,6 +23,7 @@
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
+#include "libMetrics/Logging.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/HardwareSpecification.h"
@@ -172,6 +173,7 @@ int main(int argc, const char* argv[]) {
 
     auto span =
         zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE, "Main");
+    Logging::GetInstance();
 
     std::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
@@ -262,6 +264,7 @@ int main(int argc, const char* argv[]) {
     Metrics::GetInstance().Shutdown();
     LOG_GENERAL(INFO, "Metrics shut down");
 
+    Logging::GetInstance().Shutdown();
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;
