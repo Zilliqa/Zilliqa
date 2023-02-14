@@ -12,6 +12,7 @@ OBSERVABILITY = os.getenv('OBSERVABILITY', '')
 if OBSERVABILITY:
    # Install the observability stack: prometheus, grafana, tempo
    k8s_yaml(kustomize("infra/k8s/monitoring"))
+   k8s_yaml(kustomize("infra/k8s/prometheus-metrics-reader.yaml")
    k8s_resource(objects=["prometheus-ingress:Ingress:monitoring"], new_name="prometheus-ingress")
    k8s_resource("prometheus-ingress", resource_deps=['ingress-nginx-controller'])
    k8s_resource(objects=["grafana-ingress:Ingress:monitoring"], new_name="grafana-ingress")
