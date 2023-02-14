@@ -31,7 +31,7 @@
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/async_instruments.h"
 #include "opentelemetry/metrics/provider.h"
-#include "opentelemetry/metrics/sync_instruments.h"
+
 #include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"

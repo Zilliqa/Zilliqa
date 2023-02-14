@@ -19,6 +19,7 @@
 
 #include "Metrics.h"
 #include "Tracing.h"
+#include "Helper.h"
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
 
