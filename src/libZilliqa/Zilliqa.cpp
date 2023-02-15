@@ -204,6 +204,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
   /*
    * These are required to initialise SubSystems.
    */
+  Naming::GetInstance().name("techy-thing");
   Metrics::GetInstance();
   Tracing::GetInstance();
 

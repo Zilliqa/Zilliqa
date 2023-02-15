@@ -122,11 +122,27 @@ void Tracing::OtlpHTTPInit() {
 
 void Tracing::InitOtlpGrpc() {
   opentelemetry::exporter::otlp::OtlpGrpcExporterOptions opts;
+  std::stringstream ss;
+  ss << TRACE_ZILLIQA_PORT;
+
+  std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" + ss.str()};
+
+  if (!addr.empty()) {
+    opts.endpoint = "http://" + addr + "/v1/traces";
+  }
+
+  std::string nice_name{appname};
+  nice_name += ":" + Naming::GetInstance().name();
+  resource::ResourceAttributes attributes = {{"service.name", nice_name},
+                                             {"version", (uint32_t)1}};
+
+  auto resource = resource::Resource::Create(attributes);
+
   auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
-      trace_sdk::TracerProviderFactory::Create(std::move(processor));
+      trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
   // Set the global trace provider
   opentelemetry::trace::Provider::SetTracerProvider(provider);
 }
