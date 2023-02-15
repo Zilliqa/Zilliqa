@@ -94,7 +94,12 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   mAccountStore.AddAddressToUpdateBufferAtomic(
       ProtoToAddress(mProtoArgs.address()));
 
+  LOG_GENERAL(WARNING, "pushing on the current trace! " << mExecutor.CurrentTrace());
+  mProtoArgs.set_tx_trace_enabled(TX_TRACES);
+  mProtoArgs.set_tx_trace(mExecutor.CurrentTrace());
+
   const auto invokeResult = InvokeEvm();
+
   if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
@@ -102,6 +107,9 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     return {};
   }
   const evm::EvmResult& evmResult = invokeResult.value();
+
+  mExecutor.CurrentTrace() = evmResult.tx_trace();
+  LOG_GENERAL(WARNING, "updating the current trace! " << mExecutor.CurrentTrace());
 
   mProtoArgs.set_gas_limit(evmResult.remaining_gas());
 

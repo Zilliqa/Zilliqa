@@ -329,12 +329,12 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     const auto cpsRunResult = cpsExecutor.Run(evmContext);
     error_code = cpsRunResult.txnStatus;
 
-    if (cpsRunResult.evmResult.trace_size() > 0) {
+    if (!cpsRunResult.evmResult.tx_trace().empty()) {
       LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
       //LOG_GENERAL(INFO, "" << cpsRunResult.evmResult);
 
       if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                      cpsRunResult.evmResult.trace(0))) {
+                                                      cpsRunResult.evmResult.tx_trace())) {
         LOG_GENERAL(INFO,
                     "FAIL: Put TX trace failed " << evmContext.GetTranID());
       }
@@ -501,16 +501,18 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
       evmContext.SetEvmResult(result);
 
-      if (result.trace_size() > 0) {
-          LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
-          LOG_GENERAL(INFO, "" << result.trace(0));
+      exit(1);
 
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                        result.trace(0))) {
-          LOG_GENERAL(INFO,
-                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
-        }
-      }
+      //if (result.trace_size() > 0) {
+      //    LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+      //    LOG_GENERAL(INFO, "" << result.trace(0));
+
+      //  if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+      //                                                  result.trace(0))) {
+      //    LOG_GENERAL(INFO,
+      //                "FAIL: Put TX trace failed " << evmContext.GetTranID());
+      //  }
+      //}
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
@@ -705,14 +707,17 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           evm_call_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
-      if (result.trace_size() > 0) {
-          LOG_GENERAL(INFO, "Inserting TX trace: " << evmContext.GetTranID());
-        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                        result.trace(0))) {
-          LOG_GENERAL(INFO,
-                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
-        }
-      }
+
+      exit(2);
+
+      //if (result.trace_size() > 0) {
+      //    LOG_GENERAL(INFO, "Inserting TX trace: " << evmContext.GetTranID());
+      //  if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+      //                                                  result.trace(0))) {
+      //    LOG_GENERAL(INFO,
+      //                "FAIL: Put TX trace failed " << evmContext.GetTranID());
+      //  }
+      //}
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 

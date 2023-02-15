@@ -73,6 +73,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
           : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
                                             cpsCtx, runType);
+  this->m_txTrace.clear();
   m_queue.push_back(std::move(evmRun));
 
   mAccountStore.BufferCurrentContractStorageState();
@@ -105,6 +106,8 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   // Increase nonce regardless of processing result
   const auto sender = clientContext.GetTransaction().GetSenderAddr();
   mAccountStore.IncreaseNonceForAccountAtomic(sender);
+
+  LOG_GENERAL(WARNING, "*********** final tx trace result: " << this->m_txTrace);
 
   clientContext.SetEvmResult(runResult.evmResult);
   const auto givenGasCore =
@@ -154,9 +157,9 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
 
   LOG_GENERAL(WARNING, "Finished run...");
 
-  for (const auto &i : runResult.evmResult.trace()){
-    LOG_GENERAL(WARNING, "Trace run result: " << i);
-  }
+  //LOG_GENERAL(WARNING, "Trace run result: " << runResult.evmResult.tx_trace());
+  //for (const auto &i : runResult.evmResult.trace()){
+  //}
 
   return runResult;
 }
@@ -189,6 +192,10 @@ void CpsExecutor::RefundGas(const EvmProcessContext& context,
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
   LOG_GENERAL(WARNING, "Pushing run on... " << m_queue.size());
   m_queue.push_back(std::move(run));
+}
+
+std::string &CpsExecutor::CurrentTrace() {
+  return this->m_txTrace;
 }
 
 }  // namespace libCps

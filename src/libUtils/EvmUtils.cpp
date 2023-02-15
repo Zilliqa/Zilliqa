@@ -67,6 +67,7 @@ Json::Value EvmUtils::GetEvmCallJson(const evm::EvmArgs& args) {
     LOG_GENERAL(WARNING, "GasLimit: " << args.gas_limit());
     LOG_GENERAL(WARNING, "Estimating gas: " << args.estimate());
     LOG_GENERAL(WARNING, "Extras: \n" << args.extras().DebugString());
+    LOG_GENERAL(WARNING, "Tx trace enabled: " << args.tx_trace_enabled());
   }
 
   std::string output;

@@ -91,7 +91,8 @@ message EvmArgs {
   string context = 9;
   Continuation continuation = 10;
   bool enable_cps = 11;
-  string trace = 12;
+  bool tx_trace_enabled = 12;
+  string tx_trace = 13;
 }
 
 message EvmLog {
@@ -230,7 +231,7 @@ message EvmResult {
   bytes return_value = 2;
   repeated Apply apply = 3;
   repeated EvmLog logs = 4;
-  repeated string trace = 5;
+  string tx_trace = 5;
   uint64 remaining_gas = 6;
   uint64 continuation_id = 7;
   TrapData trap_data = 8;

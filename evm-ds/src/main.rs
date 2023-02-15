@@ -65,6 +65,7 @@ struct Args {
 
 struct LoggingEventListener {
     pub traces: Vec<String>,
+    pub enabled: bool,
 }
 
 impl tracing::EventListener for LoggingEventListener {
@@ -97,7 +98,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         zil_scaling_factor: args.zil_scaling_factor,
     };
 
-    let evm_server = EvmServer::new(args.tracing, backend_config, args.gas_scaling_factor);
+    let evm_server = EvmServer::new(backend_config, args.gas_scaling_factor);
 
     // Setup a channel to signal a shutdown.
     let (shutdown_sender, shutdown_receiver) = std::sync::mpsc::channel();
