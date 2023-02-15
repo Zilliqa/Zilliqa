@@ -11,6 +11,9 @@ use evm::{Machine, Runtime};
 
 use log::{debug, error, info};
 
+use serde::ser::{SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
+
 use jsonrpc_core::Result;
 use primitive_types::*;
 use scillabackend::ScillaBackend;
@@ -94,7 +97,14 @@ pub async fn run_evm_impl(
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
-        let mut listener = LoggingEventListener{traces : vec![format!("{} + {}", tx_trace, address)], enabled: tx_trace_enabled};
+        //let mut listener = LoggingEventListener{traces : vec![format!("{} + {}", tx_trace, address)], enabled: tx_trace_enabled};
+
+        let mut listener = LoggingEventListener::new();
+        listener.call_stack[0].call_type = "CALL".to_string();
+        listener.call_stack[0].from = format!("{:?}", backend.origin);
+        listener.call_stack[0].to = format!("{:?}", address);
+        listener.call_stack[0].value = apparent_value.to_string();
+        listener.call_stack[0].input = hex::encode(&data);
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.

@@ -63,16 +63,135 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
+#[derive(Debug,Serialize)]
+struct CallContext {
+    #[serde(rename = "type")]
+    pub call_type : String,
+    pub from : String,
+    pub to : String,
+    pub value : String,
+    pub gas : String,
+    pub gasUsed : String,
+    pub input : String,
+    pub output : String,
+
+    calls: Vec<CallContext>,
+}
+
+impl CallContext {
+    fn new() -> Self {
+        CallContext{
+            call_type : Default::default(),
+            from : Default::default(),
+            to : Default::default(),
+            value : Default::default(),
+            gas : "0x0".to_string(),
+            gasUsed : "0x0".to_string(),
+            input : Default::default(),
+            output : Default::default(),
+            calls: Default::default(),
+        }
+    }
+}
+
+
+// This implementation has a stack of call contexts each with reference to their calls - so a tree is
+// Created in this way.
+// Each new call gets added to the end of the stack and becomes the current context.
+// On returning from a call, the end of the stack gets put into the item above's calls
 struct LoggingEventListener {
-    pub traces: Vec<String>,
+    pub call_stack: Vec<CallContext>,
     pub enabled: bool,
 }
+
+impl LoggingEventListener {
+
+    fn new(enabled: bool) -> Self {
+        LoggingEventListener {
+            call_stack: vec![CallContext::new()],
+            enabled: enabled,
+        }
+    }
+}
+//// This is what #[derive(Serialize)] would generate.
+//// We need a custom impl becasue one of the fields is 'type' which is a reserved word
+//impl Serialize for CallContext {
+//    fn serialize<S>(&self, serializer: S) -> serde::ser::Result<S::Ok, S::Error>
+//    where
+//        S: Serializer,
+//    {
+//        let mut s = serializer.serialize_struct("CallContext", 3)?;
+//        s.serialize_field("type", &self.call_type)?;
+//        s.serialize_field("from", &self.from)?;
+//        s.serialize_field("to", &self.to)?;
+//        s.serialize_field("value", &self.value)?;
+//        s.serialize_field("gas", &self.gas)?;
+//        s.serialize_field("gasUsed", &self.gasUsed)?;
+//        s.serialize_field("input", &self.input)?;
+//        s.serialize_field("output", &self.output)?;
+//        s.serialize_field("calls", &self.calls)?;
+//        s.end()
+//    }
+//}
+
+//struct LoggingEventListener {
+//    pub traces: Vec<String>,
+//    pub enabled: bool,
+//}
+
+//impl tracing::EventListener for LoggingEventListener {
+//    fn event(&mut self, event: tracing::Event) {
+//        println!("**** EVENT RECVD... {:?}", event);
+//        //self.traces.push(format!("{:?}", event));
+//    }
+//}
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
 
-        println!("**** EVENT RECVD... {:?}", event);
-        self.traces.push(format!("{:?}", event));
+        println!("recvd event: {:?}", event);
+
+        if self.call_stack.is_empty() {
+            error!("call stack empty in listener!!! ");
+        }
+
+        match event {
+            tracing::Event::Call{code_address, transfer, input, target_gas, is_static, context} => {
+                // When there is a call, add a call context to bottom of stack
+                let mut call_to_push = CallContext::new();
+                let mut end_of_stack = self.call_stack.last().unwrap();
+
+                call_to_push.call_type = "CALL".to_string();
+                call_to_push.from = end_of_stack.to.clone();
+                call_to_push.to = format!("{:?}", code_address);
+                call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
+                call_to_push.gasUsed = "0x0".to_string(); // todo
+                call_to_push.input = hex::encode(input);
+                call_to_push.output = "0x0".to_string(); // todo
+                if let Some(trans) = transfer {
+                    call_to_push.value = trans.value.to_string();
+                }
+
+                // Now we have constructed our new call context, it gets added to the end of
+                // the stack
+                //end_of_stack.calls.push(call_to_push);
+                self.call_stack.push(call_to_push);
+            },
+            tracing::Event::Create{..} => {},
+            tracing::Event::Suicide{..} => {},
+            tracing::Event::Exit{..} => {
+                // The call has now completed - adjust the stack if neccessary
+                if self.call_stack.len() > 1 {
+                    let end = self.call_stack.pop().unwrap();
+                    let new_end = self.call_stack.last_mut().unwrap();
+                    new_end.calls.push(end);
+                }
+            },
+            tracing::Event::TransactCall{..} => {},
+            tracing::Event::TransactCreate{..} => {},
+            tracing::Event::TransactCreate2{..} => {},
+            tracing::Event::PrecompileSubcall{..} => {},
+        }
     }
 }
 
