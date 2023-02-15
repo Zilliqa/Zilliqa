@@ -105,7 +105,8 @@ std::shared_ptr<trace_api::Span> CreateChildSpan(
     std::string_view name, const std::string& serializedTraceInfo) {
   auto spanCtx = ExtractSpanContextFromTraceInfo(serializedTraceInfo);
   if (!spanCtx.IsValid()) {
-    return trace_api::Tracer::GetCurrentSpan();
+    return std::make_shared<trace_api::DefaultSpan>(
+        trace_api::SpanContext(false, false));
   }
 
   trace_api::StartSpanOptions options;

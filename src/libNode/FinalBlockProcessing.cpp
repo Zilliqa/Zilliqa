@@ -1567,8 +1567,8 @@ bool Node::SendPendingTxnToLookup() {
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 
+  // TODO XXX remove after debugging
   auto aSpan = Tracing::GetInstance().get_tracer()->GetCurrentSpan();
-
   if (not aSpan->GetContext().IsValid()) {
     LOG_GENERAL(INFO, "no spans active");
   } else {

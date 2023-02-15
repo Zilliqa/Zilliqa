@@ -55,9 +55,11 @@ class Scope {
   Scope() = default;
 
   Scope(const std::shared_ptr<trace_api::Span>& span) noexcept {
-    token_ = opentelemetry::context::RuntimeContext::Attach(
-        opentelemetry::context::RuntimeContext::GetCurrent().SetValue(
-            trace_api::kSpanKey, span));
+    if (span) {
+      token_ = opentelemetry::context::RuntimeContext::Attach(
+          opentelemetry::context::RuntimeContext::GetCurrent().SetValue(
+              trace_api::kSpanKey, span));
+    }
   }
 
  private:

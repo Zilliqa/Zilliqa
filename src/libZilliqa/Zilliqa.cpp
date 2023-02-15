@@ -141,8 +141,6 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->msg.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
 
-
-
     GetMsgDispatchCounter().IncrementWithAttributes(
         1L, {{"Type", std::string(MsgTypeToStr(msg_type))},
              {"StartByte", std::string(StartByteToStr(message->startByte))}});
@@ -173,6 +171,8 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       // TODO Active span to check
       std::shared_ptr<trace_api::Span> traceSpan;
       if (!message->traceContext.empty()) {
+        // TODO XXX remove after debug
+        LOG_GENERAL(INFO, "trace ctx not empty");
         traceSpan =
             zil::trace::CreateChildSpan("Dispatch", message->traceContext);
       }
