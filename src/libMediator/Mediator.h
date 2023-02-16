@@ -25,11 +25,11 @@
 #include "libData/BlockChainData/BlockChain.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
 #include "libNetwork/Peer.h"
+#include "libValidator/Validator.h"
 
 class DirectoryService;
 class Node;
 class Lookup;
-class Validator;
 
 namespace evmproj::filters {
 class APICache;

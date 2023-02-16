@@ -24,7 +24,7 @@
 #include <memory>
 #include <vector>
 
-struct EvmProcessContext;
+class EvmProcessContext;
 class TransactionReceipt;
 
 namespace libCps {
