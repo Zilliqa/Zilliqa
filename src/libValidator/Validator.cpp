@@ -105,8 +105,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       dsBlock.GetHeader().GetDifficulty()};
 
 
-  LOG_GENERAL(WARNING, "Marker001: TX update temp: ");
-
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
       m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, txnExtras,

@@ -11,8 +11,6 @@ use crate::scillabackend::{ScillaBackend, ScillaBackendConfig};
 use protobuf::Message;
 
 pub(crate) struct EvmServer {
-    // Whether tracing is enabled for this instance of EVM server.
-    //tracing: bool,
     // Config for the backend that drives the interaction with the blockchain.
     backend_config: ScillaBackendConfig,
     // By how much to scale gas price.
@@ -23,12 +21,10 @@ pub(crate) struct EvmServer {
 
 impl EvmServer {
     pub fn new(
-        //tracing: bool,
         backend_config: ScillaBackendConfig,
         gas_scaling_factor: u64,
     ) -> Self {
         Self {
-            //tracing,
             backend_config,
             gas_scaling_factor,
             continuations: Arc::new(Mutex::new(Continuations::new())),
@@ -70,7 +66,6 @@ impl EvmServer {
                 let estimate = args.get_estimate();
                 let backend =
                     ScillaBackend::new(self.backend_config.clone(), origin, args.take_extras());
-                //let tracing = self.tracing;
                 let gas_scaling_factor = self.gas_scaling_factor;
 
                 let node_continuation = if args.get_continuation().get_id() == 0 {

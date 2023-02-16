@@ -7,7 +7,6 @@ import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 import logDebug from "../helpers/DebugHelper";
 
 describe("Chained Contract Calls Functionality", function () {
-  //const INITIAL_FUND = 10_000_000;
   let contractOne: Contract;
   let contractTwo: Contract;
   let contractThree: Contract;
@@ -27,18 +26,12 @@ describe("Chained Contract Calls Functionality", function () {
       let addrTwo   = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
 
-      console.log(addrOne);
-      console.log(addrTwo);
-      console.log(addrThree);
-
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three
       let tracer = {'tracer' : 'callTracer'};
 
-      console.log(res);
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
-      console.log(receipt);
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
         logDebug(result);
@@ -59,45 +52,3 @@ describe("Chained Contract Calls Functionality", function () {
     });
   });
 });
-
-
-//RES0:  {
-//  type: 'CALL',
-//  from: '0xf0cb24ac66ba7375bf9b9c4fa91e208d9eaabd2e',
-//  to: '0xa8cae66f62648529eb6ac2f026893fc436107510',
-//  value: '0',
-//  gas: '0x0',
-//  gasUsed: '0x0',
-//  input: '12cbb1ad000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000920279cb2096e34b6f7b8c787cb6c8000b13814f0000000000000000000000009fb20310353b553e99904b2e71cddadad76a3612000000000000000000000000a8cae66f62648529eb6ac2f026893fc436107510',
-//  output: '0000000000000000000000000000000000000000000000000000000000000000',
-//  calls: [
-//    {
-//      type: 'CALL',
-//      from: '0xa8cae66f62648529eb6ac2f026893fc436107510',
-//      to: '0x920279cb2096e34b6f7b8c787cb6c8000b13814f',
-//      value: '0',
-//      gas: '155b0',
-//      gasUsed: '0x0',
-//      input: '12cbb1ad000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003000000000000000000000000920279cb2096e34b6f7b8c787cb6c8000b13814f0000000000000000000000009fb20310353b553e99904b2e71cddadad76a3612000000000000000000000000a8cae66f62648529eb6ac2f026893fc436107510',
-//      output: '0x0',
-//      calls: [Array]
-//    }
-//  ]
-//}
-//RES1:  [
-//  {
-//    type: 'CALL',
-//    from: '0xa8cae66f62648529eb6ac2f026893fc436107510',
-//    to: '0x920279cb2096e34b6f7b8c787cb6c8000b13814f',
-//    value: '0',
-//    gas: '155b0',
-//    gasUsed: '0x0',
-//    input: '12cbb1ad000000000000000000000000000000000000000000000000000000000000004000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000003000000000000000000000000920279cb2096e34b6f7b8c787cb6c8000b13814f0000000000000000000000009fb20310353b553e99904b2e71cddadad76a3612000000000000000000000000a8cae66f62648529eb6ac2f026893fc436107510',
-//    output: '0x0',
-//    calls: [ [Object], [Object] ]
-//  }
-//]
-//RES2:  undefined
-//      ✔ Should create a transaction trace after child creation (151ms)
-//
-//

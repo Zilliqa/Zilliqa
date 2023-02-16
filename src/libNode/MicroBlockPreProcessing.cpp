@@ -398,7 +398,7 @@ void Node::ProcessTransactionWhenShardLeader(
 
   AccountStore::GetInstance().CleanStorageRootUpdateBufferTemp();
 
-  LOG_GENERAL(INFO, "microblock_gas_limit is " << microblock_gas_limit);
+  LOG_GENERAL(INFO, "microblock_gas_limit = " << microblock_gas_limit);
 
   while (m_gasUsedTotal < microblock_gas_limit) {
     if (txnProcTimeout) {
@@ -1694,9 +1694,6 @@ bool Node::CheckMicroBlockTxnRootHash() {
 }
 
 bool Node::CheckMicroBlockStateDeltaHash() {
-
-  LOG_GENERAL(WARNING, "Marker001: verify microblock state del hash...");
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CheckMicroBlockStateDeltaHash not expected to be "

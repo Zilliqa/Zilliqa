@@ -73,25 +73,20 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
           : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
                                             cpsCtx, runType);
-  this->m_txTrace.clear();
+  this->TxTraceClear();
   m_queue.push_back(std::move(evmRun));
 
   mAccountStore.BufferCurrentContractStorageState();
 
   CpsExecuteResult runResult;
   while (!m_queue.empty()) {
-    LOG_GENERAL(WARNING, "Run queue height: " << m_queue.size());
-
     const auto currentRun = std::move(m_queue.back());
     m_queue.pop_back();
 
     runResult = currentRun->Run(mTxReceipt);
 
     if (!runResult.isSuccess) {
-      LOG_GENERAL(WARNING, "Run is not a success...");
       break;
-    } else {
-      LOG_GENERAL(WARNING, "Run IS a success...");
     }
 
     // Likely rewrite that to std::variant and check if it's scilla type
@@ -106,8 +101,6 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   // Increase nonce regardless of processing result
   const auto sender = clientContext.GetTransaction().GetSenderAddr();
   mAccountStore.IncreaseNonceForAccountAtomic(sender);
-
-  LOG_GENERAL(WARNING, "*********** final tx trace result: " << this->m_txTrace);
 
   clientContext.SetEvmResult(runResult.evmResult);
   const auto givenGasCore =
@@ -140,7 +133,7 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
   // Always mark run as successful in estimate mode
   if (isEstimate) {
     if(isFailure) {
-      LOG_GENERAL(WARNING, "*********** failed when estimating!");
+      LOG_GENERAL(WARNING, "Failed when estimating gas!");
     }
 
     // In some cases revert state may be missing (if e.g. trap validation
@@ -154,12 +147,6 @@ CpsExecuteResult CpsExecutor::Run(EvmProcessContext& clientContext) {
     }
     return {TxnStatus::NOT_PRESENT, true, runResult.evmResult};
   }
-
-  LOG_GENERAL(WARNING, "Finished run...");
-
-  //LOG_GENERAL(WARNING, "Trace run result: " << runResult.evmResult.tx_trace());
-  //for (const auto &i : runResult.evmResult.trace()){
-  //}
 
   return runResult;
 }
@@ -196,6 +183,10 @@ void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
 
 std::string &CpsExecutor::CurrentTrace() {
   return this->m_txTrace;
+}
+
+void CpsExecutor::TxTraceClear() {
+  this->m_txTrace.clear();
 }
 
 }  // namespace libCps

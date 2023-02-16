@@ -181,8 +181,6 @@ bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const uint32_t& shardID, const zbytes& body) {
 
 
-  LOG_GENERAL(WARNING, "Marker001: putting microblock: " << blockHash << " : " << epochNum);
-
   zbytes key;
   if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
@@ -610,12 +608,6 @@ bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
   int ret = m_dsBlockchainDB->DeleteKey(blocknum);
   return (ret == 0);
 }
-
-//bool BlockStorage::DeleteVCBlock(const BlockHash& blockhash) {
-//  unique_lock<shared_timed_mutex> g(m_mutexVCBlock);
-//  int ret = m_VCBlockDB->DeleteKey(blockhash);
-//  return (ret == 0);
-//}
 
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);

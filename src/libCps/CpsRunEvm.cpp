@@ -55,7 +55,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
-      LOG_GENERAL(WARNING, "TX create");
       const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
       const auto contractAddress = mAccountStore.GetAddressForContract(
           fromAddress, TRANSACTION_VERSION_ETH);
@@ -73,7 +72,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       }
       // Contract call (non-trap)
     } else if (GetType() == CpsRun::Call) {
-      LOG_GENERAL(WARNING, "TX call");
       INC_STATUS(GetCPSMetric(), "transaction", "call");
       const auto code =
           mAccountStore.GetContractCode(ProtoToAddress(mProtoArgs.address()));
@@ -94,7 +92,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   mAccountStore.AddAddressToUpdateBufferAtomic(
       ProtoToAddress(mProtoArgs.address()));
 
-  LOG_GENERAL(WARNING, "pushing on the current trace! " << mExecutor.CurrentTrace());
   mProtoArgs.set_tx_trace_enabled(TX_TRACES);
   mProtoArgs.set_tx_trace(mExecutor.CurrentTrace());
 
@@ -117,20 +114,16 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
 
-    LOG_GENERAL(WARNING, "path0");
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
     HandleApply(evmResult, receipt);
-    LOG_GENERAL(WARNING, "path1");
     return {TxnStatus::NOT_PRESENT, true, evmResult};
   } else {
     // Allow CPS to continune since caller may expect failures
     if (GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate) {
-      LOG_GENERAL(WARNING, "path2");
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
 
-    LOG_GENERAL(WARNING, "path3");
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }
@@ -281,7 +274,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   }
 
   if (mCpsContext.isStatic && !isStatic) {
-    LOG_GENERAL(WARNING, "Invalid txn type...");
     INC_STATUS(GetCPSMetric(), "error", "Incorect txn type");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
@@ -294,7 +286,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   if (isStatic || isDelegate) {
     if (!areTnsfAddressesEmpty || !isValZero) {
-      LOG_GENERAL(WARNING, "Invalid txn type2...");
       INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
       return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
@@ -306,7 +297,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       (ctxDestAddr == calleeAddr) ||
       (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
   if (!isOrigAddressValid || !isDestAddressValid) {
-    LOG_GENERAL(WARNING, "Invalid txn type3...");
     INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }

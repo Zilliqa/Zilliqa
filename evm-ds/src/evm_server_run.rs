@@ -44,16 +44,12 @@ pub async fn run_evm_impl(
     tx_trace: String,
 ) -> Result<String> {
 
-    if !tx_trace_enabled {
-        panic!("tx tracing not enabled...");
-    }
-
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        println!(
+        debug!(
             "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}",
             backend.origin, address, gas_limit, apparent_value,
             backend.extras, estimate, enable_cps, tx_trace);
@@ -88,7 +84,6 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
-            println!("We had no continuation");
             let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
@@ -99,11 +94,7 @@ pub async fn run_evm_impl(
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
-        //let mut listener = LoggingEventListener{traces : vec![format!("{} + {}", tx_trace, address)], enabled: tx_trace_enabled};
-
         let mut listener;
-        //let v = serde_json::to_value(&entry).unwrap();
-        //let document: Document = serde_json::from_value(v).unwrap();
 
         if tx_trace.is_empty() {
             listener = LoggingEventListener::new(tx_trace_enabled);
@@ -113,8 +104,6 @@ pub async fn run_evm_impl(
 
         // If there is no continuation, we need to push our call context on
         if feedback_continuation.is_none() {
-            println!("continuation is none... pushing call.");
-
             let mut call = CallContext::new();
             call.call_type = "CALL".to_string();
 
@@ -123,33 +112,9 @@ pub async fn run_evm_impl(
             } else {
                 call.from = listener.call_stack.last().unwrap().to.clone();
             }
+
             call.to = format!("{:?}", address);
-            //call.gas = format!("{:x}", target_gas.unwrap_or(0));
-            //call.gasUsed = "0x0".to_string(); // todo
-            //call.input = hex::encode(input);
-            //call.output = "0x0".to_string(); // todo
-
             listener.push_call(call);
-
-            //listener.call_stack[0].call_type = "CALL".to_string();
-            //listener.call_stack[0].from = format!("{:?}", backend.origin);
-            //listener.call_stack[0].to = format!("{:?}", address);
-            //listener.call_stack[0].value = apparent_value.to_string();
-            //listener.call_stack[0].input = hex::encode(&data);
-
-            //let mut end_of_stack = self.call_stack.last().unwrap();
-
-            //call_to_push.call_type = "CALL".to_string();
-            //call_to_push.from = end_of_stack.to.clone();
-            //call_to_push.to = format!("{:?}", code_address);
-            //call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
-            //call_to_push.gasUsed = "0x0".to_string(); // todo
-            //call_to_push.input = hex::encode(input);
-            //call_to_push.output = "0x0".to_string(); // todo
-            //if let Some(trans) = transfer {
-            //    call_to_push.value = trans.value.to_string();
-            //}
-
         }
 
         // We have to catch panics, as error handling in the Backend interface of
@@ -177,9 +142,7 @@ pub async fn run_evm_impl(
 
         let result = match cps_result {
             CpsReason::NormalExit(exit_reason) => {
-
                 // Normal exit, we finished call.
-                println!("Normal exit...");
                 listener.finished_call();
 
                 match exit_reason {
@@ -193,24 +156,21 @@ pub async fn run_evm_impl(
                     }
                 }
                 let result = build_exit_result(executor, &runtime, &backend, &listener, exit_reason, remaining_gas);
-                println!(
+                info!(
                     "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?},  result: {:?}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
                     backend.extras, estimate, enable_cps, result);
-                println!();
 
                 result
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
                 let result = build_call_result(&runtime, i, &listener, remaining_gas, cont_id);
-                println!("CPS call interrupt {:?}", result);
                 result
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
                 let result = build_create_result(&runtime, i, &listener, remaining_gas, cont_id);
-                println!("CPS create interrupt");
                 result
             }
         };
@@ -271,7 +231,6 @@ fn build_exit_result(
             })
             .collect(),
     );
-    //result.set_trace(traces.into_iter().map(Into::into).collect());
     result.set_tx_trace(trace.as_string().into());
     result.set_logs(logs.into_iter().map(Into::into).collect());
     result.set_remaining_gas(remaining_gas);
@@ -281,7 +240,6 @@ fn build_exit_result(
 fn build_call_result(
     runtime: &Runtime,
     interrupt: CpsCallInterrupt,
-    //traces: Vec<String>,
     trace: &LoggingEventListener,
     remaining_gas: u64,
     cont_id: u64,
@@ -293,7 +251,6 @@ fn build_call_result(
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
-    //result.set_tx_trace(trace.traces.first().unwrap().clone().into());
     result.set_tx_trace(trace.as_string().into());
     result.set_remaining_gas(remaining_gas);
 
@@ -330,7 +287,6 @@ fn build_call_result(
 fn build_create_result(
     runtime: &Runtime,
     interrupt: CpsCreateInterrupt,
-    //traces: Vec<String>,
     trace: &LoggingEventListener,
     remaining_gas: u64,
     cont_id: u64,
@@ -343,7 +299,6 @@ fn build_create_result(
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
-    //result.set_tx_trace(trace.traces.first().unwrap().clone().into());
     result.set_tx_trace(trace.as_string().into());
     result.set_remaining_gas(remaining_gas);
 

@@ -331,7 +331,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     if (!cpsRunResult.evmResult.tx_trace().empty()) {
       LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
-      //LOG_GENERAL(INFO, "" << cpsRunResult.evmResult);
 
       if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                       cpsRunResult.evmResult.tx_trace())) {
@@ -500,19 +499,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           evm_call_run_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
-
-      exit(1);
-
-      //if (result.trace_size() > 0) {
-      //    LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
-      //    LOG_GENERAL(INFO, "" << result.trace(0));
-
-      //  if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-      //                                                  result.trace(0))) {
-      //    LOG_GENERAL(INFO,
-      //                "FAIL: Put TX trace failed " << evmContext.GetTranID());
-      //  }
-      //}
 
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
@@ -707,17 +693,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           evm_call_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
-
-      exit(2);
-
-      //if (result.trace_size() > 0) {
-      //    LOG_GENERAL(INFO, "Inserting TX trace: " << evmContext.GetTranID());
-      //  if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-      //                                                  result.trace(0))) {
-      //    LOG_GENERAL(INFO,
-      //                "FAIL: Put TX trace failed " << evmContext.GetTranID());
-      //  }
-      //}
 
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 

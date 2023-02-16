@@ -414,11 +414,6 @@ bool LookupServer::StartCollectorThread() {
         }
       }
 
-      if (!hasTxn) {
-        //LOG_GENERAL(INFO, "No Txns to send for this seed node");
-        continue;
-      }
-
       zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
 
       {

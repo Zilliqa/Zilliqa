@@ -973,8 +973,6 @@ zbytes Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
 zbytes Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
   LOG_MARKER();
 
-  LOG_GENERAL(WARNING, "Marker001: composing state del message0...");
-
   zbytes getStateDeltaMessage = {MessageType::LOOKUP,
                                  LookupInstructionType::GETSTATEDELTAFROMSEED};
 
@@ -992,7 +990,6 @@ zbytes Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
 zbytes Lookup::ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
                                             uint64_t highBlockNum) {
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "Marker001: composing state del message1...");
 
   zbytes getStateDeltasMessage = {
       MessageType::LOOKUP, LookupInstructionType::GETSTATEDELTASFROMSEED};
@@ -1015,7 +1012,6 @@ zbytes Lookup::ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
 bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
                                        uint64_t highBlockNum) {
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "Marker001: get tx block from lookup nodes...");
 
   SendMessageToRandomLookupNode(
       ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
@@ -1040,13 +1036,10 @@ bool Lookup::GetTxBlockFromSeedNodes(uint64_t lowBlockNum,
 bool Lookup::GetStateDeltaFromSeedNodes(const uint64_t& blockNum)
 
 {
-  LOG_GENERAL(WARNING, "Marker001: get state del seed node 01...");
   LOG_MARKER();
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && !MULTIPLIER_SYNC_MODE) {
-    LOG_GENERAL(WARNING, "Marker001: get state del seed node 01... path1");
     SendMessageToRandomL2lDataProvider(ComposeGetStateDeltaMessage(blockNum));
   } else {
-    LOG_GENERAL(WARNING, "Marker001: get state del seed node 01... path2");
     SendMessageToRandomSeedNode(ComposeGetStateDeltaMessage(blockNum));
   }
   return true;
@@ -1057,7 +1050,6 @@ bool Lookup::GetStateDeltasFromSeedNodes(uint64_t lowBlockNum,
 
 {
   LOG_MARKER();
-  LOG_GENERAL(WARNING, "Marker001: get state del seed node 03...");
 
   if (m_syncType == SyncType::LOOKUP_SYNC) {
     SendMessageToRandomLookupNode(
@@ -1713,9 +1705,6 @@ bool Lookup::ComposeAndStoreVCDSBlockMessage(const uint64_t& blockNum) {
 }
 
 bool Lookup::ComposeAndStoreVCFinalBlockMessage(const uint64_t& blockNum) {
-
-  LOG_GENERAL(WARNING, "Marker001: compose vc0...");
-
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP || !MULTIPLIER_SYNC_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -1723,7 +1712,6 @@ bool Lookup::ComposeAndStoreVCFinalBlockMessage(const uint64_t& blockNum) {
         "from other than the LookUp node.");
     return false;
   }
-  LOG_GENERAL(WARNING, "Marker001: compose vc1...");
 
   LOG_MARKER();
 
@@ -2071,8 +2059,6 @@ void Lookup::RetrieveTxBlocks(vector<TxBlock>& txBlocks, uint64_t& lowBlockNum,
 bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
                                           unsigned int offset, const Peer& from,
                                           const unsigned char& startByte) {
-
-  LOG_GENERAL(WARNING, "Marker001: from seed 012...");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -2129,8 +2115,6 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
   uint128_t ipAddr = from.m_ipAddress;
   Peer requestingNode(ipAddr, portNo);
   LOG_GENERAL(INFO, requestingNode);
-
-  // Note - request - response pattern is here...
   P2PComm::GetInstance().SendMessage(requestingNode, from, stateDeltaMessage,
                                      startByte);
   return true;
@@ -2140,7 +2124,6 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
                                            unsigned int offset,
                                            const Peer& from,
                                            const unsigned char& startByte) {
-  LOG_GENERAL(WARNING, "Marker001: from seed 013...");
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -3183,10 +3166,6 @@ void Lookup::PrepareForStartPow() {
 bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
   LOG_GENERAL(INFO, "[TxBlockVerif]"
                         << "Success");
-
-  LOG_GENERAL(WARNING, "Marker001: commit tx blocks..."
-              "and GET STATE DELTAS... from lookup nodes");
-
   uint64_t lowBlockNum = txBlocks.front().GetHeader().GetBlockNum();
   uint64_t highBlockNum = txBlocks.back().GetHeader().GetBlockNum();
   bool placeholder = false;
@@ -3536,8 +3515,6 @@ bool Lookup::ProcessSetStateDeltaFromSeed(
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
 
-  LOG_GENERAL(WARNING, "Marker001: from seed 014...");
-
   if (AlreadyJoinedNetwork()) {
     cv_setStateDeltaFromSeed.notify_all();
     return true;
@@ -3567,8 +3544,6 @@ bool Lookup::ProcessSetStateDeltaFromSeed(
             "ProcessSetStateDeltaFromSeed sent by " << from << " for block "
                                                     << blockNum);
 
-
-  LOG_GENERAL(WARNING, "Marker001: from seed and is deser the delta(?)...");
   if (!m_skipAddStateDeltaToAccountStore &&
       !AccountStore::GetInstance().DeserializeDelta(stateDelta, 0)) {
     LOG_GENERAL(WARNING, "AccountStore::GetInstance().DeserializeDelta failed");
@@ -3589,8 +3564,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
   LOG_MARKER();
-
-  LOG_GENERAL(WARNING, "Marker001: process set state delta...");
 
   if (AlreadyJoinedNetwork()) {
     cv_setStateDeltasFromSeed.notify_all();
@@ -3636,8 +3609,6 @@ bool Lookup::ProcessSetStateDeltasFromSeed(
     // TBD - To verify state delta hash against one from TxBlk.
     // But not crucial right now since we do verify sender i.e lookup and
     // trust it.
-
-    LOG_GENERAL(WARNING, "Marker001: Appears here to be applying the delta(!!!)");
 
     if (!BlockStorage::GetBlockStorage().GetStateDelta(txBlkNum, tmp)) {
       if (!AccountStore::GetInstance().DeserializeDelta(delta, 0)) {

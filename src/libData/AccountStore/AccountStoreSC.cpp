@@ -63,25 +63,25 @@ Z_I64METRIC &GetInvocationsCounter() {
 
 Z_I64GAUGE &GetEvmLatencyCounter() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "evm.latency.counter",
-                            "Simple EVM latency gauge", "?", true};
+                            "Simple EVM latency gauge", "calls", true};
   return counter;
 }
 
 Z_I64GAUGE &GetScillaLatencyCounter() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla.latency.counter",
-                            "Simple Scilla latency gauge", "?", true};
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla_latency_counter",
+                            "Simple Scilla latency gauge", "ms", true};
   return counter;
 }
 
 Z_I64GAUGE &GetProcessorBNCounters() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
-                            "Block number seen by processor", "?", true};
+                            "Block number seen by processor", "block", true};
   return counter;
 }
 
 Z_I64GAUGE &GetProcessorDSBNCounters() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
-                            "Ds Block number seen by processor", "?", true};
+  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "dsblocknumber",
+                            "Ds Block number seen by processor", "block", true};
   return counter;
 }
 }  // namespace local
@@ -245,6 +245,7 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
 
   switch (Transaction::GetTransactionType(transaction)) {
     case Transaction::NON_CONTRACT: {
+      // LOG_GENERAL(INFO, "Normal transaction");
       INC_STATUS(GetInvocationsCounter(), "Transaction", "Non-Contract");
 
       // Disallow normal transaction to contract account
@@ -569,7 +570,6 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
       break;
     }
     case Transaction::CONTRACT_CALL: {
-      LOG_GENERAL(INFO, "Contract call");
       // reset the storageroot update buffer atomic per transaction
       INC_STATUS(GetInvocationsCounter(), "Transaction",
                  "Contract-Call/Non Contract");
@@ -777,8 +777,6 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
     }
   }
 
-  LOG_GENERAL(INFO, "We are here at least...");
-
   if (!this->IncreaseNonce(fromAddr)) {
     error_code = TxnStatus::MATH_ERROR;
     return false;
@@ -807,8 +805,6 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
     LOG_GENERAL(INFO, "receipt: " << receipt.GetString());
   }
 
-
-  LOG_GENERAL(INFO, "TRUE???" << receipt.GetString());
   return true;
 }
 

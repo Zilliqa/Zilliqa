@@ -35,6 +35,7 @@
     </version>
     <seed>
         <ARCHIVAL_LOOKUP>false</ARCHIVAL_LOOKUP>
+        <ARCHIVAL_LOOKUP_WITH_TX_TRACES>false</ARCHIVAL_LOOKUP_WITH_TX_TRACES>
         <SEED_TXN_COLLECTION_TIME_IN_SEC>5</SEED_TXN_COLLECTION_TIME_IN_SEC>
         <TXN_STORAGE_LIMIT>100000</TXN_STORAGE_LIMIT>
         <SEED_SYNC_SMALL_PULL_INTERVAL>5</SEED_SYNC_SMALL_PULL_INTERVAL>
@@ -200,7 +201,7 @@
         <!-- blocking Call to read socket from evm-ds timeout -->
         <EVM_RPC_TIMEOUT_SECONDS>59</EVM_RPC_TIMEOUT_SECONDS>
         <!-- manage the evm-ds instance or not -->
-        <LAUNCH_EVM_DAEMON>false</LAUNCH_EVM_DAEMON>
+        <LAUNCH_EVM_DAEMON>true</LAUNCH_EVM_DAEMON>
         <!-- Use Continuation passing style -->
         <ENABLE_CPS>true</ENABLE_CPS>
     </jsonrpc>

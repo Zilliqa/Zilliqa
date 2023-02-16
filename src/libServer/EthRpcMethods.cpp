@@ -720,9 +720,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
   evm::EvmResult result;
 
-  // todo remove
-  return (boost::format("0x%x") % (91358 *2)).str();
-
   if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
                                                         result) &&
       result.exit_reason().exit_reason_case() ==
@@ -749,7 +746,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
     retGas *= 2;
-    //91358
 
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
@@ -948,8 +944,6 @@ std::string EthRpcMethods::GetProtocolVersion() {
 }
 
 std::string EthRpcMethods::GetEthChainId() {
-  std::cout << "chain id 1" << std::endl;
-  std::cerr << "chain id 1" << std::endl;
   LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
@@ -1732,12 +1726,6 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string &blockId) {
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& txHash, const Json::Value& json) {
-  // todo: figure it out...
-  //if (zil::metrics::Filter::GetInstance().Enabled(
-  //        zil::metrics::FilterClass::EVM_RPC)) {
-  //  m_apiCallCount->Add(1, {{"method", "DebugTraceTransaction"}});
-  //}
-  //INC_CALLS(GetInvocationsCounter());
 
   if (!json.isMember("tracer")) {
     LOG_GENERAL(WARNING, "Missing tracer field");
@@ -1764,26 +1752,12 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
       return Json::nullValue;
     }
 
-    LOG_GENERAL(INFO, "Trace request0: " << trace);
-    //auto json_parsed = Json::Value(trace);
-    //auto json_parsed = json::parse::(trace);
     Json::Value trace_json;
     JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
-    LOG_GENERAL(INFO, "Trace request1: " << trace);
-    auto item = trace_json["call_stack"][0];
-    LOG_GENERAL(INFO, "Trace request3: " << trace);
-    LOG_GENERAL(INFO, "Trace request3.5: " << item);
-    trace = "";
+    auto const item = trace_json["call_stack"][0];
     std::stringstream ss;
     ss << item;
     trace = ss.str();
-    LOG_GENERAL(INFO, "Trace request4: " << trace);
-
-    //// Parse out the call stack infos
-    //Json::Value _json;
-    //_json.
-    //??trace >> _json;
-
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");

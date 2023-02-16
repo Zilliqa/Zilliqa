@@ -310,8 +310,7 @@ const unsigned int REMOVENODEFROMBLACKLIST_DELAY_IN_SECONDS{ReadConstantNumeric(
 // Gas constants
 const uint64_t MIN_ETH_GAS{
     ReadConstantUInt64("MIN_ETH_GAS", "node.gas.", 21000)};
-const unsigned int DS_MICROBLOCK_GAS_LIMIT = 500000;
-    //ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
+const unsigned int DS_MICROBLOCK_GAS_LIMIT = ReadConstantNumeric("DS_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int SHARD_MICROBLOCK_GAS_LIMIT{
     ReadConstantNumeric("SHARD_MICROBLOCK_GAS_LIMIT", "node.gas.")};
 const unsigned int CONTRACT_CREATE_GAS{
@@ -626,7 +625,7 @@ const bool ENABLE_SCILLA_MULTI_VERSION{
     "true"};
 bool ENABLE_SCILLA{ReadConstantString("ENABLE_SCILLA", "node.smart_contract.",
                                       "true") == "true"};
-const bool LOG_SC = true;
+const bool LOG_SC{ReadConstantString("LOG_SC", "node.smart_contract.") == "true"};
 const bool DISABLE_SCILLA_LIB{
     ReadConstantString("DISABLE_SCILLA_LIB", "node.smart_contract.") == "true"};
 const unsigned int SCILLA_SERVER_PENDING_IN_MS{
@@ -735,7 +734,7 @@ const bool IGNORE_BLOCKCOSIG_CHECK{
     ReadConstantString("IGNORE_BLOCKCOSIG_CHECK", "node.verifier.") == "true"};
 const vector<pair<uint64_t, uint32_t>> VERIFIER_MICROBLOCK_EXCLUSION_LIST{
     ReadVerifierMicroblockExclusionListFromConstantsFile()};
-bool ENABLE_EVM = true;
+bool ENABLE_EVM{ReadConstantString("ENABLE_EVM", "node.jsonrpc.", "true") == "true"};
 const std::string EVM_SERVER_SOCKET_PATH{ReadConstantString(
     "EVM_SERVER_SOCKET_PATH", "node.jsonrpc.", "/tmp/evm-server.sock")};
 const std::string EVM_SERVER_BINARY{ReadConstantString(

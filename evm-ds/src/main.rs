@@ -117,44 +117,9 @@ impl LoggingEventListener {
         }
     }
 }
-//// This is what #[derive(Serialize)] would generate.
-//// We need a custom impl becasue one of the fields is 'type' which is a reserved word
-//impl Serialize for CallContext {
-//    fn serialize<S>(&self, serializer: S) -> serde::ser::Result<S::Ok, S::Error>
-//    where
-//        S: Serializer,
-//    {
-//        let mut s = serializer.serialize_struct("CallContext", 3)?;
-//        s.serialize_field("type", &self.call_type)?;
-//        s.serialize_field("from", &self.from)?;
-//        s.serialize_field("to", &self.to)?;
-//        s.serialize_field("value", &self.value)?;
-//        s.serialize_field("gas", &self.gas)?;
-//        s.serialize_field("gasUsed", &self.gasUsed)?;
-//        s.serialize_field("input", &self.input)?;
-//        s.serialize_field("output", &self.output)?;
-//        s.serialize_field("calls", &self.calls)?;
-//        s.end()
-//    }
-//}
-
-//struct LoggingEventListener {
-//    pub traces: Vec<String>,
-//    pub enabled: bool,
-//}
-
-//impl tracing::EventListener for LoggingEventListener {
-//    fn event(&mut self, event: tracing::Event) {
-//        println!("**** EVENT RECVD... {:?}", event);
-//        //self.traces.push(format!("{:?}", event));
-//    }
-//}
 
 impl tracing::EventListener for LoggingEventListener {
-
-
     fn event(&mut self, event: tracing::Event) {
-
         println!("recvd event: {:?}", event);
     }
 }
@@ -162,12 +127,10 @@ impl tracing::EventListener for LoggingEventListener {
 impl LoggingEventListener {
 
     fn as_string(&self) -> String {
-        println!("logging stack final depth: {}", self.call_stack.len());
-
         serde_json::to_string_pretty(self).unwrap()
     }
 
-        fn finished_call(&mut self) {
+    fn finished_call(&mut self) {
         // The call has now completed - adjust the stack if neccessary
         if self.call_stack.len() > 1 {
             let end = self.call_stack.pop().unwrap();
@@ -177,46 +140,9 @@ impl LoggingEventListener {
     }
 
     fn push_call(&mut self, context: CallContext ) {
-
-        //let mut call_to_push = CallContext::new();
-        //let mut end_of_stack = self.call_stack.last().unwrap();
-
-        //call_to_push.call_type = "CALL".to_string();
-        //call_to_push.from = end_of_stack.to.clone();
-        //call_to_push.to = format!("{:?}", code_address);
-        //call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
-        //call_to_push.gasUsed = "0x0".to_string(); // todo
-        //call_to_push.input = hex::encode(input);
-        //call_to_push.output = "0x0".to_string(); // todo
-        //if let Some(trans) = transfer {
-        //    call_to_push.value = trans.value.to_string();
-        //}
-
         // Now we have constructed our new call context, it gets added to the end of
         // the stack
-        //end_of_stack.calls.push(call_to_push);
         self.call_stack.push(context);
-
-        //match event {
-        //    tracing::Event::Call{code_address, transfer, input, target_gas, is_static, context} => {
-        //        // When there is a call, add a call context to bottom of stack
-        //    },
-        //    tracing::Event::Create{..} => {},
-        //    tracing::Event::Suicide{..} => {},
-        //    tracing::Event::Exit{..} => {
-        //        // The call has now completed - adjust the stack if neccessary
-        //        if self.call_stack.len() > 1 {
-        //            let end = self.call_stack.pop().unwrap();
-        //            let new_end = self.call_stack.last_mut().unwrap();
-        //            new_end.calls.push(end);
-        //        }
-        //    },
-        //    tracing::Event::TransactCall{..} => {},
-        //    tracing::Event::TransactCreate{..} => {},
-        //    tracing::Event::TransactCreate2{..} => {},
-        //    tracing::Event::PrecompileSubcall{..} => {},
-        //}
-
     }
 }
 
