@@ -576,6 +576,7 @@ dependencies = [
 [[package]]
 name = "evm"
 version = "0.37.0"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#264c67c6015475965b01cdfdc4de9c792e85879b"
 dependencies = [
  "auto_impl",
  "environmental",
@@ -595,6 +596,7 @@ dependencies = [
 [[package]]
 name = "evm-core"
 version = "0.37.0"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#264c67c6015475965b01cdfdc4de9c792e85879b"
 dependencies = [
  "parity-scale-codec",
  "primitive-types 0.12.1",
@@ -645,6 +647,7 @@ dependencies = [
 [[package]]
 name = "evm-gasometer"
 version = "0.37.0"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#264c67c6015475965b01cdfdc4de9c792e85879b"
 dependencies = [
  "environmental",
  "evm-core",
@@ -655,6 +658,7 @@ dependencies = [
 [[package]]
 name = "evm-runtime"
 version = "0.37.0"
+source = "git+https://github.com/Zilliqa/evm?branch=make-machine-constructible-from-state-3#264c67c6015475965b01cdfdc4de9c792e85879b"
 dependencies = [
  "auto_impl",
  "environmental",

@@ -10,6 +10,7 @@ mod evm_server;
 mod evm_server_run;
 mod ipc_connect;
 mod precompiles;
+mod pretty_printer;
 mod protos;
 mod scillabackend;
 
