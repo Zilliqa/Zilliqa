@@ -13,6 +13,9 @@ mod precompiles;
 mod protos;
 mod scillabackend;
 
+use serde::ser::{SerializeStruct, Serializer};
+use serde::{Deserialize, Serialize};
+
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -63,7 +66,7 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
-#[derive(Debug,Serialize)]
+#[derive(Debug,Serialize,Deserialize)]
 struct CallContext {
     #[serde(rename = "type")]
     pub call_type : String,
@@ -99,6 +102,7 @@ impl CallContext {
 // Created in this way.
 // Each new call gets added to the end of the stack and becomes the current context.
 // On returning from a call, the end of the stack gets put into the item above's calls
+#[derive(Debug,Serialize,Deserialize)]
 struct LoggingEventListener {
     pub call_stack: Vec<CallContext>,
     pub enabled: bool,
@@ -147,51 +151,72 @@ impl LoggingEventListener {
 //}
 
 impl tracing::EventListener for LoggingEventListener {
+
+
     fn event(&mut self, event: tracing::Event) {
 
         println!("recvd event: {:?}", event);
+    }
+}
 
-        if self.call_stack.is_empty() {
-            error!("call stack empty in listener!!! ");
+impl LoggingEventListener {
+
+    fn as_string(&self) -> String {
+        println!("logging stack final depth: {}", self.call_stack.len());
+
+        serde_json::to_value(self).unwrap()
+    }
+
+        fn finished_call(&mut self) {
+        // The call has now completed - adjust the stack if neccessary
+        if self.call_stack.len() > 1 {
+            let end = self.call_stack.pop().unwrap();
+            let new_end = self.call_stack.last_mut().unwrap();
+            new_end.calls.push(end);
         }
+    }
 
-        match event {
-            tracing::Event::Call{code_address, transfer, input, target_gas, is_static, context} => {
-                // When there is a call, add a call context to bottom of stack
-                let mut call_to_push = CallContext::new();
-                let mut end_of_stack = self.call_stack.last().unwrap();
+    fn push_call(&mut self, context: CallContext ) {
 
-                call_to_push.call_type = "CALL".to_string();
-                call_to_push.from = end_of_stack.to.clone();
-                call_to_push.to = format!("{:?}", code_address);
-                call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
-                call_to_push.gasUsed = "0x0".to_string(); // todo
-                call_to_push.input = hex::encode(input);
-                call_to_push.output = "0x0".to_string(); // todo
-                if let Some(trans) = transfer {
-                    call_to_push.value = trans.value.to_string();
-                }
+        //let mut call_to_push = CallContext::new();
+        //let mut end_of_stack = self.call_stack.last().unwrap();
 
-                // Now we have constructed our new call context, it gets added to the end of
-                // the stack
-                //end_of_stack.calls.push(call_to_push);
-                self.call_stack.push(call_to_push);
-            },
-            tracing::Event::Create{..} => {},
-            tracing::Event::Suicide{..} => {},
-            tracing::Event::Exit{..} => {
-                // The call has now completed - adjust the stack if neccessary
-                if self.call_stack.len() > 1 {
-                    let end = self.call_stack.pop().unwrap();
-                    let new_end = self.call_stack.last_mut().unwrap();
-                    new_end.calls.push(end);
-                }
-            },
-            tracing::Event::TransactCall{..} => {},
-            tracing::Event::TransactCreate{..} => {},
-            tracing::Event::TransactCreate2{..} => {},
-            tracing::Event::PrecompileSubcall{..} => {},
-        }
+        //call_to_push.call_type = "CALL".to_string();
+        //call_to_push.from = end_of_stack.to.clone();
+        //call_to_push.to = format!("{:?}", code_address);
+        //call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
+        //call_to_push.gasUsed = "0x0".to_string(); // todo
+        //call_to_push.input = hex::encode(input);
+        //call_to_push.output = "0x0".to_string(); // todo
+        //if let Some(trans) = transfer {
+        //    call_to_push.value = trans.value.to_string();
+        //}
+
+        // Now we have constructed our new call context, it gets added to the end of
+        // the stack
+        //end_of_stack.calls.push(call_to_push);
+        self.call_stack.push(context);
+
+        //match event {
+        //    tracing::Event::Call{code_address, transfer, input, target_gas, is_static, context} => {
+        //        // When there is a call, add a call context to bottom of stack
+        //    },
+        //    tracing::Event::Create{..} => {},
+        //    tracing::Event::Suicide{..} => {},
+        //    tracing::Event::Exit{..} => {
+        //        // The call has now completed - adjust the stack if neccessary
+        //        if self.call_stack.len() > 1 {
+        //            let end = self.call_stack.pop().unwrap();
+        //            let new_end = self.call_stack.last_mut().unwrap();
+        //            new_end.calls.push(end);
+        //        }
+        //    },
+        //    tracing::Event::TransactCall{..} => {},
+        //    tracing::Event::TransactCreate{..} => {},
+        //    tracing::Event::TransactCreate2{..} => {},
+        //    tracing::Event::PrecompileSubcall{..} => {},
+        //}
+
     }
 }
 

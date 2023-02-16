@@ -8,6 +8,8 @@ use evm::{
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
 use evm::{Machine, Runtime};
+use evm::tracing::EventListener;
+use crate::CallContext;
 
 use log::{debug, error, info};
 
@@ -72,7 +74,7 @@ pub async fn run_evm_impl(
             println!("We had a continuation");
             let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
             if let None = recorded_cont {
-                let result = handle_panic(vec![], gas_limit, "Continuation not found!");
+                let result = handle_panic(tx_trace, gas_limit, "Continuation not found!");
                 return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
             let recorded_cont = recorded_cont.unwrap();
@@ -99,12 +101,56 @@ pub async fn run_evm_impl(
 
         //let mut listener = LoggingEventListener{traces : vec![format!("{} + {}", tx_trace, address)], enabled: tx_trace_enabled};
 
-        let mut listener = LoggingEventListener::new();
-        listener.call_stack[0].call_type = "CALL".to_string();
-        listener.call_stack[0].from = format!("{:?}", backend.origin);
-        listener.call_stack[0].to = format!("{:?}", address);
-        listener.call_stack[0].value = apparent_value.to_string();
-        listener.call_stack[0].input = hex::encode(&data);
+        let mut listener;
+        //let v = serde_json::to_value(&entry).unwrap();
+        //let document: Document = serde_json::from_value(v).unwrap();
+
+        if tx_trace.is_empty() {
+            listener = LoggingEventListener::new(tx_trace_enabled);
+        } else {
+            listener = serde_json::from_str(&tx_trace).unwrap()
+        }
+
+        // If there is no continuation, we need to push our call context on
+        if feedback_continuation.is_none() {
+            println!("continuation is none... pushing call.");
+
+            let mut call = CallContext::new();
+            call.call_type = "CALL".to_string();
+
+            if (listener.call_stack.is_empty()) {
+                call.from = format!("{:?}", backend.origin);
+            } else {
+                call.from = listener.call_stack.last().unwrap().to.clone();
+            }
+            call.to = format!("{:?}", address);
+            //call.gas = format!("{:x}", target_gas.unwrap_or(0));
+            //call.gasUsed = "0x0".to_string(); // todo
+            //call.input = hex::encode(input);
+            //call.output = "0x0".to_string(); // todo
+
+            listener.push_call(call);
+
+            //listener.call_stack[0].call_type = "CALL".to_string();
+            //listener.call_stack[0].from = format!("{:?}", backend.origin);
+            //listener.call_stack[0].to = format!("{:?}", address);
+            //listener.call_stack[0].value = apparent_value.to_string();
+            //listener.call_stack[0].input = hex::encode(&data);
+
+            //let mut end_of_stack = self.call_stack.last().unwrap();
+
+            //call_to_push.call_type = "CALL".to_string();
+            //call_to_push.from = end_of_stack.to.clone();
+            //call_to_push.to = format!("{:?}", code_address);
+            //call_to_push.gas = format!("{:x}", target_gas.unwrap_or(0));
+            //call_to_push.gasUsed = "0x0".to_string(); // todo
+            //call_to_push.input = hex::encode(input);
+            //call_to_push.output = "0x0".to_string(); // todo
+            //if let Some(trans) = transfer {
+            //    call_to_push.value = trans.value.to_string();
+            //}
+
+        }
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -123,7 +169,7 @@ pub async fn run_evm_impl(
                     .downcast::<String>()
                     .unwrap_or_else(|_| Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
-            let result = handle_panic(listener.traces.clone(), remaining_gas, &panic_message);
+            let result = handle_panic(listener.as_string(), remaining_gas, &panic_message);
             return Ok(base64::encode(result.write_to_bytes().unwrap()));
         }
 
@@ -131,6 +177,11 @@ pub async fn run_evm_impl(
 
         let result = match cps_result {
             CpsReason::NormalExit(exit_reason) => {
+
+                // Normal exit, we finished call.
+                println!("Normal exit...");
+                listener.finished_call();
+
                 match exit_reason {
                     evm::ExitReason::Succeed(_) => {}
                     _ => {
@@ -333,14 +384,14 @@ fn build_create_result(
     result
 }
 
-fn handle_panic(traces: Vec<String>, remaining_gas: u64, reason: &str) -> EvmProto::EvmResult {
+fn handle_panic(trace: String, remaining_gas: u64, reason: &str) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     let mut fatal = EvmProto::ExitReason_Fatal::new();
     fatal.set_error_string(reason.into());
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_fatal(fatal);
     result.set_exit_reason(exit_reason);
-    //result.set_tx_trace(traces.into_iter().map(Into::into).collect()); // todo
+    result.set_tx_trace(trace.into()); // todo
     result.set_remaining_gas(remaining_gas);
     result
 }
