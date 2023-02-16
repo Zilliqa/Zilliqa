@@ -371,7 +371,6 @@ std::string EthRpcMethods::CreateTransactionEth(
     Eth::EthFields const &fields, zbytes const &pubKey,
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -767,7 +766,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
                                      const ApiKeys &apiKeys) {
-  LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
 
   INC_CALLS(GetInvocationsCounter());
@@ -868,13 +866,11 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
 std::string EthRpcMethods::GetWeb3ClientVersion() {
   INC_CALLS(GetInvocationsCounter());
 
-  LOG_MARKER();
 
   return "Zilliqa/v8.2";
 }
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value &_json) {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -884,7 +880,6 @@ string EthRpcMethods::GetWeb3Sha3(const Json::Value &_json) {
 }
 
 Json::Value EthRpcMethods::GetEthUncleCount() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -894,7 +889,6 @@ Json::Value EthRpcMethods::GetEthUncleCount() {
 }
 
 Json::Value EthRpcMethods::GetEthUncleBlock() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -904,7 +898,6 @@ Json::Value EthRpcMethods::GetEthUncleBlock() {
 }
 
 Json::Value EthRpcMethods::GetEthMining() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -912,7 +905,6 @@ Json::Value EthRpcMethods::GetEthMining() {
 }
 
 std::string EthRpcMethods::GetEthCoinbase() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -922,7 +914,6 @@ std::string EthRpcMethods::GetEthCoinbase() {
 }
 
 Json::Value EthRpcMethods::GetNetListening() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -930,7 +921,6 @@ Json::Value EthRpcMethods::GetNetListening() {
 }
 
 std::string EthRpcMethods::GetNetPeerCount() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -938,7 +928,6 @@ std::string EthRpcMethods::GetNetPeerCount() {
 }
 
 std::string EthRpcMethods::GetProtocolVersion() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -946,7 +935,6 @@ std::string EthRpcMethods::GetProtocolVersion() {
 }
 
 std::string EthRpcMethods::GetEthChainId() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -954,7 +942,6 @@ std::string EthRpcMethods::GetEthChainId() {
 }
 
 Json::Value EthRpcMethods::GetEthSyncing() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -962,7 +949,6 @@ Json::Value EthRpcMethods::GetEthSyncing() {
 }
 
 Json::Value EthRpcMethods::GetEmptyResponse() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -1012,7 +998,6 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
 Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
                                            std::string const &position,
                                            std::string const & /*blockNum*/) {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -1106,8 +1091,6 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
 Json::Value EthRpcMethods::GetEthCode(std::string const &address,
                                       std::string const & /*blockNum*/) {
   INC_CALLS(GetInvocationsCounter());
-
-  LOG_MARKER();
 
   zbytes code;
   try {

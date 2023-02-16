@@ -332,10 +332,14 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     if (!cpsRunResult.evmResult.tx_trace().empty()) {
       LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
 
-      if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                      cpsRunResult.evmResult.tx_trace())) {
-        LOG_GENERAL(INFO,
-                    "FAIL: Put TX trace failed " << evmContext.GetTranID());
+      if(evmContext.GetEstimateOnly()) {
+        LOG_GENERAL(INFO, "Was only an estimate...");
+      } else {
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+                                                        cpsRunResult.evmResult.tx_trace())) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
+        }
       }
     }
 

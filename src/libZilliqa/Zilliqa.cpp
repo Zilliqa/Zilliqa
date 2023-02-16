@@ -610,8 +610,6 @@ Zilliqa::~Zilliqa() {
 }
 
 void Zilliqa::Dispatch(Zilliqa::Msg message) {
-  LOG_MARKER();
-
   // Queue message
   size_t queueSz{};
   if (!m_msgQueue.bounded_push(std::move(message), queueSz)) {
