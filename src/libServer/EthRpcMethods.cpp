@@ -44,6 +44,7 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
@@ -1763,9 +1764,28 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
       return Json::nullValue;
     }
 
-    LOG_GENERAL(INFO, "Trace request: " << trace);
+    LOG_GENERAL(INFO, "Trace request0: " << trace);
+    //auto json_parsed = Json::Value(trace);
+    //auto json_parsed = json::parse::(trace);
+    Json::Value trace_json;
+    JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
+    LOG_GENERAL(INFO, "Trace request1: " << trace);
+    auto item = trace_json["call_stack"][0];
+    LOG_GENERAL(INFO, "Trace request3: " << trace);
+    LOG_GENERAL(INFO, "Trace request3.5: " << item);
+    trace = "";
+    std::stringstream ss;
+    ss << item;
+    trace = ss.str();
+    LOG_GENERAL(INFO, "Trace request4: " << trace);
+
+    //// Parse out the call stack infos
+    //Json::Value _json;
+    //_json.
+    //??trace >> _json;
+
   } catch (exception& e) {
-    LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << txHash);
+    LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 

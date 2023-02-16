@@ -112,7 +112,7 @@ impl LoggingEventListener {
 
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
-            call_stack: vec![CallContext::new()],
+            call_stack: Default::default(),
             enabled: enabled,
         }
     }
@@ -164,7 +164,7 @@ impl LoggingEventListener {
     fn as_string(&self) -> String {
         println!("logging stack final depth: {}", self.call_stack.len());
 
-        serde_json::to_value(self).unwrap()
+        serde_json::to_string_pretty(self).unwrap()
     }
 
         fn finished_call(&mut self) {

@@ -27,6 +27,10 @@ describe("Chained Contract Calls Functionality", function () {
       let addrTwo   = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
 
+      console.log(addrOne);
+      console.log(addrTwo);
+      console.log(addrThree);
+
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 
       // Now call contract one, passing in the addresses of contracts two and three

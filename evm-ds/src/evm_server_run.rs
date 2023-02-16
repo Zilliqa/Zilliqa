@@ -272,7 +272,7 @@ fn build_exit_result(
             .collect(),
     );
     //result.set_trace(traces.into_iter().map(Into::into).collect());
-    result.set_tx_trace(trace.traces.first().unwrap().clone().into());
+    result.set_tx_trace(trace.as_string().into());
     result.set_logs(logs.into_iter().map(Into::into).collect());
     result.set_remaining_gas(remaining_gas);
     result
@@ -293,7 +293,8 @@ fn build_call_result(
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
-    result.set_tx_trace(trace.traces.first().unwrap().clone().into());
+    //result.set_tx_trace(trace.traces.first().unwrap().clone().into());
+    result.set_tx_trace(trace.as_string().into());
     result.set_remaining_gas(remaining_gas);
 
     let mut trap_data_call = EvmProto::TrapData_Call::new();
@@ -342,7 +343,8 @@ fn build_create_result(
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
-    result.set_tx_trace(trace.traces.first().unwrap().clone().into());
+    //result.set_tx_trace(trace.traces.first().unwrap().clone().into());
+    result.set_tx_trace(trace.as_string().into());
     result.set_remaining_gas(remaining_gas);
 
     let mut scheme = EvmProto::TrapData_Scheme::new();
