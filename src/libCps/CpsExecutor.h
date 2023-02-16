@@ -37,6 +37,8 @@ class CpsExecutor final {
   CpsExecuteResult Run(EvmProcessContext& context);
   void PushRun(std::shared_ptr<CpsRun> run);
   CpsAccountStoreInterface& GetAccStoreIface() { return mAccountStore; }
+  void TxTraceClear();
+  std::string &CurrentTrace();
 
  private:
   CpsExecuteResult PreValidateRun(const EvmProcessContext& context) const;
@@ -44,8 +46,6 @@ class CpsExecutor final {
   void RefundGas(const EvmProcessContext& context,
                  const CpsExecuteResult& runResult);
   void TakeGasFromAccount(const EvmProcessContext& context);
-  void TxTraceClear();
-  std::string &CurrentTrace();
 
  private:
   CpsAccountStoreInterface& mAccountStore;

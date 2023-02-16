@@ -155,10 +155,10 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
-                let result = build_exit_result(executor, &runtime, &backend, &listener, exit_reason, remaining_gas);
+                let result = build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?},  result: {:?}",
-                    evm_context, backend.origin, address, gas_limit, apparent_value,
+                    "EVM execution summary: exit reason: {:?}, context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?},  extras: {:?}, estimate: {:?}, cps: {:?},  result: {:?}",
+                    exit_reason, evm_context, backend.origin, address, gas_limit, apparent_value,
                     backend.extras, estimate, enable_cps, result);
 
                 result
@@ -185,11 +185,11 @@ fn build_exit_result(
     runtime: &Runtime,
     backend: &ScillaBackend,
     trace: &LoggingEventListener,
-    exit_reason: evm::ExitReason,
+    exit_reason: &evm::ExitReason,
     remaining_gas: u64,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
-    result.set_exit_reason(exit_reason.into());
+    result.set_exit_reason(exit_reason.clone().into());
     result.set_return_value(runtime.machine().return_value().into());
     let (state_apply, logs) = executor.into_state().deconstruct();
     result.set_apply(

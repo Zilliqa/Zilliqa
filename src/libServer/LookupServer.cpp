@@ -401,8 +401,6 @@ bool LookupServer::StartCollectorThread() {
         LOG_GENERAL(INFO, "Size of txns to DS: " << txnsDS.size());
       }
 
-      bool hasTxn = false;
-
       for (auto const& i :
            {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
         {
@@ -410,7 +408,6 @@ bool LookupServer::StartCollectorThread() {
           if (m_mediator.m_lookup->GetTxnFromShardMap(i).empty()) {
             continue;
           }
-          hasTxn = true;
         }
       }
 
