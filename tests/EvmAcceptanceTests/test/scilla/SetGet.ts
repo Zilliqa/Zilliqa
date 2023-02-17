@@ -3,8 +3,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-// TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
-describe.skip("Scilla SetGet contract", function () {
+describe("Scilla SetGet contract", function () {
   let contract: ScillaContract;
   const VALUE = 12;
 
