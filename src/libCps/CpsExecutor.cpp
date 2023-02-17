@@ -177,7 +177,6 @@ void CpsExecutor::RefundGas(const EvmProcessContext& context,
 }
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
-  LOG_GENERAL(WARNING, "Pushing run on... " << m_queue.size());
   m_queue.push_back(std::move(run));
 }
 

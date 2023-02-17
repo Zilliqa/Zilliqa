@@ -106,8 +106,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const evm::EvmResult& evmResult = invokeResult.value();
 
   mExecutor.CurrentTrace() = evmResult.tx_trace();
-  LOG_GENERAL(WARNING, "updating the current trace! " << mExecutor.CurrentTrace());
-
   mProtoArgs.set_gas_limit(evmResult.remaining_gas());
 
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
