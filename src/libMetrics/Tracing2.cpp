@@ -280,6 +280,9 @@ Span Tracing::CreateSpan(FilterClass filter, std::string_view name) {
 Span Tracing::CreateChildSpanOfRemoteTrace(FilterClass filter,
                                            std::string_view name,
                                            std::string_view remote_trace_info) {
+  if (remote_trace_info.empty()) {
+    return Span{};
+  }
   return TracingImpl::GetInstance().CreateChildSpanOfRemoteTrace(
       filter, name, remote_trace_info);
 }

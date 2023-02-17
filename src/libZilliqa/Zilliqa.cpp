@@ -30,7 +30,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Tracing2.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -169,14 +169,18 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       }
 
       // TODO Active span to check
-      std::shared_ptr<trace_api::Span> traceSpan;
-      if (!message->traceContext.empty()) {
-        // TODO XXX remove after debug
-        LOG_GENERAL(INFO, "trace ctx not empty");
-        traceSpan =
-            zil::trace::CreateChildSpan("Dispatch", message->traceContext);
-      }
-      zil::trace::Scope scope(traceSpan);
+      //      std::shared_ptr<trace_api::Span> traceSpan;
+      //      if (!message->traceContext.empty()) {
+      //        // TODO XXX remove after debug
+      //        LOG_GENERAL(INFO, "trace ctx not empty");
+      //        traceSpan =
+      //            zil::trace::CreateChildSpan("Dispatch",
+      //            message->traceContext);
+      //      }
+      //      zil::trace::Scope scope(traceSpan);
+
+      auto span = zil::trace2::Tracing::CreateChildSpanOfRemoteTrace(
+          zil::trace2::FilterClass::NODE, "Dispatch", message->traceContext);
 
       bool result = msg_handlers[msg_type]->Execute(
           message->msg, MessageOffset::INST, message->from, message->startByte);
@@ -190,10 +194,14 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
             INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
       }
 
+      auto spanExitCode = zil::trace2::StatusCode::OK;
       if (!result) {
         // To-do: Error recovery
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
+        spanExitCode = zil::trace2::StatusCode::ERROR;
       }
+      span.End(spanExitCode);
+
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex
                                                    << (unsigned int)msg_type);

@@ -171,27 +171,28 @@ class Tracing {
 
   /// Returns if tracing with a given filter is enabled. Usable for more complex
   /// scenarios than just CreateSpan(...)
-  static bool IsEnabled(FilterClass filter);
+  [[nodiscard]] static bool IsEnabled(FilterClass filter);
 
   /// Creates a scoped span.
   /// Returns a no-op span if this filter is disabled or tracing is disabled.
   /// Otherwise creates a child span of the active span (if there is the active
   /// span in this thread) and activates it
-  static Span CreateSpan(FilterClass filter, std::string_view name);
+  [[nodiscard]] static Span CreateSpan(FilterClass filter,
+                                       std::string_view name);
 
   /// Creates a scoped span as a child of remote span.
   /// Returns a no-op span if deserialization of remote_trace_info fails.
   /// All the rest logic is the same as of CreateSpan
-  static Span CreateChildSpanOfRemoteTrace(FilterClass filter,
-                                           std::string_view name,
-                                           std::string_view remote_trace_info);
+  [[nodiscard]] static Span CreateChildSpanOfRemoteTrace(
+      FilterClass filter, std::string_view name,
+      std::string_view remote_trace_info);
 
   /// Returns the active span (if any) or to a no-op span (if no
   /// active span or tracing disabled)
-  static Span GetActiveSpan();
+  [[nodiscard]] static Span GetActiveSpan();
 
   // TODO some research needed to shutdown it gracefully
-  //static void Shutdown();
+  // static void Shutdown();
 };
 
 }  // namespace zil::trace2

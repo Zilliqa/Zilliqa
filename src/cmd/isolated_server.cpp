@@ -23,7 +23,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing.h"
+#include "libMetrics/Tracing2.h"
 #include "libNode/Node.h"
 #include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
@@ -164,7 +164,10 @@ int main(int argc, const char* argv[]) {
     ISOLATED_SERVER = true;
 
     // Enough to bring the instance into scope
-    Tracing::GetInstance();
+    //Tracing::GetInstance();
+
+    zil::trace2::Tracing::Initialize();
+
     Metrics::GetInstance();
 
     createConfigFile();
