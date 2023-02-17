@@ -334,6 +334,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     if (!cpsRunResult.evmResult.tx_trace().empty()) {
       LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
 
+      if(!evmContext.GetTranID()) {
+        LOG_GENERAL(INFO, "all zeroes, do nothing!");
+      }
+
       if(evmContext.GetEstimateOnly()) {
         LOG_GENERAL(INFO, "Was only an estimate...");
       } else {

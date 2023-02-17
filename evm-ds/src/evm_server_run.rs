@@ -8,13 +8,9 @@ use evm::{
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
 use evm::{Machine, Runtime};
-use evm::tracing::EventListener;
 use crate::CallContext;
 
 use log::{debug, error, info};
-
-use serde::ser::{SerializeStruct, Serializer};
-use serde::{Deserialize, Serialize};
 
 use jsonrpc_core::Result;
 use primitive_types::*;
@@ -68,7 +64,6 @@ pub async fn run_evm_impl(
         // Check if evm should resume from the point it stopped
         let (feedback_continuation, mut runtime, state) =
         if let Some(continuation) = node_continuation {
-            println!("We had a continuation");
             let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
             if let None = recorded_cont {
                 let result = handle_panic(tx_trace, gas_limit, "Continuation not found!");
@@ -108,7 +103,7 @@ pub async fn run_evm_impl(
             let mut call = CallContext::new();
             call.call_type = "CALL".to_string();
 
-            if (listener.call_stack.is_empty()) {
+            if listener.call_stack.is_empty() {
                 call.from = format!("{:?}", backend.origin);
             } else {
                 call.from = listener.call_stack.last().unwrap().to.clone();
@@ -149,7 +144,6 @@ pub async fn run_evm_impl(
                 match exit_reason {
                     evm::ExitReason::Succeed(_) => {}
                     _ => {
-                        println!("argh... we had a failure..");
                         debug!("Machine: position: {:?}, memory: {:?}, stack: {:?}",
                                runtime.machine().position(),
                                &runtime.machine().memory().data().iter().take(128).collect::<Vec<_>>(),

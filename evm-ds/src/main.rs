@@ -14,7 +14,6 @@ mod pretty_printer;
 mod protos;
 mod scillabackend;
 
-use serde::ser::{SerializeStruct, Serializer};
 use serde::{Deserialize, Serialize};
 
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
@@ -75,7 +74,8 @@ struct CallContext {
     pub to : String,
     pub value : String,
     pub gas : String,
-    pub gasUsed : String,
+    #[serde(rename = "gasUsed")]
+    pub gas_used : String,
     pub input : String,
     pub output : String,
 
@@ -90,7 +90,7 @@ impl CallContext {
             to : Default::default(),
             value : Default::default(),
             gas : "0x0".to_string(),
-            gasUsed : "0x0".to_string(),
+            gas_used : "0x0".to_string(),
             input : Default::default(),
             output : Default::default(),
             calls: Default::default(),
@@ -105,8 +105,8 @@ impl CallContext {
 // On returning from a call, the end of the stack gets put into the item above's calls
 #[derive(Debug,Serialize,Deserialize)]
 struct LoggingEventListener {
-    pub call_stack: Vec<CallContext>,
-    pub enabled: bool,
+    call_stack: Vec<CallContext>,
+    enabled: bool,
 }
 
 impl LoggingEventListener {
@@ -142,8 +142,10 @@ impl LoggingEventListener {
 
     fn push_call(&mut self, context: CallContext ) {
         // Now we have constructed our new call context, it gets added to the end of
-        // the stack
-        self.call_stack.push(context);
+        // the stack (if we want to do tracing)
+        if self.enabled {
+            self.call_stack.push(context);
+        }
     }
 }
 
