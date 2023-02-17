@@ -36,7 +36,6 @@ Validator::~Validator() {}
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
                                         TransactionReceipt& receipt,
                                         TxnStatus& error_code) const {
-  LOG_GENERAL(WARNING, "Marker001: chec created 0... " << ARCHIVAL_LOOKUP_WITH_TX_TRACES);
 
   if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(WARNING,
@@ -44,7 +43,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
                 "called from LookUp node.");
     return true;
   }
-  LOG_GENERAL(WARNING, "Marker001: chec created 1... ");
   error_code = TxnStatus::NOT_PRESENT;
 
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
@@ -108,7 +106,6 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       dsBlock.GetHeader().GetDifficulty()};
 
 
-  LOG_GENERAL(WARNING, "Marker001: updating accounts! ... ");
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
       m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE, tx, txnExtras,

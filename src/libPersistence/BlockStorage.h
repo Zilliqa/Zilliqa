@@ -201,9 +201,6 @@ class BlockStorage : boost::noncopyable {
   bool PutTxTrace(const dev::h256& key, const std::string& trace);
   bool GetTxTrace(const dev::h256& key, std::string& trace);
 
-  /// Deletes the requested DS block
-  bool DeleteDSBlock(const uint64_t& blocknum);
-
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
 

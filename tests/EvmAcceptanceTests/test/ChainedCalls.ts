@@ -12,13 +12,9 @@ describe("Chained Contract Calls Functionality", function () {
   let contractThree: Contract;
 
   before(async function () {
-    console.log("Deploying contract one...");
     contractOne   = await parallelizer.deployContract("ContractOne");
-    console.log("Deploying contract two...");
     contractTwo   = await parallelizer.deployContract("ContractTwo");
-    console.log("Deploying contract three...");
     contractThree = await parallelizer.deployContract("ContractThree");
-    console.log("Deploying contract done...");
   });
 
   describe("Install and call chained contracts", function () {
@@ -29,10 +25,6 @@ describe("Chained Contract Calls Functionality", function () {
       let addrOne   = contractOne.address.toLowerCase();
       let addrTwo   = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
-
-      console.log(addrOne);
-      console.log(addrTwo);
-      console.log(addrThree);
 
       let res = await contractOne.chainedCall([addrTwo, addrThree, addrOne], 0);
 

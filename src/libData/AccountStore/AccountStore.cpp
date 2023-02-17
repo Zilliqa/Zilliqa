@@ -599,7 +599,6 @@ bool AccountStore::UpdateAccountsTemp(
   // start the clock
 
   std::chrono::system_clock::time_point tpLatencyStart = r_timer_start();
-  LOG_GENERAL(WARNING, "Marker001: executing I hope! ... ");
 
   lock(g, g2);
 
@@ -617,7 +616,6 @@ bool AccountStore::UpdateAccountsTemp(
     }
   }
 
-  LOG_GENERAL(WARNING, "Marker001: here the good stuff happens! ... ");
 
   if (ENABLE_EVM == false && isEvm) {
     LOG_GENERAL(WARNING,
@@ -628,7 +626,6 @@ bool AccountStore::UpdateAccountsTemp(
     return false;
   }
 
-  LOG_GENERAL(WARNING, "Marker001: processing! ... ");
 
   bool status;
   LOG_GENERAL(WARNING,
@@ -636,7 +633,6 @@ bool AccountStore::UpdateAccountsTemp(
   if (isEvm) {
     EvmProcessContext context(blockNum, transaction, txnExtras);
 
-    LOG_GENERAL(WARNING, "Marker001: thing thing thing! ... ");
 
     status = m_accountStoreTemp.UpdateAccountsEvm(blockNum, numShards, isDS,
                                                   receipt, error_code, context);

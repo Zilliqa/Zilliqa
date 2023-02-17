@@ -286,7 +286,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   LOG_MARKER();
   std::string txnId = evmContext.GetTranID().hex();
 
-  LOG_GENERAL(WARNING, "Marker001: the promised land! ... ");
 
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
@@ -331,15 +330,11 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     const auto cpsRunResult = cpsExecutor.Run(evmContext);
     error_code = cpsRunResult.txnStatus;
 
-    if (!cpsRunResult.evmResult.tx_trace().empty()) {
+    if (!cpsRunResult.evmResult.tx_trace().empty() && ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
       LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
 
       if(!evmContext.GetTranID()) {
-        LOG_GENERAL(INFO, "all zeroes, do nothing!");
-      }
-
-      if(evmContext.GetEstimateOnly()) {
-        LOG_GENERAL(INFO, "Was only an estimate...");
+        LOG_GENERAL(INFO, "hash is all zeroes, do nothing!");
       } else {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         cpsRunResult.evmResult.tx_trace())) {

@@ -719,8 +719,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
   evm::EvmResult result;
 
-  //return (boost::format("0x%x") % 90000).str();
-
   if (AccountStore::GetInstance().EvmProcessMessageTemp(evmMessageContext,
                                                         result) &&
       result.exit_reason().exit_reason_case() ==

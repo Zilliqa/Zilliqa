@@ -602,13 +602,6 @@ bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
   return true;
 }
 
-bool BlockStorage::DeleteDSBlock(const uint64_t& blocknum) {
-  LOG_GENERAL(INFO, "Delete DSBlock Num: " << blocknum);
-  unique_lock<shared_timed_mutex> g(m_mutexDsBlockchain);
-  int ret = m_dsBlockchainDB->DeleteKey(blocknum);
-  return (ret == 0);
-}
-
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {
   LOG_GENERAL(INFO, "Delete TxBlock Num: " << blocknum);
   unique_lock<shared_timed_mutex> g(m_mutexTxBlockchain);
