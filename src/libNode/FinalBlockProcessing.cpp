@@ -708,6 +708,82 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   return false;
 }
 
+void Node::PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblockPtrs, std::vector<Transaction> &txsToExecute) {
+
+  // Now collect a vector of TXs we need to execute
+  for (auto const& microBlockPtr : microblockPtrs) {
+
+    const auto &tranHashes = microBlockPtr->GetTranHashes();
+
+    LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
+
+    // Loop through the TX hashes making sure we have a corresponding TX
+    for (const auto &transactionHash : tranHashes) {
+      for (int ii = 0; ii < 5; ++ii) {
+        TxBodySharedPtr transactionBodyPtr;
+
+        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                       transactionBodyPtr)) {
+          LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body for: " << transactionHash );
+          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          continue;
+        } else {
+          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
+          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
+          txsToExecute.push_back(transactionBodyPtr->GetTransaction());
+        }
+      }
+    }
+  }
+
+}
+
+void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs, BlockHash const &hash) {
+
+  LOG_GENERAL(WARNING, "Marker001: populating: " << hash);
+
+  // Loop for a long time waiting for the microblock details from peers
+  bool found_mbs = false;
+  for (int i = 0; i < 3 && !found_mbs; ++i) {
+
+    {
+      lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
+
+      // Scan for mb in forwarded buffer
+      for (auto it = m_mbnForwardedTxnBuffer.begin();
+           it != m_mbnForwardedTxnBuffer.end();) {
+        LOG_GENERAL(WARNING,
+                    "Marker001: microblock details blocknum: " << it->first);
+
+        for (const auto& entry : it->second) {
+
+          if (entry.m_microBlock.GetBlockHash() == hash) {
+            LOG_GENERAL(WARNING, "Marker001: microblock details FOUND! ");
+
+            LOG_GENERAL(WARNING, "Marker001: microblock details hash: "
+                << entry.m_microBlock.GetBlockHash());
+
+            LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
+                << entry.m_transactions.size());
+
+            MicroBlockSharedPtr microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
+            microblockPtrs.push_back(microBlockPtr);
+            found_mbs = true;
+          }
+
+          for(const auto &txWReceipt : entry.m_transactions) {
+            LOG_GENERAL(WARNING, "Marker001: Saw TX! " << txWReceipt.GetTransaction().GetTranID());
+            //txsToExecute.push_back();
+          }
+        }
+      }
+    } // guard end
+
+    LOG_GENERAL(WARNING, "Marker001: Waiting for microblock, hrmm: " << hash);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  }
+}
+
 bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
@@ -915,113 +991,39 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     LOG_GENERAL(WARNING, "Marker001: lookup node mode!");
   }
 
-  if (ARCHIVAL_LOOKUP) {
-    LOG_GENERAL(WARNING, "Marker001: archival lookup! Sleeping");
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  if(ARCHIVAL_LOOKUP) {
+    LOG_GENERAL(WARNING, "Marker001: archival lookup! Creating trace...");
 
+    // We will get the TXs to execute, in order, blocking until we
+    // have them all(!)
     auto mbi = txBlock.GetMicroBlockInfos();
+    std::vector<MicroBlockSharedPtr> microblockPtrs;
     std::vector<Transaction> txsToExecute;
+    std::set<TxnHash> txsExecuted;
+    //MicroBlockSharedPtr microBlockPtr{};
 
     for (const auto& mb : mbi) {
-      LOG_GENERAL(WARNING, "Marker001: microblock hash: " << mb.m_microBlockHash);
+      //LOG_GENERAL(WARNING, "Marker001: Tx root hash: " << mb.m_txnRootHash);
 
-      MicroBlockSharedPtr microBlockPtr{};
-
-      //auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
-      //LOG_GENERAL(WARNING, "Marker001: microblock epoch num: " << m_mediator.m_currentEpochNum);
-
-      {
-        lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
-        auto ii = 0;
-        for (auto it = m_mbnForwardedTxnBuffer.begin();
-             it != m_mbnForwardedTxnBuffer.end();) {
-          LOG_GENERAL(WARNING,
-                      "Marker001: microblock details blocknum: " << it->first);
-
-          if (ii++ > 200) {
-            LOG_GENERAL(WARNING, "Marker001: break0: ");
-            break;
-          }
-
-          for (const auto& entry : it->second) {
-
-            if (entry.m_microBlock.GetBlockHash() == mb.m_microBlockHash) {
-              LOG_GENERAL(WARNING, "Marker001: microblock details FOUND! ");
-
-              LOG_GENERAL(WARNING, "Marker001: microblock details hash: "
-                  << entry.m_microBlock.GetBlockHash());
-
-              LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
-                  << entry.m_transactions.size());
-
-              microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
-            }
-
-            for(const auto &txWReceipt : entry.m_transactions) {
-              LOG_GENERAL(WARNING, "Marker001: PUSHING BACK! ");
-              txsToExecute.push_back(txWReceipt.GetTransaction());
-            }
-
-            ii++;
-
-            if (ii > 200) {
-              LOG_GENERAL(WARNING, "Marker001: break1: ");
-              break;
-            }
-          }
-
-          if(!microBlockPtr) {
-            LOG_GENERAL(WARNING, "Marker001: microblock details NOTFOUND! ");
-          }
-
-          it++;
-        }
+      if(!mb.m_txnRootHash) {
+        LOG_GENERAL(WARNING, "Marker001: This is the empty tx root hash, skip! : " << mb.m_txnRootHash);
+        continue;
       }
 
-      //LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
-      //if (!succ) {
-      //  LOG_GENERAL(WARNING, "no success unf from disk unf...");
-      //}
-
-      if (microBlockPtr) {
-        const auto &tranHashes = microBlockPtr->GetTranHashes();
-
-        LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
-        for (const auto &transactionHash : tranHashes) {
-          LOG_GENERAL(WARNING, "Marker001: loop 000: ");
-          TxBodySharedPtr transactionBodyPtr;
-          LOG_GENERAL(WARNING, "Marker001: loop 001: ");
-          if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
-                                                         transactionBodyPtr)) {
-            LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body for: " << transactionHash );
-            continue;
-          } else {
-            LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
-            LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
-            txsToExecute.push_back(transactionBodyPtr->GetTransaction());
-          }
-          LOG_GENERAL(WARNING, "Marker001: loop 002: ");
-        }
-      }
-      //LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
+      PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash);
     }
 
-    LOG_GENERAL(WARNING, "Marker001: Now we generate the TX receipts!" );
-    std::set<TxnHash> txsExecuted;
+    PopulateTxsToExecute(microblockPtrs, txsToExecute);
 
-    LOG_GENERAL(WARNING, "Marker001: txs to execute size: " << txsToExecute.size() );
 
     for (const auto &t : txsToExecute) {
       LOG_GENERAL(WARNING, "Marker001: TX: " << t.GetTranID() );
       //LOG_GENERAL(WARNING, "Marker001: XX: " << t.G );
 
+      // Guard against double exeucuting a TX
       if(txsExecuted.insert(t.GetTranID()).second) {
 
         TransactionReceipt tr;
-
-        // todo: figure this out......
-        //auto succ = m_mediator.m_validator->;
-
         TxnStatus error_code;
         auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
 
@@ -1033,10 +1035,134 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       }
     }
 
-    LOG_GENERAL(WARNING, "Marker001: final state delta hash: " << AccountStore::GetInstance().GetStateDeltaHash() );
-
-    //AccountStore::GetInstance().InitTemp();
+    if(txsToExecute.size() > 0) {
+      LOG_GENERAL(WARNING, "Marker001: We had TXs to execute! "
+          << txsToExecute.size());
+      LOG_GENERAL(WARNING, "Marker001: final state delta hash: " << AccountStore::GetInstance().GetStateDeltaHash() );
+    }
   }
+
+  //if (ARCHIVAL_LOOKUP && false) {
+  //  LOG_GENERAL(WARNING, "Marker001: archival lookup! Sleeping");
+  //  std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+  //  auto mbi = txBlock.GetMicroBlockInfos();
+  //  std::vector<Transaction> txsToExecute;
+
+  //  for (const auto& mb : mbi) {
+  //    LOG_GENERAL(WARNING, "Marker001: microblock hash: " << mb.m_microBlockHash);
+
+  //    MicroBlockSharedPtr microBlockPtr{};
+
+  //    //auto succ = BlockStorage::GetBlockStorage().GetMicroBlock(mb.m_microBlockHash, microBlockPtr);
+  //    //LOG_GENERAL(WARNING, "Marker001: microblock epoch num: " << m_mediator.m_currentEpochNum);
+
+  //    {
+  //      lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
+  //      auto ii = 0;
+  //      for (auto it = m_mbnForwardedTxnBuffer.begin();
+  //           it != m_mbnForwardedTxnBuffer.end();) {
+  //        LOG_GENERAL(WARNING,
+  //                    "Marker001: microblock details blocknum: " << it->first);
+
+  //        if (ii++ > 200) {
+  //          LOG_GENERAL(WARNING, "Marker001: break0: ");
+  //          break;
+  //        }
+
+  //        for (const auto& entry : it->second) {
+
+  //          if (entry.m_microBlock.GetBlockHash() == mb.m_microBlockHash) {
+  //            LOG_GENERAL(WARNING, "Marker001: microblock details FOUND! ");
+
+  //            LOG_GENERAL(WARNING, "Marker001: microblock details hash: "
+  //                << entry.m_microBlock.GetBlockHash());
+
+  //            LOG_GENERAL(WARNING, "Marker001: microblock details numtxs: "
+  //                << entry.m_transactions.size());
+
+  //            microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
+  //          }
+
+  //          for(const auto &txWReceipt : entry.m_transactions) {
+  //            LOG_GENERAL(WARNING, "Marker001: PUSHING BACK! ");
+  //            txsToExecute.push_back(txWReceipt.GetTransaction());
+  //          }
+
+  //          ii++;
+
+  //          if (ii > 200) {
+  //            LOG_GENERAL(WARNING, "Marker001: break1: ");
+  //            break;
+  //          }
+  //        }
+
+  //        if(!microBlockPtr) {
+  //          LOG_GENERAL(WARNING, "Marker001: microblock details NOTFOUND! ");
+  //        }
+
+  //        it++;
+  //      }
+  //    }
+
+  //    //LOG_GENERAL(WARNING, "Marker001: microblock hash succ: " << succ);
+  //    //if (!succ) {
+  //    //  LOG_GENERAL(WARNING, "no success unf from disk unf...");
+  //    //}
+
+  //    if (microBlockPtr) {
+  //      const auto &tranHashes = microBlockPtr->GetTranHashes();
+
+  //      LOG_GENERAL(WARNING, "Marker001: microblock hash tran hashes: " << tranHashes.size());
+  //      for (const auto &transactionHash : tranHashes) {
+  //        LOG_GENERAL(WARNING, "Marker001: loop 000: ");
+  //        TxBodySharedPtr transactionBodyPtr;
+  //        LOG_GENERAL(WARNING, "Marker001: loop 001: ");
+  //        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+  //                                                       transactionBodyPtr)) {
+  //          LOG_GENERAL(WARNING, "Marker001: FAILED to get tx body for: " << transactionHash );
+  //          continue;
+  //        } else {
+  //          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransactionReceipt() );
+  //          LOG_GENERAL(WARNING, "Marker001: GOT tx body... " << &transactionBodyPtr->GetTransaction() );
+  //          txsToExecute.push_back(transactionBodyPtr->GetTransaction());
+  //        }
+  //        LOG_GENERAL(WARNING, "Marker001: loop 002: ");
+  //      }
+  //    }
+  //    //LOG_GENERAL(WARNING, "Marker001: succ: " << succ);
+  //  }
+
+  //  LOG_GENERAL(WARNING, "Marker001: Now we generate the TX receipts!" );
+  //  std::set<TxnHash> txsExecuted;
+
+  //  LOG_GENERAL(WARNING, "Marker001: txs to execute size: " << txsToExecute.size() );
+
+  //  for (const auto &t : txsToExecute) {
+  //    LOG_GENERAL(WARNING, "Marker001: TX: " << t.GetTranID() );
+  //    //LOG_GENERAL(WARNING, "Marker001: XX: " << t.G );
+
+  //    if(txsExecuted.insert(t.GetTranID()).second) {
+
+  //      TransactionReceipt tr;
+
+  //      // todo: figure this out......
+  //      //auto succ = m_mediator.m_validator->;
+
+  //      TxnStatus error_code;
+  //      auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
+
+  //      LOG_GENERAL(WARNING, "Marker001: TX succ: " << succ );
+  //      LOG_GENERAL(WARNING, "Marker001: TX return: " << error_code );
+
+  //    } else {
+  //      LOG_GENERAL(WARNING, "Marker001: skipping tx duplicate: " << t.GetTranID() );
+  //    }
+  //  }
+
+  //  LOG_GENERAL(WARNING, "Marker001: final state delta hash: " << AccountStore::GetInstance().GetStateDeltaHash() );
+  //  LOG_GENERAL(WARNING, "Marker001: tx block delta hash: " << txBlock.GetHeader().GetStateDeltaHash());
+  //}
 
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
