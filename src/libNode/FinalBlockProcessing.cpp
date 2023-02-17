@@ -710,6 +710,8 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
 
 void Node::PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblockPtrs, std::vector<Transaction> &txsToExecute) {
 
+  LOG_GENERAL(WARNING, "Marker001: populating txsn...");
+
   // Now collect a vector of TXs we need to execute
   for (auto const& microBlockPtr : microblockPtrs) {
 
@@ -719,7 +721,7 @@ void Node::PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblo
 
     // Loop through the TX hashes making sure we have a corresponding TX
     for (const auto &transactionHash : tranHashes) {
-      for (int ii = 0; ii < 5; ++ii) {
+      for (int ii = 0; ii < 2; ++ii) {
         TxBodySharedPtr transactionBodyPtr;
 
         if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
@@ -738,7 +740,7 @@ void Node::PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblo
 
 }
 
-void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs, BlockHash const &hash) {
+void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs, BlockHash const &hash, std::vector<Transaction> &txsToExecute) {
 
   LOG_GENERAL(WARNING, "Marker001: populating: " << hash);
 
@@ -773,6 +775,8 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs,
 
           for(const auto &txWReceipt : entry.m_transactions) {
             LOG_GENERAL(WARNING, "Marker001: Saw TX! " << txWReceipt.GetTransaction().GetTranID());
+            LOG_GENERAL(WARNING, "Marker001: Saw TX body: " << txWReceipt.GetTransaction().GetData().size());
+            txsToExecute.push_back(txWReceipt.GetTransaction());
             //txsToExecute.push_back();
           }
         }
@@ -1010,11 +1014,10 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         continue;
       }
 
-      PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash);
+      PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash, txsToExecute);
     }
 
     PopulateTxsToExecute(microblockPtrs, txsToExecute);
-
 
     for (const auto &t : txsToExecute) {
       LOG_GENERAL(WARNING, "Marker001: TX: " << t.GetTranID() );
@@ -1698,7 +1701,7 @@ bool Node::ProcessMBnForwardTransaction(
 
     // skip soft confirmation for DSMB
     if (isDSMB) {
-      LOG_GENERAL(WARNING, "Marker001: SKIPPING!! ");
+      //LOG_GENERAL(WARNING, "Marker001: SKIPPING!! ");
       return true;
     }
 

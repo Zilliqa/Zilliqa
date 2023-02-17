@@ -286,6 +286,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   LOG_MARKER();
   std::string txnId = evmContext.GetTranID().hex();
 
+  LOG_GENERAL(WARNING, "Marker001: the promised land! ... ");
+
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
   // store into the metric holder.
