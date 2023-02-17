@@ -751,7 +751,7 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs,
 
       // Scan for mb in forwarded buffer
       for (auto it = m_mbnForwardedTxnBuffer.begin();
-           it != m_mbnForwardedTxnBuffer.end();) {
+           it != m_mbnForwardedTxnBuffer.end();it++) {
         LOG_GENERAL(WARNING,
                     "Marker001: microblock details blocknum: " << it->first);
 
