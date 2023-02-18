@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBMETRICS_TRACING_H_
-#define ZILLIQA_SRC_LIBMETRICS_TRACING_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_TRACING0_H_
+#define ZILLIQA_SRC_LIBMETRICS_TRACING0_H_
 
 #include <opentelemetry/trace/tracer.h>
 #include <opentelemetry/trace/tracer_provider.h>
@@ -125,4 +125,4 @@ using TRACE_ATTRIBUTE =
                                                    OPTIONS)                  \
   : trace_api::Tracer::GetCurrentSpan()
 
-#endif  // ZILLIQA_SRC_LIBMETRICS_TRACING_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_TRACING0_H_
