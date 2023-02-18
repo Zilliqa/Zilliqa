@@ -19,9 +19,8 @@
 #include <chrono>
 #include <iostream>
 #include <vector>
-#include "libMetrics/Metrics.h"
-#include "libMetrics/Tracing.h"
-#include "libMetrics/Helper.h"
+
+#include "libMetrics/Tracing2.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DetachedFunction.h"
 
@@ -183,9 +182,15 @@ void TestRemoveBroadcast() {
 }
 
 void TestSerialize() {
-  std::string info;
-  zil::trace::ExtractTraceInfoFromActiveSpan(info);
-  assert(info.empty());
+  auto nospan =
+      zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::QUEUE, "ooo");
+  assert(nospan.GetIds().empty());
+
+  std::ignore = zil::trace2::Tracing::Initialize("", "ALL");
+
+  auto span =
+      zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::QUEUE, "ooo");
+  assert(!span.GetIds().empty());
 
   int num_errors = 0;
 
@@ -221,13 +226,6 @@ void TestSerialize() {
       ++num_errors;
     }
   };
-
-  std::ignore = Metrics::GetInstance();
-  std::ignore = Tracing::GetInstance();
-  zil::trace::Filter::GetInstance().init("ALL");
-
-  auto span = START_SPAN(NODE, {});
-  SCOPED_SPAN(NODE, ooo, span);
 
   zbytes short_msg(33, 'x');
   zbytes long_msg(1024 * 1024, 'x');

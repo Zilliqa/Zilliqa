@@ -219,12 +219,6 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
 
-  /*
-   * These are required to initialise SubSystems.
-   */
-  Metrics::GetInstance();
-  Tracing::GetInstance();
-
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
     Msg message;
@@ -628,8 +622,6 @@ Zilliqa::~Zilliqa() {
 }
 
 void Zilliqa::Dispatch(Zilliqa::Msg message) {
-  LOG_MARKER();
-
   // Queue message
   size_t queueSz{};
   if (!m_msgQueue.bounded_push(std::move(message), queueSz)) {

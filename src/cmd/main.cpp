@@ -167,7 +167,7 @@ int main(int argc, const char* argv[]) {
     Metrics::GetInstance();
     // Tracing::GetInstance();
 
-    Naming::GetInstance().name("zil");
+    //Naming::GetInstance().name("zil");
 
     // This just creates us a context that we may use anywhere in the program
     // We do not use this - just an example that you can use and create contexts

@@ -189,6 +189,9 @@ int main(int argc, const char* argv[]) {
 
     mediator.RegisterColleagues(nullptr, &node, &lk, vd.get());
 
+    auto span = zil::trace2::Tracing::CreateSpan(
+        zil::trace2::FilterClass::NODE, __FUNCTION__);
+
     AccountStore::GetInstance().InitSoft();
 
     uint64_t blocknum;
