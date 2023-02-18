@@ -20,6 +20,7 @@ target_link_libraries(Metrics
     Threads::Threads
     CURL::libcurl
     PUBLIC
+    Utils
     protobuf::libprotobuf
     opentelemetry-cpp::api
     opentelemetry-cpp::sdk

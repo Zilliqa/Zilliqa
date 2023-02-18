@@ -23,6 +23,10 @@
 #include <string>
 #include <variant>
 
+#ifndef HAVE_CPP_STDLIB
+#define HAVE_CPP_STDLIB
+#endif
+
 #include <opentelemetry/trace/span_id.h>
 #include <opentelemetry/trace/trace_id.h>
 

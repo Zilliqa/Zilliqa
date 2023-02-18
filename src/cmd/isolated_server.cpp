@@ -97,12 +97,17 @@ Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
 int main(int argc, const char* argv[]) {
   using namespace rpc;
 
+  zil::trace2::Tracing::Initialize();
+
+  auto span = zil::trace2::Tracing::CreateSpan(
+      zil::trace2::FilterClass::NODE, __FUNCTION__);
+
   string accountJsonFilePath;
   uint port{5555};
   string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
-  bool nonisoload{false};
+  [[maybe_unused]] bool nonisoload{false};
   string uuid;
 
   ENABLE_EVM = true;
@@ -166,8 +171,6 @@ int main(int argc, const char* argv[]) {
     // Enough to bring the instance into scope
     //Tracing::GetInstance();
 
-    zil::trace2::Tracing::Initialize();
-
     Metrics::GetInstance();
 
     createConfigFile();
@@ -188,9 +191,6 @@ int main(int argc, const char* argv[]) {
     }
 
     mediator.RegisterColleagues(nullptr, &node, &lk, vd.get());
-
-    auto span = zil::trace2::Tracing::CreateSpan(
-        zil::trace2::FilterClass::NODE, __FUNCTION__);
 
     AccountStore::GetInstance().InitSoft();
 

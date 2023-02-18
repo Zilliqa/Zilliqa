@@ -43,6 +43,7 @@ endif()
 vcpkg_cmake_configure(
     SOURCE_PATH "${SOURCE_PATH}"
     OPTIONS
+        -DCMAKE_CXX_STANDARD=20
         -DBUILD_TESTING=OFF
         -DWITH_EXAMPLES=OFF
         -DWITH_LOGS_PREVIEW=ON

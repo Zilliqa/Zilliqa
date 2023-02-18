@@ -42,11 +42,14 @@
 namespace zil::trace2 {
 
 namespace trace_api = opentelemetry::trace;
-namespace otel_std = opentelemetry::v1::nostd;
 namespace trace_sdk = opentelemetry::sdk::trace;
 namespace trace_exporter = opentelemetry::exporter::trace;
 namespace otlp = opentelemetry::exporter::otlp;
 namespace resource = opentelemetry::sdk::resource;
+namespace otel_std = opentelemetry::v1::nostd;
+
+static_assert(std::is_same_v<otel_std::shared_ptr<int>, std::shared_ptr<int>>);
+static_assert(std::is_same_v<otel_std::unique_ptr<int>, std::unique_ptr<int>>);
 
 namespace {
 
