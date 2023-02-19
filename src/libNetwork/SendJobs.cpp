@@ -106,26 +106,35 @@ class GracefulCloseImpl
         boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(DEBUG,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
         });
   }
 };
 
-}  // namespace
-
 void CloseGracefully(Socket socket) {
   ErrorCode ec;
-  if (socket.is_open()) {
-    socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
-    if (ec) {
-      LOG_GENERAL(INFO, "Shutdown error, ec=" << ec.message());
-      return;
-    }
-    std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
+  if (!socket.is_open()) {
+    return;
   }
+  socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
+  if (ec) {
+    return;
+  }
+  size_t unread = socket.available(ec);
+  if (ec) {
+    return;
+  }
+  if (unread > 0) {
+    std::vector<uint8_t> buf;
+    buf.resize(unread);
+    socket.read_some(boost::asio::mutable_buffer(buf.data(), buf.size()), ec);
+  }
+  std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
 }
+
+}  // namespace
 
 class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
  public:
