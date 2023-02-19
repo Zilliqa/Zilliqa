@@ -190,12 +190,14 @@ void TestSerialize() {
 
   auto span =
       zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::QUEUE, "ooo");
-  assert(!span.GetIds().empty());
+  std::string trace_info = span.GetIds();
+  assert(!trace_info.empty());
+  LOG_GENERAL(INFO, "Expected trace info: " << trace_info);
 
   int num_errors = 0;
 
-  auto Test = [&num_errors](const zbytes& msg, const zbytes& hash,
-                            bool with_traces) {
+  auto Test = [&num_errors, &trace_info](const zbytes& msg, const zbytes& hash,
+                                         bool with_traces) {
     bool ok = false;
     do {
       auto start_byte = hash.empty() ? zil::p2p::START_BYTE_NORMAL
@@ -216,7 +218,7 @@ void TestSerialize() {
       ok = (result.startByte == start_byte) && (result.message == msg) &&
            (result.hash == hash);
       if (ok && with_traces) {
-        ok = !result.traceInfo.empty();
+        ok = (result.traceInfo == trace_info);
       }
     } while (false);
     LOG_GENERAL(DEBUG, "size=" << msg.size() << " hash=" << !hash.empty()
@@ -247,10 +249,13 @@ void TestSerialize() {
   }
 }
 
-int main() {
+int main(int argc, const char* argv[]) {
   INIT_STDOUT_LOGGER();
 
   TestSerialize();
+  if (argc > 1 && std::string("--short") == argv[1]) {
+    return 0;
+  }
 
   auto func = []() mutable -> void {
     P2PComm::GetInstance().StartMessagePump(process_message);
@@ -282,7 +287,9 @@ int main() {
   P2PComm::GetInstance().SendMessage(peer, longMsg, zil::p2p::START_BYTE_NORMAL,
                                      false);
 
-  TestRemoveBroadcast();
+  if (argc > 1 && std::string("--long") == argv[1]) {
+    TestRemoveBroadcast();
+  }
 
   return 0;
 }
