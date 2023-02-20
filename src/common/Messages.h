@@ -40,6 +40,7 @@ enum DSInstructionType : unsigned char {
   POWPACKETSUBMISSION = 0x07,
   NEWDSGUARDIDENTITY = 0x08,
   SETCOSIGSREWARDSFROMSEED = 0x09,
+  GETDSLEADERTXNPOOL = 0x0A
 };
 
 enum NodeInstructionType : unsigned char {
@@ -104,7 +105,8 @@ enum LookupInstructionType : unsigned char {
   GETPENDINGTXNFROML2LDATAPROVIDER =
       0x24,  // UNUSED GETPENDINGTXNFROML2LDATAPROVIDER
   GETMICROBLOCKFROML2LDATAPROVIDER = 0x25,  // ProcessGetMicroBlockFromL2l,
-  GETTXNSFROML2LDATAPROVIDER = 0x26         // ProcessGetTxnsFromL2l
+  GETTXNSFROML2LDATAPROVIDER = 0x26,         // ProcessGetTxnsFromL2l
+  SETDSLEADERTXNPOOL = 0x27              // ProcessSetDSLeaderTxnPoolFromSeed
 };
 
 enum TxSharingMode : unsigned char {

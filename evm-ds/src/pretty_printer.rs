@@ -1,4 +1,3 @@
-use log::debug;
 use primitive_types::{H160, H256, U256};
 use protobuf::Message;
 use std::fmt::Write;
@@ -43,10 +42,9 @@ fn apply_delete_to_string(delete: &EvmProto::Apply_Delete) -> String {
     )
 }
 
-pub fn log_evm_result(result: &EvmProto::EvmResult) {
+pub fn log_evm_result(result: &EvmProto::EvmResult) -> String {
     let mut result_string = String::new();
 
-    debug!("evm_result: {:#?}", result);
     write!(
         result_string,
         "\nexit_reason: {:#?}",
@@ -68,5 +66,5 @@ pub fn log_evm_result(result: &EvmProto::EvmResult) {
         }
     });
 
-    debug!("{}", result_string);
+    result_string
 }
