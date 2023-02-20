@@ -1,4 +1,4 @@
-use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
+use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use num_bigint::BigUint;
 use num_integer::Integer;
@@ -27,7 +27,7 @@ pub(crate) fn modexp(
     match run_inner(input) {
         Ok(out) => Ok((
             PrecompileOutput {
-                exit_status: ExitSucceed::Returned,
+                output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
                 output: out,
             },
             cost,

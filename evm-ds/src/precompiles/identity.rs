@@ -1,4 +1,4 @@
-use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
+use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
 
@@ -28,7 +28,7 @@ pub(crate) fn identity(
 
     Ok((
         PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
+            output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
             output: input.to_vec(),
         },
         gas_needed,
