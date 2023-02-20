@@ -3271,3 +3271,20 @@ void Node::CheckPeers(const vector<Peer> &peers) {
   }
   P2PComm::GetInstance().SendMessage(peers, message);
 }
+
+std::vector<Transaction> Node::GetCreatedTxns() const {
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+  std::vector<Transaction> txns;
+  txns.reserve(m_createdTxns.size() + t_createdTxns.size());
+
+  for (const auto &[txnHash, txn] : m_createdTxns.HashIndex) {
+    txns.emplace_back(txn);
+  }
+
+  for (const auto &[txnHash, txn] : t_createdTxns.HashIndex) {
+    txns.emplace_back(txn);
+  }
+
+  return txns;
+}

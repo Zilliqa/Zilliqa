@@ -1058,6 +1058,52 @@ bool DirectoryService::ProcessCosigsRewardsFromSeed(
   return true;
 }
 
+bool DirectoryService::ProcessGetDSLeaderTxnPool(
+    const zbytes& message, unsigned int offset, const Peer& from,
+    const unsigned char& /*startByte*/) {
+  LOG_MARKER();
+
+  if (LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "DirectoryService::ProcessGetDSLeaderTxnPool not expected "
+                "to be called from LookUp node.");
+    return true;
+  }
+
+  PubKey lookupPubKey;
+  uint32_t listenPort = 0;
+  if (!Messenger::GetLookupGetDSLeaderTxnPool(message, offset, lookupPubKey,
+                                              listenPort)) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return false;
+  }
+
+  if (!m_mediator.m_lookup->VerifySenderNode(
+          m_mediator.m_lookup->GetLookupNodes(), lookupPubKey)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "The message sender pubkey: "
+                  << lookupPubKey << " is not in my lookup node list.");
+    return false;
+  }
+
+  LOG_GENERAL(INFO,
+              "Returning created transactions for " << m_mediator.m_selfPeer);
+  zbytes txnPoolMessage = {MessageType::LOOKUP,
+                           LookupInstructionType::SETDSLEADERTXNPOOL};
+
+  if (!Messenger::SetLookupSetDSLeaderTxnPool(
+          txnPoolMessage, MessageOffset::BODY,
+          m_mediator.m_node->GetCreatedTxns())) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::SetLookupSetDSLeaderTxnPool failed.");
+    return false;
+  }
+
+  Peer requestingNode(from.m_ipAddress, listenPort);
+  P2PComm::GetInstance().SendMessage(requestingNode, txnPoolMessage);
+  return true;
+}
+
 void DirectoryService::GetCoinbaseRewardees(
     std::map<uint64_t, std::map<int32_t, std::vector<PubKey>>>&
         coinbase_rewardees) {
@@ -1087,7 +1133,8 @@ bool DirectoryService::Execute(const zbytes& message, unsigned int offset,
                        &DirectoryService::ProcessVCPushLatestDSTxBlock,
                        &DirectoryService::ProcessPoWPacketSubmission,
                        &DirectoryService::ProcessNewDSGuardNetworkInfo,
-                       &DirectoryService::ProcessCosigsRewardsFromSeed});
+                       &DirectoryService::ProcessCosigsRewardsFromSeed,
+                       &DirectoryService::ProcessGetDSLeaderTxnPool});
 
   const unsigned char ins_byte = message.at(offset);
 

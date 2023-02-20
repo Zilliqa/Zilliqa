@@ -23,7 +23,9 @@
 #include "Messages.h"
 
 #define MAKE_LITERAL_STRING(s) \
-  { #s }
+  {                            \
+#s                         \
+  }
 #define ARRAY_SIZE(s) (sizeof(s) / sizeof(s[0]))
 
 static const std::string DSInstructionStrings[]{
@@ -95,10 +97,10 @@ static const std::string LookupInstructionStrings[]{
     MAKE_LITERAL_STRING(GETMBNFWDTXNFROML2LDATAPROVIDER),
     MAKE_LITERAL_STRING(GETPENDINGTXNFROML2LDATAPROVIDER),  // UNUSED
     MAKE_LITERAL_STRING(GETMICROBLOCKFROML2LDATAPROVIDER),
-    MAKE_LITERAL_STRING(GETTXNSFROML2LDATAPROVIDER)};
+    MAKE_LITERAL_STRING(GETTXNSFROML2LDATAPROVIDER),
+    MAKE_LITERAL_STRING(SETDSLEADERTXNPOOL)};
 
-static_assert(ARRAY_SIZE(LookupInstructionStrings) ==
-                  GETTXNSFROML2LDATAPROVIDER + 1,
+static_assert(ARRAY_SIZE(LookupInstructionStrings) == SETDSLEADERTXNPOOL + 1,
               "LookupInstructionStrings definition is not correct");
 
 static const std::string *MessageTypeInstructionStrings[]{

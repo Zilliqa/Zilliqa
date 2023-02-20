@@ -365,6 +365,13 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
                          "param02", jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceTransactionI);
+                         NULL),
+      &EthRpcMethods::GetEthBlockReceiptsI);
+
+  m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, nullptr),
+      &EthRpcMethods::GetDSLeaderTxnPoolI);
 }
 
 std::string EthRpcMethods::CreateTransactionEth(
@@ -1702,6 +1709,27 @@ Json::Value EthRpcMethods::GetEthBlockReceipts(const std::string &blockId) {
   for (const auto &tx : txs) {
     auto const receipt = GetEthTransactionReceipt(tx.asString());
     res.append(receipt);
+  }
+
+  return res;
+}
+
+Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
+  INC_CALLS(GetInvocationsCounter());
+
+  if (!LOOKUP_NODE_MODE) {
+    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
+                           "Sent to a non-lookup");
+  }
+
+  auto txns = m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
+  if (!txns) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+
+  Json::Value res = Json::arrayValue;
+  for (const auto &txn : *txns) {
+    res.append(JSONConversion::convertTxtoJson(txn));
   }
 
   return res;

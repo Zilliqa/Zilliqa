@@ -140,7 +140,7 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::mutex m_mutexCreatedTransactions;
+  mutable std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
   std::vector<TxnHash> m_expectedTranOrdering;
@@ -776,6 +776,8 @@ class Node : public Executable {
                          const std::string& endDSEpoch);
 
   void CheckPeers(const std::vector<Peer>& peers);
+
+  std::vector<Transaction> GetCreatedTxns() const;
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

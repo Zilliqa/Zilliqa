@@ -554,6 +554,17 @@ class EthRpcMethods {
   }
 
   /**
+   * @brief Handles json rpc 2.0 request on method: GetDSLeaderTxnPool
+   * @param request : no parameters
+   * @param response : Json array of transactions from the DSLeader txn pool.
+   */
+  inline virtual void GetDSLeaderTxnPoolI(const Json::Value& /*request*/,
+                                               Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->GetDSLeaderTxnPool();
+  }
+
+  /**
    * @brief Handles json rpc 2.0 request on method: debug_traceTransaction
    * @param request : transaction hash
    * @param response : transaction trace
@@ -637,6 +648,7 @@ class EthRpcMethods {
   Json::Value GetEthBlockReceipts(const std::string& blockId);
   Json::Value DebugTraceTransaction(const std::string& txHash, const Json::Value& json);
 
+  Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
 
  public:
