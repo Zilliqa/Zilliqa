@@ -1589,6 +1589,56 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
   return false;
 }
 
+std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
+  zbytes retMsg = {MessageType::DIRECTORY,
+                   DSInstructionType::GETDSLEADERTXNPOOL};
+
+  if (!Messenger::SetLookupGetDSLeaderTxnPool(
+          retMsg, MessageOffset::BODY, m_mediator.m_selfKey,
+          m_mediator.m_selfPeer.m_listenPortHost)) {
+    LOG_GENERAL(WARNING, "Failed to Process ");
+    return std::nullopt;
+  }
+
+  // Request the transaction pool from the DS leader
+  {
+    std::lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
+
+    auto consensusLeaderID = m_mediator.m_node->GetConsensusLeaderID();
+    if (consensusLeaderID >= m_mediator.m_DSCommittee->size()) {
+      LOG_GENERAL(WARNING,
+                  "consensusLeaderID = " << consensusLeaderID
+                                         << " >= DS committee size = "
+                                         << m_mediator.m_DSCommittee->size());
+      return std::nullopt;
+    }
+
+    const auto& dsLeader = m_mediator.m_DSCommittee->at(consensusLeaderID);
+    LOG_GENERAL(INFO, "Requesting transaction pool from consensusLeaderID = "
+                          << consensusLeaderID << " (" << dsLeader.second
+                          << ')');
+
+    P2PComm::GetInstance().SendMessage(dsLeader.second, retMsg);
+  }
+
+  // Wait for the reply from the DS leader
+  static constexpr const chrono::seconds GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS{
+      3};
+  unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
+  if (cv_dsLeaderTxnPool.wait_for(lock,
+                                  GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS) ==
+      std::cv_status::timeout) {
+    // timed out
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Timed out waiting for DS leader txn pool");
+    return std::nullopt;
+  }
+
+  std::vector<Transaction> result;
+  result.swap(m_dsLeaderTxnPool);
+  return result;
+}
+
 bool Lookup::ComposeAndStoreMBnForwardTxnMessage(const uint64_t& blockNum) {
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP || !MULTIPLIER_SYNC_MODE) {
     LOG_GENERAL(
@@ -3850,6 +3900,29 @@ bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
   return true;
 }
 
+bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
+    const zbytes& message, unsigned int offset, const Peer& /*from*/,
+    const unsigned char& /*startByte*/) {
+  if (!LOOKUP_NODE_MODE) {
+    LOG_GENERAL(WARNING,
+                "Function not expected to be called from non-lookup node");
+    return true;
+  }
+
+  std::vector<Transaction> txns;
+  if (!Messenger::GetLookupSetDSLeaderTxnPool(message, offset, txns)) {
+    LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
+              "Messenger::GetLookupSetDSLeaderTxnPool failed.");
+    return false;
+  }
+
+  unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
+  m_dsLeaderTxnPool = std::move(txns);
+  cv_dsLeaderTxnPool.notify_all();
+
+  return true;
+}
+
 // Ex archival code
 bool Lookup::ProcessSetTxnsFromLookup(
     const zbytes& message, unsigned int offset,
@@ -5196,7 +5269,8 @@ bool Lookup::Execute(const zbytes& message, unsigned int offset,
       &Lookup::ProcessGetMBnForwardTxnFromL2l,
       &Lookup::NoOp,  // Previously for GETPENDINGTXNFROML2LDATAPROVIDER
       &Lookup::ProcessGetMicroBlockFromL2l,
-      &Lookup::ProcessGetTxnsFromL2l};
+      &Lookup::ProcessGetTxnsFromL2l,
+      &Lookup::ProcessSetDSLeaderTxnPoolFromSeed};
 
   const unsigned char ins_byte = message.at(offset);
   const unsigned int ins_handlers_count =

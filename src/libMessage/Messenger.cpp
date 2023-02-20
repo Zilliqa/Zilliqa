@@ -7769,6 +7769,105 @@ bool Messenger::GetLookupGetCosigsRewardsFromSeed(const zbytes& src,
   return true;
 }
 
+bool Messenger::SetLookupGetDSLeaderTxnPool(zbytes& dst, unsigned int offset,
+                                            const PairOfKey& keys,
+                                            uint32_t listenPort) {
+  LookupGetDSLeaderTxnPool result;
+
+  result.mutable_data()->set_portno(listenPort);
+
+  Signature signature;
+  if (!result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "SetLookupGetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+  zbytes tmp(result.data().ByteSizeLong());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+
+  if (!Schnorr::Sign(tmp, keys.first, keys.second, signature)) {
+    LOG_GENERAL(WARNING, "Failed to sign SetLookupGetDSLeaderTxnPool message");
+    return false;
+  }
+
+  SerializableToProtobufByteArray(keys.second, *result.mutable_pubkey());
+  SerializableToProtobufByteArray(signature, *result.mutable_signature());
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "SetLookupGetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupGetDSLeaderTxnPool(const zbytes& src,
+                                            unsigned int offset,
+                                            PubKey& senderPubkey,
+                                            uint32_t& listenPort) {
+  LookupGetDSLeaderTxnPool result;
+
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+  if (!result.IsInitialized() || !result.data().IsInitialized()) {
+    LOG_GENERAL(WARNING, "GetLookupGetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+
+  // First deserialize the fields needed just for signature check
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.pubkey(), senderPubkey);
+  Signature signature;
+  PROTOBUFBYTEARRAYTOSERIALIZABLE(result.signature(), signature);
+
+  // Check signature
+  zbytes tmp(result.data().ByteSizeLong());
+  result.data().SerializeToArray(tmp.data(), tmp.size());
+  if (!Schnorr::Verify(tmp, 0, tmp.size(), signature, senderPubkey)) {
+    LOG_GENERAL(WARNING, "GetLookupGetDSLeaderTxnPool signature wrong");
+    return false;
+  }
+
+  listenPort = result.data().portno();
+  return true;
+}
+
+bool Messenger::SetLookupSetDSLeaderTxnPool(
+    zbytes& dst, unsigned int offset,
+    const std::vector<Transaction>& transactions) {
+  LookupSetDSLeaderTxnPool result;
+
+  TransactionArrayToProtobuf(transactions, *result.mutable_dsleadertxnpool());
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "SetLookupSetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+
+  return SerializeToArray(result, dst, offset);
+}
+
+bool Messenger::GetLookupSetDSLeaderTxnPool(
+    const zbytes& src, unsigned int offset,
+    std::vector<Transaction>& transactions) {
+  if (offset >= src.size()) {
+    LOG_GENERAL(WARNING, "Invalid data and offset, data size "
+                             << src.size() << ", offset " << offset);
+    return false;
+  }
+
+  LookupSetDSLeaderTxnPool result;
+  result.ParseFromArray(src.data() + offset, src.size() - offset);
+
+  if (!result.IsInitialized()) {
+    LOG_GENERAL(WARNING, "GetLookupSetDSLeaderTxnPool initialization failed");
+    return false;
+  }
+
+  if (!ProtobufToTransactionArray(result.dsleadertxnpool(), transactions)) {
+    LOG_GENERAL(WARNING, "ProtobufToTransactionArray failed");
+    return false;
+  }
+
+  return true;
+}
+
 bool Messenger::SetLookupSetCosigsRewardsFromSeed(
     zbytes& dst, const unsigned int offset, const PairOfKey& myKey,
     const uint64_t& txBlkNumber, const std::vector<MicroBlock>& microblocks,

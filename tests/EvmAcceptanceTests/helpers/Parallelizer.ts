@@ -28,7 +28,6 @@ export class Parallelizer {
       signer = await SignerPool.getSignerForCurrentWorker();
     }
 
-    web3.eth.getAccounts();
     const Contract = await hh_ethers.getContractFactory(contractName);
     const deployedContract = await Contract.connect(signer).deploy(...args);
     if (hre.isEthernalPluginEnabled()) {
