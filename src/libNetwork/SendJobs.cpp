@@ -26,6 +26,7 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/container/small_vector.hpp>
 
 #include "SendJobs.h"
 
@@ -127,11 +128,13 @@ void CloseGracefully(Socket socket) {
     return;
   }
   if (unread > 0) {
-    std::vector<uint8_t> buf;
+    boost::container::small_vector<uint8_t, 4096> buf;
     buf.resize(unread);
-    socket.read_some(boost::asio::mutable_buffer(buf.data(), buf.size()), ec);
+    socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
   }
-  std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
+  if (!ec) {
+    std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
+  }
 }
 
 }  // namespace
