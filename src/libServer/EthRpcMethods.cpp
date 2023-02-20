@@ -362,11 +362,9 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
-                         "param02", jsonrpc::JSON_OBJECT, NULL),
-      &EthRpcMethods::DebugTraceTransactionI);
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT,
                          NULL),
-      &EthRpcMethods::GetEthBlockReceiptsI);
+      &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
