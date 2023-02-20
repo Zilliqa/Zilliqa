@@ -18,7 +18,7 @@
 #include <type_traits>
 
 #include "libMessage/MessengerAccountStoreBase.h"
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 
@@ -64,8 +64,8 @@ bool AccountStoreBase::Deserialize(const std::string& src,
 bool AccountStoreBase::UpdateAccounts(const Transaction& transaction,
                                       TransactionReceipt& receipt,
                                       TxnStatus& error_code) {
-  auto span = zil::trace2::Tracing::CreateSpan(
-      zil::trace2::FilterClass::ACC_EVM, __FUNCTION__);
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::ACC_EVM,
+                                              __FUNCTION__);
 
   const Address fromAddr = transaction.GetSenderAddr();
   Address toAddr = transaction.GetToAddr();

@@ -32,7 +32,6 @@
 #include "common/Singleton.h"
 
 #include "Common.h"
-#include "TraceFilters.h"
 
 class Metrics;
 

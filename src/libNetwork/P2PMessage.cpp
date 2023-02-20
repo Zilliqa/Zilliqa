@@ -18,7 +18,7 @@
 #include "P2PMessage.h"
 
 #include "common/Constants.h"
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libUtils/Logger.h"
 
 namespace zil::p2p {
@@ -46,7 +46,7 @@ RawMessage CreateMessage(const zbytes& message, const zbytes& msg_hash,
 
   std::string_view trace_info;
   if (inject_trace_context) {
-    trace_info = zil::trace2::Tracing::GetActiveSpan().GetIds();
+    trace_info = zil::trace::Tracing::GetActiveSpan().GetIds();
   }
 
   size_t trace_size = trace_info.size();

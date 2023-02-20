@@ -23,7 +23,6 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing2.h"
 #include "libNode/Node.h"
 #include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
@@ -97,10 +96,10 @@ Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
 int main(int argc, const char* argv[]) {
   using namespace rpc;
 
-  zil::trace2::Tracing::Initialize();
+  zil::trace::Tracing::Initialize();
 
-  auto span = zil::trace2::Tracing::CreateSpan(
-      zil::trace2::FilterClass::NODE, __FUNCTION__);
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              __FUNCTION__);
 
   string accountJsonFilePath;
   uint port{5555};
@@ -169,7 +168,7 @@ int main(int argc, const char* argv[]) {
     ISOLATED_SERVER = true;
 
     // Enough to bring the instance into scope
-    //Tracing::GetInstance();
+    // Tracing::GetInstance();
 
     Metrics::GetInstance();
 

@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DetachedFunction.h"
 
@@ -183,13 +183,13 @@ void TestRemoveBroadcast() {
 
 void TestSerialize() {
   auto nospan =
-      zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::QUEUE, "ooo");
+      zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::QUEUE, "ooo");
   assert(nospan.GetIds().empty());
 
-  std::ignore = zil::trace2::Tracing::Initialize("", "ALL");
+  std::ignore = zil::trace::Tracing::Initialize("", "ALL");
 
   auto span =
-      zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::QUEUE, "ooo");
+      zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::QUEUE, "ooo");
   std::string trace_info = span.GetIds();
   assert(!trace_info.empty());
   LOG_GENERAL(INFO, "Expected trace info: " << trace_info);

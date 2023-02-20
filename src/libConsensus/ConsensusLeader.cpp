@@ -21,7 +21,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
@@ -272,8 +272,8 @@ bool ConsensusLeader::StartConsensusSubsets() {
     }
   }
 
-  auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                               __FUNCTION__);
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              __FUNCTION__);
 
   // Shuffle the peer list so we don't always send challenges in same sequence
   std::random_device randomDevice;
@@ -505,8 +505,8 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
       peerInfo.push_back(i.second);
     }
 
-    auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                                 __FUNCTION__);
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                __FUNCTION__);
 
     P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg,
                                        zil::p2p::START_BYTE_NORMAL, true, true);
@@ -764,8 +764,8 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (BROADCAST_GOSSIP_MODE) {
         P2PComm::GetInstance().SpreadRumor(collectivesig);
       } else {
-        auto span = zil::trace2::Tracing::CreateSpan(
-            zil::trace2::FilterClass::NODE, __FUNCTION__);
+        auto span = zil::trace::Tracing::CreateSpan(
+            zil::trace::FilterClass::NODE, __FUNCTION__);
 
         P2PComm::GetInstance().SendMessage(
             peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
@@ -1009,8 +1009,8 @@ bool ConsensusLeader::StartConsensus(
       peer.push_back(i.second);
     }
 
-    auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                                 __FUNCTION__);
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                __FUNCTION__);
 
     P2PComm::GetInstance().SendMessage(peer, announcement_message,
                                        zil::p2p::START_BYTE_NORMAL, true, true);

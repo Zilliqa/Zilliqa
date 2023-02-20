@@ -30,6 +30,6 @@ const std::string METRIC_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
 }  // namespace metrics
 }  // namespace zil
 
-const double METRICS_VERSION{8.6};
+constexpr double METRICS_VERSION{8.6};
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_COMMON_H_

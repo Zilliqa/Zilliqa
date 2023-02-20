@@ -12,7 +12,7 @@ set_target_properties(opentelemetry-cpp::prometheus_exporter PROPERTIES
     )
 
 add_library(Metrics Metrics.cpp Api.h Metrics.h Common.h internal/mixins.h
-    Tracing2.cpp)
+    Tracing.cpp)
 
 target_include_directories(Metrics PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS})
 target_link_libraries(Metrics

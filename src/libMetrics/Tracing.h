@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBMETRICS_TRACING2_H_
-#define ZILLIQA_SRC_LIBMETRICS_TRACING2_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_TRACING_H_
+#define ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 
 #include <memory>
 #include <span>
@@ -27,6 +27,7 @@
 #define HAVE_CPP_STDLIB
 #endif
 
+// Expose these internal structures to be used inside otel-based logging
 #include <opentelemetry/trace/span_id.h>
 #include <opentelemetry/trace/trace_id.h>
 
@@ -51,8 +52,7 @@
   T(NODE)                       \
   T(ACC_HISTOGRAM)
 
-// TODO XXX '2' to be removed after api stabilizes
-namespace zil::trace2 {
+namespace zil::trace {
 
 enum class FilterClass {
 #define ENUM_FILTER_CLASS(C) C,
@@ -199,6 +199,6 @@ class Tracing {
   // static void Shutdown();
 };
 
-}  // namespace zil::trace2
+}  // namespace zil::trace
 
-#endif  // ZILLIQA_SRC_LIBMETRICS_TRACING2_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_TRACING_H_

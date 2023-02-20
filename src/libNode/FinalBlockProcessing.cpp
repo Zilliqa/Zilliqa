@@ -30,7 +30,7 @@
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -1561,24 +1561,11 @@ bool Node::SendPendingTxnToLookup() {
   LOG_GENERAL(
       INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
 
-  //  auto span =
-  //  Tracing::GetInstance().get_tracer()->StartSpan("PendingTxnsSend"); auto
-  //  scope = Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
-  //  span->SetAttribute("Count", pendingTxns.size());
-
-  auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                               "PendingTxnsSend");
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              "PendingTxnsSend");
   span.SetAttribute("Count", pendingTxns.size());
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
-
-  // TODO XXX remove after debugging
-  auto aSpan = zil::trace2::Tracing::GetActiveSpan();
-  if (not aSpan.IsRecording()) {
-    LOG_GENERAL(INFO, "no spans active");
-  } else {
-    LOG_GENERAL(INFO, "spans active");
-  };
 
   return true;
 }

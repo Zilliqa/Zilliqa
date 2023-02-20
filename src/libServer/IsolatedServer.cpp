@@ -21,7 +21,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libUtils/DataConversion.h"
@@ -1023,8 +1023,8 @@ bool IsolatedServer::StartBlocknumIncrement() {
   auto incrThread = [this]() mutable -> void {
     utility::SetThreadName("tx_block_incr");
 
-    auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                                 "tx_block_incr");
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                "tx_block_incr");
 
     // start the post tx block directly to prevent a 'dead' period before the
     // first block
@@ -1100,8 +1100,8 @@ TxBlock IsolatedServer::GenerateTxBlock() {
 }
 
 void IsolatedServer::PostTxBlock() {
-  auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                               __FUNCTION__);
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              __FUNCTION__);
 
   lock_guard<mutex> g(m_blockMutex);
   TxBlock txBlock = GenerateTxBlock();

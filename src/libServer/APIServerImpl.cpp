@@ -20,7 +20,6 @@
 #include <boost/asio/signal_set.hpp>
 #include <deque>
 
-#include "libMetrics/Tracing0.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 

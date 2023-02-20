@@ -24,7 +24,7 @@
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
-#include "libMetrics/Tracing2.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/HardwareSpecification.h"
 #include "libUtils/IPConverter.h"
@@ -165,27 +165,10 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
     Metrics::GetInstance();
-    // Tracing::GetInstance();
+    zil::trace::Tracing::Initialize("zil");
 
-    //Naming::GetInstance().name("zil");
-
-    // This just creates us a context that we may use anywhere in the program
-    // We do not use this - just an example that you can use and create contexts
-    // for anything opentelemetry::context::Context
-    // ctx{"version",opentelemetry::context::ContextValue(8.6)};
-
-    //    opentelemetry::trace::StartSpanOptions options;
-    //    options.kind = opentelemetry::trace::SpanKind::kClient;
-    //    std::string span_name = "Main";
-    //    auto span = Tracing::GetInstance().get_tracer()->StartSpan(
-    //        span_name, {{"main", "startup"}}, options);
-    //    // calling this makes it the active span
-    //    auto scope =
-    //    Tracing::GetInstance().get_tracer()->WithActiveSpan(span);
-
-    zil::trace2::Tracing::Initialize("zil");
-    auto span = zil::trace2::Tracing::CreateSpan(zil::trace2::FilterClass::NODE,
-                                                 "Main");
+    auto span =
+        zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE, "Main");
 
     boost::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {

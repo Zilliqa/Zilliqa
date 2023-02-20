@@ -30,7 +30,6 @@
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing2.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
@@ -285,8 +284,8 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
 
-  auto span = zil::trace2::Tracing::CreateSpan(
-      zil::trace2::FilterClass::ACC_EVM, __FUNCTION__);
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::ACC_EVM,
+                                              __FUNCTION__);
 
   std::string txnId = evmContext.GetTranID().hex();
 

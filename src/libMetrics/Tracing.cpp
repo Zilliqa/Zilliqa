@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "Tracing2.h"
+#include "Tracing.h"
 
 #include <cassert>
 #include <optional>
@@ -39,7 +39,7 @@
 
 #include "libUtils/Logger.h"
 
-namespace zil::trace2 {
+namespace zil::trace {
 
 namespace trace_api = opentelemetry::trace;
 namespace trace_sdk = opentelemetry::sdk::trace;
@@ -513,4 +513,4 @@ bool TracingImpl::Initialize(std::string_view global_name,
   return true;
 }
 
-}  // namespace zil::trace2
+}  // namespace zil::trace
