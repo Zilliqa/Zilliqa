@@ -15,6 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/*
+ * CpsRun is a base class used by a concrete Runner. It contains some common
+ * methods and fields use by its derivatives.
+ */
+
 #ifndef ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 #define ZILLIQA_SRC_LIBCPS_CPSRUN_H_
 

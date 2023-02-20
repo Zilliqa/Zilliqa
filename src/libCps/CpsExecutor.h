@@ -15,6 +15,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+/*
+ * CpsExecutor is the gateway for each transaction that invokes any contract
+ * operation. It keeps a stack of CpsRun jobs that are processed till all is
+ * done or an error occurs. There are two methods used as entry points:
+ * RunFromScilla and RunFromEvm.
+ */
+
 #ifndef ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
 #define ZILLIQA_SRC_LIBCPS_CPSEXECUTOR_H_
 
@@ -36,8 +43,8 @@ class CpsExecutor final {
   using Address = dev::h160;
 
  public:
-  explicit CpsExecutor(CpsAccountStoreInterface& account_store,
-                       TransactionReceipt& receipt);
+  CpsExecutor(CpsAccountStoreInterface& account_store,
+              TransactionReceipt& receipt);
   ~CpsExecutor();
   CpsExecuteResult RunFromEvm(EvmProcessContext& context);
   CpsExecuteResult RunFromScilla(ScillaProcessContext& context);

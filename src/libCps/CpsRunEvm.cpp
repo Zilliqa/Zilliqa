@@ -586,6 +586,8 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
             evmResult.return_value();
       }
     }
+  } else {
+    // TODO: allow scilla runner to provide feedback too
   }
 }
 
