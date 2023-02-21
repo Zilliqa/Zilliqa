@@ -304,7 +304,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
-    if (remainingGas < MIN_ETH_GAS) {
+    if (!requestedValue.isZero() && remainingGas < MIN_ETH_GAS) {
       INC_STATUS(GetCPSMetric(), "error", "insuffiecient gas");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }

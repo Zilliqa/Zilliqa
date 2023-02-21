@@ -6,6 +6,7 @@ pragma solidity >=0.7.0 <0.9.0;
 contract ContractOne {
 
     event DebugMessage(uint index, string message);
+    event FinalMessage();
 
     constructor() payable
     {
@@ -20,11 +21,13 @@ contract ContractOne {
             ContractTwo two = ContractTwo(destinations[index]);
             //emit DebugMessage(index, "Chained call of contract thing thing...!");
 
-            (bool success) = two.chainedCall(destinations, index + 1);
+            two.chainedCall(destinations, index + 1);
         } {
             emit DebugMessage(index, "Reached end of array.");
         }
-        //emit DebugMessage(index, "Chained call of contract one fin!");
+        emit DebugMessage(index, "Chained call of contract one fin!");
+        emit FinalMessage();
+        return true;
     }
 }
 
@@ -42,23 +45,22 @@ contract ContractTwo {
     {
         emit DebugMessage(index, "Chained call of contract two!");
 
-
         // Contract two will call three TWICE
         if (destinations.length > index) {
             ContractThree three = ContractThree(destinations[index]);
-            //emit DebugMessage(index, "Chained call of contract two - constructed...!");
+            emit DebugMessage(index, "Chained call of contract two - constructed...!");
 
-            //emit DebugMessage(index, "Chained call of contract two - 0...!");
+            emit DebugMessage(index, "Chained call of contract two - 0...!");
             three.chainedCall(destinations, index + 1);
-            //emit DebugMessage(index, "Chained call of contract two - 1...!");
-            (bool success) = three.chainedCall(destinations, index + 1);
-            //emit DebugMessage(index, "Chained call of contract two - 2...!");
-            //emit Response(success, data);
+            emit DebugMessage(index, "Chained call of contract two - 1...!");
+            three.chainedCall(destinations, index + 1);
+            emit DebugMessage(index, "Chained call of contract two - 2...!");
         } {
             emit DebugMessage(index, "Reached end of array.");
         }
 
         emit DebugMessage(index, "Chained call of contract two fin!");
+        return true;
     }
 }
 
@@ -82,12 +84,13 @@ contract ContractThree {
 
             //emit DebugMessage(index, "Chained call of contract three - one constructed!");
             //emit DebugMessage(index, "Chained call of contract three - one calling...");
-            (bool success) = one.chainedCall(destinations, index + 1);
+            one.chainedCall(destinations, index + 1);
             emit DebugMessage(index, "Chained call of contract three - one called...");
         } {
             emit DebugMessage(index, "Reached end of array.");
         }
-        //emit DebugMessage(index, "Chained call of contract three fin!");
+        emit DebugMessage(index, "Chained call of contract three fin!");
+        return true;
     }
 
     // Calling a function that does not exist triggers the fallback function.

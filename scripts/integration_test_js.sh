@@ -81,23 +81,15 @@ else
     fi
 
     echo "Starting isolated server..."
-    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 > isolated_logs.txt 2>&1 &
+    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
 
     sleep 10
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test --parallel 
-
-    echo "second"
-
-    npx hardhat test ./test/ChainedCalls.ts
+    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test --parallel
 
     retVal=$?
-
-    cat isolated_logs.txt
-    cat npx_logs.txt
-
     if [ $retVal -ne 0 ]; then
         echo "!!!!!! Error with JS integration test !!!!!!"
         exit 1
