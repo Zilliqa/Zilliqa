@@ -362,10 +362,28 @@ bool InitializeEventFilter(const Json::Value &params, EventFilterParams &filter,
     return false;
   }
 
-  filter.address = ExtractStringFromJsonObj(params, ADDRESS_STR, error, found);
-  if (!error.empty()) {
+  std::vector<std::string> addresses;
+  auto empty_array = Json::Value(Json::arrayValue);
+  auto v = params.get(ADDRESS_STR, empty_array);
+  if (v.isArray()) {
+    for (const auto &address : v) {
+      if (!address.isString()) {
+        error = "Addresses must be strings";
+        return false;
+      }
+      addresses.push_back(address.asString());
+    }
+  } else if (v.isString()) {
+    addresses.push_back(v.asString());
+  } else {
+    error = "Address must be an array or a string";
     return false;
   }
+  if (addresses.size() > 16) {
+    error = "Address cannot contain more than 16 elements";
+    return false;
+  }
+  filter.address = addresses;
 
   auto topics = ExtractArrayFromJsonObj(params, TOPICS_STR, error);
   if (!error.empty()) {
@@ -377,9 +395,13 @@ bool InitializeEventFilter(const Json::Value &params, EventFilterParams &filter,
 
 bool Match(const EventFilterParams &filter, const Address &address,
            const std::vector<Quantity> &topics) {
-  if (!filter.address.empty() &&
-      boost::to_lower_copy(address) != filter.address) {
-    return false;
+  if (!filter.address.empty()) {
+    // We linearly search the address filter here. Since we limit the length of the filter to 16 addresses, this is
+    // acceptable.
+    auto v = filter.address;
+    if (std::find_if(v.begin(), v.end(), [&address](const auto &a) { return boost::iequals(address, a); }) == v.end()) {
+      return false;
+    }
   }
 
   if (filter.topicMatches.empty()) {

@@ -57,15 +57,15 @@ describe("Subscriptions functionality", function () {
         {from: senderAddress, to: "0xF0Cb24aC66ba7375Bf9B9C4Fa91E208D9EAAbd2e", amount: ethers.BigNumber.from(200)}
       ];
 
-      for (let i = 0; i < VECTORS.length; ++i) {
-        const event: Event = VECTORS[i];
-        await expect(contract.event0(event.to, event.amount)).to.emit(contract, "Event0");
-        await expect(secondContract.event0(event.to, event.amount)).to.emit(secondContract, "Event0");
-      }
+      // Expect two events on the first contract and one on the second.
+      await expect(contract.event0(VECTORS[0].to, VECTORS[0].amount)).to.emit(contract, "Event0");
+      await expect(contract.event0(VECTORS[1].to, VECTORS[1].amount)).to.emit(contract, "Event0");
+      await expect(secondContract.event0(VECTORS[0].to, VECTORS[0].amount)).to.emit(secondContract, "Event0");
+
       receivedEvents = await waitForEvents(receivedEvents);
       secondContractReceivedEvents = await waitForEvents(secondContractReceivedEvents);
       expect(receivedEvents).to.have.length(2);
-      expect(secondContractReceivedEvents).to.have.length(2);
+      expect(secondContractReceivedEvents).to.have.length(1);
     });
     it("Should deliver event to both", async function () {
       const secondEventsContract = new ethers.Contract(contract.address, contract.interface, provider);
