@@ -1266,3 +1266,9 @@ message LookupGetPendingTxnFromL2l
     ByteArray signature     = 3;
 }
 
+message TxTraceStoredDisk
+{
+    repeated ByteArray items    = 1;
+    uint64          index       = 2;
+    string          txTrace     = 3;
+}

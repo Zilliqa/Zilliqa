@@ -22,7 +22,6 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 use clap::Parser;
-use evm::tracing;
 
 use evm_server::EvmServer;
 
@@ -48,10 +47,6 @@ struct Args {
     /// Path of the EVM server HTTP socket. Duplicates the `socket` above for convenience.
     #[clap(short = 'p', long, default_value = "3333")]
     http_port: u16,
-
-    /// Trace the execution with debug logging.
-    #[clap(short, long)]
-    tracing: bool,
 
     /// Log file (if not set, stderr is used).
     #[clap(short, long)]
@@ -98,6 +93,33 @@ impl CallContext {
     }
 }
 
+#[derive(Debug,Serialize,Deserialize)]
+struct StructLog {
+    pub depth: u64,
+    pub error: String,
+    pub gas: u64,
+    #[serde(rename = "gasCost")]
+    pub gas_cost: u64,
+    pub op: String,
+    pub pc: u64,
+    pub stack: Vec<String>,
+    pub storage: Vec<String>,
+}
+
+impl StructLog {
+    fn new() -> Self{
+        StructLog{
+            depth: Default::default(),
+            error: Default::default(),
+            gas: Default::default(),
+            gas_cost: Default::default(),
+            op: Default::default(),
+            pc: Default::default(),
+            stack: Default::default(),
+            storage: Default::default(),
+        }
+    }
+}
 
 // This implementation has a stack of call contexts each with reference to their calls - so a tree is
 // Created in this way.
@@ -105,23 +127,51 @@ impl CallContext {
 // On returning from a call, the end of the stack gets put into the item above's calls
 #[derive(Debug,Serialize,Deserialize)]
 struct LoggingEventListener {
-    call_stack: Vec<CallContext>,
+    call_tracer: Vec<CallContext>,
+    raw_tracer: Vec<StructLog>,
     enabled: bool,
 }
 
-impl LoggingEventListener {
+#[derive(Debug,Serialize,Deserialize)]
+struct RawTracer {
+    gas: String,
+    #[serde(rename = "returnValue")]
+    return_value: String,
+    #[serde(rename = "structLogs")]
+    struct_logs: Vec<StructLog>,
+}
 
+impl LoggingEventListener {
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
-            call_stack: Default::default(),
+            call_tracer: Default::default(),
+            raw_tracer: Default::default(),
             enabled: enabled,
         }
     }
 }
 
-impl tracing::EventListener for LoggingEventListener {
-    fn event(&mut self, event: tracing::Event) {
-        println!("recvd event: {:?}", event);
+impl evm::runtime::tracing::EventListener for LoggingEventListener {
+    fn event(&mut self, event: evm::runtime::tracing::Event) {
+        let mut struct_log = StructLog::new();
+
+        match event {
+            evm::runtime::tracing::Event::Step{context: _, opcode, position: _, stack: _, memory: _} => {
+
+                struct_log.op = format!("{}", opcode);
+
+                self.raw_tracer.push(struct_log);
+            }
+            evm::runtime::tracing::Event::StepResult{result: _, return_value: _} => {
+                //self.raw_tracer.push("stepResult".to_string());
+            }
+            evm::runtime::tracing::Event::SLoad{address: _, index: _, value: _} => {
+                //self.raw_tracer.push("stepResult".to_string());
+            }
+            evm::runtime::tracing::Event::SStore{address: _, index: _, value: _} => {
+                //self.raw_tracer.push("stepResult".to_string());
+            }
+        }
     }
 }
 
@@ -131,11 +181,15 @@ impl LoggingEventListener {
         serde_json::to_string_pretty(self).unwrap()
     }
 
+    fn as_string_pretty(&self) -> String {
+        serde_json::to_string_pretty(self).unwrap()
+    }
+
     fn finished_call(&mut self) {
         // The call has now completed - adjust the stack if neccessary
-        if self.call_stack.len() > 1 {
-            let end = self.call_stack.pop().unwrap();
-            let new_end = self.call_stack.last_mut().unwrap();
+        if self.call_tracer.len() > 1 {
+            let end = self.call_tracer.pop().unwrap();
+            let new_end = self.call_tracer.last_mut().unwrap();
             new_end.calls.push(end);
         }
     }
@@ -144,7 +198,7 @@ impl LoggingEventListener {
         // Now we have constructed our new call context, it gets added to the end of
         // the stack (if we want to do tracing)
         if self.enabled {
-            self.call_stack.push(context);
+            self.call_tracer.push(context);
         }
     }
 }

@@ -103,10 +103,10 @@ pub async fn run_evm_impl(
             let mut call = CallContext::new();
             call.call_type = "CALL".to_string();
 
-            if listener.call_stack.is_empty() {
+            if listener.call_tracer.is_empty() {
                 call.from = format!("{:?}", backend.origin);
             } else {
-                call.from = listener.call_stack.last().unwrap().to.clone();
+                call.from = listener.call_tracer.last().unwrap().to.clone();
             }
 
             call.to = format!("{:?}", address);
@@ -119,7 +119,7 @@ pub async fn run_evm_impl(
         // We are asserting it is safe to unwind, as objects will be dropped after
         // the unwind.
         let executor_result = panic::catch_unwind(AssertUnwindSafe(|| {
-        evm::tracing::using(&mut listener, || executor.execute(&mut runtime, feedback_continuation))
+        evm::runtime::tracing::using(&mut listener, || executor.execute(&mut runtime, feedback_continuation))
         }));
 
         // Scale back remaining gas to Scilla units (no rounding!).
@@ -153,9 +153,9 @@ pub async fn run_evm_impl(
                 let result = build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas);
                 info!(
                     "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, 
-                    extras: {:?}, estimate: {:?}, cps: {:?}, result: {}",
+                    extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, trace: {:?}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate, enable_cps, log_evm_result(&result));
+                    backend.extras, estimate, enable_cps, log_evm_result(&result), listener.as_string());
                 result
             },
             CpsReason::CallInterrupt(i) => {
@@ -343,7 +343,7 @@ fn handle_panic(trace: String, remaining_gas: u64, reason: &str) -> EvmProto::Ev
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_fatal(fatal);
     result.set_exit_reason(exit_reason);
-    result.set_tx_trace(trace.into()); // todo
+    result.set_tx_trace(trace.into());
     result.set_remaining_gas(remaining_gas);
     result
 }

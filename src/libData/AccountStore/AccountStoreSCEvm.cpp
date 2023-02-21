@@ -333,9 +333,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     if (!cpsRunResult.evmResult.tx_trace().empty() && ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
       LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
 
-      if(!evmContext.GetTranID()) {
-        LOG_GENERAL(INFO, "hash is all zeroes, do nothing!");
-      } else {
+      if(evmContext.GetTranID()) {
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         cpsRunResult.evmResult.tx_trace())) {
           LOG_GENERAL(INFO,

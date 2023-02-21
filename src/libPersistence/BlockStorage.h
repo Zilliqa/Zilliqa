@@ -200,6 +200,7 @@ class BlockStorage : boost::noncopyable {
   /// Retrieves the requested transaction trace.
   bool PutTxTrace(const dev::h256& key, const std::string& trace);
   bool GetTxTrace(const dev::h256& key, std::string& trace);
+  std::shared_ptr<LevelDB> GetTxTraceDb();
 
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);
@@ -362,6 +363,10 @@ class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> GetMicroBlockDB(const uint64_t& epochNum);
   std::shared_ptr<LevelDB> GetTxBodyDB(const uint64_t& epochNum);
   void BuildHashToNumberMappingForTxBlocks();
+
+  // used for TX trace management
+  //ZilliqaMessage::TxTraceStoredDisk BlockStorage::GetTxTraceInfoStruct();
+  //void BlockStorage::UpdateTraceStruct(ZilliqaMessage::TxTraceStoredDisk txTraces, const dev::h256& key);
 };
 
 #endif  // ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_

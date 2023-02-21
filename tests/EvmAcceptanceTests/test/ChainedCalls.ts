@@ -33,6 +33,8 @@ describe("Chained Contract Calls Functionality", function () {
 
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
+      console.log("hash: ", res.hash);
+
       await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
         logDebug(result);
 
@@ -49,6 +51,20 @@ describe("Chained Contract Calls Functionality", function () {
         assert.equal(addrOne, jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
         assert.equal(addrOne, jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
       });
+
+      let secondTracer = {'tracer' : 'raw'};
+
+      await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
+        logDebug(result);
+
+        assert.equal(status, 200, "has status code");
+        let jsonObject = JSON.parse(result.result);
+
+        console.log(result);
+        console.log("and that is that.");
+
+      });
+
     });
   });
 });
