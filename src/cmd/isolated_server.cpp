@@ -96,17 +96,12 @@ Json::Value BlockByHash(IsolatedServer& server, const std::string& hash) {
 int main(int argc, const char* argv[]) {
   using namespace rpc;
 
-  zil::trace::Tracing::Initialize();
-
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              __FUNCTION__);
-
   string accountJsonFilePath;
   uint port{5555};
   string blocknum_str{"1"};
   uint timeDelta{0};
   bool loadPersistence{false};
-  [[maybe_unused]] bool nonisoload{false};
+  bool nonisoload{false};
   string uuid;
 
   ENABLE_EVM = true;
@@ -167,9 +162,9 @@ int main(int argc, const char* argv[]) {
 
     ISOLATED_SERVER = true;
 
-    // Enough to bring the instance into scope
-    // Tracing::GetInstance();
-
+    zil::trace::Tracing::Initialize("isolated");
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                __FUNCTION__);
     Metrics::GetInstance();
 
     createConfigFile();
