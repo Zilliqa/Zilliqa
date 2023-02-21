@@ -29,7 +29,6 @@
 #include <opentelemetry/exporters/ostream/span_exporter_factory.h>
 #include <opentelemetry/exporters/otlp/otlp_grpc_exporter_options.h>
 #include <opentelemetry/exporters/otlp/otlp_http_exporter_factory.h>
-#include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 #include <opentelemetry/sdk/trace/simple_processor_factory.h>
 #include <opentelemetry/sdk/trace/tracer_context_factory.h>
 #include <opentelemetry/sdk/trace/tracer_provider_factory.h>
@@ -37,6 +36,7 @@
 #include <opentelemetry/trace/propagation/http_trace_context.h>
 #include <opentelemetry/trace/provider.h>
 #include <opentelemetry/trace/span.h>
+#include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 
 #include "libUtils/Logger.h"
 
@@ -62,10 +62,13 @@ inline opentelemetry::common::AttributeValue ToInternal(Value v) {
       v);
 }
 
-void GetIdsImpl(std::string& out, trace_api::SpanContext& spanContext);
+void GetIdsImpl(std::string& out, const trace_api::SpanContext& spanContext,
+                const std::string& identity);
 
 std::optional<trace_api::SpanContext> ExtractSpanContextFromIds(
     std::string_view serializedIds);
+
+std::string_view ExtractSenderIdentityFromIds(std::string_view serializedIds);
 
 template <typename Container>
 class KVI : public opentelemetry::common::KeyValueIterable {
@@ -150,10 +153,6 @@ class TracingImpl {
 
     const std::string& GetIds() const noexcept override { return m_ids; }
 
-    void SetAttribute(std::string_view name, Value value) noexcept override {
-      m_span->SetAttribute(name, ToInternal(std::move(value)));
-    }
-
     void AddEvent(std::string_view name,
                   std::initializer_list<std::pair<std::string_view, Value>>
                       attributes) noexcept override {
@@ -177,26 +176,35 @@ class TracingImpl {
 
    public:
     SpanImpl(otel_std::shared_ptr<trace_api::Span> span,
-             otel_std::unique_ptr<opentelemetry::context::Token> token)
+             otel_std::unique_ptr<opentelemetry::context::Token> token,
+             const std::string& identity)
         : m_span(std::move(span)),
           m_token(std::move(token)),
           m_threadId(std::this_thread::get_id()),
           m_context(m_span->GetContext()) {
       assert(m_token);
       assert(m_context.IsValid());
-      GetIdsImpl(m_ids, m_context);
+      GetIdsImpl(m_ids, m_context, identity);
+    }
+
+    void SetAttribute(std::string_view name, Value value) noexcept override {
+      m_span->SetAttribute(name, ToInternal(std::move(value)));
     }
   };
 
   // Filters mask. Can be zero if tracing is not enabled or initialized
   uint64_t m_filtersMask{};
 
+  // This node's identity, A.K.A service.name attribute value
+  std::string m_identity;
+
   // Tracer which creates spans. Can be nullptr if tracing is not enabled or
   // initialized
   otel_std::shared_ptr<trace_api::Tracer> m_tracer;
 
   Span CreateSpanImpl(std::string_view name,
-                      const trace_api::StartSpanOptions& options) {
+                      const trace_api::StartSpanOptions& options,
+                      std::string_view remote_node_identity) {
     assert(m_tracer);
 
     auto internalSpan = m_tracer->StartSpan(name, options);
@@ -206,8 +214,11 @@ class TracingImpl {
         opentelemetry::context::RuntimeContext::GetCurrent().SetValue(
             trace_api::kSpanKey,
             opentelemetry::context::ContextValue(internalSpan)));
-    auto impl =
-        std::make_shared<SpanImpl>(std::move(internalSpan), std::move(token));
+    auto impl = std::make_shared<SpanImpl>(std::move(internalSpan),
+                                           std::move(token), m_identity);
+    if (!remote_node_identity.empty()) {
+      impl->SetAttribute("dtrace.from", remote_node_identity);
+    }
     Stack::GetInstance().Push(impl);
     return Span(std::move(impl), true);
   }
@@ -233,10 +244,12 @@ class TracingImpl {
     return m_filtersMask & (1 << static_cast<int>(to_test));
   }
 
+  bool IsEnabled() const { return m_filtersMask != 0; }
+
   Span CreateSpan(FilterClass filter, std::string_view name) {
     if (m_tracer && IsEnabled(filter)) {
       trace_api::StartSpanOptions options;
-      return CreateSpanImpl(name, options);
+      return CreateSpanImpl(name, options, "");
     }
     return Span{};
   }
@@ -255,7 +268,8 @@ class TracingImpl {
       options.kind = trace_api::SpanKind::kServer;
       options.parent = std::move(ctx_opt.value());
 
-      return CreateSpanImpl(name, options);
+      auto span = CreateSpanImpl(
+          name, options, ExtractSenderIdentityFromIds(remote_trace_info));
     }
     return Span{};
   }
@@ -263,12 +277,12 @@ class TracingImpl {
   TracingImpl() = default;
 };
 
-bool Tracing::Initialize(std::string_view global_name,
+bool Tracing::Initialize(std::string_view identity,
                          std::string_view filters_mask) {
   static std::once_flag initialized;
   bool result = false;
-  std::call_once(initialized, [&result, &global_name, &filters_mask] {
-    result = TracingImpl::GetInstance().Initialize(global_name, filters_mask);
+  std::call_once(initialized, [&result, &identity, &filters_mask] {
+    result = TracingImpl::GetInstance().Initialize(identity, filters_mask);
   });
   return result;
 }
@@ -276,6 +290,8 @@ bool Tracing::Initialize(std::string_view global_name,
 bool Tracing::IsEnabled(FilterClass filter) {
   return TracingImpl::GetInstance().IsEnabled(filter);
 }
+
+bool IsEnabled() { return TracingImpl::GetInstance().IsEnabled(); }
 
 Span Tracing::CreateSpan(FilterClass filter, std::string_view name) {
   return TracingImpl::GetInstance().CreateSpan(filter, name);
@@ -304,25 +320,29 @@ constexpr size_t TRACE_ID_SIZE = 32;
 constexpr size_t TRACE_INFO_SIZE =
     FLAGS_SIZE + 1 + SPAN_ID_SIZE + 1 + TRACE_ID_SIZE;
 
-void GetIdsImpl(std::string& out, trace_api::SpanContext& spanContext) {
-  out.assign(TRACE_INFO_SIZE, '-');
+void GetIdsImpl(std::string& out, const trace_api::SpanContext& spanContext,
+                const std::string& identity) {
+  out.reserve(TRACE_INFO_SIZE + 1 + identity.size());
+  out.assign(TRACE_INFO_SIZE + 1, '-');
   spanContext.trace_flags().ToLowerBase16(
       std::span<char, FLAGS_SIZE>(out.data() + FLAGS_OFFSET, FLAGS_SIZE));
   spanContext.span_id().ToLowerBase16(
       std::span<char, SPAN_ID_SIZE>(out.data() + SPAN_ID_OFFSET, SPAN_ID_SIZE));
   spanContext.trace_id().ToLowerBase16(std::span<char, TRACE_ID_SIZE>(
       out.data() + TRACE_ID_OFFSET, TRACE_ID_SIZE));
+  out += identity;
 }
 
 std::optional<trace_api::SpanContext> ExtractSpanContextFromIds(
     std::string_view serializedIds) {
-  if (serializedIds.size() != TRACE_INFO_SIZE) {
+  if (serializedIds.size() < TRACE_INFO_SIZE + 1) {
     LOG_GENERAL(WARNING, "Unexpected trace info size " << serializedIds.size());
     return std::nullopt;
   }
 
   if (serializedIds[SPAN_ID_OFFSET - 1] != '-' ||
-      serializedIds[TRACE_ID_OFFSET - 1] != '-') {
+      serializedIds[TRACE_ID_OFFSET - 1] != '-' ||
+      serializedIds[TRACE_INFO_SIZE] != '-') {
     LOG_GENERAL(WARNING, "Invalid format of trace info " << serializedIds);
     return std::nullopt;
   }
@@ -356,6 +376,12 @@ std::optional<trace_api::SpanContext> ExtractSpanContextFromIds(
   return trace_api::SpanContext(trace_id, span_id, trace_flags, true);
 }
 
+std::string_view ExtractSenderIdentityFromIds(std::string_view serializedIds) {
+  return (serializedIds.size() > TRACE_INFO_SIZE + 1)
+             ? serializedIds.substr(TRACE_INFO_SIZE + 1)
+             : "";
+}
+
 constexpr uint64_t ALL = std::numeric_limits<uint64_t>::max();
 
 void UpdateMask(uint64_t& mask, std::string_view filter) {
@@ -378,15 +404,7 @@ void UpdateMask(uint64_t& mask, std::string_view filter) {
 #undef CHECK_FILTER2
 }
 
-void TracingOtlpGRPCInit(std::string_view global_name) {
-#if defined(__APPLE__) || defined(__FreeBSD__)
-  std::string nice_name = getprogname();
-#elif defined(_GNU_SOURCE)
-  std::string nice_name = program_invocation_name;
-#else
-  std::string nice_name = "zilliqa";
-#endif
-
+void TracingOtlpGRPCInit(std::string_view identity) {
   opentelemetry::exporter::otlp::OtlpGrpcExporterOptions opts;
   std::stringstream ss;
   ss << TRACE_ZILLIQA_PORT;
@@ -397,28 +415,20 @@ void TracingOtlpGRPCInit(std::string_view global_name) {
     opts.endpoint = addr;
   }
 
-  resource::ResourceAttributes attributes = {{"service.name", nice_name}};
+  resource::ResourceAttributes attributes = {{"service.name", identity}};
 
-  auto resource = resource::Resource::Create(attributes,METRIC_ZILLIQA_SCHEMA);
+  auto resource = resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
 
   auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
-      trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
+      trace_sdk::TracerProviderFactory::Create(std::move(processor), resource);
 
   trace_api::Provider::SetTracerProvider(provider);
 }
 
-void TracingOtlpHTTPInit(std::string_view global_name) {
-#if defined(__APPLE__) || defined(__FreeBSD__)
-  std::string nice_name = getprogname();
-#elif defined(_GNU_SOURCE)
-  std::string nice_name = program_invocation_name;
-#else
-  std::string nice_name = "zilliqa";
-#endif
-
+void TracingOtlpHTTPInit(std::string_view identity) {
   opentelemetry::exporter::otlp::OtlpHttpExporterOptions opts;
   std::stringstream ss;
   ss << TRACE_ZILLIQA_PORT;
@@ -429,11 +439,7 @@ void TracingOtlpHTTPInit(std::string_view global_name) {
     opts.url = "http://" + addr + "/v1/traces";
   }
 
-  if (!global_name.empty()) {
-    nice_name += ":";
-    nice_name += global_name;
-  }
-  resource::ResourceAttributes attributes = {{"service.name", nice_name},
+  resource::ResourceAttributes attributes = {{"service.name", identity},
                                              {"version", (uint32_t)1}};
 
   auto resource = resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
@@ -462,11 +468,11 @@ void TracingOtlpHTTPInit(std::string_view global_name) {
               new opentelemetry::trace::propagation::HttpTraceContext()));
 }
 
-void TracingStdOutInit() {
+void TracingStdOutInit(std::string_view identity) {
   auto exporter = trace_exporter::OStreamSpanExporterFactory::Create();
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
-  resource::ResourceAttributes attributes = {{"service.name", "zilliqa-cpp"},
+  resource::ResourceAttributes attributes = {{"service.name", identity},
                                              {"version", (uint32_t)1}};
   auto resource = resource::Resource::Create(attributes);
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
@@ -485,7 +491,7 @@ void TracingStdOutInit() {
 
 }  // namespace
 
-bool TracingImpl::Initialize(std::string_view global_name,
+bool TracingImpl::Initialize(std::string_view identity,
                              std::string_view filters_mask) {
   std::string_view mask =
       filters_mask.empty() ? TRACE_ZILLIQA_MASK : filters_mask;
@@ -517,11 +523,11 @@ bool TracingImpl::Initialize(std::string_view global_name,
     std::string cmp{TRACE_ZILLIQA_PROVIDER};
 
     if (cmp == "OTLPHTTP") {
-      TracingOtlpHTTPInit(global_name);
-    } if (cmp == "OTLPGRPC") {
-      TracingOtlpGRPCInit(global_name);
-    }else if (cmp == "STDOUT") {
-      TracingStdOutInit();
+      TracingOtlpHTTPInit(identity);
+    } else if (cmp == "OTLPGRPC") {
+      TracingOtlpGRPCInit(identity);
+    } else if (cmp == "STDOUT") {
+      TracingStdOutInit(identity);
     } else {
       LOG_GENERAL(WARNING,
                   "Telemetry provider has defaulted to NOOP provider due to no "
@@ -545,6 +551,7 @@ bool TracingImpl::Initialize(std::string_view global_name,
   assert(m_tracer);
 
   m_filtersMask = filtersMask;
+  m_identity = identity;
   return true;
 }
 

@@ -167,15 +167,19 @@ class Tracing {
   /// Initializes the tracing engine only if it's not initialized at the moment.
   /// Can be (optionally) called before the first usage to see logs and
   /// initialization result
+  /// \param identity Node identity (role and index), e.g. "normal-3"
   /// \param filters_mask If empty then config value is used
   /// \return Success of initialization. If 'false' is returned, then
   /// the tracing will be disabled
-  static bool Initialize(std::string_view global_name = {},
+  static bool Initialize(std::string_view identity = {},
                          std::string_view filters_mask = {});
 
   /// Returns if tracing with a given filter is enabled. Usable for more complex
   /// scenarios than just CreateSpan(...)
   [[nodiscard]] static bool IsEnabled(FilterClass filter);
+
+  /// Returns if tracing is enabled at all
+  [[nodiscard]] static bool IsEnabled();
 
   /// Creates a scoped span.
   /// Returns a no-op span if this filter is disabled or tracing is disabled.

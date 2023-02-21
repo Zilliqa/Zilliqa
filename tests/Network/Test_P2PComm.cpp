@@ -186,7 +186,7 @@ void TestSerialize() {
       zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::QUEUE, "ooo");
   assert(nospan.GetIds().empty());
 
-  std::ignore = zil::trace::Tracing::Initialize("", "ALL");
+  std::ignore = zil::trace::Tracing::Initialize("bobobo", "ALL");
 
   auto span =
       zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::QUEUE, "ooo");
@@ -219,6 +219,8 @@ void TestSerialize() {
            (result.hash == hash);
       if (ok && with_traces) {
         ok = (result.traceInfo == trace_info);
+        auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+            zil::trace::FilterClass::QUEUE, "child", trace_info);
       }
     } while (false);
     LOG_GENERAL(DEBUG, "size=" << msg.size() << " hash=" << !hash.empty()
