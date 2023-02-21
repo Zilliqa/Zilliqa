@@ -19,6 +19,7 @@
 #define ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
 #include <variant>
@@ -198,6 +199,10 @@ class Tracing {
   /// Returns the active span (if any) or to a no-op span (if no
   /// active span or tracing disabled)
   [[nodiscard]] static Span GetActiveSpan();
+
+  /// Returns trace and span ids of active span (if any)
+  [[nodiscard]] static std::optional<std::pair<TraceId, SpanId>>
+  GetActiveSpanIds();
 
   // TODO some research needed to shutdown it gracefully
   // static void Shutdown();

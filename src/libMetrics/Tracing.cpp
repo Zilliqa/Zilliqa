@@ -18,7 +18,6 @@
 #include "Tracing.h"
 
 #include <cassert>
-#include <optional>
 #include <thread>
 
 #include <boost/algorithm/string.hpp>
@@ -233,6 +232,18 @@ class TracingImpl {
     return Span(stack.GetActiveSpan(), false);
   }
 
+  static std::optional<std::pair<TraceId, SpanId>> GetActiveSpanIds() {
+    // thread local instance here
+    auto& stack = Stack::GetInstance();
+    if (stack.Empty()) {
+      return std::nullopt;
+    }
+    const auto& span = stack.GetActiveSpan();
+    std::optional<std::pair<TraceId, SpanId>> pair;
+    pair.emplace(span->GetTraceId(), span->GetSpanId());
+    return pair;
+  }
+
   static TracingImpl& GetInstance() {
     static TracingImpl tracing;
     return tracing;
@@ -291,7 +302,7 @@ bool Tracing::IsEnabled(FilterClass filter) {
   return TracingImpl::GetInstance().IsEnabled(filter);
 }
 
-bool IsEnabled() { return TracingImpl::GetInstance().IsEnabled(); }
+bool Tracing::IsEnabled() { return TracingImpl::GetInstance().IsEnabled(); }
 
 Span Tracing::CreateSpan(FilterClass filter, std::string_view name) {
   return TracingImpl::GetInstance().CreateSpan(filter, name);
@@ -308,6 +319,10 @@ Span Tracing::CreateChildSpanOfRemoteTrace(FilterClass filter,
 }
 
 Span Tracing::GetActiveSpan() { return TracingImpl::GetActiveSpan(); }
+
+std::optional<std::pair<TraceId, SpanId>> Tracing::GetActiveSpanIds() {
+  return TracingImpl::GetActiveSpanIds();
+}
 
 namespace {
 
