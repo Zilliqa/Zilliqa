@@ -30,8 +30,9 @@ class CpsRunTransfer final : public CpsRun {
   using Address = dev::h160;
 
  public:
-  CpsRunTransfer(CpsExecutor& executor, CpsContext& ctx, const Address& from,
-                 const Address& to, const Amount& amount);
+  CpsRunTransfer(CpsExecutor& executor, CpsContext& ctx,
+                 CpsExecuteResult::ResultType&& prevRunResult,
+                 const Address& from, const Address& to, const Amount& amount);
   virtual CpsExecuteResult Run(TransactionReceipt& receipt) override;
   bool IsResumable() const override { return false; }
   virtual bool HasFeedback() const override { return false; }
@@ -40,6 +41,7 @@ class CpsRunTransfer final : public CpsRun {
 
  private:
   CpsContext& mCpsContext;
+  CpsExecuteResult::ResultType mPreviousRunResult;
   Address mFrom;
   Address mTo;
   Amount mAmount;
