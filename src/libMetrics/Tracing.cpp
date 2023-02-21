@@ -29,6 +29,7 @@
 #include <opentelemetry/exporters/ostream/span_exporter_factory.h>
 #include <opentelemetry/exporters/otlp/otlp_grpc_exporter_options.h>
 #include <opentelemetry/exporters/otlp/otlp_http_exporter_factory.h>
+#include "opentelemetry/exporters/otlp/otlp_grpc_exporter_factory.h"
 #include <opentelemetry/sdk/trace/simple_processor_factory.h>
 #include <opentelemetry/sdk/trace/tracer_context_factory.h>
 #include <opentelemetry/sdk/trace/tracer_provider_factory.h>
@@ -377,6 +378,38 @@ void UpdateMask(uint64_t& mask, std::string_view filter) {
 #undef CHECK_FILTER2
 }
 
+void TracingOtlpGRPCInit(std::string_view global_name) {
+#if defined(__APPLE__) || defined(__FreeBSD__)
+  std::string nice_name = getprogname();
+#elif defined(_GNU_SOURCE)
+  std::string nice_name = program_invocation_name;
+#else
+  std::string nice_name = "zilliqa";
+#endif
+
+  opentelemetry::exporter::otlp::OtlpGrpcExporterOptions opts;
+  std::stringstream ss;
+  ss << TRACE_ZILLIQA_PORT;
+
+  std::string addr{std::string(TRACE_ZILLIQA_HOSTNAME) + ":" + ss.str()};
+
+  if (!addr.empty()) {
+    opts.endpoint = addr;
+  }
+
+  resource::ResourceAttributes attributes = {{"service.name", nice_name}};
+
+  auto resource = resource::Resource::Create(attributes,METRIC_ZILLIQA_SCHEMA);
+
+  auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
+  auto processor =
+      trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
+  std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
+      trace_sdk::TracerProviderFactory::Create(std::move(processor),resource);
+
+  trace_api::Provider::SetTracerProvider(provider);
+}
+
 void TracingOtlpHTTPInit(std::string_view global_name) {
 #if defined(__APPLE__) || defined(__FreeBSD__)
   std::string nice_name = getprogname();
@@ -403,7 +436,7 @@ void TracingOtlpHTTPInit(std::string_view global_name) {
   resource::ResourceAttributes attributes = {{"service.name", nice_name},
                                              {"version", (uint32_t)1}};
 
-  auto resource = resource::Resource::Create(attributes);
+  auto resource = resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
   // Create OTLP exporter instance
   auto exporter = otlp::OtlpHttpExporterFactory::Create(opts);
   auto processor =
@@ -485,7 +518,9 @@ bool TracingImpl::Initialize(std::string_view global_name,
 
     if (cmp == "OTLPHTTP") {
       TracingOtlpHTTPInit(global_name);
-    } else if (cmp == "STDOUT") {
+    } if (cmp == "OTLPGRPC") {
+      TracingOtlpGRPCInit(global_name);
+    }else if (cmp == "STDOUT") {
       TracingStdOutInit();
     } else {
       LOG_GENERAL(WARNING,
