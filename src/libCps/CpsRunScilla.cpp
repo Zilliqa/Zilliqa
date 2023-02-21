@@ -31,6 +31,7 @@
 #include "libUtils/TimeUtils.h"
 
 #include <future>
+#include <ranges>
 
 namespace libCps {
 
@@ -301,7 +302,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   LOG_GENERAL(WARNING,
               "NUMBER OF MESSAGES: " << std::size(parseCallResults.entries));
-  for (const auto& nextRunInput : parseCallResults.entries) {
+  for (const auto& nextRunInput :
+       parseCallResults.entries | std::views::reverse) {
     if (availableGas < CONTRACT_INVOKE_GAS) {
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, retScillaVal};
     }
