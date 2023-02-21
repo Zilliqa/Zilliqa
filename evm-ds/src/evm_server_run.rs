@@ -131,10 +131,9 @@ pub async fn run_evm_impl(
                 let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
                 info!(
                     "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, 
-                    extras: {:?}, estimate: {:?}, cps: {:?}",
+                    extras: {:?}, estimate: {:?}, cps: {:?}, result: {}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate, enable_cps);
-                log_evm_result(&result);
+                    backend.extras, estimate, enable_cps, log_evm_result(&result));
                 result
             },
             CpsReason::CallInterrupt(i) => {

@@ -51,7 +51,7 @@ struct TxnPool {
     NonceIndex.clear();
   }
 
-  unsigned int size() { return HashIndex.size(); }
+  unsigned int size() const { return HashIndex.size(); }
 
   bool exist(const TxnHash& th) {
     return HashIndex.find(th) != HashIndex.end();

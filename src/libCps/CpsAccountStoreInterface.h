@@ -25,7 +25,7 @@
 #include <string>
 #include <vector>
 
-struct EvmProcessContext;
+class EvmProcessContext;
 
 namespace libCps {
 struct CpsAccountStoreInterface {
