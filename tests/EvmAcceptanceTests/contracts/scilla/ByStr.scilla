@@ -1,0 +1,26 @@
+scilla_version 0
+
+contract ByStrFunctionality
+()
+field byte5_field : ByStr5 = 0x1234567890
+field byte6_field : ByStr6 = 0x223344556677
+field bystr_len : Uint32 = Uint32 0
+
+transition getByStr5Field ()
+    r <- byte5_field;
+    e = {_eventname: "getByStr5()"; value: r};
+    event e
+end
+
+transition getByStrConcat ()
+    first <- byte5_field;
+    second <- byte6_field;
+    s = builtin concat first second;
+    e = {_eventname: "getByStrConcat()"; value: s};
+    event e
+end
+
+transition getByStrLen (first : ByStr)
+    l = builtin strlen first;
+    bystr_len := l
+end
