@@ -1,0 +1,43 @@
+scilla_version 0
+
+contract SendZil
+()
+field test_field : Uint256 = Uint256 0
+
+transition acceptZil ()
+  accept;
+  v <- _balance;
+  ev = {_eventname: "currentBalance"; value: v};
+  event ev
+end
+
+transition updateTestField (val : Uint256)
+  test_field := val
+end
+
+transition dontAcceptZil ()
+  v <- _balance;
+  ev = {_eventname: "currentBalance"; value: v};
+  event ev
+end
+
+transition fundUser (user : ByStr20, amount : Uint128)
+  msg = { _tag : "" ; _recipient : user ; _amount : amount };
+  no_msg = Nil {Message};
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
+
+transition fundContract (contract_address : ByStr20, amount : Uint128)
+  msg = { _tag : "acceptZil" ; _recipient : contract_address ; _amount : amount };
+  no_msg = Nil {Message};
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
+
+transition callOtherContract (contract_address : ByStr20, tag : String, value : Uint256)
+  msg = { _tag : tag ; _recipient : contract_address ; _amount : Uint128 0 ; val: value};
+  no_msg = Nil {Message};
+  msgs = Cons {Message} msg no_msg;
+  send msgs
+end
