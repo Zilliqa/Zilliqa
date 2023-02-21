@@ -37,7 +37,7 @@
 #include "libUtils/DataConversion.h"
 #include "libMessage/Messenger.h"
 
-constexpr int TX_TRACES_TO_STORE = 3;
+constexpr int TX_TRACES_TO_STORE = 30 * 1024;
 
 using namespace std;
 

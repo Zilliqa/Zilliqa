@@ -1783,7 +1783,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
       auto const item = trace_json["call_tracer"][0];
       ss << item;
     } else if (raw_tracer) {
-      auto const item = trace_json["raw_tracer"][0];
+      auto const item = trace_json["raw_tracer"];
       ss << item;
     }
 

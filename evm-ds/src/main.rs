@@ -95,13 +95,13 @@ impl CallContext {
 
 #[derive(Debug,Serialize,Deserialize)]
 struct StructLog {
-    pub depth: u64,
+    pub depth: usize,
     pub error: String,
     pub gas: u64,
     #[serde(rename = "gasCost")]
     pub gas_cost: u64,
     pub op: String,
-    pub pc: u64,
+    pub pc: usize,
     pub stack: Vec<String>,
     pub storage: Vec<String>,
 }
@@ -128,17 +128,27 @@ impl StructLog {
 #[derive(Debug,Serialize,Deserialize)]
 struct LoggingEventListener {
     call_tracer: Vec<CallContext>,
-    raw_tracer: Vec<StructLog>,
+    raw_tracer: StructLogTopLevel,
     enabled: bool,
 }
 
-#[derive(Debug,Serialize,Deserialize)]
-struct RawTracer {
-    gas: String,
+//#[derive(Debug,Serialize,Deserialize)]
+//struct RawTracer {
+//    gas: String,
+//    #[serde(rename = "returnValue")]
+//    return_value: String,
+//    #[serde(rename = "structLogs")]
+//    struct_logs: StructLogTopLevel,
+//    //struct_logs: Vec<StructLog>,
+//}
+
+#[derive(Debug,Serialize,Deserialize, Default)]
+struct StructLogTopLevel {
+    pub gas: u64,
     #[serde(rename = "returnValue")]
-    return_value: String,
+    pub return_value: String,
     #[serde(rename = "structLogs")]
-    struct_logs: Vec<StructLog>,
+    pub struct_logs: Vec<StructLog>,
 }
 
 impl LoggingEventListener {
@@ -153,34 +163,52 @@ impl LoggingEventListener {
 
 impl evm::runtime::tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: evm::runtime::tracing::Event) {
+
+        if !self.enabled {
+            return;
+        }
+
         let mut struct_log = StructLog::new();
 
+        struct_log.depth = self.call_tracer.len() - 1;
+        struct_log.error = Default::default();
+        struct_log.gas = Default::default();
+        struct_log.gas_cost = Default::default();
+        struct_log.storage = Default::default();
+
         match event {
-            evm::runtime::tracing::Event::Step{context: _, opcode, position: _, stack: _, memory: _} => {
-
+            evm::runtime::tracing::Event::Step{context: _, opcode, position, stack, memory: _} => {
                 struct_log.op = format!("{}", opcode);
+                struct_log.pc = position.clone().unwrap_or(0);
 
-                self.raw_tracer.push(struct_log);
+                for sta in stack.data() {
+                    struct_log.stack.push(format!("{:?}", sta));
+                }
             }
-            evm::runtime::tracing::Event::StepResult{result: _, return_value: _} => {
-                //self.raw_tracer.push("stepResult".to_string());
+            evm::runtime::tracing::Event::StepResult{result, return_value: _} => {
+                struct_log.op = "StepResult".to_string();
+                struct_log.error = format!("{:?}", result.clone());
             }
             evm::runtime::tracing::Event::SLoad{address: _, index: _, value: _} => {
-                //self.raw_tracer.push("stepResult".to_string());
+                struct_log.op = "Sload".to_string();
             }
             evm::runtime::tracing::Event::SStore{address: _, index: _, value: _} => {
-                //self.raw_tracer.push("stepResult".to_string());
+                struct_log.op = "SStore".to_string();
             }
         }
+
+        self.raw_tracer.struct_logs.push(struct_log);
     }
 }
 
 impl LoggingEventListener {
 
+    #[allow(dead_code)]
     fn as_string(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
     }
 
+    #[allow(dead_code)]
     fn as_string_pretty(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
     }
