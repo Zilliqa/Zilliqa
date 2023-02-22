@@ -22,13 +22,16 @@
 #include <list>
 #include <string>
 
+#ifndef HAVE_CPP_STDLIB
+#define HAVE_CPP_STDLIB
+#endif
+
 #include <opentelemetry/metrics/provider.h>
 
 #include "MetricFilters.h"
 #include "common/Singleton.h"
 
 #include "Common.h"
-#include "TraceFilters.h"
 
 class Metrics;
 

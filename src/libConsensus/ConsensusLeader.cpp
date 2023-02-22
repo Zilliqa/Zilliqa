@@ -21,6 +21,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
@@ -271,13 +272,16 @@ bool ConsensusLeader::StartConsensusSubsets() {
     }
   }
 
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              __FUNCTION__);
+
   // Shuffle the peer list so we don't always send challenges in same sequence
   std::random_device randomDevice;
   std::mt19937 randomEngine(randomDevice());
   shuffle(peerInfo.begin(), peerInfo.end(), randomEngine);
 
-  P2PComm::GetInstance().SendMessage(peerInfo, challenge, START_BYTE_NORMAL,
-                                     true);
+  P2PComm::GetInstance().SendMessage(peerInfo, challenge,
+                                     zil::p2p::START_BYTE_NORMAL, true, true);
 
   return true;
 }
@@ -501,8 +505,11 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
       peerInfo.push_back(i.second);
     }
 
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                __FUNCTION__);
+
     P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg,
-                                       START_BYTE_NORMAL, true);
+                                       zil::p2p::START_BYTE_NORMAL, true, true);
     auto main_func = [this]() mutable -> void {
       if (m_shardCommitFailureHandlerFunc != nullptr) {
         m_shardCommitFailureHandlerFunc(m_commitFailureMap);
@@ -757,8 +764,11 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (BROADCAST_GOSSIP_MODE) {
         P2PComm::GetInstance().SpreadRumor(collectivesig);
       } else {
-        P2PComm::GetInstance().SendMessage(peerInfo, collectivesig,
-                                           START_BYTE_NORMAL, true);
+        auto span = zil::trace::Tracing::CreateSpan(
+            zil::trace::FilterClass::NODE, __FUNCTION__);
+
+        P2PComm::GetInstance().SendMessage(
+            peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
       }
 
       if ((m_state == COLLECTIVESIG_DONE) && (m_numOfSubsets > 1)) {
@@ -999,8 +1009,11 @@ bool ConsensusLeader::StartConsensus(
       peer.push_back(i.second);
     }
 
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                __FUNCTION__);
+
     P2PComm::GetInstance().SendMessage(peer, announcement_message,
-                                       START_BYTE_NORMAL, true);
+                                       zil::p2p::START_BYTE_NORMAL, true, true);
   }
 
   if (m_numOfSubsets > 1) {

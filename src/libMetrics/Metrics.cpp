@@ -16,6 +16,7 @@
  */
 
 #include "Metrics.h"
+#include "Common.h"
 
 #include <vector>
 
@@ -31,14 +32,13 @@
 #include "opentelemetry/exporters/prometheus/exporter.h"
 #include "opentelemetry/metrics/async_instruments.h"
 #include "opentelemetry/metrics/provider.h"
-#include "opentelemetry/metrics/sync_instruments.h"
+
 #include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 #include "opentelemetry/sdk/metrics/export/periodic_exporting_metric_reader.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
 #include "opentelemetry/sdk/metrics/metric_reader.h"
 #include "opentelemetry/sdk/resource/resource.h"
 
-#include "Tracing.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 
@@ -49,38 +49,43 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
 
-Metrics::Metrics() { Init(); }
-
-namespace {
-const double METRICS_VERSION{8.6};
-const std::string ZILLIQA_METRIC_FAMILY{"zilliqa-cpp"};
-}  // namespace
+Metrics::Metrics() {
+  zil::metrics::Filter::GetInstance().init();
+}
 
 void Metrics::Init() {
-  zil::metrics::Filter::GetInstance().init();
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
-  if (cmp == "PROMETHEUS") {
+  transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
+
+  if (cmp == "prometheus") {
+    LOG_GENERAL(INFO, "initialising prometheus");
     InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT));
 
-  } else if (cmp == "OTLPHTTP") {
+  } else if (cmp == "otlphttp") {
     InitOTHTTP();
-  } else if (cmp == "OTLPGRPC") {
+  } else if (cmp == "otlphttp") {
     InitOtlpGrpc();
-  } else if (cmp == "STDOUT"){
+  } else if (cmp == "stdout") {
     InitStdOut();
   } else {
-    LOG_GENERAL(WARNING,"Telemetry provider has defaulted to NOOP provider due to no configuration");
+    LOG_GENERAL(WARNING,
+                "Telemetry provider has defaulted to NOOP provider due to no "
+                "configuration");
     InitNoop();
   }
 }
 
 void Metrics::InitNoop() {
-  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill = opentelemetry::metrics::Provider::GetMeterProvider();
+  METRIC_ZILLIQA_MASK = "";
+  opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider> bill =
+      opentelemetry::metrics::Provider::GetMeterProvider();
 
-  auto tf = opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(new opentelemetry::metrics::NoopMeterProvider());
+  auto tf =
+      opentelemetry::nostd::shared_ptr<opentelemetry::metrics::MeterProvider>(
+          new opentelemetry::metrics::NoopMeterProvider());
   opentelemetry::metrics::Provider::SetMeterProvider(tf);
 }
 
@@ -99,7 +104,8 @@ void Metrics::InitStdOut() {
                                                      options)};
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
+      {"service.name", "zilliqa-daemon"},
+      {"version", (double)::METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
   auto provider = std::shared_ptr<metrics_api::MeterProvider>(
       new metrics_sdk::MeterProvider(
@@ -130,7 +136,8 @@ void Metrics::InitOTHTTP() {
       otlp_exporter::OtlpHttpMetricExporterFactory::Create(options);
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
+      {"service.name", "zilliqa-daemon"},
+      {"version", (double)::METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(
       attributes, METRIC_ZILLIQA_SCHEMA);
 
@@ -158,7 +165,8 @@ void Metrics::InitOtlpGrpc() {
                    std::to_string(METRIC_ZILLIQA_PORT)};
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
+      {"service.name", "zilliqa-daemon"},
+      {"version", (double)::METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(
       attributes, METRIC_ZILLIQA_SCHEMA);
 
@@ -198,7 +206,8 @@ void Metrics::InitPrometheus(
   metrics_sdk::PeriodicExportingMetricReaderOptions options;
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"}, {"version", (double)METRICS_VERSION}};
+      {"service.name", "zilliqa-daemon"},
+      {"version", (double)::METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
 
   options.export_interval_millis =
@@ -227,9 +236,7 @@ void Metrics::Shutdown() {
   p->Shutdown();
 }
 
-
 namespace {
-
 
 inline std::string GetFullName(const std::string &family,
                                const std::string &name) {
@@ -243,62 +250,64 @@ inline std::string GetFullName(const std::string &family,
 
 }  // namespace
 
+using zil::metrics::METRIC_FAMILY;
+
 zil::metrics::uint64Counter_t Metrics::CreateInt64Metric(
     const std::string &name, const std::string &desc, std::string unit) {
-  return GetMeter()->CreateUInt64Counter(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
+  return GetMeter()->CreateUInt64Counter(GetFullName(METRIC_FAMILY, name), desc,
+                                         unit);
 }
 
 zil::metrics::doubleCounter_t Metrics::CreateDoubleMetric(
     const std::string &name, const std::string &desc, std::string unit) {
-  return GetMeter()->CreateDoubleCounter(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
+  return GetMeter()->CreateDoubleCounter(GetFullName(METRIC_FAMILY, name), desc,
+                                         unit);
 }
 
 zil::metrics::doubleHistogram_t Metrics::CreateDoubleHistogram(
     const std::string &name, const std::string &desc, std::string unit) {
-  return GetMeter()->CreateDoubleHistogram(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit);
+  return GetMeter()->CreateDoubleHistogram(GetFullName(METRIC_FAMILY, name),
+                                           desc, unit);
 }
 
 zil::metrics::Observable Metrics::CreateInt64UpDownMetric(
     const std::string &name, const std::string &desc, std::string unit) {
   return zil::metrics::Observable(
       GetMeter()->CreateInt64ObservableUpDownCounter(
-          GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+          GetFullName(METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
     const std::string &name, const std::string &desc, std::string unit) {
   return zil::metrics::Observable(
       GetMeter()->CreateDoubleObservableUpDownCounter(
-          GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+          GetFullName(METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateInt64Gauge(const std::string &name,
                                                    const std::string &desc,
                                                    std::string unit) {
   return zil::metrics::Observable(GetMeter()->CreateInt64ObservableGauge(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+      GetFullName(METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateDoubleGauge(const std::string &name,
                                                     const std::string &desc,
                                                     std::string unit) {
   return zil::metrics::Observable(GetMeter()->CreateDoubleObservableGauge(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+      GetFullName(METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateInt64ObservableCounter(
     const std::string &name, const std::string &desc, std::string unit) {
   return zil::metrics::Observable(GetMeter()->CreateInt64ObservableCounter(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+      GetFullName(METRIC_FAMILY, name), desc, unit));
 }
 
 zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
     const std::string &name, const std::string &desc, std::string unit) {
   return zil::metrics::Observable(GetMeter()->CreateDoubleObservableCounter(
-      GetFullName(ZILLIQA_METRIC_FAMILY, name), desc, unit));
+      GetFullName(METRIC_FAMILY, name), desc, unit));
 }
 
 void Metrics::AddCounterSumView(const std::string &name,
@@ -331,9 +340,8 @@ void Metrics::AddCounterHistogramView(const std::string name,
           metrics_sdk::InstrumentType::kHistogram, name)};
 
   std::unique_ptr<metrics_sdk::MeterSelector> histogram_meter_selector{
-      new metrics_sdk::MeterSelector(ZILLIQA_METRIC_FAMILY,
-                                     METRIC_ZILLIQA_SCHEMA_VERSION,
-                                     METRIC_ZILLIQA_SCHEMA)};
+      new metrics_sdk::MeterSelector(
+          METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION, METRIC_ZILLIQA_SCHEMA)};
 
   std::shared_ptr<opentelemetry::sdk::metrics::AggregationConfig>
       aggregation_config{
@@ -359,8 +367,8 @@ void Metrics::AddCounterHistogramView(const std::string name,
 std::shared_ptr<opentelemetry::metrics::Meter> Metrics::GetMeter() {
   GetInstance();
   auto p1 = metrics_api::Provider::GetMeterProvider();
-  auto p2 = p1->GetMeter(ZILLIQA_METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
-                        METRIC_ZILLIQA_SCHEMA);
+  auto p2 = p1->GetMeter(METRIC_FAMILY, METRIC_ZILLIQA_SCHEMA_VERSION,
+                         METRIC_ZILLIQA_SCHEMA);
 
   return p2;
 }
