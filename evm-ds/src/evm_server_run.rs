@@ -103,6 +103,11 @@ pub async fn run_evm_impl(
         if feedback_continuation.is_none() {
             let mut call = CallContext::new();
             call.call_type = "CALL".to_string();
+            call.value = apparent_value;
+            call.gas = ;
+            call.gas_used = ;
+            call.input = ;
+            call.output = ;
 
             if listener.call_tracer.is_empty() {
                 call.from = format!("{:?}", backend.origin);
@@ -130,6 +135,10 @@ pub async fn run_evm_impl(
         // Scale back remaining gas to Scilla units (no rounding!).
         let remaining_gas = executor.gas() / gas_scaling_factor;
 
+        // Update the traces
+        listener.raw_tracer.return_value = format!("{}", hex::encode(runtime.machine().return_value()));
+        listener.raw_tracer.gas = gas_limit - remaining_gas;
+
         if let Err(panic) = executor_result {
             let panic_message = panic
                     .downcast::<String>()
@@ -140,7 +149,6 @@ pub async fn run_evm_impl(
         }
 
         let cps_result = executor_result.unwrap();
-        listener.raw_tracer.return_value = format!("{:?}", runtime.machine().return_value());
 
         let result = match cps_result {
             CpsReason::NormalExit(exit_reason) => {
@@ -159,9 +167,9 @@ pub async fn run_evm_impl(
                 let result = build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas);
                 info!(
                     "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, 
-                    extras: {:?}, estimate: {:?}, cps: {:?}, result: {}",
+                    extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate, enable_cps, log_evm_result(&result));
+                    backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
                 result
             },
             CpsReason::CallInterrupt(i) => {

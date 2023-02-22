@@ -1773,8 +1773,6 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
       return Json::nullValue;
     }
 
-    LOG_GENERAL(INFO, "Trace request didn't fail! " << trace);
-
     Json::Value trace_json;
     JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
     std::stringstream ss;

@@ -64,7 +64,7 @@ struct Args {
 #[derive(Debug,Serialize,Deserialize)]
 struct CallContext {
     #[serde(rename = "type")]
-    pub call_type : String,
+    pub call_type : String, // only 'call' (not create, delegate, static)
     pub from : String,
     pub to : String,
     pub value : String,
@@ -97,13 +97,13 @@ impl CallContext {
 struct StructLog {
     pub depth: usize,
     pub error: String,
-    pub gas: u64,
+    pub gas: u64, // not populated
     #[serde(rename = "gasCost")]
-    pub gas_cost: u64,
+    pub gas_cost: u64, // not populated
     pub op: String,
     pub pc: usize,
     pub stack: Vec<String>,
-    pub storage: Vec<String>,
+    pub storage: Vec<String>, // not populated
 }
 
 impl StructLog {
@@ -197,7 +197,9 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             }
         }
 
-        self.raw_tracer.struct_logs.push(struct_log);
+        if self.raw_tracer.struct_logs.len() < 5 {
+            self.raw_tracer.struct_logs.push(struct_log);
+        }
     }
 }
 
