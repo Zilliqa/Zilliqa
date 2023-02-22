@@ -392,6 +392,7 @@ def create_constants_xml(args):
     if is_seedpub(args):
         seed = root.find('seed')
         seed.find('ARCHIVAL_LOOKUP').text = "true"
+        seed.find('ARCHIVAL_LOOKUP_WITH_TX_TRACES').text = "true"
         seed.find('ENABLE_SEED_TO_SEED_COMMUNICATION').text = "true"
     else:
         seed = root.find('seed')
@@ -413,6 +414,7 @@ def create_constants_xml(args):
     if is_seedprv(args):
         seed = root.find('seed')
         seed.find('ARCHIVAL_LOOKUP').text = "true"
+        seed.find('ARCHIVAL_LOOKUP_WITH_TX_TRACES').text = "true"
 
         jsonrpc = root.find('jsonrpc')
         jsonrpc.find('ENABLE_GETTXNBODIESFORTXBLOCK').text = "true"

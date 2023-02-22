@@ -14,6 +14,8 @@ mod pretty_printer;
 mod protos;
 mod scillabackend;
 
+use serde::{Deserialize, Serialize};
+
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -64,13 +66,86 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
+#[derive(Debug,Serialize,Deserialize)]
+struct CallContext {
+    #[serde(rename = "type")]
+    pub call_type : String,
+    pub from : String,
+    pub to : String,
+    pub value : String,
+    pub gas : String,
+    #[serde(rename = "gasUsed")]
+    pub gas_used : String,
+    pub input : String,
+    pub output : String,
+
+    calls: Vec<CallContext>,
+}
+
+impl CallContext {
+    fn new() -> Self {
+        CallContext{
+            call_type : Default::default(),
+            from : Default::default(),
+            to : Default::default(),
+            value : Default::default(),
+            gas : "0x0".to_string(),
+            gas_used : "0x0".to_string(),
+            input : Default::default(),
+            output : Default::default(),
+            calls: Default::default(),
+        }
+    }
+}
+
+
+// This implementation has a stack of call contexts each with reference to their calls - so a tree is
+// Created in this way.
+// Each new call gets added to the end of the stack and becomes the current context.
+// On returning from a call, the end of the stack gets put into the item above's calls
+#[derive(Debug,Serialize,Deserialize)]
 struct LoggingEventListener {
-    pub traces: Vec<String>,
+    call_stack: Vec<CallContext>,
+    enabled: bool,
+}
+
+impl LoggingEventListener {
+
+    fn new(enabled: bool) -> Self {
+        LoggingEventListener {
+            call_stack: Default::default(),
+            enabled: enabled,
+        }
+    }
 }
 
 impl tracing::EventListener for LoggingEventListener {
     fn event(&mut self, event: tracing::Event) {
-        self.traces.push(format!("{:?}", event));
+        println!("recvd event: {:?}", event);
+    }
+}
+
+impl LoggingEventListener {
+
+    fn as_string(&self) -> String {
+        serde_json::to_string_pretty(self).unwrap()
+    }
+
+    fn finished_call(&mut self) {
+        // The call has now completed - adjust the stack if neccessary
+        if self.call_stack.len() > 1 {
+            let end = self.call_stack.pop().unwrap();
+            let new_end = self.call_stack.last_mut().unwrap();
+            new_end.calls.push(end);
+        }
+    }
+
+    fn push_call(&mut self, context: CallContext ) {
+        // Now we have constructed our new call context, it gets added to the end of
+        // the stack (if we want to do tracing)
+        if self.enabled {
+            self.call_stack.push(context);
+        }
     }
 }
 
@@ -96,7 +171,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
         zil_scaling_factor: args.zil_scaling_factor,
     };
 
-    let evm_server = EvmServer::new(args.tracing, backend_config, args.gas_scaling_factor);
+    let evm_server = EvmServer::new(backend_config, args.gas_scaling_factor);
 
     // Setup a channel to signal a shutdown.
     let (shutdown_sender, shutdown_receiver) = std::sync::mpsc::channel();

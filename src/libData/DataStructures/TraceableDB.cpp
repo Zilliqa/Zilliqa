@@ -62,10 +62,6 @@ bool TraceableDB::AddPendingPurge(const uint64_t& dsBlockNum,
 
   dev::RLPStream s(toPurge.size());
   for (const auto& it : toPurge) {
-    if (LOG_SC) {
-      LOG_GENERAL(INFO,
-                  "toPurge: " << it.hex() << " dsBlockNum: " << dsBlockNum);
-    }
     s.append(it);
   }
 
@@ -108,10 +104,6 @@ bool TraceableDB::ExecutePurge(const uint64_t& dsBlockNum,
     std::vector<dev::h256> toPurge(rlp);
     bool updated = false;
     for (auto it = toPurge.begin(); it != toPurge.end();) {
-      if (LOG_SC) {
-        LOG_GENERAL(INFO, "purging: " << it->hex()
-                                      << " t_dsBlockNum: " << t_dsBlockNum);
-      }
       if (inserted.find(*it) != inserted.end()) {
         LOG_GENERAL(INFO, "Do not purge : " << it->hex());
         it = toPurge.erase(it);

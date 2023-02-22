@@ -30,6 +30,7 @@
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMetrics/Api.h"
+#include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
@@ -285,6 +286,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   LOG_MARKER();
   std::string txnId = evmContext.GetTranID().hex();
 
+
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
   // store into the metric holder.
@@ -327,6 +329,22 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
     error_code = cpsRunResult.txnStatus;
+
+    if(std::holds_alternative<evm::EvmResult>(cpsRunResult.result) && ARCHIVAL_LOOKUP_WITH_TX_TRACES){
+      auto const &context = std::get<evm::EvmResult>(cpsRunResult.result);
+      auto const &traces = context.tx_trace();
+
+      if(!traces.empty() && evmContext.GetTranID()) {
+        LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+
+        if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
+                                                        traces)) {
+          LOG_GENERAL(INFO,
+                      "FAIL: Put TX trace failed " << evmContext.GetTranID());
+        }
+      }
+    }
+
     return cpsRunResult.isSuccess;
   }
   error_code = TxnStatus::NOT_PRESENT;
@@ -487,6 +505,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           evm_call_run_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
+
       const auto gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
       // *************************************************************************
@@ -680,6 +699,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
           evm_call_succeeded, receipt, result);
 
       evmContext.SetEvmResult(result);
+
       uint64_t gasRemainedCore = GasConv::GasUnitsFromEthToCore(gasRemained);
 
       if (!evm_call_succeeded) {

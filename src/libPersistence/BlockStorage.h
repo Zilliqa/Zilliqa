@@ -86,6 +86,7 @@ class BlockStorage : boost::noncopyable {
   std::vector<std::shared_ptr<LevelDB>> m_txBodyDBs;
   std::shared_ptr<LevelDB> m_txBodyOrigDB;
   std::shared_ptr<LevelDB> m_txEpochDB;
+  std::shared_ptr<LevelDB> m_txTraceDB;
   std::vector<std::shared_ptr<LevelDB>> m_microBlockDBs;
   std::shared_ptr<LevelDB> m_microBlockOrigDB;
   std::shared_ptr<LevelDB> m_microBlockKeyDB;
@@ -195,6 +196,10 @@ class BlockStorage : boost::noncopyable {
 
   /// Retrieves the requested transaction body.
   bool GetTxBody(const dev::h256& key, TxBodySharedPtr& body);
+
+  /// Retrieves the requested transaction trace.
+  bool PutTxTrace(const dev::h256& key, const std::string& trace);
+  bool GetTxTrace(const dev::h256& key, std::string& trace);
 
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);

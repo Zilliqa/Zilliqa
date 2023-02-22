@@ -168,6 +168,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
           : CpsRun::Call;
   auto evmRun = std::make_shared<CpsRunEvm>(clientContext.GetEvmArgs(), *this,
                                             cpsCtx, runType);
+  this->TxTraceClear();
   m_queue.push_back(std::move(evmRun));
 
   auto runResult = processLoop(cpsCtx);
@@ -224,6 +225,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
         GasConv::GasUnitsFromCoreToEth(gasRemainedCore));
     return {TxnStatus::NOT_PRESENT, true, std::move(evmResult)};
   }
+
   return runResult;
 }
 
@@ -332,6 +334,14 @@ uint64_t CpsExecutor::GetRemainedGasCore(
 
 void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
   m_queue.push_back(std::move(run));
+}
+
+std::string &CpsExecutor::CurrentTrace() {
+  return this->m_txTrace;
+}
+
+void CpsExecutor::TxTraceClear() {
+  this->m_txTrace.clear();
 }
 
 }  // namespace libCps

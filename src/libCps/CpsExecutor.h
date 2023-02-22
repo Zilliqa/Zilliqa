@@ -50,6 +50,8 @@ class CpsExecutor final {
   CpsExecuteResult RunFromScilla(ScillaProcessContext& context);
   void PushRun(std::shared_ptr<CpsRun> run);
   CpsAccountStoreInterface& GetAccStoreIface() { return mAccountStore; }
+  void TxTraceClear();
+  std::string &CurrentTrace();
 
  private:
   CpsExecuteResult PreValidateEvmRun(const EvmProcessContext& context) const;
@@ -68,6 +70,7 @@ class CpsExecutor final {
   CpsAccountStoreInterface& mAccountStore;
   TransactionReceipt& mTxReceipt;
   std::vector<std::shared_ptr<CpsRun>> m_queue;
+  std::string m_txTrace;
 };
 
 }  // namespace libCps
