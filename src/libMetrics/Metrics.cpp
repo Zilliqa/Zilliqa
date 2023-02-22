@@ -49,23 +49,26 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
 
-Metrics::Metrics() { Init(); }
+Metrics::Metrics() {
+  zil::metrics::Filter::GetInstance().init();
+}
 
 void Metrics::Init() {
-  zil::metrics::Filter::GetInstance().init();
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
-  if (cmp == "PROMETHEUS") {
+  transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
+
+  if (cmp == "prometheus") {
     LOG_GENERAL(INFO, "initialising prometheus");
     InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT));
 
-  } else if (cmp == "OTLPHTTP") {
+  } else if (cmp == "otlphttp") {
     InitOTHTTP();
-  } else if (cmp == "OTLPGRPC") {
+  } else if (cmp == "otlphttp") {
     InitOtlpGrpc();
-  } else if (cmp == "STDOUT") {
+  } else if (cmp == "stdout") {
     InitStdOut();
   } else {
     LOG_GENERAL(WARNING,

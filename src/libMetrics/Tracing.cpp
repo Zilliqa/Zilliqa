@@ -537,11 +537,13 @@ bool TracingImpl::Initialize(std::string_view identity,
   try {
     std::string cmp{TRACE_ZILLIQA_PROVIDER};
 
-    if (cmp == "OTLPHTTP") {
+    transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
+
+    if (cmp == "otlphttp") {
       TracingOtlpHTTPInit(identity);
-    } else if (cmp == "OTLPGRPC") {
+    } else if (cmp == "otlpgrpc") {
       TracingOtlpGRPCInit(identity);
-    } else if (cmp == "STDOUT") {
+    } else if (cmp == "stdout") {
       TracingStdOutInit(identity);
     } else {
       LOG_GENERAL(WARNING,
