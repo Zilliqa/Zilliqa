@@ -50,9 +50,9 @@ struct EventFilterParams {
   /// Latest epoch number to which this filter applies
   EpochNumber toBlock = SEEN_NOTHING;
 
-  /// Filter events emitted from this address. Empty address means that
+  /// Filter events emitted from these addresses. An empty list means that
   /// every address matches this filter
-  Address address;
+  std::vector<Address> address;
 
   /// **OR** logic. Empty vector means that any value matches
   using TopicMatchVariants = std::vector<Quantity>;

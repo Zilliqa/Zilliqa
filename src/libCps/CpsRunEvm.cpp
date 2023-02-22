@@ -41,7 +41,7 @@ Z_I64METRIC& GetCPSMetric() {
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
                      CpsContext& ctx, CpsRun::Type type)
-    : CpsRun(executor.GetAccStoreIface(), type),
+    : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::Evm, type),
       mProtoArgs(std::move(protoArgs)),
       mExecutor(executor),
       mCpsContext(ctx) {}
@@ -246,7 +246,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     const auto value =
         Amount::fromWei(ProtoToUint(callData.transfer().value()));
     auto transferRun = std::make_shared<CpsRunTransfer>(
-        mExecutor, mCpsContext, fromAccount, toAccount, value);
+        mExecutor, mCpsContext, evm::EvmResult{}, fromAccount, toAccount,
+        value);
     mExecutor.PushRun(std::move(transferRun));
   }
 
@@ -314,7 +315,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
-    if (remainingGas < MIN_ETH_GAS) {
+    if (!requestedValue.isZero() && remainingGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "insufficient gas.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
@@ -407,7 +408,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
       // Push transfer to be executed first
       const auto value = Amount::fromWei(ProtoToUint(createData.value()));
       auto transferRun = std::make_shared<CpsRunTransfer>(
-          mExecutor, mCpsContext, fromAddress, contractAddress, value);
+          mExecutor, mCpsContext, evm::EvmResult{}, fromAddress,
+          contractAddress, value);
       mExecutor.PushRun(std::move(transferRun));
     }
   }
@@ -580,23 +582,31 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
   }
 
   // For now only Evm is supported!
-  const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
-  mProtoArgs.set_gas_limit(results.evmResult.remaining_gas());
+  if (std::holds_alternative<evm::EvmResult>(results.result)) {
+    const auto& evmResult = std::get<evm::EvmResult>(results.result);
+    mProtoArgs.set_gas_limit(evmResult.remaining_gas());
 
-  if (mProtoArgs.continuation().feedback_type() ==
-      evm::Continuation_Type_CREATE) {
-    *mProtoArgs.mutable_continuation()->mutable_address() =
-        prevRunEvm.mProtoArgs.address();
+    if (previousRun.GetDomain() == CpsRun::Evm) {
+      const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
+      if (mProtoArgs.continuation().feedback_type() ==
+          evm::Continuation_Type_CREATE) {
+        *mProtoArgs.mutable_continuation()->mutable_address() =
+            prevRunEvm.mProtoArgs.address();
+      } else {
+        *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
+            evmResult.return_value();
+      }
+    }
   } else {
-    *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
-        results.evmResult.return_value();
+    // TODO: allow scilla runner to provide feedback too
   }
 }
 
 void CpsRunEvm::InstallCode(const Address& address, const std::string& code) {
   std::map<std::string, zbytes> t_newmetadata;
 
-  t_newmetadata.emplace(mAccountStore.GenerateContractStorageKey(address),
+  t_newmetadata.emplace(mAccountStore.GenerateContractStorageKey(
+                            address, CONTRACT_ADDR_INDICATOR, {}),
                         address.asBytes());
   mAccountStore.UpdateStates(address, t_newmetadata, {}, true);
 

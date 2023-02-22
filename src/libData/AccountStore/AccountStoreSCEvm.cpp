@@ -327,15 +327,18 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     AccountStoreCpsInterface acCpsInterface{*this};
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
-    const auto cpsRunResult = cpsExecutor.Run(evmContext);
+    const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
     error_code = cpsRunResult.txnStatus;
 
-    if (!cpsRunResult.evmResult.tx_trace().empty() && ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-      LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+    if(std::holds_alternative<evm::EvmResult>(cpsRunResult.result) && ARCHIVAL_LOOKUP_WITH_TX_TRACES){
+      auto const &context = std::get<evm::EvmResult>(cpsRunResult.result);
+      auto const &traces = context.tx_trace();
 
-      if(evmContext.GetTranID()) {
+      if(!traces.empty() && evmContext.GetTranID()) {
+        LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                        cpsRunResult.evmResult.tx_trace())) {
+                                                        traces)) {
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }

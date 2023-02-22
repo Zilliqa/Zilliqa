@@ -15,21 +15,28 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
-#define ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
+#ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLAPROCESSCONTEXT_H_
+#define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLAPROCESSCONTEXT_H_
 
-#include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
-#include "libUtils/Evm.pb.h"
+#include "common/BaseType.h"
+#include "common/FixedHash.h"
 
-namespace libCps {
-struct CpsContext {
+#include "libData/AccountData/Transaction.h"
+
+struct ScillaProcessContext {
   using Address = dev::h160;
-  Address origSender;
-  bool isStatic = false;
-  bool estimate = false;
-  evm::EvmEvalExtras evmExtras;
-  ScillaProcessContext scillaExtras;
+  Address origin;
+  Address recipient;
+  zbytes code;
+  zbytes data;
+  uint128_t amount;
+  uint128_t gasPrice;
+  uint64_t gasLimit = 0;
+  uint64_t blockNum = 0;
+  uint64_t dsBlockNum = 0;
+  uint128_t blockTimestamp;
+  uint8_t blockDifficulty = 0;
+  Transaction::ContractType contractType;
 };
-}  // namespace libCps
 
-#endif  // ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
+#endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_SERVICES_SCILLA_SCILLAPROCESSCONTEXT_H_

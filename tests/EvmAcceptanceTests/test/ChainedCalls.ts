@@ -1,10 +1,6 @@
-import {assert, expect} from "chai";
-import {parallelizer} from "../helpers";
-import {ethers} from "hardhat";
-import hre from "hardhat";
+import {expect} from "chai";
 import {Contract} from "ethers";
-import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
-import logDebug from "../helpers/DebugHelper";
+import {parallelizer} from "../helpers";
 
 describe("Chained Contract Calls Functionality", function () {
   let contractOne: Contract;
@@ -12,8 +8,8 @@ describe("Chained Contract Calls Functionality", function () {
   let contractThree: Contract;
 
   before(async function () {
-    contractOne   = await parallelizer.deployContract("ContractOne");
-    contractTwo   = await parallelizer.deployContract("ContractTwo");
+    contractOne = await parallelizer.deployContract("ContractOne");
+    contractTwo = await parallelizer.deployContract("ContractTwo");
     contractThree = await parallelizer.deployContract("ContractThree");
   });
 
@@ -33,8 +29,6 @@ describe("Chained Contract Calls Functionality", function () {
 
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
-      console.log("hash: ", res.hash);
-
       await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
         logDebug(result);
 
@@ -50,7 +44,6 @@ describe("Chained Contract Calls Functionality", function () {
 
         assert.equal(addrOne, jsonObject["calls"][0]["calls"][0]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
         assert.equal(addrOne, jsonObject["calls"][0]["calls"][1]["calls"][0]["to"].toLowerCase(), "has correct to field calling back into original contract");
-
       });
 
       let secondTracer = {'tracer' : 'raw'};
@@ -62,6 +55,14 @@ describe("Chained Contract Calls Functionality", function () {
         let jsonObject = JSON.parse(result.result);
       });
 
+      });
+
+    it("Should correctly call chained contracts", async function () {
+      let addrOne = contractOne.address.toLowerCase();
+      let addrTwo = contractTwo.address.toLowerCase();
+      let addrThree = contractThree.address.toLowerCase();
+
+      expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractOne, "FinalMessage");
     });
   });
 });
