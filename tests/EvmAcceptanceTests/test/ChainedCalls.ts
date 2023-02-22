@@ -1,6 +1,7 @@
-import {expect} from "chai";
+import {assert, expect} from "chai";
 import {Contract} from "ethers";
 import {parallelizer} from "../helpers";
+import sendJsonRpcRequest from "../helpers/JsonRpcHelper";
 
 describe("Chained Contract Calls Functionality", function () {
   let contractOne: Contract;
@@ -30,8 +31,6 @@ describe("Chained Contract Calls Functionality", function () {
       const receipt = await ethers.provider.getTransactionReceipt(res.hash);
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, tracer], (result, status) => {
-        logDebug(result);
-
         assert.equal(status, 200, "has status code");
         let jsonObject = JSON.parse(result.result);
 
@@ -49,8 +48,6 @@ describe("Chained Contract Calls Functionality", function () {
       let secondTracer = {'tracer' : 'raw'};
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
-        logDebug(result);
-
         assert.equal(status, 200, "has status code");
         let jsonObject = JSON.parse(result.result);
       });

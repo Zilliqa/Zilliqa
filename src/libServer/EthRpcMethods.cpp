@@ -1736,19 +1736,15 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& txHash, const Json::Value& json) {
 
-<<<<<<< HEAD
   bool call_tracer = false;
   bool raw_tracer = false;
 
-=======
->>>>>>> master
   if (!json.isMember("tracer")) {
     LOG_GENERAL(WARNING, "Missing tracer field");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing tracer field");
   } else {
     auto tracer = json["tracer"].asString();
 
-<<<<<<< HEAD
     if(tracer.compare("callTracer") == 0) {
       call_tracer = true;
     }
@@ -1761,18 +1757,10 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
 
     if (!raw_tracer && !call_tracer) {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer and raw are supported. Received: ") + tracer);
-=======
-    if(tracer.compare("callTracer") != 0) {
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer is supported. Received: ") + tracer);
->>>>>>> master
     }
   }
 
   std::string trace;
-<<<<<<< HEAD
-=======
-  LOG_GENERAL(INFO, "Trace request: " << txHash);
->>>>>>> master
 
   try {
     TxnHash tranHash(txHash);
@@ -1781,17 +1769,12 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
         BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
 
     if (!isPresent) {
-<<<<<<< HEAD
-      LOG_GENERAL(INFO, "Trace request failed! " << trace);
-=======
       LOG_GENERAL(INFO, "Trace request failed! ");
->>>>>>> master
       return Json::nullValue;
     }
 
     Json::Value trace_json;
     JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
-<<<<<<< HEAD
     std::stringstream ss;
 
     if(call_tracer) {
@@ -1802,11 +1785,6 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
       ss << item;
     }
 
-=======
-    auto const item = trace_json["call_stack"][0];
-    std::stringstream ss;
-    ss << item;
->>>>>>> master
     trace = ss.str();
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
