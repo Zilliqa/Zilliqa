@@ -50,18 +50,15 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
 
-Metrics::Metrics() { Init(); }
+Metrics::Metrics() {
+  zil::metrics::Filter::GetInstance().init();
+}
 
 void Metrics::Init() {
-
-  m_globalErrors = this->CreateInt64Metric("global.error", "errors raised through EMT calls");
-
-  zil::metrics::Filter::GetInstance().init();
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
   transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
-
 
   if (cmp == "prometheus") {
     LOG_GENERAL(INFO, "initialising prometheus");
@@ -80,6 +77,8 @@ void Metrics::Init() {
                 "configuration");
     InitNoop();
   }
+  if (zil::metrics::Filter::GetInstance().Enabled( zil::metrics::FilterClass::GLOBAL_ERRORS) )
+    m_globalErrors = this->CreateInt64Metric("global.error", "errors raised through EMT calls");
 }
 
 void Metrics::InitNoop() {

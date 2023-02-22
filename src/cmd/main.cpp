@@ -168,7 +168,7 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_COMMAND_LINE;
     }
 
-    Metrics::GetInstance();
+    Metrics::GetInstance().Init();
     zil::trace::Tracing::Initialize(identity);
 
     auto span =
