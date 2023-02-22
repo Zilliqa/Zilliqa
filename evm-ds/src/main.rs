@@ -132,16 +132,6 @@ struct LoggingEventListener {
     enabled: bool,
 }
 
-//#[derive(Debug,Serialize,Deserialize)]
-//struct RawTracer {
-//    gas: String,
-//    #[serde(rename = "returnValue")]
-//    return_value: String,
-//    #[serde(rename = "structLogs")]
-//    struct_logs: StructLogTopLevel,
-//    //struct_logs: Vec<StructLog>,
-//}
-
 #[derive(Debug,Serialize,Deserialize, Default)]
 struct StructLogTopLevel {
     pub gas: u64,

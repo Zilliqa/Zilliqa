@@ -363,10 +363,6 @@ class BlockStorage : boost::noncopyable {
   std::shared_ptr<LevelDB> GetMicroBlockDB(const uint64_t& epochNum);
   std::shared_ptr<LevelDB> GetTxBodyDB(const uint64_t& epochNum);
   void BuildHashToNumberMappingForTxBlocks();
-
-  // used for TX trace management
-  //ZilliqaMessage::TxTraceStoredDisk BlockStorage::GetTxTraceInfoStruct();
-  //void BlockStorage::UpdateTraceStruct(ZilliqaMessage::TxTraceStoredDisk txTraces, const dev::h256& key);
 };
 
 #endif  // ZILLIQA_SRC_LIBPERSISTENCE_BLOCKSTORAGE_H_

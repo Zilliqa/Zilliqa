@@ -15,14 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <sys/stat.h>
-#include <sys/syscall.h>
 #include <unistd.h>
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <string>
 
 #include <boost/lexical_cast.hpp>
@@ -589,10 +586,7 @@ ZilliqaMessage::TxTraceStoredDisk GetTxTraceInfoStruct(BlockStorage &blockStorag
     // too many, they are cleaned up from the DB and not added
     for(size_t i = 0;i < current_items.size(); i++) {
       if (i < TX_TRACES_TO_STORE) {
-        //ret.add_items(current_items[i]);
         ret.add_items();
-        //ret.
-        //ret.set_items(i, current_items[i]);
       } else if(!current_items[i].data().empty()) {
         blockStorage.GetTxTraceDb()->DeleteKey(current_items[i].data());
       }
@@ -617,6 +611,7 @@ void UpdateTraceStruct(BlockStorage &blockStorage, ZilliqaMessage::TxTraceStored
   if(!toDelete.data().empty()) {
     std::string asHex;
     DataConversion::StringToHexStr(toDelete.data(), asHex);
+    LOG_GENERAL(WARNING, "Deleting old TX trace: " << asHex);
     blockStorage.GetTxTraceDb()->DeleteKey(toDelete.data());
   }
 
@@ -639,6 +634,10 @@ std::shared_ptr<LevelDB> BlockStorage::GetTxTraceDb() {
   return this->m_txTraceDB;
 }
 
+// Tx traces are put in storage, and each time one is inserted, the oldest is
+// pruned, so long as it is over TX_TRACES_TO_STORE ago.
+// To do this, at the null address is an array/ring buffer of trace hashes
+//
 bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
 
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
