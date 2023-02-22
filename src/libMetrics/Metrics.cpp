@@ -41,6 +41,7 @@
 
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
+#include "Tracing.h"
 
 namespace metrics_sdk = opentelemetry::sdk::metrics;
 namespace metrics_exporter = opentelemetry::exporter::metrics;
@@ -52,20 +53,26 @@ namespace otlp_exporter = opentelemetry::exporter::otlp;
 Metrics::Metrics() { Init(); }
 
 void Metrics::Init() {
+
+  m_globalErrors = this->CreateInt64Metric("global.error", "errors raised through EMT calls");
+
   zil::metrics::Filter::GetInstance().init();
 
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
-  if (cmp == "PROMETHEUS") {
+  transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
+
+
+  if (cmp == "prometheus") {
     LOG_GENERAL(INFO, "initialising prometheus");
     InitPrometheus(METRIC_ZILLIQA_HOSTNAME + ":" +
                    std::to_string(METRIC_ZILLIQA_PORT));
 
-  } else if (cmp == "OTLPHTTP") {
+  } else if (cmp == "otlphttp") {
     InitOTHTTP();
-  } else if (cmp == "OTLPGRPC") {
+  } else if (cmp == "otlphttp") {
     InitOtlpGrpc();
-  } else if (cmp == "STDOUT") {
+  } else if (cmp == "stdout") {
     InitStdOut();
   } else {
     LOG_GENERAL(WARNING,
@@ -474,5 +481,47 @@ void Filter::init() {
     }
   }
 }
+
+void EventMetricTrace(const std::string msg, std::string funcName, int line, int errno ) {
+
+  // Normal logger, should get spanis and traceid;
+
+  // TODO
+  //if (CHECK_FILTER(FilterClass::GLOBAL_ERRORS)){
+
+  if (true){
+    Metrics::GetInstance().GetErrorCounter()->Add(1,{{"error", msg}});
+
+
+
+    if (zil::trace::Tracing::IsEnabled()){
+      zil::trace::Span activeSpan = zil::trace::Tracing::GetActiveSpan();
+
+      if (activeSpan.GetSpanId().IsValid()){
+        activeSpan.AddEvent("err", {{"error", msg},{funcName,line}});
+
+        // change the span status to error
+        //
+        // Possibly end the span, but not always, could be just a warning, maybe we need a flag to say if span ends.
+        // maybe just changing span status to error is enough and caller can decide.
+
+        // examplar ??
+
+        // Metrics::GetInstance().GetErrorCounter()->AddExamplarInfo()
+
+        // Add a link to source code where error generated.
+
+
+        // activeSpan.AddLink( funcName, line );
+
+        activeSpan.End(zil::trace::StatusCode::ERROR);
+
+
+      }
+    }
+  }
+  LOG_GENERAL(INFO,msg);
+}
+
 
 }  // namespace zil::metrics

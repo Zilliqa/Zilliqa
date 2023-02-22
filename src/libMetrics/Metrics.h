@@ -156,6 +156,8 @@ class Observable {
   Callback m_callback;
 };
 
+void EventMetricTrace(const std::string msg, std::string funcName, int line, int errno = 0 );
+
 }  // namespace metrics
 }  // namespace zil
 
@@ -217,7 +219,11 @@ class Metrics : public Singleton<Metrics> {
 
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
+  zil::metrics::uint64Counter_t& GetErrorCounter(){ return m_globalErrors; }
+
  private:
+
+  zil::metrics::uint64Counter_t   m_globalErrors;
 
   friend class api_test;
 
