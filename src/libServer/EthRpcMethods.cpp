@@ -44,6 +44,7 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
 #include "libUtils/GasConv.h"
+#include "libUtils/JsonUtils.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
@@ -361,9 +362,9 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT,
                          NULL),
-      &EthRpcMethods::GetEthBlockReceiptsI);
+      &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
@@ -375,7 +376,6 @@ std::string EthRpcMethods::CreateTransactionEth(
     Eth::EthFields const &fields, zbytes const &pubKey,
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -526,7 +526,7 @@ std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
   } else {
     if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                             "txn gas limit exceeding ds maximum limit");
+      (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
     }
     if (ARCHIVAL_LOOKUP) {
       mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
@@ -749,6 +749,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
+    retGas *= 2;
+
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
@@ -767,7 +769,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
                                      const ApiKeys &apiKeys) {
-  LOG_MARKER();
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
 
   INC_CALLS(GetInvocationsCounter());
@@ -868,13 +869,11 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
 std::string EthRpcMethods::GetWeb3ClientVersion() {
   INC_CALLS(GetInvocationsCounter());
 
-  LOG_MARKER();
 
   return "Zilliqa/v8.2";
 }
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value &_json) {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -884,7 +883,6 @@ string EthRpcMethods::GetWeb3Sha3(const Json::Value &_json) {
 }
 
 Json::Value EthRpcMethods::GetEthUncleCount() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -894,7 +892,6 @@ Json::Value EthRpcMethods::GetEthUncleCount() {
 }
 
 Json::Value EthRpcMethods::GetEthUncleBlock() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -904,7 +901,6 @@ Json::Value EthRpcMethods::GetEthUncleBlock() {
 }
 
 Json::Value EthRpcMethods::GetEthMining() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -912,7 +908,6 @@ Json::Value EthRpcMethods::GetEthMining() {
 }
 
 std::string EthRpcMethods::GetEthCoinbase() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -922,7 +917,6 @@ std::string EthRpcMethods::GetEthCoinbase() {
 }
 
 Json::Value EthRpcMethods::GetNetListening() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -930,7 +924,6 @@ Json::Value EthRpcMethods::GetNetListening() {
 }
 
 std::string EthRpcMethods::GetNetPeerCount() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -938,7 +931,6 @@ std::string EthRpcMethods::GetNetPeerCount() {
 }
 
 std::string EthRpcMethods::GetProtocolVersion() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -946,7 +938,6 @@ std::string EthRpcMethods::GetProtocolVersion() {
 }
 
 std::string EthRpcMethods::GetEthChainId() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -954,7 +945,6 @@ std::string EthRpcMethods::GetEthChainId() {
 }
 
 Json::Value EthRpcMethods::GetEthSyncing() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -962,7 +952,6 @@ Json::Value EthRpcMethods::GetEthSyncing() {
 }
 
 Json::Value EthRpcMethods::GetEmptyResponse() {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -1012,7 +1001,6 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
 Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
                                            std::string const &position,
                                            std::string const & /*blockNum*/) {
-  LOG_MARKER();
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -1106,8 +1094,6 @@ Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
 Json::Value EthRpcMethods::GetEthCode(std::string const &address,
                                       std::string const & /*blockNum*/) {
   INC_CALLS(GetInvocationsCounter());
-
-  LOG_MARKER();
 
   zbytes code;
   try {
@@ -1748,12 +1734,43 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
-    const std::string & /*txHash*/) {
-  INC_CALLS(GetInvocationsCounter());
+    const std::string& txHash, const Json::Value& json) {
 
-  if (!LOOKUP_NODE_MODE) {
-    throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
-                           "Sent to a non-lookup");
+  if (!json.isMember("tracer")) {
+    LOG_GENERAL(WARNING, "Missing tracer field");
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing tracer field");
+  } else {
+    auto tracer = json["tracer"].asString();
+
+    if(tracer.compare("callTracer") != 0) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer is supported. Received: ") + tracer);
+    }
   }
-  return Json::nullValue;
+
+  std::string trace;
+  LOG_GENERAL(INFO, "Trace request: " << txHash);
+
+  try {
+    TxnHash tranHash(txHash);
+
+    bool isPresent =
+        BlockStorage::GetBlockStorage().GetTxTrace(tranHash, trace);
+
+    if (!isPresent) {
+      LOG_GENERAL(INFO, "Trace request failed! ");
+      return Json::nullValue;
+    }
+
+    Json::Value trace_json;
+    JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
+    auto const item = trace_json["call_stack"][0];
+    std::stringstream ss;
+    ss << item;
+    trace = ss.str();
+  } catch (exception& e) {
+    LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+  }
+
+  return trace;
 }

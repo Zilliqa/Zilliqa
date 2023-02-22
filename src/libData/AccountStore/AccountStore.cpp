@@ -615,6 +615,8 @@ bool AccountStore::UpdateAccountsTemp(
       isEvm = EvmUtils::isEvm(contractAccount->GetCode());
     }
   }
+
+
   if (ENABLE_EVM == false && isEvm) {
     LOG_GENERAL(WARNING,
                 "EVM is disabled so not processing this EVM transaction ");
@@ -623,16 +625,20 @@ bool AccountStore::UpdateAccountsTemp(
     }
     return false;
   }
+
+
   bool status;
   LOG_GENERAL(WARNING,
               "[AS] Starting to Process <" << transaction.GetTranID() << ">");
   if (isEvm) {
     EvmProcessContext context(blockNum, transaction, txnExtras);
+
+
     status = m_accountStoreTemp.UpdateAccountsEvm(blockNum, numShards, isDS,
                                                   receipt, error_code, context);
   } else {
     status = m_accountStoreTemp.UpdateAccounts(
-        blockNum, numShards, isDS, transaction, receipt, error_code);
+        blockNum, numShards, isDS, transaction, txnExtras, receipt, error_code);
   }
   LOG_GENERAL(WARNING, "[AS] Finished Processing <"
                            << transaction.GetTranID() << "> ("

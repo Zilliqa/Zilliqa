@@ -572,7 +572,7 @@ class EthRpcMethods {
   inline virtual void DebugTraceTransactionI(const Json::Value& request,
                                              Json::Value& response) {
     LOG_MARKER_CONTITIONAL(LOG_SC);
-    response = this->DebugTraceTransaction(request[0u].asString());
+    response = this->DebugTraceTransaction(request[0u].asString(), request[1u]);
   }
 
   struct ApiKeys;
@@ -646,9 +646,9 @@ class EthRpcMethods {
   std::string EthRecoverTransaction(const std::string& txnRpc) const;
 
   Json::Value GetEthBlockReceipts(const std::string& blockId);
-  Json::Value GetDSLeaderTxnPool();
-  Json::Value DebugTraceTransaction(const std::string& txHash);
+  Json::Value DebugTraceTransaction(const std::string& txHash, const Json::Value& json);
 
+  Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();
 
  public:

@@ -18,6 +18,7 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
 #define ZILLIQA_SRC_LIBCPS_CPSCONTEXT_H_
 
+#include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 #include "libUtils/Evm.pb.h"
 
 namespace libCps {
@@ -27,6 +28,7 @@ struct CpsContext {
   bool isStatic = false;
   bool estimate = false;
   evm::EvmEvalExtras evmExtras;
+  ScillaProcessContext scillaExtras;
 };
 }  // namespace libCps
 

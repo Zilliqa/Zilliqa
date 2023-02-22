@@ -3,10 +3,11 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-// TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
-describe.skip("Scilla SetGet contract", function () {
+describe("Scilla SetGet contract", function () {
   let contract: ScillaContract;
   const VALUE = 12;
+  const STRING_VALUE = "Salam";
+  const ADDRESS_VALUE = "0x1cc45678901bbaa678cc12345ff8901234567890";
 
   before(async function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {
@@ -28,5 +29,25 @@ describe.skip("Scilla SetGet contract", function () {
   it("Should contain event data if emit transition is called", async function () {
     const tx = await contract.emit();
     expect(tx).to.have.eventLog("Emit");
+  });
+
+  it("Should set string state correctly", async function () {
+    await contract.set_string(STRING_VALUE);
+    expect(await contract.string_value()).to.be.eq(STRING_VALUE);
+  });
+
+  it("Should contain event data if get_string is called", async function () {
+    const tx = await contract.get_string();
+    expect(tx).to.have.eventLogWithParams("get_string", {value: STRING_VALUE, vname: "value"});
+  });
+
+  it("Should set address state correctly", async function () {
+    await contract.set_address(ADDRESS_VALUE);
+    expect(await contract.address_value()).to.be.eq(ADDRESS_VALUE);
+  });
+
+  it("Should contain event data if get_string is called", async function () {
+    const tx = await contract.get_address();
+    expect(tx).to.have.eventLogWithParams("get_address", {value: ADDRESS_VALUE, vname: "value"});
   });
 });

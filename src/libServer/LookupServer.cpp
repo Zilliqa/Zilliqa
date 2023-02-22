@@ -17,6 +17,7 @@
 #include "LookupServer.h"
 #include <Schnorr.h>
 #include <boost/multiprecision/cpp_dec_float.hpp>
+#include <boost/format.hpp>
 #include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "common/Messages.h"
@@ -400,8 +401,6 @@ bool LookupServer::StartCollectorThread() {
         LOG_GENERAL(INFO, "Size of txns to DS: " << txnsDS.size());
       }
 
-      bool hasTxn = false;
-
       for (auto const& i :
            {SEND_TYPE::ARCHIVAL_SEND_SHARD, SEND_TYPE::ARCHIVAL_SEND_DS}) {
         {
@@ -409,13 +408,7 @@ bool LookupServer::StartCollectorThread() {
           if (m_mediator.m_lookup->GetTxnFromShardMap(i).empty()) {
             continue;
           }
-          hasTxn = true;
         }
-      }
-
-      if (!hasTxn) {
-        LOG_GENERAL(INFO, "No Txns to send for this seed node");
-        continue;
       }
 
       zbytes msg = {MessageType::LOOKUP, LookupInstructionType::FORWARDTXN};
@@ -2407,7 +2400,7 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     } else {
       if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
         throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-                               "txn gas limit exceeding ds maximum limit");
+        (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
       }
       if (ARCHIVAL_LOOKUP) {
         mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;

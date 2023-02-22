@@ -52,6 +52,9 @@
 #include "opentelemetry/trace/propagation/http_trace_context.h"
 #include "opentelemetry/trace/provider.h"
 
+#include <chrono>
+#include <thread>
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -711,6 +714,69 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
   return false;
 }
 
+void Node::PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblockPtrs, std::vector<Transaction> &txsToExecute) {
+
+  // Now collect a vector of TXs we need to execute
+  for (auto const& microBlockPtr : microblockPtrs) {
+    const auto &tranHashes = microBlockPtr->GetTranHashes();
+
+    // Loop through the TX hashes making sure we have a corresponding TX
+    for (const auto &transactionHash : tranHashes) {
+      for (int ii = 0; ii < 2; ++ii) {
+        TxBodySharedPtr transactionBodyPtr;
+
+        if (!BlockStorage::GetBlockStorage().GetTxBody(transactionHash,
+                                                       transactionBodyPtr)) {
+
+          LOG_GENERAL(WARNING, "TXTRACEGEN: FAILED to get tx body for: " << transactionHash );
+          std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+          continue;
+        } else {
+          LOG_GENERAL(WARNING, "TXTRACEGEN: FOUND tx body for: " << transactionHash );
+          txsToExecute.push_back(transactionBodyPtr->GetTransaction());
+        }
+      }
+    }
+  }
+}
+
+// Helper function to get the transactions, in order, corresponding to a given
+// microblock
+void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs, BlockHash const &hash, std::vector<Transaction> &txsToExecute) {
+
+  LOG_GENERAL(WARNING, "TXTRACEGEN: Populate microblocks" );
+
+  // Loop for a long time waiting for the microblock details from peers
+  bool found_mbs = false;
+  for (int i = 0; i < 3 && !found_mbs; ++i) {
+
+    {
+      lock_guard<mutex> gg(m_mutexMBnForwardedTxnBuffer);
+
+      // Scan for mb in forwarded buffer
+      for (auto it = m_mbnForwardedTxnBuffer.begin(); it != m_mbnForwardedTxnBuffer.end();it++) {
+        for (const auto& entry : it->second) {
+          if (entry.m_microBlock.GetBlockHash() == hash) {
+            LOG_GENERAL(WARNING, "TXTRACEGEN: microblock details FOUND! " << entry.m_microBlock.GetBlockHash());
+
+            MicroBlockSharedPtr microBlockPtr = make_shared<MicroBlock>(entry.m_microBlock);
+            microblockPtrs.push_back(microBlockPtr);
+            found_mbs = true;
+          }
+
+          // Sometimes these can be empty...
+          for(const auto &txWReceipt : entry.m_transactions) {
+            txsToExecute.push_back(txWReceipt.GetTransaction());
+          }
+        }
+      }
+    } // guard end
+
+    LOG_GENERAL(WARNING, "TXTRACEGEN: microblock details not found, sleeping: " << hash);
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+  }
+}
+
 bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
@@ -909,6 +975,47 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
   bool isVacuousEpoch = m_mediator.GetIsVacuousEpoch();
   m_isVacuousEpochBuffer = isVacuousEpoch;
+
+  // In this special mode, we execute the TXs as if we were a validator,
+  // in order to generate and save TX traces
+  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    // We will get the TXs to execute, in order, blocking until we
+    // have them all(!)
+    LOG_GENERAL(WARNING, "TXTRACEGEN: starting trace gen..." );
+    auto mbi = txBlock.GetMicroBlockInfos();
+    std::vector<MicroBlockSharedPtr> microblockPtrs;
+    std::vector<Transaction> txsToExecute;
+    std::set<TxnHash> txsExecuted;
+
+    for (const auto& mb : mbi) {
+
+      // If there is no TXs for this block, we can safely skip. And often
+      // we never receive the microblock body for this hash anyway
+      if(!mb.m_txnRootHash) {
+        continue;
+      }
+
+      PopulateMicroblocks(microblockPtrs, mb.m_microBlockHash, txsToExecute);
+    }
+
+    PopulateTxsToExecute(microblockPtrs, txsToExecute);
+
+    for (const auto &t : txsToExecute) {
+
+      // Guard against double exeucuting a TX
+      if(txsExecuted.insert(t.GetTranID()).second) {
+        TransactionReceipt tr;
+        TxnStatus error_code;
+        LOG_GENERAL(WARNING, "TXTRACEGEN: Execute TX!" );
+        auto succ = m_mediator.m_validator->CheckCreatedTransaction(t, tr, error_code);
+
+        LOG_GENERAL(WARNING, "TXTRACEGEN: TX success: " << succ );
+        LOG_GENERAL(WARNING, "TXTRACEGEN: TX return: " << error_code );
+      } else {
+        LOG_GENERAL(WARNING, "TXTRACEGEN: Avoid double executing TX!" );
+      }
+    }
+  }
 
   if (!ProcessStateDeltaFromFinalBlock(
           stateDelta, txBlock.GetHeader().GetStateDeltaHash())) {
@@ -1713,6 +1820,8 @@ bool Node::ProcessMBnForwardTransactionCore(const MBnForwardedTxnEntry& entry) {
 }
 
 void Node::CommitMBnForwardedTransactionBuffer() {
+
+
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::CommitMBnForwardedTransactionBuffer not expected to be "

@@ -36,7 +36,8 @@ Validator::~Validator() {}
 bool Validator::CheckCreatedTransaction(const Transaction& tx,
                                         TransactionReceipt& receipt,
                                         TxnStatus& error_code) const {
-  if (LOOKUP_NODE_MODE) {
+
+  if (LOOKUP_NODE_MODE && !ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(WARNING,
                 "Validator::CheckCreatedTransaction not expected to be "
                 "called from LookUp node.");
@@ -103,6 +104,7 @@ bool Validator::CheckCreatedTransaction(const Transaction& tx,
       dsBlock.GetHeader().GetGasPrice(),
       txBlock.GetTimestamp() / 1000000,  // From microseconds to seconds.
       dsBlock.GetHeader().GetDifficulty()};
+
 
   return AccountStore::GetInstance().UpdateAccountsTemp(
       m_mediator.m_currentEpochNum, m_mediator.m_node->getNumShards(),
