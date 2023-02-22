@@ -69,8 +69,15 @@ struct OTelLoggingSink {
 
     logRecord->SetBody(
         opentelemetry::common::AttributeValue{logMessage.message()});
+
     logRecord->SetTimestamp(
-        opentelemetry::common::SystemTimestamp{logMessage._timestamp});
+        // g3::high_resolution_time_point ->
+        // std::chrono::system_clock::time_point
+        std::chrono::system_clock::time_point{
+            std::chrono::system_clock::duration{
+                std::chrono::time_point_cast<
+                    std::chrono::system_clock::duration>(logMessage._timestamp)
+                    .time_since_epoch()}});
 
     logger->EmitLogRecord(std::move(logRecord));
   }
