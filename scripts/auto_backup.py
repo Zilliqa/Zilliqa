@@ -28,6 +28,7 @@ import logging
 from logging import handlers
 import requests
 import xml.etree.ElementTree as ET
+import multiprocessing
 
 TAG_NUM_FINAL_BLOCK_PER_POW = "NUM_FINAL_BLOCK_PER_POW"
 TESTNET_NAME= "TEST_NET_NAME"
@@ -35,6 +36,10 @@ BUCKET_NAME='BUCKET_NAME'
 AWS_PERSISTENCE_LOCATION= "s3://"+BUCKET_NAME+"/persistence/"+TESTNET_NAME
 AWS_BLOCKCHAINDATA_FOLDERNAME= "blockchain-data/"+TESTNET_NAME+"/"
 AWS_ENDPOINT_URL=os.getenv("AWS_ENDPOINT_URL")
+
+# By default pigz uses all cores.But our application threads are also active
+# configure it to create threads as half the number of cores
+CPUS = multiprocessing.cpu_count() // 2
 
 FORMATTER = logging.Formatter(
     "[%(asctime)s %(levelname)-6s %(filename)s:%(lineno)s] %(message)s"
@@ -138,11 +143,20 @@ def CreateTempPersistence():
 def backUp(curr_blockNum):
     CreateTempPersistence()
     os.chdir("tempbackup")
-    with tarfile.open(TESTNET_NAME + ".tar.gz", "w:gz") as tar:
-        for root, dir, files in os.walk("persistence"):
-            for file in files:
-                fullpath = os.path.join(root, file)
-                tar.add(fullpath)
+    logging.info("max processors  = "+ str(CPUS))
+    pigz_command = "\"pigz -k -p {}\"".format(CPUS)
+    command = 'tar --use-compress-program='+  pigz_command +' -cf ' + TESTNET_NAME +'.tar.gz'+' persistence'
+    try:
+        process  = subprocess.Popen(
+                    command, universal_newlines=True, shell=True,
+                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        output, error = process.communicate()
+        if process.returncode != 0:
+            raise subprocess.CalledProcessError(process.returncode, process.args, error)
+    except OSError as e:
+        print(f"Error executing command: {e}")
+    except subprocess.CalledProcessError as e:
+        print(f"Command failed with error code {e.returncode}: {e}")
 
     os.system(awsCli() + " s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION + ".tar.gz")
     os.system(awsCli() + " s3 cp " + TESTNET_NAME + ".tar.gz " + AWS_PERSISTENCE_LOCATION +  "-" + str(curr_blockNum) + ".tar.gz")
