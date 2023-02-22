@@ -16,7 +16,7 @@
  */
 
 #include "Logging.h"
-#include "Metrics.h"
+#include "Tracing.h"
 
 #include "libUtils/Logger.h"
 #include "libUtils/SWInfo.h"
@@ -56,6 +56,12 @@ struct OTelLoggingSink {
 
     auto logRecord = logger->CreateLogRecord();
     if (!logRecord) return;
+
+    auto activeSpanIds = zil::trace::Tracing::GetActiveSpanIds();
+    if (activeSpanIds) {
+      logRecord->SetTraceId(activeSpanIds->first);
+      logRecord->SetSpanId(activeSpanIds->second);
+    }
 
     const auto& logMessage = logEntry.get();
     if (logMessage._level.value <= G3LOG_DEBUG.value)
