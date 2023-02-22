@@ -61,7 +61,7 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default)]
 struct CallContext {
     #[serde(rename = "type")]
     pub call_type : String, // only 'call' (not create, delegate, static)
@@ -207,7 +207,7 @@ impl LoggingEventListener {
 
     #[allow(dead_code)]
     fn as_string(&self) -> String {
-        serde_json::to_string_pretty(self).unwrap()
+        serde_json::to_string(self).unwrap()
     }
 
     #[allow(dead_code)]

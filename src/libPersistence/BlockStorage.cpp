@@ -565,11 +565,7 @@ ZilliqaMessage::TxTraceStoredDisk GetTxTraceInfoStruct(BlockStorage &blockStorag
   auto const base = blockStorage.GetTxTraceDb()->Lookup(nullKey);
 
   if(!base.empty()) {
-    LOG_GENERAL(WARNING, "Found the base");
     ret.ParseFromString(base);
-    LOG_GENERAL(WARNING, "" << ret.DebugString());
-  } else {
-    LOG_GENERAL(WARNING, "Did not find the base!");
   }
 
   // We must populate the prototuf with something otherwise all values are defaulted
@@ -578,7 +574,6 @@ ZilliqaMessage::TxTraceStoredDisk GetTxTraceInfoStruct(BlockStorage &blockStorag
 
   // Whether it was there or not, we will write back down a valid one.
   if(ret.items_size() != TX_TRACES_TO_STORE) {
-    LOG_GENERAL(WARNING, "Resizing!");
     std::vector<ZilliqaMessage::ByteArray> current_items;
 
     for (auto const &item: ret.items()) {
@@ -606,11 +601,8 @@ ZilliqaMessage::TxTraceStoredDisk GetTxTraceInfoStruct(BlockStorage &blockStorag
 
   // Make sure the deletion index is correct if not set
   if(ret.index() >= TX_TRACES_TO_STORE) {
-    LOG_GENERAL(WARNING, "Set the index!");
     ret.set_index(0);
   }
-
-  LOG_GENERAL(WARNING, "Final base returned: " << ret.DebugString());
 
   return ret;
 }
@@ -622,25 +614,15 @@ void UpdateTraceStruct(BlockStorage &blockStorage, ZilliqaMessage::TxTraceStored
   auto index = txTraces.index();
   auto const toDelete = txTraces.items(index);
 
-  LOG_GENERAL(WARNING, "Array size: " << txTraces.items_size());
-
-  //LOG_GENERAL(WARNING, "Sending key to delete: " << toDelete);
-
   if(!toDelete.data().empty()) {
     std::string asHex;
     DataConversion::StringToHexStr(toDelete.data(), asHex);
-    LOG_GENERAL(WARNING, "Deleting old TX trace: " << asHex);
-
     blockStorage.GetTxTraceDb()->DeleteKey(toDelete.data());
-    //txTraces.set_items(index, key);
-    //txTraces.items(index).set_data(key);
   }
 
   auto setme = txTraces.mutable_items(index);
   setme->set_data(reinterpret_cast<const char *>(key.data()));
   auto const newIndex = (index+1) % TX_TRACES_TO_STORE;
-  LOG_GENERAL(WARNING, "old index: " << index);
-  LOG_GENERAL(WARNING, "new index: " << newIndex);
   txTraces.set_index(newIndex);
 
   // Write back to null location
@@ -650,14 +632,7 @@ void UpdateTraceStruct(BlockStorage &blockStorage, ZilliqaMessage::TxTraceStored
   zbytes ser(txTraces.ByteSizeLong());
   txTraces.SerializeToArray(ser.data(), ser.size());
 
-  LOG_GENERAL(WARNING, "Writing debug: " << txTraces.DebugString());
-  LOG_GENERAL(WARNING, "Writing!!! " << DataConversion::Uint8VecToHexStrRet(ser));
-
   blockStorage.GetTxTraceDb()->Insert(nullKey, ser);
-
-  LOG_GENERAL(WARNING, "retrieveing... !!!");
-  auto sigh = GetTxTraceInfoStruct(blockStorage);
-  LOG_GENERAL(WARNING, "... !!!");
 }
 
 std::shared_ptr<LevelDB> BlockStorage::GetTxTraceDb() {
@@ -665,8 +640,6 @@ std::shared_ptr<LevelDB> BlockStorage::GetTxTraceDb() {
 }
 
 bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
-
-  LOG_GENERAL(WARNING, "we are putting tx trace key: " << key);
 
   if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     LOG_GENERAL(WARNING, "This should only be triggered when archival lookup is enabled!.");
@@ -691,11 +664,6 @@ bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
 
   //auto const serialized = result.SerializeToArray(ser.data(), result.ByteSizeLong());
   const zbytes& keyBytes = key.asBytes();
-
-  //if(!serialized) {
-  //  LOG_GENERAL(WARNING, "Failed to serialize tx trace!");
-  //  return false;
-  //}
 
   lock_guard<mutex> g(m_mutexTxBody);
 

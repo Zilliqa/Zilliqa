@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -103,11 +104,9 @@ pub async fn run_evm_impl(
         if feedback_continuation.is_none() {
             let mut call = CallContext::new();
             call.call_type = "CALL".to_string();
-            call.value = apparent_value;
-            call.gas = ;
-            call.gas_used = ;
-            call.input = ;
-            call.output = ;
+            call.value = format!("0x{}", apparent_value);
+            call.gas = format!("0x{:x}", gas_limit); // Gas provided for call
+            call.input = format!("0x{}", hex::encode(data.deref()));
 
             if listener.call_tracer.is_empty() {
                 call.from = format!("{:?}", backend.origin);
@@ -118,10 +117,6 @@ pub async fn run_evm_impl(
             call.to = format!("{:?}", address);
             listener.push_call(call);
         }
-
-        // Update details on the end of the stack
-        //let stack_end = listener.call_tracer.last_mut().expect("The listener call stack should always be populated!");
-        //stack_end.
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -138,6 +133,8 @@ pub async fn run_evm_impl(
         // Update the traces
         listener.raw_tracer.return_value = format!("{}", hex::encode(runtime.machine().return_value()));
         listener.raw_tracer.gas = gas_limit - remaining_gas;
+        listener.call_tracer.last_mut().unwrap().gas_used = format!("0x{:x}", gas_limit - remaining_gas);
+        listener.call_tracer.last_mut().unwrap().output = format!("0x{}", hex::encode(runtime.machine().return_value()));
 
         if let Err(panic) = executor_result {
             let panic_message = panic
