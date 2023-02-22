@@ -21,6 +21,7 @@
 #include "common/FixedHash.h"
 #include "libCps/Amount.h"
 
+#include <condition_variable>
 #include <map>
 #include <string>
 #include <vector>
@@ -51,7 +52,9 @@ struct CpsAccountStoreInterface {
   virtual bool UpdateStateValue(const Address& addr, const zbytes& q,
                                 unsigned int q_offset, const zbytes& v,
                                 unsigned int v_offset) = 0;
-  virtual std::string GenerateContractStorageKey(const Address& addr) = 0;
+  virtual std::string GenerateContractStorageKey(
+      const Address& addr, const std::string& key,
+      const std::vector<std::string>& indices) = 0;
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) = 0;
   virtual void SetImmutableAtomic(const Address& addr, const zbytes& code,
                                   const zbytes& initData) = 0;
@@ -64,6 +67,24 @@ struct CpsAccountStoreInterface {
   virtual void BufferCurrentContractStorageState() = 0;
   virtual void RevertContractStorageState() = 0;
   virtual zbytes GetContractCode(const Address& account) = 0;
+
+  // Scilla specifics
+  virtual bool GetContractAuxiliaries(const Address& account, bool& is_library,
+                                      uint32_t& scilla_version,
+                                      std::vector<Address>& extlibs) = 0;
+  virtual zbytes GetContractInitData(const Address& account) = 0;
+  virtual std::string& GetScillaRootVersion() = 0;
+  virtual bool IsAccountALibrary(const Address& address) = 0;
+  virtual std::condition_variable& GetScillaCondVariable() = 0;
+  virtual std::mutex& GetScillaMutex() = 0;
+  virtual bool GetProcessTimeout() const = 0;
+  virtual bool InitContract(const Address& address, const zbytes& code,
+                            const zbytes& data, uint64_t blockNum) = 0;
+  virtual bool SetBCInfoProvider(uint64_t blockNum, uint64_t dsBlockNum,
+                                 const Address& origin,
+                                 const Address& destAddress,
+                                 uint32_t scillaVersion) = 0;
+  virtual void MarkNewLibraryCreated(const Address& address) = 0;
 };
 }  // namespace libCps
 

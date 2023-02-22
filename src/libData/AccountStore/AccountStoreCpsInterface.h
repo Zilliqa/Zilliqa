@@ -18,10 +18,8 @@
 #ifndef ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORECPSINTERFACE_H_
 #define ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORECPSINTERFACE_H_
 
-#include "libData/AccountStore/AccountStoreSC.h"
-
 #include "libCps/CpsAccountStoreInterface.h"
-
+#include "libData/AccountStore/AccountStoreSC.h"
 #include "libPersistence/ContractStorage.h"
 
 class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
@@ -116,9 +114,10 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
         address, q, q_offset, v, v_offset);
   }
 
-  virtual std::string GenerateContractStorageKey(const Address& addr) override {
-    return Contract::ContractStorage::GenerateStorageKey(
-        addr, CONTRACT_ADDR_INDICATOR, {});
+  virtual std::string GenerateContractStorageKey(
+      const Address& addr, const std::string& key,
+      const std::vector<std::string>& indices) override {
+    return Contract::ContractStorage::GenerateStorageKey(addr, key, indices);
   };
 
   virtual void AddAddressToUpdateBufferAtomic(const Address& addr) override {
@@ -173,8 +172,83 @@ class AccountStoreCpsInterface : public libCps::CpsAccountStoreInterface {
     return {};
   }
 
+  // Scilla specifics
+  virtual bool GetContractAuxiliaries(const Address& address, bool& is_library,
+                                      uint32_t& scilla_version,
+                                      std::vector<Address>& extlibs) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->GetContractAuxiliaries(is_library, scilla_version,
+                                             extlibs);
+    }
+    return false;
+  }
+
+  virtual zbytes GetContractInitData(const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->GetInitData();
+    }
+    return {};
+  }
+
+  virtual std::string& GetScillaRootVersion() override {
+    return mScillaRootVersion;
+  }
+
+  virtual bool IsAccountALibrary(const Address& address) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->IsLibrary();
+    }
+    return false;
+  }
+
+  virtual std::condition_variable& GetScillaCondVariable() override {
+    return mAccountStore.m_CallContractConditionVariable;
+  }
+
+  virtual std::mutex& GetScillaMutex() override {
+    return mAccountStore.m_MutexCVCallContract;
+  }
+
+  virtual bool GetProcessTimeout() const override {
+    return mAccountStore.m_txnProcessTimeout;
+  }
+
+  virtual bool InitContract(const Address& address, const zbytes& code,
+                            const zbytes& data, uint64_t blockNum) override {
+    Account* account = mAccountStore.GetAccountAtomic(address);
+    if (account != nullptr) {
+      return account->InitContract(code, data, address, blockNum);
+    }
+    return false;
+  }
+
+  virtual bool SetBCInfoProvider(uint64_t blockNum, uint64_t dsBlockNum,
+                                 const Address& origin,
+                                 const Address& destAddress,
+                                 uint32_t scillaVersion) override {
+    Account* account = mAccountStore.GetAccountAtomic(destAddress);
+    if (account == nullptr) {
+      return false;
+    }
+    if (!mAccountStore.m_scillaIPCServer) {
+      return false;
+    }
+    mAccountStore.m_scillaIPCServer->setBCInfoProvider(
+        blockNum, dsBlockNum, origin, destAddress, account->GetStorageRoot(),
+        scillaVersion);
+    return true;
+  }
+
+  virtual void MarkNewLibraryCreated(const Address& address) override {
+    mAccountStore.m_newLibrariesCreated.push_back(address);
+  }
+
  private:
   AccountStoreSC& mAccountStore;
+  std::string mScillaRootVersion;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORECPSINTERFACE_H_

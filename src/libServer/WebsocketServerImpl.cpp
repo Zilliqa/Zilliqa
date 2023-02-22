@@ -59,8 +59,8 @@ class Connection : public std::enable_shared_from_this<Connection> {
         m_from(std::move(from)),
         m_stream(std::move(socket)) {
     websocket::stream_base::timeout opt{
-        std::chrono::seconds(30),  // handshake timeout
-        std::chrono::seconds(10),  // idle timeout
+        std::chrono::seconds(60),  // handshake timeout
+        std::chrono::seconds(60),  // idle timeout
         true                       // pings
     };
     m_stream.set_option(opt);

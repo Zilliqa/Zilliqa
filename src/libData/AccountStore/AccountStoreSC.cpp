@@ -20,7 +20,10 @@
 
 #include <unordered_map>
 #include <vector>
+
+#include "libData/AccountStore/AccountStoreCpsInterface.h"
 #include "libData/AccountStore/services/scilla/ScillaClient.h"
+#include "libData/AccountStore/services/scilla/ScillaProcessContext.h"
 
 #include "libPersistence/ContractStorage.h"
 #include "libScilla/ScillaIPCServer.h"
@@ -31,6 +34,7 @@
 
 #include "libUtils/TimeUtils.h"
 
+#include "libCps/CpsExecutor.h"
 #include "libData/AccountStore/AccountStoreSC.h"
 #include "libMetrics/Api.h"
 
@@ -207,12 +211,10 @@ void AccountStoreSC::InvokeInterpreter(
   }
 }
 
-bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
-                                    const unsigned int &numShards,
-                                    const bool &isDS,
-                                    const Transaction &transaction,
-                                    TransactionReceipt &receipt,
-                                    TxnStatus &error_code) {
+bool AccountStoreSC::UpdateAccounts(
+    const uint64_t &blockNum, const unsigned int &numShards, const bool &isDS,
+    const Transaction &transaction, const TxnExtras &extras,
+    TransactionReceipt &receipt, TxnStatus &error_code) {
   INC_CALLS(GetInvocationsCounter());
 
   LOG_MARKER();
@@ -223,8 +225,38 @@ bool AccountStoreSC::UpdateAccounts(const uint64_t &blockNum,
 
   m_curIsDS = isDS;
   m_txnProcessTimeout = false;
-
   error_code = TxnStatus::NOT_PRESENT;
+
+  if (ENABLE_CPS) {
+    LOG_GENERAL(WARNING, "Running Scilla in CPS mode");
+    m_originAddr = transaction.GetSenderAddr();
+    m_curGasLimit = transaction.GetGasLimitZil();
+    m_curGasPrice = transaction.GetGasPriceQa();
+    m_curContractAddr = transaction.GetToAddr();
+    m_curAmount = transaction.GetAmountQa();
+    m_curSenderAddr = transaction.GetSenderAddr();
+    m_curEdges = 0;
+    m_curNumShards = numShards;
+    ScillaProcessContext scillaContext = {
+        .origin = transaction.GetSenderAddr(),
+        .recipient = transaction.GetToAddr(),
+        .code = transaction.GetCode(),
+        .data = transaction.GetData(),
+        .amount = transaction.GetAmountQa(),
+        .gasPrice = transaction.GetGasPriceQa(),
+        .gasLimit = transaction.GetGasLimitZil(),
+        .blockNum = blockNum,
+        .dsBlockNum = m_curDSBlockNum,
+        .blockTimestamp = extras.block_timestamp,
+        .blockDifficulty = extras.block_difficulty,
+        .contractType = Transaction::GetTransactionType(transaction)};
+
+    AccountStoreCpsInterface acCpsInterface{*this};
+    libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
+    const auto cpsRunResult = cpsExecutor.RunFromScilla(scillaContext);
+    error_code = cpsRunResult.txnStatus;
+    return cpsRunResult.isSuccess;
+  }
 
   const PubKey &senderPubKey = transaction.GetSenderPubKey();
   const Address fromAddr = Account::GetAddressFromPublicKey(senderPubKey);
