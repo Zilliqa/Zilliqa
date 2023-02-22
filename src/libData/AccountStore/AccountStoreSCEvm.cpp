@@ -330,14 +330,15 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
     error_code = cpsRunResult.txnStatus;
 
-    if (!cpsRunResult.evmResult.tx_trace().empty() && ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
-      LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+    if(std::holds_alternative<evm::EvmResult>(cpsRunResult.result) && ARCHIVAL_LOOKUP_WITH_TX_TRACES){
+      auto const &context = std::get<evm::EvmResult>(cpsRunResult.result);
+      auto const &traces = context.tx_trace();
 
-      if(!evmContext.GetTranID()) {
-        LOG_GENERAL(INFO, "hash is all zeroes, do nothing!");
-      } else {
+      if(!traces.empty() && evmContext.GetTranID()) {
+        LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
-                                                        cpsRunResult.evmResult.tx_trace())) {
+                                                        traces)) {
           LOG_GENERAL(INFO,
                       "FAIL: Put TX trace failed " << evmContext.GetTranID());
         }
