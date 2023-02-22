@@ -302,6 +302,9 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   LOG_GENERAL(WARNING,
               "NUMBER OF MESSAGES: " << std::size(parseCallResults.entries));
+  // Schedule runs for execution in reverse order since we're putting them on
+  // stack, so they should be run in the same order as stored in 'entries'
+  // vector
   for (const auto& nextRunInput :
        parseCallResults.entries | std::views::reverse) {
     if (availableGas < CONTRACT_INVOKE_GAS) {
