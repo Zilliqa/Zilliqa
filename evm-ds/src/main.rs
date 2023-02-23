@@ -93,7 +93,7 @@ impl CallContext {
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default)]
 struct StructLog {
     pub depth: usize,
     pub error: String,
@@ -104,21 +104,6 @@ struct StructLog {
     pub pc: usize,
     pub stack: Vec<String>,
     pub storage: Vec<String>, // not populated
-}
-
-impl StructLog {
-    fn new() -> Self{
-        StructLog{
-            depth: Default::default(),
-            error: Default::default(),
-            gas: Default::default(),
-            gas_cost: Default::default(),
-            op: Default::default(),
-            pc: Default::default(),
-            stack: Default::default(),
-            storage: Default::default(),
-        }
-    }
 }
 
 // This implementation has a stack of call contexts each with reference to their calls - so a tree is
@@ -158,13 +143,7 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             return;
         }
 
-        let mut struct_log = StructLog::new();
-
-        struct_log.depth = self.call_tracer.len() - 1;
-        struct_log.error = Default::default();
-        struct_log.gas = Default::default();
-        struct_log.gas_cost = Default::default();
-        struct_log.storage = Default::default();
+        let mut struct_log = StructLog { depth: self.call_tracer.len() - 1, ..Default::default() };
 
         match event {
             evm::runtime::tracing::Event::Step{context: _, opcode, position, stack, memory: _} => {
