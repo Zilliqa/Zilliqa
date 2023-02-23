@@ -375,6 +375,14 @@
             <TRACE_ZILLIQA_MASK>NONE</TRACE_ZILLIQA_MASK>
         </zilliqa>
     </trace>
+    <logging>
+        <zilliqa>
+            <LOGGING_ZILLIQA_HOSTNAME>localhost</LOGGING_ZILLIQA_HOSTNAME>
+            <LOGGING_ZILLIQA_PORT>8090</LOGGING_ZILLIQA_PORT>
+            <!-- PROVIDER can be PROMETHEUS or OTLPHTTP -->
+            <LOGGING_ZILLIQA_PROVIDER>NONE</LOGGING_ZILLIQA_PROVIDER>
+        </zilliqa>
+    </logging>
     <verifier>
         <exclusion_list>
             <entry>
