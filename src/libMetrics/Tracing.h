@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <optional>
+#include <source_location>
 #include <span>
 #include <string>
 #include <variant>
@@ -71,13 +72,6 @@ using Value =
 using opentelemetry::trace::SpanId;
 using opentelemetry::trace::TraceId;
 
-// StatusCode - Represents the canonical set of status codes of a finished Span.
-enum class StatusCode {
-  UNSET,  // default status
-  OK,     // Operation has completed successfully.
-  ERROR   // The operation contains an error
-};
-
 class Span {
   class Impl {
    public:
@@ -98,7 +92,10 @@ class Span {
         std::initializer_list<std::pair<std::string_view, Value>>
             attributes) noexcept = 0;
 
-    virtual void End(StatusCode status = StatusCode::UNSET) noexcept = 0;
+    virtual void AddError(std::string_view message,
+                          const std::source_location location) noexcept = 0;
+
+    virtual void End() noexcept = 0;
   };
 
   // Null for disabled spans and no-op
@@ -123,7 +120,11 @@ class Span {
   Span(Span&&) = delete;
   Span& operator=(Span&&) = delete;
 
-  ~Span() { End(); }
+  ~Span() {
+    if (m_isScoped && m_impl) {
+      m_impl->End();
+    }
+  }
 
   bool IsRecording() const { return m_impl && m_impl->IsRecording(); }
 
@@ -135,18 +136,22 @@ class Span {
     return m_impl ? m_impl->GetIds() : empty;
   }
 
+  /// Returns non-zero span_id if this span is valid
   SpanId GetSpanId() const { return m_impl ? m_impl->GetSpanId() : SpanId(); }
 
+  /// Returns non-zero trace_id if this span is valid
   TraceId GetTraceId() const {
     return m_impl ? m_impl->GetTraceId() : TraceId();
   }
 
+  /// Adds an atribute if this span is valid
   void SetAttribute(std::string_view name, Value value) {
     if (m_impl) {
       m_impl->SetAttribute(name, value);
     }
   }
 
+  /// Adds and event w/attributes if this span is valid
   void AddEvent(
       std::string_view name,
       std::initializer_list<std::pair<std::string_view, Value>> attributes) {
@@ -155,10 +160,11 @@ class Span {
     }
   }
 
-  void End(StatusCode status = StatusCode::UNSET) {
-    if (m_isScoped && m_impl) {
-      m_impl->End(status);
-      m_impl.reset();
+  /// Adds an error as an event if this span is valid
+  void SetError(std::string_view message, const std::source_location location =
+                                              std::source_location::current()) {
+    if (m_impl) {
+      m_impl->AddError(message, location);
     }
   }
 };

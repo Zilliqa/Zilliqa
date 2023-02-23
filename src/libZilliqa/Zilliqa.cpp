@@ -182,13 +182,11 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
             INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
       }
 
-      auto spanExitCode = zil::trace::StatusCode::OK;
       if (!result) {
         // To-do: Error recovery
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
-        spanExitCode = zil::trace::StatusCode::ERROR;
+        span.SetError("dispatch failed");
       }
-      span.End(spanExitCode);
 
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex
