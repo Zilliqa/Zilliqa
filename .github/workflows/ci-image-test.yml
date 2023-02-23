@@ -1,0 +1,34 @@
+name: CI - Integration tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitOrTag:
+        description: 'Commit or tag'
+        required: false
+        default: ''
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  push-to-ecr:
+    permissions:
+      id-token: write
+      contents: write
+    name: build
+    runs-on: docker
+    steps:
+    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.commitOrTag }}
+    - name: Build Docker images
+      run: DOCKER_BUILDKIT=1 docker build --target builder -t zilliqa:tests -f docker/Dockerfile .
+      shell: bash
+    - name: Run integration tests
+      run: |
+        docker run --rm -i zilliqa:tests scripts/integration_test.sh --setup-env
+        docker run --rm -i zilliqa:tests scripts/integration_test_js.sh --setup-env
+      shell: bash
