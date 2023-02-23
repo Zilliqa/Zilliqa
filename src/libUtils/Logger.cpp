@@ -22,6 +22,8 @@
 
 #include <g3sinks/LogRotate.h>
 
+#include "libMetrics/Tracing.h"
+
 using namespace std;
 using namespace g3;
 
@@ -167,9 +169,11 @@ class JsonLogSink : public CustomLogRotate {
  public:
   template <typename... ArgsT>
   JsonLogSink(ArgsT&&... args)
-      : CustomLogRotate(std::forward<ArgsT>(args)...),
-        m_builder{},
-        m_writer{m_builder.newStreamWriter()} {}
+      : CustomLogRotate(std::forward<ArgsT>(args)...), m_builder{} {
+    // Format the JSON structure as a single line
+    m_builder["indentation"] = "";
+    m_writer.reset(m_builder.newStreamWriter());
+  }
 
   void receiveLogMessage(LogMessageMover logEntry) {
     const auto& message = logEntry.get();
@@ -183,7 +187,17 @@ class JsonLogSink : public CustomLogRotate {
     value["func"] = message.function();
     value["message"] = message.message();
 
+    auto spanIds = zil::trace::Tracing::GetActiveSpanIds();
+    if (spanIds) {
+      // TODO: when these are available as string, uncomment.
+#if 0
+      value["trace_id"] = spanIds->first;
+      value["span_id"] = spanIds->second;
+#endif
+    }
+
     m_writer->write(value, &m_stream);
+    m_stream << std::endl;
     m_logRotate.save(m_stream.str());
     m_stream.str("");
   }
