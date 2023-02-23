@@ -62,6 +62,7 @@ RUN apt-get update \
     && apt-get remove -y cmake python2 python3 && apt-get autoremove -y
 
 FROM base AS builder
+ARG EXTRA_BUILD_PARAMS
 
 # Cargo
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs -o install_script.sh && \
@@ -168,7 +169,7 @@ COPY isolated-server-accounts.json .
 # Build & install Zilliqa
 RUN --mount=type=cache,target=/ccache/ \
     --mount=type=cache,target=/root/.cache/vcpkg/ \
-    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja debug tests && cmake --build "/zilliqa/build" --target install
+    CCACHE_BASEDIR="/zilliqa" ./build.sh ninja ${EXTRA_BUILD_PARAMS} && cmake --build "/zilliqa/build" --target install
 
 # Make sure all DLLs / shared libraries are installed
 RUN ldd /usr/local/bin/zilliqa | grep vcpkg_installed | gawk '{print $3}' | xargs -I{} cp {} /usr/local/lib
