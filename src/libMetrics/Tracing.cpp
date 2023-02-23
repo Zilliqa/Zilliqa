@@ -39,6 +39,27 @@
 
 #include "libUtils/Logger.h"
 
+// Unfortunately, clang 14 still doesn't support constructing a std::string_view
+// from two iterators so a workaround is to specialize this until it's available
+// at which point the following #ifdef can be removed.
+#ifdef __APPLE__
+namespace boost {
+namespace algorithm {
+namespace detail {
+
+template <>
+struct copy_iterator_rangeF<std::string_view, const char*> {
+  typedef iterator_range<const char*> argument_type;
+  typedef std::string_view result_type;
+  std::string_view operator()(const iterator_range<const char*>& Range) const {
+    return std::string_view(boost::begin(Range), boost::size(Range));
+  }
+};
+}  // namespace detail
+}  // namespace algorithm
+}  // namespace boost
+#endif // __APPLE__
+
 namespace zil::trace {
 
 namespace trace_api = opentelemetry::trace;

@@ -18,15 +18,19 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
-#include <boost/filesystem/path.hpp>
 #include "common/Constants.h"
 #include "g3log/logworker.hpp"
+
+#include <filesystem>
+#include <typeinfo>
 
 #define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
   std::unique_ptr<g3::LogWorker> m_logWorker;
+  static std::vector<std::reference_wrapper<const std::type_info>>
+      m_externalSinkTypeIds;
 
   Logger();
 
@@ -53,26 +57,34 @@ class Logger {
   //@{
   /// @name Sink addition.
   void AddGeneralSink(const std::string& filePrefix,
-                      const boost::filesystem::path& filePath,
+                      const std::filesystem::path& filePath,
                       int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                       int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStateSink(const std::string& filePrefix,
-                    const boost::filesystem::path& filePath,
+                    const std::filesystem::path& filePath,
                     int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                     int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddEpochInfoSink(const std::string& filePrefix,
-                        const boost::filesystem::path& filePath,
+                        const std::filesystem::path& filePath,
                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddJsonSink(const std::string& filePrefix,
-                   const boost::filesystem::path& filePath,
+                   const std::filesystem::path& filePath,
                    int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                    int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStdoutSink();
+
+  template <typename SinkT, typename MemFuncT>
+  void AddSink(std::unique_ptr<SinkT> sink, MemFuncT memFunc) {
+    auto handle = m_logWorker->addSink(std::move(sink), memFunc);
+    if (handle) {
+      m_externalSinkTypeIds.emplace_back(typeid(g3::internal::Sink<SinkT>));
+    }
+  }
   //@}
 
   /// Setup the display debug level
