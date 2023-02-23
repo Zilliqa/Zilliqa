@@ -13,9 +13,6 @@ on:
 
 jobs:
   run-tests:
-    permissions:
-      id-token: write
-      contents: write
     name: tests
     runs-on: docker
     steps:
@@ -29,7 +26,34 @@ jobs:
       shell: bash
     - name: Run integration tests
       run: |
-        docker run --rm -i -w="/zilliqa/evm-ds" zilliqa:tests cargo clippy --all-targets --all-features -- -D warnings --no-deps
         docker run --rm -i zilliqa:tests scripts/integration_test.sh --setup-env
         docker run --rm -i zilliqa:tests scripts/integration_test_js.sh --setup-env
       shell: bash
+
+  rust-clippy:
+    name: rust-clippy
+    runs-on: ubuntu-22.04
+    steps:
+    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.commitOrTag }}
+    - name: Configure the cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install Rust toolchain
+      run: |
+        cd evm-ds && rustup show
+    - name: Cargo clippy
+      uses: actions-rs/clippy-check@v1
+      with:
+        token: ${{ github.token }}
+        args: --manifest-path=evm-ds/Cargo.toml --all-targets --all-features -- -D warnings --no-deps
