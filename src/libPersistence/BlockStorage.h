@@ -200,6 +200,7 @@ class BlockStorage : boost::noncopyable {
   /// Retrieves the requested transaction trace.
   bool PutTxTrace(const dev::h256& key, const std::string& trace);
   bool GetTxTrace(const dev::h256& key, std::string& trace);
+  std::shared_ptr<LevelDB> GetTxTraceDb();
 
   /// Deletes the requested Tx block
   bool DeleteTxBlock(const uint64_t& blocknum);

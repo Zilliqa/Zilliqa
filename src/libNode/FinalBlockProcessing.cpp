@@ -55,6 +55,20 @@
 #include <chrono>
 #include <thread>
 
+namespace zil {
+
+namespace local {
+
+Z_I64METRIC &GetFinalBlockProcessingCounter() {
+  static Z_I64METRIC counter{Z_FL::BLOCKS, "blocks.height.count",
+                             "Block height", "calls"};
+  return counter;
+}
+
+}  // namespace local
+
+}  // namespace zil
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -781,6 +795,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
   LOG_MARKER();
+
+  zil::local::GetFinalBlockProcessingCounter()++;
 
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {

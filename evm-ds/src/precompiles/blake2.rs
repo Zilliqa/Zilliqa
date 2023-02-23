@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
+use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 
 /// Blake2 constants.
@@ -179,7 +179,7 @@ pub(crate) fn blake2(
     let output = f(h, m, t, finished, rounds);
     Ok((
         PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
+            output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
             output,
         },
         cost,

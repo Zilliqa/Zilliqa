@@ -236,7 +236,9 @@ CpsExecuteResult CpsExecutor::processLoop(const CpsContext& context) {
   while (!m_queue.empty()) {
     const auto currentRun = std::move(m_queue.back());
     m_queue.pop_back();
+
     runResult = currentRun->Run(mTxReceipt);
+
     if (!runResult.isSuccess) {
       break;
     }

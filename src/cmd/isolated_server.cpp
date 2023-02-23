@@ -107,6 +107,7 @@ int main(int argc, const char* argv[]) {
   ENABLE_EVM = true;
   LOOKUP_NODE_MODE = true;
   SCILLA_SERVER_LOOP_WAIT_MICROSECONDS = 100000;
+  ARCHIVAL_LOOKUP_WITH_TX_TRACES = true; // Force saving traces if they are generated
   if (SCILLA_ROOT == "/scilla") {
     SCILLA_ROOT = "/tmp";
   }
