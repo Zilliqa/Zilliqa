@@ -3,8 +3,8 @@ use std::collections::BTreeMap;
 use crate::protos::Evm as EvmProto;
 use core::cmp::min;
 use evm::executor::stack::{
-    MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileSet, StackExecutor,
-    StackExecutorHandle, StackState,
+    MemoryStackState, PrecompileFailure, PrecompileOutput, PrecompileOutputType, PrecompileSet,
+    StackExecutor, StackExecutorHandle, StackState,
 };
 
 use evm::{
@@ -43,6 +43,7 @@ pub struct CpsCallInterrupt {
     pub input: Vec<u8>,
     pub target_gas: Option<u64>,
     pub is_static: bool,
+    pub is_precompile: bool,
     pub context: Context,
     pub memory_offset: U256,
     pub offset_len: U256,
@@ -336,9 +337,25 @@ impl<'a> Handler for CpsExecutor<'a> {
             {
                 return match result {
                     Ok(PrecompileOutput {
-                        exit_status,
+                        output_type,
                         output,
-                    }) => Capture::Exit((ExitReason::Succeed(exit_status), output)),
+                    }) => {
+                        if let PrecompileOutputType::Exit(exit_reason) = output_type {
+                            Capture::Exit((ExitReason::Succeed(exit_reason), output))
+                        } else {
+                            Capture::Trap(Self::CallInterrupt {
+                                code_address,
+                                transfer,
+                                input,
+                                target_gas,
+                                is_static,
+                                is_precompile: true,
+                                context,
+                                memory_offset,
+                                offset_len,
+                            })
+                        }
+                    }
                     Err(PrecompileFailure::Error { exit_status }) => {
                         Capture::Exit((ExitReason::Error(exit_status), Vec::new()))
                     }
@@ -363,6 +380,7 @@ impl<'a> Handler for CpsExecutor<'a> {
                 input,
                 target_gas,
                 is_static,
+                is_precompile: false,
                 context,
                 memory_offset,
                 offset_len,
@@ -388,6 +406,7 @@ impl<'a> Handler for CpsExecutor<'a> {
                 input,
                 target_gas,
                 is_static,
+                is_precompile: false,
                 context,
                 memory_offset,
                 offset_len,

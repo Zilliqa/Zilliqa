@@ -39,6 +39,7 @@
   M(ACCOUNTSTORE_HISTOGRAMS)      \
   M(TRANSACTION_VERIFY)           \
   M(CPS)                          \
+  M(BLOCKS)                       \
   M(API_SERVER)
 
 namespace zil {
