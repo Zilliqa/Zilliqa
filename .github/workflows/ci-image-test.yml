@@ -49,6 +49,7 @@ jobs:
     - name: Install Rust toolchain
       run: |
         cd evm-ds && rustup show
+        sudo snap install protobuf --classic
     - name: Cargo clippy
       uses: actions-rs/clippy-check@v1
       env:
