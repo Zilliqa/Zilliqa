@@ -20,10 +20,10 @@
 #include <algorithm>
 #include <iostream>
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
+#include "libMetrics/Logging.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/HardwareSpecification.h"
@@ -53,7 +53,8 @@ int main(int argc, const char* argv[]) {
     PrivKey extSeedPrivKey;
     PubKey extSeedPubKey;
     string address;
-    string logpath(boost::filesystem::absolute("./").string());
+    string logpath(std::filesystem::absolute("./").string());
+    string identity;
     int port = -1;
     unique_ptr<NAT> nt;
     uint128_t ip;
@@ -83,6 +84,8 @@ int main(int argc, const char* argv[]) {
         "logpath,g", po::value<string>(&logpath),
         "customized log path, could be relative path (e.g., \"./logs/\"), or "
         "absolute path (e.g., \"/usr/local/test/logs/\")")(
+        "identity", po::value<string>(&identity)->required(),
+        "Node identity (role and index), e.g. normal-3")(
         "version,v", "Displays the Zilliqa version information");
 
     po::variables_map vm;
@@ -164,10 +167,15 @@ int main(int argc, const char* argv[]) {
       std::cerr << "ERROR: " << e.what() << std::endl << std::endl;
       return ERROR_IN_COMMAND_LINE;
     }
-    Metrics::GetInstance();
-    Tracing::GetInstance();
 
-    boost::filesystem::path logBasePath = logpath;
+    Metrics::GetInstance().Init();
+    zil::trace::Tracing::Initialize(identity);
+
+    auto span =
+        zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE, "Main");
+    Logging::GetInstance();
+
+    std::filesystem::path logBasePath = logpath;
     if (vm.count("stdoutlog")) {
       INIT_STDOUT_LOGGER();
     } else {
@@ -256,6 +264,7 @@ int main(int argc, const char* argv[]) {
     Metrics::GetInstance().Shutdown();
     LOG_GENERAL(INFO, "Metrics shut down");
 
+    Logging::GetInstance().Shutdown();
   } catch (std::exception& e) {
     std::cerr << "Unhandled Exception reached the top of main: " << e.what()
               << ", application will now exit" << std::endl;

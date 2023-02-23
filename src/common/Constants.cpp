@@ -770,7 +770,7 @@ const std::string METRIC_ZILLIQA_SCHEMA{
                        "https://opentelemetry.io/schemas/1.2.0")};
 const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
     "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
-const std::string METRIC_ZILLIQA_MASK{
+std::string METRIC_ZILLIQA_MASK{
     ReadConstantString("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", "NONE")};
 const std::string TRACE_ZILLIQA_MASK{
     ReadConstantString("TRACE_ZILLIQA_MASK", "node.trace.zilliqa.", "NONE")};
@@ -780,3 +780,9 @@ const std::string TRACE_ZILLIQA_HOSTNAME{ReadConstantString(
     "TRACE_ZILLIQA_HOSTNAME", "node.trace.zilliqa.", "localhost")};
 const unsigned int TRACE_ZILLIQA_PORT{
     ReadConstantNumeric("TRACE_ZILLIQA_PORT", "node.trace.zilliqa.", 4318)};
+const std::string LOGGING_ZILLIQA_HOSTNAME{ReadConstantString(
+    "LOGGING_ZILLIQA_HOSTNAME", "node.logging.zilliqa.", "localhost")};
+const std::string LOGGING_ZILLIQA_PROVIDER{ReadConstantString(
+    "LOGGING_ZILLIQA_PROVIDER", "node.logging.zilliqa.", "NONE")};
+const unsigned int LOGGING_ZILLIQA_PORT{
+    ReadConstantNumeric("LOGGING_ZILLIQA_PORT", "node.logging.zilliqa.", 8090)};

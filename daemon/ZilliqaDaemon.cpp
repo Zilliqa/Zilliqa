@@ -312,10 +312,12 @@ void ZilliqaDaemon::StartNewProcess(bool cleanPersistence) {
           "\" " + Execute("cd " + m_curPath + "; rm -rf persistence") + " \"");
     }
 
+    string identity = m_nodeType + "-" + std::to_string(m_nodeIndex);
+
     string cmdToRun = string("zilliqa") + " --privk " + m_privKey + " --pubk " +
                       m_pubKey + " --address " + m_ip + " --port " +
                       to_string(m_port) + " --synctype " + strSyncType +
-                      " --logpath " + m_logPath;
+                      " --logpath " + m_logPath + " --identity " + identity;
 
     if (1 == m_recovery) {
       cmdToRun += " --recovery";
