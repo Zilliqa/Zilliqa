@@ -12,11 +12,11 @@ on:
       - 'master'
 
 jobs:
-  push-to-ecr:
+  run-tests:
     permissions:
       id-token: write
       contents: write
-    name: build
+    name: tests
     runs-on: docker
     steps:
     - name: 'Checkout scm ${{ inputs.commitOrTag }}'
