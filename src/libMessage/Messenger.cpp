@@ -5397,8 +5397,6 @@ bool Messenger::SetLookupGetOfflineLookups(zbytes& dst,
 bool Messenger::GetLookupGetOfflineLookups(const zbytes& src,
                                            const unsigned int offset,
                                            uint32_t& listenPort) {
-  LOG_MARKER();
-
   if (offset >= src.size()) {
     LOG_GENERAL(WARNING, "Invalid data and offset, data size "
                              << src.size() << ", offset " << offset);

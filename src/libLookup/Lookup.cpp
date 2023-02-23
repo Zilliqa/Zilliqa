@@ -1298,7 +1298,6 @@ void Lookup::SendMessageToRandomSeedNode(const zbytes& message) const {
   }
 
   auto index = RandomGenerator::GetRandomInt(notBlackListedSeedNodes.size());
-  LOG_GENERAL(INFO, "Sending message to " << notBlackListedSeedNodes[index]);
   P2PComm::GetInstance().SendMessage(notBlackListedSeedNodes[index], message);
 }
 

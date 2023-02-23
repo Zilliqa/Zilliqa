@@ -48,7 +48,7 @@ describe("Chained Contract Calls Functionality", function () {
       let secondTracer = {'tracer' : 'raw'};
 
       await sendJsonRpcRequest(METHOD, 1, [res.hash, secondTracer], (result, status) => {
-        assert.equal(status, 201, "has status code");
+        assert.equal(status, 200, "has status code");
         let jsonObject = JSON.parse(result.result);
       });
 
