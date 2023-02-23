@@ -65,8 +65,8 @@ pub async fn run_evm_impl(
         // Check if evm should resume from the point it stopped
         let (feedback_continuation, mut runtime, state) =
         if let Some(continuation) = node_continuation {
-            let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
-            if let None = recorded_cont {
+            let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id());
+            if recorded_cont.is_none() {
                 let result = handle_panic(tx_trace, gas_limit, "Continuation not found!");
                 return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
@@ -81,7 +81,7 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
-            let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+            let runtime = evm::Runtime::new(code, data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
         };
@@ -104,8 +104,8 @@ pub async fn run_evm_impl(
         if feedback_continuation.is_none() {
             let mut call = CallContext::new();
             call.call_type = "CALL".to_string();
-            call.value = format!("0x{}", apparent_value);
-            call.gas = format!("0x{:x}", gas_limit); // Gas provided for call
+            call.value = format!("0x{apparent_value}");
+            call.gas = format!("0x{gas_limit:x}"); // Gas provided for call
             call.input = format!("0x{}", hex::encode(data.deref()));
 
             if listener.call_tracer.is_empty() {
@@ -114,7 +114,7 @@ pub async fn run_evm_impl(
                 call.from = listener.call_tracer.last().unwrap().to.clone();
             }
 
-            call.to = format!("{:?}", address);
+            call.to = format!("{address:?}");
             listener.push_call(call);
         }
 
@@ -131,7 +131,7 @@ pub async fn run_evm_impl(
         let remaining_gas = executor.gas() / gas_scaling_factor;
 
         // Update the traces
-        listener.raw_tracer.return_value = format!("{}", hex::encode(runtime.machine().return_value()));
+        listener.raw_tracer.return_value = hex::encode(runtime.machine().return_value()).to_string();
         listener.raw_tracer.gas = gas_limit - remaining_gas;
         listener.call_tracer.last_mut().unwrap().gas_used = format!("0x{:x}", gas_limit - remaining_gas);
         listener.call_tracer.last_mut().unwrap().output = format!("0x{}", hex::encode(runtime.machine().return_value()));
@@ -171,13 +171,13 @@ pub async fn run_evm_impl(
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                let result = build_call_result(&runtime, i, &listener, remaining_gas, cont_id);
-                result
+                
+                build_call_result(&runtime, i, &listener, remaining_gas, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                let result = build_create_result(&runtime, i, &listener, remaining_gas, cont_id);
-                result
+                
+                build_create_result(&runtime, i, &listener, remaining_gas, cont_id)
             }
         };
         Ok(base64::encode(result.write_to_bytes().unwrap()))

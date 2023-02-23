@@ -110,7 +110,7 @@ impl From<evm::ExitError> for EvmProto::ExitReason_Error {
             }
             evm::ExitError::InvalidCode(opcode) => {
                 result.set_kind(EvmProto::ExitReason_Error_Kind::INVALID_CODE);
-                result.set_error_string(format!("{}", opcode).into());
+                result.set_error_string(format!("{opcode}").into());
             }
             evm::ExitError::OutOfOffset => {
                 result.set_kind(EvmProto::ExitReason_Error_Kind::OUT_OF_OFFSET);

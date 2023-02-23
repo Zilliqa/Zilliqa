@@ -15,20 +15,20 @@ fn apply_modify_to_string(modify: &EvmProto::Apply_Modify) -> String {
     )
     .unwrap();
 
-    if modify.get_storage().len() > 0 {
+    if !modify.get_storage().is_empty() {
         write!(modify_string, "    storage: [").unwrap();
-        modify.get_storage().into_iter().for_each(|s| {
+        modify.get_storage().iter().for_each(|s| {
             let query = ScillaMessage::ProtoScillaQuery::parse_from_bytes(&s.key).unwrap();
             let value = ScillaMessage::ProtoScillaVal::parse_from_bytes(&s.value).unwrap();
             write!(
                 modify_string,
                 "      {{\n        key: {:?}, \n        value: {}\n      }},\n",
                 query.get_indices(),
-                H256::from_slice(&value.get_bval())
+                H256::from_slice(value.get_bval())
             )
             .unwrap();
         });
-        write!(modify_string, "    ]\n").unwrap();
+        writeln!(modify_string, "    ]").unwrap();
     }
 
     modify_string.push_str("  }\n");
@@ -51,7 +51,7 @@ pub fn log_evm_result(result: &EvmProto::EvmResult) -> String {
         result.get_exit_reason()
     )
     .unwrap();
-    result.get_apply().into_iter().for_each(|optional_apply| {
+    result.get_apply().iter().for_each(|optional_apply| {
         if let Some(apply) = &optional_apply.apply {
             result_string.push_str("apply {\n");
             match apply {
@@ -62,7 +62,7 @@ pub fn log_evm_result(result: &EvmProto::EvmResult) -> String {
                     result_string.push_str(&apply_delete_to_string(delete))
                 }
             }
-            result_string.push_str("}");
+            result_string.push('}');
         }
     });
 

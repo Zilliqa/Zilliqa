@@ -131,7 +131,7 @@ impl LoggingEventListener {
         LoggingEventListener {
             call_tracer: Default::default(),
             raw_tracer: Default::default(),
-            enabled: enabled,
+            enabled,
         }
     }
 }
@@ -147,11 +147,11 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
 
         match event {
             evm::runtime::tracing::Event::Step{context: _, opcode, position, stack, memory: _} => {
-                struct_log.op = format!("{}", opcode);
+                struct_log.op = format!("{opcode}");
                 struct_log.pc = position.clone().unwrap_or(0);
 
                 for sta in stack.data() {
-                    struct_log.stack.push(format!("{:?}", sta));
+                    struct_log.stack.push(format!("{sta:?}"));
                 }
             }
             evm::runtime::tracing::Event::StepResult{result, return_value: _} => {
@@ -208,7 +208,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     match args.log4rs {
         Some(log_config) if !log_config.is_empty() => {
             log4rs::init_file(&log_config, Default::default())
-                .with_context(|| format!("cannot open file {}", log_config))?;
+                .with_context(|| format!("cannot open file {log_config}"))?;
         }
         _ => {
             let config_str = include_str!("../log4rs-local.yml");
