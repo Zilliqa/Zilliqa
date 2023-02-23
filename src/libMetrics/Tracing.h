@@ -196,6 +196,9 @@ class Tracing {
       FilterClass filter, std::string_view name,
       std::string_view remote_trace_info);
 
+  /// Returns if there is the active span in this thread
+  [[nodiscard]] static bool HasActiveSpan();
+
   /// Returns the active span (if any) or to a no-op span (if no
   /// active span or tracing disabled)
   [[nodiscard]] static Span GetActiveSpan();
@@ -203,6 +206,11 @@ class Tracing {
   /// Returns trace and span ids of active span (if any)
   [[nodiscard]] static std::optional<std::pair<TraceId, SpanId>>
   GetActiveSpanIds();
+
+  /// Returns trace_id and span_id of active span (if any) in string form
+  [[nodiscard]] static std::optional<
+      std::pair<std::string_view, std::string_view>>
+  GetActiveSpanStringIds();
 
   // TODO some research needed to shutdown it gracefully
   // static void Shutdown();

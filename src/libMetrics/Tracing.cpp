@@ -69,6 +69,9 @@ std::optional<trace_api::SpanContext> ExtractSpanContextFromIds(
 
 std::string_view ExtractSenderIdentityFromIds(std::string_view serializedIds);
 
+std::optional<std::pair<std::string_view, std::string_view>> ExtractStringIds(
+    std::string_view serializedIds);
+
 template <typename Container>
 class KVI : public opentelemetry::common::KeyValueIterable {
   Container& m_cont;
@@ -223,6 +226,11 @@ class TracingImpl {
   }
 
  public:
+  static bool HasActiveSpan() {
+    // thread local instance here
+    return !Stack::GetInstance().Empty();
+  }
+
   static Span GetActiveSpan() {
     // thread local instance here
     auto& stack = Stack::GetInstance();
@@ -239,9 +247,18 @@ class TracingImpl {
       return std::nullopt;
     }
     const auto& span = stack.GetActiveSpan();
-    std::optional<std::pair<TraceId, SpanId>> pair;
-    pair.emplace(span->GetTraceId(), span->GetSpanId());
-    return pair;
+    return std::pair(span->GetTraceId(), span->GetSpanId());
+  }
+
+  static std::optional<std::pair<std::string_view, std::string_view>>
+  GetActiveSpanStringIds() {
+    // thread local instance here
+    auto& stack = Stack::GetInstance();
+    if (stack.Empty()) {
+      return std::nullopt;
+    }
+    const auto& span = stack.GetActiveSpan();
+    return ExtractStringIds(span->GetIds());
   }
 
   static TracingImpl& GetInstance() {
@@ -318,10 +335,17 @@ Span Tracing::CreateChildSpanOfRemoteTrace(FilterClass filter,
       filter, name, remote_trace_info);
 }
 
+bool Tracing::HasActiveSpan() { return TracingImpl::HasActiveSpan(); }
+
 Span Tracing::GetActiveSpan() { return TracingImpl::GetActiveSpan(); }
 
 std::optional<std::pair<TraceId, SpanId>> Tracing::GetActiveSpanIds() {
   return TracingImpl::GetActiveSpanIds();
+}
+
+std::optional<std::pair<std::string_view, std::string_view>>
+Tracing::GetActiveSpanStringIds() {
+  return TracingImpl::GetActiveSpanStringIds();
 }
 
 namespace {
@@ -395,6 +419,15 @@ std::string_view ExtractSenderIdentityFromIds(std::string_view serializedIds) {
   return (serializedIds.size() > TRACE_INFO_SIZE + 1)
              ? serializedIds.substr(TRACE_INFO_SIZE + 1)
              : "";
+}
+
+std::optional<std::pair<std::string_view, std::string_view>> ExtractStringIds(
+    std::string_view serializedIds) {
+  if (serializedIds.size() <= TRACE_INFO_SIZE) {
+    return std::nullopt;
+  }
+  return std::pair(serializedIds.substr(TRACE_ID_OFFSET, TRACE_ID_SIZE),
+                   serializedIds.substr(SPAN_ID_OFFSET, SPAN_ID_SIZE));
 }
 
 constexpr uint64_t ALL = std::numeric_limits<uint64_t>::max();
