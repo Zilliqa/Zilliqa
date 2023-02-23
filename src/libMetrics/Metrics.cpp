@@ -22,6 +22,10 @@
 
 #include <boost/algorithm/string.hpp>
 
+#ifndef ENABLE_METRICS_EXEMPLAR_PREVIEW
+#define ENABLE_METRICS_EXEMPLAR_PREVIEW 1
+#endif
+
 #include <opentelemetry/sdk/metrics/view/view.h>
 #include "opentelemetry/common/attribute_value.h"
 #include "opentelemetry/common/key_value_iterable.h"
@@ -38,7 +42,10 @@
 #include "opentelemetry/sdk/metrics/meter_provider.h"
 #include "opentelemetry/sdk/metrics/metric_reader.h"
 #include "opentelemetry/sdk/resource/resource.h"
+#include "opentelemetry/sdk/common/attribute_utils.h"
 
+#include "Api.h"
+#include "Tracing.h"
 #include "common/Constants.h"
 #include "libUtils/Logger.h"
 
@@ -48,6 +55,18 @@ namespace metrics_api = opentelemetry::metrics;
 namespace otlp_exporter = opentelemetry::exporter::otlp;
 
 // The OpenTelemetry Metrics Interface.
+
+Z_I64METRIC &GetErrorGram() {
+
+  static Z_I64METRIC counter{Z_FL::GLOBAL_ERRORS, "program.errors", "A histogram of monitically numbered errors that are linked to traces",""};
+  return counter;
+}
+
+uint64_t GetNextErrorCount() {
+  static uint64_t counter {0};
+  return ++counter;
+}
+
 
 Metrics::Metrics() {
   zil::metrics::Filter::GetInstance().init();
@@ -76,6 +95,8 @@ void Metrics::Init() {
                 "configuration");
     InitNoop();
   }
+  if (zil::metrics::Filter::GetInstance().Enabled( zil::metrics::FilterClass::GLOBAL_ERRORS) )
+    m_globalErrors = this->CreateInt64Metric("global.error", "errors raised through EMT calls");
 }
 
 void Metrics::InitNoop() {
@@ -477,5 +498,33 @@ void Filter::init() {
     }
   }
 }
+
+void EventMetricTrace(const std::string msg, std::string funcName, int line, int errno ) {
+
+  // Normal logger, should get spanis and traceid;
+
+  // TODO
+  //if (CHECK_FILTER(FilterClass::GLOBAL_ERRORS)){
+
+  if (true){
+
+    if (zil::trace::Tracing::IsEnabled()){
+      zil::trace::Span activeSpan = zil::trace::Tracing::GetActiveSpan();
+
+      if (activeSpan.GetTraceId().IsValid()){
+        activeSpan.AddEvent("err", {{"error", msg},{funcName,line}});
+
+        char trace_id[32]       = {0};
+        char span_id[16]        = {0};
+        activeSpan.GetSpanId().ToLowerBase16(span_id);
+        activeSpan.GetTraceId().ToLowerBase16(trace_id);
+
+        GetErrorGram().IncrementAttr({{"TraceId",trace_id},{"SpanId",span_id}});
+      }
+    }
+  }
+  LOG_GENERAL(INFO,msg);
+}
+
 
 }  // namespace zil::metrics

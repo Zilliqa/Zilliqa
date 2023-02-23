@@ -618,11 +618,15 @@ bool AccountStore::UpdateAccountsTemp(
 
 
   if (ENABLE_EVM == false && isEvm) {
+#if 1
+    OBSERVE("EVM is disabled so not processing this EVM transaction ");
+#else
     LOG_GENERAL(WARNING,
                 "EVM is disabled so not processing this EVM transaction ");
     if (zil::local::GetCallCounter().Enabled()) {
       zil::local::GetCallCounter().IncrementAttr({{"not.evm", __FUNCTION__}});
     }
+#endif
     return false;
   }
 

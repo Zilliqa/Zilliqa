@@ -63,4 +63,16 @@ using Z_FL = zil::metrics::FilterClass;
   zil::metrics::Filter::GetInstance().Enabled( \
       zil::metrics::FilterClass::FILTER_CLASS)
 
+#define OBSERVE( MSG ) \
+  zil::metrics::EventMetricTrace( MSG, __FUNCTION__ , __LINE__ , 0);
+
+namespace zil {
+namespace metrics {
+
+
+
+}
+}
+
+
 #endif  // ZILLIQA_SRC_LIBMETRICS_API_H_

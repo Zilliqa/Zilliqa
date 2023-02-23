@@ -68,6 +68,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+              OBSERVE("insufficient balance");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
       // Contract call (non-trap)
@@ -286,6 +287,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   if (isStatic || isDelegate) {
     if (!areTnsfAddressesEmpty || !isValZero) {
       INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
+      OBSERVE("In correct transaction type ");
       return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
   }
@@ -297,6 +299,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
   if (!isOrigAddressValid || !isDestAddressValid) {
     INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
+    OBSERVE("In correct transaction type ");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
@@ -304,6 +307,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
       LOG_GENERAL(WARNING, "Invalid when addressing...");
       INC_STATUS(GetCPSMetric(), "error", "addressing ??");
+      OBSERVE("In correct transaction type ");
       return {TxnStatus::ERROR, false, {}};
     }
     const auto currentBalance =
@@ -312,12 +316,14 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
     if (requestedValue > currentBalance) {
       LOG_GENERAL(WARNING, "insufficient bal.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
+      OBSERVE("In correct transaction type ");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
     if (!requestedValue.isZero() && remainingGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "insufficient gas.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
+      OBSERVE("In correct transaction type ");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }

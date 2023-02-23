@@ -348,7 +348,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
         }
       }
     }
-
+    OBSERVE("A Mere Observation");
     return cpsRunResult.isSuccess;
   }
   error_code = TxnStatus::NOT_PRESENT;
