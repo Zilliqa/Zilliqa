@@ -42,7 +42,6 @@ bool LaunchEvmDaemon(boost::process::child& child,
 
   const std::vector<std::string> args = {"--socket",
                                          EVM_SERVER_SOCKET_PATH,
-                                         "--tracing",
                                          "--zil-scaling-factor",
                                          std::to_string(EVM_ZIL_SCALING_FACTOR),
                                          "--log4rs",

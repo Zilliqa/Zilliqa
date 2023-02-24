@@ -26,8 +26,8 @@ namespace {
 
 bool SetTxBlock(zbytes& dst, const unsigned int offset,
                 const TxBlock& txBlock) {
-  ZilliqaMessage::ProtoTxBlock result;
 
+  ZilliqaMessage::ProtoTxBlock result;
   io::TxBlockToProtobuf(txBlock, result);
 
   if (!result.IsInitialized()) {

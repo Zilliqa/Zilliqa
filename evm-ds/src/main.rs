@@ -22,7 +22,6 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Context;
 use clap::Parser;
-use evm::tracing;
 
 use evm_server::EvmServer;
 
@@ -49,10 +48,6 @@ struct Args {
     #[clap(short = 'p', long, default_value = "3333")]
     http_port: u16,
 
-    /// Trace the execution with debug logging.
-    #[clap(short, long)]
-    tracing: bool,
-
     /// Log file (if not set, stderr is used).
     #[clap(short, long)]
     log4rs: Option<String>,
@@ -66,10 +61,10 @@ struct Args {
     zil_scaling_factor: u64,
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default)]
 struct CallContext {
     #[serde(rename = "type")]
-    pub call_type : String,
+    pub call_type : String, // only 'call' (not create, delegate, static)
     pub from : String,
     pub to : String,
     pub value : String,
@@ -98,6 +93,18 @@ impl CallContext {
     }
 }
 
+#[derive(Debug,Serialize,Deserialize,Default)]
+struct StructLog {
+    pub depth: usize,
+    pub error: String,
+    pub gas: u64, // not populated
+    #[serde(rename = "gasCost")]
+    pub gas_cost: u64, // not populated
+    pub op: String,
+    pub pc: usize,
+    pub stack: Vec<String>,
+    pub storage: Vec<String>, // not populated
+}
 
 // This implementation has a stack of call contexts each with reference to their calls - so a tree is
 // Created in this way.
@@ -105,37 +112,83 @@ impl CallContext {
 // On returning from a call, the end of the stack gets put into the item above's calls
 #[derive(Debug,Serialize,Deserialize)]
 struct LoggingEventListener {
-    call_stack: Vec<CallContext>,
+    call_tracer: Vec<CallContext>,
+    raw_tracer: StructLogTopLevel,
     enabled: bool,
 }
 
-impl LoggingEventListener {
+#[derive(Debug,Serialize,Deserialize, Default)]
+struct StructLogTopLevel {
+    pub gas: u64,
+    #[serde(rename = "returnValue")]
+    pub return_value: String,
+    #[serde(rename = "structLogs")]
+    pub struct_logs: Vec<StructLog>,
+}
 
+impl LoggingEventListener {
     fn new(enabled: bool) -> Self {
         LoggingEventListener {
-            call_stack: Default::default(),
-            enabled: enabled,
+            call_tracer: Default::default(),
+            raw_tracer: Default::default(),
+            enabled,
         }
     }
 }
 
-impl tracing::EventListener for LoggingEventListener {
-    fn event(&mut self, event: tracing::Event) {
-        println!("recvd event: {:?}", event);
+impl evm::runtime::tracing::EventListener for LoggingEventListener {
+    fn event(&mut self, event: evm::runtime::tracing::Event) {
+
+        if !self.enabled {
+            return;
+        }
+
+        let mut struct_log = StructLog { depth: self.call_tracer.len() - 1, ..Default::default() };
+
+        match event {
+            evm::runtime::tracing::Event::Step{context: _, opcode, position, stack, memory: _} => {
+                struct_log.op = format!("{opcode}");
+                struct_log.pc = position.clone().unwrap_or(0);
+
+                for sta in stack.data() {
+                    struct_log.stack.push(format!("{sta:?}"));
+                }
+            }
+            evm::runtime::tracing::Event::StepResult{result, return_value: _} => {
+                struct_log.op = "StepResult".to_string();
+                struct_log.error = format!("{:?}", result.clone());
+            }
+            evm::runtime::tracing::Event::SLoad{address: _, index: _, value: _} => {
+                struct_log.op = "Sload".to_string();
+            }
+            evm::runtime::tracing::Event::SStore{address: _, index: _, value: _} => {
+                struct_log.op = "SStore".to_string();
+            }
+        }
+
+        if self.raw_tracer.struct_logs.len() < 5 {
+            self.raw_tracer.struct_logs.push(struct_log);
+        }
     }
 }
 
 impl LoggingEventListener {
 
+    #[allow(dead_code)]
     fn as_string(&self) -> String {
+        serde_json::to_string(self).unwrap()
+    }
+
+    #[allow(dead_code)]
+    fn as_string_pretty(&self) -> String {
         serde_json::to_string_pretty(self).unwrap()
     }
 
     fn finished_call(&mut self) {
         // The call has now completed - adjust the stack if neccessary
-        if self.call_stack.len() > 1 {
-            let end = self.call_stack.pop().unwrap();
-            let new_end = self.call_stack.last_mut().unwrap();
+        if self.call_tracer.len() > 1 {
+            let end = self.call_tracer.pop().unwrap();
+            let new_end = self.call_tracer.last_mut().unwrap();
             new_end.calls.push(end);
         }
     }
@@ -144,7 +197,7 @@ impl LoggingEventListener {
         // Now we have constructed our new call context, it gets added to the end of
         // the stack (if we want to do tracing)
         if self.enabled {
-            self.call_stack.push(context);
+            self.call_tracer.push(context);
         }
     }
 }
@@ -155,7 +208,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     match args.log4rs {
         Some(log_config) if !log_config.is_empty() => {
             log4rs::init_file(&log_config, Default::default())
-                .with_context(|| format!("cannot open file {}", log_config))?;
+                .with_context(|| format!("cannot open file {log_config}"))?;
         }
         _ => {
             let config_str = include_str!("../log4rs-local.yml");
