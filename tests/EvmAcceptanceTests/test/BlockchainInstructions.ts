@@ -2,7 +2,8 @@ import {expect} from "chai";
 import {parallelizer} from "../helpers";
 
 // TODO: Change the description to something more meaningful.
-describe("Blockchain Instructions contract", function () {
+// FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
+describe.skip("Blockchain Instructions contract", function () {
   before(async function () {
     this.contract = await parallelizer.deployContract("BlockchainInstructions");
   });

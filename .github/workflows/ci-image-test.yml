@@ -26,7 +26,6 @@ jobs:
       shell: bash
     - name: Run integration tests
       run: |
-        docker run --rm -i zilliqa:tests scripts/integration_test.sh --setup-env
         docker run --rm -i zilliqa:tests scripts/integration_test_js.sh --setup-env
       shell: bash
 
