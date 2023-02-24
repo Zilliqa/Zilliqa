@@ -44,7 +44,7 @@ else
 
     # install dependencies
     apt update
-    apt -y install npm curl dirmngr apt-transport-https lsb-release ca-certificates
+    apt -y install python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
     curl -sL https://deb.nodesource.com/setup_14.x | bash -
     apt -y install nodejs
     node --version
