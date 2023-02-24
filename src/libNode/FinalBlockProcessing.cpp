@@ -30,6 +30,7 @@
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Tracing.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -45,6 +46,11 @@
 #include "libUtils/MemoryStats.h"
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
+
+#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include "opentelemetry/trace/propagation/b3_propagator.h"
+#include "opentelemetry/trace/propagation/http_trace_context.h"
+#include "opentelemetry/trace/provider.h"
 
 #include <chrono>
 #include <thread>
@@ -692,8 +698,8 @@ bool Node::ProcessFinalBlock(const zbytes& message, unsigned int offset,
       lock_guard<mutex> g(m_mutexSeedTxnBlksBuffer);
       if (!m_seedTxnBlksBuffer.empty()) {
         LOG_GENERAL(INFO, "Seed synced, processing buffered FBLKS");
-        for (const auto& message : m_seedTxnBlksBuffer) {
-          if (!Messenger::GetNodeFinalBlock(message, offset, dsBlockNumber,
+        for (const auto& m : m_seedTxnBlksBuffer) {
+          if (!Messenger::GetNodeFinalBlock(m, offset, dsBlockNumber,
                                             consensusID, txBlock, stateDelta)) {
             LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
                       "Messenger::GetNodeFinalBlock failed.");
@@ -822,6 +828,8 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   //zil::local::GetFinalBlockProcessingCounter().get().get() = txBlock.GetHeader().GetBlockNum();
   zil::local::variables.Init();
   zil::local::variables.lastBlockHeight = txBlock.GetHeader().GetBlockNum();
+
+  zil::local::GetFinalBlockProcessingCounter()++;
 
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
@@ -1706,7 +1714,13 @@ bool Node::SendPendingTxnToLookup() {
     return false;
   }
 
-  LOG_GENERAL(INFO, "Sent lookup Pending txns");
+  LOG_GENERAL(
+      INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
+
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              "PendingTxnsSend");
+  span.SetAttribute("Count", pendingTxns.size());
+
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 
   return true;

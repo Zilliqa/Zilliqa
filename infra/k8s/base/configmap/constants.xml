@@ -363,14 +363,22 @@
     </metric>
     <trace>
         <zilliqa>
-            <TRACE_ZILLIQA_HOSTNAME>localhost</TRACE_ZILLIQA_HOSTNAME>
-            <TRACE_ZILLIQA_PORT>4318</TRACE_ZILLIQA_PORT>
+            <TRACE_ZILLIQA_HOSTNAME>tempo.monitoring.svc.cluster.local</TRACE_ZILLIQA_HOSTNAME>
+            <TRACE_ZILLIQA_PORT>4317</TRACE_ZILLIQA_PORT>
             <!-- PROVIDER can be OTLPHTTP or STDOUT -->
-            <TRACE_ZILLIQA_PROVIDER>STDOUT</TRACE_ZILLIQA_PROVIDER>
+            <TRACE_ZILLIQA_PROVIDER>OTLPGRPC</TRACE_ZILLIQA_PROVIDER>
             <!-- ALL means all metrics are enabled -->
             <TRACE_ZILLIQA_MASK>ALL</TRACE_ZILLIQA_MASK>
         </zilliqa>
     </trace>
+    <logging>
+        <zilliqa>
+            <LOGGING_ZILLIQA_HOSTNAME>loki.monitoring.svc.cluster.local</LOGGING_ZILLIQA_HOSTNAME>
+            <LOGGING_ZILLIQA_PORT>4317</LOGGING_ZILLIQA_PORT>
+            <!-- PROVIDER can be PROMETHEUS or OTLPHTTP -->
+            <LOGGING_ZILLIQA_PROVIDER>OTLPGRPC</LOGGING_ZILLIQA_PROVIDER>
+        </zilliqa>
+    </logging>
     <verifier>
         <exclusion_list>
             <entry>

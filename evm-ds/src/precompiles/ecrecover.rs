@@ -1,4 +1,4 @@
-use evm::executor::stack::{PrecompileFailure, PrecompileOutput};
+use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use primitive_types::{H160, H256};
 use std::borrow::Cow;
@@ -41,7 +41,7 @@ pub(crate) fn ecrecover(
         _ => {
             return Ok((
                 PrecompileOutput {
-                    exit_status: ExitSucceed::Returned,
+                    output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
                     output: vec![],
                 },
                 cost,
@@ -62,7 +62,7 @@ pub(crate) fn ecrecover(
 
     Ok((
         PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
+            output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
             output,
         },
         cost,

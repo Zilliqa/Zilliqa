@@ -13,7 +13,7 @@ assignments.
 
 Delete any previous dev cluster, just in case:
 
-    ```sh
+    ```
    kind delete cluster zqdev
     ```
 

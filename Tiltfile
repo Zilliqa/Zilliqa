@@ -6,6 +6,7 @@
 #docker_build("zilliqa/zilliqa", ".", dockerfile="docker/Dockerfile")
 custom_build("zilliqa/zilliqa", "DOCKER_BUILDKIT=1 docker build . -t $EXPECTED_REF -f docker/Dockerfile", ["docker/Dockerfile"])
 
+# TODO: Deploy nginx ingress with Tilt, so the user doesn't need to do it manually.
 k8s_yaml("infra/k8s/nginx-ingress.yaml")
 
 OBSERVABILITY = os.getenv('OBSERVABILITY', '')

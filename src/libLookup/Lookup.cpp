@@ -653,7 +653,8 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
     }
   }
 
-  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message);
+  // Sending with current d-trace info (if there is an active span)
+  P2PComm::GetInstance().SendBroadcastMessage(allLookupNodes, message, true);
 }
 
 void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
@@ -1264,9 +1265,9 @@ void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
   Peer tmpPeer(resolved_ip,
                m_l2lDataProviders[index].second.GetListenPortHost());
   LOG_GENERAL(INFO, "Sending message to l2l: " << tmpPeer);
-  unsigned char startByte = START_BYTE_NORMAL;
+  unsigned char startByte = zil::p2p::START_BYTE_NORMAL;
   if (ENABLE_SEED_TO_SEED_COMMUNICATION) {
-    startByte = START_BYTE_SEED_TO_SEED_REQUEST;
+    startByte = zil::p2p::START_BYTE_SEED_TO_SEED_REQUEST;
   }
   P2PComm::GetInstance().SendMessage(tmpPeer, tmpPeer, message, startByte);
 }

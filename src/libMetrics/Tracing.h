@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 Zilliqa
+ * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,93 +18,202 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 #define ZILLIQA_SRC_LIBMETRICS_TRACING_H_
 
-#include <opentelemetry/trace/tracer.h>
-#include <opentelemetry/trace/tracer_provider.h>
-#include <cassert>
-#include "opentelemetry/exporters/ostream/span_exporter_factory.h"
-#include "opentelemetry/sdk/trace/simple_processor_factory.h"
-#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
+#include <memory>
+#include <optional>
+#include <source_location>
+#include <span>
+#include <string>
+#include <variant>
 
-#include "TraceFilters.h"
-#include "common/Singleton.h"
+#ifndef HAVE_CPP_STDLIB
+#define HAVE_CPP_STDLIB
+#endif
 
-namespace trace_api = opentelemetry::trace;
-namespace trace_sdk = opentelemetry::sdk::trace;
-namespace trace_exporter = opentelemetry::exporter::trace;
+// Expose these internal structures to be used inside otel-based logging
+#include <opentelemetry/trace/span_id.h>
+#include <opentelemetry/trace/trace_id.h>
 
-namespace zil {
-namespace trace {
-class Filter : public Singleton<Filter> {
+// Currently maxes out at 64 filters, in order to increase developer should
+// change the type of the mask from uint64_t to uint128_t or uint256_t if
+// the number of filters ever increases beyond 64.
+//
+// Do not override the default numbering of these items, the algorithms rely
+// upon these definitions being consecutive, so no assigning new numbers.
+
+// To extend filter classes, you may add items, the total number is limited to
+// 64 (bit mask)
+#define TRACE_FILTER_CLASSES(T) \
+  T(EVM_CLIENT)                 \
+  T(EVM_CLIENT_LOW_LEVEL)       \
+  T(SCILLA_PROCESSING)          \
+  T(SCILLA_IPC)                 \
+  T(EVM_RPC)                    \
+  T(LOOKUP_SERVER)              \
+  T(QUEUE)                      \
+  T(ACC_EVM)                    \
+  T(NODE)                       \
+  T(ACC_HISTOGRAM)
+
+namespace zil::trace {
+
+enum class FilterClass {
+#define ENUM_FILTER_CLASS(C) C,
+  TRACE_FILTER_CLASSES(ENUM_FILTER_CLASS)
+#undef ENUM_FILTER_CLASS
+      FILTER_CLASS_END
+};
+
+using Value =
+    std::variant<bool, int64_t, uint64_t, double, const char*, std::string_view,
+                 std::span<const bool>, std::span<const int64_t>,
+                 std::span<const uint64_t>, std::span<const double>,
+                 std::span<const std::string_view>>;
+
+using opentelemetry::trace::SpanId;
+using opentelemetry::trace::TraceId;
+
+class Span {
+  class Impl {
+   public:
+    virtual ~Impl() noexcept = default;
+
+    virtual bool IsRecording() const noexcept = 0;
+
+    virtual SpanId GetSpanId() const noexcept = 0;
+
+    virtual TraceId GetTraceId() const noexcept = 0;
+
+    virtual const std::string& GetIds() const noexcept = 0;
+
+    virtual void SetAttribute(std::string_view name, Value value) noexcept = 0;
+
+    virtual void AddEvent(
+        std::string_view name,
+        std::initializer_list<std::pair<std::string_view, Value>>
+            attributes) noexcept = 0;
+
+    virtual void AddError(std::string_view message,
+                          const std::source_location location) noexcept = 0;
+
+    virtual void End() noexcept = 0;
+  };
+
+  // Null for disabled spans and no-op
+  std::shared_ptr<Impl> m_impl;
+
+  // If true, the span will be deactivated in dtor
+  bool m_isScoped = false;
+
+  // Can be constructed from TracingImpl only
+  friend class TracingImpl;
+  friend class Tracing;
+
+  Span(std::shared_ptr<Impl> impl, bool scoped)
+      : m_impl(std::move(impl)), m_isScoped(scoped) {}
+
  public:
-  Filter() { init(); }
+  // Creates a no-op span
+  Span() = default;
 
-  void init();
+  Span(const Span&) = delete;
+  Span& operator=(const Span&) = delete;
+  Span(Span&&) = delete;
+  Span& operator=(Span&&) = delete;
 
-  bool Enabled(FilterClass to_test) {
-    return m_mask & (1 << static_cast<int>(to_test));
+  ~Span() {
+    if (m_isScoped && m_impl) {
+      m_impl->End();
+    }
   }
 
- private:
-  uint64_t m_mask{};
+  bool IsRecording() const { return m_impl && m_impl->IsRecording(); }
+
+  /// Returns serialized IDs of the span if it's valid, empty string otherwise.
+  /// The string can be utilized as remote_trace_info in other threads or
+  /// processes or remote nodes in Tracing::CreateChildSpanOfRemoteTrace(...)
+  const std::string& GetIds() const {
+    static const std::string empty;
+    return m_impl ? m_impl->GetIds() : empty;
+  }
+
+  /// Adds an atribute if this span is valid
+  void SetAttribute(std::string_view name, Value value) {
+    if (m_impl) {
+      m_impl->SetAttribute(name, value);
+    }
+  }
+
+  /// Adds and event w/attributes if this span is valid
+  void AddEvent(
+      std::string_view name,
+      std::initializer_list<std::pair<std::string_view, Value>> attributes) {
+    if (m_impl) {
+      m_impl->AddEvent(name, attributes);
+    }
+  }
+
+  /// Adds an error as an event if this span is valid
+  void SetError(std::string_view message, const std::source_location location =
+                                              std::source_location::current()) {
+    if (m_impl) {
+      m_impl->AddError(message, location);
+    }
+  }
 };
 
-/// Extract info to continue spans with distributed tracing
-void ExtractTraceInfoFromCurrentContext(std::string& serializedTraceInfo);
-
-/// Creates child span from serialized trace info
-std::shared_ptr<trace_api::Span> CreateChildSpan(
-    std::string_view name, const std::string& serializedTraceInfo);
-
-}  // namespace trace
-}  // namespace zil
-
-class Tracing : public Singleton<Tracing> {
+class Tracing {
  public:
-  Tracing();
+  /// Initializes the tracing engine only if it's not initialized at the moment.
+  /// Can be (optionally) called before the first usage to see logs and
+  /// initialization result
+  /// \param identity Node identity (role and index), e.g. "normal-3"
+  /// \param filters_mask If empty then config value is used
+  /// \return Success of initialization. If 'false' is returned, then
+  /// the tracing will be disabled
+  static bool Initialize(std::string_view identity = {},
+                         std::string_view filters_mask = {});
 
-  std::string Version() { return "Initial"; }
+  /// Returns if tracing with a given filter is enabled. Usable for more complex
+  /// scenarios than just CreateSpan(...)
+  [[nodiscard]] static bool IsEnabled(FilterClass filter);
 
-  std::shared_ptr<trace_api::Tracer> get_tracer();
+  /// Returns if tracing is enabled at all
+  [[nodiscard]] static bool IsEnabled();
 
-  /// Called on main() exit explicitly
-  void Shutdown();
+  /// Creates a scoped span.
+  /// Returns a no-op span if this filter is disabled or tracing is disabled.
+  /// Otherwise creates a child span of the active span (if there is the active
+  /// span in this thread) and activates it
+  [[nodiscard]] static Span CreateSpan(FilterClass filter,
+                                       std::string_view name);
 
- private:
-  void Init();
-  void StdOutInit();
-  void OtlpHTTPInit();
-  void NoopInit();
-  void InitOtlpGrpc();
+  /// Creates a scoped span as a child of remote span.
+  /// Returns a no-op span if deserialization of remote_trace_info fails.
+  /// All the rest logic is the same as of CreateSpan
+  [[nodiscard]] static Span CreateChildSpanOfRemoteTrace(
+      FilterClass filter, std::string_view name,
+      std::string_view remote_trace_info);
 
+  /// Returns if there is the active span in this thread
+  [[nodiscard]] static bool HasActiveSpan();
+
+  /// Returns the active span (if any) or to a no-op span (if no
+  /// active span or tracing disabled)
+  [[nodiscard]] static Span GetActiveSpan();
+
+  /// Returns trace and span ids of active span (if any)
+  [[nodiscard]] static std::optional<std::pair<TraceId, SpanId>>
+  GetActiveSpanIds();
+
+  /// Returns trace_id and span_id of active span (if any) in string form
+  [[nodiscard]] static std::optional<
+      std::pair<std::string_view, std::string_view>>
+  GetActiveSpanStringIds();
+
+  // TODO some research needed to shutdown it gracefully
+  // static void Shutdown();
 };
 
-#define TRACE_ENABLED(FILTER_CLASS)          \
-  zil::trace::Filter::GetInstance().Enabled( \
-      zil::trace::FilterClass::FILTER_CLASS)
-
-// TODO : false case is fake
-
-#define SCOPED_SPAN(FILTER_CLASS, SCOPE_NAME, SPAN)          \
-  trace_api::Scope SCOPE_NAME = TRACE_ENABLED(FILTER_CLASS)  \
-                                    ? trace_api::Scope(SPAN) \
-                                    : trace_api::Scope(SPAN);
-
-#define START_SPAN(FILTER_CLASS, ATTRIBUTES)                                 \
-  TRACE_ENABLED(FILTER_CLASS)                                                \
-  ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES) \
-  : trace_api::Tracer::GetCurrentSpan()
-
-#define TRACE_EVENT(SPAN, FILTER_CLASS, CLASS, ATTRIBUTES) \
-  TRACE_ENABLED(FILTER_CLASS)                              \
-  ? SPAN->AddEvent(CLASS, ATTRIBUTES) : SPAN->AddEvent(CLASS, {})
-
-using TRACE_ATTRIBUTE =
-    std::map<std::string, opentelemetry::common::AttributeValue>;
-
-#define START_SPAN_WITH_PARENT(FILTER_CLASS, ATTRIBUTES, OPTIONS)            \
-  TRACE_ENABLED(FILTER_CLASS)                                                \
-  ? Tracing::GetInstance().get_tracer()->StartSpan(__FUNCTION__, ATTRIBUTES, \
-                                                   OPTIONS)                  \
-  : trace_api::Tracer::GetCurrentSpan()
+}  // namespace zil::trace
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_TRACING_H_

@@ -93,7 +93,7 @@ impl CallContext {
     }
 }
 
-#[derive(Debug,Serialize,Deserialize)]
+#[derive(Debug,Serialize,Deserialize,Default)]
 struct StructLog {
     pub depth: usize,
     pub error: String,
@@ -104,21 +104,6 @@ struct StructLog {
     pub pc: usize,
     pub stack: Vec<String>,
     pub storage: Vec<String>, // not populated
-}
-
-impl StructLog {
-    fn new() -> Self{
-        StructLog{
-            depth: Default::default(),
-            error: Default::default(),
-            gas: Default::default(),
-            gas_cost: Default::default(),
-            op: Default::default(),
-            pc: Default::default(),
-            stack: Default::default(),
-            storage: Default::default(),
-        }
-    }
 }
 
 // This implementation has a stack of call contexts each with reference to their calls - so a tree is
@@ -146,7 +131,7 @@ impl LoggingEventListener {
         LoggingEventListener {
             call_tracer: Default::default(),
             raw_tracer: Default::default(),
-            enabled: enabled,
+            enabled,
         }
     }
 }
@@ -158,21 +143,15 @@ impl evm::runtime::tracing::EventListener for LoggingEventListener {
             return;
         }
 
-        let mut struct_log = StructLog::new();
-
-        struct_log.depth = self.call_tracer.len() - 1;
-        struct_log.error = Default::default();
-        struct_log.gas = Default::default();
-        struct_log.gas_cost = Default::default();
-        struct_log.storage = Default::default();
+        let mut struct_log = StructLog { depth: self.call_tracer.len() - 1, ..Default::default() };
 
         match event {
             evm::runtime::tracing::Event::Step{context: _, opcode, position, stack, memory: _} => {
-                struct_log.op = format!("{}", opcode);
+                struct_log.op = format!("{opcode}");
                 struct_log.pc = position.clone().unwrap_or(0);
 
                 for sta in stack.data() {
-                    struct_log.stack.push(format!("{:?}", sta));
+                    struct_log.stack.push(format!("{sta:?}"));
                 }
             }
             evm::runtime::tracing::Event::StepResult{result, return_value: _} => {
@@ -229,7 +208,7 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     match args.log4rs {
         Some(log_config) if !log_config.is_empty() => {
             log4rs::init_file(&log_config, Default::default())
-                .with_context(|| format!("cannot open file {}", log_config))?;
+                .with_context(|| format!("cannot open file {log_config}"))?;
         }
         _ => {
             let config_str = include_str!("../log4rs-local.yml");

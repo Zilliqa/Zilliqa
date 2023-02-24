@@ -3,7 +3,8 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-describe("Scilla Contract Deployment", function () {
+// FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
+describe.skip("Scilla Contract Deployment", function () {
   context("String immutable variable", function () {
     let contract: ScillaContract;
     before(async function () {

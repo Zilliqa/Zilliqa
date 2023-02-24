@@ -1,0 +1,58 @@
+name: CI - Integration tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitOrTag:
+        description: 'Commit or tag'
+        required: false
+        default: ''
+  pull_request:
+    branches:
+      - 'master'
+
+jobs:
+  run-tests:
+    name: tests
+    runs-on: docker
+    steps:
+    - name: 'Checkout scm ${{ inputs.commitOrTag }}'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ inputs.commitOrTag }}
+    - name: Build Docker images
+      run: DOCKER_BUILDKIT=1 docker build --build-arg EXTRA_BUILD_PARAMS="debug tests" --target builder -t zilliqa:tests -f docker/Dockerfile .
+      shell: bash
+    - name: Run integration tests
+      run: |
+        docker run --rm -i zilliqa:tests scripts/integration_test_js.sh --setup-env
+      shell: bash
+
+  rust-clippy:
+    name: rust-clippy
+    runs-on: ubuntu-22.04
+    steps:
+    - name: 'Checkout scm'
+      uses: actions/checkout@v3
+    - name: Configure the cache
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install Rust toolchain
+      run: |
+        cd evm-ds && rustup show
+        sudo snap install protobuf --classic
+    - name: Cargo clippy
+      uses: actions-rs-plus/clippy-check@v2
+      env:
+        CARGO_TERM_COLOR: always
+        CRATE_PATHS: .
+      with:
+        args: --manifest-path=evm-ds/Cargo.toml --all-targets --no-deps --all-features -- -D warnings

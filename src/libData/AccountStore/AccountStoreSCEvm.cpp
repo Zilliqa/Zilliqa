@@ -284,6 +284,10 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        TxnStatus &error_code,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
+
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::ACC_EVM,
+                                              __FUNCTION__);
+
   std::string txnId = evmContext.GetTranID().hex();
 
 

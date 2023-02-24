@@ -15,21 +15,20 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBMETRICS_COMMON_H_
-#define ZILLIQA_SRC_LIBMETRICS_COMMON_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_LOGGING_H_
+#define ZILLIQA_SRC_LIBMETRICS_LOGGING_H_
 
-#include <string>
+#include "common/Singleton.h"
 
-namespace zil {
-namespace metrics {
+/**
+ * @brief Wrapper around OTel Logging.
+ */
+class Logging : public Singleton<Logging> {
+ public:
+  Logging();
 
-const std::string METRIC_FAMILY{"zilliqa"};
-const std::string METRIC_SCHEMA_VERSION{"1.2.0"};
-const std::string METRIC_SCHEMA{"https://opentelemetry.io/schemas/1.2.0"};
+  /// Called on main() exit explicitly
+  void Shutdown();
+};
 
-}  // namespace metrics
-}  // namespace zil
-
-constexpr double METRICS_VERSION{8.6};
-
-#endif  // ZILLIQA_SRC_LIBMETRICS_COMMON_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_LOGGING_H_

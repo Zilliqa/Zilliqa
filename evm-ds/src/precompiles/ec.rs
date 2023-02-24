@@ -5,7 +5,7 @@
 //! * https://eips.ethereum.org/EIPS/eip-1108.
 
 use evm::{
-    executor::stack::{PrecompileFailure, PrecompileOutput},
+    executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType},
     Context, ExitError, ExitSucceed,
 };
 use witnet_bn::{AffineG1, AffineG2, FieldError, Fq, Fq2, Fr, Group, Gt, G1, G2};
@@ -51,7 +51,7 @@ pub(crate) fn ec_add(
 
     Ok((
         PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
+            output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
             output: output.to_vec(),
         },
         ADD_COST,
@@ -94,7 +94,7 @@ pub(crate) fn ec_mul(
 
     Ok((
         PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
+            output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
             output: output.to_vec(),
         },
         MUL_COST,
@@ -143,7 +143,7 @@ pub(crate) fn ec_pairing(
 
     Ok((
         PrecompileOutput {
-            exit_status: ExitSucceed::Returned,
+            output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
             output: output.to_vec(),
         },
         cost,
