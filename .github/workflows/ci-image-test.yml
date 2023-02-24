@@ -51,10 +51,9 @@ jobs:
         cd evm-ds && rustup show
         sudo snap install protobuf --classic
     - name: Cargo clippy
-      uses: actions-rs/clippy-check@v1
+      uses: actions-rs-plus/clippy-check@v2
       env:
         CARGO_TERM_COLOR: always
         CRATE_PATHS: .
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
         args: --manifest-path=evm-ds/Cargo.toml --all-targets --no-deps --all-features -- -D warnings
