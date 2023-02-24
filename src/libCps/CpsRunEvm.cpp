@@ -199,7 +199,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   // Set continuation (itself) to be resumed when create run is finished
   {
-    evm::EvmArgs continuation;
     mProtoArgs.mutable_continuation()->set_feedback_type(
         evm::Continuation_Type_CALL);
     mProtoArgs.mutable_continuation()->set_id(result.continuation_id());
@@ -209,6 +208,11 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     *mProtoArgs.mutable_continuation()
          ->mutable_calldata()
          ->mutable_offset_len() = callData.offset_len();
+    std::cerr << "We are here..." << std::endl;
+    *mProtoArgs.mutable_continuation()->mutable_logs() = result.logs();
+
+    std::cerr << mProtoArgs.DebugString() << std::endl;
+
     mExecutor.PushRun(shared_from_this());
   }
 
@@ -370,7 +374,6 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   // Set continuation (itself) to be resumed when create run is finished
   {
-    evm::EvmArgs continuation;
     mProtoArgs.mutable_continuation()->set_feedback_type(
         evm::Continuation_Type_CREATE);
     mProtoArgs.mutable_continuation()->set_id(result.continuation_id());
@@ -595,6 +598,13 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
       } else {
         *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
             evmResult.return_value();
+
+        std::cerr << "We are here2..." << std::endl;
+        *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
+
+        std::cerr << mProtoArgs.DebugString() << std::endl;
+
+        std::cerr << "We are here3..." << std::endl;
       }
     }
   } else {

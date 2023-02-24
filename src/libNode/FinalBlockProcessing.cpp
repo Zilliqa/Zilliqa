@@ -829,7 +829,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
   zil::local::variables.Init();
   zil::local::variables.lastBlockHeight = txBlock.GetHeader().GetBlockNum();
 
-  zil::local::GetFinalBlockProcessingCounter()++;
+  //zil::local::GetFinalBlockProcessingCounter()++;
 
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {

@@ -22,8 +22,6 @@ contract ContractOne {
             //emit DebugMessage(index, "Chained call of contract thing thing...!");
 
             two.chainedCall(destinations, index + 1);
-        } {
-            emit DebugMessage(index, "Reached end of array.");
         }
         emit DebugMessage(index, "Chained call of contract one fin!");
         emit FinalMessage();
@@ -48,17 +46,9 @@ contract ContractTwo {
         // Contract two will call three TWICE
         if (destinations.length > index) {
             ContractThree three = ContractThree(destinations[index]);
-            emit DebugMessage(index, "Chained call of contract two - constructed...!");
-
-            emit DebugMessage(index, "Chained call of contract two - 0...!");
             three.chainedCall(destinations, index + 1);
-            emit DebugMessage(index, "Chained call of contract two - 1...!");
             three.chainedCall(destinations, index + 1);
-            emit DebugMessage(index, "Chained call of contract two - 2...!");
-        } {
-            emit DebugMessage(index, "Reached end of array.");
         }
-
         emit DebugMessage(index, "Chained call of contract two fin!");
         return true;
     }
@@ -81,13 +71,7 @@ contract ContractThree {
         // Contract two will call three twice
         if (destinations.length > index) {
             ContractOne one = ContractOne(destinations[index]);
-
-            //emit DebugMessage(index, "Chained call of contract three - one constructed!");
-            //emit DebugMessage(index, "Chained call of contract three - one calling...");
             one.chainedCall(destinations, index + 1);
-            emit DebugMessage(index, "Chained call of contract three - one called...");
-        } {
-            emit DebugMessage(index, "Reached end of array.");
         }
         emit DebugMessage(index, "Chained call of contract three fin!");
         return true;

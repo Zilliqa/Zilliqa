@@ -12,6 +12,7 @@ use evm::{
     Runtime, Stack, Transfer,
 };
 use primitive_types::{H160, H256, U256};
+use crate::protos;
 
 use crate::scillabackend::ScillaBackend;
 type PrecompileMap = BTreeMap<
@@ -102,6 +103,40 @@ impl<'a> CpsExecutor<'a> {
             // Sputnik places empty H256 value on a stack before returning with a trap
             // Hence, pop it before applying the feedback
             runtime.machine_mut().stack_mut().pop()?;
+
+            for log in feedback.get_logs() {
+                println!("WE ADD DA LOGSSSS");
+                let address : H160 = H160::from(log.get_address());
+                //let topics : Vec<H256> = log.get_topics().to_vec().into();
+                println!("here0 {}", address);
+                let data : Vec<u8> = log.get_data().to_vec();
+                println!("here1");
+                //let topics : Vec<H256>= log.topics.to_vec();
+                println!("WE ADD DA LOGSSSS2");
+                //let topics : Vec<H256> = log.get_topics().into_iter().map(|x| x.into()).collect();
+                //let topics_prim : Vec<H256> = log.get_topics().to_vec().into();
+                //let topics_prim  = log.get_topics().to_vec();
+                let mut topics : Vec<H256> = vec![];
+
+                println!("sigh...");
+                //println!(feedback.);
+
+                for topic in log.get_topics() {
+                    println!("sigh0.. {:?}",  topic);
+                    //println!("sighx.. {}",  topic);
+                    topics.push((&topic).clone().into());
+                    println!("sigh1..");
+                }
+
+                self.stack_executor.log(address, topics, data);
+                println!("WE ADDDED DA LOGSSSS");
+
+                //fn log(&mut self, address: H160, topics: Vec<H256>, data: Vec<u8>) -> Result<(), ExitError> {
+            }
+
+            //self.stack_executor.log();
+            //runtime.substate
+
             if feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
                 let eth_address = H160::from(feedback.get_address());
                 runtime.machine_mut().stack_mut().push(eth_address.into())?;
