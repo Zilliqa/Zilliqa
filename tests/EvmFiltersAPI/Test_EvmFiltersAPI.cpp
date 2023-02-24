@@ -342,8 +342,7 @@ BOOST_AUTO_TEST_CASE(event_filter_match) {
           got == expected,
           topic_n << " " << filter_n << "\n"
                   << "Expected Match(" << VALID_TOPIC_FILTERS[filter_n] << ", "
-                  << ToString(SAMPLE_TOPICS[topic_n]) << ", "
-                  << filters[filter_n].address << ") = " << expected);
+                  << ToString(SAMPLE_TOPICS[topic_n]) << ") = " << expected);
     }
   }
 
@@ -351,7 +350,7 @@ BOOST_AUTO_TEST_CASE(event_filter_match) {
 
   const auto& topics = SAMPLE_TOPICS[3];
   for (auto& f : filters) {
-    f.address = SOME_ADDRESS;
+    f.address = { SOME_ADDRESS };
     BOOST_REQUIRE(Match(f, OTHER_ADDRESS, topics) == false);
   }
 }
