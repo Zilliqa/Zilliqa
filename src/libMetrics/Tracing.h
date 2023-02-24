@@ -136,14 +136,6 @@ class Span {
     return m_impl ? m_impl->GetIds() : empty;
   }
 
-  /// Returns non-zero span_id if this span is valid
-  SpanId GetSpanId() const { return m_impl ? m_impl->GetSpanId() : SpanId(); }
-
-  /// Returns non-zero trace_id if this span is valid
-  TraceId GetTraceId() const {
-    return m_impl ? m_impl->GetTraceId() : TraceId();
-  }
-
   /// Adds an atribute if this span is valid
   void SetAttribute(std::string_view name, Value value) {
     if (m_impl) {

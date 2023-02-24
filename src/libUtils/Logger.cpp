@@ -195,9 +195,9 @@ class JsonLogSink : public CustomLogRotate {
 
     auto spanIds = zil::trace::Tracing::GetActiveSpanStringIds();
     if (spanIds) {
-value["trace_id"] = spanIds->first;
-    value["span_id"] = spanIds->second;
-}
+      value["trace_id"] = spanIds->first;
+      value["span_id"] = spanIds->second;
+    }
 #endif
 
     m_writer->write(value, &m_stream);
