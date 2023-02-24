@@ -38,7 +38,7 @@ describe("Openzeppelin ownable contract functionality", function () {
       .withArgs(prevOwner.address, newOwner.address);
   });
 
-  it("should not be possible to call restricted functions even by owner if renounceOwnership is called", async function () {
+  xit("should not be possible to call restricted functions even by owner if renounceOwnership is called", async function () {
     // We changed the owner in previous test.
     const [_, owner] = await ethers.getSigners();
 

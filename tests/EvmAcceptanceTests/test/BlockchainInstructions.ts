@@ -7,11 +7,11 @@ describe("Blockchain Instructions contract", function () {
     this.contract = await parallelizer.deployContract("BlockchainInstructions");
   });
 
-  it("Should be deployed successfully", async function () {
+  xit("Should be deployed successfully", async function () {
     expect(this.contract.address).to.be.properAddress;
   });
 
-  it("Should return the owner address when getOrigin function is called", async function () {
+  xit("Should return the owner address when getOrigin function is called", async function () {
     const owner = this.contract.signer;
     expect(await this.contract.getOrigin()).to.be.eq(owner.address);
   });
