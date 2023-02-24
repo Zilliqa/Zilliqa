@@ -90,6 +90,9 @@ std::optional<trace_api::SpanContext> ExtractSpanContextFromIds(
 
 std::string_view ExtractSenderIdentityFromIds(std::string_view serializedIds);
 
+std::optional<std::pair<std::string_view, std::string_view>> ExtractStringIds(
+    std::string_view serializedIds);
+
 template <typename Container>
 class KVI : public opentelemetry::common::KeyValueIterable {
   Container& m_cont;
@@ -163,6 +166,12 @@ class TracingImpl {
     // serialized span identity
     std::string m_ids;
 
+    // span will end with OK status if this is false
+    bool m_errors = false;
+
+    // need to set more than one attributes as error events
+    static std::atomic<uint64_t> s_errorCounter;
+
     bool IsRecording() const noexcept override { return m_span->IsRecording(); }
 
     SpanId GetSpanId() const noexcept override { return m_context.span_id(); }
@@ -180,14 +189,35 @@ class TracingImpl {
       m_span->AddEvent(name, iterable);
     }
 
-    void End(StatusCode status = StatusCode::UNSET) noexcept override {
+    void AddError(std::string_view message,
+                  const std::source_location location) noexcept override {
+      m_errors = true;
+
+      if (!message.empty()) {
+        // btw, it doesn't use heap because of SSO
+        std::string name("error.");
+        name += std::to_string(++s_errorCounter);
+        if (location.line() != 0 && location.file_name()) {
+          std::string value = std::string(location.file_name());
+          value += ":";
+          value += std::to_string(location.line());
+          value += " : ";
+          value += message;
+          SetAttribute(name, value);
+        } else {
+          SetAttribute(name, message);
+        }
+      }
+    }
+
+    void End() noexcept override {
       if (m_token) {
         if (m_threadId != std::this_thread::get_id()) {
           LOG_GENERAL(FATAL, "Tracing scope usage violation (threading)");
           abort();
         }
-
-        m_span->SetStatus(static_cast<trace_api::StatusCode>(status));
+        m_span->SetStatus(m_errors ? trace_api::StatusCode::kError
+                                   : trace_api::StatusCode::kOk);
         m_span->End();
         m_token.reset();
         Stack::GetInstance().Pop();
@@ -244,6 +274,11 @@ class TracingImpl {
   }
 
  public:
+  static bool HasActiveSpan() {
+    // thread local instance here
+    return !Stack::GetInstance().Empty();
+  }
+
   static Span GetActiveSpan() {
     // thread local instance here
     auto& stack = Stack::GetInstance();
@@ -260,9 +295,18 @@ class TracingImpl {
       return std::nullopt;
     }
     const auto& span = stack.GetActiveSpan();
-    std::optional<std::pair<TraceId, SpanId>> pair;
-    pair.emplace(span->GetTraceId(), span->GetSpanId());
-    return pair;
+    return std::pair(span->GetTraceId(), span->GetSpanId());
+  }
+
+  static std::optional<std::pair<std::string_view, std::string_view>>
+  GetActiveSpanStringIds() {
+    // thread local instance here
+    auto& stack = Stack::GetInstance();
+    if (stack.Empty()) {
+      return std::nullopt;
+    }
+    const auto& span = stack.GetActiveSpan();
+    return ExtractStringIds(span->GetIds());
   }
 
   static TracingImpl& GetInstance() {
@@ -309,6 +353,8 @@ class TracingImpl {
   TracingImpl() = default;
 };
 
+std::atomic<uint64_t> TracingImpl::SpanImpl::s_errorCounter{};
+
 bool Tracing::Initialize(std::string_view identity,
                          std::string_view filters_mask) {
   static std::once_flag initialized;
@@ -339,10 +385,17 @@ Span Tracing::CreateChildSpanOfRemoteTrace(FilterClass filter,
       filter, name, remote_trace_info);
 }
 
+bool Tracing::HasActiveSpan() { return TracingImpl::HasActiveSpan(); }
+
 Span Tracing::GetActiveSpan() { return TracingImpl::GetActiveSpan(); }
 
 std::optional<std::pair<TraceId, SpanId>> Tracing::GetActiveSpanIds() {
   return TracingImpl::GetActiveSpanIds();
+}
+
+std::optional<std::pair<std::string_view, std::string_view>>
+Tracing::GetActiveSpanStringIds() {
+  return TracingImpl::GetActiveSpanStringIds();
 }
 
 namespace {
@@ -416,6 +469,15 @@ std::string_view ExtractSenderIdentityFromIds(std::string_view serializedIds) {
   return (serializedIds.size() > TRACE_INFO_SIZE + 1)
              ? serializedIds.substr(TRACE_INFO_SIZE + 1)
              : "";
+}
+
+std::optional<std::pair<std::string_view, std::string_view>> ExtractStringIds(
+    std::string_view serializedIds) {
+  if (serializedIds.size() <= TRACE_INFO_SIZE) {
+    return std::nullopt;
+  }
+  return std::pair(serializedIds.substr(TRACE_ID_OFFSET, TRACE_ID_SIZE),
+                   serializedIds.substr(SPAN_ID_OFFSET, SPAN_ID_SIZE));
 }
 
 constexpr uint64_t ALL = std::numeric_limits<uint64_t>::max();

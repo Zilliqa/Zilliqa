@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <optional>
+#include <source_location>
 #include <span>
 #include <string>
 #include <variant>
@@ -71,13 +72,6 @@ using Value =
 using opentelemetry::trace::SpanId;
 using opentelemetry::trace::TraceId;
 
-// StatusCode - Represents the canonical set of status codes of a finished Span.
-enum class StatusCode {
-  UNSET,  // default status
-  OK,     // Operation has completed successfully.
-  ERROR   // The operation contains an error
-};
-
 class Span {
   class Impl {
    public:
@@ -98,7 +92,10 @@ class Span {
         std::initializer_list<std::pair<std::string_view, Value>>
             attributes) noexcept = 0;
 
-    virtual void End(StatusCode status = StatusCode::UNSET) noexcept = 0;
+    virtual void AddError(std::string_view message,
+                          const std::source_location location) noexcept = 0;
+
+    virtual void End() noexcept = 0;
   };
 
   // Null for disabled spans and no-op
@@ -123,7 +120,11 @@ class Span {
   Span(Span&&) = delete;
   Span& operator=(Span&&) = delete;
 
-  ~Span() { End(); }
+  ~Span() {
+    if (m_isScoped && m_impl) {
+      m_impl->End();
+    }
+  }
 
   bool IsRecording() const { return m_impl && m_impl->IsRecording(); }
 
@@ -135,18 +136,14 @@ class Span {
     return m_impl ? m_impl->GetIds() : empty;
   }
 
-  SpanId GetSpanId() const { return m_impl ? m_impl->GetSpanId() : SpanId(); }
-
-  TraceId GetTraceId() const {
-    return m_impl ? m_impl->GetTraceId() : TraceId();
-  }
-
+  /// Adds an atribute if this span is valid
   void SetAttribute(std::string_view name, Value value) {
     if (m_impl) {
       m_impl->SetAttribute(name, value);
     }
   }
 
+  /// Adds and event w/attributes if this span is valid
   void AddEvent(
       std::string_view name,
       std::initializer_list<std::pair<std::string_view, Value>> attributes) {
@@ -155,10 +152,11 @@ class Span {
     }
   }
 
-  void End(StatusCode status = StatusCode::UNSET) {
-    if (m_isScoped && m_impl) {
-      m_impl->End(status);
-      m_impl.reset();
+  /// Adds an error as an event if this span is valid
+  void SetError(std::string_view message, const std::source_location location =
+                                              std::source_location::current()) {
+    if (m_impl) {
+      m_impl->AddError(message, location);
     }
   }
 };
@@ -196,6 +194,9 @@ class Tracing {
       FilterClass filter, std::string_view name,
       std::string_view remote_trace_info);
 
+  /// Returns if there is the active span in this thread
+  [[nodiscard]] static bool HasActiveSpan();
+
   /// Returns the active span (if any) or to a no-op span (if no
   /// active span or tracing disabled)
   [[nodiscard]] static Span GetActiveSpan();
@@ -203,6 +204,11 @@ class Tracing {
   /// Returns trace and span ids of active span (if any)
   [[nodiscard]] static std::optional<std::pair<TraceId, SpanId>>
   GetActiveSpanIds();
+
+  /// Returns trace_id and span_id of active span (if any) in string form
+  [[nodiscard]] static std::optional<
+      std::pair<std::string_view, std::string_view>>
+  GetActiveSpanStringIds();
 
   // TODO some research needed to shutdown it gracefully
   // static void Shutdown();

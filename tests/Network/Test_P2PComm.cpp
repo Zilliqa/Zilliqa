@@ -181,18 +181,30 @@ void TestRemoveBroadcast() {
   this_thread::sleep_for(chrono::seconds(100));
 }
 
-void TestSerialize() {
-  auto nospan =
-      zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::QUEUE, "ooo");
+int TestSerialize() {
+  using namespace zil::trace;
+
+  auto nospan = Tracing::CreateSpan(FilterClass::QUEUE, "ooo");
   assert(nospan.GetIds().empty());
+  assert(!Tracing::HasActiveSpan());
+  assert(!Tracing::GetActiveSpanIds().has_value());
+  assert(!Tracing::GetActiveSpanStringIds().has_value());
 
-  std::ignore = zil::trace::Tracing::Initialize("bobobo", "ALL");
+  std::ignore = Tracing::Initialize("bobobo", "ALL");
 
-  auto span =
-      zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::QUEUE, "ooo");
+  auto span = Tracing::CreateSpan(FilterClass::QUEUE, "ooo");
   std::string trace_info = span.GetIds();
   assert(!trace_info.empty());
-  LOG_GENERAL(INFO, "Expected trace info: " << trace_info);
+
+  assert(Tracing::HasActiveSpan());
+  assert(Tracing::GetActiveSpanIds().has_value());
+
+  auto string_ids_opt = Tracing::GetActiveSpanStringIds();
+  assert(string_ids_opt.has_value());
+
+  LOG_GENERAL(INFO, "Expected trace info: "
+                        << trace_info << ", trace_id: " << string_ids_opt->first
+                        << ", span_id: " << string_ids_opt->second);
 
   int num_errors = 0;
 
@@ -249,14 +261,16 @@ void TestSerialize() {
     LOG_GENERAL(WARNING,
                 __FUNCTION__ << " failed with " << num_errors << " errors");
   }
+
+  return num_errors;
 }
 
 int main(int argc, const char* argv[]) {
   INIT_STDOUT_LOGGER();
 
-  TestSerialize();
+  int ret = TestSerialize();
   if (argc > 1 && std::string("--short") == argv[1]) {
-    return 0;
+    return ret;
   }
 
   auto func = []() mutable -> void {
@@ -293,5 +307,5 @@ int main(int argc, const char* argv[]) {
     TestRemoveBroadcast();
   }
 
-  return 0;
+  return ret;
 }
