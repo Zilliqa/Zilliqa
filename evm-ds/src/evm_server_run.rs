@@ -25,6 +25,7 @@ use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
 use protobuf::Message;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run_evm_impl(
     address: H160,
     code: Vec<u8>,
@@ -131,7 +132,7 @@ pub async fn run_evm_impl(
         let remaining_gas = executor.gas() / gas_scaling_factor;
 
         // Update the traces
-        listener.raw_tracer.return_value = hex::encode(runtime.machine().return_value()).to_string();
+        listener.raw_tracer.return_value = hex::encode(runtime.machine().return_value());
         listener.raw_tracer.gas = gas_limit - remaining_gas;
         listener.call_tracer.last_mut().unwrap().gas_used = format!("0x{:x}", gas_limit - remaining_gas);
         listener.call_tracer.last_mut().unwrap().output = format!("0x{}", hex::encode(runtime.machine().return_value()));

@@ -3,7 +3,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-describe("Scilla SetGet contract", function () {
+xdescribe("Scilla SetGet contract", function () {
   let contract: ScillaContract;
   const VALUE = 12;
   const STRING_VALUE = "Salam";

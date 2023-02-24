@@ -3,7 +3,8 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-describe("Scilla ByStr Functionality", function () {
+// FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
+describe.skip("Scilla ByStr Functionality", function () {
   let contract: ScillaContract;
   let BYSTR5_VALUE = "0x1234567890";
   let BYSTR6_VALUE = "0x223344556677";

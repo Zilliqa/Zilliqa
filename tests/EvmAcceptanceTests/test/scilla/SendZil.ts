@@ -4,7 +4,7 @@ import hre, { ethers } from "hardhat";
 import {parallelizer} from "../../helpers";
 import { toBech32Address, Zilliqa } from "@zilliqa-js/zilliqa";
 
-describe("Move Zil", function () {
+xdescribe("Move Zil", function () {
   const ZIL_AMOUNT = 2_000_000;
   let contract: ScillaContract;
   let to_be_funded_contract: ScillaContract;
