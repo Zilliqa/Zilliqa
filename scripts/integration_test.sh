@@ -48,7 +48,7 @@ else
     echo "Installing protobuf..."
     apt install -y protobuf-compiler 2>&1 > /dev/null
     echo "Installing python3"
-    apt-get install -y python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
+    apt-get install -y libpython3-dev python3-pip python3-setuptools python3-pip python3-dev python-setuptools-doc python3-wheel 2>&1 > /dev/null
     python3 -m pip install cython py-solc-x 2>&1 > /dev/null
     echo "Installing requirements"
     python3 -m pip install -r ./tests/PythonEthApi/requirements.txt 2>&1 > /dev/null
