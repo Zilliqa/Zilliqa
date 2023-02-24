@@ -52,7 +52,7 @@ impl EvmServer {
             .map_err(|_| Error::invalid_params("cannot decode base64"))
             .and_then(|buffer| {
                 EvmProto::EvmArgs::parse_from_bytes(&buffer)
-                    .map_err(|e| Error::invalid_params(format!("{}", e)))
+                    .map_err(|e| Error::invalid_params(format!("{e}")))
             });
 
         match args_parsed {
