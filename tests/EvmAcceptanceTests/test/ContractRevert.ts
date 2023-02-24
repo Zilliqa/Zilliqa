@@ -12,11 +12,13 @@ describe("Revert Contract Call", function () {
     await expect(this.contract.revertCall({value: 1000})).to.be.reverted;
   });
 
+  // FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
   xit("Should revert transaction with a custom message if the called function reverts with custom message", async function () {
     const REVERT_MESSAGE = "reverted!!";
     await expect(this.contract.revertCallWithMessage(REVERT_MESSAGE, {value: 1000})).to.be.revertedWith(REVERT_MESSAGE);
   });
 
+  // FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
   xit("Should revert with an error object if the called function reverts with custom error", async function () {
     const owner = this.contract.signer;
     await expect(this.contract.revertCallWithCustomError({value: 1000}))

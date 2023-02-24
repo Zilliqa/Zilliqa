@@ -3,11 +3,12 @@ import {ethers} from "hardhat";
 import {parallelizer} from "../helpers";
 import SignerPool from "../helpers/SignerPool";
 
-describe("Gas estimation with web3.js", function () {
+// FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
+describe.skip("Gas estimation with web3.js", function () {
   const CREATE2_MIN_GAS = 32000;
 
   describe("When a fund transfer is made", function () {
-    xit("should return proper estimation [@transactional]", async function () {
+    it("should return proper estimation [@transactional]", async function () {
       const to = SignerPool.createRandomAccount();
       const signer = await parallelizer.takeSigner();
 
@@ -35,7 +36,7 @@ describe("Gas estimation with web3.js", function () {
       this.contract = await parallelizer.deployContract("ParentContract", {value: amountPaid});
     });
 
-    xit("Should return proper gas estimation [@transactional]", async function () {
+    it("Should return proper gas estimation [@transactional]", async function () {
       const gasAmountEst = await this.contract.estimateGas.installChild(123);
       expect(gasAmountEst).to.be.at.least(CREATE2_MIN_GAS);
 
