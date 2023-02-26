@@ -59,41 +59,11 @@ namespace zil {
 
 namespace local {
 
-class Variables {
-public:
-  int lastBlockHeight = 0;
-  std::unique_ptr<Z_I64GAUGE> temp;
-
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge", "Block height", "calls", true);
-
-      temp->SetCallback([this](auto &&result) {
-        result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
-      });
-    }
-  }
-};
-
-static Variables variables{};
-
-//std::unique_ptr<Z_I64GAUGE> temp = [] {
-//  //Z_I64GAUGE item{Z_FL::BLOCKS, "tx.finalblock.gauge", "Block height", "calls", true};
-//
-//  std::unique_ptr<Z_I64GAUGE> item = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge", "Block height", "calls", true);
-//
-//  item->SetCallback([](auto &&result) {
-//    result.Set(variables.lastBlockHeight, {{"counter", "LastBlockHeight"}});
-//  });
-//
-//  return item;
-//}();
-
-//auto &GetFinalBlockProcessingGague() {
-//  static Z_I64GAUGE item{Z_FL::BLOCKS, "tx.finalblock.gauge",
-//                             "Block height", "calls", true};
-//  return item;
-//}
+Z_I64METRIC &GetFinalBlockProcessingCounter() {
+  static Z_I64METRIC counter{Z_FL::BLOCKS, "blocks.height.count",
+                             "Block height", "calls"};
+  return counter;
+}
 
 }  // namespace local
 
@@ -824,12 +794,9 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs,
 bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
+  LOG_MARKER();
 
-  //zil::local::GetFinalBlockProcessingCounter().get().get() = txBlock.GetHeader().GetBlockNum();
-  zil::local::variables.Init();
-  zil::local::variables.lastBlockHeight = txBlock.GetHeader().GetBlockNum();
-
-  //zil::local::GetFinalBlockProcessingCounter()++;
+  zil::local::GetFinalBlockProcessingCounter()++;
 
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {

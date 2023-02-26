@@ -16,7 +16,7 @@ describe("Chained Contract Calls Functionality", function () {
 
   describe("Install and call chained contracts", function () {
 
-    xit("Should create a transaction trace after child creation", async function () {
+    it("Should create a transaction trace after child creation", async function () {
       const METHOD = "debug_traceTransaction";
 
       let addrOne   = contractOne.address.toLowerCase();
@@ -59,17 +59,9 @@ describe("Chained Contract Calls Functionality", function () {
       let addrTwo = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
 
-      console.log(addrOne);
-      console.log(addrTwo);
-      console.log(addrThree);
-
       await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractOne, "FinalMessage");
-      console.log("here1");
       await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractTwo, "FinalMessageTwo");
-      console.log("here2");
       await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractThree, "FinalMessageThree");
-      console.log("here3");
-      //await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractOne, "Garbage");
     });
   });
 });

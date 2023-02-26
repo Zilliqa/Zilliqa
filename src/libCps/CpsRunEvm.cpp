@@ -208,11 +208,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     *mProtoArgs.mutable_continuation()
          ->mutable_calldata()
          ->mutable_offset_len() = callData.offset_len();
-    std::cerr << "We are here..." << std::endl;
     *mProtoArgs.mutable_continuation()->mutable_logs() = result.logs();
-
-    std::cerr << mProtoArgs.DebugString() << std::endl;
-
     mExecutor.PushRun(shared_from_this());
   }
 
@@ -599,12 +595,7 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
         *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
             evmResult.return_value();
 
-        std::cerr << "We are here2..." << std::endl;
         *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
-
-        std::cerr << mProtoArgs.DebugString() << std::endl;
-
-        std::cerr << "We are here3..." << std::endl;
       }
     }
   } else {
