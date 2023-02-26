@@ -32,7 +32,7 @@ impl From<&Evm::H256> for primitive_types::H256 {
         BigEndian::write_u64(&mut buf[0..8], address.x0);
         BigEndian::write_u64(&mut buf[8..16], address.x1);
         BigEndian::write_u64(&mut buf[16..24], address.x2);
-        BigEndian::write_u64(&mut buf[24..32], address.x2);
+        BigEndian::write_u64(&mut buf[24..32], address.x3);
         H256::from_slice(&buf)
     }
 }
