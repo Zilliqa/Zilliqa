@@ -1122,6 +1122,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
     std::this_thread::sleep_for(
         chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time +
                              SHARD_ANNOUNCEMENT_DELAY_IN_MS));
+    LOG_GENERAL(INFO, "sleep_for " << (TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time +
+			     SHARD_ANNOUNCEMENT_DELAY_IN_MS) / 1000);
     if (!m_mediator.GetIsVacuousEpoch()) {
       while (m_txnPacketThreadOnHold > 0) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
@@ -1279,6 +1281,8 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
             : EXTRA_TX_DISTRIBUTE_TIME_IN_MS;
     std::this_thread::sleep_for(
         chrono::milliseconds(TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time));
+    LOG_GENERAL(INFO, "sleep_for " << (TX_DISTRIBUTE_TIME_IN_MS + extra_wait_time +
+			     SHARD_ANNOUNCEMENT_DELAY_IN_MS) / 1000);
     if (!m_mediator.GetIsVacuousEpoch()) {
       while (m_txnPacketThreadOnHold > 0) {
         std::this_thread::sleep_for(chrono::milliseconds(100));
