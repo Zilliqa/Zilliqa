@@ -47,7 +47,8 @@ namespace metrics_exporter = opentelemetry::exporter::metrics;
 namespace metrics_api = opentelemetry::metrics;
 namespace otlp_exporter = opentelemetry::exporter::otlp;
 
-// The OpenTelemetry Metrics Interface.
+
+
 
 Metrics::Metrics() {
   zil::metrics::Filter::GetInstance().init();
@@ -76,7 +77,7 @@ void Metrics::Init() {
                 "configuration");
     InitNoop();
   }
-}
+ }
 
 void Metrics::InitNoop() {
   METRIC_ZILLIQA_MASK = "";
@@ -477,5 +478,4 @@ void Filter::init() {
     }
   }
 }
-
 }  // namespace zil::metrics

@@ -40,8 +40,9 @@
   M(TRANSACTION_VERIFY)           \
   M(CPS)                          \
   M(BLOCKS)                       \
-  M(API_SERVER)
-
+  M(API_SERVER)                   \
+  M(GLOBAL_ERROR)                 \
+  M(DEMO)
 namespace zil {
 namespace metrics {
 enum class FilterClass {

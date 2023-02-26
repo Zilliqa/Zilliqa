@@ -52,7 +52,8 @@
   T(QUEUE)                      \
   T(ACC_EVM)                    \
   T(NODE)                       \
-  T(ACC_HISTOGRAM)
+  T(ACC_HISTOGRAM)              \
+  T(DEMO)
 
 namespace zil::trace {
 

@@ -173,11 +173,13 @@ void AccountStore::InitSoft() {
 }
 
 Account *AccountStore::GetAccount(const Address &address) {
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO, __FUNCTION__);
   return this->GetAccount(address, false);
 }
 
 Account *AccountStore::GetAccount(const Address &address, bool resetRoot) {
   // LOG_MARKER();
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO, __FUNCTION__);
   using namespace boost::multiprecision;
 
   Account *account = AccountStoreBase::GetAccount(address);
