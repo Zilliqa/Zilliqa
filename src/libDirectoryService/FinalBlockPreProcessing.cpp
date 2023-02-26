@@ -234,9 +234,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSPrimary() {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
     LOG_GENERAL(INFO, "ds primary desharding sleep for "
-	<< (EXTRA_TX_DISTRIBUTE_TIME_IN_MS + LOOKUP_DELAY_SEND_TXNPACKET_IN_MS) / 1000);
+	<< (LOOKUP_DELAY_SEND_TXNPACKET_IN_MS) / 1000);
     std::this_thread::sleep_for(chrono::milliseconds(
-        EXTRA_TX_DISTRIBUTE_TIME_IN_MS + LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+        LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
@@ -1205,9 +1205,9 @@ bool DirectoryService::RunConsensusOnFinalBlockWhenDSBackup() {
   if (m_mediator.m_ds->m_mode != DirectoryService::Mode::IDLE &&
       m_mediator.m_node->m_myshardId == 0 && !m_mediator.GetIsVacuousEpoch()) {
     LOG_GENERAL(INFO, "ds backup desharding sleep for "
-	<< (EXTRA_TX_DISTRIBUTE_TIME_IN_MS + LOOKUP_DELAY_SEND_TXNPACKET_IN_MS) / 1000);
+	<< (LOOKUP_DELAY_SEND_TXNPACKET_IN_MS) / 1000);
     std::this_thread::sleep_for(chrono::milliseconds(
-        EXTRA_TX_DISTRIBUTE_TIME_IN_MS + LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
+        LOOKUP_DELAY_SEND_TXNPACKET_IN_MS));
   }
 
   m_mediator.m_node->m_txn_distribute_window_open = false;
