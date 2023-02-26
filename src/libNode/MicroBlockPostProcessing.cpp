@@ -190,6 +190,8 @@ bool Node::ProcessMicroBlockConsensusCore(
   // Consensus message must be processed in order. The following will block till
   // it is the right order.
   std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
+
+  LOG_GENERAL(INFO, "wait_for " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW);
   if (cv_processConsensusMessage.wait_for(
           cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
           [this, message, offset]() -> bool {
@@ -343,6 +345,8 @@ bool Node::ProcessMicroBlockConsensusCore(
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);
+      LOG_GENERAL(INFO, "wait_for " << FETCHING_MISSING_DATA_TIMEOUT);
+
       if (cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {

@@ -881,6 +881,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
              (m_state == MICROBLOCK_CONSENSUS ||
               m_state == MICROBLOCK_CONSENSUS_PREP)) {
       std::unique_lock<mutex> cv_lk(m_MutexCVFBWaitMB);
+      LOG_GENERAL(INFO, "wait_for " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW);
       if (cv_FBWaitMB.wait_for(
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {

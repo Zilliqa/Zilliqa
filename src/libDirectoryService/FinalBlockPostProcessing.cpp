@@ -359,6 +359,9 @@ void DirectoryService::ProcessFinalBlockConsensusWhenDone() {
             (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0)
                 ? 0
                 : EXTRA_TX_DISTRIBUTE_TIME_IN_MS / 1000;
+
+	LOG_GENERAL(INFO, "wait_for " << (MICROBLOCK_TIMEOUT + extra_time));
+
         if (cv_scheduleDSMicroBlockConsensus.wait_for(
                 cv_lk, std::chrono::seconds(MICROBLOCK_TIMEOUT + extra_time)) ==
             std::cv_status::timeout) {
@@ -536,6 +539,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
   // It is possible for ANNOUNCE to arrive before correct DS state
   // In that case, state transition will occurs and ANNOUNCE will be processed.
   std::unique_lock<mutex> cv_lk(m_mutexProcessConsensusMessage);
+  LOG_GENERAL(INFO, "wait_for " << CONSENSUS_MSG_ORDER_BLOCK_WINDOW);
+
   if (cv_processConsensusMessage.wait_for(
           cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW),
           [this, message, offset]() -> bool {
@@ -613,6 +618,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
       // Block till microblock is fetched
       unique_lock<mutex> lock(m_mutexCVMissingMicroBlock);
+      LOG_GENERAL(INFO, "wait_for " << FETCHING_MISSING_DATA_TIMEOUT);
+
       if (cv_MissingMicroBlock.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {
@@ -641,6 +648,8 @@ bool DirectoryService::ProcessFinalBlockConsensusCore(
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mediator.m_node->m_mutexCVMicroBlockMissingTxn);
+      LOG_GENERAL(INFO, "wait_for " << FETCHING_MISSING_DATA_TIMEOUT);
+
       if (m_mediator.m_node->cv_MicroBlockMissingTxn.wait_for(
               lock, chrono::seconds(FETCHING_MISSING_DATA_TIMEOUT)) ==
           std::cv_status::timeout) {

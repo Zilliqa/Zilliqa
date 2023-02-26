@@ -205,6 +205,7 @@ bool DirectoryService::WaitUntilCompleteFinalBlockIsReady() {
 
   // wait for final block ( with complete microblock ) to be ready
   if (!m_completeFinalBlockReady) {
+    LOG_GENERAL(INFO, "wait_for " << timeout_time);
     if (m_cvCompleteFinalBlockReady.wait_for(
             lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
       // timed out
@@ -1379,6 +1380,7 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     bool ConsensusObjCreation = true;
     if (m_mode == PRIMARY_DS) {
       this_thread::sleep_for(chrono::milliseconds(DS_ANNOUNCEMENT_DELAY_IN_MS));
+      LOG_GENERAL(INFO, "sleep_for " << (DS_ANNOUNCEMENT_DELAY_IN_MS) / 1000);
       ConsensusObjCreation = RunConsensusOnFinalBlockWhenDSPrimary();
       if (!ConsensusObjCreation) {
         LOG_GENERAL(WARNING,
@@ -1405,6 +1407,8 @@ void DirectoryService::RunConsensusOnFinalBlock() {
     // View change will wait for timeout. If conditional variable is notified
     // before timeout, the thread will return without triggering view change.
     std::unique_lock<std::mutex> cv_lk(m_MutexCVViewChangeFinalBlock);
+
+    LOG_GENERAL(INFO, "wait_for " << VIEWCHANGE_TIME);
     if (cv_viewChangeFinalBlock.wait_for(
             cv_lk, std::chrono::seconds(VIEWCHANGE_TIME)) ==
         std::cv_status::timeout) {
