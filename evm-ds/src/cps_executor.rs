@@ -12,7 +12,6 @@ use evm::{
     Runtime, Stack, Transfer,
 };
 use primitive_types::{H160, H256, U256};
-use crate::protos;
 
 use crate::scillabackend::ScillaBackend;
 type PrecompileMap = BTreeMap<
@@ -111,10 +110,10 @@ impl<'a> CpsExecutor<'a> {
                 let mut topics : Vec<H256> = vec![];
 
                 for topic in log.get_topics() {
-                    topics.push((&topic).clone().into());
+                    topics.push(topic.into());
                 }
 
-                self.stack_executor.log(address, topics, data);
+                self.stack_executor.log(address, topics, data)?;
             }
 
             if feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
