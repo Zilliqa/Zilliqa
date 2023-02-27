@@ -49,6 +49,7 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
+
 // These two violate our own standards.
 using namespace jsonrpc;
 using namespace std;
@@ -377,21 +378,39 @@ std::string EthRpcMethods::CreateTransactionEth(
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
 
+  TRACE(zil::trace::FilterClass::DEMO );
+
   INC_CALLS(GetInvocationsCounter());
 
   std::string ret;
 
   if (!LOOKUP_NODE_MODE) {
+    TRACE_ERROR("Message Sent to a non-lookup");
+
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
+
   }
 
   if (Mediator::m_disableTxns) {
-    LOG_GENERAL(INFO, "Txns disabled - rejecting new txn");
+    TRACE_ERROR("Txns disabled - rejecting new txn");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 
   auto tx = GetTxFromFields(fields, pubKey, ret);
+
+  // Add some attributes to the span
+  {
+    std::stringstream ss;
+    ss << tx.GetTranID();
+    span.SetAttribute("txn.id",ss.str());
+    ss.clear();
+    ss << tx.GetSenderAddr();
+    span.SetAttribute("txn.from.id",ss.str());
+    ss.clear();
+    ss << tx.GetToAddr();
+    span.SetAttribute("txn.to.id",ss.str());
+  }
 
   try {
     const Address fromAddr = tx.GetSenderAddr();
@@ -420,9 +439,10 @@ std::string EthRpcMethods::CreateTransactionEth(
         minGasLimit = MIN_ETH_GAS;
       }
       if (!Eth::ValidateEthTxn(tx, fromAddr, sender, gasPrice, minGasLimit)) {
-        LOG_GENERAL(WARNING, "failed to validate TX!");
+        TRACE_ERROR("failed to validate TX!");
         return ret;
       }
+      TRACE_EVENT("Validated","status","OK");
     }
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
@@ -464,6 +484,7 @@ std::string EthRpcMethods::CreateTransactionEth(
         mapIndex = num_shards;
       }
     }
+    TRACE_EVENT( "Dispatching", "MapIndex", "some function");
     if (!targetFunc(tx, mapIndex)) {
       throw JsonRpcException(ServerBase::RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
@@ -600,10 +621,12 @@ string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   Address fromAddr;
 
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO, __FUNCTION__);
+
   INC_CALLS(GetInvocationsCounter());
 
   if (!json.isMember("from")) {
-    LOG_GENERAL(WARNING, "Missing from account");
+    TRACE_ERROR( "Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
   } else {
     fromAddr = Address{json["from"].asString()};
@@ -629,7 +652,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
             ? AccountStore::GetInstance().GetAccount(fromAddr, true)
             : nullptr;
     if (sender == nullptr) {
-      LOG_GENERAL(WARNING, "Sender doesn't exist");
+      TRACE_ERROR( "Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Sender doesn't exist");
     }
@@ -654,6 +677,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   zbytes data;
   if (json.isMember("data")) {
     if (!DataConversion::HexStrToUint8Vec(json["data"].asString(), data)) {
+      TRACE_ERROR("data argument invalid");
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");
     }
@@ -674,17 +698,20 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   }
   uint256_t gasDeposit = 0;
   if (!SafeMath<uint256_t>::mul(gasPrice, MIN_ETH_GAS, gasDeposit)) {
+    TRACE_ERROR("gasPrice * MIN_ETH_GAS overflow!");
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "gasPrice * MIN_ETH_GAS overflow!");
   }
   uint256_t balance = 0;
   if (!SafeMath<uint256_t>::mul(accountFunds, EVM_ZIL_SCALING_FACTOR,
                                 balance)) {
+    TRACE_ERROR("accountFunds * EVM_ZIL_SCALING_FACTOR overflow!");
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "accountFunds * EVM_ZIL_SCALING_FACTOR overflow!");
   }
 
   if (balance < gasDeposit) {
+    TRACE_ERROR("Insufficient funds to perform this operation");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            "Insufficient funds to perform this operation");
   }
@@ -717,6 +744,13 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
       dsBlock.GetHeader().GetDifficulty()};
   uint64_t blockNum =
       m_sharedMediator.m_txBlockChain.GetLastBlock().GetHeader().GetBlockNum();
+
+  {
+    std::stringstream ss;
+    ss << "msg " << fromAddr << " to " << toAddr
+       << " gas " << gas << " value " << value << " block " << blockNum;
+    TRACE_EVENT("GasEstimate","informational",ss.str());
+  }
 
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
                                       blockNum, txnExtras, "eth_estimateGas",
@@ -770,7 +804,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
                                      const ApiKeys &apiKeys) {
   LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
-
+  TRACE(zil::trace::FilterClass::DEMO);
   INC_CALLS(GetInvocationsCounter());
 
   const auto &addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
@@ -816,6 +850,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     zbytes data;
     if (!DataConversion::HexStrToUint8Vec(_json[apiKeys.data].asString(),
                                           data)) {
+      TRACE_ERROR("Data Argument invalid");
       throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                              "data argument invalid");
     }

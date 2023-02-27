@@ -51,6 +51,7 @@ bool CpsRunEvm::IsResumable() const {
 }
 
 CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
+  TRACE(zil::trace::FilterClass::DEMO);
   if (!IsResumable()) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
@@ -68,6 +69,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               ProtoToAddress(mProtoArgs.origin()),
               ProtoToAddress(mProtoArgs.address()),
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
+        TRACE_ERROR("Insufficient Balance");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
       // Contract call (non-trap)
@@ -84,6 +86,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
               ProtoToAddress(mProtoArgs.address()),
               Amount::fromWei(ProtoToUint(mProtoArgs.apparent_value())))) {
         INC_STATUS(GetCPSMetric(), "error", "balance too low");
+        TRACE_ERROR("balance tool low");
         return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
       }
     }
@@ -267,7 +270,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   const auto calleeAddr = ProtoToAddress(callData.callee_address());
 
   if (IsNullAddress(calleeAddr)) {
-    LOG_GENERAL(WARNING, "Invalid account called...");
+    TRACE_ERROR( "Invalid account called...");
     INC_STATUS(GetCPSMetric(), "error", "Invalid account");
     return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
@@ -310,13 +313,13 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
     if (requestedValue > currentBalance) {
-      LOG_GENERAL(WARNING, "insufficient bal.");
+      TRACE_ERROR( "insufficient bal.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
     if (!requestedValue.isZero() && remainingGas < MIN_ETH_GAS) {
-      LOG_GENERAL(WARNING, "insufficient gas.");
+      TRACE_ERROR( "insufficient gas.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
@@ -326,6 +329,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 }
 
 CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
+  TRACE(zil::trace::FilterClass::DEMO);
   const evm::TrapData& trap_data = result.trap_data();
   const evm::TrapData_Create& createData = trap_data.create();
   const auto validateResult =
@@ -419,6 +423,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
 CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
     const evm::TrapData_Create& createData, uint64_t remainingGas) {
+  TRACE(zil::trace::FilterClass::DEMO);
   if (mCpsContext.isStatic) {
     return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
   }

@@ -2351,6 +2351,9 @@ Json::Value LookupServer::GetStateProof(const string& address,
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
+
+  TRACE(zil::trace::FilterClass::DEMO);
+
   INC_CALLS(GetCallsCounter());
 
   unsigned int mapIndex = shard;
