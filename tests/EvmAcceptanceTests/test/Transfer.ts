@@ -1,4 +1,4 @@
-import {expect} from "chai";
+import {assert, expect} from "chai";
 import {BigNumber} from "ethers";
 import {ethers} from "hardhat";
 import {parallelizer} from "../helpers";
@@ -55,7 +55,10 @@ describe("Transfer ethers", function () {
 
   it("should be possible to batch transfer using a smart contract", async function () {
     const ACCOUNTS_COUNT = 3;
-    const ACCOUNT_VALUE = 1_000_000;
+    const ACCOUNT_VALUE = 1_000_000_000;
+
+    const [owner] = await ethers.getSigners();
+    let initialOwnerbal = await ethers.provider.getBalance(owner.address);
 
     const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
       ethers.Wallet.createRandom().connect(ethers.provider)
@@ -64,11 +67,44 @@ describe("Transfer ethers", function () {
     const addresses = accounts.map((signer) => signer.address);
 
     await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
-      value: ACCOUNTS_COUNT * ACCOUNT_VALUE
+      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
     });
 
     const balances = await Promise.all(accounts.map((account) => account.getBalance()));
     balances.forEach((el) => expect(el).to.be.eq(ACCOUNT_VALUE));
+
+    let finalOwnerBal = await ethers.provider.getBalance(owner.address);
+
+    console.log("initial: ", initialOwnerbal);
+    console.log("final: ", finalOwnerBal);
+    console.log("diff: ", initialOwnerbal - finalOwnerBal);
+
+  });
+
+  xit("should be possible to batch transfer using a smart contract and get funds back on self destruct", async function () {
+    const ACCOUNTS_COUNT = 3;
+    const ACCOUNT_VALUE = 1_000_000_000;
+
+    const [owner] = await ethers.getSigners();
+    let initialOwnerBal = await ethers.provider.getBalance(owner.address);
+
+    const accounts = Array.from({length: ACCOUNTS_COUNT}, (v, k) =>
+      ethers.Wallet.createRandom().connect(ethers.provider)
+    );
+
+    const addresses = accounts.map((signer) => signer.address);
+
+    await parallelizer.deployContract("BatchTransferCtor", addresses, ACCOUNT_VALUE, {
+      value: (ACCOUNTS_COUNT + 2) * ACCOUNT_VALUE
+    });
+
+    let finalOwnerBal = await ethers.provider.getBalance(owner.address);
+    let diff = initialOwnerBal - finalOwnerBal;
+
+    // We will see that our account is down 5x, selfdestruct should have returned the untransfered funds
+    if (diff > (ACCOUNT_VALUE * 4)) {
+      assert.equal(true, false, "We did not get a full refund from the selfdestruct. Balance drained: " + diff);
+    }
   });
 
   // FIXME: https://zilliqa-jira.atlassian.net/browse/ZIL-5082
