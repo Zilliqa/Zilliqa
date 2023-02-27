@@ -19,10 +19,12 @@
 
 #include <algorithm>
 #include <iostream>
+#include <optional>
 
 #include <boost/program_options.hpp>
 
 #include "depends/NAT/nat.h"
+#include "libEth/filters/PendingTxnUpdater.h"
 #include "libMetrics/Logging.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/P2PComm.h"
@@ -251,6 +253,12 @@ int main(int argc, const char* argv[]) {
     // Only start the incoming message queue
     P2PComm::GetInstance().StartMessagePump(dispatcher);
 
+    std::optional<evmproj::filters::PendingTxnUpdater> pendingTxnUpdater;
+    if (identity.find("seedpub") == 0) {
+      LOG_GENERAL(INFO, "Starting pending txn updater...");
+      pendingTxnUpdater.emplace(zilliqa.GetMediator());
+    }
+
     if (ENABLE_SEED_TO_SEED_COMMUNICATION && !MULTIPLIER_SYNC_MODE) {
       LOG_GENERAL(DEBUG, "P2PSeed Do not open listener");
       // Do not open listener
@@ -260,6 +268,10 @@ int main(int argc, const char* argv[]) {
                                             ENABLE_SEED_TO_SEED_COMMUNICATION);
     }
 
+    if (pendingTxnUpdater.has_value()) {
+      LOG_GENERAL(INFO, "Shutting down pending txn updater...");
+      pendingTxnUpdater.reset();
+    }
     LOG_GENERAL(INFO, "Shutting down metrics...");
     Metrics::GetInstance().Shutdown();
     LOG_GENERAL(INFO, "Metrics shut down");

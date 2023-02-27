@@ -54,8 +54,9 @@ class APICacheImpl : public APICache, public APICacheUpdate, public TxCache {
 
   void AddPendingTransaction(const TxnHash& hash, uint64_t epoch) override {
     auto hash_normalized = NormalizeHexString(hash);
-    m_pendingTxnCache.Append(hash_normalized, epoch);
-    m_subscriptions.OnPendingTransaction(hash_normalized);
+    if (m_pendingTxnCache.Append(hash_normalized, epoch)) {
+      m_subscriptions.OnPendingTransaction(hash_normalized);
+    }
   }
 
   void StartEpoch(uint64_t epoch, const BlockHash& block_hash,

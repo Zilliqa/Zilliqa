@@ -32,8 +32,9 @@ class PendingTxnCache {
   /// Ctor. Depth of cache in epochs
   explicit PendingTxnCache(size_t depth);
 
-  /// Appends a new pending txn
-  void Append(const TxnHash &hash, EpochNumber epoch);
+  /// Appends a new pending txn.
+  /// Returns false if the hash is already in cache
+  bool Append(const TxnHash &hash, EpochNumber epoch);
 
   /// Set this txn as not pending, it will no longer be included into results
   /// \param hash Txn hash
