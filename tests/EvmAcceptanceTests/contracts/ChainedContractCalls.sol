@@ -40,6 +40,7 @@ contract ContractTwo {
         if (destinations.length > index) {
             ContractThree three = ContractThree(destinations[index]);
             three.chainedCall(destinations, index + 1);
+            three.chainedCall(destinations, index + 1);
         }
         emit FinalMessageTwo();
         return true;
