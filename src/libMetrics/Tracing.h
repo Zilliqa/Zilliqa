@@ -61,7 +61,8 @@ enum class FilterClass {
 #define ENUM_FILTER_CLASS(C) C,
   TRACE_FILTER_CLASSES(ENUM_FILTER_CLASS)
 #undef ENUM_FILTER_CLASS
-      FILTER_CLASS_END
+      FILTER_CLASS_END,
+  FILTER_CLASS_ALL = std::numeric_limits<int>::max()
 };
 
 using Value =

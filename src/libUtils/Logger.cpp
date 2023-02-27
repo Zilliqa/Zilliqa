@@ -188,17 +188,11 @@ class JsonLogSink : public CustomLogRotate {
     value["func"] = message.function();
     value["message"] = message.message();
 
-#if 0
-// TODO: when circular dependency is resolved
-// TODO: tracing depends on libUtils - to be corrected
-// TODO: will do a sortof DI
-
     auto spanIds = zil::trace::Tracing::GetActiveSpanStringIds();
     if (spanIds) {
-      value["trace_id"] = spanIds->first;
-      value["span_id"] = spanIds->second;
+      value["trace_id"] = std::string(spanIds->first);
+      value["span_id"] = std::string(spanIds->second);
     }
-#endif
 
     m_writer->write(value, &m_stream);
     m_stream << std::endl;

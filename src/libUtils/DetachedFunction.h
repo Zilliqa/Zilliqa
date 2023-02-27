@@ -20,6 +20,7 @@
 
 #include <functional>
 #include <thread>
+#include "libMetrics/Tracing.h"
 #include "libUtils/Logger.h"
 
 /// Utility class for executing a function in one or more separate detached
@@ -32,9 +33,22 @@ class DetachedFunction {
   /// Template constructor.
   template <class callable, class... arguments>
   DetachedFunction(int num_threads, callable&& f, arguments&&... args) {
-    std::function<typename std::invoke_result<callable, arguments...>::type()>
-        task(std::bind(std::forward<callable>(f),
-                       std::forward<arguments>(args)...));
+    using namespace zil::trace;
+
+    std::function<void()> task;
+
+    if (Tracing::HasActiveSpan()) {
+      task = [f = std::forward<callable>(f),
+              ... args = std::forward<arguments>(args),
+              trace_info = Tracing::GetActiveSpan().GetIds()]() mutable {
+        auto span = Tracing::CreateChildSpanOfRemoteTrace(
+            FilterClass::FILTER_CLASS_ALL, "DetachedFunction", trace_info);
+        f(std::forward<arguments>(args)...);
+      };
+    } else {
+      task = std::bind(std::forward<callable>(f),
+                       std::forward<arguments>(args)...);
+    }
 
     bool attempt_flag = false;
 
