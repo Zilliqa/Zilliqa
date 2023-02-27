@@ -448,8 +448,7 @@ bool ContractStorage::FetchExternalStateValue(
     return true;
   }
 
-  //TODO
-  //  if (query.is_mutable()) {
+  if (query.is_mutable()) {
     // For _evm_storage, we know the type, so we don't have to query it.
     bool fetchType;
     if (query.name() == "_evm_storage") {
@@ -481,54 +480,76 @@ bool ContractStorage::FetchExternalStateValue(
     // get value
     return FetchStateValue(target, query, dst, d_offset, foundVal, fetchType,
                            type);
-    
-    // TODO
-    // }
-    // else { //!query.is_mutable
-    /** TODO: Fetch the relevate data from the init file.
-        //Fetch init data
-        init_data = target.GetInitData() //(Using Account::GetInitData())
-        //Possibly also need to use Account::ParseInitDataJson(), though I'm not sure
+  } else {  //! query.is_mutable
+    // Fetch init data
+    zbytes init_data = GetInitData(target);
+    if (init_data.empty()) {  // This is possible if no contract exists at the
+                              // address, and should not cause an error
+      foundVal = false;
+      return true;
+    }
 
-        if (init_data == null) { // This is possible if no contract exists at the address, and should not cause an error
+    // Convert init data to JSON
+    string init_data_str = DataConversion::CharArrayToString(init_data);
+    Json::Value init_data_json;
+    if (!JSONUtils::GetInstance().convertStrtoJson(init_data_str,
+                                                   init_data_json)) {
+      return false;  // We have a malformed init data
+    }
+
+    // Entry is the data entry matching the variable name
+    Json::Value entry;
+    for (auto it = init_data_json.begin(); it != init_data_json.end(); it++) {
+      if ((*it)["vname"] == query.name()) {
+        entry = *it;
+      }
+    }
+    if (!entry) {  // This is possible if the parameter name is not
+                   // declared, and should not cause an error
+      foundVal = false;
+      return true;
+    }
+
+    // This is the type we return - if this is a map lookup, then we parse the
+    // type on the OCaml side.
+    Json::Value res_type = entry["type"];
+    if (!res_type) {
+      return false;  // We have a malformed init data
+    }
+
+    if (query.ignoreval()) {  // Only produce type information
+      foundVal = true;
+      type = res_type.asString();
+      return true;
+    } else {  // See if there is a value to return
+      ProtoScillaVal value;
+      Json::Value cur_val = entry["value"];  // Find the value of the parameter
+      if (!cur_val) {
+        return false;  // We have a malformed init data
+      }
+      // If this is a map lookup, traverse the indices
+      for (const auto& index : query.indices()) {
+        // See if the key exists in the map
+        Json::Value next_entry = cur_val["key"];
+        if (!next_entry) {  // This is possible if the key does not exist
+                            // in the map, and should not cause an error
           foundVal = false;
           return true;
         }
-
-        entry = init_data.find("vname", query.name()) (entry = the data entry matching the variable name)
-        if (entry == null) { // This is possible if the parameter name is not declared, and should not cause an error
-          foundVal = false;
-          return true;
+        cur_val = next_entry["val"];  // Value of the map entry
+        if (!cur_val) {
+          return false;  // We have a malformed init data
         }
+      }
 
-        res_type = entry.find("type") //This is the type we return - if this is a map lookup, then we parse the type on the OCaml side.
-
-        if (query.ignoreval()) { //Only produce type information
-          foundVal = true;
-          type = res_type;
-          return true;
-        }
-        else { //See if there is a value to return
-          ProtoScillaVal value;
-          zbytes cur_val = entry.find("value"); // Find the value of the parameter
-          for (const auto& index : query.indices()) { //If this is a map lookup, traverse the indices
-            //This logic is similar to FetchStateValue, line 202 and forward.
-            //The difference is that we are are looking up the value in json data rather than in levelDB
-            next_entry = cur_val.find("key", index); // See if the key exists in the map.
-            if (next_entry == null) { // This is possible if the key does not exist in the map, and should not cause an error
-              foundVal = false;
-              return true;
-            }
-            cur_val = next_entry.find("val"); //Value of the map entry
-          }
-          value.set_bval(cur_val.data(), cur_val.size()); //I'm not entirely sure this is correct, but it looks like that is what happens in FetchStateValue
-          foundVal = true;
-          type = res_type;
-          return SerializeToArray(value, dst, 0);
-        }
-    */
-    //TODO
-    //  }
+      string cur_val_str = JSONUtils::GetInstance().convertJsontoStr(cur_val);
+      zbytes cur_val_bval = zbytes(cur_val_str.begin(), cur_val_str.end());
+      value.set_bval(cur_val_bval.data(), cur_val_bval.size());
+      foundVal = true;
+      type = res_type.asString();
+      return SerializeToArray(value, dst, 0);
+    }
+  }
 }
 
 void ContractStorage::DeleteByPrefix(const string& prefix) {
