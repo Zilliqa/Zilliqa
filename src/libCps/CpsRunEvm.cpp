@@ -584,6 +584,7 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
   if (std::holds_alternative<evm::EvmResult>(results.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(results.result);
     mProtoArgs.set_gas_limit(evmResult.remaining_gas());
+    *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
 
     if (previousRun.GetDomain() == CpsRun::Evm) {
       const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);
@@ -594,8 +595,6 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
       } else {
         *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
             evmResult.return_value();
-
-        *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
       }
     }
   } else {
