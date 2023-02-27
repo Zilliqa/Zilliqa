@@ -302,6 +302,10 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   LOG_GENERAL(WARNING,
               "NUMBER OF MESSAGES: " << std::size(parseCallResults.entries));
+  // Check if there's another level of runs that may generate events
+  if (!std::empty(parseCallResults.entries)) {
+    receipt.AddEdge();
+  }
   // Schedule runs for execution in reverse order since we're putting them on
   // stack, so they should be run in the same order as stored in 'entries'
   // vector
@@ -328,7 +332,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
                                 .origin = mArgs.origin,
                                 .value = nextRunInput.amount,
                                 .calldata = nextRunInput.nextInputMessage,
-                                .edge = mArgs.edge,
+                                .edge = mArgs.edge + 1,
                                 .depth = mArgs.depth + 1,
                                 .gasLimit = availableGas};
 
