@@ -24,7 +24,6 @@
 #include "JSONConversion.h"
 #include "LookupServer.h"
 #include "common/Constants.h"
-#include "common/Serializable.h"
 #include "json/value.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Account.h"
@@ -666,9 +665,7 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
   std::string tracerType = "callTracer";
 
   if (tracer.isMember("tracer")) {
-    std::cerr << "tracer found! " << tracer["tracer"].asString() << std::endl;
     tracerType = tracer["tracer"].asString();
-    //fromAddr = Address(_json[apiKeys.from].asString());
   }
 
   return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"}, tracerType);
@@ -863,8 +860,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
   TRACE(zil::trace::FilterClass::DEMO);
   INC_CALLS(GetInvocationsCounter());
 
-  LOG_GENERAL(WARNING, "We are here: " << _json);
-
   const auto &addr = JSONConversion::checkJsonGetEthCall(_json, apiKeys.to);
   zbytes code{};
   auto success{false};
@@ -874,7 +869,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     Account *contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
     if (contractAccount == nullptr) {
-      LOG_GENERAL(WARNING, "ahah...");
       return "0x";
     }
     code = contractAccount->GetCode();
@@ -942,8 +936,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     LOG_GENERAL(WARNING, "Error: " << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to process");
   }
-
-  std::cerr << "result is : " << result.tx_trace() << std::endl;
 
   // tracerException : we want only the call trace
   if(!tracer.empty()) {
@@ -1844,23 +1836,6 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
     LOG_GENERAL(WARNING, "Missing tracer field");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing tracer field");
   }
-  //else {
-  //  auto tracer = json["tracer"].asString();
-
-  //  if(tracer.compare("callTracer") == 0) {
-  //    call_tracer = true;
-  //  }
-
-  //  if(tracer.compare("raw") == 0) {
-  //    raw_tracer = true;
-  //  }
-
-  //  LOG_GENERAL(INFO, "Trace request: " << txHash << " with tracer: " << tracer);
-
-  //  if (!raw_tracer && !call_tracer) {
-  //    throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer and raw are supported. Received: ") + tracer);
-  //  }
-  //}
 
   std::string trace;
 
@@ -1876,23 +1851,8 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
     }
 
     return extractTracer(json["tracer"].asString(), trace);
-
-    //Json::Value trace_json;
-    //JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
-    //std::stringstream ss;
-
-    //if(call_tracer) {
-    //  auto const item = trace_json["call_tracer"][0];
-    //  ss << item;
-    //} else if (raw_tracer) {
-    //  auto const item = trace_json["raw_tracer"];
-    //  ss << item;
-    //}
-
-    //trace = ss.str();
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
-  //return trace;
 }
