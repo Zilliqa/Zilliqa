@@ -3,8 +3,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-// TODO: To be addressed in the next commit. They're not failing but needs playing with CI :-/
-describe.skip("Scilla HelloWorld contract", function () {
+xdescribe("Scilla HelloWorld contract", function () {
   let contract: ScillaContract;
   before(async function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {

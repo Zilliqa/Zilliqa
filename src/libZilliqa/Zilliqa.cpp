@@ -30,7 +30,6 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -76,6 +75,8 @@ const std::string_view MsgTypeToStr(unsigned char msg_type) {
 }
 
 const std::string_view StartByteToStr(unsigned char start_byte) {
+  using namespace zil::p2p;
+
   switch (start_byte) {
     MATCH_CASE(START_BYTE_NORMAL)
     MATCH_CASE(START_BYTE_BROADCAST)
@@ -136,13 +137,12 @@ void Zilliqa::LogSelfNodeInfo(const PairOfKey &key, const Peer &peer) {
 }
 
 void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
-  if (message->first.size() >= MessageOffset::BODY) {
-    const unsigned char msg_type = message->first.at(MessageOffset::TYPE);
+  if (message->msg.size() >= MessageOffset::BODY) {
+    const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
 
     GetMsgDispatchCounter().IncrementWithAttributes(
-          1L,
-          {{"Type", std::string(MsgTypeToStr(msg_type))},
-           {"StartByte", std::string(StartByteToStr(message->second.second))}});
+        1L, {{"Type", std::string(MsgTypeToStr(msg_type))},
+             {"StartByte", std::string(StartByteToStr(message->startByte))}});
 
     // To-do: Remove consensus user and peer manager placeholders
     Executable *msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
@@ -159,17 +159,19 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       std::chrono::time_point<std::chrono::high_resolution_clock> tpStart;
       std::string msgName;
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
-        const auto ins_byte = message->first.at(MessageOffset::INST);
+        const auto ins_byte = message->msg.at(MessageOffset::INST);
         msgName = FormatMessageName(msg_type, ins_byte);
-        LOG_GENERAL(INFO, MessageSizeKeyword << msgName << " "
-                                             << message->first.size());
+        LOG_GENERAL(
+            INFO, MessageSizeKeyword << msgName << " " << message->msg.size());
 
         tpStart = std::chrono::high_resolution_clock::now();
       }
 
+      auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+          zil::trace::FilterClass::NODE, "Dispatch", message->traceContext);
+
       bool result = msg_handlers[msg_type]->Execute(
-          message->first, MessageOffset::INST, message->second.first,
-          message->second.second);
+          message->msg, MessageOffset::INST, message->from, message->startByte);
 
       if (ENABLE_CHECK_PERFORMANCE_LOG) {
         auto tpNow = std::chrono::high_resolution_clock::now();
@@ -183,7 +185,9 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       if (!result) {
         // To-do: Error recovery
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
+        span.SetError("dispatch failed");
       }
+
     } else {
       LOG_GENERAL(WARNING, "Unknown message type " << std::hex
                                                    << (unsigned int)msg_type);
@@ -200,12 +204,6 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
       m_n(m_mediator, syncType, toRetrieveHistory),
       m_msgQueue(MSGQUEUE_SIZE) {
   LOG_MARKER();
-
-  /*
-   * These are required to initialise SubSystems.
-   */
-  Metrics::GetInstance();
-  Tracing::GetInstance();
 
   // Launch the thread that reads messages from the queue
   auto funcCheckMsgQueue = [this]() mutable -> void {
@@ -610,8 +608,6 @@ Zilliqa::~Zilliqa() {
 }
 
 void Zilliqa::Dispatch(Zilliqa::Msg message) {
-  LOG_MARKER();
-
   // Queue message
   size_t queueSz{};
   if (!m_msgQueue.bounded_push(std::move(message), queueSz)) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019 Zilliqa
+ * Copyright (C) 2022 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,15 +26,16 @@
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/asio/signal_set.hpp>
 #include <boost/asio/steady_timer.hpp>
+#include <boost/container/small_vector.hpp>
 
 #include "SendJobs.h"
 
 #include "Blacklist.h"
-#include "common/Constants.h"
+#include "Peer.h"
 #include "libUtils/Logger.h"
 #include "libUtils/SetThreadName.h"
 
-namespace send_jobs {
+namespace zil::p2p {
 
 using AsioContext = boost::asio::io_context;
 using Socket = boost::asio::ip::tcp::socket;
@@ -106,31 +107,40 @@ class GracefulCloseImpl
         boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
-            LOG_GENERAL(INFO,
+            LOG_GENERAL(DEBUG,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
         });
   }
 };
 
-}  // namespace
-
 void CloseGracefully(Socket socket) {
   ErrorCode ec;
-  if (socket.is_open()) {
-    socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
-    if (ec) {
-      LOG_GENERAL(INFO, "Shutdown error, ec=" << ec.message());
-      return;
-    }
+  if (!socket.is_open()) {
+    return;
+  }
+  socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
+  if (ec) {
+    return;
+  }
+  size_t unread = socket.available(ec);
+  if (ec) {
+    return;
+  }
+  if (unread > 0) {
+    boost::container::small_vector<uint8_t, 4096> buf;
+    buf.resize(unread);
+    socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
+  }
+  if (!ec) {
     std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
   }
 }
 
+}  // namespace
+
 class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
  public:
-  using RawMessage = SendJobs::RawMessage;
-
   struct Item {
     RawMessage msg;
     bool allow_relaxed_blacklist;
@@ -161,8 +171,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Close() {
-    m_closed = true;
-    CloseGracefully(std::move(m_socket));
+    if (!m_closed) {
+      m_closed = true;
+      CloseGracefully(std::move(m_socket));
+    }
   }
 
  private:
@@ -391,9 +403,11 @@ class SendJobsImpl : public SendJobs,
 
     auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
                                                    std::move(peer));
-    peerCtx->Enqueue(CreateMessage(message, {}, start_byte), false);
+    peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();
+
+    peerCtx->Close();
   }
 
   void OnNewJob(Peer&& peer, RawMessage&& msg, bool allow_relaxed_blacklist) {
@@ -474,72 +488,8 @@ class SendJobsImpl : public SendJobs,
   std::map<Peer, std::shared_ptr<PeerSendQueue>> m_activePeers;
 };
 
-}  // namespace send_jobs
-
 std::shared_ptr<SendJobs> SendJobs::Create() {
-  return std::make_shared<send_jobs::SendJobsImpl>();
+  return std::make_shared<SendJobsImpl>();
 }
 
-SendJobs::RawMessage SendJobs::CreateMessage(const zbytes& message,
-                                             const zbytes& msg_hash,
-                                             uint8_t start_byte) {
-  // Transmission format:
-  // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
-  // 0x11 - start byte
-  // 0xLL 0xLL 0xLL 0xLL - 4-byte length of message
-  // <message>
-
-  // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
-  // 0x22 - start byte (broadcast)
-  // 0xLL 0xLL 0xLL 0xLL - 4-byte length of hash + message
-  // <32-byte hash> <message>
-
-  // 0x01 ~ 0xFF - version, defined in constant file
-  // 0xLL 0xLL - 2-byte NETWORK_ID, defined in constant file
-  // 0x33 - start byte (report)
-  // 0x00 0x00 0x00 0x01 - 4-byte length of message
-  // 0x00
-
-  assert(msg_hash.empty() || msg_hash.size() == 32);
-
-  static const size_t HDR_LEN = 8;
-
-  RawMessage ret;
-
-  if (message.empty()) {
-    LOG_GENERAL(WARNING, "Message is empty");
-    return ret;
-  }
-
-  size_t length = msg_hash.size() + message.size();
-
-  ret.size = HDR_LEN + length;
-  uint8_t* buf = (uint8_t*)malloc(ret.size);
-  assert(buf);
-  if (!buf) {
-    throw std::bad_alloc{};
-  }
-
-  ret.data.reset(buf, [](void* d) { free(d); });
-
-  *buf++ = MSG_VERSION & 0xFF;
-  *buf++ = (NETWORK_ID >> 8) & 0xFF;
-  *buf++ = NETWORK_ID & 0xFF;
-  *buf++ = start_byte;
-  *buf++ = (length >> 24) & 0xFF;
-  *buf++ = (length >> 16) & 0xFF;
-  *buf++ = (length >> 8) & 0xFF;
-  *buf++ = length & 0xFF;
-
-  if (!msg_hash.empty()) {
-    auto sz = msg_hash.size();
-    memcpy(buf, msg_hash.data(), sz);
-    buf += sz;
-  }
-
-  memcpy(buf, message.data(), message.size());
-
-  return ret;
-}
+}  // namespace zil::p2p

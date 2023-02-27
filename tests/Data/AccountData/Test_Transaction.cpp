@@ -39,7 +39,7 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() Metrics::GetInstance(); }
+  Fixture() { INIT_STDOUT_LOGGER() Metrics::GetInstance().Init(); }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);

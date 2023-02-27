@@ -44,8 +44,16 @@ else
 
     # install dependencies
     apt update
-    apt -y install curl dirmngr apt-transport-https lsb-release ca-certificates
-    curl -sL https://deb.nodesource.com/setup_14.x | bash -
+    apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
+    ## Adding the NodeSource signing key to your keyring...
+    curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
+
+    ## Creating apt sources list file for the NodeSource Node.js 14.x repo...
+
+    echo 'deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_14.x jammy main' > /etc/apt/sources.list.d/nodesource.list
+    echo 'deb-src [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_14.x jammy main' >> /etc/apt/sources.list.d/nodesource.list
+
+    apt update
     apt -y install nodejs
     node --version
 
@@ -71,6 +79,23 @@ else
         # For convenience move the required files to tmp directory
         cp /home/jenkins/agent/workspace/*/evm-ds/target/release/evm-ds /tmp || exit 1
         cp /home/jenkins/agent/workspace/*/evm-ds/log4rs.yml /tmp
+
+        # Modify constants.xml for use by isolated server
+        cp constants.xml constants_backup.xml
+        sed -i 's/.LOOKUP_NODE_MODE.false/<LOOKUP_NODE_MODE>true/g' constants.xml
+        sed -i 's/.ENABLE_EVM>.*/<ENABLE_EVM>true<\/ENABLE_EVM>/g' constants.xml
+        sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
+        sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/tmp\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
+    fi
+
+    if [[ -d /zilliqa ]]; then
+        pwd
+        ls /zilliqa/evm-ds/target/release/evm-ds
+        ls -la
+
+        # For convenience move the required files to tmp directory
+        cp /zilliqa/evm-ds/target/release/evm-ds /tmp || exit 1
+        cp /zilliqa/evm-ds/log4rs.yml /tmp
 
         # Modify constants.xml for use by isolated server
         cp constants.xml constants_backup.xml

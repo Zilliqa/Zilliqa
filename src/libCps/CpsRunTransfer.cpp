@@ -24,10 +24,13 @@
 
 namespace libCps {
 CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, CpsContext& ctx,
+                               CpsExecuteResult::ResultType&& prevRunResult,
                                const Address& from, const Address& to,
                                const Amount& amount)
-    : CpsRun(executor.GetAccStoreIface(), CpsRun::Transfer),
+    : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::None,
+             CpsRun::Transfer),
       mCpsContext(ctx),
+      mPreviousRunResult(std::move(prevRunResult)),
       mFrom(from),
       mTo(to),
       mAmount(amount) {}
@@ -41,7 +44,7 @@ CpsExecuteResult CpsRunTransfer::Run(TransactionReceipt& /*receipt*/) {
   }
   mAccountStore.AddAddressToUpdateBufferAtomic(mFrom);
   mAccountStore.AddAddressToUpdateBufferAtomic(mTo);
-  return {TxnStatus::NOT_PRESENT, true, {}};
+  return {TxnStatus::NOT_PRESENT, true, mPreviousRunResult};
 }
 
 }  // namespace libCps

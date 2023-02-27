@@ -5,6 +5,8 @@ scilla_version 0
 contract SetGet
 ()
 field value: Uint128 = Uint128 0
+field string_value: String = "test"
+field address_value: ByStr20 = 0x1234567890123456789012345678901234567890
 
 transition set(v : Uint128)
   value := v
@@ -13,5 +15,25 @@ end
 transition emit()
   v <- value;
   ev = {_eventname: "Emit"; sender: _sender; value: v};
+  event ev
+end
+
+transition set_string(v : String)
+  string_value := v
+end
+
+transition get_string()
+  v <- string_value;
+  ev = {_eventname: "get_string"; sender: _sender; value: v};
+  event ev
+end
+
+transition set_address(v : ByStr20)
+  address_value := v
+end
+
+transition get_address()
+  v <- address_value;
+  ev = {_eventname: "get_address"; sender: _sender; value: v};
   event ev
 end

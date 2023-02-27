@@ -50,7 +50,7 @@ struct counter_t {
 class ScillaIPCServer;
 
 class AccountStoreSC : public AccountStoreBase {
-  friend struct AccountStoreCpsInterface;
+  friend class AccountStoreCpsInterface;
   /// the amount transfers happened within the current txn will only commit when
   /// the txn is successful
   std::unique_ptr<AccountStoreAtomic> m_accountStoreAtomic;
@@ -244,7 +244,8 @@ class AccountStoreSC : public AccountStoreBase {
   /// external interface for processing txn
   bool UpdateAccounts(const uint64_t &blockNum, const unsigned int &numShards,
                       const bool &isDS, const Transaction &transaction,
-                      TransactionReceipt &receipt, TxnStatus &error_code);
+                      const TxnExtras &extras, TransactionReceipt &receipt,
+                      TxnStatus &error_code);
 
   bool PopulateExtlibsExports(
       uint32_t scilla_version, const std::vector<Address> &extlibs,

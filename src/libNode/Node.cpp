@@ -39,7 +39,6 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -3270,4 +3269,21 @@ void Node::CheckPeers(const vector<Peer> &peers) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");
   }
   P2PComm::GetInstance().SendMessage(peers, message);
+}
+
+std::vector<Transaction> Node::GetCreatedTxns() const {
+  lock_guard<mutex> g(m_mutexCreatedTransactions);
+
+  std::vector<Transaction> txns;
+  txns.reserve(m_createdTxns.size() + t_createdTxns.size());
+
+  for (const auto &[txnHash, txn] : m_createdTxns.HashIndex) {
+    txns.emplace_back(txn);
+  }
+
+  for (const auto &[txnHash, txn] : t_createdTxns.HashIndex) {
+    txns.emplace_back(txn);
+  }
+
+  return txns;
 }

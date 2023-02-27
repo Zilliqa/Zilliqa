@@ -1,0 +1,15 @@
+scilla_version 0
+
+contract ImmutableString
+(immutable_string: String)
+transition getString ()
+    r = immutable_string;
+    e = {_eventname: "getString()"; msg: r};
+    event e
+end
+
+transition getContractAddress ()
+    r = _this_address;
+    e = {_eventname: "getContractAddress()"; address: r};
+    event e
+end

@@ -170,6 +170,10 @@ const unsigned int CONTRACT_STATE_VERSION{
 // Seed constans
 const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
+bool ARCHIVAL_LOOKUP_WITH_TX_TRACES{
+    ReadConstantString("ARCHIVAL_LOOKUP_WITH_TX_TRACES", "node.seed.", "false") == "true"};
+bool TX_TRACES{
+    ReadConstantString("TX_TRACES", "node.seed.", "true") == "true"};
 const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
     ReadConstantNumeric("SEED_TXN_COLLECTION_TIME_IN_SEC", "node.seed.")};
 const unsigned int TXN_STORAGE_LIMIT{
@@ -766,7 +770,7 @@ const std::string METRIC_ZILLIQA_SCHEMA{
                        "https://opentelemetry.io/schemas/1.2.0")};
 const std::string METRIC_ZILLIQA_SCHEMA_VERSION{ReadConstantString(
     "METRIC_ZILLIQA_SCHEMA_VERSION", "node.metric.zilliqa.", "1.2.0")};
-const std::string METRIC_ZILLIQA_MASK{
+std::string METRIC_ZILLIQA_MASK{
     ReadConstantString("METRIC_ZILLIQA_MASK", "node.metric.zilliqa.", "NONE")};
 const std::string TRACE_ZILLIQA_MASK{
     ReadConstantString("TRACE_ZILLIQA_MASK", "node.trace.zilliqa.", "NONE")};
@@ -776,3 +780,9 @@ const std::string TRACE_ZILLIQA_HOSTNAME{ReadConstantString(
     "TRACE_ZILLIQA_HOSTNAME", "node.trace.zilliqa.", "localhost")};
 const unsigned int TRACE_ZILLIQA_PORT{
     ReadConstantNumeric("TRACE_ZILLIQA_PORT", "node.trace.zilliqa.", 4318)};
+const std::string LOGGING_ZILLIQA_HOSTNAME{ReadConstantString(
+    "LOGGING_ZILLIQA_HOSTNAME", "node.logging.zilliqa.", "localhost")};
+const std::string LOGGING_ZILLIQA_PROVIDER{ReadConstantString(
+    "LOGGING_ZILLIQA_PROVIDER", "node.logging.zilliqa.", "NONE")};
+const unsigned int LOGGING_ZILLIQA_PORT{
+    ReadConstantNumeric("LOGGING_ZILLIQA_PORT", "node.logging.zilliqa.", 8090)};

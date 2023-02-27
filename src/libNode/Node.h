@@ -35,7 +35,7 @@
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/Executable.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2PMessage.h"
 #include "libPersistence/BlockStorage.h"
 
 class Mediator;
@@ -140,7 +140,7 @@ class Node : public Executable {
   const static unsigned int GOSSIP_RATE = 48;
 
   // Transactions information
-  std::mutex m_mutexCreatedTransactions;
+  mutable std::mutex m_mutexCreatedTransactions;
   TxnPool m_createdTxns, t_createdTxns;
 
   std::vector<TxnHash> m_expectedTranOrdering;
@@ -268,7 +268,8 @@ class Node : public Executable {
       [[gnu::unused]] const unsigned char& startByte);
   bool ProcessMicroBlockConsensusCore(
       const zbytes& message, unsigned int offset, const Peer& from,
-      [[gnu::unused]] const unsigned char& startByte = START_BYTE_NORMAL);
+      [[gnu::unused]] const unsigned char& startByte =
+          zil::p2p::START_BYTE_NORMAL);
   bool ProcessVCFinalBlock(const zbytes& message, unsigned int offset,
                            const Peer& from, const unsigned char& startByte);
   bool ProcessVCFinalBlockCore(const zbytes& message, unsigned int offset,
@@ -279,6 +280,10 @@ class Node : public Executable {
                          [[gnu::unused]] const unsigned char& startByte);
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
                              TxBlock& txBlock, zbytes& stateDelta);
+
+  void PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs, BlockHash const &hash, std::vector<Transaction> &txsToExecute);
+  void PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblockPtrs, std::vector<Transaction> &txsToExecute);
+
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
@@ -569,7 +574,7 @@ class Node : public Executable {
 
   /// Implements the Execute function inherited from Executable.
   bool Execute(const zbytes& message, unsigned int offset, const Peer& from,
-               const unsigned char& startByte = START_BYTE_NORMAL);
+               const unsigned char& startByte = zil::p2p::START_BYTE_NORMAL);
 
   Mediator& GetMediator() { return m_mediator; }
 
@@ -772,6 +777,8 @@ class Node : public Executable {
                          const std::string& endDSEpoch);
 
   void CheckPeers(const std::vector<Peer>& peers);
+
+  std::vector<Transaction> GetCreatedTxns() const;
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

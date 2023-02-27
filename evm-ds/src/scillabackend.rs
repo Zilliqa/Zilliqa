@@ -90,7 +90,7 @@ impl ScillaBackend {
         if let Ok(result) = call_with_timeout {
             result.map_err(|_| Error::internal_error())
         } else {
-            panic!("timeout calling {}", method);
+            panic!("timeout calling {method}");
         }
     }
 
@@ -129,7 +129,7 @@ impl ScillaBackend {
         let mut query = ScillaMessage::ProtoScillaQuery::new();
         query.set_name(query_name.into());
         if let Some(key) = key {
-            query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
+            query.set_indices(vec![bytes::Bytes::from(format!("{key:X}"))]);
             query.set_mapdepth(1);
         } else {
             query.set_mapdepth(0);
@@ -198,7 +198,7 @@ impl ScillaBackend {
     pub(crate) fn encode_storage(&self, key: H256, value: H256) -> (Bytes, Bytes) {
         let mut query = ScillaMessage::ProtoScillaQuery::new();
         query.set_name("_evm_storage".into());
-        query.set_indices(vec![bytes::Bytes::from(format!("{:X}", key))]);
+        query.set_indices(vec![bytes::Bytes::from(format!("{key:X}"))]);
         query.set_mapdepth(1);
         let mut val = ScillaMessage::ProtoScillaVal::new();
         let bval = value.as_bytes().to_vec();
@@ -294,7 +294,7 @@ impl Backend for ScillaBackend {
             .map(|value| value.as_bytes())
             .unwrap_or_default();
         if bytes.len() > 2 && bytes[0] == b'E' && bytes[1] == b'V' && bytes[2] == b'M' {
-            (&bytes[3..]).to_vec()
+            bytes[3..].to_vec()
         } else {
             bytes
         }

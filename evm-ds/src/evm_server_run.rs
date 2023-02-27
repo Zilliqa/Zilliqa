@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
@@ -8,6 +9,7 @@ use evm::{
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
 use evm::{Machine, Runtime};
+use crate::CallContext;
 
 use log::{debug, error, info};
 
@@ -23,6 +25,7 @@ use crate::protos::Evm as EvmProto;
 use crate::{scillabackend, LoggingEventListener};
 use protobuf::Message;
 
+#[allow(clippy::too_many_arguments)]
 pub async fn run_evm_impl(
     address: H160,
     code: Vec<u8>,
@@ -30,23 +33,25 @@ pub async fn run_evm_impl(
     apparent_value: U256,
     gas_limit: u64,
     backend: ScillaBackend,
-    tracing: bool,
     gas_scaling_factor: u64,
     estimate: bool,
     evm_context: String,
     node_continuation: Option<EvmProto::Continuation>,
     continuations: Arc<Mutex<Continuations>>,
     enable_cps: bool,
+    tx_trace_enabled: bool,
+    tx_trace: String,
 ) -> Result<String> {
+
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
         debug!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}",
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate, enable_cps);
+            backend.extras, estimate, enable_cps, tx_trace);
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
@@ -61,9 +66,9 @@ pub async fn run_evm_impl(
         // Check if evm should resume from the point it stopped
         let (feedback_continuation, mut runtime, state) =
         if let Some(continuation) = node_continuation {
-            let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id().into());
-            if let None = recorded_cont {
-                let result = handle_panic(vec![], gas_limit, "Continuation not found!");
+            let recorded_cont = continuations.lock().unwrap().get_contination(continuation.get_id());
+            if recorded_cont.is_none() {
+                let result = handle_panic(tx_trace, gas_limit, "Continuation not found!");
                 return Ok(base64::encode(result.write_to_bytes().unwrap()));
             }
             let recorded_cont = recorded_cont.unwrap();
@@ -77,7 +82,7 @@ pub async fn run_evm_impl(
             (Some(continuation), runtime, state)
         }
         else {
-            let runtime = evm::Runtime::new(code.clone(), data.clone(), context, &config);
+            let runtime = evm::Runtime::new(code, data.clone(), context, &config);
             let state = MemoryStackState::new(metadata, &backend);
             (None, runtime, state)
         };
@@ -87,7 +92,32 @@ pub async fn run_evm_impl(
 
         let mut executor = CpsExecutor::new_with_precompiles(state, &config, &precompiles, enable_cps);
 
-        let mut listener = LoggingEventListener{traces : Default::default()};
+        let mut listener;
+
+        if tx_trace.is_empty() {
+            listener = LoggingEventListener::new(tx_trace_enabled);
+        } else {
+            listener = serde_json::from_str(&tx_trace).unwrap()
+        }
+
+        // If there is no continuation, we need to push our call context on,
+        // Otherwise, our call context is loaded and is last element in stack
+        if feedback_continuation.is_none() {
+            let mut call = CallContext::new();
+            call.call_type = "CALL".to_string();
+            call.value = format!("0x{apparent_value}");
+            call.gas = format!("0x{gas_limit:x}"); // Gas provided for call
+            call.input = format!("0x{}", hex::encode(data.deref()));
+
+            if listener.call_tracer.is_empty() {
+                call.from = format!("{:?}", backend.origin);
+            } else {
+                call.from = listener.call_tracer.last().unwrap().to.clone();
+            }
+
+            call.to = format!("{address:?}");
+            listener.push_call(call);
+        }
 
         // We have to catch panics, as error handling in the Backend interface of
         // do not have Result, assuming all operations are successful.
@@ -95,30 +125,34 @@ pub async fn run_evm_impl(
         // We are asserting it is safe to unwind, as objects will be dropped after
         // the unwind.
         let executor_result = panic::catch_unwind(AssertUnwindSafe(|| {
-            if tracing {
-                evm::tracing::using(&mut listener, || executor.execute(&mut runtime, feedback_continuation))
-            } else {
-                executor.execute(&mut runtime, feedback_continuation)
-            }
+        evm::runtime::tracing::using(&mut listener, || executor.execute(&mut runtime, feedback_continuation))
         }));
 
         // Scale back remaining gas to Scilla units (no rounding!).
         let remaining_gas = executor.gas() / gas_scaling_factor;
+
+        // Update the traces
+        listener.raw_tracer.return_value = hex::encode(runtime.machine().return_value());
+        listener.raw_tracer.gas = gas_limit - remaining_gas;
+        listener.call_tracer.last_mut().unwrap().gas_used = format!("0x{:x}", gas_limit - remaining_gas);
+        listener.call_tracer.last_mut().unwrap().output = format!("0x{}", hex::encode(runtime.machine().return_value()));
 
         if let Err(panic) = executor_result {
             let panic_message = panic
                     .downcast::<String>()
                     .unwrap_or_else(|_| Box::new("unknown panic".to_string()));
                 error!("EVM panicked: '{:?}'", panic_message);
-            let result = handle_panic(listener.traces.clone(), remaining_gas, &panic_message);
+            let result = handle_panic(listener.as_string(), remaining_gas, &panic_message);
             return Ok(base64::encode(result.write_to_bytes().unwrap()));
         }
 
         let cps_result = executor_result.unwrap();
 
-
         let result = match cps_result {
             CpsReason::NormalExit(exit_reason) => {
+                // Normal exit, we finished call.
+                listener.finished_call();
+
                 match exit_reason {
                     evm::ExitReason::Succeed(_) => {}
                     _ => {
@@ -128,23 +162,23 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
-                let result = build_exit_result(executor, &runtime, &backend, listener.traces.clone(), exit_reason, remaining_gas);
+                let result = build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas);
                 info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, 
-                    extras: {:?}, estimate: {:?}, cps: {:?}, result: {}",
+                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
                     evm_context, backend.origin, address, gas_limit, apparent_value,
-                    backend.extras, estimate, enable_cps, log_evm_result(&result));
+                    hex::encode(data.deref()),
+                    backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
                 result
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                let result = build_call_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
-                result
+                
+                build_call_result(&runtime, i, &listener, remaining_gas, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                let result = build_create_result(&runtime, i, listener.traces.clone(), remaining_gas, cont_id);
-                result
+                
+                build_create_result(&runtime, i, &listener, remaining_gas, cont_id)
             }
         };
         Ok(base64::encode(result.write_to_bytes().unwrap()))
@@ -157,12 +191,12 @@ fn build_exit_result(
     executor: CpsExecutor,
     runtime: &Runtime,
     backend: &ScillaBackend,
-    traces: Vec<String>,
-    exit_reason: evm::ExitReason,
+    trace: &LoggingEventListener,
+    exit_reason: &evm::ExitReason,
     remaining_gas: u64,
 ) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
-    result.set_exit_reason(exit_reason.into());
+    result.set_exit_reason(exit_reason.clone().into());
     result.set_return_value(runtime.machine().return_value().into());
     let (state_apply, logs) = executor.into_state().deconstruct();
     result.set_apply(
@@ -204,7 +238,7 @@ fn build_exit_result(
             })
             .collect(),
     );
-    result.set_trace(traces.into_iter().map(Into::into).collect());
+    result.set_tx_trace(trace.as_string().into());
     result.set_logs(logs.into_iter().map(Into::into).collect());
     result.set_remaining_gas(remaining_gas);
     result
@@ -213,7 +247,7 @@ fn build_exit_result(
 fn build_call_result(
     runtime: &Runtime,
     interrupt: CpsCallInterrupt,
-    traces: Vec<String>,
+    trace: &LoggingEventListener,
     remaining_gas: u64,
     cont_id: u64,
 ) -> EvmProto::EvmResult {
@@ -224,7 +258,7 @@ fn build_call_result(
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
-    result.set_trace(traces.into_iter().map(Into::into).collect());
+    result.set_tx_trace(trace.as_string().into());
     result.set_remaining_gas(remaining_gas);
 
     let mut trap_data_call = EvmProto::TrapData_Call::new();
@@ -260,7 +294,7 @@ fn build_call_result(
 fn build_create_result(
     runtime: &Runtime,
     interrupt: CpsCreateInterrupt,
-    traces: Vec<String>,
+    trace: &LoggingEventListener,
     remaining_gas: u64,
     cont_id: u64,
 ) -> EvmProto::EvmResult {
@@ -272,7 +306,7 @@ fn build_create_result(
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_trap(trap_reason);
     result.set_exit_reason(exit_reason);
-    result.set_trace(traces.into_iter().map(Into::into).collect());
+    result.set_tx_trace(trace.as_string().into());
     result.set_remaining_gas(remaining_gas);
 
     let mut scheme = EvmProto::TrapData_Scheme::new();
@@ -314,14 +348,14 @@ fn build_create_result(
     result
 }
 
-fn handle_panic(traces: Vec<String>, remaining_gas: u64, reason: &str) -> EvmProto::EvmResult {
+fn handle_panic(trace: String, remaining_gas: u64, reason: &str) -> EvmProto::EvmResult {
     let mut result = EvmProto::EvmResult::new();
     let mut fatal = EvmProto::ExitReason_Fatal::new();
     fatal.set_error_string(reason.into());
     let mut exit_reason = EvmProto::ExitReason::new();
     exit_reason.set_fatal(fatal);
     result.set_exit_reason(exit_reason);
-    result.set_trace(traces.into_iter().map(Into::into).collect());
+    result.set_tx_trace(trace.into());
     result.set_remaining_gas(remaining_gas);
     result
 }

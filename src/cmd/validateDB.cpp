@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <boost/filesystem/operations.hpp>
 #include "libMediator/Mediator.h"
 #include "libNetwork/Guard.h"
 #include "libNode/Node.h"
@@ -28,6 +29,7 @@
 
 using namespace std;
 int main() {
+  INIT_FILE_LOGGER("zilliqa", std::filesystem::current_path());
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
 

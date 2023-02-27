@@ -15,14 +15,11 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <sys/stat.h>
-#include <sys/syscall.h>
 #include <unistd.h>
 #include <algorithm>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <sstream>
 #include <string>
 
 #include <boost/lexical_cast.hpp>
@@ -33,9 +30,11 @@
 #include "depends/libDatabase/LevelDB.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libData/BlockChainData/BlockLinkChain.h"
-#include "libMessage/Messenger.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
+#include "libMessage/Messenger.h"
+
+constexpr int TX_TRACES_TO_STORE = 30 * 1024;
 
 using namespace std;
 
@@ -68,6 +67,7 @@ void BlockStorage::Initialize(const std::string& path, bool diagnostic) {
   if (LOOKUP_NODE_MODE) {
     m_txBodyDBs.emplace_back(std::make_shared<LevelDB>("txBodies"));
     m_txEpochDB = std::make_shared<LevelDB>("txEpochs");
+    m_txTraceDB = std::make_shared<LevelDB>("txTraces");
     m_minerInfoDSCommDB = std::make_shared<LevelDB>("minerInfoDSComm");
     m_minerInfoShardsDB = std::make_shared<LevelDB>("minerInfoShards");
     m_extSeedPubKeysDB = std::make_shared<LevelDB>("extSeedPubKeys");
@@ -178,6 +178,8 @@ bool BlockStorage::PutProcessedTxBodyTmp(const dev::h256& key,
 bool BlockStorage::PutMicroBlock(const BlockHash& blockHash,
                                  const uint64_t& epochNum,
                                  const uint32_t& shardID, const zbytes& body) {
+
+
   zbytes key;
   if (!Messenger::SetMicroBlockKey(key, 0, epochNum, shardID)) {
     LOG_GENERAL(WARNING, "Messenger::SetMicroBlockKey failed.");
@@ -550,6 +552,160 @@ bool BlockStorage::CheckTxBody(const dev::h256& key) {
   }
 
   return GetTxBodyDB(epochNum)->Exists(keyBytes);
+}
+
+ZilliqaMessage::TxTraceStoredDisk GetTxTraceInfoStruct(BlockStorage &blockStorage) {
+  dev::h256 nullKey{};
+  nullKey.clear();
+  ZilliqaMessage::TxTraceStoredDisk ret;
+
+  auto const base = blockStorage.GetTxTraceDb()->Lookup(nullKey);
+
+  if(!base.empty()) {
+    ret.ParseFromString(base);
+  }
+
+  // We must populate the prototuf with something otherwise all values are defaulted
+  // to empty and our DB doesn't think there is a corresponding value to the key
+  ret.set_txtrace("NONE");
+
+  // Whether it was there or not, we will write back down a valid one.
+  if(ret.items_size() != TX_TRACES_TO_STORE) {
+    std::vector<ZilliqaMessage::ByteArray> current_items;
+
+    for (auto const &item: ret.items()) {
+      current_items.push_back(item);
+    }
+    ret.clear_items();
+
+    if(current_items.size() < TX_TRACES_TO_STORE) {
+      current_items.resize(TX_TRACES_TO_STORE);
+    }
+
+    // All items in the old array are pushed onto a new array, or if there are
+    // too many, they are cleaned up from the DB and not added
+    for(size_t i = 0;i < current_items.size(); i++) {
+      if (i < TX_TRACES_TO_STORE) {
+        ret.add_items();
+      } else if(!current_items[i].data().empty()) {
+        blockStorage.GetTxTraceDb()->DeleteKey(current_items[i].data());
+      }
+    }
+  }
+
+  // Make sure the deletion index is correct if not set
+  if(ret.index() >= TX_TRACES_TO_STORE) {
+    ret.set_index(0);
+  }
+
+  return ret;
+}
+
+void UpdateTraceStruct(BlockStorage &blockStorage, ZilliqaMessage::TxTraceStoredDisk txTraces, const dev::h256& key) {
+  // Updating takes the form of deleting the old TX trace at the prior index, writing
+  // the new key at that index, and incrementing the index, modulo.
+  // Assumes txTraces is well-formed
+  auto index = txTraces.index();
+  auto const toDelete = txTraces.items(index);
+
+  if(!toDelete.data().empty()) {
+    std::string asHex;
+    DataConversion::StringToHexStr(toDelete.data(), asHex);
+    LOG_GENERAL(WARNING, "Deleting old TX trace: " << asHex);
+    blockStorage.GetTxTraceDb()->DeleteKey(toDelete.data());
+  }
+
+  auto setme = txTraces.mutable_items(index);
+  setme->set_data(reinterpret_cast<const char *>(key.data()));
+  auto const newIndex = (index+1) % TX_TRACES_TO_STORE;
+  txTraces.set_index(newIndex);
+
+  // Write back to null location
+  dev::h256 nullKey{};
+  nullKey.clear();
+
+  zbytes ser(txTraces.ByteSizeLong());
+  txTraces.SerializeToArray(ser.data(), ser.size());
+
+  blockStorage.GetTxTraceDb()->Insert(nullKey, ser);
+}
+
+std::shared_ptr<LevelDB> BlockStorage::GetTxTraceDb() {
+  return this->m_txTraceDB;
+}
+
+// Tx traces are put in storage, and each time one is inserted, the oldest is
+// pruned, so long as it is over TX_TRACES_TO_STORE ago.
+// To do this, at the null address is an array/ring buffer of trace hashes
+//
+bool BlockStorage::PutTxTrace(const dev::h256& key, const std::string& trace) {
+
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    LOG_GENERAL(WARNING, "This should only be triggered when archival lookup is enabled!.");
+    return false;
+  }
+
+  if(!key) {
+    LOG_GENERAL(WARNING, "Setting with a zero hash is not allowed");
+    return false;
+  }
+
+  // First we retrieve the struct at the null location as it tells us what to
+  // delete, and we need to add this hash
+  auto baseStruct = GetTxTraceInfoStruct(*this);
+  // Delete an old tx trace if at limit
+  UpdateTraceStruct(*this, baseStruct, key);
+
+  // Now write our item normally
+  //zbytes ser;
+  ZilliqaMessage::TxTraceStoredDisk result;
+  result.set_txtrace(trace);
+
+  //auto const serialized = result.SerializeToArray(ser.data(), result.ByteSizeLong());
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  // Store txn hash and epoch inside txEpochs DB
+  if (m_txTraceDB->Insert(key, result.SerializeAsString()) != 0) {
+    LOG_GENERAL(WARNING, "Tx trace insertion failed. "
+                             << " key=" << key);
+    return false;
+  }
+
+  return true;
+}
+
+bool BlockStorage::GetTxTrace(const dev::h256& key, std::string& trace) {
+  const zbytes& keyBytes = key.asBytes();
+
+  lock_guard<mutex> g(m_mutexTxBody);
+
+  if (!m_txTraceDB) {
+    LOG_GENERAL(
+        WARNING,
+        "Attempt to access non initialized DB! Are you in lookup mode? ");
+    return false;
+  }
+
+  trace = m_txTraceDB->Lookup(keyBytes);
+
+  if (trace.empty()) {
+    return false;
+  }
+
+  ZilliqaMessage::TxTraceStoredDisk txTrace;
+  txTrace.ParseFromString(trace);
+  trace = txTrace.txtrace();
+
+  return true;
 }
 
 bool BlockStorage::DeleteTxBlock(const uint64_t& blocknum) {

@@ -23,7 +23,6 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libMetrics/Api.h"
-#include "libMetrics/Tracing.h"
 #include "libNode/Node.h"
 #include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
@@ -108,6 +107,7 @@ int main(int argc, const char* argv[]) {
   ENABLE_EVM = true;
   LOOKUP_NODE_MODE = true;
   SCILLA_SERVER_LOOP_WAIT_MICROSECONDS = 100000;
+  ARCHIVAL_LOOKUP_WITH_TX_TRACES = true; // Force saving traces if they are generated
   if (SCILLA_ROOT == "/scilla") {
     SCILLA_ROOT = "/tmp";
   }
@@ -163,9 +163,10 @@ int main(int argc, const char* argv[]) {
 
     ISOLATED_SERVER = true;
 
-    // Enough to bring the instance into scope
-    Tracing::GetInstance();
-    Metrics::GetInstance();
+    zil::trace::Tracing::Initialize("isolated");
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                __FUNCTION__);
+    Metrics::GetInstance().Init();
 
     createConfigFile();
 

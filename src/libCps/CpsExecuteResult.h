@@ -21,11 +21,18 @@
 #include "common/TxnStatus.h"
 #include "libUtils/Evm.pb.h"
 
+#include <variant>
+
 namespace libCps {
+
+struct ScillaResult {
+  uint64_t gasRemained = 0;
+};
 struct CpsExecuteResult {
   TxnStatus txnStatus = TxnStatus::NOT_PRESENT;
   bool isSuccess = false;
-  evm::EvmResult evmResult;
+  using ResultType = std::variant<evm::EvmResult, ScillaResult>;
+  ResultType result;
 };
 }  // namespace libCps
 

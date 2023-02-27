@@ -271,6 +271,10 @@ class DirectoryService : public Executable {
       const zbytes& message, unsigned int offset, const Peer& from,
       [[gnu::unused]] const unsigned char& startByte);
 
+  bool ProcessGetDSLeaderTxnPool(
+      const zbytes& message, unsigned int offset, const Peer& from,
+      [[gnu::unused]] const unsigned char& startByte);
+
   // To block certain types of incoming message for certain states
   bool ToBlockMessage(unsigned char ins_byte);
 

@@ -21,6 +21,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
 #include "libEth/utils/EthUtils.h"
+#include "libMetrics/Tracing.h"
 #include "libPersistence/Retriever.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libUtils/DataConversion.h"
@@ -444,7 +445,7 @@ void IsolatedServer::BindAllEvmMethods() {
     AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("debug_traceTransaction",
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
-                           "param01", jsonrpc::JSON_STRING, NULL),
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::DebugTraceTransactionI);
   }
 }
@@ -1022,6 +1023,9 @@ bool IsolatedServer::StartBlocknumIncrement() {
   auto incrThread = [this]() mutable -> void {
     utility::SetThreadName("tx_block_incr");
 
+    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                                "tx_block_incr");
+
     // start the post tx block directly to prevent a 'dead' period before the
     // first block
     PostTxBlock();
@@ -1096,6 +1100,9 @@ TxBlock IsolatedServer::GenerateTxBlock() {
 }
 
 void IsolatedServer::PostTxBlock() {
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
+                                              __FUNCTION__);
+
   lock_guard<mutex> g(m_blockMutex);
   TxBlock txBlock = GenerateTxBlock();
 

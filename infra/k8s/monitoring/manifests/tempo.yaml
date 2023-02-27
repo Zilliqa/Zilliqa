@@ -47,7 +47,7 @@ data:
       {}
   tempo.yaml: |
     multitenancy_enabled: false
-    search_enabled: false
+    search_enabled: true
     usage_report:
       reporting_enabled: true
     metrics_generator_enabled: false
