@@ -875,7 +875,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
         AccountStore::GetInstance().GetAccount(addr, true);
 
     if (contractAccount == nullptr) {
-      LOG_GENERAL(WARNING, "we hereeee:");
+      LOG_GENERAL(WARNING, "Eth call made to location that had no code...");
       return "0x";
     }
     code = contractAccount->GetCode();
@@ -946,6 +946,8 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
 
   // tracerException : we want only the call trace
   if(!tracer.empty()) {
+    LOG_GENERAL(WARNING, "Returning trace! ");
+    LOG_GENERAL(WARNING, result.tx_trace());
     return extractTracer(tracer, result.tx_trace());
   }
 
@@ -956,11 +958,14 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     return "0x" + return_value;
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
+
+    LOG_GENERAL(WARNING, "Warning! Execution reverted...");
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
+    LOG_GENERAL(WARNING, "Warning! Misc error...");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            EvmUtils::ExitReasonString(result.exit_reason()));
   }
