@@ -86,7 +86,7 @@ Z_DBLHIST &GetSizeUsed() {
 }
 
 Z_I64METRIC &GetCallCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "processing.failed",
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "errors",
                              "Errors for AccountStore", "calls"};
   return counter;
 }

@@ -241,6 +241,8 @@ int main(int argc, const char* argv[]) {
       return ERROR_IN_CONSTANTS;
     }
 
+    TRACE_ERROR("This is a startup test");
+
     Zilliqa zilliqa(make_pair(privkey, pubkey), my_network_info,
                     (SyncType)syncType, vm.count("recovery"),
                     vm.count("l2lsyncmode") <= 0,

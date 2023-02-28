@@ -105,7 +105,7 @@ void Metrics::InitStdOut() {
                                                      options)};
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa-daemon"},
+      {"service.name", "zilliqa"},
       {"version", (double)::METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
   auto provider = std::shared_ptr<metrics_api::MeterProvider>(

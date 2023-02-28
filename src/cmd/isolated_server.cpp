@@ -168,6 +168,8 @@ int main(int argc, const char* argv[]) {
                                                 __FUNCTION__);
     Metrics::GetInstance().Init();
 
+    TRACE_ERROR("This is a test");
+
     createConfigFile();
 
     PairOfKey key;

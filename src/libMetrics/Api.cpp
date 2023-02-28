@@ -28,7 +28,7 @@ namespace api {
 Z_I64METRIC &GetErrorHistogram() {
   static Z_I64METRIC counter{
       zil::metrics::FilterClass::GLOBAL_ERROR, "err",
-      "A history of monitically numbered errors that are linked to traces", ""};
+      "A history of monitically numbered errors that are linked to traces", "errors"};
   return counter;
 }
 
@@ -38,6 +38,11 @@ uint64_t GetNextErrorCount() {
 }
 
 void EventMetricTrace(const std::string msg, std::string funcName, int line, int errno) {
+  static Z_I64METRIC counter{
+      zil::metrics::FilterClass::GLOBAL_ERROR, "err",
+      "A history of monitically numbered errors that are linked to traces", ""};
+
+
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::GLOBAL_ERROR)) {
     if (zil::trace::Tracing::IsEnabled()) {

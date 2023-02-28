@@ -29,6 +29,8 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
+#include "libMetrics/Api.h"
+
 namespace libCps {
 
 CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
@@ -37,6 +39,7 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
 
 CpsExecuteResult CpsExecutor::PreValidateEvmRun(
     const EvmProcessContext& context) const {
+  TRACE(zil::trace::FilterClass::DEMO);
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(
       ProtoToAddress(context.GetEvmArgs().origin()));
 
@@ -53,7 +56,9 @@ CpsExecuteResult CpsExecutor::PreValidateEvmRun(
 
 CpsExecuteResult CpsExecutor::PreValidateScillaRun(
     const ScillaProcessContext& context) const {
+  TRACE(zil::trace::FilterClass::DEMO);
   if (!mAccountStore.AccountExistsAtomic(context.origin)) {
+    TRACE_ERROR("Invalid Account");
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
   }
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(context.origin);
@@ -89,6 +94,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     if (!mAccountStore.TransferBalanceAtomic(
             clientContext.origin, clientContext.recipient,
             Amount::fromQa(clientContext.amount))) {
+            TRACE_ERROR("Insufficient Balance");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
     mTxReceipt.SetCumGas(NORMAL_TRAN_GAS);

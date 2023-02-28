@@ -59,7 +59,7 @@ using Z_FL = zil::metrics::FilterClass;
   }
 
 #define TRACE(FILTER_CLASS) \
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::ACC_EVM,\
+  auto span = zil::trace::Tracing::CreateSpan(FILTER_CLASS,\
                                             __FUNCTION__);
 
 #define METRICS_ENABLED(FILTER_CLASS)          \
