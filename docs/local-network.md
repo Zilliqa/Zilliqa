@@ -1,4 +1,4 @@
- pull# Running a local network
+# Running a local network
 
 
 Install [kind](https://kind.sigs.k8s.io/#installation-and-usage) or `brew`.
