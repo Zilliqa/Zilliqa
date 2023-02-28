@@ -38,6 +38,7 @@ RUN apt-get update \
     htop \
     iproute2 \
     lcov \
+    pigz \
     libcurl4-openssl-dev \
     libgmp-dev \
     libsecp256k1-dev \
