@@ -130,7 +130,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         "param02", jsonrpc::JSON_STRING, NULL),
+                         "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceCallI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -661,6 +661,11 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
                            "Unsupported block or tag in debug_TraceCall");
   }
 
+  if(!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "TX traces are not enabled for this server");
+  }
+
   // Default to call tracer
   std::string tracerType = "callTracer";
 
@@ -856,7 +861,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
                                      const ApiKeys &apiKeys, std::string const& tracer) {
-  LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
+  LOG_GENERAL(WARNING, "GetEthCall:" << _json);
   TRACE(zil::trace::FilterClass::DEMO);
   INC_CALLS(GetInvocationsCounter());
 
@@ -868,7 +873,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
         AccountStore::GetInstance().GetPrimaryMutex());
     Account *contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
+
     if (contractAccount == nullptr) {
+      LOG_GENERAL(WARNING, "we hereeee:");
       return "0x";
     }
     code = contractAccount->GetCode();
@@ -1829,8 +1836,15 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& txHash, const Json::Value& json) {
 
-  //bool call_tracer = false;
-  //bool raw_tracer = false;
+  if(!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store Tx traces");
+  }
+
+  if(!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to generate Tx traces");
+  }
 
   if (!json.isMember("tracer")) {
     LOG_GENERAL(WARNING, "Missing tracer field");
