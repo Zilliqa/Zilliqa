@@ -330,10 +330,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     m_curEdges = 0;
     m_curNumShards = numShards;
 
-
-
-
-
     AccountStoreCpsInterface acCpsInterface{*this};
     span.AddEvent("info", {{"Calling","cps"}});
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};

@@ -57,6 +57,14 @@ class EthRpcMethods {
     LOG_GENERAL(DEBUG, "EthCall response:" << response);
   }
 
+  virtual void DebugTraceCallI(const Json::Value& request,
+                              Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    EnsureEvmAndLookupEnabled();
+    response = this->DebugTraceCallEth(request[0u], request[1u].asString(), request[2u]);
+    LOG_GENERAL(DEBUG, "DebugTraceCall response:" << response);
+  }
+
   // TODO: remove once we fully move to Eth compatible APIs.
   inline virtual void GetEthCallZilI(const Json::Value& request,
                                      Json::Value& response) {
@@ -579,8 +587,10 @@ class EthRpcMethods {
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
                             const std::string& block_or_tag);
+  std::string DebugTraceCallEth(const Json::Value& _json,
+                            const std::string& block_or_tag, const Json::Value& tracer);
   std::string GetEthEstimateGas(const Json::Value& _json);
-  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
+  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys, std::string const &tracer = "");
   Json::Value GetBalanceAndNonce(const std::string& address);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
