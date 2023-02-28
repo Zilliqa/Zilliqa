@@ -176,10 +176,10 @@ pub async fn run_evm_impl(
             }
         };
         info!(
-            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
+            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}, result details: {:?}",
             evm_context, backend.origin, address, gas_limit, apparent_value,
             hex::encode(data.deref()),
-            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
+            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()), &result);
         Ok(base64::encode(result.write_to_bytes().unwrap()))
     })
     .await
