@@ -41,7 +41,7 @@
 namespace {
 
 Z_I64METRIC &GetInvocationsCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "zilliqa.processors",
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "processors",
                              "Metrics for AccountStore", "Blocks"};
   return counter;
 }
@@ -73,19 +73,19 @@ Z_I64GAUGE &GetEvmLatencyCounter() {
 
 Z_I64GAUGE &GetScillaLatencyCounter() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla_latency_counter",
-                            "Simple Scilla latency gauge", "ms", true};
+                            "Simple Scilla latency gauge", "us", true};
   return counter;
 }
 
 Z_I64GAUGE &GetProcessorBNCounters() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
-                            "Block number seen by processor", "block", true};
+                            "Block number seen by processor", "count", true};
   return counter;
 }
 
 Z_I64GAUGE &GetProcessorDSBNCounters() {
   static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "dsblocknumber",
-                            "Ds Block number seen by processor", "block", true};
+                            "Ds Block number seen by processor", "count", true};
   return counter;
 }
 }  // namespace local

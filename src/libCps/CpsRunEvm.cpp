@@ -33,8 +33,7 @@
 #include <future>
 
 Z_I64METRIC& GetCPSMetric() {
-  static Z_I64METRIC counter{Z_FL::CPS, "cps.counter", "Calls into cps",
-                             "calls"};
+  static Z_I64METRIC counter{Z_FL::CPS, "cps.counter", "Calls into cps","calls"};
   return counter;
 }
 
