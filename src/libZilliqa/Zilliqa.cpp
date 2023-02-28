@@ -178,8 +178,9 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
         auto timeInMicro = static_cast<int64_t>(
             (std::chrono::duration<double, std::micro>(tpNow - tpStart))
                 .count());
-        LOG_GENERAL(
-            INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
+        if(timeInMicro > 100000) {
+          LOG_GENERAL(INFO, MessgeTimeKeyword << msgName << " " << timeInMicro << " us");
+        }
       }
 
       if (!result) {

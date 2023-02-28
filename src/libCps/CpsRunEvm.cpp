@@ -202,7 +202,6 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
   // Set continuation (itself) to be resumed when create run is finished
   {
-    evm::EvmArgs continuation;
     mProtoArgs.mutable_continuation()->set_feedback_type(
         evm::Continuation_Type_CALL);
     mProtoArgs.mutable_continuation()->set_id(result.continuation_id());
@@ -212,6 +211,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     *mProtoArgs.mutable_continuation()
          ->mutable_calldata()
          ->mutable_offset_len() = callData.offset_len();
+    *mProtoArgs.mutable_continuation()->mutable_logs() = result.logs();
     mExecutor.PushRun(shared_from_this());
   }
 
@@ -374,7 +374,6 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   // Set continuation (itself) to be resumed when create run is finished
   {
-    evm::EvmArgs continuation;
     mProtoArgs.mutable_continuation()->set_feedback_type(
         evm::Continuation_Type_CREATE);
     mProtoArgs.mutable_continuation()->set_id(result.continuation_id());
@@ -590,6 +589,7 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
   if (std::holds_alternative<evm::EvmResult>(results.result)) {
     const auto& evmResult = std::get<evm::EvmResult>(results.result);
     mProtoArgs.set_gas_limit(evmResult.remaining_gas());
+    *mProtoArgs.mutable_continuation()->mutable_logs() = evmResult.logs();
 
     if (previousRun.GetDomain() == CpsRun::Evm) {
       const CpsRunEvm& prevRunEvm = static_cast<const CpsRunEvm&>(previousRun);

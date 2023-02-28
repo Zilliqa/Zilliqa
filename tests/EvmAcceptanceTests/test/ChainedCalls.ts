@@ -59,7 +59,9 @@ describe("Chained Contract Calls Functionality", function () {
       let addrTwo = contractTwo.address.toLowerCase();
       let addrThree = contractThree.address.toLowerCase();
 
-      expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractOne, "FinalMessage");
+      await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractOne, "FinalMessage");
+      await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractTwo, "FinalMessageTwo");
+      await expect(contractOne.chainedCall([addrTwo, addrThree, addrOne], 0)).to.emit(contractThree, "FinalMessageThree");
     });
   });
 });

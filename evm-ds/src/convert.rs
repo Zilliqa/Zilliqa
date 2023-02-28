@@ -1,4 +1,4 @@
-use crate::protos::Evm as EvmProto;
+use crate::protos::{Evm as EvmProto, Evm};
 use byteorder::{BigEndian, ByteOrder};
 use bytes::Bytes;
 use evm::backend::Log;
@@ -23,6 +23,17 @@ impl From<&EvmProto::Address> for H160 {
         BigEndian::write_u64(&mut buf[4..12], address.x1);
         BigEndian::write_u64(&mut buf[12..20], address.x2);
         H160::from_slice(&buf)
+    }
+}
+
+impl From<&Evm::H256> for primitive_types::H256 {
+    fn from(address: &Evm::H256) -> Self {
+        let mut buf = [0u8; 32];
+        BigEndian::write_u64(&mut buf[0..8], address.x0);
+        BigEndian::write_u64(&mut buf[8..16], address.x1);
+        BigEndian::write_u64(&mut buf[16..24], address.x2);
+        BigEndian::write_u64(&mut buf[24..32], address.x3);
+        H256::from_slice(&buf)
     }
 }
 
