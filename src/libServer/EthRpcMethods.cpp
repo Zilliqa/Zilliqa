@@ -625,7 +625,7 @@ string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
 
 // Convenience fn to extract the tracer - valid types are 'raw' and 'callTracer'
 // This is as the tracer is a JSON which has both types as entries
-string extractTracer(const std::string &tracer, const std::string trace) {
+string extractTracer(const std::string &tracer, const std::string &trace) {
   std::string traceRet;
 
   try {
