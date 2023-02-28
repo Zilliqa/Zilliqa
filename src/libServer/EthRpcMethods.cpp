@@ -130,7 +130,7 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         "param02", jsonrpc::JSON_STRING, NULL),
+                         "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceCallI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -661,6 +661,11 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
                            "Unsupported block or tag in debug_TraceCall");
   }
 
+  if(!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "TX traces are not enabled for this server");
+  }
+
   // Default to call tracer
   std::string tracerType = "callTracer";
 
@@ -856,7 +861,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
                                      const ApiKeys &apiKeys, std::string const& tracer) {
-  LOG_GENERAL(DEBUG, "GetEthCall:" << _json);
+  LOG_GENERAL(WARNING, "GetEthCall:" << _json);
   TRACE(zil::trace::FilterClass::DEMO);
   INC_CALLS(GetInvocationsCounter());
 
@@ -868,7 +873,9 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
         AccountStore::GetInstance().GetPrimaryMutex());
     Account *contractAccount =
         AccountStore::GetInstance().GetAccount(addr, true);
+
     if (contractAccount == nullptr) {
+      LOG_GENERAL(WARNING, "Eth call made to location that had no code...");
       return "0x";
     }
     code = contractAccount->GetCode();
@@ -939,6 +946,8 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
 
   // tracerException : we want only the call trace
   if(!tracer.empty()) {
+    LOG_GENERAL(WARNING, "Returning trace! ");
+    LOG_GENERAL(WARNING, result.tx_trace());
     return extractTracer(tracer, result.tx_trace());
   }
 
@@ -949,11 +958,14 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     return "0x" + return_value;
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
+
+    LOG_GENERAL(WARNING, "Warning! Execution reverted...");
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
     // https://github.com/ethereum/go-ethereum/blob/9b9a1b677d894db951dc4714ea1a46a2e7b74ffc/internal/ethapi/api.go#L1026
     throw JsonRpcException(3, "execution reverted", "0x" + return_value);
   } else {
+    LOG_GENERAL(WARNING, "Warning! Misc error...");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            EvmUtils::ExitReasonString(result.exit_reason()));
   }
@@ -1829,8 +1841,15 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& txHash, const Json::Value& json) {
 
-  //bool call_tracer = false;
-  //bool raw_tracer = false;
+  if(!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to store Tx traces");
+  }
+
+  if(!TX_TRACES) {
+    throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
+                           "The node is not configured to generate Tx traces");
+  }
 
   if (!json.isMember("tracer")) {
     LOG_GENERAL(WARNING, "Missing tracer field");
