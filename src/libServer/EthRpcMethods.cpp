@@ -1254,6 +1254,8 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
         const uint64_t blockNum =
             std::strtoull(blockNumberStr.c_str(), nullptr, 0);
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNum);
+      } else if (blockNumberStr == "pending") {
+        txBlock = m_sharedMediator.m_txBlockChain.GetPendingBlock();
       }
     } else {
       // Not supported
@@ -1429,8 +1431,11 @@ Json::Value EthRpcMethods::GetEthBlockTransactionCountByNumber(
     } else if (blockNumberStr == "earliest") {
       txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
     } else if (blockNumberStr == "pending") {
-      // Not supported
-      return "0x0";
+
+      //m_sharedMediator.m_filtersAPICache->
+
+      txBlock = m_sharedMediator.m_txBlockChain.GetPendingBlock();
+      //return
     } else {
       const uint64_t blockNum =
           std::strtoull(blockNumberStr.c_str(), nullptr, 0);
