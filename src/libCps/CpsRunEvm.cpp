@@ -19,6 +19,7 @@
 #include "libCps/CpsAccountStoreInterface.h"
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecutor.h"
+#include "libCps/CpsMetrics.h"
 #include "libCps/CpsRunTransfer.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -31,12 +32,6 @@
 #include <boost/algorithm/hex.hpp>
 
 #include <future>
-
-Z_I64METRIC& GetCPSMetric() {
-  static Z_I64METRIC counter{Z_FL::CPS, "cps.counter", "Calls into cps",
-                             "calls"};
-  return counter;
-}
 
 namespace libCps {
 CpsRunEvm::CpsRunEvm(evm::EvmArgs protoArgs, CpsExecutor& executor,
@@ -51,14 +46,19 @@ bool CpsRunEvm::IsResumable() const {
 }
 
 CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
-  TRACE(zil::trace::FilterClass::DEMO);
+  const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
+  const auto contractAddress =
+      mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH);
+
+  CREATE_SPAN(
+      zil::trace::FilterClass::CPS_EVM, fromAddress.hex(),
+      contractAddress.hex(), mCpsContext.origSender.hex(),
+      ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
+
   if (!IsResumable()) {
     // Contract deployment
     if (GetType() == CpsRun::Create) {
       INC_STATUS(GetCPSMetric(), "transaction", "create");
-      const auto fromAddress = ProtoToAddress(mProtoArgs.origin());
-      const auto contractAddress = mAccountStore.GetAddressForContract(
-          fromAddress, TRANSACTION_VERSION_ETH);
       mAccountStore.AddAccountAtomic(contractAddress);
       mAccountStore.IncreaseNonceForAccountAtomic(fromAddress);
       *mProtoArgs.mutable_address() = AddressToProto(contractAddress);
@@ -103,6 +103,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   if (!invokeResult.has_value()) {
     // Timeout
     receipt.AddError(EXECUTE_CMD_TIMEOUT);
+    span.SetError("Evm-ds Invoke Error");
     INC_STATUS(GetCPSMetric(), "error", "timeout");
     return {};
   }
@@ -114,7 +115,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
     HandleApply(evmResult, receipt);
@@ -124,7 +124,7 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
     if (GetType() == CpsRun::TrapCall || GetType() == CpsRun::TrapCreate) {
       return {TxnStatus::NOT_PRESENT, true, evmResult};
     }
-
+    span.SetError("Unknown trap type");
     return {TxnStatus::NOT_PRESENT, false, evmResult};
   }
 }
@@ -269,14 +269,22 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   const auto calleeAddr = ProtoToAddress(callData.callee_address());
 
+  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+              ProtoToAddress(mProtoArgs.origin()).hex(), calleeAddr.hex(),
+              mCpsContext.origSender.hex(), tnsfVal.convert_to<std::string>());
+
   if (IsNullAddress(calleeAddr)) {
-    TRACE_ERROR( "Invalid account called...");
+    TRACE_ERROR("Callee address is null in call-trap");
     INC_STATUS(GetCPSMetric(), "error", "Invalid account");
+    span.SetError("Callee address is null in call-trap");
     return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
 
   if (mCpsContext.isStatic && !isStatic) {
-    INC_STATUS(GetCPSMetric(), "error", "Incorect txn type");
+    INC_STATUS(GetCPSMetric(), "error",
+               "Non-static call attempt on static context in call-trap");
+    span.SetError(
+        "Received non-static call but cps context is marked as static");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
@@ -288,7 +296,12 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 
   if (isStatic || isDelegate) {
     if (!areTnsfAddressesEmpty || !isValZero) {
-      INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
+      INC_STATUS(
+          GetCPSMetric(), "error",
+          "Value transfer attempt in static or delegate call in call-trap");
+      span.SetError(
+          "Value transfer attempt in static(val: " + std::to_string(isStatic) +
+          ") or delegate(val: " + std::to_string(isStatic) + " call()");
       return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
   }
@@ -299,28 +312,51 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
       (ctxDestAddr == calleeAddr) ||
       (ctxDestAddr == ProtoToAddress(mProtoArgs.address()));
   if (!isOrigAddressValid || !isDestAddressValid) {
-    INC_STATUS(GetCPSMetric(), "error", "Incorrect txn type");
+    INC_STATUS(GetCPSMetric(), "error",
+               "Origin or destination address invalid in call-trap");
+    span.SetError("Origin(val: " + std::to_string(isOrigAddressValid) +
+                  ") or destination(val: " +
+                  std::to_string(isDestAddressValid) + " invalid in call-trap");
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
 
   if (!areTnsfAddressesEmpty) {
     if (tnsfDestAddr != ctxDestAddr || tnsfOriginAddr != ctxOriginAddr) {
-      LOG_GENERAL(WARNING, "Invalid when addressing...");
-      INC_STATUS(GetCPSMetric(), "error", "addressing ??");
+      LOG_GENERAL(
+          WARNING,
+          "Transfer orig/dest addresses don't match ctx pair in call-trap");
+      INC_STATUS(
+          GetCPSMetric(), "error",
+          "Transfer orig/dest addresses don't match ctx pair in call-trap");
+      span.SetError("tnsfDestAddr != ctxDestAddr(val: " +
+                    std::to_string(tnsfDestAddr != ctxDestAddr) +
+                    ") or tnsfOriginAddr != ctxOriginAddr(val: " +
+                    std::to_string(tnsfOriginAddr != ctxOriginAddr) +
+                    " in call-trap");
+
       return {TxnStatus::ERROR, false, {}};
     }
     const auto currentBalance =
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
     if (requestedValue > currentBalance) {
-      TRACE_ERROR( "insufficient bal.");
-      INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
+      TRACE_ERROR("insufficient bal.");
+      INC_STATUS(GetCPSMetric(), "error", "Insufficient balance in call-trap");
+      span.SetError(
+          "Insufficient balance, requested: " +
+          requestedValue.toWei().convert_to<std::string>() + ", current: " +
+          currentBalance.toWei().convert_to<std::string>() + " in call-trap");
+
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
     if (!requestedValue.isZero() && remainingGas < MIN_ETH_GAS) {
-      TRACE_ERROR( "insufficient gas.");
-      INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
+      TRACE_ERROR("insuffiicent gas in call-trap");
+      INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
+      span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
+                    ", required: " + std::to_string(MIN_ETH_GAS) +
+                    " in call-trap");
+
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
   }
@@ -329,7 +365,6 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
 }
 
 CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
-  TRACE(zil::trace::FilterClass::DEMO);
   const evm::TrapData& trap_data = result.trap_data();
   const evm::TrapData_Create& createData = trap_data.create();
   const auto validateResult =
@@ -422,7 +457,11 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
 CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
     const evm::TrapData_Create& createData, uint64_t remainingGas) {
-  TRACE(zil::trace::FilterClass::DEMO);
+  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM, Address{}.hex(),
+              ProtoToAddress(mProtoArgs.address()).hex(),
+              mCpsContext.origSender.hex(),
+              ProtoToUint(createData.value()).convert_to<std::string>());
+
   if (mCpsContext.isStatic) {
     return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
   }
@@ -444,7 +483,12 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
   // Caller should be the same as the contract that triggered trap
   const auto currentAddress = ProtoToAddress(mProtoArgs.address());
   if (address != currentAddress || fromAddress != currentAddress) {
-    INC_STATUS(GetCPSMetric(), "error", "Invalid from account");
+    INC_STATUS(GetCPSMetric(), "error", "Invalid from account in create-trap");
+    span.SetError("Invalid from account. address != currentAddress(val: " +
+                  std::to_string(address != currentAddress) +
+                  "), fromAddress != currentAddress(val: " +
+                  std::to_string(fromAddress != currentAddress) +
+                  ") in create-trap");
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
   }
 
@@ -453,7 +497,11 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
   const auto currentBalance = mAccountStore.GetBalanceForAccountAtomic(address);
   const auto requestedValue = Amount::fromWei(ProtoToUint(createData.value()));
   if (requestedValue > currentBalance) {
-    INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
+    INC_STATUS(GetCPSMetric(), "error", "Insufficient balance in create-trap");
+    span.SetError(
+        "Insufficient balance, requested: " +
+        requestedValue.toWei().convert_to<std::string>() + ", current: " +
+        currentBalance.toWei().convert_to<std::string>() + " in create-trap");
     return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
   }
 
@@ -469,7 +517,9 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
     baseFee += MIN_ETH_GAS;
   }
   if (targetGas < baseFee || targetGas > remainingGas) {
-    INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
+    INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in create-trap");
+    span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
+                  ", required: " + std::to_string(baseFee) + " in create-trap");
     return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
   }
 
@@ -478,6 +528,12 @@ CpsExecuteResult CpsRunEvm::ValidateCreateTrap(
 
 void CpsRunEvm::HandleApply(const evm::EvmResult& result,
                             TransactionReceipt& receipt) {
+  CREATE_SPAN(
+      zil::trace::FilterClass::CPS_EVM,
+      ProtoToAddress(mProtoArgs.origin()).hex(),
+      ProtoToAddress(mProtoArgs.address()).hex(), mCpsContext.origSender.hex(),
+      ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
+
   if (result.logs_size() > 0) {
     Json::Value entry = Json::arrayValue;
 
@@ -564,6 +620,10 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     if (funds > zero && funds <= currentFunds) {
       mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
                                           funds);
+    } else if (funds > zero) {
+      span.SetError("Possible zil mint. Funds in destroyed account: " +
+                    currentFunds.toWei().convert_to<std::string>() +
+                    ", requested: " + funds.toWei().convert_to<std::string>());
     }
     mAccountStore.SetBalanceAtomic(accountToRemove, zero);
     mAccountStore.AddAddressToUpdateBufferAtomic(accountToRemove);

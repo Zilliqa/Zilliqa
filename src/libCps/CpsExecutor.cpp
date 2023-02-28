@@ -19,6 +19,7 @@
 #include "libCps/Amount.h"
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecuteValidator.h"
+#include "libCps/CpsMetrics.h"
 #include "libCps/CpsRunEvm.h"
 #include "libCps/CpsRunScilla.h"
 #include "libCps/CpsUtils.h"
@@ -37,15 +38,24 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
 
 CpsExecuteResult CpsExecutor::PreValidateEvmRun(
     const EvmProcessContext& context) const {
+  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+              ProtoToAddress(context.GetEvmArgs().origin()).hex(),
+              ProtoToAddress(context.GetEvmArgs().address()).hex(),
+              ProtoToAddress(context.GetEvmArgs().origin()).hex(),
+              ProtoToUint(context.GetEvmArgs().apparent_value())
+                  .convert_to<std::string>())
+
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(
       ProtoToAddress(context.GetEvmArgs().origin()));
 
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
   if (!amountResult.isSuccess) {
+    span.SetError("Insufficient balance to initiate cps from evm");
     return amountResult;
   }
   const auto gasResult = CpsExecuteValidator::CheckGasLimit(context);
   if (!gasResult.isSuccess) {
+    span.SetError("Insufficient gas to initiate cps from evm");
     return gasResult;
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
@@ -338,12 +348,8 @@ void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
   m_queue.push_back(std::move(run));
 }
 
-std::string &CpsExecutor::CurrentTrace() {
-  return this->m_txTrace;
-}
+std::string& CpsExecutor::CurrentTrace() { return this->m_txTrace; }
 
-void CpsExecutor::TxTraceClear() {
-  this->m_txTrace.clear();
-}
+void CpsExecutor::TxTraceClear() { this->m_txTrace.clear(); }
 
 }  // namespace libCps
