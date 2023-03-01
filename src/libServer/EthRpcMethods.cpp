@@ -632,31 +632,21 @@ string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
 // Convenience fn to extract the tracer - valid types are 'raw' and 'callTracer'
 // This is as the tracer is a JSON which has both types as entries
 Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
-  //Json::Value traceRet;
   Json::Value parsed;
 
   try {
     Json::Value trace_json;
     JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
-    //std::stringstream ss;
-
-    Json::Reader reader;
 
     if(tracer.compare("callTracer") == 0) {
       auto const item = trace_json["call_tracer"][0];
-      //ss << item;
-      //reader.parse(item.asString(), parsed);
       parsed = item;
     } else if (tracer.compare("raw") == 0) {
       auto const item = trace_json["raw_tracer"];
-      //ss << item;
-      //reader.parse(item.asString(), parsed);
       parsed = item;
     } else {
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer and raw are supported. Received: ") + tracer);
     }
-
-    //traceRet = ss.str();
   } catch (exception& e) {
     LOG_GENERAL(INFO, "[Error]" << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
@@ -1857,33 +1847,20 @@ Json::Value EthRpcMethods::DebugTraceBlockByNumber(
 
   auto blockByNumber = GetEthBlockByNumber(blockNum, false);
 
-  LOG_GENERAL(WARNING, "Got block by number! Here we go...");
-
   Json::Value ret = Json::objectValue;
   Json::Value calls = Json::arrayValue;
 
   for (auto &tx : blockByNumber["transactions"]) {
-    LOG_GENERAL(WARNING, "xxxxxx" );
-    LOG_GENERAL(WARNING, "Got tx! " << tx.asString());
     auto traced = DebugTraceTransaction(tx.asString(), json);
-    //JSON::Value parsed = Json::objectValue;
-    ////Json::Value parsed;
-    //Json::Reader reader;
-    //reader.parse(traced.asString(), parsed);
     calls.append(traced);
   }
 
-  LOG_GENERAL(WARNING, "we are here" );
-
   ret["calls"] = calls;
-  //return "calls: [" + calls.asString() + "]";
   return ret;
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(
     const std::string& txHash, const Json::Value& json) {
-
-  //LOG_GENERAL(WARNING, "we are here...");
 
   if(!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
