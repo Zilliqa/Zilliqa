@@ -61,6 +61,15 @@ else
     cp /scilla/0/_build/install/default/bin/scilla-fmt /usr/local/bin
     pwd
 
+    echo "SAEEEEEEEED"
+    scilla-server --version
+
+    echo "SAEEEEEEEED"
+    retVal=$?
+    if [ $retVal -ne 0 ]; then
+        echo "!!!!!! Error with JS integration test !!!!!!"
+        exit 1
+    fi
     pkill -9 isolatedServer
     pkill -9 evm-ds
 
