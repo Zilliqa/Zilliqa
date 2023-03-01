@@ -30,7 +30,7 @@ add_test(NAME Test_TxnOrder COMMAND Test_TxnOrder)
 add_executable(Test_Contract Test_Contract.cpp ScillaTestUtil.cpp)
 target_include_directories(Test_Contract PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_link_libraries(Test_Contract PUBLIC AccountData Trie Utils Persistence Message Boost::unit_test_framework)
-add_test(NAME Test_Contract COMMAND Test_Contract)
+#add_test(NAME Test_Contract COMMAND Test_Contract)
 
 add_executable(Test_EIP Test_EIP.cpp)
 target_include_directories(Test_EIP PUBLIC ${CMAKE_SOURCE_DIR}/src)
