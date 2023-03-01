@@ -44,7 +44,7 @@ else
 
     find / -name scilla 2> /dev/null
     echo "The CI is running this script. Do we have scilla?"
-    find / -name nonfungible-token 2> /dev/null
+    find / -name loopy-tree-call 2> /dev/null
 
     # install dependencies
     apt update
