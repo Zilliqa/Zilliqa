@@ -59,6 +59,7 @@ else
 
     # We need scilla-fmt in the PATH
     cp /scilla/0/_build/install/default/bin/scilla-fmt /usr/local/bin
+    cp /scilla/0/_build/install/default/bin/scilla-server /usr/local/bin
     pwd
 
     echo "SAEEEEEEEED"
