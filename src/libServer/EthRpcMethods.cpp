@@ -1342,7 +1342,6 @@ Json::Value EthRpcMethods::GetEthBlockCommon(
         continue;
       }
       transactions.push_back(std::move(transactionBodyPtr));
-      std::cerr << "pushing..." << std::endl;
     }
   }
 
