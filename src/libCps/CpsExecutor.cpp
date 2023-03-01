@@ -19,6 +19,7 @@
 #include "libCps/Amount.h"
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecuteValidator.h"
+#include "libCps/CpsMetrics.h"
 #include "libCps/CpsRunEvm.h"
 #include "libCps/CpsRunScilla.h"
 #include "libCps/CpsUtils.h"
@@ -29,8 +30,6 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/SafeMath.h"
 
-#include "libMetrics/Api.h"
-
 namespace libCps {
 
 CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
@@ -39,16 +38,24 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
 
 CpsExecuteResult CpsExecutor::PreValidateEvmRun(
     const EvmProcessContext& context) const {
-  TRACE(zil::trace::FilterClass::DEMO);
+  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+              ProtoToAddress(context.GetEvmArgs().origin()).hex(),
+              ProtoToAddress(context.GetEvmArgs().address()).hex(),
+              ProtoToAddress(context.GetEvmArgs().origin()).hex(),
+              ProtoToUint(context.GetEvmArgs().apparent_value())
+                  .convert_to<std::string>())
+
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(
       ProtoToAddress(context.GetEvmArgs().origin()));
 
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
   if (!amountResult.isSuccess) {
+    span.SetError("Insufficient balance to initiate cps from evm");
     return amountResult;
   }
   const auto gasResult = CpsExecuteValidator::CheckGasLimit(context);
   if (!gasResult.isSuccess) {
+    span.SetError("Insufficient gas to initiate cps from evm");
     return gasResult;
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
@@ -56,9 +63,7 @@ CpsExecuteResult CpsExecutor::PreValidateEvmRun(
 
 CpsExecuteResult CpsExecutor::PreValidateScillaRun(
     const ScillaProcessContext& context) const {
-  TRACE(zil::trace::FilterClass::DEMO);
   if (!mAccountStore.AccountExistsAtomic(context.origin)) {
-    TRACE_ERROR("Invalid Account");
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
   }
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(context.origin);
@@ -94,7 +99,6 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
     if (!mAccountStore.TransferBalanceAtomic(
             clientContext.origin, clientContext.recipient,
             Amount::fromQa(clientContext.amount))) {
-            TRACE_ERROR("Insufficient Balance");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
     mTxReceipt.SetCumGas(NORMAL_TRAN_GAS);
@@ -163,11 +167,11 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   TakeGasFromAccount(clientContext);
 
-  CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
-                    clientContext.GetDirect(),
-                    clientContext.GetEvmArgs().estimate(),
-                    clientContext.GetEvmArgs().extras(),
-                    CpsUtils::FromEvmContext(clientContext)};
+  const CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
+                          clientContext.GetDirect(),
+                          clientContext.GetEvmArgs().estimate(),
+                          clientContext.GetEvmArgs().extras(),
+                          CpsUtils::FromEvmContext(clientContext)};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create
@@ -191,8 +195,9 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   const bool isFailure = !m_queue.empty() || !runResult.isSuccess;
   const bool isEstimate = !clientContext.GetCommit();
-  // failure or Estimate mode
-  if (isFailure || isEstimate) {
+  const bool isEthCall = cpsCtx.isStatic;
+  // failure or Estimate/EthCall mode
+  if (isFailure || isEstimate || isEthCall) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
     mTxReceipt.clear();
@@ -344,12 +349,8 @@ void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
   m_queue.push_back(std::move(run));
 }
 
-std::string &CpsExecutor::CurrentTrace() {
-  return this->m_txTrace;
-}
+std::string& CpsExecutor::CurrentTrace() { return this->m_txTrace; }
 
-void CpsExecutor::TxTraceClear() {
-  this->m_txTrace.clear();
-}
+void CpsExecutor::TxTraceClear() { this->m_txTrace.clear(); }
 
 }  // namespace libCps
