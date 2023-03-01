@@ -1597,6 +1597,9 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
     return std::nullopt;
   }
 
+  LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+            "Didn't time out waiting for DS leader txn pool");
+
   std::vector<Transaction> result;
   result.swap(m_dsLeaderTxnPool);
   return result;

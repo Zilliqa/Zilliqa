@@ -1239,6 +1239,9 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 
   try {
     TxBlock txBlock;
+    bool is_pending = false;
+
+    LOG_GENERAL(WARNING, "getting block by number...");
 
     if (!isSupportedTag(blockNumberStr)) {
       return Json::nullValue;
@@ -1250,12 +1253,14 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
+      } else if (blockNumberStr == "pending") {
+        LOG_GENERAL(WARNING, "Getting pending TXns block!!");
+        txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+        is_pending = true;
       } else if (isNumber(blockNumberStr)) {  // exact block number
         const uint64_t blockNum =
             std::strtoull(blockNumberStr.c_str(), nullptr, 0);
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(blockNum);
-      } else if (blockNumberStr == "pending") {
-        txBlock = m_sharedMediator.m_txBlockChain.GetPendingBlock();
       }
     } else {
       // Not supported
@@ -1266,7 +1271,31 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
-    return GetEthBlockCommon(txBlock, includeFullTransactions);
+    auto ret =  GetEthBlockCommon(txBlock, includeFullTransactions);
+
+    if (!is_pending) {
+      return ret;
+    }
+
+    // Special case for pending blocks...
+    LOG_GENERAL(WARNING, "Getting pending TXns block!!");
+    LOG_GENERAL(WARNING, ret);
+
+    auto txns = m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
+    if (!txns) {
+      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
+    }
+
+    Json::Value res = Json::arrayValue;
+    for (const auto &txn : *txns) {
+      res.append(JSONConversion::convertTxtoJson(txn));
+    }
+
+    LOG_GENERAL(WARNING, "TXns recieved...");
+    LOG_GENERAL(WARNING, res);
+
+    return ret;
+
   } catch (const std::exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "
@@ -1431,11 +1460,8 @@ Json::Value EthRpcMethods::GetEthBlockTransactionCountByNumber(
     } else if (blockNumberStr == "earliest") {
       txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
     } else if (blockNumberStr == "pending") {
-
-      //m_sharedMediator.m_filtersAPICache->
-
-      txBlock = m_sharedMediator.m_txBlockChain.GetPendingBlock();
-      //return
+      // Not supported
+      return "0x0";
     } else {
       const uint64_t blockNum =
           std::strtoull(blockNumberStr.c_str(), nullptr, 0);

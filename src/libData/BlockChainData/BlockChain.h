@@ -71,6 +71,25 @@ class BlockChain {
     }
   }
 
+  ///// Returns what is expected to be the pending block given a list of TXns
+  ///// in the leader mempool
+  //// This is only allowed for TxBlocks. Otherwise trigger compilation error
+  //template <class U = T, typename std::enable_if<
+  //    std::is_same<U, TxBlock>::value>::type* = nullptr>
+  //const T& GetPendingBlock() {
+  //  std::lock_guard<std::mutex> g(m_mutexBlocks);
+  //  T block = GetLastBlock();
+  //
+  //  block.
+  //
+  //  //try {
+  //  //  blo m_blocks.back();
+  //  //} catch (...) {
+  //  //  static T defaultBlock;
+  //  //  return defaultBlock;
+  //  //}
+  //}
+
   /// Returns the block at the specified block number.
   T GetBlock(const uint64_t& blockNum) {
     std::lock_guard<std::mutex> g(m_mutexBlocks);
