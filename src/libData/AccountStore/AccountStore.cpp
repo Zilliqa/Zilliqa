@@ -655,20 +655,20 @@ bool AccountStore::UpdateAccountsTemp(
       zil::local::GetEvmLatency().Record(
           (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
     }
-    if (not isEvm && zil::local::GetScillaLatency().Enabled()) {
-          zil::local::GetScillaLatency().Record(
-                  (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
-    }
-    if (zil::local::GetGasUsed().Enabled()){
-        double gasUsed = receipt.GetCumGas();
-        zil::local::GetGasUsed().Record( gasUsed , {{isEvm ? "evm" : "scilla", __FUNCTION__}});
-    }
-    if (zil::local::GetSizeUsed().Enabled()){
-        if (not transaction.GetCode().empty()) {
-            double size = transaction.GetCode().size();
-            zil::local::GetSizeUsed().Record(size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
-        }
-    }
+    //if (not isEvm && zil::local::GetScillaLatency().Enabled()) {
+    //      zil::local::GetScillaLatency().Record(
+    //              (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
+    //}
+    //if (zil::local::GetGasUsed().Enabled()){
+    //    double gasUsed = receipt.GetCumGas();
+    //    zil::local::GetGasUsed().Record( gasUsed , {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+    //}
+    //if (zil::local::GetSizeUsed().Enabled()){
+    //    if (not transaction.GetCode().empty()) {
+    //        double size = transaction.GetCode().size();
+    //        zil::local::GetSizeUsed().Record(size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
+    //    }
+    //}
   }
   return status;
 }
