@@ -26,6 +26,7 @@
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMetrics/Api.h"
+#include "libMetrics/Tracing.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 
@@ -130,9 +131,15 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
 }
 
 std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
+  using namespace zil::trace;
+
   evm::EvmResult result;
-  const auto worker = [args = std::cref(mProtoArgs), &result]() -> void {
+  const auto worker = [args = std::cref(mProtoArgs), &result,
+                       trace_info =
+                           Tracing::GetActiveSpan().GetIds()]() -> void {
     try {
+      auto span = Tracing::CreateChildSpanOfRemoteTrace(
+          FilterClass::FILTER_CLASS_ALL, "InvokeEvm", trace_info);
       EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                           result);
     } catch (std::exception& e) {
