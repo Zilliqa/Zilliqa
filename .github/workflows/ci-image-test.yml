@@ -26,7 +26,7 @@ jobs:
       shell: bash
     - name: Run ctest tests
       run: |
-        docker run --rm -i zilliqa:tests ctest --test-dir build
+        docker run --rm -i zilliqa:tests ctest --test-dir build --output-on-failure
       shell: bash
     - name: Run integration tests
       run: |
