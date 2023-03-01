@@ -197,6 +197,9 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   const auto transferValue = ProtoToUint(callData.transfer().value());
   if (transferValue > 0) {
     if (remainingGas < MIN_ETH_GAS) {
+      LOG_GENERAL(WARNING, "Insufficient gas in call-trap, remaining: "
+                               << remainingGas
+                               << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in call-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
       span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
@@ -256,9 +259,13 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
 
     if (fromAccount != mCpsContext.origSender &&
         fromAccount != ProtoToAddress(mProtoArgs.address())) {
+      LOG_GENERAL(
+          WARNING,
+          "Source is incorrect for value transfer in call-trap, source addr: "
+              << fromAccount.hex());
       INC_STATUS(GetCPSMetric(), "error",
-                 "Origin is incorrect for value transfer in call-trap");
-      span.SetError("Origin(val: " + fromAccount.hex() +
+                 "Source addr is incorrect for value transfer in call-trap");
+      span.SetError("Addr(val: " + fromAccount.hex() +
                     ") is invalid for value transfer in call-trap");
       return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
     }
@@ -267,6 +274,8 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
         mAccountStore.GetBalanceForAccountAtomic(fromAccount);
     const auto requestedValue = Amount::fromWei(transferValue);
     if (requestedValue > currentBalance) {
+      LOG_GENERAL(WARNING,
+                  "From account has insufficient balance in call-trap");
       TRACE_ERROR("Insufficient balance");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance in call-trap");
       span.SetError(
@@ -330,6 +339,9 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   if (transferValue > 0) {
     if (remainingGas < MIN_ETH_GAS) {
+      LOG_GENERAL(WARNING, "Insufficient gas in create-trap, remaining: "
+                               << remainingGas
+                               << ", required: " << MIN_ETH_GAS);
       TRACE_ERROR("Insufficient gas in create-trap");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas in call-trap");
       span.SetError("Insufficient gas, given: " + std::to_string(remainingGas) +
@@ -359,6 +371,8 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
         {}, DataConversion::StringToCharArray(createData.call_data()));
 
     if (baseFee > targetGas) {
+      LOG_GENERAL(WARNING, "Insufficient gas in create-trap, fee: "
+                               << baseFee << ", targetGas: " << targetGas);
       TRACE_ERROR("Insufficient target gas in create-trap");
       INC_STATUS(GetCPSMetric(), "error",
                  "Insufficient target gas in call-trap");
@@ -387,8 +401,11 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
   {
     if (transferValue > 0) {
       const auto currentAddress = ProtoToAddress(mProtoArgs.address());
-      if (fromAddress != currentAddress ||
+      if (fromAddress != currentAddress &&
           fromAddress != mCpsContext.origSender) {
+        LOG_GENERAL(WARNING,
+                    "Incorrect from address in create-trap, fromAddress: "
+                        << fromAddress.hex());
         INC_STATUS(GetCPSMetric(), "error",
                    "Invalid from account in create-trap");
         span.SetError("Invalid from account. fromAddress: " +
@@ -401,6 +418,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
       const auto requestedValue =
           Amount::fromWei(ProtoToUint(createData.value()));
       if (requestedValue > currentBalance) {
+        LOG_GENERAL(WARNING, "Insufficient balance in create-trap");
         INC_STATUS(GetCPSMetric(), "error",
                    "Insufficient balance in create-trap");
         span.SetError(
