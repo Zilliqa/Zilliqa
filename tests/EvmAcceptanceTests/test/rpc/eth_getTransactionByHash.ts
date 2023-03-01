@@ -14,8 +14,7 @@ describe("Calling " + METHOD, function () {
       }
     });
 
-    // FIXME: https://zilliqa-jira.atlassian.net/browse/EM-53
-    xit("should have valid structure in response", async function () {
+    it("should have valid structure in response", async function () {
       const to = ethers.Wallet.createRandom();
       const {response, signer_address} = await parallelizer.sendTransaction({
         to: to.address,
