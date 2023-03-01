@@ -58,6 +58,7 @@ else
     node --version
 
     # We need scilla-fmt in the PATH
+    ls -al /scilla
     cp /scilla/0/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-server /usr/local/bin
     pwd
