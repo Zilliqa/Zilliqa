@@ -209,8 +209,6 @@ RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
-# pour in scilla tests
-COPY --from=scilla  /scilla/0/tests                /scilla/0/tests
 # pour in scilla conntract stdlibs
 COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
 # pour in zilliqa scripts
@@ -253,7 +251,7 @@ RUN rm -f /usr/local/bin/gcc \
     && ln -s "$(which ccache)" /usr/local/bin/c++
 
 ARG PYTHON3_ENV_PATH=/usr/local
-RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \ 
+RUN update-alternatives --install /usr/bin/python python ${PYTHON3_ENV_PATH}/bin/python3.10 10 \
   && update-alternatives --install /usr/bin/python3 python3 ${PYTHON3_ENV_PATH}/bin/python3.10 10 # set python3 as default instead python3
 
 RUN echo '#!/bin/bash\npython3 -m pip "$@"' > /usr/bin/pip3 \
