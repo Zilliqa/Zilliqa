@@ -25,6 +25,7 @@
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libEth/utils/EthUtils.h"
 #include "libMetrics/Api.h"
+#include "libMetrics/Tracing.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
 
@@ -33,7 +34,8 @@
 #include <future>
 
 Z_I64METRIC& GetCPSMetric() {
-  static Z_I64METRIC counter{Z_FL::CPS, "cps.counter", "Calls into cps","calls"};
+  static Z_I64METRIC counter{Z_FL::CPS, "cps.counter", "Calls into cps",
+                             "calls"};
   return counter;
 }
 
@@ -113,7 +115,6 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
   const auto& exit_reason_case = evmResult.exit_reason().exit_reason_case();
 
   if (exit_reason_case == evm::ExitReason::ExitReasonCase::kTrap) {
-
     return HandleTrap(evmResult);
   } else if (exit_reason_case == evm::ExitReason::ExitReasonCase::kSucceed) {
     HandleApply(evmResult, receipt);
@@ -129,9 +130,15 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
 }
 
 std::optional<evm::EvmResult> CpsRunEvm::InvokeEvm() {
+  using namespace zil::trace;
+
   evm::EvmResult result;
-  const auto worker = [args = std::cref(mProtoArgs), &result]() -> void {
+  const auto worker = [args = std::cref(mProtoArgs), &result,
+                       trace_info =
+                           Tracing::GetActiveSpan().GetIds()]() -> void {
     try {
+      auto span = Tracing::CreateChildSpanOfRemoteTrace(
+          FilterClass::FILTER_CLASS_ALL, "InvokeEvm", trace_info);
       EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                           result);
     } catch (std::exception& e) {
@@ -269,7 +276,7 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
   const auto calleeAddr = ProtoToAddress(callData.callee_address());
 
   if (IsNullAddress(calleeAddr)) {
-    TRACE_ERROR( "Invalid account called...");
+    TRACE_ERROR("Invalid account called...");
     INC_STATUS(GetCPSMetric(), "error", "Invalid account");
     return {TxnStatus::INVALID_TO_ACCOUNT, false, {}};
   }
@@ -312,13 +319,13 @@ CpsExecuteResult CpsRunEvm::ValidateCallTrap(const evm::TrapData_Call& callData,
         mAccountStore.GetBalanceForAccountAtomic(tnsfOriginAddr);
     const auto requestedValue = Amount::fromWei(tnsfVal);
     if (requestedValue > currentBalance) {
-      TRACE_ERROR( "insufficient bal.");
+      TRACE_ERROR("insufficient bal.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient balance");
       return {TxnStatus::INSUFFICIENT_BALANCE, false, {}};
     }
 
     if (!requestedValue.isZero() && remainingGas < MIN_ETH_GAS) {
-      TRACE_ERROR( "insufficient gas.");
+      TRACE_ERROR("insufficient gas.");
       INC_STATUS(GetCPSMetric(), "error", "Insufficient gas");
       return {TxnStatus::INSUFFICIENT_GAS_LIMIT, false, {}};
     }
