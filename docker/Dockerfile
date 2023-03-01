@@ -204,6 +204,19 @@ FROM zilliqa/scilla:${SCILLA_VERSION} AS scilla
 # run a copy -L to unfold the symlinkes, and strip all exes
 RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /scilla/0/bin2/*
 
+FROM builder AS test_runner
+RUN mkdir -p \
+    /scilla/0/bin /scilla/0/src/stdlib
+# pour in scilla binaries
+COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
+# pour in scilla conntract stdlibs
+COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
+# pour in zilliqa scripts
+COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
+# pour in zilliqa binaries and dynnamic libs
+WORKDIR /zilliqa
+
+
 FROM base
 
 # make dirs for scilla and zilliqa
