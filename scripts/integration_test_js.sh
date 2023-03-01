@@ -42,6 +42,9 @@ else
     echo "The CI is running this script."
     # Install dependencies silently on the CI server
 
+    find / -name scilla 2> /dev/null
+    echo "The CI is running this script. Do we have scilla?"
+
     # install dependencies
     apt update
     apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
