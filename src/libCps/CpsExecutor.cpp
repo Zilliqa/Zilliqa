@@ -167,11 +167,11 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   TakeGasFromAccount(clientContext);
 
-  CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
-                    clientContext.GetDirect(),
-                    clientContext.GetEvmArgs().estimate(),
-                    clientContext.GetEvmArgs().extras(),
-                    CpsUtils::FromEvmContext(clientContext)};
+  const CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
+                          clientContext.GetDirect(),
+                          clientContext.GetEvmArgs().estimate(),
+                          clientContext.GetEvmArgs().extras(),
+                          CpsUtils::FromEvmContext(clientContext)};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create
@@ -195,8 +195,9 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   const bool isFailure = !m_queue.empty() || !runResult.isSuccess;
   const bool isEstimate = !clientContext.GetCommit();
-  // failure or Estimate mode
-  if (isFailure || isEstimate) {
+  const bool isEthCall = cpsCtx.isStatic;
+  // failure or Estimate/EthCall mode
+  if (isFailure || isEstimate || isEthCall) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
     mTxReceipt.clear();
