@@ -24,6 +24,10 @@ jobs:
     - name: Build Docker images
       run: DOCKER_BUILDKIT=1 docker build --build-arg EXTRA_BUILD_PARAMS="debug tests" --target builder -t zilliqa:tests -f docker/Dockerfile .
       shell: bash
+    - name: Run ctest tests
+      run: |
+        docker run --rm -i zilliqa:tests cd build && ctest
+      shell: bash
     - name: Run integration tests
       run: |
         docker run --rm -i zilliqa:tests scripts/integration_test_js.sh --setup-env
