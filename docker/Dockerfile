@@ -209,6 +209,8 @@ RUN mkdir -p \
     /scilla/0/bin /scilla/0/src/stdlib
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
+# pour in scilla tests
+COPY --from=scilla  /scilla/0/tests                /scilla/0/tests
 # pour in scilla conntract stdlibs
 COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
 # pour in zilliqa scripts
