@@ -373,6 +373,12 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_traceBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &EthRpcMethods::DebugTraceBlockByNumberI);
+
+  m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, nullptr),
       &EthRpcMethods::GetDSLeaderTxnPoolI);
@@ -1836,6 +1842,26 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
   }
 
   return res;
+}
+
+Json::Value EthRpcMethods::DebugTraceBlockByNumber(
+    const std::string& blockNum, const Json::Value& json) {
+
+  auto blockByNumber = GetEthBlockByNumber(blockNum, false);
+
+  LOG_GENERAL(WARNING, "Got block by number! ");
+
+  Json::Value ret = Json::objectValue;
+  Json::Value calls = Json::arrayValue;
+
+  // Construct an array of calls corresponding to the TXs
+  for (auto &tx : blockByNumber["transactions"]) {
+    LOG_GENERAL(WARNING, "Got tx! " << tx["hash"]);
+    calls.append(DebugTraceTransaction(tx["hash"]));
+  }
+
+  ret["calls"] = calls;
+  return ret;
 }
 
 Json::Value EthRpcMethods::DebugTraceTransaction(

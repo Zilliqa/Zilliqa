@@ -454,6 +454,12 @@ void IsolatedServer::BindAllEvmMethods() {
                            jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
                            "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT, NULL),
         &LookupServer::DebugTraceTransactionI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("debug_traceBlockByNumber",
+                           jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                           "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT, NULL),
+        &LookupServer::DebugTraceBlockByNumberI);
   }
 }
 
