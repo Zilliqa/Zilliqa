@@ -48,7 +48,6 @@
 #include "libUtils/SafeMath.h"
 #include "libUtils/TimeUtils.h"
 
-
 // These two violate our own standards.
 using namespace jsonrpc;
 using namespace std;
@@ -130,7 +129,8 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceCall", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_OBJECT,
-                         "param02", jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_OBJECT, NULL),
+                         "param02", jsonrpc::JSON_STRING, "param03",
+                         jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceCallI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -368,8 +368,8 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
 
   m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("debug_traceTransaction", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT,
-                         NULL),
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING,
+                         "param02", jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -388,8 +388,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     Eth::EthFields const &fields, zbytes const &pubKey,
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
-
-  TRACE(zil::trace::FilterClass::DEMO );
+  TRACE(zil::trace::FilterClass::DEMO);
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -400,7 +399,6 @@ std::string EthRpcMethods::CreateTransactionEth(
 
     throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
                            "Sent to a non-lookup");
-
   }
 
   if (Mediator::m_disableTxns) {
@@ -414,13 +412,13 @@ std::string EthRpcMethods::CreateTransactionEth(
   {
     std::stringstream ss;
     ss << tx.GetTranID();
-    span.SetAttribute("txn.id",ss.str());
+    span.SetAttribute("txn.id", ss.str());
     ss.clear();
     ss << tx.GetSenderAddr();
-    span.SetAttribute("txn.from.id",ss.str());
+    span.SetAttribute("txn.from.id", ss.str());
     ss.clear();
     ss << tx.GetToAddr();
-    span.SetAttribute("txn.to.id",ss.str());
+    span.SetAttribute("txn.to.id", ss.str());
   }
 
   try {
@@ -453,7 +451,7 @@ std::string EthRpcMethods::CreateTransactionEth(
         TRACE_ERROR("failed to validate TX!");
         return ret;
       }
-      TRACE_EVENT("Validated","status","OK");
+      TRACE_EVENT("Validated", "status", "OK");
     }
 
     const unsigned int shard = Transaction::GetShardIndex(fromAddr, num_shards);
@@ -495,7 +493,7 @@ std::string EthRpcMethods::CreateTransactionEth(
         mapIndex = num_shards;
       }
     }
-    TRACE_EVENT( "Dispatching", "MapIndex", "some function");
+    TRACE_EVENT("Dispatching", "MapIndex", "some function");
     if (!targetFunc(tx, mapIndex)) {
       throw JsonRpcException(ServerBase::RPC_DATABASE_ERROR,
                              "Txn could not be added as database exceeded "
@@ -557,8 +555,12 @@ std::pair<std::string, unsigned int> EthRpcMethods::CheckContractTxnShards(
         "and receiver";
   } else {
     if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-      throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-      (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
+      throw JsonRpcException(
+          ServerBase::RPC_INVALID_PARAMETER,
+          (boost::format(
+               "txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") %
+           tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT)
+              .str());
     }
     if (ARCHIVAL_LOOKUP) {
       mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;
@@ -638,16 +640,19 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
     Json::Value trace_json;
     JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
 
-    if(tracer.compare("callTracer") == 0) {
+    if (tracer.compare("callTracer") == 0) {
       auto const item = trace_json["call_tracer"][0];
       parsed = item;
     } else if (tracer.compare("raw") == 0) {
       auto const item = trace_json["raw_tracer"];
       parsed = item;
     } else {
-      throw JsonRpcException(ServerBase::RPC_MISC_ERROR, std::string("Only callTracer and raw are supported. Received: ") + tracer);
+      throw JsonRpcException(
+          ServerBase::RPC_MISC_ERROR,
+          std::string("Only callTracer and raw are supported. Received: ") +
+              tracer);
     }
-  } catch (exception& e) {
+  } catch (exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
@@ -656,7 +661,8 @@ Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
 }
 
 string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
-                                    const string &block_or_tag, const Json::Value &tracer) {
+                                        const string &block_or_tag,
+                                        const Json::Value &tracer) {
   INC_CALLS(GetInvocationsCounter());
 
   if (!isSupportedTag(block_or_tag)) {
@@ -664,7 +670,7 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
                            "Unsupported block or tag in debug_TraceCall");
   }
 
-  if(!TX_TRACES) {
+  if (!TX_TRACES) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            "TX traces are not enabled for this server");
   }
@@ -676,18 +682,20 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
     tracerType = tracer["tracer"].asString();
   }
 
-  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"}, tracerType);
+  return this->GetEthCallImpl(_json, {"from", "to", "value", "gas", "data"},
+                              tracerType);
 }
 
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   Address fromAddr;
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO, __FUNCTION__);
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
+                                              __FUNCTION__);
 
   INC_CALLS(GetInvocationsCounter());
 
   if (!json.isMember("from")) {
-    TRACE_ERROR( "Missing from account");
+    TRACE_ERROR("Missing from account");
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Missing from field");
   } else {
     fromAddr = Address{json["from"].asString()};
@@ -713,7 +721,7 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
             ? AccountStore::GetInstance().GetAccount(fromAddr, true)
             : nullptr;
     if (sender == nullptr) {
-      TRACE_ERROR( "Sender doesn't exist");
+      TRACE_ERROR("Sender doesn't exist");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                              "Sender doesn't exist");
     }
@@ -808,9 +816,9 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 
   {
     std::stringstream ss;
-    ss << "msg " << fromAddr << " to " << toAddr
-       << " gas " << gas << " value " << value << " block " << blockNum;
-    TRACE_EVENT("GasEstimate","informational",ss.str());
+    ss << "msg " << fromAddr << " to " << toAddr << " gas " << gas << " value "
+       << value << " block " << blockNum;
+    TRACE_EVENT("GasEstimate", "informational", ss.str());
   }
 
   EvmProcessContext evmMessageContext(fromAddr, toAddr, code, data, gas, value,
@@ -844,8 +852,6 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
     }
     LOG_GENERAL(WARNING, "Gas estimated: " << retGas);
 
-    retGas *= 2;
-
     return (boost::format("0x%x") % retGas).str();
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
@@ -863,7 +869,8 @@ std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
 }
 
 string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
-                                     const ApiKeys &apiKeys, std::string const& tracer) {
+                                     const ApiKeys &apiKeys,
+                                     std::string const &tracer) {
   LOG_GENERAL(WARNING, "GetEthCall:" << _json);
   TRACE(zil::trace::FilterClass::DEMO);
   INC_CALLS(GetInvocationsCounter());
@@ -948,7 +955,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
   }
 
   // tracerException : we want only the call trace
-  if(!tracer.empty()) {
+  if (!tracer.empty()) {
     LOG_GENERAL(WARNING, "Returning trace! ");
     LOG_GENERAL(WARNING, result.tx_trace());
     return extractTracer(tracer, result.tx_trace()).asString();
@@ -961,7 +968,6 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
     return "0x" + return_value;
   } else if (result.exit_reason().exit_reason_case() ==
              evm::ExitReason::kRevert) {
-
     LOG_GENERAL(WARNING, "Warning! Execution reverted...");
     // Error code 3 is a special case. It is practially documented only in geth
     // and its clones, e.g. here:
@@ -977,12 +983,10 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
 std::string EthRpcMethods::GetWeb3ClientVersion() {
   INC_CALLS(GetInvocationsCounter());
 
-
   return "Zilliqa/v8.2";
 }
 
 string EthRpcMethods::GetWeb3Sha3(const Json::Value &_json) {
-
   INC_CALLS(GetInvocationsCounter());
 
   zbytes input = DataConversion::HexStrToUint8VecRet(_json.asString());
@@ -991,7 +995,6 @@ string EthRpcMethods::GetWeb3Sha3(const Json::Value &_json) {
 }
 
 Json::Value EthRpcMethods::GetEthUncleCount() {
-
   INC_CALLS(GetInvocationsCounter());
 
   // There's no concept of longest chain hence there will be no uncles
@@ -1000,7 +1003,6 @@ Json::Value EthRpcMethods::GetEthUncleCount() {
 }
 
 Json::Value EthRpcMethods::GetEthUncleBlock() {
-
   INC_CALLS(GetInvocationsCounter());
 
   // There's no concept of longest chain hence there will be no uncles
@@ -1009,14 +1011,12 @@ Json::Value EthRpcMethods::GetEthUncleBlock() {
 }
 
 Json::Value EthRpcMethods::GetEthMining() {
-
   INC_CALLS(GetInvocationsCounter());
 
   return Json::Value(false);
 }
 
 std::string EthRpcMethods::GetEthCoinbase() {
-
   INC_CALLS(GetInvocationsCounter());
 
   throw JsonRpcException(ServerBase::RPC_INVALID_REQUEST,
@@ -1025,42 +1025,36 @@ std::string EthRpcMethods::GetEthCoinbase() {
 }
 
 Json::Value EthRpcMethods::GetNetListening() {
-
   INC_CALLS(GetInvocationsCounter());
 
   return Json::Value(true);
 }
 
 std::string EthRpcMethods::GetNetPeerCount() {
-
   INC_CALLS(GetInvocationsCounter());
 
   return "0x0";
 }
 
 std::string EthRpcMethods::GetProtocolVersion() {
-
   INC_CALLS(GetInvocationsCounter());
 
   return "0x41";  // Similar to Infura, Alchemy
 }
 
 std::string EthRpcMethods::GetEthChainId() {
-
   INC_CALLS(GetInvocationsCounter());
 
   return (boost::format("0x%x") % ETH_CHAINID).str();
 }
 
 Json::Value EthRpcMethods::GetEthSyncing() {
-
   INC_CALLS(GetInvocationsCounter());
 
   return Json::Value(false);
 }
 
 Json::Value EthRpcMethods::GetEmptyResponse() {
-
   INC_CALLS(GetInvocationsCounter());
 
   const Json::Value expectedResponse = Json::arrayValue;
@@ -1109,7 +1103,6 @@ Json::Value EthRpcMethods::GetEthTransactionByHash(
 Json::Value EthRpcMethods::GetEthStorageAt(std::string const &address,
                                            std::string const &position,
                                            std::string const & /*blockNum*/) {
-
   INC_CALLS(GetInvocationsCounter());
 
   Json::Value indices = Json::arrayValue;
@@ -1866,7 +1859,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
                            "The node is not configured to store Tx traces");
   }
 
-  if(!TX_TRACES) {
+  if (!TX_TRACES) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            "The node is not configured to generate Tx traces");
   }
@@ -1890,7 +1883,7 @@ Json::Value EthRpcMethods::DebugTraceTransaction(
     }
 
     return extractTracer(json["tracer"].asString(), trace);
-  } catch (exception& e) {
+  } catch (exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << ". Input: " << txHash);
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
