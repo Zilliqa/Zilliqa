@@ -105,8 +105,8 @@ else
         ls -la
 
         # For convenience move the required files to tmp directory
-        cp /usr/local/bin/evm-ds /tmp || exit 1
-        cp /usr/local/etc/log4rs.yml /tmp
+        cp /zilliqa/evm-ds/target/release/evm-ds /tmp || exit 1
+        cp /zilliqa/evm-ds/log4rs.yml /tmp
 
         # Modify constants.xml for use by isolated server
         cp constants.xml constants_backup.xml
@@ -117,7 +117,7 @@ else
     fi
 
     echo "Starting isolated server..."
-    /usr/local/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
+    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
 
     sleep 10
 
