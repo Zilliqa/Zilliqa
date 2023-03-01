@@ -183,6 +183,13 @@ void IsolatedServer::BindAllEvmMethods() {
         &LookupServer::GetEthCallEthI);
 
     AbstractServer<IsolatedServer>::bindAndAddMethod(
+        jsonrpc::Procedure("debug_traceCall", jsonrpc::PARAMS_BY_POSITION,
+                           jsonrpc::JSON_STRING, "param01",
+                           jsonrpc::JSON_OBJECT, "param02",
+                           jsonrpc::JSON_STRING, "param03", jsonrpc::JSON_OBJECT, NULL),
+        &LookupServer::DebugTraceCallI);
+
+    AbstractServer<IsolatedServer>::bindAndAddMethod(
         jsonrpc::Procedure("evm_mine", jsonrpc::PARAMS_BY_POSITION,
                            jsonrpc::JSON_STRING, NULL),
         &IsolatedServer::GetEvmMineI);

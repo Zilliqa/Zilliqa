@@ -116,7 +116,7 @@ class DoubleGauge {
  public:
   DoubleGauge(zil::metrics::FilterClass fc, const std::string &name, const std::string &description, const std::string &units,
               bool)
-      : m_theGauge(Metrics::GetInstance().CreateDoubleGauge(zil::metrics::GetFullName(METRIC_FAMILY, name), description, units)),
+      : m_theGauge(Metrics::GetInstance().CreateDoubleGauge(name, description, units)),
         m_fc(fc) {}
 
   using Callback = std::function<void(Observable::Result &&result)>;
@@ -134,7 +134,7 @@ class I64Gauge {
  public:
   I64Gauge(zil::metrics::FilterClass fc, const std::string &name, const std::string &description, const std::string &units,
            bool )
-      : m_theGauge(Metrics::GetInstance().CreateInt64Gauge(GetFullName(METRIC_FAMILY, name), description, units)), m_fc(fc) {}
+      : m_theGauge(Metrics::GetInstance().CreateInt64Gauge(name, description, units)), m_fc(fc) {}
 
   using Callback = std::function<void(Observable::Result &&result)>;
 

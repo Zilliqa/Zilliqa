@@ -257,7 +257,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   TxnStatus error_code;
   std::chrono::system_clock::time_point tpStart;
 
-  TRACE(zil::trace::FilterClass::ACC_EVM);
+  TRACE(zil::trace::FilterClass::DEMO);
 
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
@@ -330,10 +330,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     m_curEdges = 0;
     m_curNumShards = numShards;
 
-
-
-
-
     AccountStoreCpsInterface acCpsInterface{*this};
     span.AddEvent("info", {{"Calling","cps"}});
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
@@ -346,7 +342,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
       if(!traces.empty() && evmContext.GetTranID()) {
         LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
-        span.AddEvent("info", {{"trace",traces}});
+        if (0) span.AddEvent("info", {{"trace",traces}});
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,

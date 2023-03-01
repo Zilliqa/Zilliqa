@@ -23,7 +23,7 @@
 #include "libUtils/Logger.h"
 
 namespace libCps {
-CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, CpsContext& ctx,
+CpsRunTransfer::CpsRunTransfer(CpsExecutor& executor, const CpsContext& ctx,
                                CpsExecuteResult::ResultType&& prevRunResult,
                                const Address& from, const Address& to,
                                const Amount& amount)
