@@ -53,9 +53,7 @@
   T(ACC_EVM)                    \
   T(NODE)                       \
   T(ACC_HISTOGRAM)              \
-  T(DEMO)                       \
-  T(CPS_EVM)                    \
-  T(CPS_SCILLA)
+  T(DEMO)
 
 namespace zil::trace {
 
