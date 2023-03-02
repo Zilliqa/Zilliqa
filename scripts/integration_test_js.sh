@@ -44,7 +44,7 @@ else
 
     # install dependencies
     apt update
-    apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates tree
+    apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
     ## Adding the NodeSource signing key to your keyring...
     curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
 
@@ -58,24 +58,10 @@ else
     node --version
 
     # We need scilla-fmt in the PATH
-    tree /scilla
-    ls -al /scilla/0
     cp /scilla/0/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-checker /usr/local/bin
     cp /scilla/0/bin/scilla-server /usr/local/bin
 
-    pwd
-
-    echo "SAEEEEEEEED"
-    scilla-server --version
-
-    echo "SAEEEEEEEED"
-    scilla-checker -gaslimit 8000 -libdir /scilla/0/src/stdlib tests/EvmAcceptanceTests/contracts/scilla/ByStr.scilla
-    retVal=$?
-    if [ $retVal -ne 0 ]; then
-        echo "!!!!!! Error with JS integration test !!!!!!"
-        exit 1
-    fi
     pkill -9 isolatedServer
     pkill -9 evm-ds
 
@@ -102,7 +88,7 @@ else
         sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
         sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/tmp\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
         sed -i 's/.SCILLA_ROOT.*/<SCILLA_ROOT>\/scilla<\/SCILLA_ROOT>/g' constants.xml
-    #    sed -i 's/.ENABLE_SCILLA_MULTI_VERSION.*/<ENABLE_SCILLA_MULTI_VERSION>false<\/ENABLE_SCILLA_MULTI_VERSION>/g' constants.xml
+        sed -i 's/.ENABLE_SCILLA_MULTI_VERSION.*/<ENABLE_SCILLA_MULTI_VERSION>false<\/ENABLE_SCILLA_MULTI_VERSION>/g' constants.xml
     fi
 
     if [[ -d /zilliqa ]]; then
@@ -124,13 +110,13 @@ else
     fi
 
     echo "Starting isolated server..."
-    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 -t 3000 &
+    ./build/bin/isolatedServer -f isolated-server-accounts.json -u 999 &
 
     sleep 10
 
     cd tests/EvmAcceptanceTests/
     npm install
-    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test test/scilla/HelloWorld.ts
+    DEBUG=true MOCHA_TIMEOUT=300000 npx hardhat test
 
     retVal=$?
     if [ $retVal -ne 0 ]; then
