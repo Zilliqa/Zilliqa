@@ -188,7 +188,7 @@ BOOST_AUTO_TEST_CASE(loopytreecall) {
   LOG_GENERAL(INFO, "loopy-tree-call ended");
 }
 
-BOOST_AUTO_TEST_CASE(salarybot, *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(salarybot) {
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -296,7 +296,7 @@ BOOST_AUTO_TEST_CASE(salarybot, *boost::unit_test::disabled()) {
 #endif
 }
 
-BOOST_AUTO_TEST_CASE(timestamp, *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(timestamp) {
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE(timestamp, *boost::unit_test::disabled()) {
                           << ", received: " << timestampCount);
 }
 
-BOOST_AUTO_TEST_CASE(chainid, *boost::unit_test::disabled()) {
+BOOST_AUTO_TEST_CASE(chainid) {
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
