@@ -28,6 +28,10 @@ jobs:
       run: |
         docker run --rm -i zilliqa:tests /zilliqa/scripts/integration_test_js.sh --setup-env
       shell: bash
+    - name: Run ctest tests
+      run: |
+        docker run --rm -i zilliqa:tests ctest --test-dir build --output-on-failure
+      shell: bash
 
   rust-clippy:
     name: rust-clippy
