@@ -19,7 +19,7 @@
         <INIT_TRIE_DB_SNAPSHOT_EPOCH>0</INIT_TRIE_DB_SNAPSHOT_EPOCH>
         <MAX_ARCHIVED_LOG_COUNT>15</MAX_ARCHIVED_LOG_COUNT>
         <MAX_LOG_FILE_SIZE_KB>15360</MAX_LOG_FILE_SIZE_KB>
-        <JSON_LOGGING>false</JSON_LOGGING>
+        <JSON_LOGGING>true</JSON_LOGGING>
     </general>
     <version>
         <MSG_VERSION>1</MSG_VERSION>
@@ -370,7 +370,7 @@
             <TRACE_ZILLIQA_HOSTNAME>0.0.0.0</TRACE_ZILLIQA_HOSTNAME>
             <TRACE_ZILLIQA_PORT>4318</TRACE_ZILLIQA_PORT>
             <!-- PROVIDER can be OTLPHTTP or STDOUT -->
-            <TRACE_ZILLIQA_PROVIDER>OTLPHTTP</TRACE_ZILLIQA_PROVIDER>
+            <TRACE_ZILLIQA_PROVIDER>NONE</TRACE_ZILLIQA_PROVIDER>
             <!-- ALL means all metrics are enabled -->
             <TRACE_ZILLIQA_MASK>NONE</TRACE_ZILLIQA_MASK>
         </zilliqa>
@@ -379,7 +379,7 @@
         <zilliqa>
             <LOGGING_ZILLIQA_HOSTNAME>localhost</LOGGING_ZILLIQA_HOSTNAME>
             <LOGGING_ZILLIQA_PORT>8090</LOGGING_ZILLIQA_PORT>
-            <!-- PROVIDER can be PROMETHEUS or OTLPHTTP -->
+            <!-- PROVIDER can be OTLPGRPC or OTLPHTTP or whatever for Noop -->
             <LOGGING_ZILLIQA_PROVIDER>NONE</LOGGING_ZILLIQA_PROVIDER>
         </zilliqa>
     </logging>
