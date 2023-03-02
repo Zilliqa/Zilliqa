@@ -1556,6 +1556,8 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   zbytes retMsg = {MessageType::DIRECTORY,
                    DSInstructionType::GETDSLEADERTXNPOOL};
 
+  LOG_GENERAL(WARNING, "NHUT: Get DS leader called!");
+
   if (!Messenger::SetLookupGetDSLeaderTxnPool(
           retMsg, MessageOffset::BODY, m_mediator.m_selfKey,
           m_mediator.m_selfPeer.m_listenPortHost)) {
@@ -1598,7 +1600,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   }
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-            "Didn't time out waiting for DS leader txn pool");
+            "NHUT: Didn't time out waiting for DS leader txn pool");
 
   std::vector<Transaction> result;
   result.swap(m_dsLeaderTxnPool);

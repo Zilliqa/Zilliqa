@@ -1259,7 +1259,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
       } else if (blockNumberStr == "pending") {
-        LOG_GENERAL(WARNING, "Getting pending TXns block!!");
+        LOG_GENERAL(WARNING, "NHUT: Getting pending TXns block!!");
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
         is_pending = true;
       } else if (isNumber(blockNumberStr)) {  // exact block number
@@ -1283,7 +1283,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
     }
 
     // Special case for pending blocks...
-    LOG_GENERAL(WARNING, "Getting pending TXns block!!");
+    LOG_GENERAL(WARNING, "NHUT: Getting pending TXns block!!");
     LOG_GENERAL(WARNING, ret);
 
     auto txns = m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
@@ -1296,7 +1296,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       res.append(JSONConversion::convertTxtoJson(txn));
     }
 
-    LOG_GENERAL(WARNING, "TXns recieved...");
+    LOG_GENERAL(WARNING, "NHUT: TXns recieved...");
     LOG_GENERAL(WARNING, res);
 
     return ret;
