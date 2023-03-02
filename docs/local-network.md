@@ -110,6 +110,8 @@ Grafana login credentials:
     password: admin
 ```
 
+For loading dasboards, check the folder grafana_dashboards.
+
 ## Prometheus URL: http://prometheus.local.z7a.xyz
 
 ## Tempo cluster endpoint: tempo.monitoring.svc.cluster.local

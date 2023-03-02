@@ -3856,6 +3856,8 @@ bool Lookup::ProcessSetDSLeaderTxnPoolFromSeed(
     return false;
   }
 
+  LOG_GENERAL(WARNING, "NHUT: Got DS leader pending TXNs! " << txns.size());
+
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
   m_dsLeaderTxnPool = std::move(txns);
   cv_dsLeaderTxnPool.notify_all();

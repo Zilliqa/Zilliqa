@@ -1246,14 +1246,16 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
     TxBlock txBlock;
     bool is_pending = false;
 
-    LOG_GENERAL(WARNING, "getting block by number...");
+    LOG_GENERAL(WARNING, "NHUT: getting block by number..." << blockNumberStr);
 
     if (!isSupportedTag(blockNumberStr)) {
+      LOG_GENERAL(WARNING, "NHUT: not supported..." << blockNumberStr);
       return Json::nullValue;
     } else if (blockNumberStr == "latest" ||    //
                blockNumberStr == "earliest" ||  //
+               blockNumberStr == "pending" ||  //
                isNumber(blockNumberStr)) {
-      // handle latest, earliest and block number requests
+      // handle latest, earliest, pending and block number requests
       if (blockNumberStr == "latest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
       } else if (blockNumberStr == "earliest") {
@@ -1269,11 +1271,14 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       }
     } else {
       // Not supported
+
+      LOG_GENERAL(WARNING, "NHUT: not supported!!!");
       return Json::nullValue;
     }
 
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
+      LOG_GENERAL(WARNING, "NHUT: not exiting!!!");
       return Json::nullValue;
     }
     auto ret =  GetEthBlockCommon(txBlock, includeFullTransactions);
