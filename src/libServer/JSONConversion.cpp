@@ -81,9 +81,6 @@ const Json::Value JSONConversion::convertTxBlocktoJson(const TxBlock& txblock,
   ret_head["TxnFees"] = (isVacuous ? "0" : txheader.GetRewards().str());
   ret_head["PrevBlockHash"] = txheader.GetPrevHash().hex();
   ret_head["BlockNum"] = to_string(txheader.GetBlockNum());
-
-  LOG_GENERAL(WARNING, "Frustrating2 blocknum is " << to_string(txheader.GetBlockNum()));
-
   ret_head["Timestamp"] = to_string(txblock.GetTimestamp());
 
   ret_head["MbInfoHash"] = txheader.GetMbInfoHash().hex();
@@ -134,8 +131,6 @@ const Json::Value JSONConversion::convertTxBlocktoEthJson(
   Json::Value retJson;
 
   retJson["number"] = (boost::format("0x%x") % txheader.GetBlockNum()).str();
-
-  LOG_GENERAL(WARNING, "Frustrating4 blocknum is " << (boost::format("0x%x") % txheader.GetBlockNum()).str());
   retJson["hash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
   retJson["parentHash"] = std::string{"0x"} + txheader.GetPrevHash().hex();
   // sha3Uncles is calculated as Keccak256(RLP([]))
@@ -225,8 +220,6 @@ const Json::Value JSONConversion::convertDSblocktoJson(const DSBlock& dsblock,
   ret_header["PrevHash"] = dshead.GetPrevHash().hex();
   ret_header["LeaderPubKey"] = static_cast<string>(dshead.GetLeaderPubKey());
   ret_header["BlockNum"] = to_string(dshead.GetBlockNum());
-
-  LOG_GENERAL(WARNING, "Frustrating5 blocknum is " << to_string(dshead.GetBlockNum()));
 
   ret_header["DifficultyDS"] = dshead.GetDSDifficulty();
   ret_header["GasPrice"] = dshead.GetGasPrice().str();
@@ -662,7 +655,6 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   Json::Value retJson;
   auto const tx = txn.GetTransaction();
 
-  LOG_GENERAL(WARNING, "Frustrating6 blocknum is " << (boost::format("0x%x") % txheader.GetBlockNum()).str());
   retJson["blockNumber"] =
       (boost::format("0x%x") % txheader.GetBlockNum()).str();
   retJson["blockHash"] = std::string{"0x"} + txblock.GetBlockHash().hex();
@@ -676,7 +668,6 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
   retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
   retJson["hash"] = "0x" + tx.GetTranID().hex();
-  retJson["argh"] = "argh";
 
   // Concatenated Code and CallData form input entry in response json
   std::string inputField;
