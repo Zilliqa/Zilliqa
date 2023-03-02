@@ -3326,10 +3326,13 @@ void Node::CheckPeers(const vector<Peer> &peers) {
 
 void Node::AddPendingTxn(Transaction const& tx) {
   lock_guard<mutex> g(m_mutexPending);
+
+  LOG_GENERAL(WARNING, "NHUT: Pending tx add!!");
   m_pendingTxns.insert(tx.GetTranID(), tx);
 }
 
 std::vector<Transaction> Node::GetPendingTxns() const {
+  LOG_GENERAL(WARNING, "NHUT: Pending tx get!!");
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 

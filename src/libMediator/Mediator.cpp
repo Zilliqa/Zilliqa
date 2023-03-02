@@ -169,6 +169,14 @@ void Mediator::IncreaseEpochNum() {
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
 
+void Mediator::AddPendingTxn(const Transaction& tx){
+  return m_node->AddPendingTxn(tx);
+}
+
+std::vector<Transaction> Mediator::GetPendingTxns(){
+  return m_node->GetPendingTxns();
+}
+
 uint32_t Mediator::GetShardSize(const bool& useShardStructure) const {
   if (COMM_SIZE > 0) {
     return COMM_SIZE;

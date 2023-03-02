@@ -1053,6 +1053,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     // Remove all TXs from the pending pool
     lock_guard<mutex> g(m_mutexPending);
     for (const auto &txnHash : txsExecuted) {
+      LOG_GENERAL(WARNING, "NHUT: Pending tx remove!!");
       m_pendingTxns.erase(txnHash);
     }
   }

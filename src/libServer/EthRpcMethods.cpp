@@ -403,7 +403,8 @@ std::string EthRpcMethods::CreateTransactionEth(
   auto tx = GetTxFromFields(fields, pubKey, ret);
 
   LOG_GENERAL(WARNING, "NHUT: Adding TX to pending pool " << tx.GetTranID());
-  m_sharedMediator.m_node->AddPendingTxn(tx);
+  //m_sharedMediator.m_node->AddPendingTxn(tx);
+  m_sharedMediator.AddPendingTxn(tx);
 
   // Add some attributes to the span
   {
@@ -1247,14 +1248,19 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 
   try {
     TxBlock txBlock;
+    bool is_pending = false;
 
     if (!isSupportedTag(blockNumberStr)) {
       return Json::nullValue;
     } else if (blockNumberStr == "latest" ||    //
                blockNumberStr == "earliest" ||  //
+               blockNumberStr == "pending" ||  //
                isNumber(blockNumberStr)) {
       // handle latest, earliest and block number requests
       if (blockNumberStr == "latest") {
+        txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+      if (blockNumberStr == "pending") {
+        LOG_GENERAL(WARNING, "NHUT: here we go ...  pending TXns block!!");
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
@@ -1265,11 +1271,13 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       }
     } else {
       // Not supported
+      LOG_GENERAL(WARNING, "NHUT: nullval0");
       return Json::nullValue;
     }
 
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
+      LOG_GENERAL(WARNING, "NHUT: nullval1");
       return Json::nullValue;
     }
     auto ret =  GetEthBlockCommon(txBlock, includeFullTransactions);
@@ -1277,6 +1285,10 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
     if (!is_pending) {
       return ret;
     }
+
+    auto const pending = m_sharedMediator.GetPendingTxns();
+
+    LOG_GENERAL(WARNING, "NHUT: Getting pending TXns size : "<< pending.size());
 
     // Special case for pending blocks...
     LOG_GENERAL(WARNING, "NHUT: Getting pending TXns block!!");
