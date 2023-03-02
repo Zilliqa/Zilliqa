@@ -668,6 +668,7 @@ const Json::Value JSONConversion::convertTxtoEthJson(
   retJson["chainId"] = (boost::format("0x%x") % ETH_CHAINID).str();
   retJson["gasPrice"] = (boost::format("0x%x") % tx.GetGasPriceWei()).str();
   retJson["hash"] = "0x" + tx.GetTranID().hex();
+  retJson["argh"] = "argh";
 
   // Concatenated Code and CallData form input entry in response json
   std::string inputField;
