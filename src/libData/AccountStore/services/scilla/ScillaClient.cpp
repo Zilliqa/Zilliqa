@@ -90,6 +90,8 @@ bool ScillaClient::OpenServer(uint32_t version) {
   }
 
   std::string server_path = root_w_version + "/bin/" + SCILLA_SERVER_BINARY;
+  LOG_GENERAL(WARNING, "SAEEED PATH: " << server_path);
+  
   std::string killStr, executeStr;
 
   if (ENABLE_SCILLA_MULTI_VERSION) {
