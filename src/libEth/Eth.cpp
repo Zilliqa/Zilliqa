@@ -50,6 +50,7 @@ Json::Value populateReceiptHelper(
   ret["transactionHash"] = txnhash;
   ret["blockHash"] = blockHash;
   ret["blockNumber"] = blockNumber;
+  ret["blockNumberIs"] = blockNumber + "xxyy";
   ret["contractAddress"] = contractAddress;
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
   ret["effectiveGasPrice"] = gasPrice.empty() ? "0x0" : gasPrice;
