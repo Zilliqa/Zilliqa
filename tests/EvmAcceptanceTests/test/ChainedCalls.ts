@@ -53,6 +53,14 @@ describe("Chained Contract Calls Functionality", function () {
         assert.equal(status, 200, "has status code");
       });
 
+      console.log("so frustrating ", res);
+
+      // Query the block by number to get the call
+      await sendJsonRpcRequest(METHOD_BLOCK, 1, ["0x"+(res.blockNumber).toString(16), tracer], (result, status) => {
+        assert.equal(status, 200, "has status code");
+        assert.equal(addrOne, result.result["calls"][0]["to"].toLowerCase(), "first call in the result matches the traceTransaction");
+      });
+
       });
 
     it("Should correctly call chained contracts", async function () {
