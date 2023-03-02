@@ -50,6 +50,8 @@ Json::Value populateReceiptHelper(
   ret["transactionHash"] = txnhash;
   ret["blockHash"] = blockHash;
   ret["blockNumber"] = blockNumber;
+
+  LOG_GENERAL(WARNING, "Frustrating1 blocknum is " << blockNumber);
   ret["blockNumberIs"] = blockNumber + "xxyy";
   ret["contractAddress"] = contractAddress;
   ret["cumulativeGasUsed"] = gasUsed.empty() ? "0x0" : gasUsed;
@@ -256,6 +258,9 @@ void DecorateReceiptLogs(Json::Value &logsArrayFromEvm,
     logEntry["transactionHash"] = txHash;
     logEntry["blockHash"] = blockHash;
     logEntry["blockNumber"] = blockNum;
+
+    LOG_GENERAL(WARNING, "Frustrating0 blocknum is " << blockNum);
+
     logEntry["logIndex"] = (boost::format("0x%x") % logIndex).str();
     ++logIndex;
   }
