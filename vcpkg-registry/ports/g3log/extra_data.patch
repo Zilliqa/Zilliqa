@@ -1,0 +1,183 @@
+diff --git a/src/g3log.cpp b/src/g3log.cpp
+index 9d32ee5..870a2c9 100644
+--- a/src/g3log.cpp
++++ b/src/g3log.cpp
+@@ -157,9 +157,10 @@ namespace g3 {
+       /** explicitly copy of all input. This is makes it possibly to use g3log across dynamically loaded libraries
+       * i.e. (dlopen + dlsym)  */
+       void saveMessage(const char* entry, const char* file, int line, const char* function, const LEVELS& level,
+-                       const FilterPred& filter, const char* boolean_expression, int fatal_signal, const char* stack_trace) {
++                       const FilterPred& filter, std::shared_ptr<ExtraData> extra_data,
++                       const char* boolean_expression, int fatal_signal, const char* stack_trace) {
+          LEVELS msgLevel {level};
+-         LogMessagePtr message {std::make_unique<LogMessage>(file, line, function, msgLevel)};
++         LogMessagePtr message {std::make_unique<LogMessage>(file, line, function, msgLevel, std::move(extra_data))};
+          message.get()->write().append(entry);
+          message.get()->setExpression(boolean_expression);
+ 
+diff --git a/src/g3log/g3log.hpp b/src/g3log/g3log.hpp
+index f4617d2..65d8418 100644
+--- a/src/g3log/g3log.hpp
++++ b/src/g3log/g3log.hpp
+@@ -105,7 +105,8 @@ namespace g3 {
+ 
+       // Save the created LogMessage to any existing sinks
+       void saveMessage(const char *message, const char *file, int line, const char *function, const LEVELS &level,
+-                       const FilterPred& filter, const char *boolean_expression, int fatal_signal, const char *stack_trace);
++                       const FilterPred& filter, std::shared_ptr<ExtraData> extra_data,
++                       const char *boolean_expression, int fatal_signal, const char *stack_trace);
+ 
+       // forwards the message to all sinks
+       void pushMessageToLogger(LogMessagePtr log_entry, const FilterPred& filter);
+diff --git a/src/g3log/logcapture.hpp b/src/g3log/logcapture.hpp
+index 2a21863..df8a453 100644
+--- a/src/g3log/logcapture.hpp
++++ b/src/g3log/logcapture.hpp
+@@ -15,6 +15,7 @@
+ #include <sstream>
+ #include <cstdarg>
+ #include <csignal>
++#include <memory>
+ #ifdef _MSC_VER
+ # include <sal.h>
+ #endif
+@@ -38,7 +39,7 @@ struct LogCapture {
+     */
+    LogCapture(const char *file, const int line, const char *function, const LEVELS &level, const char *expression = "", g3::SignalType fatal_signal = SIGABRT, const char *dump = nullptr);
+ 
+-   LogCapture(const char *file, const int line, const char *function, const LEVELS &level, g3::FilterPred filter, const char *expression = "", g3::SignalType fatal_signal = SIGABRT, const char *dump = nullptr);
++   LogCapture(const char *file, const int line, const char *function, const LEVELS &level, g3::FilterPred filter, std::shared_ptr<g3::ExtraData> extra_data = {}, const char *expression = "", g3::SignalType fatal_signal = SIGABRT, const char *dump = nullptr);
+ 
+    // At destruction the message will be forwarded to the g3log worker.
+    // In the case of dynamically (at runtime) loaded libraries, the important thing to know is that
+@@ -80,6 +81,7 @@ struct LogCapture {
+    const char* _expression;
+    const g3::SignalType _fatal_signal;
+    const g3::FilterPred _filter;
++   const std::shared_ptr<g3::ExtraData> _extra_data;
+ 
+ };
+ //} // g3
+diff --git a/src/g3log/loglevels.hpp b/src/g3log/loglevels.hpp
+index 774ec61..c9e8bf4 100644
+--- a/src/g3log/loglevels.hpp
++++ b/src/g3log/loglevels.hpp
+@@ -144,6 +144,12 @@ namespace g3 {
+    struct LogMessage;
+    using FilterPred = std::function<bool (internal::SinkWrapper&, LogMessage&)>;
+ 
++   struct ExtraData
++   {
++      virtual ~ExtraData() noexcept = default;
++   };
++
++
+ #ifdef G3_DYNAMIC_LOGGING
+    // Only safe if done at initialization in a single-thread context
+    namespace only_change_at_initialization {
+diff --git a/src/g3log/logmessage.hpp b/src/g3log/logmessage.hpp
+index 83795ee..d065b81 100644
+--- a/src/g3log/logmessage.hpp
++++ b/src/g3log/logmessage.hpp
+@@ -75,7 +75,7 @@ namespace g3 {
+       LogMessage& operator=(LogMessage other);
+ 
+ 
+-      LogMessage(std::string file, const int line, std::string function, const LEVELS level);
++      LogMessage(std::string file, const int line, std::string function, const LEVELS level, std::shared_ptr<ExtraData> extra_data = {});
+ 
+       explicit LogMessage(const std::string& fatalOsSignalCrashMessage);
+       LogMessage(const LogMessage& other);
+@@ -108,7 +108,6 @@ namespace g3 {
+      void overrideLogDetailsFunc(LogDetailsFunc func) const;
+ 
+ 
+-
+       //
+       // Complete access to the raw data in case the helper functions above
+       // are not enough.
+@@ -123,6 +122,7 @@ namespace g3 {
+       LEVELS _level;
+       std::string _expression; // only with content for CHECK(...) calls
+       mutable std::string _message;
++      std::shared_ptr<ExtraData> _extra_data;
+ 
+ 
+ 
+diff --git a/src/logcapture.cpp b/src/logcapture.cpp
+index ca7d7c2..02dc94c 100644
+--- a/src/logcapture.cpp
++++ b/src/logcapture.cpp
+@@ -41,7 +41,7 @@ void g3::only_change_at_initialization::setMaxMessageSize(size_t max_size) {
+ LogCapture::~LogCapture() noexcept (false) {
+    using namespace g3::internal;
+    SIGNAL_HANDLER_VERIFY();
+-   saveMessage(_stream.str().c_str(), _file, _line, _function, _level, _filter, _expression, _fatal_signal, _stack_trace.c_str());
++   saveMessage(_stream.str().c_str(), _file, _line, _function, _level, _filter, _extra_data, _expression, _fatal_signal, _stack_trace.c_str());
+ }
+ 
+ 
+@@ -55,9 +55,9 @@ LogCapture::LogCapture(const LEVELS &level, g3::SignalType fatal_signal, const c
+  * @expression for CHECK calls
+  * @fatal_signal for failed CHECK:SIGABRT or fatal signal caught in the signal handler
+  */
+-LogCapture::LogCapture(const char *file, const int line, const char *function, const LEVELS &level, g3::FilterPred filter, const char *expression, g3::SignalType fatal_signal, const char *dump)
++LogCapture::LogCapture(const char *file, const int line, const char *function, const LEVELS &level, g3::FilterPred filter, std::shared_ptr<g3::ExtraData> extra_data, const char *expression, g3::SignalType fatal_signal, const char *dump)
+    : _file(file), _line(line), _function(function), _level(level), _expression(expression), _fatal_signal(fatal_signal),
+-     _filter(std::move(filter)) {
++     _filter(std::move(filter)), _extra_data(std::move(extra_data)) {
+ 
+    if (g3::internal::wasFatal(level)) {
+       _stack_trace = std::string{"\n*******\tSTACKDUMP *******\n"};
+@@ -67,7 +67,7 @@ LogCapture::LogCapture(const char *file, const int line, const char *function, c
+ 
+ LogCapture::LogCapture(const char *file, const int line, const char *function, const LEVELS &level,
+                        const char *expression, g3::SignalType fatal_signal, const char *dump)
+-   : LogCapture(file, line, function, level, g3::FilterPred{}, expression, fatal_signal, dump)
++   : LogCapture(file, line, function, level, g3::FilterPred{}, {}, expression, fatal_signal, dump)
+ {
+ }
+ 
+diff --git a/src/logmessage.cpp b/src/logmessage.cpp
+index e12a884..ab5ff29 100644
+--- a/src/logmessage.cpp
++++ b/src/logmessage.cpp
+@@ -153,7 +153,7 @@ namespace g3 {
+ 
+ 
+    LogMessage::LogMessage(std::string file, const int line,
+-                          std::string function, const LEVELS level)
++                          std::string function, const LEVELS level, std::shared_ptr<ExtraData> extra_data /*= {}*/)
+       : _logDetailsToStringFunc(LogMessage::DefaultLogDetailsToString)
+       , _timestamp(std::chrono::high_resolution_clock::now())
+       , _call_thread_id(std::this_thread::get_id())
+@@ -165,7 +165,8 @@ namespace g3 {
+       , _file_path(file)
+       , _line(line)
+       , _function(function)
+-      , _level(level) {
++      , _level(level)
++      , _extra_data(std::move(extra_data)) {
+    }
+ 
+ 
+@@ -184,7 +185,8 @@ namespace g3 {
+       , _function(other._function)
+       , _level(other._level)
+       , _expression(other._expression)
+-      , _message(other._message) {
++      , _message(other._message)
++      , _extra_data(other._extra_data) {
+    }
+ 
+    LogMessage::LogMessage(LogMessage&& other)
+@@ -197,7 +199,8 @@ namespace g3 {
+       , _function(std::move(other._function))
+       , _level(other._level)
+       , _expression(std::move(other._expression))
+-      , _message(std::move(other._message)) {
++      , _message(std::move(other._message))
++      , _extra_data(std::move(other._extra_data)) {
+    }
+ 
+ 
