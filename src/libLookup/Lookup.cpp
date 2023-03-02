@@ -1594,6 +1594,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
                                   GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS) ==
       std::cv_status::timeout) {
     // timed out
+    LOG_GENERAL(WARNING, "NHUT: timed out");
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Timed out waiting for DS leader txn pool");
     return std::nullopt;
