@@ -102,6 +102,7 @@ else
         sed -i 's/.EVM_SERVER_BINARY.*/<EVM_SERVER_BINARY>\/tmp\/evm-ds<\/EVM_SERVER_BINARY>/g' constants.xml
         sed -i 's/.EVM_LOG_CONFIG.*/<EVM_LOG_CONFIG>\/tmp\/log4rs.yml<\/EVM_LOG_CONFIG>/g' constants.xml
         sed -i 's/.SCILLA_ROOT.*/<SCILLA_ROOT>\/scilla\/0\/<\/SCILLA_ROOT>/g' constants.xml
+        sed -i 's/.ENABLE_SCILLA_MULTI_VERSION.*/<ENABLE_SCILLA_MULTI_VERSION>false<\/ENABLE_SCILLA_MULTI_VERSION>/g' constants.xml
     fi
 
     if [[ -d /zilliqa ]]; then
