@@ -1293,11 +1293,15 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 
     auto txns = m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
     if (!txns) {
+      LOG_GENERAL(WARNING, "NHUT: unable to process...!!");
       throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
     }
 
+    LOG_GENERAL(WARNING, "NHUT: able to process...!!");
+
     Json::Value res = Json::arrayValue;
     for (const auto &txn : *txns) {
+      LOG_GENERAL(WARNING, "NHUT: able to process appending...!!");
       res.append(JSONConversion::convertTxtoJson(txn));
     }
 
