@@ -59,6 +59,7 @@ else
 
     # We need scilla-fmt in the PATH
     ls -al /scilla
+    ls -al /scilla/0
     cp /scilla/0/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-server /usr/local/bin
     pwd
