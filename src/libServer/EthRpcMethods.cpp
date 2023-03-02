@@ -373,6 +373,12 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
+      jsonrpc::Procedure("debug_traceBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT,
+                         NULL),
+      &EthRpcMethods::DebugTraceBlockByNumberI);
+
+  m_lookupServer->bindAndAddExternalMethod(
       jsonrpc::Procedure("GetDSLeaderTxnPool", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, nullptr),
       &EthRpcMethods::GetDSLeaderTxnPoolI);
@@ -627,34 +633,31 @@ string EthRpcMethods::GetEthCallEth(const Json::Value &_json,
 
 // Convenience fn to extract the tracer - valid types are 'raw' and 'callTracer'
 // This is as the tracer is a JSON which has both types as entries
-string extractTracer(const std::string &tracer, const std::string &trace) {
-  std::string traceRet;
+Json::Value extractTracer(const std::string &tracer, const std::string &trace) {
+  Json::Value parsed;
 
   try {
     Json::Value trace_json;
     JSONUtils::GetInstance().convertStrtoJson(trace, trace_json);
-    std::stringstream ss;
 
     if (tracer.compare("callTracer") == 0) {
       auto const item = trace_json["call_tracer"][0];
-      ss << item;
+      parsed = item;
     } else if (tracer.compare("raw") == 0) {
       auto const item = trace_json["raw_tracer"];
-      ss << item;
+      parsed = item;
     } else {
       throw JsonRpcException(
           ServerBase::RPC_MISC_ERROR,
           std::string("Only callTracer and raw are supported. Received: ") +
               tracer);
     }
-
-    traceRet = ss.str();
   } catch (exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what());
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
   }
 
-  return traceRet;
+  return parsed;
 }
 
 string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
@@ -955,7 +958,7 @@ string EthRpcMethods::GetEthCallImpl(const Json::Value &_json,
   if (!tracer.empty()) {
     LOG_GENERAL(WARNING, "Returning trace! ");
     LOG_GENERAL(WARNING, result.tx_trace());
-    return extractTracer(tracer, result.tx_trace());
+    return extractTracer(tracer, result.tx_trace()).asString();
   }
 
   std::string return_value;
@@ -1831,9 +1834,27 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
   return res;
 }
 
-Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
-                                                 const Json::Value &json) {
-  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+Json::Value EthRpcMethods::DebugTraceBlockByNumber(
+    const std::string& blockNum, const Json::Value& json) {
+
+  auto blockByNumber = GetEthBlockByNumber(blockNum, false);
+
+  Json::Value ret = Json::objectValue;
+  Json::Value calls = Json::arrayValue;
+
+  for (auto &tx : blockByNumber["transactions"]) {
+    auto traced = DebugTraceTransaction(tx.asString(), json);
+    calls.append(traced);
+  }
+
+  ret["calls"] = calls;
+  return ret;
+}
+
+Json::Value EthRpcMethods::DebugTraceTransaction(
+    const std::string& txHash, const Json::Value& json) {
+
+  if(!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            "The node is not configured to store Tx traces");
   }
