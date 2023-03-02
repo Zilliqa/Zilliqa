@@ -98,7 +98,7 @@ namespace zil {
 
 namespace local {
 
-class Variables {
+class VariablesNode {
   int nodeState = 0;
   int txnPool = 0;
   int txsInserted = 0;
@@ -133,8 +133,7 @@ class Variables {
   }
 };
 
-static Variables variables{};
-
+static VariablesNode nodeVar{};
 }  // namespace local
 
 }  // namespace zil
@@ -1605,7 +1604,7 @@ bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
     MempoolInsertionStatus status;
     m_createdTxns.insert(submittedTxn, status);
   }
-  zil::local::variables.AddTxnInserted(txns.size());
+  zil::local::nodeVar.AddTxnInserted(txns.size());
 
   cv_MicroBlockMissingTxn.notify_all();
   return true;
@@ -2013,8 +2012,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
 
-    zil::local::variables.AddTxnInserted(checkedTxns.size());
-    zil::local::variables.SetTxnPool(m_createdTxns.size());
+    zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
+    zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
   }
 
   {
@@ -2143,7 +2142,7 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
 void Node::SetState(NodeState state) {
   m_state = state;
 
-  zil::local::variables.SetNodeState(int(state));
+  zil::local::nodeVar.SetNodeState(int(state));
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Node State = " << GetStateString());
