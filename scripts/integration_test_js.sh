@@ -44,7 +44,7 @@ else
 
     # install dependencies
     apt update
-    apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates
+    apt -y install gpg python3 lsb-core curl dirmngr apt-transport-https lsb-release ca-certificates tree
     ## Adding the NodeSource signing key to your keyring...
     curl -s https://deb.nodesource.com/gpgkey/nodesource.gpg.key | gpg --dearmor | tee /usr/share/keyrings/nodesource.gpg >/dev/null
 
@@ -58,16 +58,18 @@ else
     node --version
 
     # We need scilla-fmt in the PATH
-    ls -al /scilla
+    tree /scilla
     ls -al /scilla/0
     cp /scilla/0/bin/scilla-fmt /usr/local/bin
     cp /scilla/0/bin/scilla-server /usr/local/bin
+
     pwd
 
     echo "SAEEEEEEEED"
     scilla-server --version
 
     echo "SAEEEEEEEED"
+    scilla-checker -gaslimit 8000 -libdir /scilla/0/src/stdlib tests/EvmAcceptanceTests/contracts/scilla/ByStr.scilla
     retVal=$?
     if [ $retVal -ne 0 ]; then
         echo "!!!!!! Error with JS integration test !!!!!!"
