@@ -365,6 +365,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 
   if (!mAccountStore.AddAccountAtomic(contractAddress)) {
     INC_STATUS(GetCPSMetric(), "error", "Account creation failed");
+    TRACE_ERROR("Account creation failed gas in create-trap");
     return {TxnStatus::FAIL_CONTRACT_ACCOUNT_CREATION, false, {}};
   }
 
