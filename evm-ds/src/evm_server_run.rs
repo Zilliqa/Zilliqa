@@ -48,10 +48,10 @@ pub async fn run_evm_impl(
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
     // panic. (Using the parent runtime and dropping on stack unwind will mess up the parent runtime).
     tokio::task::spawn_blocking(move || {
-        info!(
-            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}, data: {:?}",
+        debug!(
+            "Running EVM: origin: {:?} address: {:?} gas: {:?} value: {:?}  extras: {:?}, estimate: {:?}, cps: {:?}, tx_trace: {:?}",
             backend.origin, address, gas_limit, apparent_value,
-            backend.extras, estimate, enable_cps, tx_trace, data);
+            backend.extras, estimate, enable_cps, tx_trace);
         let code = Rc::new(code);
         let data = Rc::new(data);
         // TODO: handle call_l64_after_gas problem: https://zilliqa-jira.atlassian.net/browse/ZIL-5012
