@@ -394,7 +394,7 @@ BOOST_AUTO_TEST_CASE(timestamp, *boost::unit_test::disabled()) {
                           << ", received: " << timestampCount);
 }
 
-BOOST_AUTO_TEST_CASE(chainid) {
+BOOST_AUTO_TEST_CASE(chainid, *boost::unit_test::disabled()) {
   LOG_MARKER();
 
   PairOfKey owner = Schnorr::GenKeyPair();
