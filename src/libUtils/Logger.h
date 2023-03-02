@@ -130,6 +130,12 @@ class Logger {
   };
 };
 
+std::string_view LogTracesImpl();
+
+inline std::string_view LogTraces(auto level) {
+  return (g3::logLevel(level) && JSON_LOGGING) ? LogTracesImpl() : "";
+}
+
 #define INIT_FILE_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddGeneralSink(filePrefix, filePath);
 
@@ -147,8 +153,11 @@ class Logger {
 #define LOG_STATE(msg) \
   { FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
 
-#define LOG_GENERAL(level, msg) \
-  { FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
+#define LOG_GENERAL(level, msg)                 \
+  {                                             \
+    FILTERED_LOG(level, &Logger::IsGeneralSink) \
+        << ' ' << msg << LogTraces(level);      \
+  }
 
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
