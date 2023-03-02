@@ -206,7 +206,8 @@ RUN mkdir -p /scilla/0/bin2/ && cp -L /scilla/0/bin/* /scilla/0/bin2/ && strip /
 
 FROM builder AS test_runner
 RUN mkdir -p \
-    /scilla/0/bin /scilla/0/src/stdlib
+    /scilla/0/bin /scilla/0/src/stdlib /scilla/0/vcpkg_installed/x64-linux-dynamic \
+    && ln -s /usr/local/lib /scilla/0/vcpkg_installed/x64-linux-dynamic
 # pour in scilla binaries
 COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 # pour in scilla tests
@@ -215,7 +216,7 @@ COPY --from=scilla  /scilla/0/tests                /scilla/0/tests
 COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
 # pour in zilliqa scripts
 COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
-# pour in zilliqa binaries and dynnamic libs
+# pour in zilliqa binaries and dynamic libs
 WORKDIR /zilliqa
 
 
@@ -232,7 +233,7 @@ COPY --from=scilla  /scilla/0/bin2                /scilla/0/bin
 COPY --from=scilla  /scilla/0/src/stdlib          /scilla/0/src/stdlib
 # pour in zilliqa scripts
 COPY --from=builder /zilliqa/scripts         /zilliqa/scripts
-# pour in zilliqa binaries and dynnamic libs
+# pour in zilliqa binaries and dynamic libs
 COPY --from=builder /usr/local/bin/*     /usr/local/bin/
 COPY --from=builder /usr/local/lib/*.so* /usr/local/lib/
 COPY --from=builder /usr/local/lib/python3.10 /usr/local/lib/python3.10
