@@ -3323,6 +3323,23 @@ void Node::CheckPeers(const vector<Peer> &peers) {
   P2PComm::GetInstance().SendMessage(peers, message);
 }
 
+
+void Node::AddPendingTxn(Transaction const& tx) {
+  lock_guard<mutex> g(m_mutexPending);
+  m_pendingTxns.insert(tx.GetTranID(), tx);
+}
+
+std::vector<Transaction> Node::GetPendingTxns() const {
+  lock_guard<mutex> g(m_mutexPending);
+  std::vector<Transaction> ret;
+
+  for (const auto &s :m_pendingTxns) {
+    ret.push_back(s.second);
+  }
+
+  return ret;
+}
+
 std::vector<Transaction> Node::GetCreatedTxns() const {
   lock_guard<mutex> g(m_mutexCreatedTransactions);
 

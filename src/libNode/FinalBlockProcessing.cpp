@@ -84,24 +84,6 @@ public:
 
 static Variables variables{};
 
-//std::unique_ptr<Z_I64GAUGE> temp = [] {
-//  //Z_I64GAUGE item{Z_FL::BLOCKS, "tx.finalblock.gauge", "Block height", "calls", true};
-//
-//  std::unique_ptr<Z_I64GAUGE> item = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge", "Block height", "calls", true);
-//
-//  item->SetCallback([](auto &&result) {
-//    result.Set(variables.lastBlockHeight, {{"counter", "LastBlockHeight"}});
-//  });
-//
-//  return item;
-//}();
-
-//auto &GetFinalBlockProcessingGague() {
-//  static Z_I64GAUGE item{Z_FL::BLOCKS, "tx.finalblock.gauge",
-//                             "Block height", "calls", true};
-//  return item;
-//}
-
 }  // namespace local
 
 }  // namespace zil
@@ -832,12 +814,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
 
-  //zil::local::GetFinalBlockProcessingCounter().get().get() = txBlock.GetHeader().GetBlockNum();
-  //zil::local::variables.Init();
-  //zil::local::variables.lastBlockHeight = txBlock.GetHeader().GetBlockNum();
   zil::local::variables.SetLastBlockHeight(txBlock.GetHeader().GetBlockNum());
-
-  //zil::local::GetFinalBlockProcessingCounter()++;
 
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
@@ -1071,6 +1048,12 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
       } else {
         LOG_GENERAL(WARNING, "TXTRACEGEN: Avoid double executing TX!" );
       }
+    }
+
+    // Remove all TXs from the pending pool
+    lock_guard<mutex> g(m_mutexPending);
+    for (const auto &txnHash : txsExecuted) {
+      m_pendingTxns.erase(txnHash);
     }
   }
 

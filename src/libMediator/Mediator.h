@@ -127,10 +127,6 @@ class Mediator {
   /// Dedicated (old) websocket server
   std::shared_ptr<rpc::DedicatedWebsocketServer> m_websocketServer;
 
-  /// Mempool based on TXs we have seen to this node that have
-  /// not yet appeared in a block
-  //std::unordered_map<std::string, tx> m_websocketServer;
-
   /// Constructor.
   Mediator(const PairOfKey& key, const Peer& peer);
 

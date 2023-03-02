@@ -402,6 +402,9 @@ std::string EthRpcMethods::CreateTransactionEth(
 
   auto tx = GetTxFromFields(fields, pubKey, ret);
 
+  LOG_GENERAL(WARNING, "NHUT: Adding TX to pending pool " << tx.GetTranID());
+  m_sharedMediator.m_node->AddPendingTxn(tx);
+
   // Add some attributes to the span
   {
     std::stringstream ss;
@@ -1244,26 +1247,17 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 
   try {
     TxBlock txBlock;
-    bool is_pending = false;
-
-    LOG_GENERAL(WARNING, "NHUT: getting block by number..." << blockNumberStr);
 
     if (!isSupportedTag(blockNumberStr)) {
-      LOG_GENERAL(WARNING, "NHUT: not supported..." << blockNumberStr);
       return Json::nullValue;
     } else if (blockNumberStr == "latest" ||    //
                blockNumberStr == "earliest" ||  //
-               blockNumberStr == "pending" ||  //
                isNumber(blockNumberStr)) {
-      // handle latest, earliest, pending and block number requests
+      // handle latest, earliest and block number requests
       if (blockNumberStr == "latest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
-      } else if (blockNumberStr == "pending") {
-        LOG_GENERAL(WARNING, "NHUT: Getting pending TXns block!!");
-        txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
-        is_pending = true;
       } else if (isNumber(blockNumberStr)) {  // exact block number
         const uint64_t blockNum =
             std::strtoull(blockNumberStr.c_str(), nullptr, 0);
@@ -1271,14 +1265,11 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       }
     } else {
       // Not supported
-
-      LOG_GENERAL(WARNING, "NHUT: not supported!!!");
       return Json::nullValue;
     }
 
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
-      LOG_GENERAL(WARNING, "NHUT: not exiting!!!");
       return Json::nullValue;
     }
     auto ret =  GetEthBlockCommon(txBlock, includeFullTransactions);
