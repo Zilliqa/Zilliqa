@@ -25,6 +25,8 @@
 #include <string>
 #include <variant>
 
+#include <g3log/loglevels.hpp>
+
 #ifndef HAVE_CPP_STDLIB
 #define HAVE_CPP_STDLIB
 #endif
@@ -216,6 +218,22 @@ class Tracing {
 
   // TODO some research needed to shutdown it gracefully
   // static void Shutdown();
+};
+
+// Used by the logger to get the trace Ids
+struct TracingExtraData : g3::ExtraData {
+  TracingExtraData()
+      : m_tracingIds{Tracing::GetActiveSpanIds()},
+        m_tracingStringIds{zil::trace::Tracing::GetActiveSpanStringIds()} {}
+
+  const auto& GetTracingIds() const noexcept { return m_tracingIds; }
+  const auto& GetTracingStringIds() const noexcept {
+    return m_tracingStringIds;
+  }
+
+ private:
+  std::optional<std::pair<TraceId, SpanId>> m_tracingIds;
+  std::optional<std::pair<std::string, std::string>> m_tracingStringIds;
 };
 
 }  // namespace zil::trace
