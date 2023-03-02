@@ -38,11 +38,13 @@
   M(ACCOUNTSTORE_SCILLA)          \
   M(ACCOUNTSTORE_HISTOGRAMS)      \
   M(TRANSACTION_VERIFY)           \
-  M(CPS)                          \
   M(BLOCKS)                       \
   M(API_SERVER)                   \
   M(GLOBAL_ERROR)                 \
-  M(DEMO)
+  M(DEMO)                         \
+  M(CPS_EVM)                      \
+  M(CPS_SCILLA)
+
 namespace zil {
 namespace metrics {
 enum class FilterClass {

@@ -1,3 +1,11 @@
+if(CMAKE_CONFIGURATION_TYPES)
+    foreach(config ${CMAKE_CONFIGURATION_TYPES})
+        configure_file(${CMAKE_SOURCE_DIR}/constants.xml ${config}/constants.xml COPYONLY)
+    endforeach(config)
+else(CMAKE_CONFIGURATION_TYPES)
+    configure_file(${CMAKE_SOURCE_DIR}/constants.xml constants.xml COPYONLY)
+endif(CMAKE_CONFIGURATION_TYPES)
+
 add_executable(Test_DSBlockHeader Test_DSBlockHeader.cpp)
 target_include_directories(Test_DSBlockHeader PUBLIC ${CMAKE_SOURCE_DIR}/src ${CMAKE_SOURCE_DIR}/tests)
 target_link_libraries(Test_DSBlockHeader PRIVATE Blockchain Common Boost::unit_test_framework)
