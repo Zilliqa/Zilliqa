@@ -539,6 +539,10 @@ class Node : public Executable {
 
   std::atomic<bool> m_versionChecked{false};
 
+  // stores pending TXns that seedpubs with ARCHIVAL_LOOKUP_WITH_TX_TRACES keep
+  std::mutex m_mutexPending;
+  std::map<TxnHash, Transaction> m_pendingTxns;
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -779,6 +783,8 @@ class Node : public Executable {
   void CheckPeers(const std::vector<Peer>& peers);
 
   std::vector<Transaction> GetCreatedTxns() const;
+  std::vector<Transaction> GetPendingTxns() const;
+  void AddPendingTxn(Transaction const& tx);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

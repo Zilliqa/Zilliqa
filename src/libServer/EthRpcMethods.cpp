@@ -402,6 +402,9 @@ std::string EthRpcMethods::CreateTransactionEth(
 
   auto tx = GetTxFromFields(fields, pubKey, ret);
 
+  LOG_GENERAL(WARNING, "NHUT: Adding TX to pending pool " << tx.GetTranID());
+  m_sharedMediator.m_node->AddPendingTxn(tx);
+
   // Add some attributes to the span
   {
     std::stringstream ss;
