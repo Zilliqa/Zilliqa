@@ -1259,7 +1259,7 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       // handle latest, earliest and block number requests
       if (blockNumberStr == "latest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
-      if (blockNumberStr == "pending") {
+      } else if (blockNumberStr == "pending") {
         LOG_GENERAL(WARNING, "NHUT: here we go ...  pending TXns block!!");
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
       } else if (blockNumberStr == "earliest") {

@@ -3328,7 +3328,9 @@ void Node::AddPendingTxn(Transaction const& tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   LOG_GENERAL(WARNING, "NHUT: Pending tx add!!");
-  m_pendingTxns.insert(tx.GetTranID(), tx);
+  auto const hash = tx.GetTranID();
+  //m_pendingTxns.insert(hash, tx);
+  m_pendingTxns[hash] = tx;
 }
 
 std::vector<Transaction> Node::GetPendingTxns() const {

@@ -540,7 +540,7 @@ class Node : public Executable {
   std::atomic<bool> m_versionChecked{false};
 
   // stores pending TXns that seedpubs with ARCHIVAL_LOOKUP_WITH_TX_TRACES keep
-  std::mutex m_mutexPending;
+  mutable std::mutex m_mutexPending;
   std::map<TxnHash, Transaction> m_pendingTxns;
 
   /// Constructor. Requires mediator reference to access DirectoryService and
