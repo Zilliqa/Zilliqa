@@ -270,8 +270,13 @@ Json::Value GetBloomFromReceiptHex(const TransactionReceipt &receipt) {
 }
 
 Json::Value GetLogsFromReceipt(const TransactionReceipt &receipt) {
+
+  LOG_GENERAL(WARNING, "NHUT: getting logs from receipt...");
   const Json::Value logs =
       receipt.GetJsonValue().get("event_logs", Json::arrayValue);
+
+  LOG_GENERAL(WARNING, "NHUT: got logs from receipt...");
+
   return logs;
 }
 

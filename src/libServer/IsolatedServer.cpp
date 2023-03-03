@@ -875,6 +875,8 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                              "Error Code: " + to_string(error_code));
     }
 
+    // nhut
+    this->m_mediator.AddPendingTxn(tx);
     TransactionWithReceipt twr(tx, txreceipt);
 
     zbytes twr_ser;
