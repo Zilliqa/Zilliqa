@@ -3328,8 +3328,6 @@ void Node::CheckPeers(const vector<Peer> &peers) {
 void Node::AddPendingTxn(Transaction const& tx) {
   lock_guard<mutex> g(m_mutexPending);
 
-  LOG_GENERAL(WARNING, "NHUT: Pending tx add!!");
-
   // Emergency fail safe to avoid memory issues if the pool isn't getting
   // cleared somehow
   if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
@@ -3342,7 +3340,6 @@ void Node::AddPendingTxn(Transaction const& tx) {
 }
 
 std::vector<Transaction> Node::GetPendingTxns() const {
-  LOG_GENERAL(WARNING, "NHUT: Pending tx get!!");
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 

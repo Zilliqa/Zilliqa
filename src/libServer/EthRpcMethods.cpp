@@ -403,7 +403,6 @@ std::string EthRpcMethods::CreateTransactionEth(
   auto tx = GetTxFromFields(fields, pubKey, ret);
   // When we see TXs being submitted to this seedpub/lookup, we add it to the
   // pending TXn pool if we are in extended mode
-  LOG_GENERAL(WARNING, "NHUT ADD: " << ARCHIVAL_LOOKUP_WITH_TX_TRACES);
   if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     m_sharedMediator.AddPendingTxn(tx);
   }
