@@ -75,6 +75,9 @@ class Zilliqa {
   /// Destructor.
   ~Zilliqa();
 
+  // For pending txn update workaround
+  Mediator& GetMediator() { return m_mediator; }
+
   void LogSelfNodeInfo(const PairOfKey& key, const Peer& peer);
 
   /// Forwards an incoming message for processing by the appropriate subclass.

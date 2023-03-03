@@ -3,7 +3,7 @@ import {expect} from "chai";
 import hre from "hardhat";
 import {parallelizer} from "../../helpers";
 
-xdescribe("Scilla HelloWorld contract", function () {
+describe("Scilla HelloWorld contract", function () {
   let contract: ScillaContract;
   before(async function () {
     if (!hre.isZilliqaNetworkSelected() || !hre.isScillaTestingEnabled()) {

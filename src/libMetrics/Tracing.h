@@ -25,6 +25,8 @@
 #include <string>
 #include <variant>
 
+#include <g3log/loglevels.hpp>
+
 #ifndef HAVE_CPP_STDLIB
 #define HAVE_CPP_STDLIB
 #endif
@@ -52,7 +54,10 @@
   T(QUEUE)                      \
   T(ACC_EVM)                    \
   T(NODE)                       \
-  T(ACC_HISTOGRAM)
+  T(ACC_HISTOGRAM)              \
+  T(DEMO)                       \
+  T(CPS_EVM)                    \
+  T(CPS_SCILLA)
 
 namespace zil::trace {
 
@@ -60,7 +65,8 @@ enum class FilterClass {
 #define ENUM_FILTER_CLASS(C) C,
   TRACE_FILTER_CLASSES(ENUM_FILTER_CLASS)
 #undef ENUM_FILTER_CLASS
-      FILTER_CLASS_END
+      FILTER_CLASS_END,
+  FILTER_CLASS_ALL = std::numeric_limits<int>::max()
 };
 
 using Value =
@@ -212,6 +218,22 @@ class Tracing {
 
   // TODO some research needed to shutdown it gracefully
   // static void Shutdown();
+};
+
+// Used by the logger to get the trace Ids
+struct TracingExtraData : g3::ExtraData {
+  TracingExtraData()
+      : m_tracingIds{Tracing::GetActiveSpanIds()},
+        m_tracingStringIds{zil::trace::Tracing::GetActiveSpanStringIds()} {}
+
+  const auto& GetTracingIds() const noexcept { return m_tracingIds; }
+  const auto& GetTracingStringIds() const noexcept {
+    return m_tracingStringIds;
+  }
+
+ private:
+  std::optional<std::pair<TraceId, SpanId>> m_tracingIds;
+  std::optional<std::pair<std::string, std::string>> m_tracingStringIds;
 };
 
 }  // namespace zil::trace

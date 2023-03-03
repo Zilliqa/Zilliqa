@@ -102,6 +102,20 @@ impl<'a> CpsExecutor<'a> {
             // Sputnik places empty H256 value on a stack before returning with a trap
             // Hence, pop it before applying the feedback
             runtime.machine_mut().stack_mut().pop()?;
+
+            // Re-create the logs based on feedback passed
+            for log in feedback.get_logs() {
+                let address : H160 = H160::from(log.get_address());
+                let data : Vec<u8> = log.get_data().to_vec();
+                let mut topics : Vec<H256> = vec![];
+
+                for topic in log.get_topics() {
+                    topics.push(topic.into());
+                }
+
+                self.stack_executor.log(address, topics, data)?;
+            }
+
             if feedback.get_feedback_type() == EvmProto::Continuation_Type::CREATE {
                 let eth_address = H160::from(feedback.get_address());
                 runtime.machine_mut().stack_mut().push(eth_address.into())?;

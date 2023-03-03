@@ -57,6 +57,14 @@ class EthRpcMethods {
     LOG_GENERAL(DEBUG, "EthCall response:" << response);
   }
 
+  virtual void DebugTraceCallI(const Json::Value& request,
+                              Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    EnsureEvmAndLookupEnabled();
+    response = this->DebugTraceCallEth(request[0u], request[1u].asString(), request[2u]);
+    LOG_GENERAL(DEBUG, "DebugTraceCall response:" << response);
+  }
+
   // TODO: remove once we fully move to Eth compatible APIs.
   inline virtual void GetEthCallZilI(const Json::Value& request,
                                      Json::Value& response) {
@@ -575,12 +583,25 @@ class EthRpcMethods {
     response = this->DebugTraceTransaction(request[0u].asString(), request[1u]);
   }
 
+  /**
+   * @brief Handles json rpc 2.0 request on method: debug_traceBlockByNumber
+   * @param request : block number, trace type
+   * @param response : transaction trace
+   */
+  inline virtual void DebugTraceBlockByNumberI(const Json::Value& request,
+                                             Json::Value& response) {
+    LOG_MARKER_CONTITIONAL(LOG_SC);
+    response = this->DebugTraceBlockByNumber(request[0u].asString(), request[1u]);
+  }
+
   struct ApiKeys;
   std::string GetEthCallZil(const Json::Value& _json);
   std::string GetEthCallEth(const Json::Value& _json,
                             const std::string& block_or_tag);
+  std::string DebugTraceCallEth(const Json::Value& _json,
+                            const std::string& block_or_tag, const Json::Value& tracer);
   std::string GetEthEstimateGas(const Json::Value& _json);
-  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys);
+  std::string GetEthCallImpl(const Json::Value& _json, const ApiKeys& apiKeys, std::string const &tracer = "");
   Json::Value GetBalanceAndNonce(const std::string& address);
   std::string GetWeb3ClientVersion();
   std::string GetWeb3Sha3(const Json::Value& _json);
@@ -647,6 +668,7 @@ class EthRpcMethods {
 
   Json::Value GetEthBlockReceipts(const std::string& blockId);
   Json::Value DebugTraceTransaction(const std::string& txHash, const Json::Value& json);
+  Json::Value DebugTraceBlockByNumber(const std::string& blockNum, const Json::Value& json);
 
   Json::Value GetDSLeaderTxnPool();
   void EnsureEvmAndLookupEnabled();

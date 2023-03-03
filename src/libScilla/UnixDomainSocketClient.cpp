@@ -26,7 +26,6 @@ namespace rpc {
 
 void UnixDomainSocketClient::SendRPCMessage(const std::string& message,
                                             std::string& result) {
-  LOG_MARKER();
   try {
     using boost::asio::local::stream_protocol;
     boost::asio::io_context io_context;

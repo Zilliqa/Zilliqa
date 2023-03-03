@@ -86,7 +86,7 @@ Z_DBLHIST &GetSizeUsed() {
 }
 
 Z_I64METRIC &GetCallCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "processing.failed",
+  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "errors",
                              "Errors for AccountStore", "calls"};
   return counter;
 }
@@ -173,11 +173,13 @@ void AccountStore::InitSoft() {
 }
 
 Account *AccountStore::GetAccount(const Address &address) {
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO, __FUNCTION__);
   return this->GetAccount(address, false);
 }
 
 Account *AccountStore::GetAccount(const Address &address, bool resetRoot) {
   // LOG_MARKER();
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO, __FUNCTION__);
   using namespace boost::multiprecision;
 
   Account *account = AccountStoreBase::GetAccount(address);

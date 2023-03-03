@@ -57,11 +57,11 @@ const config: HardhatUserConfig = {
       chainId: 1337,
       web3ClientVersion: "Ganache/v7.4.1/EthereumJS TestRPC/v7.4.1/ethereum-js",
       protocolVersion: 0x3f,
-      accounts: [
-        "c95690aed4461afd835b17492ff889af72267a8bdf7d781e305576cd8f7eb182",
-        "05751249685e856287c2b2b9346e70a70e1d750bc69a35cef740f409ad0264ad",
-        "e7f59a4beb997a02a13e0d5e025b39a6f0adc64d37bb1e6a849a4863b4680411",
-        "410b0e0a86625a10c554f8248a77c7198917bd9135c15bb28922684826bb9f14"
+      accounts: [ // memonic: guard same cactus near figure photo remove letter target alien initial remove
+        "67545ce31f5ca86719cf3743730435768515ebf014f84811463edcf7dcfaf91e",
+        "9be4f8840833f64d4881027f4a53961d75bc649ac4801b33f746487ca8873f14",
+        "32a75b674cc41405c914de1fe7b031b832dfd9203e1a287d09122bab689519e3",
+        "dd8ce58f8cecd59fde7000fff9944908e89364b2ef36921c35725957617ddd32"
       ],
       zilliqaNetwork: false,
       miningState: true

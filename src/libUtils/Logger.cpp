@@ -188,17 +188,18 @@ class JsonLogSink : public CustomLogRotate {
     value["func"] = message.function();
     value["message"] = message.message();
 
-#if 0
-// TODO: when circular dependency is resolved
-// TODO: tracing depends on libUtils - to be corrected
-// TODO: will do a sortof DI
-
-    auto spanIds = zil::trace::Tracing::GetActiveSpanStringIds();
-    if (spanIds) {
-      value["trace_id"] = spanIds->first;
-      value["span_id"] = spanIds->second;
+    if (message._extra_data) {
+      assert(std::dynamic_pointer_cast<zil::trace::TracingExtraData>(
+          message._extra_data));
+      const auto& extraData =
+          std::static_pointer_cast<zil::trace::TracingExtraData>(
+              message._extra_data);
+      const auto& tracingIds = extraData->GetTracingStringIds();
+      if (tracingIds) {
+        value["trace_id"] = tracingIds->first;
+        value["span_id"] = tracingIds->second;
+      }
     }
-#endif
 
     m_writer->write(value, &m_stream);
     m_stream << std::endl;
@@ -262,6 +263,10 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
 }
 
 }  // namespace
+
+std::shared_ptr<g3::ExtraData> CreateTracingExtraData() {
+  return std::make_shared<zil::trace::TracingExtraData>();
+}
 
 std::vector<std::reference_wrapper<const std::type_info>>
     Logger::m_externalSinkTypeIds;
@@ -370,7 +375,7 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
                                  bool should_print)
     : m_file{file}, m_line{line}, m_func{func}, should_print{should_print} {
   LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-             &Logger::IsGeneralSink)
+             &Logger::IsGeneralSink, CreateTracingExtraData())
           .stream()
       << " BEG";
 }
@@ -378,8 +383,9 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
 Logger::ScopeMarker::~ScopeMarker() {
   if (should_print) {
     LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-               &Logger::IsGeneralSink)
+               &Logger::IsGeneralSink, CreateTracingExtraData())
             .stream()
         << " END";
   }
 }
+

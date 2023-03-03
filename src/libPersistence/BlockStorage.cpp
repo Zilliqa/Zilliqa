@@ -990,7 +990,6 @@ bool BlockStorage::GetMetadata(MetaType type, zbytes& data, bool muteLog) {
   }
 
   if (metaString.empty()) {
-    LOG_GENERAL(INFO, "No metadata get")
     return false;
   }
 
@@ -1054,7 +1053,6 @@ bool BlockStorage::GetEpochFin(uint64_t& epochNum) {
       return false;
     }
   } else {
-    LOG_GENERAL(WARNING, "Cannot get EPOCHFIN from DB");
     return false;
   }
 
