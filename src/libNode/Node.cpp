@@ -58,6 +58,7 @@ using namespace boost::multi_index;
 
 const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
+const unsigned int PENDING_TX_POOL_MAX = 5000;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
@@ -3328,6 +3329,14 @@ void Node::AddPendingTxn(Transaction const& tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   LOG_GENERAL(WARNING, "NHUT: Pending tx add!!");
+
+  // Emergency fail safe to avoid memory issues if the pool isn't getting
+  // cleared somehow
+  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+    LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
+    m_pendingTxns.clear();
+  }
+
   auto const hash = tx.GetTranID();
   m_pendingTxns[hash] = tx;
 }
