@@ -57,12 +57,6 @@ struct OTelLoggingSink {
     auto logRecord = logger->CreateLogRecord();
     if (!logRecord) return;
 
-    auto activeSpanIds = zil::trace::Tracing::GetActiveSpanIds();
-    if (activeSpanIds) {
-      logRecord->SetTraceId(activeSpanIds->first);
-      logRecord->SetSpanId(activeSpanIds->second);
-    }
-
     const auto& logMessage = logEntry.get();
     if (logMessage._level.value <= G3LOG_DEBUG.value)
       logRecord->SetSeverity(logs::Severity::kDebug);
@@ -84,6 +78,19 @@ struct OTelLoggingSink {
                 std::chrono::time_point_cast<
                     std::chrono::system_clock::duration>(logMessage._timestamp)
                     .time_since_epoch()}});
+
+    if (logMessage._extra_data) {
+      assert(std::dynamic_pointer_cast<zil::trace::TracingExtraData>(
+          logMessage._extra_data));
+      const auto& extraData =
+          std::static_pointer_cast<zil::trace::TracingExtraData>(
+              logMessage._extra_data);
+      const auto& tracingIds = extraData->GetTracingIds();
+      if (tracingIds) {
+        logRecord->SetTraceId(tracingIds->first);
+        logRecord->SetSpanId(tracingIds->second);
+      }
+    }
 
     logger->EmitLogRecord(std::move(logRecord));
   }

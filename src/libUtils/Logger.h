@@ -130,11 +130,17 @@ class Logger {
   };
 };
 
-std::string_view LogTracesImpl();
+std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
 
-inline std::string_view LogTraces(auto level) {
-  return (g3::logLevel(level) && JSON_LOGGING) ? LogTracesImpl() : "";
-}
+#define TRACED_FILTERED_INTERNAL_LOG_MESSAGE(level, pred)                \
+  LogCapture(__FILE__, __LINE__,                                         \
+             static_cast<const char*>(__PRETTY_FUNCTION__), level, pred, \
+             CreateTracingExtraData())
+
+#define TRACED_FILTERED_LOG(level, pred) \
+  if (!g3::logLevel(level)) {            \
+  } else                                 \
+    TRACED_FILTERED_INTERNAL_LOG_MESSAGE(level, pred).stream()
 
 #define INIT_FILE_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddGeneralSink(filePrefix, filePath);
@@ -151,13 +157,10 @@ inline std::string_view LogTraces(auto level) {
   Logger::GetLogger().AddJsonSink(filePrefix, filePath);
 
 #define LOG_STATE(msg) \
-  { FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
+  { TRACED_FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
 
-#define LOG_GENERAL(level, msg)                 \
-  {                                             \
-    FILTERED_LOG(level, &Logger::IsGeneralSink) \
-        << ' ' << msg << LogTraces(level);      \
-  }
+#define LOG_GENERAL(level, msg) \
+  { TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
 
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
@@ -167,7 +170,7 @@ inline std::string_view LogTraces(auto level) {
 
 #define LOG_EPOCH(level, epoch, msg)                                  \
   {                                                                   \
-    FILTERED_LOG(level, &Logger::IsGeneralSink)                       \
+    TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink)                \
         << "[Epoch " << std::to_string(epoch).c_str() << "] " << msg; \
   }
 
@@ -175,7 +178,7 @@ inline std::string_view LogTraces(auto level) {
   {                                                                     \
     std::unique_ptr<char[]> payload_string;                             \
     Logger::GetPayloadS(payload, max_bytes_to_display, payload_string); \
-    FILTERED_LOG(level, &Logger::IsGeneralSink)                         \
+    TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink)                  \
         << ' ' << msg << " (Len=" << (payload).size()                   \
         << "): " << payload_string.get()                                \
         << (((payload).size() > max_bytes_to_display) ? "..." : "");    \
@@ -186,7 +189,7 @@ inline std::string_view LogTraces(auto level) {
 
 #define LOG_EPOCHINFO(blockNum, msg)                             \
   {                                                              \
-    FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)                 \
+    TRACED_FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)          \
         << "[Epoch " << std::to_string(blockNum) << "] " << msg; \
   }
 

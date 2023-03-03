@@ -99,22 +99,8 @@ std::ostream& logLevel(std::ostream& stream, const LogMessage& message) {
   return stream;
 }
 
-namespace {
-
-constexpr char TRACE_INFO_MARKER = 0x02;
-constexpr size_t TRACE_ID_SIZE = sizeof(zil::trace::TraceId) * 2;
-constexpr size_t SPAN_ID_SIZE = sizeof(zil::trace::SpanId) * 2;
-constexpr size_t TRACE_INFO_BUFSIZE = TRACE_ID_SIZE + SPAN_ID_SIZE + 1;
-
-}  // namespace
-
 std::ostream& logMessage(std::ostream& stream, const LogMessage& message) {
-  std::string_view msg = message.write();
-  size_t sz = msg.size();
-  if (sz >= TRACE_INFO_BUFSIZE && msg.back() == TRACE_INFO_MARKER) {
-    msg = msg.substr(0, sz - TRACE_INFO_BUFSIZE);
-  }
-  stream << msg;
+  stream << message.message();
   return stream;
 }
 
@@ -200,17 +186,19 @@ class JsonLogSink : public CustomLogRotate {
     value["file"] = message.file();
     value["line"] = message._line;
     value["func"] = message.function();
+    value["message"] = message.message();
 
-    std::string_view msg = message.write();
-    auto sz = msg.size();
-    if (sz >= TRACE_INFO_BUFSIZE && msg.back() == TRACE_INFO_MARKER) {
-      value["message"] = std::string(msg.substr(0, sz - TRACE_INFO_BUFSIZE));
-      value["trace_id"] =
-          std::string(msg.substr(sz - TRACE_INFO_BUFSIZE, TRACE_ID_SIZE));
-      value["span_id"] = std::string(
-          msg.substr(sz - TRACE_INFO_BUFSIZE + TRACE_ID_SIZE, SPAN_ID_SIZE));
-    } else {
-      value["message"] = std::string(msg);
+    if (message._extra_data) {
+      assert(std::dynamic_pointer_cast<zil::trace::TracingExtraData>(
+          message._extra_data));
+      const auto& extraData =
+          std::static_pointer_cast<zil::trace::TracingExtraData>(
+              message._extra_data);
+      const auto& tracingIds = extraData->GetTracingStringIds();
+      if (tracingIds) {
+        value["trace_id"] = tracingIds->first;
+        value["span_id"] = tracingIds->second;
+      }
     }
 
     m_writer->write(value, &m_stream);
@@ -275,6 +263,10 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
 }
 
 }  // namespace
+
+std::shared_ptr<g3::ExtraData> CreateTracingExtraData() {
+  return std::make_shared<zil::trace::TracingExtraData>();
+}
 
 std::vector<std::reference_wrapper<const std::type_info>>
     Logger::m_externalSinkTypeIds;
@@ -383,7 +375,7 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
                                  bool should_print)
     : m_file{file}, m_line{line}, m_func{func}, should_print{should_print} {
   LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-             &Logger::IsGeneralSink)
+             &Logger::IsGeneralSink, CreateTracingExtraData())
           .stream()
       << " BEG";
 }
@@ -391,23 +383,9 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
 Logger::ScopeMarker::~ScopeMarker() {
   if (should_print) {
     LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-               &Logger::IsGeneralSink)
+               &Logger::IsGeneralSink, CreateTracingExtraData())
             .stream()
         << " END";
   }
 }
 
-std::string_view LogTracesImpl() {
-  static thread_local char BUFFER[TRACE_INFO_BUFSIZE];
-
-  auto spanIds = zil::trace::Tracing::GetActiveSpanStringIds();
-  if (spanIds.has_value()) {
-    assert(spanIds->first.size() == TRACE_ID_SIZE);
-    assert(spanIds->second.size() == SPAN_ID_SIZE);
-    memcpy(BUFFER, spanIds->first.data(), TRACE_ID_SIZE);
-    memcpy(BUFFER + TRACE_ID_SIZE, spanIds->first.data(), SPAN_ID_SIZE);
-    BUFFER[TRACE_INFO_BUFSIZE - 1] = TRACE_INFO_MARKER;
-    return std::string_view(BUFFER, TRACE_INFO_BUFSIZE);
-  }
-  return "";
-}
