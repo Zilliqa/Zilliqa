@@ -91,6 +91,7 @@ EvmProcessContext::EvmProcessContext(const uint64_t& blkNum,
       UIntToProto(txn.GetAmountWei().convert_to<uint256_t>());
 
   *m_protoData.mutable_context() = txnIdToString(txn.GetTranID());
+  m_protoData.set_is_static_call(false);
 
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
@@ -127,6 +128,7 @@ EvmProcessContext::EvmProcessContext(
   *m_protoData.mutable_apparent_value() = UIntToProto(amount);
   m_protoData.set_estimate(estimate);
   *m_protoData.mutable_context() = context;
+  m_protoData.set_is_static_call(false);
   if (!GetEvmEvalExtras(blkNum, extras, *m_protoData.mutable_extras())) {
     m_status = false;
   }
