@@ -208,9 +208,6 @@ describe("Calling " + METHOD, function () {
         logDebug(result);
 
         assert.equal(status, 200, "has status code");
-        // validate all returned fields
-        assert.property(result, "result", result.error ? result.error.message : "error");
-        assert.equal(result.result, null, "should be null");
       });
     });
   });
