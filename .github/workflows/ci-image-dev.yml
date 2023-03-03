@@ -11,8 +11,6 @@ on:
     branches-ignore:
       - 'release/**'
     paths-ignore:
-    - '**.md'
-    - 'docs/**'
     - 'Jenkinsfile'
 
 jobs:

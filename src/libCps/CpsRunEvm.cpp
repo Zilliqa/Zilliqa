@@ -202,7 +202,20 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   // Adjust remainingGas and recalculate gas for resume operation
   // Charge MIN_ETH_GAS for transfer operation
   const auto transferValue = ProtoToUint(callData.transfer().value());
-  if (transferValue > 0) {
+  const bool isStatic = callData.is_static();
+
+  // Don't allow for non-static calls when its parent is already static
+  if (mProtoArgs.is_static_call() && !isStatic) {
+    INC_STATUS(GetCPSMetric(), "error",
+               "Context change from static to non-static");
+    TRACE_ERROR(
+        "Atempt to change context from static to non-static in call-trap");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+
+  span.SetAttribute("IsStatic", isStatic);
+
+  if (!isStatic && transferValue > 0) {
     if (remainingGas < MIN_ETH_GAS) {
       LOG_GENERAL(WARNING, "Insufficient gas in call-trap, remaining: "
                                << remainingGas
@@ -254,13 +267,14 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     *evmCallArgs.mutable_context() = "TrapCall";
     *evmCallArgs.mutable_extras() = mCpsContext.evmExtras;
     evmCallArgs.set_enable_cps(ENABLE_CPS);
+    evmCallArgs.set_is_static_call(isStatic);
     auto callRun = std::make_unique<CpsRunEvm>(
         std::move(evmCallArgs), mExecutor, mCpsContext, CpsRun::TrapCall);
     mExecutor.PushRun(std::move(callRun));
   }
 
   // Push transfer to be executed first
-  if (ProtoToUint(callData.transfer().value()) > 0) {
+  if (!isStatic && transferValue > 0) {
     const auto fromAccount = ProtoToAddress(callData.transfer().source());
     const auto toAccount = ProtoToAddress(callData.transfer().destination());
 
@@ -332,6 +346,13 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
               ProtoToAddress(mProtoArgs.origin()).hex(), contractAddress.hex(),
               mCpsContext.origSender.hex(),
               transferValue.convert_to<std::string>());
+
+  if (mProtoArgs.is_static_call()) {
+    INC_STATUS(GetCPSMetric(), "error",
+               "Account creation cannot be created in static call");
+    TRACE_ERROR("Account creation attempt by static call in create-trap");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
 
   if (!mAccountStore.AddAccountAtomic(contractAddress)) {
     INC_STATUS(GetCPSMetric(), "error", "Account creation failed");
@@ -492,8 +513,9 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
           mAccountStore.AddAccountAtomic(thisContractAddress);
         }
 
-        // only allowed for thisContractAddress!
-        if (it.modify().reset_storage() && iterAddress == thisContractAddress) {
+        // only allowed for thisContractAddress in non-static context!
+        if (it.modify().reset_storage() && iterAddress == thisContractAddress &&
+            !mProtoArgs.is_static_call()) {
           std::map<std::string, zbytes> states;
           std::vector<std::string> toDeletes;
 
@@ -506,9 +528,10 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
           mAccountStore.UpdateStates(thisContractAddress, {}, toDeletes, true);
         }
         // Actually Update the state for the contract (only allowed for
-        // thisContractAddress!)
+        // thisContractAddress in non-static context!)
         for (const auto& sit : it.modify().storage()) {
-          if (iterAddress != thisContractAddress) {
+          if (iterAddress != thisContractAddress ||
+              mProtoArgs.is_static_call()) {
             break;
           }
           LOG_GENERAL(INFO,
@@ -533,8 +556,8 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
     }
   }
 
-  // Allow only removal of self
-  if (accountToRemove == thisContractAddress) {
+  // Allow only removal of self in non-static calls
+  if (accountToRemove == thisContractAddress && !mProtoArgs.is_static_call()) {
     const auto currentFunds =
         mAccountStore.GetBalanceForAccountAtomic(accountToRemove);
     const auto zero = Amount::fromQa(0);
