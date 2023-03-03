@@ -401,10 +401,12 @@ std::string EthRpcMethods::CreateTransactionEth(
   }
 
   auto tx = GetTxFromFields(fields, pubKey, ret);
-
-  LOG_GENERAL(WARNING, "NHUT: Adding TX to pending pool " << tx.GetTranID());
-  //m_sharedMediator.m_node->AddPendingTxn(tx);
-  m_sharedMediator.AddPendingTxn(tx);
+  // When we see TXs being submitted to this seedpub/lookup, we add it to the
+  // pending TXn pool if we are in extended mode
+  LOG_GENERAL(WARNING, "NHUT ADD: " << ARCHIVAL_LOOKUP_WITH_TX_TRACES);
+  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    m_sharedMediator.AddPendingTxn(tx);
+  }
 
   // Add some attributes to the span
   {
@@ -1248,7 +1250,6 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
 
   try {
     TxBlock txBlock;
-    bool is_pending = false;
 
     if (!isSupportedTag(blockNumberStr)) {
       return Json::nullValue;
@@ -1260,14 +1261,10 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       if (blockNumberStr == "latest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
       } else if (blockNumberStr == "pending") {
-        LOG_GENERAL(WARNING, "NHUT: here we go ...  pending TXns block!!");
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
-        is_pending = true;
 
         // Special case for pending... modify the last block to fake a pending bloc
         auto const pending = m_sharedMediator.GetPendingTxns();
-
-        LOG_GENERAL(WARNING, "NHUT: Getting pending TXns size : "<< pending.size());
 
         std::vector<TxBodySharedPtr> transactions;
 
@@ -1277,8 +1274,6 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
           TxBodySharedPtr item = std::make_shared<TransactionWithReceipt>(tx, receipt);
           transactions.push_back(item);
         }
-
-        LOG_GENERAL(WARNING, "NHUT: here we go ...  001");
 
         const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
             txBlock.GetHeader().GetDSBlockNum());
@@ -1292,7 +1287,6 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
         toRet["nonce"] = Json::nullValue;
         toRet["number"] = Json::nullValue;
 
-        LOG_GENERAL(WARNING, "NHUT: here we go ...  to ret now!");
         return toRet;
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
@@ -1303,49 +1297,15 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       }
     } else {
       // Not supported
-      LOG_GENERAL(WARNING, "NHUT: nullval0");
       return Json::nullValue;
     }
 
     const TxBlock NON_EXISTING_TX_BLOCK{};
     if (txBlock == NON_EXISTING_TX_BLOCK) {
-      LOG_GENERAL(WARNING, "NHUT: nullval1");
       return Json::nullValue;
     }
-    auto ret =  GetEthBlockCommon(txBlock, includeFullTransactions);
 
-    if (!is_pending) {
-      LOG_GENERAL(WARNING, "NHUT: here we go ...  001");
-      return ret;
-    }
-
-    auto const pending = m_sharedMediator.GetPendingTxns();
-
-    LOG_GENERAL(WARNING, "NHUT: Getting pending TXns size : "<< pending.size());
-
-    //  for pending blocks...
-    LOG_GENERAL(WARNING, "NHUT: Getting pending TXns block!!");
-    LOG_GENERAL(WARNING, ret);
-
-    auto txns = m_sharedMediator.m_lookup->GetDSLeaderTxnPool();
-    if (!txns) {
-      LOG_GENERAL(WARNING, "NHUT: unable to process... would have thrown...!!");
-      //throw JsonRpcException(ServerBase::RPC_MISC_ERROR, "Unable to Process");
-    }
-
-    LOG_GENERAL(WARNING, "NHUT: able to process...!!");
-
-    Json::Value res = Json::arrayValue;
-    for (const auto &txn : pending) {
-      LOG_GENERAL(WARNING, "NHUT: able to process appending...!!");
-      res.append(JSONConversion::convertTxtoJson(txn));
-    }
-
-    LOG_GENERAL(WARNING, "NHUT: TXns recieved...");
-    LOG_GENERAL(WARNING, res);
-
-    return ret;
-
+    return  GetEthBlockCommon(txBlock, includeFullTransactions);
   } catch (const std::exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "

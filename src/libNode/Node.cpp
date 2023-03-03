@@ -3329,7 +3329,6 @@ void Node::AddPendingTxn(Transaction const& tx) {
 
   LOG_GENERAL(WARNING, "NHUT: Pending tx add!!");
   auto const hash = tx.GetTranID();
-  //m_pendingTxns.insert(hash, tx);
   m_pendingTxns[hash] = tx;
 }
 
