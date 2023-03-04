@@ -16,7 +16,6 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/format.hpp>
 #include "EthRpcMethods.h"
 #include "JSONConversion.h"
@@ -287,6 +286,10 @@ LookupServer::LookupServer(Mediator& mediator,
       jsonrpc::Procedure("GetTotalCoinSupply", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_REAL, NULL),
       &LookupServer::GetTotalCoinSupplyI);
+  this->bindAndAddMethod(
+      jsonrpc::Procedure("GetTotalCoinSupplyAsInt", jsonrpc::PARAMS_BY_POSITION,
+                         jsonrpc::JSON_INTEGER, NULL),
+      &LookupServer::GetTotalCoinSupplyAsIntI);
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetPendingTxns", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_OBJECT, NULL),
@@ -1261,7 +1264,7 @@ double LookupServer::GetTransactionRate() {
     refBlockNum = refBlockNum - REF_BLOCK_DIFF;
   }
 
-  boost::multiprecision::cpp_dec_float_50 numTxns(
+  mp::cpp_dec_float_50 numTxns(
       LookupServer::GetNumTransactions(refBlockNum));
   LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
@@ -1287,9 +1290,9 @@ double LookupServer::GetTransactionRate() {
     return 0;
   }
   numTxns = numTxns * 1000000;  // conversion from microseconds to seconds
-  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat =
-      static_cast<boost::multiprecision::cpp_dec_float_50>(TimeDiff);
-  boost::multiprecision::cpp_dec_float_50 ans = numTxns / TimeDiffFloat;
+  mp::cpp_dec_float_50 TimeDiffFloat =
+      static_cast<mp::cpp_dec_float_50>(TimeDiff);
+  mp::cpp_dec_float_50 ans = numTxns / TimeDiffFloat;
 
   return ans.convert_to<double>();
 }
@@ -1304,7 +1307,7 @@ double LookupServer::GetDSBlockRate() {
   }
 
   string numDSblockStr = to_string(m_mediator.m_dsBlockChain.GetBlockCount());
-  boost::multiprecision::cpp_dec_float_50 numDs(numDSblockStr);
+  mp::cpp_dec_float_50 numDs(numDSblockStr);
 
   if (m_StartTimeDs == 0)  // case when m_StartTime has not been set
   {
@@ -1330,9 +1333,9 @@ double LookupServer::GetDSBlockRate() {
   }
   // To convert from microSeconds to seconds
   numDs = numDs * 1000000;
-  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat =
-      static_cast<boost::multiprecision::cpp_dec_float_50>(TimeDiff);
-  boost::multiprecision::cpp_dec_float_50 ans = numDs / TimeDiffFloat;
+  mp::cpp_dec_float_50 TimeDiffFloat =
+      static_cast<mp::cpp_dec_float_50>(TimeDiff);
+  mp::cpp_dec_float_50 ans = numDs / TimeDiffFloat;
   return ans.convert_to<double>();
 }
 
@@ -1346,7 +1349,7 @@ double LookupServer::GetTxBlockRate() {
   }
 
   string numTxblockStr = to_string(m_mediator.m_txBlockChain.GetBlockCount());
-  boost::multiprecision::cpp_dec_float_50 numTx(numTxblockStr);
+  mp::cpp_dec_float_50 numTx(numTxblockStr);
 
   if (m_StartTimeTx == 0) {
     try {
@@ -1369,16 +1372,16 @@ double LookupServer::GetTxBlockRate() {
   }
   // To convert from microSeconds to seconds
   numTx = numTx * 1000000;
-  boost::multiprecision::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
-  boost::multiprecision::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
+  mp::cpp_dec_float_50 TimeDiffFloat(to_string(TimeDiff));
+  mp::cpp_dec_float_50 ans = numTx / TimeDiffFloat;
   return ans.convert_to<double>();
 }
 
-string LookupServer::GetTotalCoinSupply() {
+mp::cpp_dec_float_50 LookupServer::CalculateTotalSupply() {
   INC_CALLS(GetCallsCounter());
 
   auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
-  boost::multiprecision::cpp_dec_float_50 ans(totalSupply.str());
+  mp::cpp_dec_float_50 ans(totalSupply.str());
 
   uint128_t balance;
 
@@ -1393,16 +1396,22 @@ string LookupServer::GetTotalCoinSupply() {
         AccountStore::GetInstance().GetAccount(NullAddress, true)->GetBalance();
   }
 
-  boost::multiprecision::cpp_dec_float_50 rewards(balance.str());
+  mp::cpp_dec_float_50 rewards(balance.str());
   ans -= rewards;
   ans /= 1000000000000;  // Convert to ZIL
+  return ans;
+}
 
+string LookupServer::GetTotalCoinSupply() {
   ostringstream streamObj;
   streamObj << std::fixed;
   streamObj << std::setprecision(12);
-  streamObj << ans;
-
+  streamObj << CalculateTotalSupply();
   return streamObj.str();
+}
+
+unsigned long LookupServer::GetTotalCoinSupplyAsInt() {
+  return mp::round(CalculateTotalSupply()).convert_to<unsigned long>();
 }
 
 Json::Value LookupServer::DSBlockListing(unsigned int page) {
