@@ -15,8 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ZILLIQA_SRC_LIBMETRICS_INTERNAL_SCOPE_H_
-#define ZILLIQA_SRC_LIBMETRICS_INTERNAL_SCOPE_H_
+#ifndef ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_
+#define ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_
 
 
 
@@ -39,4 +39,4 @@ struct source_location {
 };
 }
 
-#endif  // ZILLIQA_SRC_LIBMETRICS_INTERNAL_SCOPE_H_
+#endif  // ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_
