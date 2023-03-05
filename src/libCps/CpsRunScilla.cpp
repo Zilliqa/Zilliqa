@@ -343,8 +343,13 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
   // Schedule runs for execution in reverse order since we're putting them on
   // stack, so they should be run in the same order as stored in 'entries'
   // vector
+#ifdef __APPLE__
+  for (int i = parseCallResults.entries.size(); i >= 0; --i) {
+    const auto& nextRunInput = parseCallResults.entries[i];
+#else
   for (const auto& nextRunInput :
-       parseCallResults.entries | std::views::reverse) {
+    parseCallResults.entries | std::views::reverse) {
+#endif
     INC_STATUS(GetCPSMetric(), "Scilla", "NewTransition");
     if (availableGas < CONTRACT_INVOKE_GAS) {
       span.SetError("Insufficient gas limit");

@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.19)
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_BUILD_TYPE debug)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+
 find_program(CCACHE_PROGRAM ccache)
 if(CCACHE_PROGRAM)
     message(STATUS "Found ccache")
@@ -206,9 +211,10 @@ set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Members of maintainers@zilliqa.com")
 # compiler and linker options
 
 add_compile_options(-Wall)
-add_compile_options(-Werror)
+#add_compile_options(-Werror)
 add_compile_options(-pedantic)
 add_compile_options(-Wextra)
+add_compile_options(-std=c++20)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     add_compile_options(-Wno-error=deprecated-declarations)

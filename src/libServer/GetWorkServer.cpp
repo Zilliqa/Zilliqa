@@ -58,7 +58,7 @@ class Variables {
 
   void SetIsMining(int mining) {
     Init();
-    mining = mining;
+    this->mining = mining;
   }
 
   void Init() {
