@@ -55,11 +55,41 @@
 #include "libUtils/GetTxnFromFile.h"
 #include "libUtils/RandomGenerator.h"
 #include "libUtils/SafeMath.h"
-#include "libUtils/SysCommand.h"
 #include "libValidator/Validator.h"
 
 using namespace std;
 using namespace boost::multiprecision;
+
+namespace zil {
+namespace local {
+
+class LookupVariables {
+  int DSCommitteeSize = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetDSCommitteeSize(int number) {
+    Init();
+    DSCommitteeSize = number;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.lookup.gauge",
+                                          "Lookup variables", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(DSCommitteeSize, {{"counter", "DSCommitteeSize"}});
+      });
+    }
+  }
+};
+
+static LookupVariables variables{};
+
+}  // namespace local
+}
 
 namespace {
 
@@ -1055,6 +1085,8 @@ bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
       }
     }
   }
+
+  zil::local::variables.SetDSCommitteeSize(m_mediator.m_DSCommittee->size());
 
   return true;
 }
@@ -2760,6 +2792,7 @@ bool Lookup::ProcessSetDSInfoFromSeed(
 
   lock_guard<mutex> g(m_mediator.m_mutexDSCommittee);
   *m_mediator.m_DSCommittee = std::move(dsNodes);
+  zil::local::variables.SetDSCommitteeSize(m_mediator.m_DSCommittee->size());
 
   // Add ds guard to exclude list for lookup at bootstrap
   Guard::GetInstance().AddDSGuardToBlacklistExcludeList(

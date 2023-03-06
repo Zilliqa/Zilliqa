@@ -61,7 +61,7 @@ namespace local {
 
 class Variables {
   int lastBlockHeight = 0;
-  int misc = 0;
+  int forwardedTx = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -71,6 +71,11 @@ class Variables {
     lastBlockHeight = height;
   }
 
+  void AddForwardedTx(int number) {
+    Init();
+    forwardedTx += number;
+  }
+
   void Init() {
     if (!temp) {
       temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge",
@@ -78,7 +83,7 @@ class Variables {
 
       temp->SetCallback([this](auto&& result) {
         result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
-        result.Set(misc, {{"counter", "Misc"}});
+        result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
       });
     }
   }
@@ -1498,6 +1503,7 @@ bool Node::ProcessMBnForwardTransaction(
 #endif  // SJ_TEST_SJ_MISSING_MBTXNS
 
   MBnForwardedTxnEntry entry;
+  zil::local::variables.AddForwardedTx(1);
 
   if (!Messenger::GetNodeMBnForwardTransaction(message, cur_offset, entry)) {
     LOG_EPOCH(WARNING, m_mediator.m_currentEpochNum,
