@@ -149,6 +149,9 @@ class Mediator {
 
   bool GetIsVacuousEpoch();
 
+  void AddPendingTxn(Transaction const& tx);
+  std::vector<Transaction> GetPendingTxns();
+
   uint32_t GetShardSize(const bool& useShardStructure) const;
 
   bool CheckWhetherBlockIsLatest(const uint64_t& dsblockNum,
