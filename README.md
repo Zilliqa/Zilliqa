@@ -175,3 +175,4 @@ The Zilliqa client works together with Scilla for executing smart contracts. Ple
 | **Security contact** | `security` :globe_with_meridians: `zilliqa.com` |
 | **Security bug bounty** | <a href="https://hackerone.com/zilliqa" target="_blank">HackerOne bug bounty</a> |
 
+
