@@ -347,7 +347,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
       if (!traces.empty() && evmContext.GetTranID()) {
         LOG_GENERAL(INFO,
                     "Putting in TX trace for: " << evmContext.GetTranID());
-        if (0) span.AddEvent("info", {{"trace", traces}});
+
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {
           LOG_GENERAL(INFO,

@@ -20,15 +20,19 @@
 
 #include <memory>
 #include <optional>
+#ifdef APPLE_CLANG
 #include <source_location>
+#endif
 #include <span>
 #include <string>
 #include <variant>
 
 #include <g3log/loglevels.hpp>
 
-#ifndef HAVE_CPP_STDLIB
-#define HAVE_CPP_STDLIB
+#ifdef __clang__
+#include "internal/source_location.h"
+#else
+#include <source_location>
 #endif
 
 // Expose these internal structures to be used inside otel-based logging

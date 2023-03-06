@@ -53,19 +53,21 @@ namespace local {
 
 class Variables {
   int mining = 0;
+
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
 
   void SetIsMining(int mining) {
     Init();
-    mining = mining;
+    this->mining = mining;
   }
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "mining.gauge", "Node gague", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "mining.gauge",
+                                          "Node gague", "calls", true);
 
-      temp->SetCallback([this](auto &&result) {
+      temp->SetCallback([this](auto&& result) {
         result.Set(mining, {{"counter", "mining"}});
       });
     }
@@ -77,7 +79,6 @@ static Variables variables{};
 }  // namespace local
 
 }  // namespace zil
-
 
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {

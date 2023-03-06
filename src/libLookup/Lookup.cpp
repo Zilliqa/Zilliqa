@@ -236,7 +236,6 @@ void Lookup::SetLookupNodes(const VectorOfNode& lookupNodes) {
 }
 
 void Lookup::SetLookupNodes() {
-
   std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
 
   m_startedTxnBatchThread = false;
@@ -635,7 +634,6 @@ uint128_t Lookup::TryGettingResolvedIP(const Peer& peer) const {
 }
 
 void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
-
   vector<Peer> allLookupNodes;
 
   {
@@ -658,7 +656,6 @@ void Lookup::SendMessageToLookupNodes(const zbytes& message) const {
 }
 
 void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
-
   vector<Peer> allLookupNodes;
 
   {
@@ -687,7 +684,6 @@ void Lookup::SendMessageToLookupNodesSerial(const zbytes& message) const {
 }
 
 void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
-
   // int index = rand() % (NUM_LOOKUP_USE_FOR_SYNC) + m_lookupNodes.size()
   // - NUM_LOOKUP_USE_FOR_SYNC;
   lock_guard<mutex> lock(m_mutexLookupNodes);
@@ -723,7 +719,6 @@ void Lookup::SendMessageToRandomLookupNode(const zbytes& message) const {
 }
 
 void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
-
   vector<Peer> seedNodePeer;
   {
     lock_guard<mutex> g(m_mutexSeedNodes);
@@ -743,7 +738,6 @@ void Lookup::SendMessageToSeedNodes(const zbytes& message) const {
 }
 
 zbytes Lookup::ComposeGetDSInfoMessage(bool initialDS) {
-
   zbytes getDSNodesMessage = {MessageType::LOOKUP,
                               LookupInstructionType::GETDSINFOFROMSEED};
 
@@ -775,7 +769,6 @@ bool Lookup::GetDSInfoFromLookupNodes(bool initialDS) {
 zbytes Lookup::ComposeGetDSBlockMessage(uint64_t lowBlockNum,
                                         uint64_t highBlockNum,
                                         const bool includeMinerInfo) {
-
   zbytes getDSBlockMessage = {MessageType::LOOKUP,
                               LookupInstructionType::GETDSBLOCKFROMSEED};
 
@@ -819,7 +812,6 @@ zbytes Lookup::ComposeGetDSBlockMessageForL2l(uint64_t blockNum) {
 }
 
 zbytes Lookup::ComposeGetVCFinalBlockMessageForL2l(uint64_t blockNum) {
-
   zbytes getVcFinalBlockMessage = {
       MessageType::LOOKUP,
       LookupInstructionType::GETVCFINALBLOCKFROML2LDATAPROVIDER};
@@ -858,7 +850,6 @@ zbytes Lookup::ComposeGetMBnForwardTxnMessageForL2l(uint64_t blockNum,
 }
 
 bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
-
   // loop until ds block is received
   while (!m_mediator.m_lookup->m_vcDsBlockProcessed &&
          (GetSyncType() == SyncType::NO_SYNC)) {
@@ -884,7 +875,6 @@ bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
 }
 
 bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
-
   // loop until vcfinal block is received
   auto getmessage = ComposeGetVCFinalBlockMessageForL2l(blockNum);
   while (!m_mediator.m_lookup->m_vcFinalBlockProcessed &&
@@ -931,7 +921,6 @@ bool Lookup::GetDSBlockFromSeedNodes(uint64_t lowBlockNum,
 
 zbytes Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
                                         uint64_t highBlockNum) {
-
   zbytes getTxBlockMessage = {MessageType::LOOKUP,
                               LookupInstructionType::GETTXBLOCKFROMSEED};
 
@@ -951,7 +940,6 @@ zbytes Lookup::ComposeGetTxBlockMessage(uint64_t lowBlockNum,
 }
 
 zbytes Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
-
   zbytes getStateDeltaMessage = {MessageType::LOOKUP,
                                  LookupInstructionType::GETSTATEDELTAFROMSEED};
 
@@ -968,7 +956,6 @@ zbytes Lookup::ComposeGetStateDeltaMessage(uint64_t blockNum) {
 
 zbytes Lookup::ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
                                             uint64_t highBlockNum) {
-
   zbytes getStateDeltasMessage = {
       MessageType::LOOKUP, LookupInstructionType::GETSTATEDELTASFROMSEED};
 
@@ -989,7 +976,6 @@ zbytes Lookup::ComposeGetStateDeltasMessage(uint64_t lowBlockNum,
 // highBlockNum = 0 => Latest block number
 bool Lookup::GetTxBlockFromLookupNodes(uint64_t lowBlockNum,
                                        uint64_t highBlockNum) {
-
   SendMessageToRandomLookupNode(
       ComposeGetTxBlockMessage(lowBlockNum, highBlockNum));
 
@@ -1024,7 +1010,6 @@ bool Lookup::GetStateDeltasFromSeedNodes(uint64_t lowBlockNum,
                                          uint64_t highBlockNum)
 
 {
-
   if (m_syncType == SyncType::LOOKUP_SYNC) {
     SendMessageToRandomLookupNode(
         ComposeGetStateDeltasMessage(lowBlockNum, highBlockNum));
@@ -1041,7 +1026,6 @@ bool Lookup::GetStateDeltasFromSeedNodes(uint64_t lowBlockNum,
 
 bool Lookup::SetDSCommitteInfo(bool replaceMyPeerWithDefault) {
   // Populate tree structure pt
-
 
   using boost::property_tree::ptree;
   ptree pt;
@@ -1112,7 +1096,6 @@ vector<Peer> Lookup::GetNodePeers() {
 }
 
 bool Lookup::ProcessEntireShardingStructure() {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessEntireShardingStructure not expected to be "
@@ -1189,7 +1172,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
     return true;
   }
 
-
   uint32_t portNo = 0;
   bool initialDS;
 
@@ -1245,7 +1227,6 @@ bool Lookup::ProcessGetDSInfoFromSeed(const zbytes& message,
 }
 
 void Lookup::SendMessageToRandomL2lDataProvider(const zbytes& message) const {
-
   if (message.empty()) {
     LOG_GENERAL(WARNING, "Ignoring sending empty message");
     return;
@@ -1326,7 +1307,6 @@ bool Lookup::ProcessGetDSBlockFromL2l(const zbytes& message,
                 "from other than the LookUp node.");
     return true;
   }
-
 
   uint64_t blockNum = 0;
   Peer requestorPeer;
@@ -1409,7 +1389,6 @@ bool Lookup::ProcessGetVCFinalBlockFromL2l(const zbytes& message,
     return false;
   }
 
-
   uint64_t blockNum = 0;
   Peer requestorPeer;
   PubKey senderPubKey;
@@ -1489,7 +1468,6 @@ bool Lookup::ProcessGetMBnForwardTxnFromL2l(const zbytes& message,
         "from other than the LookUp node.");
     return true;
   }
-
 
   uint64_t blockNum = 0;
   uint32_t shardId = 0;
@@ -1611,7 +1589,6 @@ bool Lookup::ComposeAndStoreMBnForwardTxnMessage(const uint64_t& blockNum) {
     return true;
   }
 
-
   TxBlockSharedPtr finalBlkPtr;
   if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, finalBlkPtr)) {
     LOG_GENERAL(WARNING,
@@ -1670,7 +1647,6 @@ bool Lookup::ComposeAndStoreVCDSBlockMessage(const uint64_t& blockNum) {
     return false;
   }
 
-
   // Hack to make sure sharding structure is received if this node had just
   // rejoined.
   DequeOfShard shardingStruct;
@@ -1725,7 +1701,6 @@ bool Lookup::ComposeAndStoreVCFinalBlockMessage(const uint64_t& blockNum) {
     return false;
   }
 
-
   TxBlockSharedPtr finalBlkPtr;
   if (!BlockStorage::GetBlockStorage().GetTxBlock(blockNum, finalBlkPtr)) {
     LOG_GENERAL(WARNING,
@@ -1776,7 +1751,6 @@ bool Lookup::ProcessGetDSBlockFromSeed(const zbytes& message,
                 "from other than the LookUp node.");
     return true;
   }
-
 
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
@@ -1954,7 +1928,6 @@ bool Lookup::ProcessGetTxBlockFromSeed(const zbytes& message,
     return true;
   }
 
-
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
@@ -2076,7 +2049,6 @@ bool Lookup::ProcessGetStateDeltaFromSeed(const zbytes& message,
     return true;
   }
 
-
   uint64_t blockNum = 0;
   uint32_t portNo = 0;
 
@@ -2140,7 +2112,6 @@ bool Lookup::ProcessGetStateDeltasFromSeed(const zbytes& message,
     return true;
   }
 
-
   uint64_t lowBlockNum = 0;
   uint64_t highBlockNum = 0;
   uint32_t portNo = 0;
@@ -2203,7 +2174,6 @@ bool Lookup::ProcessGetShardFromSeed([[gnu::unused]] const zbytes& message,
                                      [[gnu::unused]] unsigned int offset,
                                      const Peer& from,
                                      const unsigned char& startByte) {
-
   uint32_t portNo = 0;
 
   if (!Messenger::GetLookupGetShardsFromSeed(message, offset, portNo)) {
@@ -2235,7 +2205,6 @@ bool Lookup::ProcessSetShardFromSeed(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   DequeOfShard shards;
   PubKey senderPubKey;
   uint32_t shardingStructureVersion = 0;
@@ -2320,7 +2289,6 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
                                             unsigned int offset,
                                             const Peer& from,
                                             const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2406,7 +2374,6 @@ bool Lookup::ProcessGetMicroBlockFromLookup(const zbytes& message,
 bool Lookup::ProcessGetMicroBlockFromL2l(const zbytes& message,
                                          unsigned int offset, const Peer& from,
                                          const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2494,7 +2461,6 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
     return false;
   }
 
-
   vector<MicroBlock> mbs;
   PubKey senderPubKey;
 
@@ -2536,7 +2502,6 @@ bool Lookup::ProcessSetMicroBlockFromLookup(
 }
 
 void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
-
   zbytes msg = {MessageType::LOOKUP,
                 LookupInstructionType::GETMICROBLOCKFROMLOOKUP};
 
@@ -2556,7 +2521,6 @@ void Lookup::SendGetMicroBlockFromLookup(const vector<BlockHash>& mbHashes) {
 }
 
 void Lookup::SendGetMicroBlockFromL2l(const vector<BlockHash>& mbHashes) {
-
   zbytes msg = {MessageType::LOOKUP,
                 LookupInstructionType::GETMICROBLOCKFROML2LDATAPROVIDER};
 
@@ -2578,7 +2542,6 @@ void Lookup::SendGetMicroBlockFromL2l(const vector<BlockHash>& mbHashes) {
 bool Lookup::ProcessGetCosigsRewardsFromSeed(
     [[gnu::unused]] const zbytes& message, [[gnu::unused]] unsigned int offset,
     const Peer& from, const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -2693,7 +2656,6 @@ bool Lookup::NoOp([[gnu::unused]] const zbytes& message,
 bool Lookup::ProcessSetDSInfoFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   bool initialDS = false;
 
   PubKey senderPubKey;
@@ -2823,7 +2785,6 @@ bool Lookup::ProcessSetDSBlockFromSeed(
     [[gnu::unused]] const unsigned char& startByte) {
   // #ifndef IS_LOOKUP_NODE TODO: uncomment later
 
-
   lock(m_mutexSetDSBlockFromSeed, m_mutexCheckDirBlocks);
 
   unique_lock<mutex> lock(m_mutexSetDSBlockFromSeed, adopt_lock);
@@ -2916,7 +2877,6 @@ bool Lookup::ProcessSetMinerInfoFromSeed(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -3136,7 +3096,6 @@ bool Lookup::GetDSInfo() {
 }
 
 void Lookup::PrepareForStartPow() {
-
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "At new DS epoch now, already have state. Getting DSInfo.");
 
@@ -3504,7 +3463,6 @@ deque<pair<Transaction, uint32_t>>& Lookup::GetTxnFromShardMap(uint32_t index) {
 bool Lookup::ProcessSetStateDeltaFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   if (AlreadyJoinedNetwork()) {
     cv_setStateDeltaFromSeed.notify_all();
     return true;
@@ -3553,7 +3511,6 @@ bool Lookup::ProcessSetStateDeltaFromSeed(
 bool Lookup::ProcessSetStateDeltasFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   if (AlreadyJoinedNetwork()) {
     cv_setStateDeltasFromSeed.notify_all();
     return true;
@@ -3656,7 +3613,6 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
                                       [[gnu::unused]] unsigned int offset,
                                       const Peer& from,
                                       const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -3749,7 +3705,6 @@ bool Lookup::ProcessGetTxnsFromLookup([[gnu::unused]] const zbytes& message,
 bool Lookup::ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
                                    const Peer& from,
                                    const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Function not expected to be called from non-lookup node");
@@ -3863,7 +3818,6 @@ bool Lookup::ProcessSetTxnsFromLookup(
     const zbytes& message, unsigned int offset,
     [[gnu::unused]] const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   BlockHash mbHash;
   vector<TransactionWithReceipt> txns;
   PubKey senderPubKey;
@@ -3948,7 +3902,6 @@ bool Lookup::ProcessSetTxnsFromLookup(
 
 void Lookup::SendGetTxnsFromLookup(const BlockHash& mbHash,
                                    const vector<TxnHash>& txnhashes) {
-
   zbytes msg = {MessageType::LOOKUP, LookupInstructionType::GETTXNFROMLOOKUP};
 
   if (txnhashes.size() == 0) {
@@ -3967,7 +3920,6 @@ void Lookup::SendGetTxnsFromLookup(const BlockHash& mbHash,
 
 void Lookup::SendGetTxnsFromL2l(const BlockHash& mbHash,
                                 const vector<TxnHash>& txnhashes) {
-
   zbytes msg = {MessageType::LOOKUP,
                 LookupInstructionType::GETTXNSFROML2LDATAPROVIDER};
 
@@ -4016,7 +3968,6 @@ bool Lookup::InitMining() {
         "Lookup::InitMining not expected to be called from LookUp node.");
     return true;
   }
-
 
   // General check
   if (m_mediator.m_currentEpochNum % NUM_FINAL_BLOCK_PER_POW != 0) {
@@ -4140,7 +4091,6 @@ bool Lookup::ProcessSetLookupOffline(
 bool Lookup::ProcessSetLookupOnline(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetLookupOnline not expected to be called "
@@ -4239,7 +4189,6 @@ bool Lookup::ProcessGetOfflineLookups(const zbytes& message,
 bool Lookup::ProcessSetOfflineLookups(
     const zbytes& message, unsigned int offset, const Peer& from,
     [[gnu::unused]] const unsigned char& startByte) {
-
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::ProcessSetOfflineLookups not expected to be "
@@ -4302,7 +4251,6 @@ void Lookup::StartSynchronization() {
                 "from other than the LookUp node.");
     return;
   }
-
 
   auto func = [this]() -> void {
     if (!ARCHIVAL_LOOKUP) {
@@ -4384,7 +4332,6 @@ zbytes Lookup::ComposeGetLookupOfflineMessage() {
     return zbytes();
   }
 
-
   zbytes getLookupOfflineMessage = {MessageType::LOOKUP,
                                     LookupInstructionType::SETLOOKUPOFFLINE};
 
@@ -4408,7 +4355,6 @@ zbytes Lookup::ComposeGetLookupOnlineMessage() {
     return zbytes();
   }
 
-
   zbytes getLookupOnlineMessage = {MessageType::LOOKUP,
                                    LookupInstructionType::SETLOOKUPONLINE};
 
@@ -4431,7 +4377,6 @@ bool Lookup::GetMyLookupOffline() {
                 "other than the LookUp node.");
     return true;
   }
-
 
   {
     std::lock_guard<std::mutex> lock(m_mutexLookupNodes);
@@ -4644,7 +4589,6 @@ void Lookup::RejoinAsLookup(bool fromLookup) {
     return;
   }
 
-
   if (m_mediator.m_lookup->GetSyncType() == SyncType::NO_SYNC) {
     m_mediator.m_lookup->SetSyncType(SyncType::LOOKUP_SYNC);
     auto func1 = [this]() mutable -> void {
@@ -4795,7 +4739,6 @@ zbytes Lookup::ComposeGetOfflineLookupNodes() {
                 "called from the LookUp node.");
     return zbytes();
   }
-
 
   zbytes getCurrLookupsMessage = {MessageType::LOOKUP,
                                   LookupInstructionType::GETOFFLINELOOKUPS};
@@ -5134,7 +5077,6 @@ void Lookup::ComposeAndSendGetCosigsRewardsFromSeed(const uint64_t& block_num) {
 
 bool Lookup::Execute(const zbytes& message, unsigned int offset,
                      const Peer& from, const unsigned char& startByte) {
-
   bool result = true;
 
   typedef bool (Lookup::*InstructionHandler)(
@@ -5212,7 +5154,6 @@ bool Lookup::Execute(const zbytes& message, unsigned int offset,
 bool Lookup::AlreadyJoinedNetwork() { return m_syncType == SyncType::NO_SYNC; }
 
 void Lookup::RemoveSeedNodesFromBlackList() {
-
   lock_guard<mutex> lock(m_mutexSeedNodes);
 
   for (const auto& node : m_seedNodes) {
@@ -5318,7 +5259,6 @@ void Lookup::SenderTxnBatchThread(const uint32_t oldNumShards,
 
 void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
                                 const uint32_t newNumShards) {
-
   auto t_start = std::chrono::high_resolution_clock::now();
 
   map<uint, deque<pair<Transaction, uint32_t>>> tempTxnShardMap;
@@ -5367,7 +5307,6 @@ void Lookup::RectifyTxnShardMap(const uint32_t oldNumShards,
 
 void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
                                   bool afterSoftConfirmation) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketToShard not expected to be called from"
@@ -5487,7 +5426,6 @@ void Lookup::SendTxnPacketToShard(const uint32_t shardId, bool toDS,
 
 void Lookup::SendTxnPacketToDS(const uint32_t oldNumShards,
                                const uint32_t newNumShards) {
-
   // This will generate txns for all shards include ds shard.
   SendTxnPacketPrepare(oldNumShards, newNumShards);
 
@@ -5535,7 +5473,6 @@ void Lookup::SendTxnPacketPrepare(const uint32_t oldNumShards,
 
 void Lookup::SendTxnPacketToNodes(const uint32_t oldNumShards,
                                   const uint32_t newNumShards) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Lookup::SendTxnPacketToNodes not expected to be called from "
@@ -5706,7 +5643,6 @@ bool Lookup::ProcessForwardTxn(const zbytes& message, unsigned int offset,
 bool Lookup::ProcessVCGetLatestDSTxBlockFromSeed(
     const zbytes& message, unsigned int offset, const Peer& from,
     const unsigned char& startByte) {
-
   if (!LOOKUP_NODE_MODE) {
     LOG_GENERAL(
         WARNING,
@@ -5788,7 +5724,6 @@ bool Lookup::ProcessGetDSGuardNetworkInfo(
                 "guard network info.");
     return false;
   }
-
 
   uint32_t portNo = 0;
   uint64_t dsEpochNo = 0;

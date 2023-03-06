@@ -16,8 +16,8 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/format.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "common/Messages.h"
@@ -2351,7 +2351,6 @@ Json::Value LookupServer::GetStateProof(const string& address,
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-
   TRACE(zil::trace::FilterClass::DEMO);
 
   INC_CALLS(GetCallsCounter());
@@ -2402,8 +2401,12 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
           "and receiver";
     } else {
       if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-        (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
+        throw JsonRpcException(
+            ServerBase::RPC_INVALID_PARAMETER,
+            (boost::format(
+                 "txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") %
+             tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT)
+                .str());
       }
       if (ARCHIVAL_LOOKUP) {
         mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;

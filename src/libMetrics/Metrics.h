@@ -218,7 +218,6 @@ class Metrics : public Singleton<Metrics> {
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 
  private:
-
   friend class api_test;
 
   void InitPrometheus(const std::string &addr);
