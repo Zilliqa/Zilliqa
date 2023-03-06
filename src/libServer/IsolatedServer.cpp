@@ -883,6 +883,9 @@ std::string IsolatedServer::CreateTransactionEth(Eth::EthFields const& fields,
                              "Error Code: " + to_string(error_code));
     }
 
+    // Add TXs to the pending tx list for testing the isolated server, since
+    // otherwise, TXs are instantly executed
+    this->m_mediator.AddPendingTxn(tx);
     TransactionWithReceipt twr(tx, txreceipt);
 
     zbytes twr_ser;
