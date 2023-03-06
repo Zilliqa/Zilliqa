@@ -344,7 +344,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
   // stack, so they should be run in the same order as stored in 'entries'
   // vector
 #ifdef __APPLE__
-  for (int i = parseCallResults.entries.size(); i >= 0; --i) {
+  for (int i = parseCallResults.entries.size(); i > 0; --i) {
     const auto& nextRunInput = parseCallResults.entries[i];
 #else
   for (const auto& nextRunInput :
