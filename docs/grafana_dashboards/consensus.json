@@ -112,7 +112,8 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "editorMode": "builder",
-          "expr": "zilliqa_tx_lookup_gauge{counter=\"DSState\"}",
+          "expr": "zilliqa_tx_directoryservice_gauge{counter=\"DSState\"}",
+          "interval": "",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -205,7 +206,7 @@
             "uid": "P1809F7CD0C75ACF3"
           },
           "editorMode": "builder",
-          "expr": "zilliqa_tx_lookup_gauge{counter=\"isLeader\"}",
+          "expr": "zilliqa_tx_directoryservice_gauge{counter=\"isLeader\"}",
           "legendFormat": "{{pod}}",
           "range": true,
           "refId": "A"
@@ -414,6 +415,6 @@
   "timezone": "",
   "title": "Consensus",
   "uid": "jd_E3fx4z",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
