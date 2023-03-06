@@ -171,7 +171,7 @@ const unsigned int CONTRACT_STATE_VERSION{
 const bool ARCHIVAL_LOOKUP{
     ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.") == "true"};
 bool ARCHIVAL_LOOKUP_WITH_TX_TRACES{
-    ReadConstantString("ARCHIVAL_LOOKUP_WITH_TX_TRACES", "node.seed.",
+    ReadConstantString("ARCHIVAL_LOOKUP", "node.seed.",
                        "false") == "true"};
 bool TX_TRACES{ReadConstantString("TX_TRACES", "node.seed.", "true") == "true"};
 const unsigned int SEED_TXN_COLLECTION_TIME_IN_SEC{
