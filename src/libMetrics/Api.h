@@ -18,7 +18,6 @@
 #define ZILLIQA_SRC_LIBMETRICS_API_H_
 
 #include "Tracing.h"
-#include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
 
 using Z_I64METRIC = zil::metrics::I64Counter;
