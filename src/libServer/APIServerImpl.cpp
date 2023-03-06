@@ -25,6 +25,15 @@
 
 namespace rpc {
 
+namespace {
+
+enum MetricIndex {
+  NUM_CONNECTIONS,
+  THREAD_POOL_SIZE
+};
+
+}
+
 /// HTTP connection from the server perspective
 /// TODO write buffer constraint against slow clients or their sabotage
 class APIServerImpl::Connection
@@ -278,7 +287,13 @@ std::shared_ptr<APIServer> APIServer::CreateAndStart(APIServer::Options options,
   return server;
 }
 
-APIServerImpl::APIServerImpl(Options options) : m_options(std::move(options)) {
+APIServerImpl::APIServerImpl(Options options)
+    : m_options(std::move(options)),
+      m_metrics(zil::metrics::CreateGauge<int64_t>(
+          zil::metrics::FilterClass::API_SERVER,
+          std::string("api.server.") + m_options.threadPoolName,
+          {"TotalConnections", "ThreadPoolQueueSize"}, "API server metrics",
+          "units")) {
   if (m_options.numThreads == 0) {
     m_options.numThreads = 1;
   }
@@ -364,23 +379,13 @@ bool APIServerImpl::DoListen() {
 
   AcceptNext();
 
-  m_metrics.SetCallback([this](auto &&result) {
-    if (m_metrics.Enabled()) {
-      result.Set(m_connections.size(), {{"server", m_options.threadPoolName},
-                                        {"counter", "TotalConnections"}});
-
-      result.Set(m_threadPool->GetQueueSize(),
-                 {{"server", m_options.threadPoolName},
-                  {"counter", "ThreadPoolQueueSize"}});
-    }
-  });
-
   return true;
 }
 
 void APIServerImpl::OnWebsocketUpgrade(ConnectionId id, std::string &&from,
                                        Socket &&socket, HttpRequest &&request) {
   m_connections.erase(id);
+  --m_metrics.Get(NUM_CONNECTIONS);
   m_websocket->NewConnection(std::move(from), std::move(socket),
                              std::move(request));
 }
@@ -390,10 +395,15 @@ void APIServerImpl::OnRequest(ConnectionId id, std::string from,
   if (!m_threadPool->PushRequest(id, false, std::move(from),
                                  std::move(request.body()))) {
     LOG_GENERAL(WARNING, "Request queue is full");
+  } else {
+    m_metrics.Get(THREAD_POOL_SIZE) = m_threadPool->GetQueueSize();
   }
 }
 
-void APIServerImpl::OnClosed(ConnectionId id) { m_connections.erase(id); }
+void APIServerImpl::OnClosed(ConnectionId id) {
+  m_connections.erase(id);
+  --m_metrics.Get(NUM_CONNECTIONS);
+}
 
 std::shared_ptr<WebsocketServer> APIServerImpl::GetWebsocketServer() {
   return m_websocket;
@@ -440,6 +450,7 @@ bool APIServerImpl::StopListening() {
         conn.second->Close();
       }
       self->m_connections.clear();
+      self->m_metrics.Get(NUM_CONNECTIONS) = 0;
     });
   }
   return true;
@@ -469,6 +480,7 @@ void APIServerImpl::OnAccept(beast::error_code ec, tcp::socket socket) {
                                            m_options.inputBodyLimitBytes);
   conn->StartReading();
   m_connections[m_counter] = std::move(conn);
+  ++m_metrics.Get(NUM_CONNECTIONS);
 
   LOG_GENERAL(DEBUG, "Connection #" << m_counter << " from " << from
                                     << ", total=" << m_connections.size());
@@ -480,6 +492,9 @@ APIThreadPool::Response APIServerImpl::ProcessRequestInThreadPool(
     const APIThreadPool::Request &request) {
   APIThreadPool::Response response;
   bool error = false;
+
+  m_metrics.Get(THREAD_POOL_SIZE) = m_threadPool->GetQueueSize();
+
   try {
     // Calls connection handler from AbstractServerConnector
     ProcessRequest(request.body, response.body);

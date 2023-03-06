@@ -19,6 +19,7 @@
 #include <jsonrpccpp/common/exception.h>
 #include <jsonrpccpp/common/specification.h>
 #include <sstream>
+#include "libMetrics/Api.h"
 #include "libUtils/GasConv.h"
 #include "websocketpp/base64/base64.hpp"
 
@@ -35,24 +36,17 @@ using websocketpp::base64_encode;
 
 namespace {
 
-Z_I64METRIC &GetCallsCounter() {
-  static Z_I64METRIC scillaIPCCount(Z_FL::SCILLA_IPC, "scilla_ipc_count",
-                                    "Metrics for ScillaIPCServer", "Calls");
-  return scillaIPCCount;
-}
+DEFINE_I64_COUNTER(GetCallsCounter, Z_FL::SCILLA_IPC, "scilla_ipc_count",
+                   "Metrics for ScillaIPCServer", "Calls");
+
+DEFINE_I64_GAUGE_2(BCInfoGauge, Z_FL::SCILLA_IPC,
+                   "scilla_bcinfo_invocations_count",
+                   "Metrics for ScillaBCInfo", "Blocks", BlockNumber,
+                   DSBlockNumber);
 
 }  // namespace
 
-ScillaBCInfo::ScillaBCInfo() {
-  m_bcInfoCount.SetCallback([this](auto &&result) {
-    if (m_bcInfoCount.Enabled()) {
-      if (getCurBlockNum() > 0)
-        result.Set(getCurBlockNum(), {{"counter", "BlockNumber"}});
-      if (getCurDSBlockNum())
-        result.Set(getCurDSBlockNum(), {{"counter", "DSBlockNumber"}});
-    }
-  });
-}
+ScillaBCInfo::ScillaBCInfo() {}
 
 void ScillaBCInfo::SetUp(const uint64_t curBlockNum,
                          const uint64_t curDSBlockNum,
@@ -65,6 +59,9 @@ void ScillaBCInfo::SetUp(const uint64_t curBlockNum,
   m_originAddr = originAddr;
   m_rootHash = rootHash;
   m_scillaVersion = scillaVersion;
+
+  BCInfoGaugeBlockNumber() = m_curBlockNum;
+  BCInfoGaugeDSBlockNumber() = m_curDSBlockNum;
 }
 
 ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)

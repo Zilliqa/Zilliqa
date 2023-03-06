@@ -40,11 +40,8 @@
 
 namespace {
 
-Z_I64METRIC &GetInvocationsCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_SCILLA, "processors",
-                             "Metrics for AccountStore", "Blocks"};
-  return counter;
-}
+DEFINE_I64_COUNTER(GetInvocationsCounter, Z_FL::ACCOUNTSTORE_SCILLA,
+                   "processors", "Metrics for AccountStore", "Blocks");
 
 }  // namespace
 // 5mb
@@ -59,35 +56,13 @@ typedef long int observerType;
 namespace zil {
 namespace local {
 
-Z_I64METRIC &GetInvocationsCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla",
-                             "Metrics for AccountStore", "calls"};
-  return counter;
-}
+DEFINE_I64_COUNTER(GetInvocationsCounter, Z_FL::ACCOUNTSTORE_HISTOGRAMS,
+                   "scilla", "Metrics for AccountStore", "calls");
 
-Z_I64GAUGE &GetEvmLatencyCounter() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "evm.latency.counter",
-                            "Simple EVM latency gauge", "calls", true};
-  return counter;
-}
+DEFINE_I64_GAUGE(GetScillaLatencyCounter, Z_FL::ACCOUNTSTORE_SCILLA,
+                 "scilla_latency_counter", "Simple Scilla latency gauge", "us",
+                 "")
 
-Z_I64GAUGE &GetScillaLatencyCounter() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_SCILLA, "scilla_latency_counter",
-                            "Simple Scilla latency gauge", "us", true};
-  return counter;
-}
-
-Z_I64GAUGE &GetProcessorBNCounters() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
-                            "Block number seen by processor", "count", true};
-  return counter;
-}
-
-Z_I64GAUGE &GetProcessorDSBNCounters() {
-  static Z_I64GAUGE counter{Z_FL::ACCOUNTSTORE_EVM, "dsblocknumber",
-                            "Ds Block number seen by processor", "count", true};
-  return counter;
-}
 }  // namespace local
 }  // namespace zil
 
@@ -95,38 +70,6 @@ AccountStoreSC::AccountStoreSC() {
   Metrics::GetInstance();
   m_accountStoreAtomic = std::make_unique<AccountStoreAtomic>(*this);
   m_txnProcessTimeout = false;
-
-  zil::local::GetEvmLatencyCounter().SetCallback([this](auto &&result) {
-    if (zil::local::GetEvmLatencyCounter().Enabled()) {
-      if (m_stats.evmCall > 0) {
-        result.Set(m_stats.evmCall, {});
-      }
-    }
-  });
-
-  zil::local::GetScillaLatencyCounter().SetCallback([this](auto &&result) {
-    if (zil::local::GetScillaLatencyCounter().Enabled()) {
-      if (m_stats.scillaCall > 0) {
-        result.Set(m_stats.scillaCall, {});
-      }
-    }
-  });
-
-  zil::local::GetProcessorBNCounters().SetCallback([this](auto &&result) {
-    if (zil::local::GetProcessorBNCounters().Enabled()) {
-      if (m_stats.blockNumber > 0) {
-        result.Set(m_stats.blockNumber, {});
-      }
-    }
-  });
-
-  zil::local::GetProcessorDSBNCounters().SetCallback([this](auto &&result) {
-    if (zil::local::GetProcessorBNCounters().Enabled()) {
-      if (m_stats.blockNumberDS > 0) {
-        result.Set(m_stats.blockNumberDS, {});
-      }
-    }
-  });
 }
 
 void AccountStoreSC::Init() {
@@ -207,7 +150,7 @@ void AccountStoreSC::InvokeInterpreter(
   }
   if (METRICS_ENABLED(ACCOUNTSTORE_SCILLA)) {
     auto val = r_timer_end(tpStart);
-    if (val > 0) m_stats.scillaCall = val;
+    if (val > 0) zil::local::GetScillaLatencyCounter() = val;
   }
 }
 

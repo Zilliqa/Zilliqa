@@ -25,7 +25,6 @@
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
 #include "libNetwork/P2PMessage.h"
-#include "libMetrics/Api.h"
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
@@ -58,9 +57,6 @@ class Zilliqa {
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_stakingServerConnector;
   std::unique_ptr<jsonrpc::AbstractServerConnector> m_statusServerConnector;
 
-  Z_I64GAUGE m_msgQueueSize{zil::metrics::FilterClass::MSG_DISPATCH,
-                            "msg.dispatch.queue_size",
-                            "Incoming P2P message queue size", "bytes", true};
   ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
   void ProcessMessage(Msg& message);

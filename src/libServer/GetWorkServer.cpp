@@ -51,33 +51,12 @@ namespace zil {
 
 namespace local {
 
-class Variables {
-  int mining = 0;
- public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
-  void SetIsMining(int mining) {
-    Init();
-    mining = mining;
-  }
-
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "mining.gauge", "Node gague", "calls", true);
-
-      temp->SetCallback([this](auto &&result) {
-        result.Set(mining, {{"counter", "mining"}});
-      });
-    }
-  }
-};
-
-static Variables variables{};
+DEFINE_I64_GAUGE(Mining, Z_FL::BLOCKS, "mining.gauge", "Node gauge", "calls",
+                 "mining")
 
 }  // namespace local
 
 }  // namespace zil
-
 
 // GetInstance returns the singleton instance
 GetWorkServer& GetWorkServer::GetInstance() {
@@ -113,7 +92,7 @@ bool GetWorkServer::StartServer() {
 bool GetWorkServer::StartMining(const PoWWorkPackage& wp) {
   // Keep track of current difficulty for this round of mining
   m_currentTargetDifficulty = wp.difficulty;
-  zil::local::variables.SetIsMining(1);
+  zil::local::Mining() = 1;
 
   // clear the last result
   {
@@ -138,7 +117,7 @@ bool GetWorkServer::StartMining(const PoWWorkPackage& wp) {
 
 // StopMining stops mining and clear result
 void GetWorkServer::StopMining() {
-  zil::local::variables.SetIsMining(0);
+  zil::local::Mining() = 0;
   m_isMining = false;
   m_currentTargetDifficulty = 0;
 

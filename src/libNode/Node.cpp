@@ -94,50 +94,12 @@ namespace {
 }  // namespace
 #endif
 
-namespace zil {
+namespace zil::local {
 
-namespace local {
+DEFINE_I64_GAUGE_3(StatusVar, Z_FL::BLOCKS, "node.gauge", "Node gauge", "calls",
+                   NodeState, TXsInserted, txnPool)
 
-class VariablesNode {
-  int nodeState = 0;
-  int txnPool = 0;
-  int txsInserted = 0;
- public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
-  void SetNodeState(int state) {
-    Init();
-    nodeState = state;
-  }
-
-  void AddTxnInserted(int inserted) {
-    Init();
-    txsInserted += inserted;
-  }
-
-  void SetTxnPool(int size) {
-    Init();
-    txnPool = size;
-  }
-
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge", "Node gague", "calls", true);
-
-      temp->SetCallback([this](auto &&result) {
-        result.Set(nodeState, {{"counter", "NodeState"}});
-        result.Set(txsInserted, {{"counter", "TXsInserted"}});
-        result.Set(txnPool, {{"counter", "txnPool"}});
-      });
-    }
-  }
-};
-
-static VariablesNode nodeVar{};
-}  // namespace local
-
-}  // namespace zil
-
+}  // namespace zil::local
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
@@ -1604,7 +1566,7 @@ bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
     MempoolInsertionStatus status;
     m_createdTxns.insert(submittedTxn, status);
   }
-  zil::local::nodeVar.AddTxnInserted(txns.size());
+  zil::local::StatusVarTXsInserted() = txns.size();
 
   cv_MicroBlockMissingTxn.notify_all();
   return true;
@@ -2012,8 +1974,8 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
 
-    zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
-    zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
+    zil::local::StatusVarTXsInserted() = checkedTxns.size();
+    zil::local::StatusVartxnPool() = m_createdTxns.size();
   }
 
   {
@@ -2142,7 +2104,7 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
 void Node::SetState(NodeState state) {
   m_state = state;
 
-  zil::local::nodeVar.SetNodeState(int(state));
+  zil::local::StatusVarNodeState() = int(state);
 
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Node State = " << GetStateString());

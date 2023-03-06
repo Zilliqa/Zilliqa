@@ -16,8 +16,8 @@
  */
 #include "LookupServer.h"
 #include <Schnorr.h>
-#include <boost/multiprecision/cpp_dec_float.hpp>
 #include <boost/format.hpp>
+#include <boost/multiprecision/cpp_dec_float.hpp>
 #include "EthRpcMethods.h"
 #include "JSONConversion.h"
 #include "common/Messages.h"
@@ -59,11 +59,8 @@ const unsigned int TXN_PAGE_SIZE = 100;
 
 namespace {
 
-Z_I64METRIC& GetCallsCounter() {
-  static Z_I64METRIC count{Z_FL::LOOKUP_SERVER, "lookup.invocation.count",
-                           "Calls to Lookup Server", "Calls"};
-  return count;
-}
+DEFINE_I64_COUNTER(GetCallsCounter, Z_FL::LOOKUP_SERVER,
+                   "lookup.invocation.count", "Calls to Lookup Server", "Calls")
 
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
@@ -94,8 +91,10 @@ LookupServer::LookupServer(Mediator& mediator,
                            jsonrpc::AbstractServerConnector& server)
     : Server(mediator),
       EthRpcMethods(mediator),
-      jsonrpc::AbstractServer<LookupServer>(server,
-                                            jsonrpc::JSONRPC_SERVER_V2) {
+      jsonrpc::AbstractServer<LookupServer>(server, jsonrpc::JSONRPC_SERVER_V2),
+      m_callCount(zil::metrics::CreateI64Counter(
+          Z_FL::API_SERVER, "lookup_invocation_count", "Calls to Lookup Server",
+          "Calls")) {
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),
@@ -2351,7 +2350,6 @@ Json::Value LookupServer::GetStateProof(const string& address,
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-
   TRACE(zil::trace::FilterClass::DEMO);
 
   INC_CALLS(GetCallsCounter());
@@ -2402,8 +2400,12 @@ std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
           "and receiver";
     } else {
       if (tx.GetGasLimitZil() > DS_MICROBLOCK_GAS_LIMIT) {
-        throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
-        (boost::format("txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") % tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT).str());
+        throw JsonRpcException(
+            ServerBase::RPC_INVALID_PARAMETER,
+            (boost::format(
+                 "txn gas limit exceeding ds maximum limit! Tx: %i DS: %i") %
+             tx.GetGasLimitZil() % DS_MICROBLOCK_GAS_LIMIT)
+                .str());
       }
       if (ARCHIVAL_LOOKUP) {
         mapIndex = SEND_TYPE::ARCHIVAL_SEND_DS;

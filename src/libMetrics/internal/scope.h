@@ -26,15 +26,13 @@ std::chrono::system_clock::time_point r_timer_start();
 
 double r_timer_end(std::chrono::system_clock::time_point start_time);
 
-class DoubleCounter;
-
 class DoubleHistogram;
 
 struct LatencyScopeMarker final {
-  LatencyScopeMarker(
-      std::unique_ptr<metrics_api::Counter<uint64_t>> metric,
-      zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram> &latency,
-      zil::metrics::FilterClass fc, const char *file, const char *func);
+  LatencyScopeMarker(std::unique_ptr<metrics_api::Counter<uint64_t>> metric,
+                     zil::metrics::DoubleHistogram &latency,
+                     zil::metrics::FilterClass fc, const char *file,
+                     const char *func);
 
   ~LatencyScopeMarker();
 
@@ -42,7 +40,7 @@ struct LatencyScopeMarker final {
   std::string m_file;
   std::string m_func;
   std::unique_ptr<metrics_api::Counter<uint64_t>> m_metric;
-  InstrumentWrapper<DoubleHistogram> &m_latency;
+  DoubleHistogram &m_latency;
   zil::metrics::FilterClass m_filterClass;
   std::chrono::system_clock::time_point m_startTime;
 

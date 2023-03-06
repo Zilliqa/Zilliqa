@@ -33,8 +33,8 @@ double r_timer_end(std::chrono::system_clock::time_point start_time) {
 
 LatencyScopeMarker::LatencyScopeMarker(
     std::unique_ptr<metrics_api::Counter<uint64_t>> metric,
-    InstrumentWrapper<DoubleHistogram> &latency, FilterClass fc,
-    const char *file, const char *func)
+    DoubleHistogram &latency, FilterClass fc, const char *file,
+    const char *func)
     : m_file{file},
       m_func{func},
       m_metric(std::move(metric)),

@@ -27,11 +27,8 @@
 
 namespace {
 
-Z_I64METRIC& GetCallsCounter() {
-  static Z_I64METRIC evmClientCount{Z_FL::EVM_CLIENT, "jsonrpc",
-                                    "Calls to EVM-DS over jsonrpc", "Calls"};
-  return evmClientCount;
-}
+DEFINE_I64_COUNTER(GetCallsCounter, Z_FL::EVM_CLIENT, "jsonrpc",
+                   "Calls to EVM-DS over jsonrpc", "Calls");
 
 bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& binaryPath,
@@ -55,13 +52,13 @@ bool LaunchEvmDaemon(boost::process::child& child,
   if (boost::filesystem::exists(socket_path)) {
     boost::filesystem::remove(socket_path, ec);
     if (ec.failed()) {
-      TRACE_ERROR( "Problem removing filesystem entry for socket ");
+      TRACE_ERROR("Problem removing filesystem entry for socket ");
     }
   }
   if (not boost::filesystem::exists(bin_path)) {
     std::stringstream ss;
-    TRACE_ERROR( "Cannot create a subprocess that does not exist " +
-                             EVM_SERVER_BINARY);
+    TRACE_ERROR("Cannot create a subprocess that does not exist " +
+                EVM_SERVER_BINARY);
     return false;
   }
   boost::process::child c =
@@ -149,7 +146,7 @@ bool EvmClient::OpenServer() {
   INC_CALLS(GetCallsCounter());
 
   bool status{true};
-  TRACE_EVENT( "OpenClient","status","OpenServer for EVM ");
+  TRACE_EVENT("OpenClient", "status", "OpenServer for EVM ");
 
   try {
     if (LAUNCH_EVM_DAEMON) {
@@ -157,12 +154,12 @@ bool EvmClient::OpenServer() {
           LaunchEvmDaemon(m_child, EVM_SERVER_BINARY, EVM_SERVER_SOCKET_PATH);
     }
   } catch (std::exception& e) {
-    TRACE_ERROR( "Exception caught creating child ");
+    TRACE_ERROR("Exception caught creating child ");
     GetCallsCounter().IncrementAttr(
         {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
   } catch (...) {
-    TRACE_ERROR( "Unhandled Exception caught creating child ");
+    TRACE_ERROR("Unhandled Exception caught creating child ");
     GetCallsCounter().IncrementAttr(
         {{"Error", "Serious"}, {"Exception#1", "OpenServer"}});
     return false;
@@ -173,7 +170,7 @@ bool EvmClient::OpenServer() {
     m_client = std::make_unique<jsonrpc::Client>(*m_connector,
                                                  jsonrpc::JSONRPC_CLIENT_V2);
   } catch (...) {
-    TRACE_ERROR( "Unhandled Exception initialising client");
+    TRACE_ERROR("Unhandled Exception initialising client");
     GetCallsCounter().IncrementAttr(
         {{"Error", "Serious"}, {"Exception#3", "OpenServer"}});
     return false;
@@ -212,7 +209,7 @@ bool EvmClient::CallRunner(const Json::Value& _json, evm::EvmResult& result) {
   } catch (jsonrpc::JsonRpcException& e) {
     throw e;
   } catch (...) {
-    TRACE_ERROR( "Exception caught executing run ");
+    TRACE_ERROR("Exception caught executing run ");
     return false;
   }
 }

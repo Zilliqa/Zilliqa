@@ -47,15 +47,9 @@ namespace metrics_exporter = opentelemetry::exporter::metrics;
 namespace metrics_api = opentelemetry::metrics;
 namespace otlp_exporter = opentelemetry::exporter::otlp;
 
-
-
-
-Metrics::Metrics() {
-  zil::metrics::Filter::GetInstance().init();
-}
+Metrics::Metrics() { zil::metrics::Filter::GetInstance().init(); }
 
 void Metrics::Init() {
-
   std::string cmp(METRIC_ZILLIQA_PROVIDER);
 
   transform(cmp.begin(), cmp.end(), cmp.begin(), ::tolower);
@@ -77,7 +71,7 @@ void Metrics::Init() {
                 "configuration");
     InitNoop();
   }
- }
+}
 
 void Metrics::InitNoop() {
   METRIC_ZILLIQA_MASK = "";
@@ -105,8 +99,7 @@ void Metrics::InitStdOut() {
                                                      options)};
 
   opentelemetry::sdk::resource::ResourceAttributes attributes = {
-      {"service.name", "zilliqa"},
-      {"version", (double)::METRICS_VERSION}};
+      {"service.name", "zilliqa"}, {"version", (double)::METRICS_VERSION}};
   auto resource = opentelemetry::sdk::resource::Resource::Create(attributes);
   auto provider = std::shared_ptr<metrics_api::MeterProvider>(
       new metrics_sdk::MeterProvider(
@@ -239,101 +232,100 @@ void Metrics::Shutdown() {
 
 namespace {
 
-inline std::string GetFullName(const std::string &family,
-                               const std::string &name) {
-  std::string full_name;
-  full_name.reserve(family.size() + name.size() + 1);
-  full_name += family;
-  full_name += "_";
-  full_name += name;
-  return full_name;
-}
+// inline std::string GetFullName(const std::string &family,
+//                                const std::string &name) {
+//   std::string full_name;
+//   full_name.reserve(family.size() + name.size() + 1);
+//   full_name += family;
+//   full_name += "_";
+//   full_name += name;
+//   return full_name;
+// }
 
 }  // namespace
 
+using zil::metrics::GetFullName;
 using zil::metrics::METRIC_FAMILY;
 
 zil::metrics::uint64Counter_t Metrics::CreateInt64Metric(
-    const std::string &name, const std::string &desc, std::string unit) {
+    std::string_view name, std::string_view desc, std::string_view unit) {
   return GetMeter()->CreateUInt64Counter(GetFullName(METRIC_FAMILY, name), desc,
                                          unit);
 }
 
 zil::metrics::doubleCounter_t Metrics::CreateDoubleMetric(
-    const std::string &name, const std::string &desc, std::string unit) {
+    std::string_view name, std::string_view desc, std::string_view unit) {
   return GetMeter()->CreateDoubleCounter(GetFullName(METRIC_FAMILY, name), desc,
                                          unit);
 }
 
 zil::metrics::doubleHistogram_t Metrics::CreateDoubleHistogram(
-    const std::string &name, const std::string &desc, std::string unit) {
+    std::string_view name, std::string_view desc, std::string_view unit) {
   return GetMeter()->CreateDoubleHistogram(GetFullName(METRIC_FAMILY, name),
                                            desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateInt64UpDownMetric(
-    const std::string &name, const std::string &desc, std::string unit) {
-  return zil::metrics::Observable(
-      GetMeter()->CreateInt64ObservableUpDownCounter(
-          GetFullName(METRIC_FAMILY, name), desc, unit));
+zil::metrics::observable_t Metrics::CreateInt64UpDownMetric(
+    std::string_view name, std::string_view desc, std::string_view unit) {
+  return GetMeter()->CreateInt64ObservableUpDownCounter(
+      GetFullName(METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateDoubleUpDownMetric(
-    const std::string &name, const std::string &desc, std::string unit) {
-  return zil::metrics::Observable(
-      GetMeter()->CreateDoubleObservableUpDownCounter(
-          GetFullName(METRIC_FAMILY, name), desc, unit));
+zil::metrics::observable_t Metrics::CreateDoubleUpDownMetric(
+    std::string_view name, std::string_view desc, std::string_view unit) {
+  return GetMeter()->CreateDoubleObservableUpDownCounter(
+      GetFullName(METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateInt64Gauge(const std::string &name,
-                                                   const std::string &desc,
-                                                   std::string unit) {
-  return zil::metrics::Observable(GetMeter()->CreateInt64ObservableGauge(
-      GetFullName(METRIC_FAMILY, name), desc, unit));
+zil::metrics::observable_t Metrics::CreateInt64Gauge(std::string_view name,
+                                                     std::string_view desc,
+                                                     std::string_view unit) {
+  return GetMeter()->CreateInt64ObservableGauge(
+      GetFullName(METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateDoubleGauge(const std::string &name,
-                                                    const std::string &desc,
-                                                    std::string unit) {
-  return zil::metrics::Observable(GetMeter()->CreateDoubleObservableGauge(
-      GetFullName(METRIC_FAMILY, name), desc, unit));
+zil::metrics::observable_t Metrics::CreateDoubleGauge(std::string_view name,
+                                                      std::string_view desc,
+                                                      std::string_view unit) {
+  return GetMeter()->CreateDoubleObservableGauge(
+      GetFullName(METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateInt64ObservableCounter(
-    const std::string &name, const std::string &desc, std::string unit) {
-  return zil::metrics::Observable(GetMeter()->CreateInt64ObservableCounter(
-      GetFullName(METRIC_FAMILY, name), desc, unit));
+zil::metrics::observable_t Metrics::CreateInt64ObservableCounter(
+    std::string_view name, std::string_view desc, std::string_view unit) {
+  return GetMeter()->CreateInt64ObservableCounter(
+      GetFullName(METRIC_FAMILY, name), desc, unit);
 }
 
-zil::metrics::Observable Metrics::CreateDoubleObservableCounter(
-    const std::string &name, const std::string &desc, std::string unit) {
-  return zil::metrics::Observable(GetMeter()->CreateDoubleObservableCounter(
-      GetFullName(METRIC_FAMILY, name), desc, unit));
+zil::metrics::observable_t Metrics::CreateDoubleObservableCounter(
+    std::string_view name, std::string_view desc, std::string_view unit) {
+  return GetMeter()->CreateDoubleObservableCounter(
+      GetFullName(METRIC_FAMILY, name), desc, unit);
 }
 
-void Metrics::AddCounterSumView(const std::string &name,
-                                const std::string &description) {
+void Metrics::AddCounterSumView(std::string_view name,
+                                std::string_view description) {
   auto p = std::static_pointer_cast<metrics_sdk::MeterProvider>(
       metrics_api::Provider::GetMeterProvider());
   std::shared_ptr<opentelemetry::metrics::Meter> meter =
       p->GetMeter("zilliqa", "1.2.0", METRIC_ZILLIQA_SCHEMA);
   // counter view
-  std::string counter_name = name;
   std::unique_ptr<metrics_sdk::InstrumentSelector> instrument_selector{
       new metrics_sdk::InstrumentSelector(metrics_sdk::InstrumentType::kCounter,
-                                          counter_name)};
+                                          name)};
   std::unique_ptr<metrics_sdk::MeterSelector> meter_selector{
       new metrics_sdk::MeterSelector(name, METRIC_ZILLIQA_SCHEMA_VERSION,
                                      METRIC_ZILLIQA_SCHEMA)};
-  std::unique_ptr<metrics_sdk::View> sum_view{new metrics_sdk::View{
-      name, description, metrics_sdk::AggregationType::kSum}};
+  std::unique_ptr<metrics_sdk::View> sum_view{
+      new metrics_sdk::View{std::string(name), std::string(description),
+                            metrics_sdk::AggregationType::kSum}};
   p->AddView(std::move(instrument_selector), std::move(meter_selector),
              std::move(sum_view));
 }
 
-void Metrics::AddCounterHistogramView(const std::string name,
+void Metrics::AddCounterHistogramView(std::string_view name,
                                       std::vector<double> list,
-                                      const std::string &description) {
+                                      std::string_view description) {
   // counter view
 
   std::unique_ptr<metrics_sdk::InstrumentSelector>
@@ -350,11 +342,11 @@ void Metrics::AddCounterHistogramView(const std::string name,
 
   static_cast<opentelemetry::sdk::metrics::HistogramAggregationConfig *>(
       aggregation_config.get())
-      ->boundaries_ = list;
+      ->boundaries_ = std::move(list);
 
   std::unique_ptr<metrics_sdk::View> histogram_view{new metrics_sdk::View{
-      name,
-      description,
+      std::string(name),
+      std::string(description),
       metrics_sdk::AggregationType::kHistogram,
       aggregation_config,
   }};

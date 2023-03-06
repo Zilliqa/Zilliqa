@@ -25,30 +25,23 @@ namespace zil {
 namespace observability {
 namespace api {
 
-Z_I64METRIC &GetErrorHistogram() {
-  static Z_I64METRIC counter{
+DEFINE_I64_COUNTER(
+    GetErrorHistogram, zil::metrics::FilterClass::GLOBAL_ERROR, "err",
+    "A history of monitically numbered errors that are linked to traces",
+    "errors");
+
+void EventMetricTrace(const std::string msg, std::string funcName, int line,
+                      int errno) {
+  static Z_I64METRIC counter = zil::metrics::CreateI64Counter(
       zil::metrics::FilterClass::GLOBAL_ERROR, "err",
-      "A history of monitically numbered errors that are linked to traces", "errors"};
-  return counter;
-}
-
-uint64_t GetNextErrorCount() {
-  static uint64_t counter{0};
-  return ++counter;
-}
-
-void EventMetricTrace(const std::string msg, std::string funcName, int line, int errno) {
-  static Z_I64METRIC counter{
-      zil::metrics::FilterClass::GLOBAL_ERROR, "err",
-      "A history of monitically numbered errors that are linked to traces", ""};
-
+      "A history of monitically numbered errors that are linked to traces", "");
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::GLOBAL_ERROR)) {
     if (zil::trace::Tracing::IsEnabled()) {
-      zil::trace::Span activeSpan = zil::trace::Tracing::GetActiveSpan();
       auto spanIds = zil::trace::Tracing::GetActiveSpanStringIds();
       if (spanIds) {
+        zil::trace::Span activeSpan = zil::trace::Tracing::GetActiveSpan();
         activeSpan.AddEvent("Error", {{"error", msg}});
         GetErrorHistogram().IncrementAttr(
             {{"trace_id", spanIds->first}, {"span_id", spanIds->second}});
@@ -59,12 +52,13 @@ void EventMetricTrace(const std::string msg, std::string funcName, int line, int
   LOG_GENERAL(INFO, msg);
 }
 
-void EventTrace(const std::string& eventname, const std::string& topic, const std::string& value) {
-  if (zil::trace::Tracing::IsEnabled() && zil::trace::Tracing::HasActiveSpan()) {
-      zil::trace::Tracing::GetActiveSpan().AddEvent(eventname, {{topic, value}});
+void EventTrace(const std::string& eventname, const std::string& topic,
+                const std::string& value) {
+  if (zil::trace::Tracing::IsEnabled() &&
+      zil::trace::Tracing::HasActiveSpan()) {
+    zil::trace::Tracing::GetActiveSpan().AddEvent(eventname, {{topic, value}});
   }
 }
-
 
 }  // namespace api
 

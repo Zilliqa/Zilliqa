@@ -44,8 +44,7 @@ class LookupServer : public Server,
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
 
-  Z_I64METRIC m_callCount{Z_FL::API_SERVER, "lookup_invocation_count",
-                          "Calls to Lookup Server", "Calls"};
+  Z_I64METRIC m_callCount;
 
   CreateTransactionTargetFunc m_createTransactionTarget =
       [this](const Transaction& tx, uint32_t shardId) -> bool {
