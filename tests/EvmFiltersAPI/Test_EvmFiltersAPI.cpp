@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE(event_filter_match) {
 
   const auto& topics = SAMPLE_TOPICS[3];
   for (auto& f : filters) {
-    f.address = { SOME_ADDRESS };
+    f.address = {SOME_ADDRESS};
     BOOST_REQUIRE(Match(f, OTHER_ADDRESS, topics) == false);
   }
 }

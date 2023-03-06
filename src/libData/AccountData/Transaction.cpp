@@ -25,7 +25,6 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
-
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -68,12 +67,12 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   } else {
     if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
                        m_signature)) {
-      TRACE_ERROR( "We failed to generate m_signature.");
+      TRACE_ERROR("We failed to generate m_signature.");
     }
   }
 
   if (!SetHash(txnData)) {
-    TRACE_ERROR( "We failed to generate m_tranID.");
+    TRACE_ERROR("We failed to generate m_tranID.");
     return;
   }
 }
@@ -101,7 +100,7 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   SerializeCoreFields(txnData, 0);
 
   if (!SetHash(txnData)) {
-    TRACE_ERROR( "We failed to generate m_tranID.");
+    TRACE_ERROR("We failed to generate m_tranID.");
     return;
   }
 
@@ -118,7 +117,7 @@ Transaction::Transaction(const TxnHash &tranID,
 
 bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
-    TRACE_ERROR( "Messenger::SetTransaction failed.");
+    TRACE_ERROR("Messenger::SetTransaction failed.");
     return false;
   }
 
@@ -127,7 +126,7 @@ bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
 
 bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
-    TRACE_ERROR( "Messenger::GetTransaction failed.");
+    TRACE_ERROR("Messenger::GetTransaction failed.");
     return false;
   }
 
@@ -136,7 +135,7 @@ bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
 
 bool Transaction::Deserialize(const string &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
-    TRACE_ERROR( "Messenger::GetTransaction failed.");
+    TRACE_ERROR("Messenger::GetTransaction failed.");
     return false;
   }
 
@@ -344,7 +343,7 @@ bool Transaction::Verify(const Transaction &tran) {
   auto result = tran.IsSigned(txnData);
 
   if (!result) {
-    TRACE_ERROR( "Failed to verify transaction signature - will delete");
+    TRACE_ERROR("Failed to verify transaction signature - will delete");
   }
 
   return result;

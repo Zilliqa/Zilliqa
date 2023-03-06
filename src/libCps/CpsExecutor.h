@@ -51,7 +51,7 @@ class CpsExecutor final {
   void PushRun(std::shared_ptr<CpsRun> run);
   CpsAccountStoreInterface& GetAccStoreIface() { return mAccountStore; }
   void TxTraceClear();
-  std::string &CurrentTrace();
+  std::string& CurrentTrace();
 
  private:
   CpsExecuteResult PreValidateEvmRun(const EvmProcessContext& context) const;

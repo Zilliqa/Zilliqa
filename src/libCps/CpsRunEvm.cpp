@@ -566,12 +566,14 @@ void CpsRunEvm::HandleApply(const evm::EvmResult& result,
       mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
                                           funds);
     } else if (funds > zero) {
-      std::string error = "Possible zil mint. Funds in destroyed account: " +
-                    currentFunds.toWei().convert_to<std::string>() +
-                    ", requested: " + funds.toWei().convert_to<std::string>();
+      std::string error =
+          "Possible zil mint. Funds in destroyed account: " +
+          currentFunds.toWei().convert_to<std::string>() +
+          ", requested: " + funds.toWei().convert_to<std::string>();
 
       LOG_GENERAL(WARNING, "possible zil mint! " << error);
-      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient, currentFunds);
+      mAccountStore.TransferBalanceAtomic(accountToRemove, fundsRecipient,
+                                          currentFunds);
       span.SetError(error);
     }
     mAccountStore.SetBalanceAtomic(accountToRemove, zero);

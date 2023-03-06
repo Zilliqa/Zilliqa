@@ -249,8 +249,16 @@ echo "Currenct directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
-cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS} -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
-cmake --build "${build_dir}" --config ${build_type} -j $(( n_parallel / 2 ))
+if [ "$n_parallel"  -gt "10" ]; then
+    jobs=$(( (n_parallel / 10) * 9 ))
+else
+    jobs=$(( n_parallel / 2 ))
+fi
+
+echo building using $jobs jobs
+
+cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS}  -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+cmake --build "${build_dir}" --config ${build_type} -j $jobs
 
 if command -v ccache &> /dev/null; then
   echo "ccache status"
