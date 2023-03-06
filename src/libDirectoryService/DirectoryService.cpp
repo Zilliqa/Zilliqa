@@ -36,6 +36,44 @@
 #include "libUtils/Logger.h"
 #include "libUtils/TimestampVerifier.h"
 
+namespace zil {
+namespace local {
+
+class DSVariables {
+  int DSState = 0;
+  int isLeader = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetDSState(int number) {
+    Init();
+    DSState = number;
+  }
+
+  void SetIsLeader(int leader) {
+    Init();
+    isLeader = leader;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.lookup.gauge",
+                                          "DS variables", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(DSState, {{"counter", "DSState"}});
+        result.Set(isLeader, {{"counter", "isLeader"}});
+      });
+    }
+  }
+};
+
+static DSVariables variables{};
+
+}  // namespace local
+}
+
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -49,6 +87,7 @@ DirectoryService::DirectoryService(Mediator& mediator) : m_mediator(mediator) {
   m_mediator.m_consensusID = 1;
   m_viewChangeCounter = 0;
   m_forceMulticast = false;
+  zil::local::variables.SetIsLeader(int(m_mode));
 }
 
 DirectoryService::~DirectoryService() {}
@@ -200,6 +239,8 @@ bool DirectoryService::ProcessSetPrimary(
     LOG_EPOCHINFO(m_mediator.m_currentEpochNum, DS_BACKUP_MSG);
     m_mode = BACKUP_DS;
   }
+
+  zil::local::variables.SetIsLeader(int(m_mode));
 
   // When ProcessSetPrimary() is called, all peers in the peer list are my
   // fellow DS committee members for this first epoch
@@ -382,6 +423,9 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
+
+  zil::local::variables.SetDSState(int(state));
+
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "DirectoryService::SetState not expected to be called from "
@@ -481,6 +525,8 @@ bool DirectoryService::CleanVariables() {
   m_powSubmissionWindowExpired = false;
 
   m_dsEpochAfterUpgrade = false;
+
+  zil::local::variables.SetIsLeader(int(m_mode));
 
   return true;
 }
@@ -593,6 +639,7 @@ bool DirectoryService::FinishRejoinAsDS(bool fetchShardingStruct) {
   }
 
   m_mode = BACKUP_DS;
+  zil::local::variables.SetIsLeader(int(m_mode));
   DequeOfNode dsComm;
   {
     std::lock_guard<mutex> lock(m_mediator.m_mutexDSCommittee);

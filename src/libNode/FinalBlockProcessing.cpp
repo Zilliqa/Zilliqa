@@ -56,11 +56,11 @@
 #include <thread>
 
 namespace zil {
-
 namespace local {
 
 class Variables {
   int lastBlockHeight = 0;
+  int lastVcBlockHeight = 0;
   int forwardedTx = 0;
 
  public:
@@ -69,6 +69,11 @@ class Variables {
   void SetLastBlockHeight(int height) {
     Init();
     lastBlockHeight = height;
+  }
+
+  void SetLastVcBlockHeight(int height) {
+    Init();
+    lastVcBlockHeight = height;
   }
 
   void AddForwardedTx(int number) {
@@ -83,6 +88,7 @@ class Variables {
 
       temp->SetCallback([this](auto&& result) {
         result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
+        result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
         result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
       });
     }
@@ -92,7 +98,6 @@ class Variables {
 static Variables variables{};
 
 }  // namespace local
-
 }  // namespace zil
 
 using namespace std;
@@ -655,6 +660,8 @@ bool Node::ProcessVCFinalBlockCore(
                                << vcBlock.GetHeader().GetViewChangeCounter());
       return false;
     }
+
+    zil::local::variables.SetLastVcBlockHeight(vcBlock.GetHeader().GetViewChangeEpochNo());
   }
 
   if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
