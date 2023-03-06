@@ -25,10 +25,11 @@ namespace zil {
 namespace observability {
 namespace api {
 
-Z_I64METRIC &GetErrorHistogram() {
+Z_I64METRIC& GetErrorHistogram() {
   static Z_I64METRIC counter{
       zil::metrics::FilterClass::GLOBAL_ERROR, "err",
-      "A history of monitically numbered errors that are linked to traces", "errors"};
+      "A history of monotonically numbered errors that are linked to traces",
+      "errors"};
   return counter;
 }
 
@@ -37,11 +38,11 @@ uint64_t GetNextErrorCount() {
   return ++counter;
 }
 
-void EventMetricTrace(const std::string msg, std::string funcName, int line, int errno) {
+void EventMetricTrace(const std::string msg, std::string funcName, int line,
+                      int errno) {
   static Z_I64METRIC counter{
       zil::metrics::FilterClass::GLOBAL_ERROR, "err",
       "A history of monitically numbered errors that are linked to traces", ""};
-
 
   if (zil::metrics::Filter::GetInstance().Enabled(
           zil::metrics::FilterClass::GLOBAL_ERROR)) {
@@ -59,12 +60,13 @@ void EventMetricTrace(const std::string msg, std::string funcName, int line, int
   LOG_GENERAL(INFO, msg);
 }
 
-void EventTrace(const std::string& eventname, const std::string& topic, const std::string& value) {
-  if (zil::trace::Tracing::IsEnabled() && zil::trace::Tracing::HasActiveSpan()) {
-      zil::trace::Tracing::GetActiveSpan().AddEvent(eventname, {{topic, value}});
+void EventTrace(const std::string& eventname, const std::string& topic,
+                const std::string& value) {
+  if (zil::trace::Tracing::IsEnabled() &&
+      zil::trace::Tracing::HasActiveSpan()) {
+    zil::trace::Tracing::GetActiveSpan().AddEvent(eventname, {{topic, value}});
   }
 }
-
 
 }  // namespace api
 

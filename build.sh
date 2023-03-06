@@ -249,7 +249,7 @@ echo "Currenct directory: $(pwd)"
 echo "Build directory: ${build_dir}"
 echo "Install directory: ${install_dir}"
 
-cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS}  -DCMAKE_C_COMPILER=gcc -DCMAKE_CXX_COMPILER=g++ -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
+cmake -H. -B"${build_dir}" ${CMAKE_EXTRA_OPTIONS}  -DCMAKE_BUILD_TYPE=${build_type} -DCMAKE_INSTALL_PREFIX="${install_dir}" -DCMAKE_TOOLCHAIN_FILE="${VCPKG_ROOT}"/scripts/buildsystems/vcpkg.cmake -DVCPKG_TARGET_TRIPLET=${VCPKG_TRIPLET}
 cmake --build "${build_dir}" --config ${build_type} -j $(( n_parallel / 2 ))
 
 if command -v ccache &> /dev/null; then

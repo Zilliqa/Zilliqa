@@ -396,10 +396,12 @@ bool InitializeEventFilter(const Json::Value &params, EventFilterParams &filter,
 bool Match(const EventFilterParams &filter, const Address &address,
            const std::vector<Quantity> &topics) {
   if (!filter.address.empty()) {
-    // We linearly search the address filter here. Since we limit the length of the filter to 16 addresses, this is
-    // acceptable.
+    // We linearly search the address filter here. Since we limit the length of
+    // the filter to 16 addresses, this is acceptable.
     auto v = filter.address;
-    if (std::find_if(v.begin(), v.end(), [&address](const auto &a) { return boost::iequals(address, a); }) == v.end()) {
+    if (std::find_if(v.begin(), v.end(), [&address](const auto &a) {
+          return boost::iequals(address, a);
+        }) == v.end()) {
       return false;
     }
   }

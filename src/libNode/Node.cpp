@@ -102,6 +102,7 @@ class VariablesNode {
   int nodeState = 0;
   int txnPool = 0;
   int txsInserted = 0;
+
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
 
@@ -122,7 +123,8 @@ class VariablesNode {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge", "Node gague", "calls", true);
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge",
+                                          "Node gague", "calls", true);
 
       temp->SetCallback([this](auto &&result) {
         result.Set(nodeState, {{"counter", "NodeState"}});
@@ -137,7 +139,6 @@ static VariablesNode nodeVar{};
 }  // namespace local
 
 }  // namespace zil
-
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,

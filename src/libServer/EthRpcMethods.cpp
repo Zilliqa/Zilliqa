@@ -373,9 +373,10 @@ void EthRpcMethods::Init(LookupServer *lookupServer) {
       &EthRpcMethods::DebugTraceTransactionI);
 
   m_lookupServer->bindAndAddExternalMethod(
-      jsonrpc::Procedure("debug_traceBlockByNumber", jsonrpc::PARAMS_BY_POSITION,
-                         jsonrpc::JSON_STRING, "param01", jsonrpc::JSON_STRING, "param02", jsonrpc::JSON_OBJECT,
-                         NULL),
+      jsonrpc::Procedure("debug_traceBlockByNumber",
+                         jsonrpc::PARAMS_BY_POSITION, jsonrpc::JSON_STRING,
+                         "param01", jsonrpc::JSON_STRING, "param02",
+                         jsonrpc::JSON_OBJECT, NULL),
       &EthRpcMethods::DebugTraceBlockByNumberI);
 
   m_lookupServer->bindAndAddExternalMethod(
@@ -1834,9 +1835,8 @@ Json::Value EthRpcMethods::GetDSLeaderTxnPool() {
   return res;
 }
 
-Json::Value EthRpcMethods::DebugTraceBlockByNumber(
-    const std::string& blockNum, const Json::Value& json) {
-
+Json::Value EthRpcMethods::DebugTraceBlockByNumber(const std::string &blockNum,
+                                                   const Json::Value &json) {
   auto blockByNumber = GetEthBlockByNumber(blockNum, false);
 
   Json::Value ret = Json::objectValue;
@@ -1851,10 +1851,9 @@ Json::Value EthRpcMethods::DebugTraceBlockByNumber(
   return ret;
 }
 
-Json::Value EthRpcMethods::DebugTraceTransaction(
-    const std::string& txHash, const Json::Value& json) {
-
-  if(!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+Json::Value EthRpcMethods::DebugTraceTransaction(const std::string &txHash,
+                                                 const Json::Value &json) {
+  if (!ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
     throw JsonRpcException(ServerBase::RPC_MISC_ERROR,
                            "The node is not configured to store Tx traces");
   }

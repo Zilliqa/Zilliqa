@@ -224,7 +224,8 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
 
   uint256_t debt = 0;
   if (!SafeMath<uint256_t>::add(gasDepositWei, tx.GetAmountWei(), debt)) {
-    TRACE_ERROR("tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
+    TRACE_ERROR(
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
         "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");

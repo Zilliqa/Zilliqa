@@ -51,8 +51,6 @@ struct TxnExtras;
 #include "libUtils/EvmUtils.h"
 
 class EvmProcessContext {
-
-
  public:
   /*
    *   EvmProcessContext(const uint64_t& blkNum, const Transaction& txn,

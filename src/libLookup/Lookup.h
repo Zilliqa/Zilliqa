@@ -341,8 +341,9 @@ class Lookup : public Executable {
   bool ProcessGetTxnsFromL2l(const zbytes& message, unsigned int offset,
                              const Peer& from, const unsigned char& startByte);
 
-  bool ProcessSetDSLeaderTxnPoolFromSeed(const zbytes& message, unsigned int offset,
-                             const Peer& from, const unsigned char& startByte);
+  bool ProcessSetDSLeaderTxnPoolFromSeed(const zbytes& message,
+                                         unsigned int offset, const Peer& from,
+                                         const unsigned char& startByte);
 
   bool ProcessSetTxnsFromLookup(const zbytes& message, unsigned int offset,
                                 [[gnu::unused]] const Peer& from,

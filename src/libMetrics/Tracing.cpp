@@ -58,7 +58,7 @@ struct copy_iterator_rangeF<std::string_view, const char*> {
 }  // namespace detail
 }  // namespace algorithm
 }  // namespace boost
-#endif // __APPLE__
+#endif  // __APPLE__
 
 namespace zil::trace {
 
@@ -322,6 +322,8 @@ class TracingImpl {
 
   bool IsEnabled() const { return m_filtersMask != 0; }
 
+  void Disable() { m_filtersMask = 0; }
+
   Span CreateSpan(FilterClass filter, std::string_view name) {
     if (m_tracer && IsEnabled(filter)) {
       trace_api::StartSpanOptions options;
@@ -518,6 +520,11 @@ void TracingOtlpGRPCInit(std::string_view identity) {
   auto resource = resource::Resource::Create(attributes, METRIC_ZILLIQA_SCHEMA);
 
   auto exporter = otlp::OtlpGrpcExporterFactory::Create(opts);
+
+  if (exporter == nullptr) {
+    LOG_GENERAL(INFO, "Exporter not available");
+  }
+
   auto processor =
       trace_sdk::SimpleSpanProcessorFactory::Create(std::move(exporter));
   std::shared_ptr<opentelemetry::trace::TracerProvider> provider =
@@ -593,6 +600,15 @@ bool TracingImpl::Initialize(std::string_view identity,
                              std::string_view filters_mask) {
   std::string_view mask =
       filters_mask.empty() ? TRACE_ZILLIQA_MASK : filters_mask;
+
+  //
+  // Response to results of rehearsal
+  //
+
+  std::string toTest(identity);
+  if (toTest.find("normal") != std::string::npos) {
+    mask = "NONE";
+  }
 
   if (mask.empty() || mask == "NONE") {
     // Tracing disabled

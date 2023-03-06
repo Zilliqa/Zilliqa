@@ -348,7 +348,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
     const auto& nextRunInput = parseCallResults.entries[i];
 #else
   for (const auto& nextRunInput :
-    parseCallResults.entries | std::views::reverse) {
+       parseCallResults.entries | std::views::reverse) {
 #endif
     INC_STATUS(GetCPSMetric(), "Scilla", "NewTransition");
     if (availableGas < CONTRACT_INVOKE_GAS) {

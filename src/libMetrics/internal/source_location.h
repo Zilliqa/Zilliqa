@@ -1,4 +1,4 @@
- /*
+/*
  * Copyright (C) 2023 Zilliqa
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,25 +18,23 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_
 #define ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_
 
-
-
- // fake the class to get things to compile for apple,
- // will be implemented in clang 16, apple still on clang 14
+// fake the class to get things to compile for apple,
+// will be implemented in clang 16, apple still on clang 14
 
 namespace std {
 struct source_location {
   // source location construction
-  static  source_location current() noexcept { return source_location{}; };
+  static source_location current() noexcept { return source_location{}; };
   constexpr source_location() noexcept {};
 
   // These are just mocked up to make things compile,we will lose
   // functionality by doing this but can rectify later on the mac.
   // source location field access
-  constexpr uint_least32_t line() const noexcept { return __LINE__ ;};
+  constexpr uint_least32_t line() const noexcept { return __LINE__; };
   constexpr uint_least32_t column() const noexcept { return 0; };
-  constexpr const char* file_name() const noexcept { return __FILE_NAME__ ;};
-  constexpr const char* function_name() const noexcept { return __FUNCTION__ ;};
+  constexpr const char* file_name() const noexcept { return __FILE_NAME__; };
+  constexpr const char* function_name() const noexcept { return __FUNCTION__; };
 };
-}
+}  // namespace std
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_INTERNAL_SOURCE_LOCATION_H_

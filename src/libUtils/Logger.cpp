@@ -388,4 +388,3 @@ Logger::ScopeMarker::~ScopeMarker() {
         << " END";
   }
 }
-
