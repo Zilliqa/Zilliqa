@@ -58,7 +58,7 @@ class DSVariables {
 
   void Init() {
     if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.lookup.gauge",
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
                                           "DS variables", "calls", true);
 
       temp->SetCallback([this](auto&& result) {

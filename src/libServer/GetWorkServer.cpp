@@ -51,7 +51,7 @@ namespace zil {
 
 namespace local {
 
-class Variables {
+class MiningVariables {
   int mining = 0;
 
  public:
@@ -74,7 +74,7 @@ class Variables {
   }
 };
 
-static Variables variables{};
+static MinintVariables variables{};
 
 }  // namespace local
 

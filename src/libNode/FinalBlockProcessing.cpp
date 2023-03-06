@@ -58,7 +58,7 @@
 namespace zil {
 namespace local {
 
-class Variables {
+class FinalBLockProcessingVariables {
   int lastBlockHeight = 0;
   int lastVcBlockHeight = 0;
   int forwardedTx = 0;
@@ -95,7 +95,7 @@ class Variables {
   }
 };
 
-static Variables variables{};
+static FinalBLockProcessingVariables variables{};
 
 }  // namespace local
 }  // namespace zil

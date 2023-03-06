@@ -23,6 +23,7 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libEth/Filters.h"
 #include "libLookup/Lookup.h"
+#include "libMetrics/Api.h"
 #include "libNode/Node.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
@@ -35,7 +36,7 @@
 namespace zil {
 namespace local {
 
-class Variables {
+class MediatorVariables {
   int currentEpochNum = 0;
 
  public:
@@ -58,7 +59,7 @@ class Variables {
   }
 };
 
-static Variables variables{};
+static MediatorVariables variables{};
 
 }  // namespace local
 }  // namespace zil
