@@ -118,9 +118,7 @@ class APIServerImpl : public APIServer,
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
 
-  Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
-                       "api.server.metrics", "API server metrics", "units",
-                       true};
+  zil::metrics::GaugeT<int64_t> m_metrics;
 };
 
 }  // namespace rpc

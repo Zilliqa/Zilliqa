@@ -59,11 +59,8 @@ const unsigned int TXN_PAGE_SIZE = 100;
 
 namespace {
 
-Z_I64METRIC& GetCallsCounter() {
-  static Z_I64METRIC count{Z_FL::LOOKUP_SERVER, "lookup.invocation.count",
-                           "Calls to Lookup Server", "Calls"};
-  return count;
-}
+DEFINE_I64_COUNTER(GetCallsCounter, Z_FL::LOOKUP_SERVER,
+                   "lookup.invocation.count", "Calls to Lookup Server", "Calls")
 
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
@@ -94,8 +91,10 @@ LookupServer::LookupServer(Mediator& mediator,
                            jsonrpc::AbstractServerConnector& server)
     : Server(mediator),
       EthRpcMethods(mediator),
-      jsonrpc::AbstractServer<LookupServer>(server,
-                                            jsonrpc::JSONRPC_SERVER_V2) {
+      jsonrpc::AbstractServer<LookupServer>(server, jsonrpc::JSONRPC_SERVER_V2),
+      m_callCount(zil::metrics::CreateI64Counter(
+          Z_FL::API_SERVER, "lookup_invocation_count", "Calls to Lookup Server",
+          "Calls")) {
   this->bindAndAddMethod(
       jsonrpc::Procedure("GetCurrentMiniEpoch", jsonrpc::PARAMS_BY_POSITION,
                          jsonrpc::JSON_STRING, NULL),

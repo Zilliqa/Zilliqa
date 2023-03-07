@@ -33,20 +33,6 @@
 #include "libUtils/Evm.pb.h"
 #include "libUtils/TxnExtras.h"
 
-namespace zil {
-namespace local {
-
-struct counter_t {
-  // These are the Non-automatic Manually set metrics
-  uint64_t blockNumber{0};
-  uint64_t blockNumberDS{0};
-  uint64_t evmCall{0};
-  uint64_t scillaCall{0};
-};
-
-}  // namespace local
-};  // namespace zil
-
 class ScillaIPCServer;
 
 class AccountStoreSC : public AccountStoreBase {
@@ -113,11 +99,11 @@ class AccountStoreSC : public AccountStoreBase {
 
   std::vector<Address> m_newLibrariesCreated;
 
-  std::shared_ptr<zil::local::counter_t> GetGeneralStatistics() {
-    std::shared_ptr<zil::local::counter_t> stats =
-        std::make_shared<zil::local::counter_t>();
-    return stats;
-  }
+//  std::shared_ptr<zil::local::counter_t> GetGeneralStatistics() {
+//    std::shared_ptr<zil::local::counter_t> stats =
+//        std::make_shared<zil::local::counter_t>();
+//    return stats;
+//  }
 
   /// Contract Deployment
   /// verify the return from scilla_runner for deployment is valid
@@ -285,8 +271,6 @@ class AccountStoreSC : public AccountStoreBase {
   bool AddAccountAtomic(const Address &address, const Account &account);
 
   bool EvmProcessMessage(EvmProcessContext &params, evm::EvmResult &result);
-
-  zil::local::counter_t m_stats;
 };
 
 #endif  // ZILLIQA_SRC_LIBDATA_ACCOUNTSTORE_ACCOUNTSTORESC_H_

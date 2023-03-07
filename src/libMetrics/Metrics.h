@@ -43,9 +43,8 @@ namespace metrics_api = opentelemetry::metrics;
 
 using uint64Counter_t = std::unique_ptr<metrics_api::Counter<uint64_t>>;
 using doubleCounter_t = std::unique_ptr<metrics_api::Counter<double>>;
-
-using uint64Historgram_t = std::unique_ptr<metrics_api::Histogram<uint64_t>>;
 using doubleHistogram_t = std::unique_ptr<metrics_api::Histogram<double>>;
+using observable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
 
 inline auto GetMeter(
     std::shared_ptr<opentelemetry::metrics::MeterProvider> &provider,
@@ -53,8 +52,7 @@ inline auto GetMeter(
   return provider->GetMeter(family, METRIC_SCHEMA_VERSION, METRIC_SCHEMA);
 }
 
-inline std::string GetFullName(const std::string &family,
-                               const std::string &name) {
+inline std::string GetFullName(std::string_view family, std::string_view name) {
   std::string full_name;
   full_name.reserve(family.size() + name.size() + 1);
   full_name += family;
@@ -139,16 +137,11 @@ class Observable {
 
   Observable &operator=(Observable &&) = delete;
 
- private:
-  using observable_t = std::shared_ptr<metrics_api::ObservableInstrument>;
-
-  // for ctor.
-  friend Metrics;
-
   Observable(observable_t ob) : m_observable(std::move(ob)) {
     assert(m_observable);
   }
 
+ private:
   static void RawCallback(
       opentelemetry::metrics::ObserverResult observer_result, void *state);
 
@@ -170,50 +163,45 @@ class Metrics : public Singleton<Metrics> {
 
   std::string Version() { return "Initial"; }
 
-  zil::metrics::uint64Counter_t CreateInt64Metric(const std::string &name,
-                                                  const std::string &desc,
-                                                  std::string unit = "");
+  zil::metrics::uint64Counter_t CreateInt64Metric(std::string_view name,
+                                                  std::string_view desc,
+                                                  std::string_view unit = "");
 
-  zil::metrics::doubleCounter_t CreateDoubleMetric(const std::string &name,
-                                                   const std::string &desc,
-                                                   std::string unit = "");
+  zil::metrics::doubleCounter_t CreateDoubleMetric(std::string_view name,
+                                                   std::string_view desc,
+                                                   std::string_view unit = "");
 
-  zil::metrics::doubleHistogram_t CreateDoubleHistogram(const std::string &name,
-                                                        const std::string &desc,
-                                                        std::string unit = "");
+  zil::metrics::doubleHistogram_t CreateDoubleHistogram(
+      std::string_view name, std::string_view desc, std::string_view unit = "");
 
-  zil::metrics::Observable CreateInt64Gauge(const std::string &name,
-                                            const std::string &desc,
-                                            std::string unit = "");
+  zil::metrics::observable_t CreateInt64Gauge(std::string_view name,
+                                              std::string_view desc,
+                                              std::string_view unit = "");
 
-  zil::metrics::Observable CreateDoubleGauge(const std::string &name,
-                                             const std::string &desc,
-                                             std::string unit = "");
+  zil::metrics::observable_t CreateDoubleGauge(std::string_view name,
+                                               std::string_view desc,
+                                               std::string_view unit = "");
 
-  zil::metrics::Observable CreateInt64UpDownMetric(const std::string &name,
-                                                   const std::string &desc,
-                                                   std::string unit = "");
+  zil::metrics::observable_t CreateInt64UpDownMetric(
+      std::string_view name, std::string_view desc, std::string_view unit = "");
 
-  zil::metrics::Observable CreateDoubleUpDownMetric(const std::string &name,
-                                                    const std::string &desc,
-                                                    std::string unit = "");
+  zil::metrics::observable_t CreateDoubleUpDownMetric(
+      std::string_view name, std::string_view desc, std::string_view unit = "");
 
-  zil::metrics::Observable CreateInt64ObservableCounter(const std::string &name,
-                                                        const std::string &desc,
-                                                        std::string unit = "");
+  zil::metrics::observable_t CreateInt64ObservableCounter(
+      std::string_view name, std::string_view desc, std::string_view unit = "");
 
-  zil::metrics::Observable CreateDoubleObservableCounter(
-      const std::string &name, const std::string &desc, std::string unit = "");
+  zil::metrics::observable_t CreateDoubleObservableCounter(
+      std::string_view name, std::string_view desc, std::string_view unit = "");
 
   /// Called on main() exit explicitly
   void Init();
   void Shutdown();
 
-  void AddCounterSumView(const std::string &name,
-                         const std::string &description);
+  void AddCounterSumView(std::string_view name, std::string_view description);
 
-  void AddCounterHistogramView(const std::string name, std::vector<double> list,
-                               const std::string &description);
+  void AddCounterHistogramView(std::string_view name, std::vector<double> list,
+                               std::string_view description);
 
   static std::shared_ptr<opentelemetry::metrics::Meter> GetMeter();
 

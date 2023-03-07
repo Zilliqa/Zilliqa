@@ -54,11 +54,8 @@ using namespace std;
 
 namespace {
 
-Z_DBLMETRIC &GetInvocationsCounter() {
-  static Z_DBLMETRIC counter{Z_FL::EVM_RPC, "ethrpc.invocation.count",
-                             "Calls to ethereum API", "Calls"};
-  return counter;
-}
+DEFINE_I64_COUNTER(GetInvocationsCounter, Z_FL::EVM_RPC,
+                   "ethrpc.invocation.count", "Calls to ethereum API", "Calls")
 
 bool isNumber(const std::string &str) {
   char *endp;

@@ -27,11 +27,8 @@
 
 namespace {
 
-Z_I64METRIC& GetCallsCounter() {
-  static Z_I64METRIC evmClientCount{Z_FL::EVM_CLIENT, "jsonrpc",
-                                    "Calls to EVM-DS over jsonrpc", "Calls"};
-  return evmClientCount;
-}
+DEFINE_I64_COUNTER(GetCallsCounter, Z_FL::EVM_CLIENT, "jsonrpc",
+                   "Calls to EVM-DS over jsonrpc", "Calls");
 
 bool LaunchEvmDaemon(boost::process::child& child,
                      const std::string& binaryPath,

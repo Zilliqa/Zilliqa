@@ -43,11 +43,20 @@ namespace zil {
 
 namespace local {
 
-Z_I64METRIC &GetEvmCallsCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.calls.count",
-                             "Engineering Metrics for AccountStore", "calls"};
-  return counter;
-}
+DEFINE_I64_COUNTER(GetEvmCallsCounter, Z_FL::ACCOUNTSTORE_EVM,
+                   "evm.calls.count", "Engineering Metrics for AccountStore",
+                   "calls");
+
+DEFINE_I64_GAUGE(GetEvmLatencyCounter, Z_FL::ACCOUNTSTORE_EVM,
+                 "evm.latency.counter", "Simple EVM latency gauge", "calls",
+                 "");
+
+DEFINE_I64_GAUGE(GetProcessorBNCounters, Z_FL::ACCOUNTSTORE_EVM, "blocknumber",
+                 "Block number seen by processor", "count", "");
+
+DEFINE_I64_GAUGE(GetProcessorDSBNCounters, Z_FL::ACCOUNTSTORE_EVM,
+                 "dsblocknumber", "Ds Block number seen by processor", "count",
+                 "");
 
 }  // namespace local
 
@@ -273,7 +282,7 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   if (METRICS_ENABLED(ACCOUNTSTORE_EVM)) {
     auto val = r_timer_end(tpStart);
     if (val > 0) {
-      m_stats.evmCall = val;
+      zil::local::GetEvmLatencyCounter() = val;
     }
   }
 
@@ -298,7 +307,9 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
   // store into the metric holder.
-  if (blockNum > 0) m_stats.blockNumber = blockNum;
+  if (blockNum > 0) {
+    zil::local::GetProcessorBNCounters() = blockNum;
+  }
 
   LOG_GENERAL(INFO,
               "Commit Context Mode="

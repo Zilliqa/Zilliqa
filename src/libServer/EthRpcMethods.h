@@ -33,10 +33,13 @@ typedef std::function<bool(const Transaction& tx, uint32_t shardId)>
 class EthRpcMethods {
  public:
   EthRpcMethods(Mediator& mediator)
-      : m_sharedMediator(mediator), m_lookupServer(nullptr) {}
+      : m_apiCallCount(zil::metrics::CreateI64Counter(
+            Z_FL::EVM_RPC, "ethrpc_invocation_count", "Calls to ethereum API",
+            "Calls")),
+        m_sharedMediator(mediator),
+        m_lookupServer(nullptr) {}
 
-  Z_I64METRIC m_apiCallCount{Z_FL::EVM_RPC, "ethrpc_invocation_count",
-                             "Calls to ethereum API", "Calls"};
+  Z_I64METRIC m_apiCallCount;
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,

@@ -45,17 +45,15 @@
 
 namespace {
 
-Z_DBLMETRIC &GetMsgDispatchCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch",
-                             "Messages dispatched", "Calls"};
-  return counter;
-}
+DEFINE_I64_GAUGE(MsgQueueSize, zil::metrics::FilterClass::MSG_DISPATCH,
+                 "msg.dispatch.queue_size", "Incoming P2P message queue size",
+                 "bytes", QueueSize);
 
-Z_DBLMETRIC &GetMsgDispatchErrorCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch_error",
-                             "Message dispatch errors", "Calls"};
-  return counter;
-}
+DEFINE_I64_COUNTER(GetMsgDispatchCounter, Z_FL::MSG_DISPATCH, "p2p_dispatch",
+                   "Messages dispatched", "Calls")
+
+DEFINE_I64_COUNTER(GetMsgDispatchErrorCounter, Z_FL::MSG_DISPATCH,
+                   "p2p_dispatch_error", "Message dispatch errors", "Calls")
 
 #define MATCH_CASE(CASE) \
   case CASE:             \
@@ -140,9 +138,9 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->msg.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
 
-    GetMsgDispatchCounter().IncrementWithAttributes(
-        1L, {{"Type", std::string(MsgTypeToStr(msg_type))},
-             {"StartByte", std::string(StartByteToStr(message->startByte))}});
+    GetMsgDispatchCounter().IncrementAttr(
+        {{"Type", MsgTypeToStr(msg_type)},
+         {"StartByte", StartByteToStr(message->startByte)}});
 
     // To-do: Remove consensus user and peer manager placeholders
     Executable *msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
@@ -596,12 +594,6 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
     }
   };
   DetachedFunction(1, func);
-
-  m_msgQueueSize.SetCallback([this](auto &&result) {
-    if (m_msgQueueSize.Enabled()) {
-      result.Set(m_msgQueue.size(), {{"counter", "QueueSize"}});
-    }
-  });
 }
 
 Zilliqa::~Zilliqa() {
@@ -614,5 +606,7 @@ void Zilliqa::Dispatch(Zilliqa::Msg message) {
   size_t queueSz{};
   if (!m_msgQueue.bounded_push(std::move(message), queueSz)) {
     LOG_GENERAL(WARNING, "Input MsgQueue is full: " << queueSz);
+  } else {
+    MsgQueueSize() = queueSz;
   }
 }

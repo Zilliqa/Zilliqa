@@ -17,46 +17,113 @@
 #ifndef ZILLIQA_SRC_LIBMETRICS_API_H_
 #define ZILLIQA_SRC_LIBMETRICS_API_H_
 
-#include "Metrics.h"
 #include "Tracing.h"
-#include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
 
-using Z_I64METRIC = zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>;
-using Z_DBLMETRIC =
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
-using Z_DBLHIST =
-    zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>;
-using Z_DBLGAUGE = zil::metrics::InstrumentWrapper<zil::metrics::DoubleGauge>;
-using Z_I64GAUGE = zil::metrics::InstrumentWrapper<zil::metrics::I64Gauge>;
+using Z_I64METRIC = zil::metrics::I64Counter;
+
+// using Z_I64METRIC =
+// zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>; using Z_DBLMETRIC
+// =
+//     zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
+// using Z_DBLHIST =
+//     zil::metrics::InstrumentWrapper<zil::metrics::DoubleHistogram>;
+// using Z_DBLGAUGE =
+// zil::metrics::InstrumentWrapper<zil::metrics::DoubleGauge>; using Z_I64GAUGE
+// = zil::metrics::InstrumentWrapper<zil::metrics::I64Gauge>;
 
 // Still virgins no use yet
 
-using Z_I64UPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::I64UpDown>;
-using Z_DBLUPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::DoubleUpDown>;
+// using Z_I64UPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::I64UpDown>;
+// using Z_DBLUPDOWN =
+// zil::metrics::InstrumentWrapper<zil::metrics::DoubleUpDown>;
 
 // Lazy
 
 using Z_FL = zil::metrics::FilterClass;
 
-// Yaron asked us to flesh these out with better catch.
+#define DEFINE_I64_COUNTER(GETTER_NAME, FC, METRIC_NAME, DESCR, UNITS) \
+  zil::metrics::I64Counter& GETTER_NAME() {                            \
+    static auto c =                                                    \
+        zil::metrics::CreateI64Counter(FC, METRIC_NAME, DESCR, UNITS); \
+    return c;                                                          \
+  }
 
-#define INC_CALLS(COUNTER)                              \
-  if (COUNTER.Enabled()) {                              \
-    try {                                               \
-      COUNTER.IncrementAttr({{"calls", __FUNCTION__}}); \
-    } catch (...) {                                     \
-      LOG_GENERAL(WARNING, "caught user error");        \
-    }                                                   \
+#define DEFINE_DOUBLE_COUNTER(GETTER_NAME, FC, METRIC_NAME, DESCR, UNITS) \
+  zil::metrics::DoubleCounter& GETTER_NAME() {                            \
+    static auto c =                                                       \
+        zil::metrics::CreateDoubleCounter(FC, METRIC_NAME, DESCR, UNITS); \
+    return c;                                                             \
+  }
+
+#define INC_CALLS(COUNTER)                                     \
+  if (COUNTER.Enabled()) {                                     \
+    try {                                                      \
+      COUNTER.IncrementAttr({{"calls", __FUNCTION__}});        \
+    } catch (const std::exception& e) {                        \
+      LOG_GENERAL(WARNING, "caught user error: " << e.what()); \
+    } catch (...) {                                            \
+      LOG_GENERAL(WARNING, "caught user error");               \
+    }                                                          \
   }
 
 #define INC_STATUS(COUNTER, KEY, VALUE)                                \
   if (COUNTER.Enabled()) {                                             \
     try {                                                              \
       COUNTER.IncrementAttr({{"Method", __FUNCTION__}, {KEY, VALUE}}); \
+    } catch (const std::exception& e) {                                \
+      LOG_GENERAL(WARNING, "caught user error: " << e.what());         \
     } catch (...) {                                                    \
       LOG_GENERAL(WARNING, "caught user error");                       \
     }                                                                  \
+  }
+
+#define DEFINE_I64_GAUGE(GETTER_NAME, FC, GAUGE_NAME, DESCR, UNITS, \
+                         COUNTER_NAME_1)                            \
+  int64_t& GETTER_NAME() {                                          \
+    static auto g = zil::metrics::CreateGauge<int64_t>(             \
+        FC, GAUGE_NAME, {#COUNTER_NAME_1}, DESCR, UNITS);           \
+    return g.Get(0);                                                \
+  }
+
+#define DEFINE_GAUGE_GETTER(TYPE, INDEX, GETTER_NAME, COUNTER_NAME) \
+  TYPE& GETTER_NAME##COUNTER_NAME() { return GETTER_NAME().Get(INDEX); }
+
+#define DEFINE_I64_GAUGE_2(GETTER_NAME, FC, GAUGE_NAME, DESCR, UNITS,      \
+                           COUNTER_NAME_1, COUNTER_NAME_2)                 \
+  zil::metrics::GaugeT<int64_t>& GETTER_NAME() {                           \
+    static auto g = zil::metrics::CreateGauge<int64_t>(                    \
+        FC, GAUGE_NAME, {#COUNTER_NAME_1, #COUNTER_NAME_2}, DESCR, UNITS); \
+    return g;                                                              \
+  }                                                                        \
+  DEFINE_GAUGE_GETTER(int64_t, 0, GETTER_NAME, COUNTER_NAME_1)             \
+  DEFINE_GAUGE_GETTER(int64_t, 1, GETTER_NAME, COUNTER_NAME_2)
+
+#define DEFINE_I64_GAUGE_3(GETTER_NAME, FC, GAUGE_NAME, DESCR, UNITS,        \
+                           COUNTER_NAME_1, COUNTER_NAME_2, COUNTER_NAME_3)   \
+  zil::metrics::GaugeT<int64_t>& GETTER_NAME() {                             \
+    static auto g = zil::metrics::CreateGauge<int64_t>(                      \
+        FC, GAUGE_NAME, {#COUNTER_NAME_1, #COUNTER_NAME_2, #COUNTER_NAME_3}, \
+        DESCR, UNITS);                                                       \
+    return g;                                                                \
+  }                                                                          \
+  DEFINE_GAUGE_GETTER(int64_t, 0, GETTER_NAME, COUNTER_NAME_1)               \
+  DEFINE_GAUGE_GETTER(int64_t, 1, GETTER_NAME, COUNTER_NAME_2)               \
+  DEFINE_GAUGE_GETTER(int64_t, 2, GETTER_NAME, COUNTER_NAME_3)
+
+// DEFINE_I64_GAUGE(QQQ, Z_FL::ACCOUNTSTORE_EVM, "bbb", "desc", "", ololo);
+//
+// DEFINE_I64_GAUGE_2(Zzz, Z_FL::ACCOUNTSTORE_EVM, "aaa", "desc", "", Sos,
+//                    Schnaps);
+//
+// DEFINE_I64_GAUGE_3(Zzz3, Z_FL::ACCOUNTSTORE_EVM, "qqq", "desc", "", Sos,
+//                    Schnaps, Sis);
+
+#define DEFINE_HISTOGRAM(GETTER_NAME, FC, NAME, DESCR, UNITS, ...) \
+  zil::metrics::DoubleHistogram& GETTER_NAME() {                   \
+    static auto h = zil::metrics::CreateDoubleHistogram(           \
+        FC, NAME, {__VA_ARGS__}, DESCR, UNITS);                    \
+    return h;                                                      \
   }
 
 #define TRACE(FILTER_CLASS) \

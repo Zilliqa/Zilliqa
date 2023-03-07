@@ -52,44 +52,24 @@ using namespace Contract;
 namespace zil {
 namespace local {
 
-Z_DBLHIST &GetEvmLatency() {
-  static std::vector<double> latencieBoudaries{
-      0, 0.25, 0.5, 0.75, 1, 2, 3, 4, 5, 10, 20, 30, 40, 60, 120};
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.latency",
-                           latencieBoudaries, "latency of processing", "ms"};
-  return counter;
-}
+DEFINE_HISTOGRAM(GetEvmLatency, Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.latency",
+                 "latency of processing", "ms", 0, 0.25, 0.5, 0.75, 1, 2, 3, 4,
+                 5, 10, 20, 30, 40, 60, 120);
 
-Z_DBLHIST &GetScillaLatency() {
-  static std::vector<double> latencieBoudaries{0, 0.25, 0.5, .75, 1,  2,  3,  4,
-                                               5, 10,   20,  30,  40, 60, 120};
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla.latency",
-                           latencieBoudaries, "latency of processing", "ms"};
-  return counter;
-}
+DEFINE_HISTOGRAM(GetScillaLatency, Z_FL::ACCOUNTSTORE_HISTOGRAMS,
+                 "scilla.latency", "latency of processing", "ms", 0, 0.25, 0.5,
+                 .75, 1, 2, 3, 4, 5, 10, 20, 30, 40, 60, 120);
 
-Z_DBLHIST &GetGasUsed() {
-  static std::vector<double> latencieBoudaries{
-      0, 100, 200, 300, 400, 500, 1000, 2000, 100000, 1000000};
+DEFINE_HISTOGRAM(GetGasUsed, Z_FL::ACCOUNTSTORE_HISTOGRAMS, "gas",
+                 "amount of gas used", "zils", 0, 100, 200, 300, 400, 500, 1000,
+                 2000, 100000, 1000000);
 
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "gas",
-                           latencieBoudaries, "amount of gas used", "zils"};
-  return counter;
-}
+DEFINE_HISTOGRAM(GetSizeUsed, Z_FL::ACCOUNTSTORE_HISTOGRAMS, "size",
+                 "size of contract", "bytes", 0.0, 1000, 2000, 3000, 4000,
+                 5000);
 
-Z_DBLHIST &GetSizeUsed() {
-  static std::vector<double> latencieBoudaries{0, 1000, 2000, 3000, 4000, 5000};
-
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "size",
-                           latencieBoudaries, "size of contract", "bytes"};
-  return counter;
-}
-
-Z_I64METRIC &GetCallCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "errors",
-                             "Errors for AccountStore", "calls"};
-  return counter;
-}
+DEFINE_I64_COUNTER(GetCallCounter, Z_FL::ACCOUNTSTORE_HISTOGRAMS, "errors",
+                   "Errors for AccountStore", "calls");
 
 }  // namespace local
 }  // namespace zil

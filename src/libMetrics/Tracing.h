@@ -35,6 +35,10 @@
 #include <source_location>
 #endif
 
+#ifndef HAVE_CPP_STDLIB
+#define HAVE_CPP_STDLIB
+#endif
+
 // Expose these internal structures to be used inside otel-based logging
 #include <opentelemetry/trace/span_id.h>
 #include <opentelemetry/trace/trace_id.h>

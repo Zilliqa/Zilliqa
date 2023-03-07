@@ -55,40 +55,12 @@
 #include <chrono>
 #include <thread>
 
-namespace zil {
+namespace zil::local {
 
-namespace local {
+DEFINE_I64_GAUGE_2(Variables, Z_FL::BLOCKS, "tx.finalblock.gauge",
+                   "Block height", "calls", LastBlockHeight, Misc)
 
-class Variables {
-  int lastBlockHeight = 0;
-  int misc = 0;
-
- public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
-  void SetLastBlockHeight(int height) {
-    Init();
-    lastBlockHeight = height;
-  }
-
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge",
-                                          "Block height", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
-        result.Set(misc, {{"counter", "Misc"}});
-      });
-    }
-  }
-};
-
-static Variables variables{};
-
-}  // namespace local
-
-}  // namespace zil
+}  // namespace zil::local
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -821,7 +793,7 @@ void Node::PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
 bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
                                  [[gnu::unused]] uint32_t& consensusID,
                                  TxBlock& txBlock, zbytes& stateDelta) {
-  zil::local::variables.SetLastBlockHeight(txBlock.GetHeader().GetBlockNum());
+  zil::local::VariablesLastBlockHeight() = txBlock.GetHeader().GetBlockNum();
 
   lock_guard<mutex> g(m_mutexFinalBlock);
   if (txBlock.GetHeader().GetVersion() != TXBLOCK_VERSION) {
@@ -1126,7 +1098,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     }
 
     // if lookup and loaded microblocks, then skip
-    lock_guard<mutex> g(m_mutexUnavailableMicroBlocks);
+    lock_guard<mutex> g1(m_mutexUnavailableMicroBlocks);
     if (!(LOOKUP_NODE_MODE &&
           m_unavailableMicroBlocks.find(txBlock.GetHeader().GetBlockNum()) !=
               m_unavailableMicroBlocks.end())) {
@@ -1445,12 +1417,12 @@ void Node::DeleteEntryFromFwdingAssgnAndMissingBodyCountMap(
 
   auto it = m_unavailableMicroBlocks.find(blocknum);
 
-  for (const auto& it : m_unavailableMicroBlocks) {
+  for (const auto& it1 : m_unavailableMicroBlocks) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "Unavailable"
               " microblock bodies in finalblock "
-                  << it.first << ": " << it.second.size());
-    for (auto it2 : it.second) {
+                  << it1.first << ": " << it1.second.size());
+    for (auto it2 : it1.second) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, it2.first);
     }
   }
