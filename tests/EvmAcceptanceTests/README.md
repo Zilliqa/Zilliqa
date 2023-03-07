@@ -336,6 +336,15 @@ Alternatively, you can always fix your code manually before uploading to remote:
 
 `npm run lint`
 
+## Populate devnet with funds
+
+Your devnet node may have funds that are generated from a zil private key, thus has a a zil addrss, while you want eth addresses. Use the script as follows
+to move funds from the genesis zil address to another eth address (in this case its the same private key but moved to eth address)
+
+`cd scripts`
+`python3 -m pip install -r ./requirements.txt`
+`python3 move_funds.py --api https://xxx-l2api.dev.z7a.xyz --private-key-genesis db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3 --private-key-test db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3`
+
 ## Feed devnet with transactions
 
 It's possible to use [FeedDevnet.js](scripts/FeedDevnet.js) to send transactions to devnet continuously:
