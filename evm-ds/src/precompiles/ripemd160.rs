@@ -1,6 +1,7 @@
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
+use evm::backend::Backend;
 
 const RIPEMD160_BASE: u64 = 600;
 const RIPEMD160_PER_WORD: u64 = 120;
@@ -11,6 +12,7 @@ pub(crate) fn ripemd160(
     input: &[u8],
     target_gas: Option<u64>,
     _context: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {

@@ -2,6 +2,7 @@ use std::borrow::Cow;
 
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
+use evm::backend::Backend;
 
 /// Blake2 constants.
 mod consts {
@@ -124,6 +125,7 @@ pub(crate) fn blake2(
     input: &[u8],
     target_gas: Option<u64>,
     _context: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     if input.len() != consts::INPUT_LENGTH {

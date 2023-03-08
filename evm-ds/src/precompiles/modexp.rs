@@ -4,11 +4,13 @@ use num_bigint::BigUint;
 use num_integer::Integer;
 use primitive_types::U256;
 use std::borrow::Cow;
+use evm::backend::Backend;
 
 pub(crate) fn modexp(
     input: &[u8],
     target_gas: Option<u64>,
     _context: &Context,
+    _backend: &dyn Backend,
     _is_static: bool,
 ) -> Result<(PrecompileOutput, u64), PrecompileFailure> {
     let cost = match required_gas(input) {

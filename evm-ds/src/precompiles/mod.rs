@@ -5,6 +5,7 @@ pub mod identity;
 pub mod modexp;
 pub mod ripemd160;
 pub mod sha2_256;
+pub mod scilla_call;
 
 use std::collections::BTreeMap;
 use std::str::FromStr;

@@ -11,12 +11,13 @@ use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
     Runtime, Stack, Transfer,
 };
+use evm::backend::Backend;
 use primitive_types::{H160, H256, U256};
 
 use crate::scillabackend::ScillaBackend;
 type PrecompileMap = BTreeMap<
     H160,
-    fn(&[u8], Option<u64>, &Context, bool) -> Result<(PrecompileOutput, u64), PrecompileFailure>,
+    fn(&[u8], Option<u64>, &Context, &dyn Backend, bool) -> Result<(PrecompileOutput, u64), PrecompileFailure>,
 >;
 
 pub struct CpsExecutor<'a> {
