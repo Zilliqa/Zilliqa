@@ -1,8 +1,8 @@
 use std::borrow::Cow;
 
+use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
-use evm::backend::Backend;
 
 /// Blake2 constants.
 mod consts {
@@ -201,6 +201,11 @@ fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
 
 #[cfg(test)]
 mod tests {
+    use crate::protos::Evm as EvmProto;
+    use crate::scillabackend::{ScillaBackend, ScillaBackendConfig};
+    use primitive_types::H160;
+    use std::path::PathBuf;
+
     use super::*;
     type PrecompileResult = Result<(PrecompileOutput, u64), PrecompileFailure>;
 
@@ -230,14 +235,23 @@ mod tests {
         }
     }
 
+    fn new_backend() -> ScillaBackend {
+        let config = ScillaBackendConfig {
+            path: PathBuf::default(),
+            zil_scaling_factor: 1,
+        };
+        let extras = EvmProto::EvmEvalExtras::new();
+        ScillaBackend::new(config, H160::default(), extras)
+    }
+
     fn test_blake2f_out_of_gas() -> PrecompileResult {
         let input = hex::decode(INPUT).unwrap();
-        blake2(&input, Some(11), &new_context(), false)
+        blake2(&input, Some(11), &new_context(), &new_backend(), false)
     }
 
     fn test_blake2f_empty() -> PrecompileResult {
         let input = [0u8; 0];
-        blake2(&input, Some(0), &new_context(), false)
+        blake2(&input, Some(0), &new_context(), &new_backend(), false)
     }
 
     fn test_blake2f_invalid_len_1() -> PrecompileResult {
@@ -255,7 +269,7 @@ mod tests {
             01",
         )
         .unwrap();
-        blake2(&input, Some(12), &new_context(), false)
+        blake2(&input, Some(12), &new_context(), &new_backend(), false)
     }
 
     fn test_blake2f_invalid_len_2() -> PrecompileResult {
@@ -273,7 +287,7 @@ mod tests {
             01",
         )
         .unwrap();
-        blake2(&input, Some(12), &new_context(), false)
+        blake2(&input, Some(12), &new_context(), &new_backend(), false)
     }
 
     fn test_blake2f_invalid_flag() -> PrecompileResult {
@@ -291,7 +305,7 @@ mod tests {
             02",
         )
         .unwrap();
-        blake2(&input, Some(12), &new_context(), false)
+        blake2(&input, Some(12), &new_context(), &new_backend(), false)
     }
 
     fn test_blake2f_r_0() -> Vec<u8> {
@@ -310,7 +324,7 @@ mod tests {
         )
         .unwrap();
 
-        blake2(&input, Some(12), &new_context(), false)
+        blake2(&input, Some(12), &new_context(), &new_backend(), false)
             .unwrap()
             .0
             .output
@@ -319,7 +333,7 @@ mod tests {
     fn test_blake2f_r_12() -> Vec<u8> {
         let input = hex::decode(INPUT).unwrap();
 
-        blake2(&input, Some(12), &new_context(), false)
+        blake2(&input, Some(12), &new_context(), &new_backend(), false)
             .unwrap()
             .0
             .output
@@ -340,7 +354,7 @@ mod tests {
             00",
         )
         .unwrap();
-        blake2(&input, Some(12), &new_context(), false)
+        blake2(&input, Some(12), &new_context(), &new_backend(), false)
             .unwrap()
             .0
             .output

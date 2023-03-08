@@ -1,8 +1,8 @@
+use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use primitive_types::{H160, H256};
 use std::borrow::Cow;
-use evm::backend::Backend;
 
 const ECRECOVER_BASE: u64 = 3_000;
 const INPUT_LEN: usize = 128;

@@ -1,11 +1,11 @@
+use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
-use evm::backend::Backend;
 
 use ethabi::decode;
-use ethabi::token::Token;
 use ethabi::param_type::ParamType;
+use ethabi::token::Token;
 
 const BASE_COST: u64 = 15;
 const PER_BYTE_COST: u64 = 3;

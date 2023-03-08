@@ -3,13 +3,13 @@ use std::panic::{self, AssertUnwindSafe};
 use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 
+use crate::CallContext;
 use evm::executor::stack::MemoryStackSubstate;
 use evm::{
     backend::Apply,
     executor::stack::{MemoryStackState, StackSubstateMetadata},
 };
 use evm::{Machine, Runtime};
-use crate::CallContext;
 
 use log::{debug, error, info};
 
@@ -42,7 +42,6 @@ pub async fn run_evm_impl(
     tx_trace_enabled: bool,
     tx_trace: String,
 ) -> Result<String> {
-
     // We must spawn a separate blocking task (on a blocking thread), because by default a JSONRPC
     // method runs as a non-blocking thread under a tokio runtime, and creating a new runtime
     // cannot be done. And we'll need a new runtime that we can safely drop on a handled
@@ -166,12 +165,10 @@ pub async fn run_evm_impl(
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                
                 build_call_result(&runtime, i, &listener, remaining_gas, cont_id)
             },
             CpsReason::CreateInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
-                
                 build_create_result(&runtime, i, &listener, remaining_gas, cont_id)
             }
         };

@@ -4,8 +4,8 @@ pub mod ecrecover;
 pub mod identity;
 pub mod modexp;
 pub mod ripemd160;
-pub mod sha2_256;
 pub mod scilla_call;
+pub mod sha2_256;
 
 use std::collections::BTreeMap;
 use std::str::FromStr;
@@ -57,6 +57,5 @@ pub fn get_precompiles() -> BTreeMap<H160, PrecompileFn> {
             H160::from_str("0000000000000000000000000000000000000098").unwrap(),
             scilla_call::scilla_call as PrecompileFn,
         ),
-
     ])
 }

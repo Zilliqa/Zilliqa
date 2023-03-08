@@ -20,10 +20,7 @@ pub(crate) struct EvmServer {
 }
 
 impl EvmServer {
-    pub fn new(
-        backend_config: ScillaBackendConfig,
-        gas_scaling_factor: u64,
-    ) -> Self {
+    pub fn new(backend_config: ScillaBackendConfig, gas_scaling_factor: u64) -> Self {
         Self {
             backend_config,
             gas_scaling_factor,

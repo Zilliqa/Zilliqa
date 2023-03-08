@@ -61,7 +61,6 @@ impl Continuations {
     }
 
     pub fn get_contination(&mut self, id: u64) -> Option<Continuation> {
-        
         self.storage.remove(&id)
     }
 }

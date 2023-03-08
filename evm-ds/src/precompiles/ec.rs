@@ -4,11 +4,11 @@
 //! * https://eips.ethereum.org/EIPS/eip-197
 //! * https://eips.ethereum.org/EIPS/eip-1108.
 
+use evm::backend::Backend;
 use evm::{
     executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType},
     Context, ExitError, ExitSucceed,
 };
-use evm::backend::Backend;
 use witnet_bn::{AffineG1, AffineG2, FieldError, Fq, Fq2, Fr, Group, Gt, G1, G2};
 
 const ADD_COST: u64 = 150;

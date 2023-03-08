@@ -7,17 +7,23 @@ use evm::executor::stack::{
     StackExecutor, StackExecutorHandle, StackState,
 };
 
+use evm::backend::Backend;
 use evm::{
     Capture, Config, Context, CreateScheme, ExitError, ExitReason, Handler, Opcode, Resolve,
     Runtime, Stack, Transfer,
 };
-use evm::backend::Backend;
 use primitive_types::{H160, H256, U256};
 
 use crate::scillabackend::ScillaBackend;
 type PrecompileMap = BTreeMap<
     H160,
-    fn(&[u8], Option<u64>, &Context, &dyn Backend, bool) -> Result<(PrecompileOutput, u64), PrecompileFailure>,
+    fn(
+        &[u8],
+        Option<u64>,
+        &Context,
+        &dyn Backend,
+        bool,
+    ) -> Result<(PrecompileOutput, u64), PrecompileFailure>,
 >;
 
 pub struct CpsExecutor<'a> {
@@ -106,9 +112,9 @@ impl<'a> CpsExecutor<'a> {
 
             // Re-create the logs based on feedback passed
             for log in feedback.get_logs() {
-                let address : H160 = H160::from(log.get_address());
-                let data : Vec<u8> = log.get_data().to_vec();
-                let mut topics : Vec<H256> = vec![];
+                let address: H160 = H160::from(log.get_address());
+                let data: Vec<u8> = log.get_data().to_vec();
+                let mut topics: Vec<H256> = vec![];
 
                 for topic in log.get_topics() {
                     topics.push(topic.into());
