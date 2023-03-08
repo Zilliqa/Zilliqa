@@ -13,7 +13,7 @@ async function main() {
   const VERSION = bytes.pack(hre.getZilliqaChainId(), msgVersion);
 
   const accounts: string[] = await provider.send("eth_accounts");
-  const balances = await Promise.all(
+  let balances = await Promise.all(
     accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"]))
   );
 
@@ -27,7 +27,7 @@ async function main() {
     console.log("Starting transfer...");
 
     // Get corresponding eth account
-    let ethAddr = web3.eth.accounts.privateKeyToAccount('db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3');
+    let ethAddr = web3.eth.accounts.privateKeyToAccount(element);
     let ethAddrConverted = toChecksumAddress(ethAddr.address); // Zil checksum
     let initialAccountBal = await web3.eth.getBalance(ethAddr.address);
     console.log("Account to send to (zil checksum): ", ethAddrConverted);
@@ -54,7 +54,7 @@ async function main() {
           toAddr: ethAddrConverted,
           amount: new BN(balance).div(new BN(2)), // Sending an amount in Zil (1) and converting the amount to Qa
           gasPrice: gasPrice, // Minimum gasPrice veries. Check the `GetMinimumGasPrice` on the blockchain
-          gasLimit: Long.fromNumber(50),
+          gasLimit: Long.fromNumber(2100),
         },
         false,
       ),
@@ -70,6 +70,10 @@ async function main() {
     let finalBal = await web3.eth.getBalance(ethAddr.address);
     console.log(`My new account balance is: ${finalBal}`);
   }
+
+  balances = await Promise.all(
+    accounts.map((account: string) => provider.send("eth_getBalance", [account, "latest"]))
+  );
 
   // Print balances of eth accounts before
   accounts.forEach((element, index) => {
