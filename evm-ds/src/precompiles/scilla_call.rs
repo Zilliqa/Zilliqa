@@ -38,6 +38,12 @@ pub(crate) fn scilla_call(
         });
     };
 
+    if partial_types.len() < 2 {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
+        });
+    }
+
     let Token::Address(code_address)  = partial_tokens[0] else {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
