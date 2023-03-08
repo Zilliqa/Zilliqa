@@ -22,8 +22,6 @@
 #include "libMetrics/internal/mixins.h"
 #include "libMetrics/internal/scope.h"
 
-// These definitions will probably be changed as people will not like the Z_
-
 using Z_I64METRIC = zil::metrics::InstrumentWrapper<zil::metrics::I64Counter>;
 using Z_DBLMETRIC =
     zil::metrics::InstrumentWrapper<zil::metrics::DoubleCounter>;
@@ -40,6 +38,8 @@ using Z_DBLUPDOWN = zil::metrics::InstrumentWrapper<zil::metrics::DoubleUpDown>;
 // Lazy
 
 using Z_FL = zil::metrics::FilterClass;
+
+// Yaron asked us to flesh these out with better catch.
 
 #define INC_CALLS(COUNTER)                              \
   if (COUNTER.Enabled()) {                              \
@@ -59,8 +59,28 @@ using Z_FL = zil::metrics::FilterClass;
     }                                                                  \
   }
 
+#define TRACE(FILTER_CLASS) \
+  auto span = zil::trace::Tracing::CreateSpan(FILTER_CLASS, __FUNCTION__);
+
 #define METRICS_ENABLED(FILTER_CLASS)          \
   zil::metrics::Filter::GetInstance().Enabled( \
       zil::metrics::FilterClass::FILTER_CLASS)
+
+namespace zil {
+namespace observability {
+namespace api {
+void EventMetricTrace(const std::string msg, std::string funcName, int line,
+                      int errno);
+void EventTrace(const std::string& eventname, const std::string& topic,
+                const std::string& value);
+}  // namespace api
+}  // namespace observability
+}  // namespace zil
+
+#define TRACE_ERROR(MSG) \
+  zil::observability::api::EventMetricTrace(MSG, __FUNCTION__, __LINE__, 0);
+
+#define TRACE_EVENT(EVENT, TOPIC, VALUE) \
+  zil::observability::api::EventTrace(EVENT, TOPIC, VALUE);
 
 #endif  // ZILLIQA_SRC_LIBMETRICS_API_H_

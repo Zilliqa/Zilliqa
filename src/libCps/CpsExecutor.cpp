@@ -19,6 +19,7 @@
 #include "libCps/Amount.h"
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecuteValidator.h"
+#include "libCps/CpsMetrics.h"
 #include "libCps/CpsRunEvm.h"
 #include "libCps/CpsRunScilla.h"
 #include "libCps/CpsUtils.h"
@@ -37,15 +38,24 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
 
 CpsExecuteResult CpsExecutor::PreValidateEvmRun(
     const EvmProcessContext& context) const {
+  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+              ProtoToAddress(context.GetEvmArgs().origin()).hex(),
+              ProtoToAddress(context.GetEvmArgs().address()).hex(),
+              ProtoToAddress(context.GetEvmArgs().origin()).hex(),
+              ProtoToUint(context.GetEvmArgs().apparent_value())
+                  .convert_to<std::string>())
+
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(
       ProtoToAddress(context.GetEvmArgs().origin()));
 
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
   if (!amountResult.isSuccess) {
+    span.SetError("Insufficient balance to initiate cps from evm");
     return amountResult;
   }
   const auto gasResult = CpsExecuteValidator::CheckGasLimit(context);
   if (!gasResult.isSuccess) {
+    span.SetError("Insufficient gas to initiate cps from evm");
     return gasResult;
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
@@ -53,12 +63,17 @@ CpsExecuteResult CpsExecutor::PreValidateEvmRun(
 
 CpsExecuteResult CpsExecutor::PreValidateScillaRun(
     const ScillaProcessContext& context) const {
+  CREATE_SPAN(zil::trace::FilterClass::CPS_SCILLA, context.origin.hex(),
+              context.recipient.hex(), context.origin.hex(),
+              context.amount.convert_to<std::string>())
+
   if (!mAccountStore.AccountExistsAtomic(context.origin)) {
     return {TxnStatus::INVALID_FROM_ACCOUNT, false, {}};
   }
   const auto owned = mAccountStore.GetBalanceForAccountAtomic(context.origin);
   const auto amountResult = CpsExecuteValidator::CheckAmount(context, owned);
   if (!amountResult.isSuccess) {
+    span.SetError("Insufficient balance to initiate cps from scilla");
     return amountResult;
   }
   return {TxnStatus::NOT_PRESENT, true, {}};
@@ -70,6 +85,10 @@ void CpsExecutor::InitRun() { mAccountStore.DiscardAtomics(); }
 
 CpsExecuteResult CpsExecutor::RunFromScilla(
     ScillaProcessContext& clientContext) {
+  CREATE_SPAN(zil::trace::FilterClass::CPS_SCILLA, clientContext.origin.hex(),
+              clientContext.recipient.hex(), clientContext.origin.hex(),
+              clientContext.amount.convert_to<std::string>())
+
   InitRun();
   const auto preValidateResult = PreValidateScillaRun(clientContext);
   if (!preValidateResult.isSuccess) {
@@ -126,9 +145,12 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 
   const auto execResult = processLoop(cpsCtx);
 
+  TRACE_EVENT("ScillaCpsRun", "processLoop", "completed");
+
   const auto gasRemainedCore = GetRemainedGasCore(execResult);
 
   const bool isFailure = !m_queue.empty() || !execResult.isSuccess;
+  span.SetAttribute("Failure", isFailure);
   if (isFailure) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
@@ -148,6 +170,13 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 }
 
 CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
+  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+              ProtoToAddress(clientContext.GetEvmArgs().origin()).hex(),
+              ProtoToAddress(clientContext.GetEvmArgs().address()).hex(),
+              ProtoToAddress(clientContext.GetEvmArgs().origin()).hex(),
+              ProtoToUint(clientContext.GetEvmArgs().apparent_value())
+                  .convert_to<std::string>())
+
   InitRun();
 
   const auto preValidateResult = PreValidateEvmRun(clientContext);
@@ -157,11 +186,11 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   TakeGasFromAccount(clientContext);
 
-  CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
-                    clientContext.GetDirect(),
-                    clientContext.GetEvmArgs().estimate(),
-                    clientContext.GetEvmArgs().extras(),
-                    CpsUtils::FromEvmContext(clientContext)};
+  const CpsContext cpsCtx{ProtoToAddress(clientContext.GetEvmArgs().origin()),
+                          clientContext.GetDirect(),
+                          clientContext.GetEvmArgs().estimate(),
+                          clientContext.GetEvmArgs().extras(),
+                          CpsUtils::FromEvmContext(clientContext)};
   const auto runType =
       IsNullAddress(ProtoToAddress(clientContext.GetEvmArgs().address()))
           ? CpsRun::Create
@@ -172,6 +201,7 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
   m_queue.push_back(std::move(evmRun));
 
   auto runResult = processLoop(cpsCtx);
+  TRACE_EVENT("EvmCpsRun", "processLoop", "completed");
 
   const auto givenGasCore =
       GasConv::GasUnitsFromEthToCore(clientContext.GetEvmArgs().gas_limit());
@@ -185,8 +215,14 @@ CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
 
   const bool isFailure = !m_queue.empty() || !runResult.isSuccess;
   const bool isEstimate = !clientContext.GetCommit();
-  // failure or Estimate mode
-  if (isFailure || isEstimate) {
+  const bool isEthCall = cpsCtx.isStatic;
+
+  span.SetAttribute("Estimate", isEstimate);
+  span.SetAttribute("EthCall", isEthCall);
+  span.SetAttribute("Failure", isFailure);
+
+  // failure or Estimate/EthCall mode
+  if (isFailure || isEstimate || isEthCall) {
     mAccountStore.RevertContractStorageState();
     mAccountStore.DiscardAtomics();
     mTxReceipt.clear();
@@ -338,12 +374,8 @@ void CpsExecutor::PushRun(std::shared_ptr<CpsRun> run) {
   m_queue.push_back(std::move(run));
 }
 
-std::string &CpsExecutor::CurrentTrace() {
-  return this->m_txTrace;
-}
+std::string& CpsExecutor::CurrentTrace() { return this->m_txTrace; }
 
-void CpsExecutor::TxTraceClear() {
-  this->m_txTrace.clear();
-}
+void CpsExecutor::TxTraceClear() { this->m_txTrace.clear(); }
 
 }  // namespace libCps

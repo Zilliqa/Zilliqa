@@ -38,7 +38,11 @@ TxnExtras GetDefaultTxnExtras() {
 }
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() }
+  Fixture() {
+    INIT_STDOUT_LOGGER();
+    Metrics::GetInstance().Init();
+    zil::trace::Tracing::Initialize("testing");
+  }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);

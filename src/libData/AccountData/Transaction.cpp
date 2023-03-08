@@ -25,21 +25,6 @@
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
-namespace zil {
-
-namespace local {
-
-Z_I64METRIC &GetTxnCallsCounter() {
-  static Z_I64METRIC counter{Z_FL::TRANSACTION_VERIFY, "transactions.info",
-                             "Engineering Metrics for Transactions",
-                             "transactions"};
-  return counter;
-}
-
-}  // namespace local
-
-}  // namespace zil
-
 using namespace std;
 using namespace boost::multiprecision;
 
@@ -82,14 +67,12 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   } else {
     if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
                        m_signature)) {
-      LOG_GENERAL(WARNING, "We failed to generate m_signature.");
-      INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "signature-gen");
+      TRACE_ERROR("We failed to generate m_signature.");
     }
   }
 
   if (!SetHash(txnData)) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "gen-id");
+    TRACE_ERROR("We failed to generate m_tranID.");
     return;
   }
 }
@@ -117,16 +100,13 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   SerializeCoreFields(txnData, 0);
 
   if (!SetHash(txnData)) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "gen-id");
+    TRACE_ERROR("We failed to generate m_tranID.");
     return;
   }
 
   // Verify the signature
   if (!IsSigned(txnData)) {
-    LOG_GENERAL(WARNING,
-                "We failed to verify the input signature! Just a warning...");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "verify_signed");
+    TRACE_ERROR("We failed to verify the input signature! Just a warning...");
   }
 }
 
@@ -137,9 +117,7 @@ Transaction::Transaction(const TxnHash &tranID,
 
 bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::SetTransaction failed.");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
-               "Messenger::SetTransaction");
+    TRACE_ERROR("Messenger::SetTransaction failed.");
     return false;
   }
 
@@ -148,9 +126,7 @@ bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
 
 bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
-               "Messenger::GetTranscation");
+    TRACE_ERROR("Messenger::GetTransaction failed.");
     return false;
   }
 
@@ -159,9 +135,7 @@ bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
 
 bool Transaction::Deserialize(const string &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
-    LOG_GENERAL(WARNING, "Messenger::GetTransaction failed.");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
-               "Messenger::GetTranscation");
+    TRACE_ERROR("Messenger::GetTransaction failed.");
     return false;
   }
 
@@ -304,7 +278,7 @@ bool Transaction::SetHash(zbytes const &txnData) {
           WARNING,
           "We failed to generate an eth m_tranID. Wrong size! Expected: "
               << TRAN_HASH_SIZE << " got: " << output.size());
-      INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "wrong-size");
+      TRACE_ERROR("We failed to generate an eth m_tranID. Wrong size!");
       return false;
     }
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
@@ -316,8 +290,7 @@ bool Transaction::SetHash(zbytes const &txnData) {
   sha2.Update(txnData);
   const zbytes &output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
-    LOG_GENERAL(WARNING, "We failed to generate m_tranID.");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error", "failed-gen-id");
+    TRACE_ERROR("We failed to generate m_tranID.");
     return false;
   }
 
@@ -370,10 +343,7 @@ bool Transaction::Verify(const Transaction &tran) {
   auto result = tran.IsSigned(txnData);
 
   if (!result) {
-    LOG_GENERAL(WARNING,
-                "Failed to verify transaction signature - will delete");
-    INC_STATUS(zil::local::GetTxnCallsCounter(), "error",
-               "gig-gen-failed-delete");
+    TRACE_ERROR("Failed to verify transaction signature - will delete");
   }
 
   return result;

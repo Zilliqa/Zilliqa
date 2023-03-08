@@ -209,8 +209,6 @@ ScillaCallParseResult ScillaHelpersCall::ParseCallContractJsonOutput(
     }
 
     receipt.AddTransition(scillaArgs.dest, msg, scillaArgs.depth);
-    receipt.AddEdge();
-    ++scillaArgs.edge;
 
     if (ENABLE_CHECK_PERFORMANCE_LOG) {
       LOG_GENERAL(INFO, "LDB Write (microseconds) = " << r_timer_end(tpStart));

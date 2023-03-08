@@ -14,7 +14,7 @@ add_library(Metrics STATIC
   Metrics.h
   Tracing.h
   Common.h
-  internal/mixins.h)
+  internal/mixins.h Api.cpp internal/source_location.h)
 
 target_include_directories(Metrics PUBLIC ${PROJECT_SOURCE_DIR}/src ${CMAKE_BINARY_DIR}/src ${CURL_INCLUDE_DIRS})
 target_link_libraries(Metrics

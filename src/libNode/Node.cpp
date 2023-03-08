@@ -58,6 +58,7 @@ using namespace boost::multi_index;
 
 const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
+const unsigned int PENDING_TX_POOL_MAX = 5000;
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
@@ -93,6 +94,52 @@ namespace {
 
 }  // namespace
 #endif
+
+namespace zil {
+
+namespace local {
+
+class VariablesNode {
+  int nodeState = 0;
+  int txnPool = 0;
+  int txsInserted = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetNodeState(int state) {
+    Init();
+    nodeState = state;
+  }
+
+  void AddTxnInserted(int inserted) {
+    Init();
+    txsInserted += inserted;
+  }
+
+  void SetTxnPool(int size) {
+    Init();
+    txnPool = size;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge",
+                                          "Node gague", "calls", true);
+
+      temp->SetCallback([this](auto &&result) {
+        result.Set(nodeState, {{"counter", "NodeState"}});
+        result.Set(txsInserted, {{"counter", "TXsInserted"}});
+        result.Set(txnPool, {{"counter", "txnPool"}});
+      });
+    }
+  }
+};
+
+static VariablesNode nodeVar{};
+}  // namespace local
+
+}  // namespace zil
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
                                 unsigned int minLengthNeeded,
@@ -1559,6 +1606,7 @@ bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
     MempoolInsertionStatus status;
     m_createdTxns.insert(submittedTxn, status);
   }
+  zil::local::nodeVar.AddTxnInserted(txns.size());
 
   cv_MicroBlockMissingTxn.notify_all();
   return true;
@@ -1965,6 +2013,9 @@ bool Node::ProcessTxnPacketFromLookupCore(const zbytes &message,
     LOG_GENERAL(INFO, "Txn processed: " << processed_count
                                         << " TxnPool size after processing: "
                                         << m_createdTxns.size());
+
+    zil::local::nodeVar.AddTxnInserted(checkedTxns.size());
+    zil::local::nodeVar.SetTxnPool(m_createdTxns.size());
   }
 
   {
@@ -2092,6 +2143,9 @@ void Node::CommitTxnPacketBuffer(bool ignorePktForPrevEpoch) {
 
 void Node::SetState(NodeState state) {
   m_state = state;
+
+  zil::local::nodeVar.SetNodeState(int(state));
+
   LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
             "Node State = " << GetStateString());
 }
@@ -3269,6 +3323,32 @@ void Node::CheckPeers(const vector<Peer> &peers) {
     LOG_GENERAL(WARNING, "Messenger::SetNodeGetVersion failed.");
   }
   P2PComm::GetInstance().SendMessage(peers, message);
+}
+
+
+void Node::AddPendingTxn(Transaction const& tx) {
+  lock_guard<mutex> g(m_mutexPending);
+
+  // Emergency fail safe to avoid memory issues if the pool isn't getting
+  // cleared somehow
+  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+    LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
+    m_pendingTxns.clear();
+  }
+
+  auto const hash = tx.GetTranID();
+  m_pendingTxns[hash] = tx;
+}
+
+std::vector<Transaction> Node::GetPendingTxns() const {
+  lock_guard<mutex> g(m_mutexPending);
+  std::vector<Transaction> ret;
+
+  for (const auto &s :m_pendingTxns) {
+    ret.push_back(s.second);
+  }
+
+  return ret;
 }
 
 std::vector<Transaction> Node::GetCreatedTxns() const {

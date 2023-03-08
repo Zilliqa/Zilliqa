@@ -34,18 +34,20 @@ PendingTxnCache::PendingTxnCache(size_t depth)
   assert(m_depth > 0);
 }
 
-void PendingTxnCache::Append(const TxnHash &hash, EpochNumber epoch) {
+bool PendingTxnCache::Append(const TxnHash &hash, EpochNumber epoch) {
   UniqueLock lock(m_mutex);
 
   auto p = m_index.insert(std::make_pair(hash, true));
   if (!p.second) {
-    LOG_GENERAL(INFO, "Ignoring pending txn duplicate");
-    return;
+    LOG_GENERAL(DEBUG, "Ignoring pending txn duplicate");
+    return false;
   }
 
   auto last_epoch = GetLastEpoch();
   if (epoch < last_epoch) {
-    LOG_GENERAL(WARNING, "Pending TXN epoch corrected to " << last_epoch);
+    if (epoch != 0) {
+      LOG_GENERAL(WARNING, "Pending TXN epoch corrected to " << last_epoch);
+    }
     epoch = last_epoch;
   } else if (epoch > last_epoch) {
     Cleanup();
@@ -56,6 +58,8 @@ void PendingTxnCache::Append(const TxnHash &hash, EpochNumber epoch) {
   item.counter = ++m_counter;
   item.epoch = epoch;
   item.hash = hash;
+
+  return true;
 }
 
 void PendingTxnCache::TransactionCommitted(const TxnHash &hash) {

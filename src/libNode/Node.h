@@ -281,8 +281,12 @@ class Node : public Executable {
   bool ProcessFinalBlockCore(uint64_t& dsBlockNumber, uint32_t& consensusID,
                              TxBlock& txBlock, zbytes& stateDelta);
 
-  void PopulateMicroblocks(std::vector<MicroBlockSharedPtr> &microblockPtrs, BlockHash const &hash, std::vector<Transaction> &txsToExecute);
-  void PopulateTxsToExecute(std::vector<MicroBlockSharedPtr> const &microblockPtrs, std::vector<Transaction> &txsToExecute);
+  void PopulateMicroblocks(std::vector<MicroBlockSharedPtr>& microblockPtrs,
+                           BlockHash const& hash,
+                           std::vector<Transaction>& txsToExecute);
+  void PopulateTxsToExecute(
+      std::vector<MicroBlockSharedPtr> const& microblockPtrs,
+      std::vector<Transaction>& txsToExecute);
 
   bool ProcessMBnForwardTransaction(
       const zbytes& message, unsigned int cur_offset, const Peer& from,
@@ -539,6 +543,10 @@ class Node : public Executable {
 
   std::atomic<bool> m_versionChecked{false};
 
+  // stores pending TXns that seedpubs with ARCHIVAL_LOOKUP_WITH_TX_TRACES keep
+  mutable std::mutex m_mutexPending;
+  std::map<TxnHash, Transaction> m_pendingTxns;
+
   /// Constructor. Requires mediator reference to access DirectoryService and
   /// other global members.
   Node(Mediator& mediator, unsigned int syncType, bool toRetrieveHistory);
@@ -779,6 +787,8 @@ class Node : public Executable {
   void CheckPeers(const std::vector<Peer>& peers);
 
   std::vector<Transaction> GetCreatedTxns() const;
+  std::vector<Transaction> GetPendingTxns() const;
+  void AddPendingTxn(Transaction const& tx);
 
  private:
   static std::map<NodeState, std::string> NodeStateStrings;

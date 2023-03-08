@@ -58,14 +58,18 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    bool &ret,                          //
                                    TransactionReceipt &receipt,        //
                                    evm::EvmResult &result) {
-  INC_CALLS(zil::local::GetEvmCallsCounter());
+  using namespace zil::trace;
 
-  namespace context = opentelemetry::context;
+  INC_CALLS(zil::local::GetEvmCallsCounter());
 
   //
   // create a worker to be executed in the async method
-  const auto worker = [&args, &ret, &result]() -> void {
+  const auto worker = [&args, &ret, &result,
+                       trace_info =
+                           Tracing::GetActiveSpan().GetIds()]() -> void {
     try {
+      auto span = Tracing::CreateChildSpanOfRemoteTrace(
+          FilterClass::FILTER_CLASS_ALL, "EvmCallRunner", trace_info);
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
     } catch (std::exception &e) {
@@ -257,6 +261,8 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   TxnStatus error_code;
   std::chrono::system_clock::time_point tpStart;
 
+  TRACE(zil::trace::FilterClass::DEMO);
+
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
   tpStart = r_timer_start();
@@ -285,11 +291,9 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::ACC_EVM,
-                                              __FUNCTION__);
+  TRACE(zil::trace::FilterClass::DEMO);
 
   std::string txnId = evmContext.GetTranID().hex();
-
 
   INC_CALLS(zil::local::GetEvmCallsCounter());
 
@@ -330,16 +334,19 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     m_curNumShards = numShards;
 
     AccountStoreCpsInterface acCpsInterface{*this};
+    span.AddEvent("info", {{"Calling", "cps"}});
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
     error_code = cpsRunResult.txnStatus;
 
-    if(std::holds_alternative<evm::EvmResult>(cpsRunResult.result) && ARCHIVAL_LOOKUP_WITH_TX_TRACES){
+    if (std::holds_alternative<evm::EvmResult>(cpsRunResult.result) &&
+        ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
       auto const &context = std::get<evm::EvmResult>(cpsRunResult.result);
       auto const &traces = context.tx_trace();
 
-      if(!traces.empty() && evmContext.GetTranID()) {
-        LOG_GENERAL(INFO, "Putting in TX trace for: " << evmContext.GetTranID());
+      if (!traces.empty() && evmContext.GetTranID()) {
+        LOG_GENERAL(INFO,
+                    "Putting in TX trace for: " << evmContext.GetTranID());
 
         if (!BlockStorage::GetBlockStorage().PutTxTrace(evmContext.GetTranID(),
                                                         traces)) {

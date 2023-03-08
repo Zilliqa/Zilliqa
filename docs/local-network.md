@@ -110,6 +110,8 @@ Grafana login credentials:
     password: admin
 ```
 
+For loading dasboards, check the folder grafana_dashboards.
+
 ## Prometheus URL: http://prometheus.local.z7a.xyz
 
 ## Tempo cluster endpoint: tempo.monitoring.svc.cluster.local
@@ -136,6 +138,13 @@ ie.:
 | tempo.monitoring.svc.cluster.local:4317 | GPRC OLTP |
 | tempo.monitoring.svc.cluster.local:4318 | OLTP HTTP |
 | tempo.monitoring.svc.cluster.local:55678 | Opencensus |
+
+## Check traces on tempo using curl
+
+```
+curl http://tmpo:3100/api/search
+```
+
 
 ## Loki cluster endpoint: loki.monitoring.svc.cluster.local:3100
 Tempo is reachable only from pods inside the cluster. To forward any of its port use `kubectl port-forward`.

@@ -162,13 +162,7 @@ pub async fn run_evm_impl(
                                &runtime.machine().stack().data().iter().take(128).collect::<Vec<_>>());
                     }
                 }
-                let result = build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas);
-                info!(
-                    "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
-                    evm_context, backend.origin, address, gas_limit, apparent_value,
-                    hex::encode(data.deref()),
-                    backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
-                result
+                build_exit_result(executor, &runtime, &backend, &listener, &exit_reason, remaining_gas)
             },
             CpsReason::CallInterrupt(i) => {
                 let cont_id = continuations.lock().unwrap().create_continuation(runtime.machine_mut(), executor.into_state().substate());
@@ -181,6 +175,11 @@ pub async fn run_evm_impl(
                 build_create_result(&runtime, i, &listener, remaining_gas, cont_id)
             }
         };
+        info!(
+            "EVM execution summary: context: {:?}, origin: {:?} address: {:?} gas: {:?} value: {:?}, data: {:?}, extras: {:?}, estimate: {:?}, cps: {:?}, result: {}, returnVal: {}",
+            evm_context, backend.origin, address, gas_limit, apparent_value,
+            hex::encode(data.deref()),
+            backend.extras, estimate, enable_cps, log_evm_result(&result), hex::encode(runtime.machine().return_value()));
         Ok(base64::encode(result.write_to_bytes().unwrap()))
     })
     .await

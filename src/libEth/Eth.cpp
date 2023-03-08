@@ -25,6 +25,7 @@
 #include "jsonrpccpp/server.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/Account.h"
+#include "libMetrics/Api.h"
 #include "libPersistence/BlockStorage.h"
 #include "libServer/Server.h"
 #include "libUtils/DataConversion.h"
@@ -147,11 +148,13 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
                     const Account *sender, const uint128_t &gasPriceWei,
                     uint64_t minGasLimit) {
   if (DataConversion::UnpackA(tx.GetVersion()) != CHAIN_ID) {
+    TRACE_ERROR("CHAIN_ID incorrect");
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "CHAIN_ID incorrect");
   }
 
   if (!tx.VersionCorrect()) {
+    TRACE_ERROR("Version incorrect");
     throw JsonRpcException(
         ServerBase::RPC_VERIFY_REJECTED,
         "Transaction version incorrect! Expected:" +
@@ -162,11 +165,13 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   // While checking the contract size, account for Hex representation
   // with the 'EVM' prefix.
   if (tx.GetCode().size() > 2 * MAX_EVM_CONTRACT_SIZE_BYTES + 3) {
+    TRACE_ERROR("Code size is too large");
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Code size is too large");
   }
 
   if (tx.GetGasPriceWei() < gasPriceWei) {
+    TRACE_ERROR("gasprice lower than minimum allowable");
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasPrice " +
                                tx.GetGasPriceWei().convert_to<std::string>() +
@@ -175,6 +180,7 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   if (tx.GetGasLimitEth() < minGasLimit) {
+    TRACE_ERROR("gaslimit lower than minimum allowable");
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "GasLimit " + std::to_string(tx.GetGasLimitEth()) +
                                " lower than minimum allowable " +
@@ -182,21 +188,25 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   }
 
   if (!Transaction::Verify(tx)) {
+    TRACE_ERROR("verification failed");
     throw JsonRpcException(ServerBase::RPC_VERIFY_REJECTED,
                            "Unable to verify transaction");
   }
 
   if (IsNullAddress(fromAddr)) {
+    TRACE_ERROR("Invalid address for issuing transactions");
     throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
                            "Invalid address for issuing transactions");
   }
 
   if (sender == nullptr) {
+    TRACE_ERROR("The sender of the txn doesn't exist");
     throw JsonRpcException(ServerBase::RPC_INVALID_ADDRESS_OR_KEY,
                            "The sender of the txn doesn't exist");
   }
 
   if (sender->GetNonce() >= tx.GetNonce()) {
+    TRACE_ERROR("Nonce Lower than current");
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Nonce (" + std::to_string(tx.GetNonce()) +
                                ") lower than current (" +
@@ -207,12 +217,15 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   uint256_t gasDepositWei = 0;
   if (!SafeMath<uint256_t>::mul(tx.GetGasLimitZil(), tx.GetGasPriceWei(),
                                 gasDepositWei)) {
+    TRACE_ERROR("tx.GetGasLimitZil() * tx.GetGasPrice() overflow!");
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "tx.GetGasLimitZil() * tx.GetGasPrice() overflow!");
   }
 
   uint256_t debt = 0;
   if (!SafeMath<uint256_t>::add(gasDepositWei, tx.GetAmountWei(), debt)) {
+    TRACE_ERROR(
+        "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
     throw JsonRpcException(
         ServerBase::RPC_INVALID_PARAMETER,
         "tx.GetGasLimit() * tx.GetGasPrice() + tx.GetAmountWei() overflow!");
@@ -221,6 +234,7 @@ bool ValidateEthTxn(const Transaction &tx, const Address &fromAddr,
   const uint256_t accountBalance =
       uint256_t{sender->GetBalance()} * EVM_ZIL_SCALING_FACTOR;
   if (accountBalance < debt) {
+    TRACE_ERROR("Insufficient funds in source account");
     throw JsonRpcException(ServerBase::RPC_INVALID_PARAMETER,
                            "Insufficient funds in source account, wants: " +
                                debt.convert_to<std::string>() + ", but has: " +

@@ -42,7 +42,7 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SafeMath.h"
-
+#include "common/Messages.h"
 #include "libMetrics/Api.h"
 
 using namespace std;
@@ -1155,6 +1155,10 @@ void SendMessageImpl(const std::shared_ptr<zil::p2p::SendJobs>& sendJobs,
                      unsigned char startByteType,
                      bool bAllowSendToRelaxedBlacklist,
                      bool inject_trace_context) {
+  if (message.size() <= MessageOffset::BODY) {
+    return;
+  }
+
   if (peers.empty()) {
     LOG_GENERAL(WARNING, "Error: empty peer list");
     return;
@@ -1198,6 +1202,9 @@ void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
     LOG_GENERAL(WARNING, "Message pump not started");
     return;
   }
+  if (message.size() <= MessageOffset::BODY) {
+    return;
+  }
   m_sendJobs->SendMessageToPeer(peer, message, startByteType,
                                 inject_trace_context);
 }
@@ -1212,6 +1219,9 @@ void P2PComm::SendMessage(const Peer& peer, const Peer& fromPeer,
     SendMsgToSeedNodeOnWire(peer, fromPeer, message, startByteType);
     return;
   }
+  if (message.size() <= MessageOffset::BODY) {
+    return;
+  }
   SendMessage(peer, message, startByteType, inject_trace_context);
 }
 
@@ -1222,6 +1232,10 @@ void SendBroadcastMessageImpl(
     const std::shared_ptr<zil::p2p::SendJobs>& sendJobs, const PeerList& peers,
     const Peer& selfPeer, const zbytes& message, zbytes& hash,
     bool inject_trace_context) {
+  if (message.size() <= MessageOffset::BODY) {
+    return;
+  }
+
   if (peers.empty()) {
     return;
   }

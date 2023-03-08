@@ -24,8 +24,8 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
-#include "libNetwork/P2PMessage.h"
 #include "libMetrics/Api.h"
+#include "libNetwork/P2PMessage.h"
 #include "libNetwork/Peer.h"
 #include "libNode/Node.h"
 #include "libServer/LookupServer.h"
@@ -74,6 +74,9 @@ class Zilliqa {
 
   /// Destructor.
   ~Zilliqa();
+
+  // For pending txn update workaround
+  Mediator& GetMediator() { return m_mediator; }
 
   void LogSelfNodeInfo(const PairOfKey& key, const Peer& peer);
 
