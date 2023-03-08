@@ -21,7 +21,7 @@
 
 using namespace std;
 
-Blacklist::Blacklist() : m_enabled(true) {}
+Blacklist::Blacklist() : m_enabled(false) {}
 
 Blacklist::~Blacklist() {}
 
