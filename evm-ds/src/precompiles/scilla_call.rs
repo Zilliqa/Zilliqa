@@ -3,12 +3,14 @@ use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
 use evm::backend::Backend;
 
-const IDENTITY_BASE: u64 = 15;
-const IDENTITY_PER_WORD: u64 = 3;
+use ethabi::decode;
+use ethabi::token::Token;
+use ethabi::param_type::ParamType;
 
-const IDENTITY_WORD_LEN: u64 = 32;
+const BASE_COST: u64 = 15;
+const PER_BYTE_COST: u64 = 3;
 
-pub(crate) fn identity(
+pub(crate) fn scilla_call(
     input: &[u8],
     gas_limit: Option<u64>,
     _contex: &Context,
@@ -28,10 +30,30 @@ pub(crate) fn identity(
         }
     }
 
+    let partial_types = vec![ParamType::Address, ParamType::String];
+    let partial_tokens = decode(&partial_types, input);
+    let Ok(partial_tokens) = partial_tokens  else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
+        });
+    };
+
+    let Token::Address(code_address)  = partial_tokens[0] else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
+        });
+    };
+    let code = _backend.code(code_address);
+    if code.is_empty() {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("There so code under given address")),
+        });
+    }
+
     Ok((
         PrecompileOutput {
             output_type: PrecompileOutputType::Exit(ExitSucceed::Returned),
-            output: input.to_vec(),
+            output: vec![],
         },
         gas_needed,
     ))
@@ -40,5 +62,5 @@ pub(crate) fn identity(
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
     let input_len = u64::try_from(input.len())
         .map_err(|_| ExitError::Other(Cow::Borrowed("ERR_USIZE_CONVERSION")))?;
-    Ok((input_len + IDENTITY_WORD_LEN - 1) / IDENTITY_WORD_LEN * IDENTITY_PER_WORD + IDENTITY_BASE)
+    Ok(input_len * PER_BYTE_COST + BASE_COST)
 }
