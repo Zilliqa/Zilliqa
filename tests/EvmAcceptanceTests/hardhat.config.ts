@@ -67,8 +67,8 @@ const config: HardhatUserConfig = {
       miningState: true
     },
     devnet: {
-      url: "https://fireblock-l2api.dev.z7a.xyz",
-      websocketUrl: "wss://fireblock-l2api.dev.z7a.xyz",
+      url: "https://fireb-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://fireb-l2api.dev.z7a.xyz",
       accounts: [
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
         "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
