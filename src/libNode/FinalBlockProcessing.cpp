@@ -1106,12 +1106,6 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
     return false;
   }
 
-  auto resumeBlackList = []() mutable -> void {
-    this_thread::sleep_for(chrono::seconds(RESUME_BLACKLIST_DELAY_IN_SECONDS));
-    Blacklist::GetInstance().Enable(true);
-  };
-
-  DetachedFunction(1, resumeBlackList);
 
   if (!LoadUnavailableMicroBlockHashes(txBlock, toSendTxnToLookup)) {
     return false;

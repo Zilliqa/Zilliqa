@@ -856,7 +856,6 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
   m_mediator.m_lookup->RemoveSeedNodesFromBlackList();
 
   if (SyncType::RECOVERY_ALL_SYNC == syncType) {
-    Blacklist::GetInstance().Enable(false);
   }
 
   if (!LOOKUP_NODE_MODE && SyncType::RECOVERY_ALL_SYNC == syncType) {
