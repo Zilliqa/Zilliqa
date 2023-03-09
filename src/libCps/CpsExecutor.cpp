@@ -38,7 +38,7 @@ CpsExecutor::CpsExecutor(CpsAccountStoreInterface& accountStore,
 
 CpsExecuteResult CpsExecutor::PreValidateEvmRun(
     const EvmProcessContext& context) const {
-  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+  CREATE_SPAN(zil::trace::FilterClass::TXN,
               ProtoToAddress(context.GetEvmArgs().origin()).hex(),
               ProtoToAddress(context.GetEvmArgs().address()).hex(),
               ProtoToAddress(context.GetEvmArgs().origin()).hex(),
@@ -63,7 +63,7 @@ CpsExecuteResult CpsExecutor::PreValidateEvmRun(
 
 CpsExecuteResult CpsExecutor::PreValidateScillaRun(
     const ScillaProcessContext& context) const {
-  CREATE_SPAN(zil::trace::FilterClass::CPS_SCILLA, context.origin.hex(),
+  CREATE_SPAN(zil::trace::FilterClass::TXN, context.origin.hex(),
               context.recipient.hex(), context.origin.hex(),
               context.amount.convert_to<std::string>())
 
@@ -85,7 +85,7 @@ void CpsExecutor::InitRun() { mAccountStore.DiscardAtomics(); }
 
 CpsExecuteResult CpsExecutor::RunFromScilla(
     ScillaProcessContext& clientContext) {
-  CREATE_SPAN(zil::trace::FilterClass::CPS_SCILLA, clientContext.origin.hex(),
+  CREATE_SPAN(zil::trace::FilterClass::TXN, clientContext.origin.hex(),
               clientContext.recipient.hex(), clientContext.origin.hex(),
               clientContext.amount.convert_to<std::string>())
 
@@ -170,7 +170,7 @@ CpsExecuteResult CpsExecutor::RunFromScilla(
 }
 
 CpsExecuteResult CpsExecutor::RunFromEvm(EvmProcessContext& clientContext) {
-  CREATE_SPAN(zil::trace::FilterClass::CPS_EVM,
+  CREATE_SPAN(zil::trace::FilterClass::TXN,
               ProtoToAddress(clientContext.GetEvmArgs().origin()).hex(),
               ProtoToAddress(clientContext.GetEvmArgs().address()).hex(),
               ProtoToAddress(clientContext.GetEvmArgs().origin()).hex(),

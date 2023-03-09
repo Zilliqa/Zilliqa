@@ -50,12 +50,13 @@ Z_DBLMETRIC &GetMsgDispatchCounter() {
                              "Messages dispatched", "Calls"};
   return counter;
 }
-
+#if 0
 Z_DBLMETRIC &GetMsgDispatchErrorCounter() {
   static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch_error",
                              "Message dispatch errors", "Calls"};
   return counter;
 }
+#endif
 
 #define MATCH_CASE(CASE) \
   case CASE:             \
@@ -167,8 +168,11 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
         tpStart = std::chrono::high_resolution_clock::now();
       }
 
+      // TODO : not this
+#if 0
       auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
           zil::trace::FilterClass::NODE, "Dispatch", message->traceContext);
+#endif
 
       bool result = msg_handlers[msg_type]->Execute(
           message->msg, MessageOffset::INST, message->from, message->startByte);
@@ -185,9 +189,11 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       }
 
       if (!result) {
-        // To-do: Error recovery
+      // To-do: Error recovery
+#if 0
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
         span.SetError("dispatch failed");
+#endif
       }
 
     } else {
