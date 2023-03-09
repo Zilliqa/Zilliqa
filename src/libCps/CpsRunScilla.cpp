@@ -88,7 +88,7 @@ CpsExecuteResult CpsRunScilla::checkGas() {
 }
 
 CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
-  CREATE_SPAN(zil::trace::FilterClass::CPS_SCILLA, mArgs.from.hex(),
+  CREATE_SPAN(zil::trace::FilterClass::TXN, mArgs.from.hex(),
               mArgs.dest.hex(), mCpsContext.origSender.hex(),
               mArgs.value.toQa().convert_to<std::string>());
 
@@ -233,7 +233,7 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
                                 .toQa()
                                 .convert_to<std::string>());
 
-  CREATE_SPAN(zil::trace::FilterClass::CPS_SCILLA, mArgs.from.hex(),
+  CREATE_SPAN(zil::trace::FilterClass::TXN, mArgs.from.hex(),
               mArgs.dest.hex(), mCpsContext.origSender.hex(),
               mArgs.value.toQa().convert_to<std::string>());
 

@@ -389,7 +389,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     Eth::EthFields const &fields, zbytes const &pubKey,
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
-  TRACE(zil::trace::FilterClass::DEMO);
+  TRACE(zil::trace::FilterClass::TXN);
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -408,6 +408,11 @@ std::string EthRpcMethods::CreateTransactionEth(
   }
 
   auto tx = GetTxFromFields(fields, pubKey, ret);
+  // When we see TXs being submitted to this seedpub/lookup, we add it to the
+  // pending TXn pool if we are in extended mode
+  if(ARCHIVAL_LOOKUP_WITH_TX_TRACES) {
+    m_sharedMediator.AddPendingTxn(tx);
+  }
 
   // Add some attributes to the span
   {
@@ -579,6 +584,10 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
                            "Sent to a non-lookup");
   }
 
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
+                                              __FUNCTION__);
+
+
   INC_CALLS(GetInvocationsCounter());
 
   try {
@@ -614,6 +623,11 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
 }
 
 string EthRpcMethods::GetEthCallZil(const Json::Value &_json) {
+
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
+                                              __FUNCTION__);
+
+
   INC_CALLS(GetInvocationsCounter());
 
   return this->GetEthCallImpl(
@@ -690,7 +704,7 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   Address fromAddr;
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
 
   INC_CALLS(GetInvocationsCounter());
@@ -1253,10 +1267,39 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
       return Json::nullValue;
     } else if (blockNumberStr == "latest" ||    //
                blockNumberStr == "earliest" ||  //
+               blockNumberStr == "pending" ||  //
                isNumber(blockNumberStr)) {
       // handle latest, earliest and block number requests
       if (blockNumberStr == "latest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+      } else if (blockNumberStr == "pending") {
+        txBlock = m_sharedMediator.m_txBlockChain.GetLastBlock();
+
+        // Special case for pending... modify the last block to fake a pending bloc
+        auto const pending = m_sharedMediator.GetPendingTxns();
+
+        std::vector<TxBodySharedPtr> transactions;
+
+        for (auto const &tx: pending) {
+          auto receipt = TransactionReceipt();
+          receipt.update();
+          TxBodySharedPtr item = std::make_shared<TransactionWithReceipt>(tx, receipt);
+          transactions.push_back(item);
+        }
+
+        const auto dsBlock = m_sharedMediator.m_dsBlockChain.GetBlock(
+            txBlock.GetHeader().GetDSBlockNum());
+
+        auto toRet = JSONConversion::convertTxBlocktoEthJson(txBlock, dsBlock, transactions,
+                                                 includeFullTransactions);
+
+        // Now modify the fields as if this block was in the future
+        toRet["hash"] = Json::nullValue;
+        toRet["logsBloom"] = Json::nullValue;
+        toRet["nonce"] = Json::nullValue;
+        toRet["number"] = Json::nullValue;
+
+        return toRet;
       } else if (blockNumberStr == "earliest") {
         txBlock = m_sharedMediator.m_txBlockChain.GetBlock(0);
       } else if (isNumber(blockNumberStr)) {  // exact block number
@@ -1273,7 +1316,8 @@ Json::Value EthRpcMethods::GetEthBlockByNumber(
     if (txBlock == NON_EXISTING_TX_BLOCK) {
       return Json::nullValue;
     }
-    return GetEthBlockCommon(txBlock, includeFullTransactions);
+
+    return  GetEthBlockCommon(txBlock, includeFullTransactions);
   } catch (const std::exception &e) {
     LOG_GENERAL(INFO, "[Error]" << e.what() << " Input: " << blockNumberStr
                                 << ", includeFullTransactions: "

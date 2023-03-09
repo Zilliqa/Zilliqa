@@ -1067,6 +1067,12 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
         LOG_GENERAL(WARNING, "TXTRACEGEN: Avoid double executing TX!");
       }
     }
+
+    // Remove all TXs from the pending pool
+    lock_guard<mutex> g(m_mutexPending);
+    for (const auto &txnHash : txsExecuted) {
+      m_pendingTxns.erase(txnHash);
+    }
   }
 
   if (!ProcessStateDeltaFromFinalBlock(

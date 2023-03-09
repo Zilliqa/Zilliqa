@@ -49,6 +49,7 @@
 // To extend filter classes, you may add items, the total number is limited to
 // 64 (bit mask)
 #define TRACE_FILTER_CLASSES(T) \
+  T(TXN)                        \
   T(EVM_CLIENT)                 \
   T(EVM_CLIENT_LOW_LEVEL)       \
   T(SCILLA_PROCESSING)          \

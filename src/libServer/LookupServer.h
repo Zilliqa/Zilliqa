@@ -18,9 +18,13 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 #define ZILLIQA_SRC_LIBSERVER_LOOKUPSERVER_H_
 
+#include <boost/multiprecision/cpp_dec_float.hpp>
+
 #include "EthRpcMethods.h"
 #include "Server.h"
 #include "libMetrics/Api.h"
+
+namespace mp = boost::multiprecision;
 
 class Mediator;
 
@@ -58,6 +62,7 @@ class LookupServer : public Server,
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,
       unsigned int num_shards, bool toAccountExist, bool toAccountIsContract);
+  mp::cpp_dec_float_50 CalculateTotalSupply();
 
  public:
   LookupServer(Mediator& mediator, jsonrpc::AbstractServerConnector& server);
@@ -290,6 +295,12 @@ class LookupServer : public Server,
     response = this->GetTotalCoinSupply();
   }
 
+  inline virtual void GetTotalCoinSupplyAsIntI(const Json::Value& request,
+                                          Json::Value& response) {
+    (void)request;
+    response = this->GetTotalCoinSupplyAsInt();
+  }
+
   inline virtual void GetPendingTxnsI(const Json::Value& request,
                                       Json::Value& response) {
     (void)request;
@@ -336,6 +347,7 @@ class LookupServer : public Server,
   double GetTxBlockRate();
   double GetDSBlockRate();
   std::string GetTotalCoinSupply();
+  unsigned long GetTotalCoinSupplyAsInt();
   Json::Value GetCurrentDSComm();
   Json::Value GetShardMembers(unsigned int shardID);
   Json::Value DSBlockListing(unsigned int page);
