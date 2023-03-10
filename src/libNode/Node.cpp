@@ -16,18 +16,12 @@
  */
 
 #include <arpa/inet.h>
-#include <array>
-#include <chrono>
-#include <functional>
-#include <thread>
-#include <tuple>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
 
-#include <Schnorr.h>
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -41,6 +35,7 @@
 #include "libMetrics/Api.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
+#include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libPersistence/Retriever.h"
 #include "libPythonRunner/PythonRunner.h"
@@ -54,7 +49,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-using namespace boost::multi_index;
 
 const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;

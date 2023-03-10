@@ -15,11 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <array>
-#include <chrono>
-#include <functional>
-#include <thread>
-
 #include "Node.h"
 #include "common/Constants.h"
 #include "common/Messages.h"
@@ -32,6 +27,7 @@
 #include "libMessage/Messenger.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
+#include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"

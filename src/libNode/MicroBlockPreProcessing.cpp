@@ -27,6 +27,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -39,7 +40,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-using namespace boost::multi_index;
 
 bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
