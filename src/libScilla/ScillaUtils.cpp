@@ -62,6 +62,15 @@ Json::Value ScillaUtils::GetContractCheckerJson(const string& root_w_version,
   return ret;
 }
 
+std::vector<std::string> ScillaUtils::GetContractCheckerCmdLineArgsForEvm() {
+  std::vector<std::string> args = {
+      "--scilla-root-dir", SCILLA_ROOT, "--scilla-stdlib-dir",
+      SCILLA_LIB + ":" + boost::filesystem::current_path().string() + '/' +
+          EXTLIB_FOLDER,
+      ""};
+  return args;
+}
+
 Json::Value ScillaUtils::GetCreateContractJson(const string& root_w_version,
                                                bool is_library,
                                                const uint64_t& available_gas,

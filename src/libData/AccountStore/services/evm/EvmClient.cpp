@@ -21,6 +21,7 @@
 #include <boost/process/child.hpp>
 #include <thread>
 #include "libMetrics/Api.h"
+#include "libScilla/ScillaUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Evm.pb.h"
 #include "libUtils/EvmUtils.h"
@@ -41,12 +42,14 @@ bool LaunchEvmDaemon(boost::process::child& child,
 
   LOG_MARKER();
 
-  const std::vector<std::string> args = {"--socket",
-                                         EVM_SERVER_SOCKET_PATH,
-                                         "--zil-scaling-factor",
-                                         std::to_string(EVM_ZIL_SCALING_FACTOR),
-                                         "--log4rs",
-                                         EVM_LOG_CONFIG};
+  std::vector<std::string> args = {"--socket",
+                                   EVM_SERVER_SOCKET_PATH,
+                                   "--zil-scaling-factor",
+                                   std::to_string(EVM_ZIL_SCALING_FACTOR),
+                                   "--log4rs",
+                                   EVM_LOG_CONFIG};
+  const auto scillaArgs = ScillaUtils::GetContractCheckerCmdLineArgsForEvm();
+  args.insert(std::end(args), std::cbegin(scillaArgs), std::cend(scillaArgs));
 
   boost::filesystem::path bin_path(binaryPath);
   boost::filesystem::path socket_path(socketPath);

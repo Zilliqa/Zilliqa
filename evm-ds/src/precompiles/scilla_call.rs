@@ -2,6 +2,8 @@ use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
 use evm::{Context, ExitError, ExitSucceed};
 use std::borrow::Cow;
+use std::io::Read;
+use std::str::FromStr;
 
 use ethabi::ethereum_types::Address;
 use ethabi::param_type::ParamType;
@@ -35,12 +37,15 @@ pub(crate) fn scilla_call(
 
     let (code_address, _transition) = get_contract_addr_and_transition(input)?;
 
-    let code = _backend.code(code_address);
+    let code = _backend.code_as_json(code_address);
     if code.is_empty() {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("There so code under given address")),
         });
     }
+
+    println!("Received code with size: {}", code.len());
+    println!("Code is: {}", hex::encode(code));
 
     Ok((
         PrecompileOutput {
@@ -88,11 +93,17 @@ fn get_contract_addr_and_transition(input: &[u8]) -> Result<(Address, String), P
         });
     };
 
-    println!("Got code addres: {} and tran: {}", code_address, transition);
-    Ok((
-        H160::from_slice(code_address.as_bytes()),
-        transition.to_owned(),
-    ))
+    let Ok(code_address) = H160::from_str(&code_address) else {
+        return Err(PrecompileFailure::Error {
+            exit_status: ExitError::Other(Cow::Borrowed("Incorrect scilla contract address")),
+        });
+    };
+
+    println!(
+        "Got code addres: {:x} and tran: {}",
+        code_address, transition
+    );
+    Ok((code_address, transition.to_owned()))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {

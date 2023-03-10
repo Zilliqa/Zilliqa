@@ -1,14 +1,21 @@
+use std::env::temp_dir;
+use std::fs;
+use std::fs::File;
+use std::io::Write;
 /// Backend implementation that stores EVM state via the Scilla JSONRPC interface.
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::str::FromStr;
 
 use bytes::Bytes;
+use ethabi::Error::Hex;
 use evm::backend::{Backend, Basic};
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
 use jsonrpc_core::{Error, Result, Value};
 use jsonrpc_core_client::RawClient;
 use primitive_types::{H160, H256, U256};
+use rand::Rng;
 
 use log::debug;
 
@@ -24,6 +31,10 @@ pub struct ScillaBackendConfig {
     pub path: PathBuf,
     // Scaling factor of Eth <-> Zil. Should be either 1 or 1_000_000.
     pub zil_scaling_factor: u64,
+    // Scilla root dir
+    pub scilla_root_dir: String,
+    // Scilla stdlib dir
+    pub scilla_stdlib_dir: String,
 }
 
 // Backend relying on Scilla variables and Scilla JSONRPC interface.
@@ -298,6 +309,70 @@ impl Backend for ScillaBackend {
         } else {
             bytes
         }
+    }
+
+    fn code_as_json(&self, address: H160) -> Vec<u8> {
+        let code = self.code(address);
+        /*println!("Got code: {}", String::from_utf8(code.clone()).unwrap());
+        let parsed: serde_json::Value = serde_json::from_slice(&code).unwrap_or_default();
+        let code = parsed["result"]["code"].to_owned();
+        if code == Value::Null {
+            return Vec::new();
+        }
+        let Some(code) = code.as_str() else {
+            return Vec::new();
+        };
+        let mut code: String = code.to_string();
+        code = code.strip_prefix("\"").unwrap_or_default().to_string();
+        code = code.strip_suffix("\"").unwrap_or_default().to_string();
+        let code = code.replace("\n", " ");
+        */
+
+        let mut rng = rand::thread_rng();
+        let random_file_suffix: u64 = rng.gen();
+        let file_name = format!("{:x}_{}.scilla", address, random_file_suffix.to_string());
+        let mut temp_dir = temp_dir();
+        temp_dir.push(file_name);
+        {
+            let Ok(mut file) = File::create(&temp_dir) else {
+                return Vec::new();
+            };
+            file.write_all(&code).unwrap();
+        }
+        let scilla_checker_path: String;
+        let scilla_libdir_path: String;
+
+        if Path::new(&format!("{}/{}", self.config.scilla_root_dir, "0")).exists() {
+            scilla_checker_path = format!(
+                "{}/{}/{}",
+                self.config.scilla_root_dir, "0", "bin/scilla-checker"
+            );
+            scilla_libdir_path = format!(
+                "{}/{}/{}",
+                self.config.scilla_root_dir, "0", self.config.scilla_stdlib_dir
+            )
+        } else {
+            scilla_checker_path = format!("{}/{}", self.config.scilla_root_dir, "bin/scilla-checker");
+            scilla_libdir_path = format!(
+                "{}/{}",
+                self.config.scilla_root_dir, self.config.scilla_stdlib_dir
+            );
+        }
+        let scilla_file = temp_dir.as_path().to_str().unwrap();
+        let output = Command::new(&scilla_checker_path)
+            .arg("-gaslimit")
+            .arg("999999999")
+            .arg("-libdir")
+            .arg(&scilla_libdir_path)
+            .arg("-contractinfo")
+            .arg(scilla_file).output();
+
+        if let Ok(output) = output {
+            let _ = fs::remove_file(temp_dir);
+            println!("Got from exec: {} {}", String::from_utf8(output.stdout.clone()).unwrap(), String::from_utf8(output.stderr).unwrap());
+            return output.stdout
+        }
+        Vec::new()
     }
 
     fn storage(&self, address: H160, key: H256) -> H256 {

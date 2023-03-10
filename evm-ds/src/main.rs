@@ -59,6 +59,14 @@ struct Args {
     /// Zil scaling factor.  How many Zils in one EVM visible Eth.
     #[clap(long, default_value = "1")]
     zil_scaling_factor: u64,
+
+    /// Scilla root directory
+    #[clap(long, default_value = "/scilla")]
+    scilla_root_dir: String,
+
+    /// Scilla libDir path
+    #[clap(long, default_value = "/src/stdlib")]
+    scilla_stdlib_dir: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
@@ -240,6 +248,8 @@ fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
     let backend_config = ScillaBackendConfig {
         path: PathBuf::from(args.node_socket),
         zil_scaling_factor: args.zil_scaling_factor,
+        scilla_root_dir: args.scilla_root_dir,
+        scilla_stdlib_dir: args.scilla_stdlib_dir,
     };
 
     let evm_server = EvmServer::new(backend_config, args.gas_scaling_factor);

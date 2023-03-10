@@ -32,6 +32,9 @@ class ScillaUtils {
                                             bool is_library,
                                             const uint64_t& available_gas);
 
+  /// get the command line args for invoking scilla_checker
+  static std::vector<std::string> GetContractCheckerCmdLineArgsForEvm();
+
   /// get the command for invoking the scilla_runner while deploying
   static Json::Value GetCreateContractJson(
       const std::string& root_w_version, bool is_library,
