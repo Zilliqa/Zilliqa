@@ -1,0 +1,37 @@
+diff --git a/cmake/opentelemetry-proto.cmake b/cmake/opentelemetry-proto.cmake
+index a21c0f1..0181de3 100644
+--- a/cmake/opentelemetry-proto.cmake
++++ b/cmake/opentelemetry-proto.cmake
+@@ -226,9 +226,15 @@ endif()
+ 
+ include_directories("${GENERATED_PROTOBUF_PATH}")
+ 
++if(BUILD_SHARED_LIBS)
++  set(OPENTELEMETRY_PROTO_LIBRARY_TYPE SHARED)
++else()
++  set(OPENTELEMETRY_PROTO_LIBRARY_TYPE STATIC)
++endif()
++
+ if(WITH_OTLP_GRPC)
+   add_library(
+-    opentelemetry_proto STATIC
++    opentelemetry_proto ${OPENTELEMETRY_PROTO_LIBRARY_TYPE}
+     ${COMMON_PB_CPP_FILE}
+     ${RESOURCE_PB_CPP_FILE}
+     ${TRACE_PB_CPP_FILE}
+@@ -242,7 +248,7 @@ if(WITH_OTLP_GRPC)
+     ${METRICS_SERVICE_GRPC_PB_CPP_FILE})
+ else()
+   add_library(
+-    opentelemetry_proto STATIC
++    opentelemetry_proto ${OPENTELEMETRY_PROTO_LIBRARY_TYPE}
+     ${COMMON_PB_CPP_FILE}
+     ${RESOURCE_PB_CPP_FILE}
+     ${TRACE_PB_CPP_FILE}
+@@ -282,4 +288,5 @@ endif()
+ 
+ if(BUILD_SHARED_LIBS)
+   set_property(TARGET opentelemetry_proto PROPERTY POSITION_INDEPENDENT_CODE ON)
++  target_link_libraries(opentelemetry_proto PRIVATE gRPC::grpc++)
+ endif()
+
