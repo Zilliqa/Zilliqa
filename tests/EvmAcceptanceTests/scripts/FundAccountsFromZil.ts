@@ -37,12 +37,23 @@ async function main() {
     let zilliqa = new Zilliqa(hre.getNetworkUrl());
     zilliqa.wallet.addByPrivateKey(element);
     const address = getAddressFromPrivateKey(element);
+    console.log(`My ZIL account address is: ${address}`);
 
     const res = await zilliqa.blockchain.getBalance(address);
+
+    if (res.error?.message) {
+      console.log("Error: ", res.error);
+      console.log("Skipping account with error");
+      continue;
+    }
     const balance = res.result.balance;
 
-    console.log(`My ZIL account address is: ${address}`);
     console.log(`My ZIL account balance is: ${balance}`);
+
+    if (balance == 0) {
+      console.log("Skipping account with 0 balance");
+      continue;
+    }
 
     const gasp = await web3.eth.getGasPrice();
     const gasPrice = new BN(gasp);
