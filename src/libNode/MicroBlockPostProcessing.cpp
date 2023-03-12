@@ -38,7 +38,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-using namespace boost::multi_index;
 
 bool Node::ComposeMicroBlockMessageForSender(zbytes& microblock_message) const {
   if (LOOKUP_NODE_MODE) {

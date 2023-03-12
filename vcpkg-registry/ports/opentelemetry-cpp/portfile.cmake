@@ -10,6 +10,7 @@ vcpkg_from_github(
     HEAD_REF main
     PATCHES
         mac-fix.patch
+        proto-shared.patch
 )
 
 vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
@@ -49,6 +50,7 @@ vcpkg_cmake_configure(
         -DWITH_LOGS_PREVIEW=ON
         -DWITH_STL=ON
         -DWITH_OTLP_GRPC=ON
+        -DBUILD_SHARED_LIBS=OFF
         ${FEATURE_OPTIONS}
 )
 
