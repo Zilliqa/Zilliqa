@@ -209,6 +209,7 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
         LOOKUP_NODE_MODE);
     GetTxBlockFromSeedNodes(txBlockNum, 0);
     std::unique_lock<std::mutex> cv_lk(m_mutexCvSetRejoinRecovery);
+    // TODO: cv fix
     if (m_mediator.m_lookup->cv_setRejoinRecovery.wait_for(
             cv_lk, std::chrono::seconds(NEW_NODE_SYNC_INTERVAL)) !=
         std::cv_status::timeout) {
@@ -221,6 +222,7 @@ void Lookup::GetInitialBlocksAndShardingStructure() {
     // Ask for the sharding structure from lookup
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+    // TODO: cv fix
     if (cv_shardStruct.wait_for(
             cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
         std::cv_status::timeout) {
@@ -889,6 +891,7 @@ bool Lookup::GetDSBlockFromL2lDataProvider(uint64_t blockNum) {
         ComposeGetDSBlockMessageForL2l(blockNum));
 
     unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCDSBlockProcessed);
+    // TODO: cv fix
     if (m_mediator.m_lookup->cv_vcDsBlockProcessed.wait_for(
             lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL)) ==
             std::cv_status::timeout &&
@@ -913,6 +916,7 @@ bool Lookup::GetVCFinalBlockFromL2lDataProvider(uint64_t blockNum) {
               "GetVCFinalBlockFromL2lDataProvider for block " << blockNum);
     SendMessageToRandomL2lDataProvider(getmessage);
     unique_lock<mutex> lock(m_mediator.m_lookup->m_mutexVCFinalBlockProcessed);
+    // TODO: cv fix
     if (m_mediator.m_lookup->cv_vcFinalBlockProcessed.wait_for(
             lock, chrono::seconds(SEED_SYNC_SMALL_PULL_INTERVAL)) ==
             std::cv_status::timeout &&
@@ -1598,6 +1602,7 @@ std::optional<std::vector<Transaction>> Lookup::GetDSLeaderTxnPool() {
   static constexpr const chrono::seconds GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS{
       3};
   unique_lock<mutex> lock(m_mutexDSLeaderTxnPool);
+  // TODO: cv fix
   if (cv_dsLeaderTxnPool.wait_for(lock,
                                   GETDSLEADERTXNPOOL_TIMEOUT_IN_SECONDS) ==
       std::cv_status::timeout) {
@@ -3110,6 +3115,7 @@ bool Lookup::GetDSInfo() {
     while (!m_fetchedDSInfo) {
       LOG_EPOCH(INFO, m_mediator.m_currentEpochNum, "Waiting for DSInfo");
 
+      // TODO: cv fix
       if (cv_dsInfoUpdate.wait_for(lock,
                                    chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
           std::cv_status::timeout) {
@@ -3159,6 +3165,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
       // Get the state-delta for all txBlocks from random lookup nodes
       GetStateDeltasFromSeedNodes(lowBlockNum, highBlockNum);
       std::unique_lock<std::mutex> cv_lk(m_mutexSetStateDeltasFromSeed);
+      // TODO: cv fix
       if (cv_setStateDeltasFromSeed.wait_for(
               cv_lk, std::chrono::seconds(GETSTATEDELTAS_TIMEOUT_IN_SECONDS)) ==
           std::cv_status::timeout) {
@@ -3237,6 +3244,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         auto txblk_num = txBlock.GetHeader().GetBlockNum();
         ComposeAndSendGetCosigsRewardsFromSeed(txblk_num);
         std::unique_lock<std::mutex> cv_lk(m_mutexSetCosigRewardsFromSeed);
+        // TODO: cv fix
         if (cv_setCosigRewardsFromSeed.wait_for(
                 cv_lk,
                 std::chrono::seconds(GETCOSIGREWARDS_TIMEOUT_IN_SECONDS)) ==
@@ -3288,6 +3296,7 @@ bool Lookup::CommitTxBlocks(const vector<TxBlock>& txBlocks) {
         // Ask for the sharding structure from lookup
         ComposeAndSendGetShardingStructureFromSeed();
         std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+        // TODO: cv fix
         if (cv_shardStruct.wait_for(
                 cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
             std::cv_status::timeout) {
@@ -4305,6 +4314,7 @@ void Lookup::StartSynchronization() {
     // with new sharding struct)
     ComposeAndSendGetShardingStructureFromSeed();
     std::unique_lock<std::mutex> cv_lk(m_mutexShardStruct);
+    // TODO: cv fix
     if (cv_shardStruct.wait_for(
             cv_lk, std::chrono::seconds(GETSHARD_TIMEOUT_IN_SECONDS)) ==
         std::cv_status::timeout) {
@@ -4334,6 +4344,7 @@ bool Lookup::GetDSInfoLoop() {
   while (counter <= FETCH_LOOKUP_MSG_MAX_RETRY) {
     GetDSInfoFromSeedNodes();
     unique_lock<mutex> lk(m_mutexDSInfoUpdation);
+    // TODO: cv fix
     if (cv_dsInfoUpdate.wait_for(lk, chrono::seconds(NEW_NODE_SYNC_INTERVAL)) ==
         cv_status::timeout) {
       counter++;

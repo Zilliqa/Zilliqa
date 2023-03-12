@@ -1080,6 +1080,7 @@ bool Node::WaitUntilCompleteMicroBlockIsReady() {
                   << timeout_time << " seconds");
 
   if (!m_completeMicroBlockReady) {
+    // TODO: cv verify
     if (m_cvCompleteMicroBlockReady.wait_for(
             lock, chrono::seconds(timeout_time)) == std::cv_status::timeout) {
       // timed out
