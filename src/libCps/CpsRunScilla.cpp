@@ -31,20 +31,23 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/TimeUtils.h"
 
+#include "libUtils/JsonUtils.h"
+
 #include <future>
 #include <ranges>
 
 namespace libCps {
 
 CpsRunScilla::CpsRunScilla(ScillaArgs args, CpsExecutor& executor,
-                           CpsContext& ctx, CpsRun::Type type)
+                           const CpsContext& ctx, CpsRun::Type type)
     : CpsRun(executor.GetAccStoreIface(), CpsRun::Domain::Scilla, type),
       mArgs(std::move(args)),
       mExecutor(executor),
       mCpsContext(ctx) {}
 
 CpsExecuteResult CpsRunScilla::Run(TransactionReceipt& receipt) {
-  if (GetType() != CpsRun::Call && GetType() != CpsRun::Create) {
+  if (GetType() != CpsRun::Call && GetType() != CpsRun::Create &&
+      GetType() != CpsRun::TrapScillaCall) {
     return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
   }
   const auto gasCheckRes = checkGas();
@@ -88,8 +91,8 @@ CpsExecuteResult CpsRunScilla::checkGas() {
 }
 
 CpsExecuteResult CpsRunScilla::runCreate(TransactionReceipt& receipt) {
-  CREATE_SPAN(zil::trace::FilterClass::TXN, mArgs.from.hex(),
-              mArgs.dest.hex(), mCpsContext.origSender.hex(),
+  CREATE_SPAN(zil::trace::FilterClass::TXN, mArgs.from.hex(), mArgs.dest.hex(),
+              mCpsContext.origSender.hex(),
               mArgs.value.toQa().convert_to<std::string>());
 
   if (!std::holds_alternative<ScillaArgs::CodeData>(mArgs.calldata)) {
@@ -233,8 +236,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
                                 .toQa()
                                 .convert_to<std::string>());
 
-  CREATE_SPAN(zil::trace::FilterClass::TXN, mArgs.from.hex(),
-              mArgs.dest.hex(), mCpsContext.origSender.hex(),
+  CREATE_SPAN(zil::trace::FilterClass::TXN, mArgs.from.hex(), mArgs.dest.hex(),
+              mCpsContext.origSender.hex(),
               mArgs.value.toQa().convert_to<std::string>());
 
   const auto callPenalty =
@@ -291,6 +294,8 @@ CpsExecuteResult CpsRunScilla::runCall(TransactionReceipt& receipt) {
 
   } else {
     const auto& jsonData = std::get<Json::Value>(mArgs.calldata);
+    auto jsonStr = JSONUtils::GetInstance().convertJsontoStr(jsonData);
+    LOG_GENERAL(WARNING, "SENDING SCILLA CALLCODE: " << jsonStr);
     if (!ScillaHelpers::ExportCallContractFiles(mAccountStore, mArgs.dest,
                                                 jsonData, scillaVersion,
                                                 extlibsExports)) {

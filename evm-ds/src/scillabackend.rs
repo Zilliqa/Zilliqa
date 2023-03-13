@@ -8,7 +8,6 @@ use std::process::Command;
 use std::str::FromStr;
 
 use bytes::Bytes;
-use ethabi::Error::Hex;
 use evm::backend::{Backend, Basic};
 use jsonrpc_core::serde_json;
 use jsonrpc_core::types::params::Params;
@@ -337,7 +336,7 @@ impl Backend for ScillaBackend {
             let Ok(mut file) = File::create(&temp_dir) else {
                 return Vec::new();
             };
-            file.write_all(&code).unwrap();
+            let _ = file.write_all(&code);
         }
         let scilla_checker_path: String;
         let scilla_libdir_path: String;
@@ -352,25 +351,33 @@ impl Backend for ScillaBackend {
                 self.config.scilla_root_dir, "0", self.config.scilla_stdlib_dir
             )
         } else {
-            scilla_checker_path = format!("{}/{}", self.config.scilla_root_dir, "bin/scilla-checker");
+            scilla_checker_path =
+                format!("{}/{}", self.config.scilla_root_dir, "bin/scilla-checker");
             scilla_libdir_path = format!(
                 "{}/{}",
                 self.config.scilla_root_dir, self.config.scilla_stdlib_dir
             );
         }
-        let scilla_file = temp_dir.as_path().to_str().unwrap();
+        let Some(scilla_file) = temp_dir.as_path().to_str() else {
+            return Vec::new();
+        };
         let output = Command::new(&scilla_checker_path)
             .arg("-gaslimit")
             .arg("999999999")
             .arg("-libdir")
             .arg(&scilla_libdir_path)
             .arg("-contractinfo")
-            .arg(scilla_file).output();
+            .arg(scilla_file)
+            .output();
 
         if let Ok(output) = output {
             let _ = fs::remove_file(temp_dir);
-            println!("Got from exec: {} {}", String::from_utf8(output.stdout.clone()).unwrap(), String::from_utf8(output.stderr).unwrap());
-            return output.stdout
+            println!(
+                "Got from exec: {} {}",
+                String::from_utf8(output.stdout.clone()).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            );
+            return output.stdout;
         }
         Vec::new()
     }

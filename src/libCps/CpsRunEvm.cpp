@@ -20,6 +20,7 @@
 #include "libCps/CpsContext.h"
 #include "libCps/CpsExecutor.h"
 #include "libCps/CpsMetrics.h"
+#include "libCps/CpsRunScilla.h"
 #include "libCps/CpsRunTransfer.h"
 #include "libCrypto/EthCrypto.h"
 #include "libData/AccountData/TransactionReceipt.h"
@@ -29,6 +30,8 @@
 #include "libMetrics/Tracing.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/EvmUtils.h"
+#include "libUtils/GasConv.h"
+#include "libUtils/JsonUtils.h"
 
 #include <boost/algorithm/hex.hpp>
 
@@ -52,8 +55,8 @@ CpsExecuteResult CpsRunEvm::Run(TransactionReceipt& receipt) {
       mAccountStore.GetAddressForContract(fromAddress, TRANSACTION_VERSION_ETH);
 
   CREATE_SPAN(
-      zil::trace::FilterClass::TXN, fromAddress.hex(),
-      contractAddress.hex(), mCpsContext.origSender.hex(),
+      zil::trace::FilterClass::TXN, fromAddress.hex(), contractAddress.hex(),
+      mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
   if (!IsResumable()) {
@@ -182,6 +185,10 @@ CpsExecuteResult CpsRunEvm::HandleTrap(const evm::EvmResult& result) {
   if (trap_data.has_create()) {
     return HandleCreateTrap(result);
   } else {
+    const bool is_precompile = trap_data.call().is_precompile();
+    if (is_precompile) {
+      return HandlePrecompileTrap(result);
+    }
     return HandleCallTrap(result);
   }
 }
@@ -192,8 +199,7 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
   const auto& ctx = callData.context();
 
   CREATE_SPAN(
-      zil::trace::FilterClass::TXN,
-      ProtoToAddress(mProtoArgs.origin()).hex(),
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
       ProtoToAddress(ctx.destination()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(callData.transfer().value()).convert_to<std::string>());
 
@@ -314,6 +320,79 @@ CpsExecuteResult CpsRunEvm::HandleCallTrap(const evm::EvmResult& result) {
     mExecutor.PushRun(std::move(transferRun));
   }
 
+  return {TxnStatus::NOT_PRESENT, true, {}};
+}
+
+CpsExecuteResult CpsRunEvm::HandlePrecompileTrap(
+    const evm::EvmResult& evm_result) {
+  const evm::TrapData& trap_data = evm_result.trap_data();
+  const evm::TrapData_Call callData = trap_data.call();
+
+  const auto strJsonData = callData.call_data();
+  Json::Value jsonData;
+  if (!JSONUtils::GetInstance().convertStrtoJson(strJsonData, jsonData)) {
+    LOG_GENERAL(
+        WARNING,
+        "Error with convert precompile call_data string to json object");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+
+  jsonData["_origin"] = "0x" + mCpsContext.origSender.hex();
+  jsonData["_sender"] = "0x" + mCpsContext.origSender.hex();
+  jsonData["_amount"] = "0";
+
+  CREATE_SPAN(
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
+      jsonData["_address"].asString(), mCpsContext.origSender.hex(),
+      ProtoToUint(callData.transfer().value()).convert_to<std::string>());
+
+  const uint64_t remainingGas =
+      GasConv::GasUnitsFromEthToCore(evm_result.remaining_gas());
+
+  const bool isStatic = callData.is_static();
+
+  // Don't allow for non-static calls when its parent is already static
+  if (mProtoArgs.is_static_call() && !isStatic) {
+    INC_STATUS(GetCPSMetric(), "error",
+               "Context change from static to non-static");
+    TRACE_ERROR(
+        "Atempt to change context from static to non-static in "
+        "precompile-trap");
+    return {TxnStatus::INCORRECT_TXN_TYPE, false, {}};
+  }
+  span.SetAttribute("IsStatic", isStatic);
+  span.SetAttribute("IsPrecompile", true);
+
+  // Set continuation (itself) to be resumed when create run is finished
+  {
+    mProtoArgs.mutable_continuation()->set_feedback_type(
+        evm::Continuation_Type_CALL);
+    mProtoArgs.mutable_continuation()->set_id(evm_result.continuation_id());
+    *mProtoArgs.mutable_continuation()
+         ->mutable_calldata()
+         ->mutable_memory_offset() = callData.memory_offset();
+    *mProtoArgs.mutable_continuation()
+         ->mutable_calldata()
+         ->mutable_offset_len() = callData.offset_len();
+    *mProtoArgs.mutable_continuation()->mutable_logs() = evm_result.logs();
+    mExecutor.PushRun(shared_from_this());
+  }
+
+  const auto destAddress = jsonData["_address"].asString();
+
+  ScillaArgs scillaArgs = {.from = ProtoToAddress(mProtoArgs.address()),
+                           .dest = Address{destAddress},
+                           .origin = mCpsContext.origSender,
+                           .value = Amount{},
+                           .calldata = jsonData,
+                           .edge = 0,
+                           .depth = 0,
+                           .gasLimit = remainingGas};
+
+  auto nextRun = std::make_shared<CpsRunScilla>(
+      std::move(scillaArgs), mExecutor, mCpsContext, CpsRun::TrapScillaCall);
+
+  mExecutor.PushRun(nextRun);
   return {TxnStatus::NOT_PRESENT, true, {}};
 }
 
@@ -471,8 +550,7 @@ CpsExecuteResult CpsRunEvm::HandleCreateTrap(const evm::EvmResult& result) {
 void CpsRunEvm::HandleApply(const evm::EvmResult& result,
                             TransactionReceipt& receipt) {
   CREATE_SPAN(
-      zil::trace::FilterClass::TXN,
-      ProtoToAddress(mProtoArgs.origin()).hex(),
+      zil::trace::FilterClass::TXN, ProtoToAddress(mProtoArgs.origin()).hex(),
       ProtoToAddress(mProtoArgs.address()).hex(), mCpsContext.origSender.hex(),
       ProtoToUint(mProtoArgs.apparent_value()).convert_to<std::string>());
 
@@ -614,7 +692,15 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
       }
     }
   } else {
-    // TODO: allow scilla runner to provide feedback too
+    const auto& scillaResult = std::get<ScillaResult>(results.result);
+    const auto remainingGas =
+        GasConv::GasUnitsFromCoreToEth(scillaResult.gasRemained);
+    if (mProtoArgs.continuation().feedback_type() ==
+        evm::Continuation_Type_CALL) {
+      mProtoArgs.set_gas_limit(remainingGas);
+      *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
+          "1";
+    }
   }
 }
 

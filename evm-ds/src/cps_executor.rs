@@ -367,7 +367,7 @@ impl<'a> Handler for CpsExecutor<'a> {
                             Capture::Trap(Self::CallInterrupt {
                                 code_address,
                                 transfer,
-                                input,
+                                input: output,
                                 target_gas,
                                 is_static,
                                 is_precompile: true,

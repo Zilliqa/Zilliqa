@@ -212,6 +212,7 @@ message TrapData {
     Context context = 6;
     UInt256 memory_offset = 7;
     UInt256 offset_len = 8;
+    bool is_precompile = 9;
   }
 
   message Create {

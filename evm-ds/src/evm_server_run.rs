@@ -276,6 +276,7 @@ fn build_call_result(
     trap_data_call.set_callee_address(interrupt.code_address.into());
     trap_data_call.set_call_data(interrupt.input.into());
     trap_data_call.set_is_static(interrupt.is_static);
+    trap_data_call.set_is_precompile(interrupt.is_precompile);
     trap_data_call.set_target_gas(interrupt.target_gas.unwrap_or(u64::MAX));
     trap_data_call.set_memory_offset(interrupt.memory_offset.into());
     trap_data_call.set_offset_len(interrupt.offset_len.into());
