@@ -39,6 +39,44 @@
 using namespace std;
 using namespace boost::multiprecision;
 
+namespace zil {
+namespace local {
+
+class MicroBlockPostProcessingVariables {
+  int errorsMissingTx = 0;
+  int consensusErrorCode = -1;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetConsensusErrorCode(int code) {
+    Init();
+    consensusErrorCode = code;
+  }
+
+  void AddErrorsMissingTx(int missingTx) {
+    Init();
+    errorsMissingTx += missingTx;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.gauge",
+                                          "Consensus", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(consensusErrorCode, {{"counter", "ConsensusErrorCode"}});
+        result.Set(errorsMissingTx, {{"counter", "ErrorsMissingTx"}});
+      });
+    }
+  }
+};
+
+static MicroBlockPostProcessingVariables variables{};
+
+}  // namespace local
+}  // namespace zil
+
 bool Node::ComposeMicroBlockMessageForSender(zbytes& microblock_message) const {
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -333,12 +371,15 @@ bool Node::ProcessMicroBlockConsensusCore(
                   << " error message: "
                   << (m_consensusObject->GetConsensusErrorMsg()));
 
+    zil::local::variables.SetConsensusErrorCode(m_consensusObject->GetConsensusErrorCode());
+
     if (m_consensusObject->GetConsensusErrorCode() ==
         ConsensusCommon::MISSING_TXN) {
       // Missing txns in microblock proposed by leader. Will attempt to fetch
       // missing txns from leader, set to a valid state to accept cosig1 and
       // cosig2
       LOG_GENERAL(INFO, "Start pending for fetching missing txns")
+      zil::local::variables.AddErrorsMissingTx(1);
 
       // Block till txn is fetched
       unique_lock<mutex> lock(m_mutexCVMicroBlockMissingTxn);

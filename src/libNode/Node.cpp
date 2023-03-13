@@ -54,40 +54,6 @@ const unsigned int MIN_CLUSTER_SIZE = 2;
 const unsigned int MIN_CHILD_CLUSTER_SIZE = 2;
 const unsigned int PENDING_TX_POOL_MAX = 5000;
 
-namespace zil {
-
-namespace local {
-
-class NodeVariables {
-  int missingForwardedTx = 0;
-
- public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
-  void AddForwardedMissingTx(int number) {
-    Init();
-    missingForwardedTx = number;
-  }
-
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.nodevariables.gauge",
-                                          "Node variables", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
-      });
-    }
-  }
-};
-
-static NodeVariables variables{};
-
-}  // namespace local
-
-}  // namespace zil
-
-
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
 #ifndef PRODUCTION_BUILD
@@ -131,6 +97,7 @@ class VariablesNode {
   int nodeState = 0;
   int txnPool = 0;
   int txsInserted = 0;
+  int missingForwardedTx = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;
@@ -138,6 +105,11 @@ class VariablesNode {
   void SetNodeState(int state) {
     Init();
     nodeState = state;
+  }
+
+  void AddForwardedMissingTx(int number) {
+    Init();
+    missingForwardedTx = number;
   }
 
   void AddTxnInserted(int inserted) {
@@ -159,6 +131,7 @@ class VariablesNode {
         result.Set(nodeState, {{"counter", "NodeState"}});
         result.Set(txsInserted, {{"counter", "TXsInserted"}});
         result.Set(txnPool, {{"counter", "txnPool"}});
+        result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
       });
     }
   }
@@ -166,7 +139,6 @@ class VariablesNode {
 
 static VariablesNode nodeVar{};
 }  // namespace local
-
 }  // namespace zil
 
 bool IsMessageSizeInappropriate(unsigned int messageSize, unsigned int offset,
@@ -1557,7 +1529,7 @@ bool GetOneGenesisAddress(Address &oAddr) {
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
 
-  zil::local::variables.AddForwardedMissingTx(1);
+  zil::local::nodeVar.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
                 "Node::ProcessSubmitMissingTxn not expected to be called "
