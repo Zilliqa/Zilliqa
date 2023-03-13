@@ -368,7 +368,7 @@
             <!-- PROVIDER can be OTLPHTTP or STDOUT -->
             <TRACE_ZILLIQA_PROVIDER>OTLPGRPC</TRACE_ZILLIQA_PROVIDER>
             <!-- ALL means all metrics are enabled -->
-            <TRACE_ZILLIQA_MASK>ALL</TRACE_ZILLIQA_MASK>
+            <TRACE_ZILLIQA_MASK>TXN</TRACE_ZILLIQA_MASK>
         </zilliqa>
     </trace>
     <logging>

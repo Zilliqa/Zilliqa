@@ -389,7 +389,7 @@ std::string EthRpcMethods::CreateTransactionEth(
     Eth::EthFields const &fields, zbytes const &pubKey,
     const unsigned int num_shards, const uint128_t &gasPrice,
     const CreateTransactionTargetFunc &targetFunc) {
-  TRACE(zil::trace::FilterClass::DEMO);
+  TRACE(zil::trace::FilterClass::TXN);
 
   INC_CALLS(GetInvocationsCounter());
 
@@ -584,6 +584,10 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
                            "Sent to a non-lookup");
   }
 
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
+                                              __FUNCTION__);
+
+
   INC_CALLS(GetInvocationsCounter());
 
   try {
@@ -619,6 +623,11 @@ Json::Value EthRpcMethods::GetBalanceAndNonce(const string &address) {
 }
 
 string EthRpcMethods::GetEthCallZil(const Json::Value &_json) {
+
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
+                                              __FUNCTION__);
+
+
   INC_CALLS(GetInvocationsCounter());
 
   return this->GetEthCallImpl(
@@ -695,7 +704,7 @@ string EthRpcMethods::DebugTraceCallEth(const Json::Value &_json,
 std::string EthRpcMethods::GetEthEstimateGas(const Json::Value &json) {
   Address fromAddr;
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
+  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::TXN,
                                               __FUNCTION__);
 
   INC_CALLS(GetInvocationsCounter());

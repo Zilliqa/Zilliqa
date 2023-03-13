@@ -18,24 +18,13 @@
 #ifndef ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_
 #define ZILLIQA_SRC_LIBDIRECTORYSERVICE_DIRECTORYSERVICE_H_
 
-#include <array>
-#include <condition_variable>
-#include <map>
-#include <set>
-#include <shared_mutex>
-
-#include <Schnorr.h>
-#include "common/Constants.h"
 #include "libBlockchain/Block.h"
-#include "libBlockchain/BlockHashSet.h"
 #include "libConsensus/Consensus.h"
 #include "libData/MiningData/DSPowSolution.h"
 #include "libLookup/Synchronizer.h"
 #include "libNetwork/DataSender.h"
 #include "libNetwork/Executable.h"
-#include "libNetwork/P2PComm.h"
 #include "libNetwork/ShardStruct.h"
-#include "libPersistence/BlockStorage.h"
 #include "libUtils/TimeUtils.h"
 
 class Mediator;
@@ -646,7 +635,7 @@ class DirectoryService : public Executable {
   void InitCoinbase();
   void StoreCoinbaseInDiagnosticDB(const DiagnosticDataCoinbase& entry);
 
-  template <class Container>
+  template <typename Container>
   bool SaveCoinbaseCore(const std::vector<bool>& b1,
                         const std::vector<bool>& b2, const Container& shard,
                         const int32_t& shard_id, const uint64_t& epochNum);

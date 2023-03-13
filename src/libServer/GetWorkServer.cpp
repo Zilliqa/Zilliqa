@@ -51,7 +51,7 @@ namespace zil {
 
 namespace local {
 
-class Variables {
+class MiningVariables {
   int mining = 0;
 
  public:
@@ -74,7 +74,7 @@ class Variables {
   }
 };
 
-static Variables variables{};
+static MiningVariables variables{};
 
 }  // namespace local
 
@@ -139,7 +139,7 @@ bool GetWorkServer::StartMining(const PoWWorkPackage& wp) {
 
 // StopMining stops mining and clear result
 void GetWorkServer::StopMining() {
-  zil::local::variables.SetIsMining(0);
+  zil::local::variables.SetIsMining(2);
   m_isMining = false;
   m_currentTargetDifficulty = 0;
 

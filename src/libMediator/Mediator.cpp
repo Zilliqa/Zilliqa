@@ -23,6 +23,7 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libEth/Filters.h"
 #include "libLookup/Lookup.h"
+#include "libMetrics/Api.h"
 #include "libNode/Node.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
@@ -31,6 +32,37 @@
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/ShardSizeCalculator.h"
 #include "libValidator/Validator.h"
+
+namespace zil {
+namespace local {
+
+class MediatorVariables {
+  int currentEpochNum = 0;
+
+ public:
+  std::unique_ptr<Z_I64GAUGE> temp;
+
+  void SetCurrentEpochNum(int num) {
+    Init();
+    currentEpochNum = num;
+  }
+
+  void Init() {
+    if (!temp) {
+      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.mediator.gauge",
+                                          "Mediator info", "calls", true);
+
+      temp->SetCallback([this](auto&& result) {
+        result.Set(currentEpochNum, {{"counter", "CurrentEpochNum"}});
+      });
+    }
+  }
+};
+
+static MediatorVariables variables{};
+
+}  // namespace local
+}  // namespace zil
 
 using namespace std;
 
@@ -145,6 +177,7 @@ void Mediator::IncreaseEpochNum() {
   std::lock_guard<mutex> lock(m_mutexVacuousEpoch);
   m_currentEpochNum++;
   m_isVacuousEpoch = CommonUtils::IsVacuousEpoch(m_currentEpochNum);
+  zil::local::variables.SetCurrentEpochNum(m_currentEpochNum);
 
   // Update GetWork Server info for nodes in shard
   if (GETWORK_SERVER_MINE) {

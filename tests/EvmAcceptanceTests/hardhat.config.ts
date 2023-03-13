@@ -96,6 +96,21 @@ const config: HardhatUserConfig = {
       protocolVersion: 0x41,
       miningState: false
     },
+    testnet: {
+      url: "https://devnetnh-l2api.dev.z7a.xyz",
+      websocketUrl: "wss://devnetnh-l2api.dev.z7a.xyz",
+      accounts: [
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89",
+        "db11cfa086b92497c8ed5a4cc6edb3a5bfe3a640c43ffb9fc6aa0873c56f2ee3",
+        "e53d1c3edaffc7a7bab5418eb836cf75819a82872b4a1a0f1c7fcf5c3e020b89"
+      ],
+      chainId: 32769,
+      zilliqaNetwork: true,
+      web3ClientVersion: "Zilliqa/v8.2",
+      protocolVersion: 0x41,
+      miningState: false
+    },
     local_network: {
       url: "http://localhost:8080",
       websocketUrl: "ws://localhost:8080",

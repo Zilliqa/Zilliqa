@@ -27,6 +27,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
+#include "libNetwork/P2PComm.h"
 #include "libPOW/pow.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/DataConversion.h"
@@ -39,7 +40,6 @@
 
 using namespace std;
 using namespace boost::multiprecision;
-using namespace boost::multi_index;
 
 bool Node::ComposeMicroBlock(const uint64_t& microblock_gas_limit) {
   if (LOOKUP_NODE_MODE) {
@@ -328,8 +328,9 @@ void Node::NotifyTimeout(bool& txnProcTimeout) {
   LOG_GENERAL(INFO, "The overall timeout for txn processing will be "
                         << timeout_time << " seconds");
   unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
-  if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
-      cv_status::timeout) {
+  if (!cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time), [this] {
+        return m_txnProcessingFinished == true;
+      })) {
     txnProcTimeout = true;
     AccountStore::GetInstance().NotifyTimeoutTemp();
     m_txnProcessingFinished = true;
@@ -655,7 +656,10 @@ void Node::ProcessTransactionWhenShardBackup(
   t_processedTransactions.clear();
 
   bool txnProcTimeout = false;
-  m_txnProcessingFinished = false;
+  {
+    unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+    m_txnProcessingFinished = false;
+  }
 
   auto txnProcTimer = [this, &txnProcTimeout]() -> void {
     NotifyTimeout(txnProcTimeout);
@@ -838,8 +842,11 @@ void Node::ProcessTransactionWhenShardBackup(
   AccountStore::GetInstance().ProcessStorageRootUpdateBufferTemp();
   AccountStore::GetInstance().CleanNewLibrariesCacheTemp();
 
-  m_txnProcessingFinished = true;
-  cv_TxnProcFinished.notify_all();
+  {
+    unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+    m_txnProcessingFinished = true;
+    cv_TxnProcFinished.notify_all();
+  }
 
   PutTxnsInTempDataBase(t_processedTransactions);
 
@@ -1041,7 +1048,6 @@ bool Node::WaitUntilTxnProcessingDone() {
     return true;
   }
   // wait for txn processing being ready by me (backup)
-  unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
   int timeout_time =
       (m_mediator.m_ds->m_mode == DirectoryService::Mode::IDLE)
           ? std::max(0, ((int)MICROBLOCK_TIMEOUT -
@@ -1054,15 +1060,15 @@ bool Node::WaitUntilTxnProcessingDone() {
               "The overall timeout for completing txns processing will be "
                   << timeout_time << " seconds");
 
-  while (!m_txnProcessingFinished) {
-    if (cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time)) ==
-        std::cv_status::timeout) {
-      // timed out
-      LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
-                "Timed out waiting for txn processing being completed. May "
-                "need to adjust timeouts.");
-      return false;
-    }
+  unique_lock<mutex> lock(m_mutexCVTxnProcFinished);
+  if (!cv_TxnProcFinished.wait_for(lock, chrono::seconds(timeout_time), [this] {
+        return m_txnProcessingFinished == true;
+      })) {
+    // timed out
+    LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
+              "Timed out waiting for txn processing being completed. May "
+              "need to adjust timeouts.");
+    return false;
   }
   return true;
 }

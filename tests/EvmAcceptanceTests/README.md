@@ -327,6 +327,14 @@ npx hardhat run scripts/Accounts.js
 npx hardhat run scripts/Accounts.js --network public_testnet
 ```
 
+When you start a testnet, your funds are initially in zil addresses, which is inconvenient.
+The following script takes the private keys you have in your hardhat config,
+and moves half of the funds at that address to the same address, but eth style.
+
+```bash
+npx hardhat run scripts/FundAccountsFromZil.ts --network testnet
+```
+
 ## Setup github pre-commit hook
 
 You may want to set up pre-commit hook to fix your code before commit by:
