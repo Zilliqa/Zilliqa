@@ -45,6 +45,7 @@ namespace local {
 class MicroBlockPostProcessingVariables {
   int errorsMissingTx = 0;
   int consensusErrorCode = -1;
+  //int errorsMissingTx = 0;
 
  public:
   std::unique_ptr<Z_I64GAUGE> temp;

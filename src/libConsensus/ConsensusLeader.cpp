@@ -21,6 +21,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
+#include "libMetrics/Api.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
@@ -918,6 +919,13 @@ ConsensusLeader::ConsensusLeader(
       m_commitPointMap(committee.size(),
                        vector<CommitPoint>(m_numOfSubsets, CommitPoint())) {
   LOG_MARKER();
+
+  m_gaugeNumForConsensus = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "consensus.leader.gauge",
+                                          "Consensus leader", "calls", true);
+
+  m_gaugeNumForConsensus->SetCallback([this](auto&& result) {
+    result.Set(m_state, {{"counter", "ConsensusLeaderState"}});
+  });
 
   m_state = INITIAL;
   // m_numForConsensus = (floor(TOLERANCE_FRACTION * (pubkeys.size() - 1)) + 1);
