@@ -21,7 +21,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Api.h"
 #include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
@@ -924,7 +923,7 @@ ConsensusLeader::ConsensusLeader(
                                           "Consensus leader", "calls", true);
 
   m_gaugeNumForConsensus->SetCallback([this](auto&& result) {
-    result.Set(m_state, {{"counter", "ConsensusLeaderState"}});
+    result.Set(int(m_state), {{"counter", "ConsensusLeaderState"}});
   });
 
   m_state = INITIAL;

@@ -21,6 +21,7 @@
 #include <condition_variable>
 
 #include "ConsensusCommon.h"
+#include "libMetrics/Api.h"
 
 typedef std::function<bool(const zbytes& errorMsg, const Peer& from)>
     NodeCommitFailureHandlerFunc;
