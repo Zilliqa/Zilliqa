@@ -699,7 +699,7 @@ void CpsRunEvm::ProvideFeedback(const CpsRun& previousRun,
         evm::Continuation_Type_CALL) {
       mProtoArgs.set_gas_limit(remainingGas);
       *mProtoArgs.mutable_continuation()->mutable_calldata()->mutable_data() =
-          "1";
+          (scillaResult.isSuccess ? "1" : "0");
     }
   }
 }

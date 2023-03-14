@@ -5,7 +5,7 @@ use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::str::FromStr;
 
-use ethabi::decode;
+use ethabi::{decode, Uint};
 use ethabi::ethereum_types::Address;
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
@@ -60,9 +60,6 @@ pub(crate) fn scilla_call(
     let mut output_json = build_result_Json(&input, &passed_transition_name, &transitions)?;
     output_json["_address"] = Value::String(code_address.encode_hex());
 
-    println!("Final json: {:}", output_json);
-    //println!("Code is: {}", hex::encode(code));
-
     Ok((
         PrecompileOutput {
             output_type: PrecompileOutputType::Trap,
@@ -77,7 +74,7 @@ fn build_result_Json(
     expected_transition: &str,
     transitions: &Vec<serde_json::Value>,
 ) -> Result<serde_json::Value, PrecompileFailure> {
-    let mut solidity_args = vec![ParamType::String, ParamType::String];
+    let mut solidity_args = vec![ParamType::Address, ParamType::String];
     let mut scilla_args = vec![];
 
     for transition in transitions {
@@ -98,7 +95,7 @@ fn build_result_Json(
         }
     }
     for scilla_arg in &scilla_args {
-        let decoded_arg = substitute_scilla_arg(&scilla_arg.0)?;
+        let decoded_arg = substitute_scilla_arg(&scilla_arg.1)?;
         solidity_args.push(decoded_arg);
     }
 
@@ -114,7 +111,14 @@ fn build_result_Json(
 
     let mut result_arguments = Value::Array(vec![]);
     for (scilla_arg, solidity_value) in scilla_args.iter().zip(decoded_values.iter().skip(2)) {
-        let json_arg = json!({"vname" : scilla_arg.1, "type" : scilla_arg.0, "value": solidity_value.to_string()});
+        let mut json_arg: Value;
+        if let Token::Uint(solidity_uint) = solidity_value {
+            // Scilla doesn't like hex strings
+            json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("{}", solidity_uint)});
+        }
+        else {
+            json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": solidity_value.to_string()});
+        }
         result_arguments.as_array_mut().unwrap().push(json_arg);
     }
     result["params"] = result_arguments;
@@ -145,7 +149,7 @@ fn substitute_scilla_arg(arg_name: &str) -> Result<ParamType, PrecompileFailure>
 }
 
 fn get_contract_addr_and_transition(input: &[u8]) -> Result<(Address, String), PrecompileFailure> {
-    let partial_types = vec![ParamType::String, ParamType::String];
+    let partial_types = vec![ParamType::Address, ParamType::String];
     println!("Hex input: {}", hex::encode(input));
     let partial_tokens = decode(&partial_types, input);
     let Ok(partial_tokens) = partial_tokens  else {
@@ -160,23 +164,13 @@ fn get_contract_addr_and_transition(input: &[u8]) -> Result<(Address, String), P
         });
     }
 
-    let (Token::String(code_address), Token::String(transition)) = (&partial_tokens[0], &partial_tokens[1]) else {
+    let (Token::Address(code_address), Token::String(transition)) = (&partial_tokens[0], &partial_tokens[1]) else {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Incorrect input")),
         });
     };
 
-    let Ok(code_address) = H160::from_str(&code_address) else {
-        return Err(PrecompileFailure::Error {
-            exit_status: ExitError::Other(Cow::Borrowed("Incorrect scilla contract address")),
-        });
-    };
-
-    println!(
-        "Got code addres: {:x} and tran: {}",
-        code_address, transition
-    );
-    Ok((code_address, transition.to_owned()))
+    Ok((code_address.to_owned(), transition.to_owned()))
 }
 
 fn required_gas(input: &[u8]) -> Result<u64, ExitError> {
