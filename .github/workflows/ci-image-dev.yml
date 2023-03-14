@@ -10,8 +10,6 @@ on:
   push:
     branches-ignore:
       - 'release/**'
-    paths-ignore:
-    - 'Jenkinsfile'
 
 jobs:
   push-to-ecr:
