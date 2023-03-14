@@ -23,21 +23,4 @@
 #ifndef ZILLIQA_SRC_LIBCPS_CPSMETRICS_H_
 #define ZILLIQA_SRC_LIBCPS_CPSMETRICS_H_
 
-#include "libMetrics/Api.h"
-
-// General purpose macros used by CPS
-
-inline Z_I64METRIC& GetCPSMetric() {
-  static Z_I64METRIC counter{Z_FL::CPS_EVM, "cps.counter", "Calls into cps",
-                             "calls"};
-  return counter;
-}
-
-#define CREATE_SPAN(FILTER_CLASS, SENDER, RECIPIENT, ORIG, VALUE) \
-  TRACE(FILTER_CLASS)                                             \
-  span.SetAttribute("sender", SENDER);                            \
-  span.SetAttribute("recipient", RECIPIENT);                      \
-  span.SetAttribute("origin", ORIG);                              \
-  span.SetAttribute("value", VALUE);
-
 #endif  // ZILLIQA_SRC_LIBCPS_CPSMETRICS_H_

@@ -18,19 +18,15 @@
 #ifndef ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 #define ZILLIQA_SRC_LIBUTILS_LOGGER_H_
 
+#include <boost/filesystem/path.hpp>
 #include "common/Constants.h"
 #include "g3log/logworker.hpp"
-
-#include <filesystem>
-#include <typeinfo>
 
 #define PAD(n, len, ch) std::setw(len) << std::setfill(ch) << std::right << n
 
 /// Utility logging class for outputting messages to stdout or file.
 class Logger {
   std::unique_ptr<g3::LogWorker> m_logWorker;
-  static std::vector<std::reference_wrapper<const std::type_info>>
-      m_externalSinkTypeIds;
 
   Logger();
 
@@ -57,34 +53,26 @@ class Logger {
   //@{
   /// @name Sink addition.
   void AddGeneralSink(const std::string& filePrefix,
-                      const std::filesystem::path& filePath,
+                      const boost::filesystem::path& filePath,
                       int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                       int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStateSink(const std::string& filePrefix,
-                    const std::filesystem::path& filePath,
+                    const boost::filesystem::path& filePath,
                     int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                     int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddEpochInfoSink(const std::string& filePrefix,
-                        const std::filesystem::path& filePath,
+                        const boost::filesystem::path& filePath,
                         int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                         int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddJsonSink(const std::string& filePrefix,
-                   const std::filesystem::path& filePath,
+                   const boost::filesystem::path& filePath,
                    int maxLogFileSizeKB = MAX_LOG_FILE_SIZE_KB,
                    int maxArchivedLogCount = MAX_ARCHIVED_LOG_COUNT);
 
   void AddStdoutSink();
-
-  template <typename SinkT, typename MemFuncT>
-  void AddSink(std::unique_ptr<SinkT> sink, MemFuncT memFunc) {
-    auto handle = m_logWorker->addSink(std::move(sink), memFunc);
-    if (handle) {
-      m_externalSinkTypeIds.emplace_back(typeid(g3::internal::Sink<SinkT>));
-    }
-  }
   //@}
 
   /// Setup the display debug level
@@ -130,18 +118,6 @@ class Logger {
   };
 };
 
-std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
-
-#define TRACED_FILTERED_INTERNAL_LOG_MESSAGE(level, pred)                \
-  LogCapture(__FILE__, __LINE__,                                         \
-             static_cast<const char*>(__PRETTY_FUNCTION__), level, pred, \
-             CreateTracingExtraData())
-
-#define TRACED_FILTERED_LOG(level, pred) \
-  if (!g3::logLevel(level)) {            \
-  } else                                 \
-    TRACED_FILTERED_INTERNAL_LOG_MESSAGE(level, pred).stream()
-
 #define INIT_FILE_LOGGER(filePrefix, filePath) \
   Logger::GetLogger().AddGeneralSink(filePrefix, filePath);
 
@@ -157,10 +133,10 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
   Logger::GetLogger().AddJsonSink(filePrefix, filePath);
 
 #define LOG_STATE(msg) \
-  { TRACED_FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
+  { FILTERED_LOG(INFO, &Logger::IsStateSink) << ' ' << msg; }
 
 #define LOG_GENERAL(level, msg) \
-  { TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
+  { FILTERED_LOG(level, &Logger::IsGeneralSink) << ' ' << msg; }
 
 #define LOG_MARKER() \
   Logger::ScopeMarker marker{__FILE__, __LINE__, __FUNCTION__};
@@ -170,7 +146,7 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
 
 #define LOG_EPOCH(level, epoch, msg)                                  \
   {                                                                   \
-    TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink)                \
+    FILTERED_LOG(level, &Logger::IsGeneralSink)                       \
         << "[Epoch " << std::to_string(epoch).c_str() << "] " << msg; \
   }
 
@@ -178,7 +154,7 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
   {                                                                     \
     std::unique_ptr<char[]> payload_string;                             \
     Logger::GetPayloadS(payload, max_bytes_to_display, payload_string); \
-    TRACED_FILTERED_LOG(level, &Logger::IsGeneralSink)                  \
+    FILTERED_LOG(level, &Logger::IsGeneralSink)                         \
         << ' ' << msg << " (Len=" << (payload).size()                   \
         << "): " << payload_string.get()                                \
         << (((payload).size() > max_bytes_to_display) ? "..." : "");    \
@@ -189,7 +165,7 @@ std::shared_ptr<g3::ExtraData> CreateTracingExtraData();
 
 #define LOG_EPOCHINFO(blockNum, msg)                             \
   {                                                              \
-    TRACED_FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)          \
+    FILTERED_LOG(INFO, &Logger::IsEpochInfoSink)                 \
         << "[Epoch " << std::to_string(blockNum) << "] " << msg; \
   }
 

@@ -20,7 +20,7 @@
 #include <iostream>
 #include <vector>
 
-#include "libMetrics/Tracing.h"
+
 #include "libNetwork/P2PComm.h"
 #include "libUtils/DetachedFunction.h"
 

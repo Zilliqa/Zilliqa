@@ -44,8 +44,6 @@ class DSVariables {
   int isLeader = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void SetDSState(int number) {
     Init();
     DSState = number;
@@ -56,23 +54,13 @@ class DSVariables {
     isLeader = leader;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.directoryservice.gauge",
-                                          "DS variables", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(DSState, {{"counter", "DSState"}});
-        result.Set(isLeader, {{"counter", "isLeader"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static DSVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -423,7 +411,6 @@ bool DirectoryService::CheckWhetherDSBlockIsFresh(const uint64_t dsblock_num) {
 }
 
 void DirectoryService::SetState(DirState state) {
-
   zil::local::variables.SetDSState(int(state));
 
   if (LOOKUP_NODE_MODE) {

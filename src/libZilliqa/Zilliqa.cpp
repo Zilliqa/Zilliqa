@@ -29,7 +29,6 @@
 #include "libCrypto/Sha2.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
-#include "libMetrics/Api.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
@@ -42,57 +41,6 @@
 #include "libUtils/SetThreadName.h"
 #include "libUtils/UpgradeManager.h"
 #include "libValidator/Validator.h"
-
-namespace {
-
-Z_DBLMETRIC &GetMsgDispatchCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch",
-                             "Messages dispatched", "Calls"};
-  return counter;
-}
-#if 0
-Z_DBLMETRIC &GetMsgDispatchErrorCounter() {
-  static Z_DBLMETRIC counter{Z_FL::MSG_DISPATCH, "p2p_dispatch_error",
-                             "Message dispatch errors", "Calls"};
-  return counter;
-}
-#endif
-
-#define MATCH_CASE(CASE) \
-  case CASE:             \
-    return #CASE;
-
-const std::string_view MsgTypeToStr(unsigned char msg_type) {
-  switch (msg_type) {
-    MATCH_CASE(PEER)
-    MATCH_CASE(DIRECTORY)
-    MATCH_CASE(NODE)
-    MATCH_CASE(CONSENSUSUSER)
-    MATCH_CASE(LOOKUP)
-    default:
-      break;
-  }
-  return "UNKNOWN";
-}
-
-const std::string_view StartByteToStr(unsigned char start_byte) {
-  using namespace zil::p2p;
-
-  switch (start_byte) {
-    MATCH_CASE(START_BYTE_NORMAL)
-    MATCH_CASE(START_BYTE_BROADCAST)
-    MATCH_CASE(START_BYTE_GOSSIP)
-    MATCH_CASE(START_BYTE_SEED_TO_SEED_REQUEST)
-    MATCH_CASE(START_BYTE_SEED_TO_SEED_RESPONSE)
-    default:
-      break;
-  }
-  return "UNKNOWN";
-}
-
-#undef MATCH_CASE
-
-}  // namespace
 
 using namespace std;
 
@@ -141,10 +89,6 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
   if (message->msg.size() >= MessageOffset::BODY) {
     const unsigned char msg_type = message->msg.at(MessageOffset::TYPE);
 
-    GetMsgDispatchCounter().IncrementWithAttributes(
-        1L, {{"Type", std::string(MsgTypeToStr(msg_type))},
-             {"StartByte", std::string(StartByteToStr(message->startByte))}});
-
     // To-do: Remove consensus user and peer manager placeholders
     Executable *msg_handlers[] = {NULL, &m_ds, &m_n, NULL, &m_lookup};
 
@@ -189,7 +133,7 @@ void Zilliqa::ProcessMessage(Zilliqa::Msg &message) {
       }
 
       if (!result) {
-      // To-do: Error recovery
+        // To-do: Error recovery
 #if 0
         INC_STATUS(GetMsgDispatchErrorCounter(), "Error", "dispatch_failed");
         span.SetError("dispatch failed");
@@ -602,12 +546,6 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
     }
   };
   DetachedFunction(1, func);
-
-  m_msgQueueSize.SetCallback([this](auto &&result) {
-    if (m_msgQueueSize.Enabled()) {
-      result.Set(m_msgQueue.size(), {{"counter", "QueueSize"}});
-    }
-  });
 }
 
 Zilliqa::~Zilliqa() {

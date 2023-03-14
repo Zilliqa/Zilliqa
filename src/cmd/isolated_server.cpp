@@ -22,7 +22,6 @@
 #include <iostream>
 #include "libData/AccountStore/AccountStore.h"
 #include "libEth/Filters.h"
-#include "libMetrics/Api.h"
 #include "libNode/Node.h"
 #include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
@@ -164,11 +163,6 @@ int main(int argc, const char* argv[]) {
 
     ISOLATED_SERVER = true;
 
-    zil::trace::Tracing::Initialize("isolated");
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
-    Metrics::GetInstance().Init();
-
     createConfigFile();
 
     PairOfKey key;
@@ -275,7 +269,6 @@ int main(int argc, const char* argv[]) {
 
     mediator.m_websocketServer->Stop();
 
-    Metrics::GetInstance().Shutdown();
     LOG_GENERAL(INFO, "Metrics shut down");
 
   } catch (std::exception& e) {

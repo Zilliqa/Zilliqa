@@ -22,7 +22,6 @@
 #include "libEth/Eth.h"
 #include "libLookup/Lookup.h"
 #include "libMediator/Mediator.h"
-#include "libMetrics/Api.h"
 #include "libUtils/GasConv.h"
 
 class LookupServer;
@@ -34,9 +33,6 @@ class EthRpcMethods {
  public:
   EthRpcMethods(Mediator& mediator)
       : m_sharedMediator(mediator), m_lookupServer(nullptr) {}
-
-  Z_I64METRIC m_apiCallCount{Z_FL::EVM_RPC, "ethrpc_invocation_count",
-                             "Calls to ethereum API", "Calls"};
 
   std::pair<std::string, unsigned int> CheckContractTxnShards(
       bool priority, unsigned int shard, const Transaction& tx,

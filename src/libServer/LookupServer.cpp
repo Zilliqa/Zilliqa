@@ -27,7 +27,7 @@
 #include "libData/AccountData/Transaction.h"
 #include "libData/AccountStore/AccountStore.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Api.h"
+
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
@@ -58,12 +58,6 @@ const unsigned int TXN_PAGE_SIZE = 100;
 }  // namespace zil
 
 namespace {
-
-Z_I64METRIC& GetCallsCounter() {
-  static Z_I64METRIC count{Z_FL::LOOKUP_SERVER, "lookup.invocation.count",
-                           "Calls to Lookup Server", "Calls"};
-  return count;
-}
 
 Address ToBase16AddrHelper(const std::string& addr) {
   using RpcEC = ServerBase::RPCErrorCode;
@@ -344,8 +338,6 @@ LookupServer::LookupServer(Mediator& mediator,
 }
 
 string LookupServer::GetNetworkId() {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -353,8 +345,6 @@ string LookupServer::GetNetworkId() {
 }
 
 bool LookupServer::StartCollectorThread() {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE || !ARCHIVAL_LOOKUP) {
     LOG_GENERAL(
         WARNING,
@@ -555,8 +545,6 @@ bool ValidateTxn(const Transaction& tx, const Address& fromAddr,
 Json::Value LookupServer::CreateTransaction(
     const Json::Value& _json, const unsigned int num_shards,
     const uint128_t& gasPrice, const CreateTransactionTargetFunc& targetFunc) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -682,8 +670,6 @@ Json::Value LookupServer::CreateTransaction(
 }
 
 Json::Value LookupServer::GetTransaction(const string& transactionHash) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -710,8 +696,6 @@ Json::Value LookupServer::GetTransaction(const string& transactionHash) {
 }
 
 Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -746,8 +730,6 @@ Json::Value LookupServer::GetSoftConfirmedTransaction(const string& txnHash) {
 }
 
 Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -785,8 +767,6 @@ Json::Value LookupServer::GetDsBlock(const string& blockNum, bool verbose) {
 
 Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
                                           bool verbose) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -813,8 +793,6 @@ Json::Value LookupServer::GetTxBlockByNum(const string& blockNum,
 }
 
 string LookupServer::GetMinimumGasPrice() {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -826,8 +804,6 @@ string LookupServer::GetMinimumGasPrice() {
 }
 
 Json::Value LookupServer::GetLatestDsBlock() {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -843,8 +819,6 @@ Json::Value LookupServer::GetLatestDsBlock() {
 }
 
 Json::Value LookupServer::GetLatestTxBlock() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -861,8 +835,6 @@ Json::Value LookupServer::GetLatestTxBlock() {
 }
 
 Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -902,8 +874,6 @@ Json::Value LookupServer::GetBalanceAndNonce(const string& address) {
 Json::Value LookupServer::GetSmartContractState(const string& address,
                                                 const string& vname,
                                                 const Json::Value& indices) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (Mediator::m_disableGetSmartContractState) {
@@ -952,8 +922,6 @@ Json::Value LookupServer::GetSmartContractState(const string& address,
 }
 
 Json::Value LookupServer::GetSmartContractInit(const string& address) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -999,8 +967,6 @@ Json::Value LookupServer::GetSmartContractInit(const string& address) {
 }
 
 Json::Value LookupServer::GetSmartContractCode(const string& address) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1040,8 +1006,6 @@ Json::Value LookupServer::GetSmartContractCode(const string& address) {
 }
 
 Json::Value LookupServer::GetSmartContracts(const string& address) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1108,8 +1072,6 @@ Json::Value LookupServer::GetSmartContracts(const string& address) {
 }
 
 string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
-  INC_CALLS(GetCallsCounter());
-
   std::string transactionID{tranID};
   DataConversion::NormalizeHexString(transactionID);
 
@@ -1147,8 +1109,6 @@ string LookupServer::GetContractAddressFromTransactionID(const string& tranID) {
 }
 
 unsigned int LookupServer::GetNumPeers() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1161,8 +1121,6 @@ unsigned int LookupServer::GetNumPeers() {
 }
 
 string LookupServer::GetNumTxBlocks() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1173,8 +1131,6 @@ string LookupServer::GetNumTxBlocks() {
 }
 
 string LookupServer::GetNumDSBlocks() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1185,8 +1141,6 @@ string LookupServer::GetNumDSBlocks() {
 }
 
 string LookupServer::GetNumTransactions() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1212,8 +1166,6 @@ string LookupServer::GetNumTransactions() {
 }
 
 size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1239,8 +1191,6 @@ size_t LookupServer::GetNumTransactions(uint64_t blockNum) {
 }
 
 double LookupServer::GetTransactionRate() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1265,8 +1215,7 @@ double LookupServer::GetTransactionRate() {
     refBlockNum = refBlockNum - REF_BLOCK_DIFF;
   }
 
-  mp::cpp_dec_float_50 numTxns(
-      LookupServer::GetNumTransactions(refBlockNum));
+  mp::cpp_dec_float_50 numTxns(LookupServer::GetNumTransactions(refBlockNum));
   LOG_GENERAL(INFO, "Num Txns: " << numTxns);
 
   try {
@@ -1299,8 +1248,6 @@ double LookupServer::GetTransactionRate() {
 }
 
 double LookupServer::GetDSBlockRate() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1341,8 +1288,6 @@ double LookupServer::GetDSBlockRate() {
 }
 
 double LookupServer::GetTxBlockRate() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1379,8 +1324,6 @@ double LookupServer::GetTxBlockRate() {
 }
 
 mp::cpp_dec_float_50 LookupServer::CalculateTotalSupply() {
-  INC_CALLS(GetCallsCounter());
-
   auto totalSupply = TOTAL_COINBASE_REWARD + TOTAL_GENESIS_TOKEN;
   mp::cpp_dec_float_50 ans(totalSupply.str());
 
@@ -1416,8 +1359,6 @@ unsigned long LookupServer::GetTotalCoinSupplyAsInt() {
 }
 
 Json::Value LookupServer::DSBlockListing(unsigned int page) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1515,8 +1456,6 @@ Json::Value LookupServer::DSBlockListing(unsigned int page) {
 }
 
 Json::Value LookupServer::TxBlockListing(unsigned int page) {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1617,8 +1556,6 @@ Json::Value LookupServer::TxBlockListing(unsigned int page) {
 // TODO - Publish these as Gauges
 
 Json::Value LookupServer::GetBlockchainInfo() {
-  INC_CALLS(GetCallsCounter());
-
   Json::Value _json;
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1675,8 +1612,6 @@ void LookupServer::AddToRecentTransactions(const TxnHash& txhash) {
 Json::Value LookupServer::GetShardingStructure() {
   LOG_MARKER();
 
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1702,8 +1637,6 @@ Json::Value LookupServer::GetShardingStructure() {
 }
 
 string LookupServer::GetNumTxnsTxEpoch() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
 
   if (!LOOKUP_NODE_MODE) {
@@ -1721,8 +1654,6 @@ string LookupServer::GetNumTxnsTxEpoch() {
 }
 
 string LookupServer::GetNumTxnsDSEpoch() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -1775,8 +1706,6 @@ string LookupServer::GetNumTxnsDSEpoch() {
 
 Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum,
                                                     const string& pageNumber) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1797,8 +1726,6 @@ Json::Value LookupServer::GetTransactionsForTxBlock(const string& txBlockNum,
 
 Json::Value LookupServer::GetTxnBodiesForTxBlock(const string& txBlockNum,
                                                  const string& pageNumber) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -1992,8 +1919,6 @@ vector<uint> GenUniqueIndices(uint32_t size, uint32_t num, mt19937& eng) {
 }
 
 Json::Value LookupServer::GetCurrentDSComm() {
-  INC_CALLS(GetCallsCounter());
-
   LOG_MARKER();
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
@@ -2022,8 +1947,6 @@ Json::Value LookupServer::GetCurrentDSComm() {
 }
 
 Json::Value LookupServer::GetShardMembers(unsigned int shardID) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -2203,8 +2126,6 @@ Json::Value LookupServer::GetMinerInfo(const std::string& blockNum) {
 }
 
 Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
-  INC_CALLS(GetCallsCounter());
-
   try {
     if (!REMOTESTORAGE_DB_ENABLE) {
       throw JsonRpcException(RPC_DATABASE_ERROR, "API not supported");
@@ -2235,8 +2156,6 @@ Json::Value LookupServer::GetTransactionStatus(const string& txnhash) {
 Json::Value LookupServer::GetStateProof(const string& address,
                                         const string& key,
                                         const string& txBlockNumOrTag) {
-  INC_CALLS(GetCallsCounter());
-
   if (!LOOKUP_NODE_MODE) {
     throw JsonRpcException(RPC_INVALID_REQUEST, "Sent to a non-lookup");
   }
@@ -2361,10 +2280,6 @@ Json::Value LookupServer::GetStateProof(const string& address,
 std::pair<std::string, unsigned int> LookupServer::CheckContractTxnShards(
     bool priority, unsigned int shard, const Transaction& tx,
     unsigned int num_shards, bool toAccountExist, bool toAccountIsContract) {
-  TRACE(zil::trace::FilterClass::DEMO);
-
-  INC_CALLS(GetCallsCounter());
-
   unsigned int mapIndex = shard;
   std::string resultStr;
 

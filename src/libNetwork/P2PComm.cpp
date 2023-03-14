@@ -38,12 +38,11 @@
 #include "Blacklist.h"
 #include "P2PComm.h"
 #include "SendJobs.h"
+#include "common/Messages.h"
 #include "libCrypto/Sha2.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SafeMath.h"
-#include "common/Messages.h"
-#include "libMetrics/Api.h"
 
 using namespace std;
 using namespace boost::multiprecision;

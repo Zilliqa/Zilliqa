@@ -21,7 +21,6 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
 #include "libUtils/BitVector.h"
@@ -272,9 +271,6 @@ bool ConsensusLeader::StartConsensusSubsets() {
     }
   }
 
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              __FUNCTION__);
-
   // Shuffle the peer list so we don't always send challenges in same sequence
   std::random_device randomDevice;
   std::mt19937 randomEngine(randomDevice());
@@ -504,9 +500,6 @@ bool ConsensusLeader::ProcessMessageCommitFailure(
     for (auto const& i : m_committee) {
       peerInfo.push_back(i.second);
     }
-
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
 
     P2PComm::GetInstance().SendMessage(peerInfo, consensusFailureMsg,
                                        zil::p2p::START_BYTE_NORMAL, true, true);
@@ -764,9 +757,6 @@ bool ConsensusLeader::ProcessMessageResponseCore(
       if (BROADCAST_GOSSIP_MODE) {
         P2PComm::GetInstance().SpreadRumor(collectivesig);
       } else {
-        auto span = zil::trace::Tracing::CreateSpan(
-            zil::trace::FilterClass::NODE, __FUNCTION__);
-
         P2PComm::GetInstance().SendMessage(
             peerInfo, collectivesig, zil::p2p::START_BYTE_NORMAL, true, true);
       }
@@ -1008,9 +998,6 @@ bool ConsensusLeader::StartConsensus(
     for (auto const& i : m_committee) {
       peer.push_back(i.second);
     }
-
-    auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                                __FUNCTION__);
 
     P2PComm::GetInstance().SendMessage(peer, announcement_message,
                                        zil::p2p::START_BYTE_NORMAL, true, true);

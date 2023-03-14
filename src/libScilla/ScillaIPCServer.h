@@ -21,8 +21,6 @@
 
 #include "depends/common/FixedHash.h"
 #include "libData/AccountData/Address.h"
-#include "libMetrics/Api.h"
-#include "libMetrics/MetricFilters.h"
 
 class ScillaBCInfo {
  public:
@@ -46,9 +44,6 @@ class ScillaBCInfo {
   Address m_originAddr{};
   dev::h256 m_rootHash{};
   uint32_t m_scillaVersion{};
-
-  Z_I64GAUGE m_bcInfoCount{Z_FL::SCILLA_IPC, "scilla_bcinfo_invocations_count",
-                           "Metrics for ScillaBCInfo", "Blocks", true};
 };
 
 class ScillaIPCServer : public jsonrpc::AbstractServer<ScillaIPCServer> {

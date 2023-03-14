@@ -32,7 +32,7 @@
 #include "libData/AccountStore/AccountStore.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Api.h"
+
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libNetwork/P2PComm.h"
@@ -62,23 +62,12 @@ class NodeVariables {
   int missingForwardedTx = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void AddForwardedMissingTx(int number) {
     Init();
     missingForwardedTx = number;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.nodevariables.gauge",
-                                          "Node variables", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(missingForwardedTx, {{"counter", "MissingForwardedTx"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static NodeVariables variables{};
@@ -86,7 +75,6 @@ static NodeVariables variables{};
 }  // namespace local
 
 }  // namespace zil
-
 
 #define IP_MAPPING_FILE_NAME "ipMapping.xml"
 
@@ -133,8 +121,6 @@ class VariablesNode {
   int txsInserted = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void SetNodeState(int state) {
     Init();
     nodeState = state;
@@ -150,18 +136,7 @@ class VariablesNode {
     txnPool = size;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "node.gauge",
-                                          "Node gague", "calls", true);
-
-      temp->SetCallback([this](auto &&result) {
-        result.Set(nodeState, {{"counter", "NodeState"}});
-        result.Set(txsInserted, {{"counter", "TXsInserted"}});
-        result.Set(txnPool, {{"counter", "txnPool"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static VariablesNode nodeVar{};
@@ -1556,7 +1531,6 @@ bool GetOneGenesisAddress(Address &oAddr) {
 
 bool Node::ProcessSubmitMissingTxn(const zbytes &message, unsigned int offset,
                                    [[gnu::unused]] const Peer &from) {
-
   zil::local::variables.AddForwardedMissingTx(1);
   if (LOOKUP_NODE_MODE) {
     LOG_GENERAL(WARNING,
@@ -3355,13 +3329,12 @@ void Node::CheckPeers(const vector<Peer> &peers) {
   P2PComm::GetInstance().SendMessage(peers, message);
 }
 
-
-void Node::AddPendingTxn(Transaction const& tx) {
+void Node::AddPendingTxn(Transaction const &tx) {
   lock_guard<mutex> g(m_mutexPending);
 
   // Emergency fail safe to avoid memory issues if the pool isn't getting
   // cleared somehow
-  if(m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
+  if (m_pendingTxns.size() > PENDING_TX_POOL_MAX) {
     LOG_GENERAL(WARNING, "Forced to clear the tx pending pool!");
     m_pendingTxns.clear();
   }
@@ -3374,7 +3347,7 @@ std::vector<Transaction> Node::GetPendingTxns() const {
   lock_guard<mutex> g(m_mutexPending);
   std::vector<Transaction> ret;
 
-  for (const auto &s :m_pendingTxns) {
+  for (const auto &s : m_pendingTxns) {
     ret.push_back(s.second);
   }
 

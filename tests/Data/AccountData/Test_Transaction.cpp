@@ -23,7 +23,7 @@
 #include "libData/AccountData/Address.h"
 #include "libData/AccountData/MBnForwardedTxnEntry.h"
 #include "libData/AccountData/Transaction.h"
-#include "libMetrics/Api.h"
+
 #include "libTestUtils/TestUtils.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/Logger.h"
@@ -39,7 +39,7 @@ using namespace std;
 BOOST_AUTO_TEST_SUITE(transactiontest)
 
 struct Fixture {
-  Fixture() { INIT_STDOUT_LOGGER() Metrics::GetInstance().Init(); }
+  Fixture() { INIT_STDOUT_LOGGER() }
 };
 
 BOOST_GLOBAL_FIXTURE(Fixture);

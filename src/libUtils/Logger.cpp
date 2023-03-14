@@ -16,14 +16,14 @@
  */
 
 #include "Logger.h"
+#include "libUtils/TimeUtils.h"
 
 #include <json/value.h>
 #include <json/writer.h>
 
 #include <g3sinks/LogRotate.h>
 
-// TODO tracing depends on libUtils - to be corrected
-#include "libMetrics/Tracing.h"
+#include <boost/filesystem/operations.hpp>
 
 using namespace std;
 using namespace g3;
@@ -170,11 +170,9 @@ class JsonLogSink : public CustomLogRotate {
  public:
   template <typename... ArgsT>
   JsonLogSink(ArgsT&&... args)
-      : CustomLogRotate(std::forward<ArgsT>(args)...), m_builder{} {
-    // Format the JSON structure as a single line
-    m_builder["indentation"] = "";
-    m_writer.reset(m_builder.newStreamWriter());
-  }
+      : CustomLogRotate(std::forward<ArgsT>(args)...),
+        m_builder{},
+        m_writer{m_builder.newStreamWriter()} {}
 
   void receiveLogMessage(LogMessageMover logEntry) {
     const auto& message = logEntry.get();
@@ -188,21 +186,7 @@ class JsonLogSink : public CustomLogRotate {
     value["func"] = message.function();
     value["message"] = message.message();
 
-    if (message._extra_data) {
-      assert(std::dynamic_pointer_cast<zil::trace::TracingExtraData>(
-          message._extra_data));
-      const auto& extraData =
-          std::static_pointer_cast<zil::trace::TracingExtraData>(
-              message._extra_data);
-      const auto& tracingIds = extraData->GetTracingStringIds();
-      if (tracingIds) {
-        value["trace_id"] = tracingIds->first;
-        value["span_id"] = tracingIds->second;
-      }
-    }
-
     m_writer->write(value, &m_stream);
-    m_stream << std::endl;
     m_logRotate.save(m_stream.str());
     m_stream.str("");
   }
@@ -226,28 +210,28 @@ class StdoutSink {
 
 template <typename LogRotateSinkT>
 void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
-                 const std::filesystem::path& filePath, int maxLogFileSizeKB,
+                 const boost::filesystem::path& filePath, int maxLogFileSizeKB,
                  int maxArchivedLogCount) {
-  auto logFileRoot = std::filesystem::absolute(filePath);
+  auto logFileRoot = boost::filesystem::absolute(filePath);
   bool useDefaultLocation = false;
   try {
-    if (!std::filesystem::create_directory(logFileRoot)) {
-      if ((std::filesystem::status(logFileRoot).permissions() &
-           std::filesystem::perms::owner_write) ==
-          std::filesystem::perms::none) {
+    if (!boost::filesystem::create_directory(logFileRoot)) {
+      if ((boost::filesystem::status(logFileRoot).permissions() &
+           boost::filesystem::perms::owner_write) ==
+          boost::filesystem::perms::no_perms) {
         useDefaultLocation = true;
         std::cout << logFileRoot
                   << " already existed but no writing permission!" << endl;
       }
     }
-  } catch (const std::filesystem::filesystem_error& e) {
+  } catch (const boost::filesystem::filesystem_error& e) {
     std::cout << "Cannot create log folder in " << logFileRoot
               << ", error code: " << e.code() << endl;
     useDefaultLocation = true;
   }
 
   if (useDefaultLocation) {
-    logFileRoot = std::filesystem::absolute("./");
+    logFileRoot = boost::filesystem::absolute("./");
     std::cout << "Use default log folder " << logFileRoot << " instead."
               << endl;
   }
@@ -264,19 +248,12 @@ void AddFileSink(LogWorker& logWorker, const std::string& filePrefix,
 
 }  // namespace
 
-std::shared_ptr<g3::ExtraData> CreateTracingExtraData() {
-  return std::make_shared<zil::trace::TracingExtraData>();
-}
-
-std::vector<std::reference_wrapper<const std::type_info>>
-    Logger::m_externalSinkTypeIds;
-
 Logger::Logger() : m_logWorker{LogWorker::createLogWorker()} {
   initializeLogging(m_logWorker.get());
 }
 
 void Logger::AddGeneralSink(
-    const std::string& filePrefix, const std::filesystem::path& filePath,
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
     int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
     int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
   AddFileSink<GeneralLogSink>(*m_logWorker, filePrefix, filePath,
@@ -284,7 +261,7 @@ void Logger::AddGeneralSink(
 }
 
 void Logger::AddStateSink(
-    const std::string& filePrefix, const std::filesystem::path& filePath,
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
     int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
     int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
   AddFileSink<StateLogSink>(*m_logWorker, filePrefix, filePath,
@@ -292,7 +269,7 @@ void Logger::AddStateSink(
 }
 
 void Logger::AddEpochInfoSink(
-    const std::string& filePrefix, const std::filesystem::path& filePath,
+    const std::string& filePrefix, const boost::filesystem::path& filePath,
     int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
     int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
   AddFileSink<EpochInfoLogSink>(*m_logWorker, filePrefix, filePath,
@@ -300,7 +277,7 @@ void Logger::AddEpochInfoSink(
 }
 
 void Logger::AddJsonSink(const std::string& filePrefix,
-                         const std::filesystem::path& filePath,
+                         const boost::filesystem::path& filePath,
                          int maxLogFileSizeKB /*= MAX_LOG_FILE_SIZE_KB*/,
                          int maxArchivedLogCount /*= MAX_ARCHIVED_LOG_COUNT*/) {
   AddFileSink<JsonLogSink>(*m_logWorker, filePrefix, filePath, maxLogFileSizeKB,
@@ -315,10 +292,7 @@ void Logger::AddStdoutSink() {
 bool Logger::IsGeneralSink(internal::SinkWrapper& sink, LogMessage&) {
   return typeid(sink) == typeid(internal::Sink<GeneralLogSink>) ||
          typeid(sink) == typeid(internal::Sink<JsonLogSink>) ||
-         typeid(sink) == typeid(internal::Sink<StdoutSink>) ||
-         std::find(std::begin(m_externalSinkTypeIds),
-                   std::end(m_externalSinkTypeIds),
-                   typeid(sink)) != std::end(m_externalSinkTypeIds);
+         typeid(sink) == typeid(internal::Sink<StdoutSink>);
 }
 
 bool Logger::IsStateSink(internal::SinkWrapper& sink, LogMessage&) {
@@ -375,7 +349,7 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
                                  bool should_print)
     : m_file{file}, m_line{line}, m_func{func}, should_print{should_print} {
   LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-             &Logger::IsGeneralSink, CreateTracingExtraData())
+             &Logger::IsGeneralSink)
           .stream()
       << " BEG";
 }
@@ -383,7 +357,7 @@ Logger::ScopeMarker::ScopeMarker(const char* file, int line, const char* func,
 Logger::ScopeMarker::~ScopeMarker() {
   if (should_print) {
     LogCapture(m_file.c_str(), m_line, m_func.c_str(), INFO,
-               &Logger::IsGeneralSink, CreateTracingExtraData())
+               &Logger::IsGeneralSink)
             .stream()
         << " END";
   }

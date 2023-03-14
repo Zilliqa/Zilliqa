@@ -30,7 +30,6 @@
 #include "libEth/Filters.h"
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Tracing.h"
 #include "libNetwork/Blacklist.h"
 #include "libNetwork/Guard.h"
 #include "libPOW/pow.h"
@@ -47,10 +46,6 @@
 #include "libUtils/TimeUtils.h"
 #include "libUtils/TimestampVerifier.h"
 
-#include "opentelemetry/sdk/trace/tracer_provider_factory.h"
-#include "opentelemetry/trace/propagation/b3_propagator.h"
-#include "opentelemetry/trace/propagation/http_trace_context.h"
-#include "opentelemetry/trace/provider.h"
 
 #include <chrono>
 #include <thread>
@@ -64,8 +59,6 @@ class FinalBLockProcessingVariables {
   int forwardedTx = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void SetLastBlockHeight(int height) {
     Init();
     lastBlockHeight = height;
@@ -81,18 +74,7 @@ class FinalBLockProcessingVariables {
     forwardedTx += number;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.finalblock.gauge",
-                                          "Block height", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(lastBlockHeight, {{"counter", "LastBlockHeight"}});
-        result.Set(lastVcBlockHeight, {{"counter", "LastVcBlockHeight"}});
-        result.Set(forwardedTx, {{"counter", "ForwardedTx"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static FinalBLockProcessingVariables variables{};
@@ -661,7 +643,8 @@ bool Node::ProcessVCFinalBlockCore(
       return false;
     }
 
-    zil::local::variables.SetLastVcBlockHeight(vcBlock.GetHeader().GetViewChangeEpochNo());
+    zil::local::variables.SetLastVcBlockHeight(
+        vcBlock.GetHeader().GetViewChangeEpochNo());
   }
 
   if (ProcessFinalBlockCore(dsBlockNumber, consensusID, txBlock, stateDelta)) {
@@ -1070,7 +1053,7 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
 
     // Remove all TXs from the pending pool
     lock_guard<mutex> g(m_mutexPending);
-    for (const auto &txnHash : txsExecuted) {
+    for (const auto& txnHash : txsExecuted) {
       m_pendingTxns.erase(txnHash);
     }
   }
@@ -1726,10 +1709,6 @@ bool Node::SendPendingTxnToLookup() {
 
   LOG_GENERAL(
       INFO, "Sending " << pendingTxns.size() << "pending txns to lookup nodes");
-
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::NODE,
-                                              "PendingTxnsSend");
-  span.SetAttribute("Count", pendingTxns.size());
 
   m_mediator.m_lookup->SendMessageToLookupNodes(pend_txns_message);
 

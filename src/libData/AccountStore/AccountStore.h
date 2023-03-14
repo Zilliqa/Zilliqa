@@ -39,8 +39,6 @@
 #include "libScilla/UnixDomainSocketServer.h"
 #include "libUtils/TxnExtras.h"
 
-#include "libMetrics/Api.h"
-
 class ScillaIPCServer;
 
 class AccountStore : public AccountStoreBase {
@@ -244,7 +242,6 @@ class AccountStore : public AccountStoreBase {
   }
   bool EvmProcessMessageTemp(EvmProcessContext& params,
                              evm::EvmResult& result) {
-    TRACE(zil::trace::FilterClass::ACC_EVM);
     return m_accountStoreTemp.EvmProcessMessage(params, result);
   }
 

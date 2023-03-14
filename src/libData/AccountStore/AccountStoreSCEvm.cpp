@@ -29,7 +29,6 @@
 #include "libData/AccountStore/services/evm/EvmClient.h"
 #include "libData/AccountStore/services/evm/EvmProcessContext.h"
 #include "libEth/utils/EthUtils.h"
-#include "libMetrics/Api.h"
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
 #include "libUtils/DataConversion.h"
@@ -41,15 +40,7 @@
 
 namespace zil {
 
-namespace local {
-
-Z_I64METRIC &GetEvmCallsCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_EVM, "evm.calls.count",
-                             "Engineering Metrics for AccountStore", "calls"};
-  return counter;
-}
-
-}  // namespace local
+namespace local {}  // namespace local
 
 }  // namespace zil
 
@@ -58,18 +49,10 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
                                    bool &ret,                          //
                                    TransactionReceipt &receipt,        //
                                    evm::EvmResult &result) {
-  using namespace zil::trace;
-
-  INC_CALLS(zil::local::GetEvmCallsCounter());
-
   //
   // create a worker to be executed in the async method
-  const auto worker = [&args, &ret, &result,
-                       trace_info =
-                           Tracing::GetActiveSpan().GetIds()]() -> void {
+  const auto worker = [&args, &ret, &result]() -> void {
     try {
-      auto span = Tracing::CreateChildSpanOfRemoteTrace(
-          FilterClass::FILTER_CLASS_ALL, "EvmCallRunner", trace_info);
       ret = EvmClient::GetInstance().CallRunner(EvmUtils::GetEvmCallJson(args),
                                                 result);
     } catch (std::exception &e) {
@@ -88,14 +71,14 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
   switch (fut.wait_for(std::chrono::seconds(EVM_RPC_TIMEOUT_SECONDS))) {
     case std::future_status::ready: {
       LOG_GENERAL(WARNING, "lock released normally");
-      INC_STATUS(zil::local::GetEvmCallsCounter(), "lock", "release-normal");
+
     } break;
     case std::future_status::timeout: {
       LOG_GENERAL(WARNING, "Txn processing timeout!");
       if (LAUNCH_EVM_DAEMON) {
         EvmClient::GetInstance().Reset();
       }
-      INC_STATUS(zil::local::GetEvmCallsCounter(), "lock", "release-timeout");
+
       auto constexpr str = "Timeout on lock waiting for EVM-DS";
       LOG_GENERAL(WARNING, str);
       receipt.AddError(EXECUTE_CMD_TIMEOUT);
@@ -103,7 +86,7 @@ void AccountStoreSC::EvmCallRunner(const INVOKE_TYPE /*invoke_type*/,  //
     } break;
     case std::future_status::deferred: {
       LOG_GENERAL(WARNING, "Illegal future return status!");
-      INC_STATUS(zil::local::GetEvmCallsCounter(), "lock", "release-deferred");
+
       auto constexpr str = "Illegal future return status";
       LOG_GENERAL(WARNING, str);
       ret = false;
@@ -261,21 +244,10 @@ bool AccountStoreSC::EvmProcessMessage(EvmProcessContext &params,
   TxnStatus error_code;
   std::chrono::system_clock::time_point tpStart;
 
-  TRACE(zil::trace::FilterClass::DEMO);
-
-  INC_CALLS(zil::local::GetEvmCallsCounter());
-
   tpStart = r_timer_start();
 
   bool status = UpdateAccountsEvm(params.GetBlockNumber(), unused_numShards,
                                   unused_isds, rcpt, error_code, params);
-
-  if (METRICS_ENABLED(ACCOUNTSTORE_EVM)) {
-    auto val = r_timer_end(tpStart);
-    if (val > 0) {
-      m_stats.evmCall = val;
-    }
-  }
 
   result = params.GetEvmResult();
   params.SetEvmReceipt(rcpt);
@@ -291,11 +263,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
                                        EvmProcessContext &evmContext) {
   LOG_MARKER();
 
-  TRACE(zil::trace::FilterClass::DEMO);
-
   std::string txnId = evmContext.GetTranID().hex();
-
-  INC_CALLS(zil::local::GetEvmCallsCounter());
 
   // store into the metric holder.
   if (blockNum > 0) m_stats.blockNumber = blockNum;
@@ -334,7 +302,7 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
     m_curNumShards = numShards;
 
     AccountStoreCpsInterface acCpsInterface{*this};
-    span.AddEvent("info", {{"Calling", "cps"}});
+
     libCps::CpsExecutor cpsExecutor{acCpsInterface, receipt};
     const auto cpsRunResult = cpsExecutor.RunFromEvm(evmContext);
     error_code = cpsRunResult.txnStatus;
@@ -378,8 +346,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
   switch (evmContext.GetContractType()) {
     case Transaction::CONTRACT_CREATION: {
-      INC_STATUS(zil::local::GetEvmCallsCounter(), "Transaction", "Create");
-
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Create contract");
       }
@@ -575,9 +541,6 @@ bool AccountStoreSC::UpdateAccountsEvm(const uint64_t &blockNum,
 
     case Transaction::NON_CONTRACT:
     case Transaction::CONTRACT_CALL: {
-      INC_STATUS(zil::local::GetEvmCallsCounter(), "Transaction",
-                 "Contract-Call/Non Contract");
-
       if (LOG_SC) {
         LOG_GENERAL(WARNING, "Tx is contract call");
       }

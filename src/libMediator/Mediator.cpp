@@ -23,7 +23,6 @@
 #include "libDirectoryService/DirectoryService.h"
 #include "libEth/Filters.h"
 #include "libLookup/Lookup.h"
-#include "libMetrics/Api.h"
 #include "libNode/Node.h"
 #include "libServer/DedicatedWebsocketServer.h"
 #include "libServer/GetWorkServer.h"
@@ -40,23 +39,12 @@ class MediatorVariables {
   int currentEpochNum = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void SetCurrentEpochNum(int num) {
     Init();
     currentEpochNum = num;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.mediator.gauge",
-                                          "Mediator info", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(currentEpochNum, {{"counter", "CurrentEpochNum"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static MediatorVariables variables{};
@@ -202,11 +190,11 @@ void Mediator::IncreaseEpochNum() {
 
 bool Mediator::GetIsVacuousEpoch() { return m_isVacuousEpoch; }
 
-void Mediator::AddPendingTxn(const Transaction& tx){
+void Mediator::AddPendingTxn(const Transaction& tx) {
   return m_node->AddPendingTxn(tx);
 }
 
-std::vector<Transaction> Mediator::GetPendingTxns(){
+std::vector<Transaction> Mediator::GetPendingTxns() {
   return m_node->GetPendingTxns();
 }
 

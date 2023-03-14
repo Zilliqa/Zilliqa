@@ -21,7 +21,6 @@
 #include "libCrypto/EthCrypto.h"
 #include "libCrypto/Sha2.h"
 #include "libMessage/Messenger.h"
-#include "libMetrics/Api.h"
 #include "libUtils/GasConv.h"
 #include "libUtils/Logger.h"
 
@@ -67,12 +66,12 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   } else {
     if (!Schnorr::Sign(txnData, senderKeyPair.first, m_coreInfo.senderPubKey,
                        m_signature)) {
-      TRACE_ERROR("We failed to generate m_signature.");
+      LOG_GENERAL(INFO, "We failed to generate m_signature.");
     }
   }
 
   if (!SetHash(txnData)) {
-    TRACE_ERROR("We failed to generate m_tranID.");
+    LOG_GENERAL(INFO, "We failed to generate m_tranID.");
     return;
   }
 }
@@ -100,13 +99,14 @@ Transaction::Transaction(const uint32_t &version, const uint64_t &nonce,
   SerializeCoreFields(txnData, 0);
 
   if (!SetHash(txnData)) {
-    TRACE_ERROR("We failed to generate m_tranID.");
+    LOG_GENERAL(INFO, "We failed to generate m_tranID.");
     return;
   }
 
   // Verify the signature
   if (!IsSigned(txnData)) {
-    TRACE_ERROR("We failed to verify the input signature! Just a warning...");
+    LOG_GENERAL(INFO,
+                "We failed to verify the input signature! Just a warning...");
   }
 }
 
@@ -117,7 +117,7 @@ Transaction::Transaction(const TxnHash &tranID,
 
 bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
   if (!Messenger::SetTransaction(dst, offset, *this)) {
-    TRACE_ERROR("Messenger::SetTransaction failed.");
+    LOG_GENERAL(INFO, "Messenger::SetTransaction failed.");
     return false;
   }
 
@@ -126,7 +126,7 @@ bool Transaction::Serialize(zbytes &dst, unsigned int offset) const {
 
 bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
-    TRACE_ERROR("Messenger::GetTransaction failed.");
+    LOG_GENERAL(INFO, "Messenger::GetTransaction failed.");
     return false;
   }
 
@@ -135,7 +135,7 @@ bool Transaction::Deserialize(const zbytes &src, unsigned int offset) {
 
 bool Transaction::Deserialize(const string &src, unsigned int offset) {
   if (!Messenger::GetTransaction(src, offset, *this)) {
-    TRACE_ERROR("Messenger::GetTransaction failed.");
+    LOG_GENERAL(INFO, "Messenger::GetTransaction failed.");
     return false;
   }
 
@@ -278,7 +278,7 @@ bool Transaction::SetHash(zbytes const &txnData) {
           WARNING,
           "We failed to generate an eth m_tranID. Wrong size! Expected: "
               << TRAN_HASH_SIZE << " got: " << output.size());
-      TRACE_ERROR("We failed to generate an eth m_tranID. Wrong size!");
+      LOG_GENERAL(INFO, "We failed to generate an eth m_tranID. Wrong size!");
       return false;
     }
     copy(output.begin(), output.end(), m_tranID.asArray().begin());
@@ -290,7 +290,7 @@ bool Transaction::SetHash(zbytes const &txnData) {
   sha2.Update(txnData);
   const zbytes &output = sha2.Finalize();
   if (output.size() != TRAN_HASH_SIZE) {
-    TRACE_ERROR("We failed to generate m_tranID.");
+    LOG_GENERAL(INFO, "We failed to generate m_tranID.");
     return false;
   }
 
@@ -343,7 +343,7 @@ bool Transaction::Verify(const Transaction &tran) {
   auto result = tran.IsSigned(txnData);
 
   if (!result) {
-    TRACE_ERROR("Failed to verify transaction signature - will delete");
+    LOG_GENERAL(INFO, "Failed to verify transaction signature - will delete");
   }
 
   return result;

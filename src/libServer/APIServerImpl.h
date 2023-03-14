@@ -18,18 +18,16 @@
 #ifndef ZILLIQA_SRC_LIBSERVER_APISERVERIMPL_H_
 #define ZILLIQA_SRC_LIBSERVER_APISERVERIMPL_H_
 
-#include "APIServer.h"
-
 #include <jsonrpccpp/server/abstractserverconnector.h>
 #include <atomic>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 #include <optional>
 
+#include "APIServer.h"
 #include "APIThreadPool.h"
 #include "WebsocketServerBackend.h"
 #include "WebsocketServerImpl.h"
-#include "libMetrics/Api.h"
 
 namespace rpc {
 
@@ -117,10 +115,6 @@ class APIServerImpl : public APIServer,
 
   /// Event loop thread (if internal loop enabled)
   std::optional<std::thread> m_eventLoopThread;
-
-  Z_I64GAUGE m_metrics{zil::metrics::FilterClass::API_SERVER,
-                       "api.server.metrics", "API server metrics", "units",
-                       true};
 };
 
 }  // namespace rpc

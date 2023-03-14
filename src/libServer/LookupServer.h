@@ -22,7 +22,6 @@
 
 #include "EthRpcMethods.h"
 #include "Server.h"
-#include "libMetrics/Api.h"
 
 namespace mp = boost::multiprecision;
 
@@ -47,9 +46,6 @@ class LookupServer : public Server,
   static CircularArray<std::string> m_RecentTransactions;
   static std::mutex m_mutexRecentTxns;
   std::mt19937 m_eng;
-
-  Z_I64METRIC m_callCount{Z_FL::API_SERVER, "lookup_invocation_count",
-                          "Calls to Lookup Server", "Calls"};
 
   CreateTransactionTargetFunc m_createTransactionTarget =
       [this](const Transaction& tx, uint32_t shardId) -> bool {
@@ -296,7 +292,7 @@ class LookupServer : public Server,
   }
 
   inline virtual void GetTotalCoinSupplyAsIntI(const Json::Value& request,
-                                          Json::Value& response) {
+                                               Json::Value& response) {
     (void)request;
     response = this->GetTotalCoinSupplyAsInt();
   }

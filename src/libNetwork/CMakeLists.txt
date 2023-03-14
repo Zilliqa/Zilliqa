@@ -18,6 +18,5 @@ target_link_libraries(Network PUBLIC
     libevent::pthreads
     RumorSpreading
     Utils
-    Metrics
     OpenSSL::Crypto)
 

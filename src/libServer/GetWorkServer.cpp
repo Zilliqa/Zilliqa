@@ -22,7 +22,6 @@
 #include "APIServer.h"
 #include "GetWorkServer.h"
 #include "common/Constants.h"
-#include "libMetrics/Api.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 
@@ -55,23 +54,12 @@ class MiningVariables {
   int mining = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void SetIsMining(int mining) {
     Init();
     this->mining = mining;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "mining.gauge",
-                                          "Node gague", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(mining, {{"counter", "mining"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static MiningVariables variables{};

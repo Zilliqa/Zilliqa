@@ -37,7 +37,6 @@
 #pragma GCC diagnostic pop
 
 #include "libData/AccountStore/services/evm/EvmClient.h"
-#include "libMetrics/Api.h"
 #include "libScilla/ScillaIPCServer.h"
 #include "libScilla/ScillaUtils.h"
 #include "libScilla/UnixDomainSocketServer.h"
@@ -48,51 +47,6 @@ using namespace std;
 using namespace dev;
 using namespace boost::multiprecision;
 using namespace Contract;
-
-namespace zil {
-namespace local {
-
-Z_DBLHIST &GetEvmLatency() {
-  static std::vector<double> latencieBoudaries{
-      0, 0.25, 0.5, 0.75, 1, 2, 3, 4, 5, 10, 20, 30, 40, 60, 120};
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "evm.latency",
-                           latencieBoudaries, "latency of processing", "ms"};
-  return counter;
-}
-
-Z_DBLHIST &GetScillaLatency() {
-  static std::vector<double> latencieBoudaries{0, 0.25, 0.5, .75, 1,  2,  3,  4,
-                                               5, 10,   20,  30,  40, 60, 120};
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "scilla.latency",
-                           latencieBoudaries, "latency of processing", "ms"};
-  return counter;
-}
-
-Z_DBLHIST &GetGasUsed() {
-  static std::vector<double> latencieBoudaries{
-      0, 100, 200, 300, 400, 500, 1000, 2000, 100000, 1000000};
-
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "gas",
-                           latencieBoudaries, "amount of gas used", "zils"};
-  return counter;
-}
-
-Z_DBLHIST &GetSizeUsed() {
-  static std::vector<double> latencieBoudaries{0, 1000, 2000, 3000, 4000, 5000};
-
-  static Z_DBLHIST counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "size",
-                           latencieBoudaries, "size of contract", "bytes"};
-  return counter;
-}
-
-Z_I64METRIC &GetCallCounter() {
-  static Z_I64METRIC counter{Z_FL::ACCOUNTSTORE_HISTOGRAMS, "errors",
-                             "Errors for AccountStore", "calls"};
-  return counter;
-}
-
-}  // namespace local
-}  // namespace zil
 
 AccountStore::AccountStore()
     : m_db("state"),
@@ -173,15 +127,11 @@ void AccountStore::InitSoft() {
 }
 
 Account *AccountStore::GetAccount(const Address &address) {
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
-                                              __FUNCTION__);
   return this->GetAccount(address, false);
 }
 
 Account *AccountStore::GetAccount(const Address &address, bool resetRoot) {
   // LOG_MARKER();
-  auto span = zil::trace::Tracing::CreateSpan(zil::trace::FilterClass::DEMO,
-                                              __FUNCTION__);
   using namespace boost::multiprecision;
 
   Account *account = AccountStoreBase::GetAccount(address);
@@ -602,8 +552,6 @@ bool AccountStore::UpdateAccountsTemp(
 
   // start the clock
 
-  std::chrono::system_clock::time_point tpLatencyStart = r_timer_start();
-
   lock(g, g2);
 
   bool isEvm{false};
@@ -623,9 +571,7 @@ bool AccountStore::UpdateAccountsTemp(
   if (ENABLE_EVM == false && isEvm) {
     LOG_GENERAL(WARNING,
                 "EVM is disabled so not processing this EVM transaction ");
-    if (zil::local::GetCallCounter().Enabled()) {
-      zil::local::GetCallCounter().IncrementAttr({{"not.evm", __FUNCTION__}});
-    }
+
     return false;
   }
 
@@ -645,32 +591,6 @@ bool AccountStore::UpdateAccountsTemp(
                            << transaction.GetTranID() << "> ("
                            << (status ? "Successfully)" : "Failed)"));
 
-  // Record and publish delay
-
-  auto delay = r_timer_end(tpLatencyStart);
-  double dVal = delay / 1000;
-  if (dVal > 0) {
-    if (isEvm && zil::local::GetEvmLatency().Enabled()) {
-      zil::local::GetEvmLatency().Record(
-          (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
-    }
-    if (not isEvm && zil::local::GetScillaLatency().Enabled()) {
-      zil::local::GetScillaLatency().Record(
-          (dVal), {{status ? "passed" : "failed", __FUNCTION__}});
-    }
-    if (zil::local::GetGasUsed().Enabled()) {
-      double gasUsed = receipt.GetCumGas();
-      zil::local::GetGasUsed().Record(
-          gasUsed, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
-    }
-    if (zil::local::GetSizeUsed().Enabled()) {
-      if (not transaction.GetCode().empty()) {
-        double size = transaction.GetCode().size();
-        zil::local::GetSizeUsed().Record(
-            size, {{isEvm ? "evm" : "scilla", __FUNCTION__}});
-      }
-    }
-  }
   return status;
 }
 

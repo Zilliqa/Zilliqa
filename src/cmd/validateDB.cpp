@@ -29,7 +29,7 @@
 
 using namespace std;
 int main() {
-  INIT_FILE_LOGGER("zilliqa", std::filesystem::current_path());
+  INIT_FILE_LOGGER("zilliqa", boost::filesystem::current_path());
   PairOfKey key;  // Dummy to initate mediator
   Peer peer;
 

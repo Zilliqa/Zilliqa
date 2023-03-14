@@ -67,29 +67,18 @@ class LookupVariables {
   int DSCommitteeSize = 0;
 
  public:
-  std::unique_ptr<Z_I64GAUGE> temp;
-
   void SetDSCommitteeSize(int number) {
     Init();
     DSCommitteeSize = number;
   }
 
-  void Init() {
-    if (!temp) {
-      temp = std::make_unique<Z_I64GAUGE>(Z_FL::BLOCKS, "tx.lookup.gauge",
-                                          "Lookup variables", "calls", true);
-
-      temp->SetCallback([this](auto&& result) {
-        result.Set(DSCommitteeSize, {{"counter", "DSCommitteeSize"}});
-      });
-    }
-  }
+  void Init() {}
 };
 
 static LookupVariables variables{};
 
 }  // namespace local
-}
+}  // namespace zil
 
 namespace {
 

@@ -12,9 +12,9 @@ link_directories(${CMAKE_BINARY_DIR}/lib)
 #target_include_directories (Test_PeerManager PUBLIC ${CMAKE_SOURCE_DIR}/src)
 #target_link_libraries (Test_PeerManager PUBLIC Utils Network Zilliqa)
 
-add_executable (Test_P2PComm Test_P2PComm.cpp)
-target_include_directories (Test_P2PComm PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_link_libraries (Test_P2PComm PUBLIC Network Utils)
+#add_executable (Test_P2PComm Test_P2PComm.cpp)
+#target_include_directories (Test_P2PComm PUBLIC ${CMAKE_SOURCE_DIR}/src)
+#target_link_libraries (Test_P2PComm PUBLIC Network Utils)
 
 add_executable (Test_IPFilter Test_IPFilter.cpp)
 target_include_directories (Test_IPFilter PUBLIC ${CMAKE_SOURCE_DIR}/src)
