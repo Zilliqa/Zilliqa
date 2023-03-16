@@ -106,6 +106,11 @@ struct ReadMessageResult {
 ReadState TryReadMessage(const uint8_t* buf, size_t buf_size,
                          ReadMessageResult& result);
 
+inline uint32_t ReadU32BE(const uint8_t* bytes) {
+  return (uint32_t(bytes[0]) << 24) + (uint32_t(bytes[1]) << 16) +
+         (uint32_t(bytes[2]) << 8) + bytes[3];
+};
+
 }  // namespace zil::p2p
 
 #endif  // ZILLIQA_SRC_LIBNETWORK_P2PMESSAGE_H_
