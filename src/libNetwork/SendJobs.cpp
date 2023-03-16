@@ -173,7 +173,7 @@ class GracefulCloseImpl
         boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
-            LOG_GENERAL(DEBUG,
+            LOG_GENERAL(INFO,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
         });
@@ -181,24 +181,30 @@ class GracefulCloseImpl
 };
 
 void CloseGracefully(Socket socket) {
+  LOG_MARKER();
   ErrorCode ec;
   if (!socket.is_open()) {
+    LOG_GENERAL(WARNING, "EM5122 socket is already closed");
     return;
   }
   socket.shutdown(boost::asio::socket_base::shutdown_both, ec);
   if (ec) {
+    LOG_GENERAL(WARNING, "EM5122 shutdown failed: " << ec);
     return;
   }
   size_t unread = socket.available(ec);
   if (ec) {
+    LOG_GENERAL(WARNING, "EM5122 failed to get available bytes from socket: " << ec);
     return;
   }
+  LOG_GENERAL(WARNING, "EM5122 unread bytes: " << unread);
   if (unread > 0) {
     boost::container::small_vector<uint8_t, 4096> buf;
     buf.resize(unread);
     socket.read_some(boost::asio::mutable_buffer(buf.data(), unread), ec);
   }
   if (!ec) {
+    LOG_GENERAL(WARNING, "EM5122 failed to read bytes: " << ec);
     std::make_shared<GracefulCloseImpl>(std::move(socket))->Close();
   }
 }
@@ -234,6 +240,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (m_queue.size() == 1) {
       Connect();
     }
+    LOG_GENERAL(INFO, "m_queue size = "<< m_queue.size());
   }
 
   void Close() {
@@ -262,18 +269,20 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
+    LOG_GENERAL(INFO, "Connecting to " << m_peer);
 
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
                              if (ec != OPERATION_ABORTED) {
                                self->OnConnected(ec);
                              }
+                             LOG_GENERAL(INFO,"EM5122 Error");
                            });
   }
 
   void OnConnected(const ErrorCode& ec) {
     if (m_closed) {
+      LOG_GENERAL(INFO,"EM5122 m_closed");
       return;
     }
     if (!ec) {
@@ -290,7 +299,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-    LOG_GENERAL(DEBUG, "Sending " << msg.size << " bytes to " << m_peer);
+    LOG_GENERAL(INFO, "Sending " << msg.size << " bytes to " << m_peer);
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -333,11 +342,14 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void OnWritten(const ErrorCode& ec) {
+    LOG_MARKER();
     if (m_closed) {
+      LOG_GENERAL(WARNING, "EM5122 closed");
       return;
     }
 
     if (ec) {
+      LOG_GENERAL(WARNING, "EM5122 error code: " << ec);
       ScheduleReconnectOrGiveUp(ec);
       return;
     }
@@ -345,7 +357,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (m_queue.empty()) {
       // impossible
       //zil::local::variables.AddSendMessageToPeerFailed(1);
-      LOG_GENERAL(WARNING, "Unexpected queue state, peer="
+      LOG_GENERAL(WARNING, "EM5122 Unexpected queue state, peer="
                                << m_peer.GetPrintableIPAddress() << ":"
                                << m_peer.GetListenPortHost());
       Done();
@@ -359,11 +371,13 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   bool ExpiredOrDone(const ErrorCode& ec = ErrorCode{}) {
     if (m_queue.empty()) {
+      LOG_GENERAL(WARNING, "EM5122 queue is empty");
       Done();
       return true;
     }
 
     if (m_queue.front().expires_at < Clock()) {
+      LOG_GENERAL(WARNING, "EM5122 queue head is expired");
       Done(ec ? ec : TIMED_OUT);
       zil::local::variables.AddHostNetworkIssue(1);
       return true;
@@ -373,7 +387,9 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void ScheduleReconnectOrGiveUp(const ErrorCode& ec) {
+    LOG_MARKER();
     if (ExpiredOrDone(ec)) {
+      LOG_GENERAL(WARNING, "EM5122 expired or done");
       return;
     }
 
@@ -383,12 +399,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
+    LOG_MARKER();
     if (!CheckAgainstBlacklist() || ExpiredOrDone()) {
+      LOG_GENERAL(WARNING, "EM5122 blacklisted, expired or done");
       return;
     }
 
     // TODO the current protocol is weird and it assumes reconnecting every
     // time. This should be changed!!!
+    LOG_GENERAL(INFO, "EM5122 reconnecting");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Connect();
@@ -442,7 +461,8 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size);
+    LOG_GENERAL(INFO, "Enqueueing message, size=" << message.size);
+    LOG_GENERAL(INFO, "Sending message to peer " << peer << "message size = "<< message.size);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
     // sequential guarantees for messages from every calling thread
@@ -507,6 +527,7 @@ class SendJobsImpl : public SendJobs,
                                              << ":" << peer.GetListenPortHost()
                                              << " ec=" << ec.message());
     }
+    LOG_GENERAL(INFO, "OnPeerQueueFinished = "<< peer);
 
     auto it = m_activePeers.find(peer);
     if (it == m_activePeers.end()) {

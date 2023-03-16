@@ -273,6 +273,7 @@ void P2PComm::ProcessBroadCastMsg(zbytes& message, zbytes& hash,
 
 /*static*/ void P2PComm::ProcessGossipMsg(zbytes& message, Peer& from,
                                           std::string& traceInfo) {
+  LOG_MARKER();
   unsigned char gossipMsgTyp = message.at(0);
 
   zil::local::variables.AddGossipReceived(1);
@@ -406,8 +407,21 @@ void P2PComm::ClearPeerConnectionCount() {
   m_peerConnectionCount.clear();
 }
 
+const std::string ReadStateToStr(zil::p2p::ReadState& s) {
+  switch (s) {
+    case zil::p2p::ReadState::NOT_ENOUGH_DATA: return "NOT_ENOUGH_DATA";
+    case zil::p2p::ReadState::SUCCESS: return "SUCCESS";
+    case zil::p2p::ReadState::WRONG_MSG_VERSION: return "WRONG_MSG_VERSION";
+    case zil::p2p::ReadState::WRONG_NETWORK_ID: return "WRONG_NETWORK_ID";
+    case zil::p2p::ReadState::WRONG_MESSAGE_LENGTH: return "WRONG_MESSAGE_LENGTH";
+    case zil::p2p::ReadState::WRONG_TRACE_LENGTH: return "WRONG_TRACE_LENGTH";
+    default: throw std::invalid_argument("???");
+  }
+}
+
 void P2PComm::EventCallback(struct bufferevent* bev, short events,
                             [[gnu::unused]] void* ctx) {
+  LOG_MARKER();
 
   zil::local::variables.AddEventCallback(1);
   struct AutoClose {
@@ -445,8 +459,10 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 
   size_t len = evbuffer_get_length(input);
+  LOG_GENERAL(INFO, "Incoming message of size " << len << " from = "<<from);
   if (len < zil::p2p::HDR_LEN) {
     // not enough bytes received, wait for the next callback
+    LOG_GENERAL(WARNING, "not enough bytes recieved");
     auto_close.bev = nullptr;
     zil::local::variables.AddEventCallbackTooFewBytes(1);
     return;
@@ -461,6 +477,8 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   zil::p2p::ReadMessageResult result;
   auto state = zil::p2p::TryReadMessage(data, len, result);
 
+  LOG_GENERAL(INFO, "Message state is " << ReadStateToStr(state));
+
   if (state == zil::p2p::ReadState::NOT_ENOUGH_DATA) {
     // not enough bytes received, wait for the next callback
     LOG_GENERAL(DEBUG, "not enough data");
@@ -469,6 +487,7 @@ void P2PComm::EventCallback(struct bufferevent* bev, short events,
   }
 
   if (state != zil::p2p::ReadState::SUCCESS) {
+    LOG_GENERAL(WARNING, "state not success");
     return;
   }
 
@@ -565,8 +584,8 @@ void P2PComm::EventCbServerSeed(struct bufferevent* bev, short events,
 }
 
 void P2PComm::ReadCallback(struct bufferevent* bev, [[gnu::unused]] void* ctx) {
+  LOG_MARKER();
   struct evbuffer* input = bufferevent_get_input(bev);
-
   size_t len = evbuffer_get_length(input);
   if (len >= MAX_READ_WATERMARK_IN_BYTES) {
     // Get the IP info
@@ -707,6 +726,10 @@ void P2PComm::ReadCbServerSeed(struct bufferevent* bev,
     CloseAndFreeBevP2PSeedConnServer(bev);
   }
 }
+void P2PComm ::AcceptErrorCallback(struct evconnlistener* listener, void* ctx) {
+  int err = EVUTIL_SOCKET_ERROR();
+  LOG_GENERAL(INFO, "Got an error on the listener " << err << evutil_socket_error_to_string(err));
+}
 
 void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
                                        evutil_socket_t cli_sock,
@@ -717,7 +740,7 @@ void P2PComm::AcceptConnectionCallback([[gnu::unused]] evconnlistener* listener,
             ((struct sockaddr_in*)cli_addr)->sin_port);
 
   zil::local::variables.AddNewConnections(1);
-  LOG_GENERAL(DEBUG, "Connection from " << from);
+  LOG_GENERAL(INFO, "Connection from " << from);
 
   if (Blacklist::GetInstance().Exist(from.m_ipAddress,
                                      false /* for incoming message */)) {
@@ -1097,6 +1120,8 @@ void P2PComm::EnableListener(uint32_t listenPort, bool startSeedNodeListener) {
     // fixme: should we exit here?
     return;
   }
+  evconnlistener_set_error_cb(listener1, AcceptErrorCallback);
+
   struct evconnlistener* listener2 = NULL;
   if (LOOKUP_NODE_MODE && ARCHIVAL_LOOKUP && startSeedNodeListener) {
     LOG_GENERAL(INFO, "P2PSeed Start listener on " << P2P_SEED_CONNECT_PORT);
@@ -1302,6 +1327,7 @@ void P2PComm::SendMessage(const Peer& peer, const zbytes& message,
     return;
   }
   if (message.size() <= MessageOffset::BODY) {
+    LOG_GENERAL(WARNING, "Message size is not correct. Not sending message");
     return;
   }
   m_sendJobs->SendMessageToPeer(peer, message, startByteType,
