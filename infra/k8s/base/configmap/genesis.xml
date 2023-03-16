@@ -43,5 +43,9 @@
             <private_key>F3974E45ED5408FF01FD927560F0977518E10B4DCE391DC9FB5D18DB9CAFA45D</private_key>
             <wallet_address>8abc2bca964ea60ca5a08e3857bd97a28abc1c18</wallet_address>
         </account>
+        <account>
+            <private_key>1080D2CCA18ACE8225354AC021F9977404CEE46F1D12E9981AF8C36322EAC1A4</private_key>
+            <wallet_address>ac941274c3b6a50203cc5e7939b7dad9f32a0c12</wallet_address>
+        </account>
     </ds_accounts>
 </node>
