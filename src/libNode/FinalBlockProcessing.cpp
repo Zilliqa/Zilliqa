@@ -594,10 +594,26 @@ bool Node::CheckStateRoot(const TxBlock& finalBlock) {
 }
 
 void Node::PrepareGoodStateForFinalBlock() {
+  LOG_GENERAL(INFO, "Im_consensusMyID = "<< m_consensusMyID<<" m_consensusLeaderID = "<<m_consensusLeaderID);
+  if (m_consensusMyID == m_consensusLeaderID) {
+    LOG_GENERAL(INFO, "I am the leader of the shard");
+    ConsensusLeader* cl =
+        dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    if (cl != nullptr) {
+      cl->Audit(true);
+    }
+  }
   if (m_state == MICROBLOCK_CONSENSUS || m_state == MICROBLOCK_CONSENSUS_PREP) {
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I may have missed the micrblock consensus. However, if I "
               "recently received a valid finalblock, I will accept it");
+    if (m_consensusMyID == m_consensusLeaderID)
+      LOG_GENERAL(INFO, "I am the leader of the shard");
+    ConsensusLeader* cl =
+        dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+    if (cl != nullptr) {
+      cl->Audit(true);
+    }
     // TODO: Optimize state transition.
     SetState(WAITING_FINALBLOCK);
   }
@@ -993,6 +1009,13 @@ bool Node::ProcessFinalBlockCore(uint64_t& dsBlockNumber,
               cv_lk, std::chrono::seconds(CONSENSUS_MSG_ORDER_BLOCK_WINDOW)) ==
           std::cv_status::timeout) {
         LOG_GENERAL(WARNING, "Timeout, I didn't finish microblock consensus");
+        if(m_consensusMyID == m_consensusLeaderID)
+        LOG_GENERAL(INFO, "I am the leader of the shard");
+        ConsensusLeader* cl =
+            dynamic_cast<ConsensusLeader*>(m_consensusObject.get());
+        if (cl != nullptr) {
+          cl->Audit(true);
+        }
       }
     }
 

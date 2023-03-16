@@ -158,6 +158,7 @@ class ConsensusLeader : public ConsensusCommon {
 
   /// Function to check for missing responses
   void Audit();
+  void Audit(bool checkForResponses);
 
   /// Function to log the responses stats
   void LogResponsesStats(unsigned int subsetID);
