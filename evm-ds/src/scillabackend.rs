@@ -312,24 +312,9 @@ impl Backend for ScillaBackend {
 
     fn code_as_json(&self, address: H160) -> Vec<u8> {
         let code = self.code(address);
-        /*println!("Got code: {}", String::from_utf8(code.clone()).unwrap());
-        let parsed: serde_json::Value = serde_json::from_slice(&code).unwrap_or_default();
-        let code = parsed["result"]["code"].to_owned();
-        if code == Value::Null {
-            return Vec::new();
-        }
-        let Some(code) = code.as_str() else {
-            return Vec::new();
-        };
-        let mut code: String = code.to_string();
-        code = code.strip_prefix("\"").unwrap_or_default().to_string();
-        code = code.strip_suffix("\"").unwrap_or_default().to_string();
-        let code = code.replace("\n", " ");
-        */
-
         let mut rng = rand::thread_rng();
         let random_file_suffix: u64 = rng.gen();
-        let file_name = format!("{:x}_{}.scilla", address, random_file_suffix.to_string());
+        let file_name = format!("{:x}_{}.scilla", address, random_file_suffix);
         let mut temp_dir = temp_dir();
         temp_dir.push(file_name);
         {
@@ -361,7 +346,7 @@ impl Backend for ScillaBackend {
         let Some(scilla_file) = temp_dir.as_path().to_str() else {
             return Vec::new();
         };
-        let output = Command::new(&scilla_checker_path)
+        let output = Command::new(scilla_checker_path)
             .arg("-gaslimit")
             .arg("999999999")
             .arg("-libdir")
@@ -380,6 +365,17 @@ impl Backend for ScillaBackend {
             return output.stdout;
         }
         Vec::new()
+    }
+
+    fn susbtate_as_json(&self, address: H160, vname: &str, indices: &[String]) -> Vec<u8> {
+        let mut args = serde_json::Map::new();
+        args.insert("addr".to_owned(), hex::encode(address.as_bytes()).into());
+        args.insert("vname".to_owned(), vname.into());
+        args.insert("indices".to_owned(),  indices.into());
+        let Ok(result) = self.call_ipc_server_api("fetchStateJson", args) else {
+            return Vec::new()
+        };
+        serde_json::to_vec(&result).unwrap_or_default()
     }
 
     fn storage(&self, address: H160, key: H256) -> H256 {

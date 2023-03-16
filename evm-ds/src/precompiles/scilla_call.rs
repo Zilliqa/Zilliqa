@@ -1,17 +1,14 @@
 use evm::backend::Backend;
 use evm::executor::stack::{PrecompileFailure, PrecompileOutput, PrecompileOutputType};
-use evm::{Context, ExitError, ExitSucceed};
+use evm::{Context, ExitError};
 use std::borrow::Cow;
 use std::collections::BTreeMap;
-use std::str::FromStr;
 
-use ethabi::{decode, Uint};
+use ethabi::{decode};
 use ethabi::ethereum_types::Address;
 use ethabi::param_type::ParamType;
 use ethabi::token::Token;
 use hex::ToHex;
-use primitive_types::H160;
-use protobuf::text_format::lexer::ParserLanguage::Json;
 use serde_json::{json, Value};
 
 const BASE_COST: u64 = 15;
@@ -57,7 +54,7 @@ pub(crate) fn scilla_call(
             exit_status: ExitError::Other(Cow::Borrowed("Unable to get transitions array from contract json")),
         });
     };
-    let mut output_json = build_result_Json(&input, &passed_transition_name, &transitions)?;
+    let mut output_json = build_result_json(input, &passed_transition_name, transitions)?;
     output_json["_address"] = Value::String(code_address.encode_hex());
 
     Ok((
@@ -69,7 +66,7 @@ pub(crate) fn scilla_call(
     ))
 }
 
-fn build_result_Json(
+fn build_result_json(
     input: &[u8],
     expected_transition: &str,
     transitions: &Vec<serde_json::Value>,
@@ -95,11 +92,11 @@ fn build_result_Json(
         }
     }
     for scilla_arg in &scilla_args {
-        let decoded_arg = substitute_scilla_arg(&scilla_arg.1)?;
+        let decoded_arg = substitute_scilla_arg(scilla_arg.1)?;
         solidity_args.push(decoded_arg);
     }
 
-    let Ok(decoded_values) = ethabi::decode(&solidity_args, &input) else {
+    let Ok(decoded_values) = ethabi::decode(&solidity_args, input) else {
         return Err(PrecompileFailure::Error {
             exit_status: ExitError::Other(Cow::Borrowed("Unable to get all arguments from precompile input")),
         });
@@ -111,7 +108,7 @@ fn build_result_Json(
 
     let mut result_arguments = Value::Array(vec![]);
     for (scilla_arg, solidity_value) in scilla_args.iter().zip(decoded_values.iter().skip(2)) {
-        let mut json_arg: Value;
+        let json_arg: Value;
         if let Token::Uint(solidity_uint) = solidity_value {
             // Scilla doesn't like hex strings
             json_arg = json!({"vname" : scilla_arg.0, "type" : scilla_arg.1, "value": format!("{}", solidity_uint)});
@@ -150,7 +147,6 @@ fn substitute_scilla_arg(arg_name: &str) -> Result<ParamType, PrecompileFailure>
 
 fn get_contract_addr_and_transition(input: &[u8]) -> Result<(Address, String), PrecompileFailure> {
     let partial_types = vec![ParamType::Address, ParamType::String];
-    println!("Hex input: {}", hex::encode(input));
     let partial_tokens = decode(&partial_types, input);
     let Ok(partial_tokens) = partial_tokens  else {
         return Err(PrecompileFailure::Error {

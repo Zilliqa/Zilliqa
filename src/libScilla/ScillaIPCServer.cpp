@@ -24,7 +24,9 @@
 
 #include "libPersistence/BlockStorage.h"
 #include "libPersistence/ContractStorage.h"
+#include "libServer/JSONConversion.h"
 #include "libUtils/DataConversion.h"
+#include "libUtils/JsonUtils.h"
 
 using namespace std;
 using namespace Contract;
@@ -84,6 +86,11 @@ ScillaIPCServer::ScillaIPCServer(AbstractServerConnector &conn)
       Procedure("fetchExternalStateValueB64", PARAMS_BY_NAME, JSON_OBJECT,
                 "addr", JSON_STRING, "query", JSON_STRING, NULL),
       &ScillaIPCServer::fetchExternalStateValueB64I);
+
+  bindAndAddMethod(Procedure("fetchStateJson", PARAMS_BY_NAME, JSON_OBJECT,
+                             "addr", JSON_STRING, "vname", JSON_STRING, NULL),
+                   &ScillaIPCServer::fetchStateJsonI);
+
   bindAndAddMethod(
       Procedure("fetchBlockchainInfo", PARAMS_BY_NAME, JSON_STRING,
                 "query_name", JSON_STRING, "query_args", JSON_STRING, NULL),
@@ -228,6 +235,23 @@ bool ScillaIPCServer::fetchExternalStateValue(const std::string &addr,
   }
 
   return true;
+}
+
+void ScillaIPCServer::fetchStateJsonI(const Json::Value &request,
+                                      Json::Value &response) {
+  INC_CALLS(GetCallsCounter());
+  const auto address = Address{request["addr"].asString()};
+  const auto vname = request["vname"].asString();
+  const auto indicesVector =
+      JSONConversion::convertJsonArrayToVector(request["indices"]);
+  if (!ContractStorage::GetContractStorage().FetchStateJsonForContract(
+          response, address, vname, indicesVector)) {
+    LOG_GENERAL(WARNING, "Unable to fetch json state for addr " << address);
+  }
+  if (LOG_SC) {
+    LOG_GENERAL(WARNING,
+                "Successfully fetch json substate for addr " << address);
+  }
 }
 
 bool ScillaIPCServer::updateStateValue(const string &query,
