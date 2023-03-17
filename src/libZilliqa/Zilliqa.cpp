@@ -220,7 +220,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
     while (m_msgQueue.pop(message, queueSize)) {
       // For now, we use a thread pool to handle this message
       // Eventually processing will be single-threaded
-      m_queuePool.AddJob([this, m = std::move(message)]() mutable -> void {
+      m_queuePool.submit([this, m = std::move(message)]() mutable -> void {
         ProcessMessage(m);
       });
     }

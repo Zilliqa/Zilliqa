@@ -32,7 +32,8 @@
 #include "libServer/StakingServer.h"
 #include "libServer/StatusServer.h"
 #include "libUtils/Queue.h"
-#include "libUtils/ThreadPool.h"
+
+#include <boost/thread/executors/basic_thread_pool.hpp>
 
 /// Main Zilliqa class.
 class Zilliqa {
@@ -61,7 +62,8 @@ class Zilliqa {
   Z_I64GAUGE m_msgQueueSize{zil::metrics::FilterClass::MSG_DISPATCH,
                             "msg.dispatch.queue_size",
                             "Incoming P2P message queue size", "bytes", true};
-  ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
+  boost::executors::basic_thread_pool m_queuePool{MAXRECVMESSAGE};
+  // ThreadPool m_queuePool{MAXRECVMESSAGE, "QueuePool"};
 
   void ProcessMessage(Msg& message);
 

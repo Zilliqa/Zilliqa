@@ -59,13 +59,17 @@ find_package(Protobuf REQUIRED)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(Boost COMPONENTS filesystem system unit_test_framework program_options REQUIRED)
+find_package(Boost COMPONENTS filesystem thread system unit_test_framework program_options REQUIRED)
 
 find_package(Schnorr REQUIRED)
 find_package(CryptoUtils REQUIRED)
 
 include_directories(${SCHNORR_INCLUDE_DIR}/include)
 include_directories(${OPENSSL_INCLUDE_DIR})
+
+add_definitions(-DBOOST_THREAD_PROVIDES_EXECUTORS
+  -DBOOST_THREAD_PROVIDES_FUTURE_CONTINUATION
+  -DBOOST_THREAD_USES_MOVE)
 
 if(OPENCL_MINE)
     message(STATUS "OpenCL enabled")

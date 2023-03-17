@@ -18,9 +18,9 @@
 #include <arpa/inet.h>
 
 #include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/xml_parser.hpp>
+#include <boost/thread/executors/basic_thread_pool.hpp>
 
 #include "Node.h"
 #include "common/Constants.h"
@@ -43,7 +43,6 @@
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/Logger.h"
-#include "libUtils/ThreadPool.h"
 #include "libUtils/TimeUtils.h"
 #include "libValidator/Validator.h"
 
@@ -702,22 +701,21 @@ bool Node::CheckIntegrity(const bool fromValidateDBBinary) {
   // control resource consumption
   uint64_t blockNum = 0;
   if (fromValidateDBBinary) {
-    const unsigned int NUMTHREADS = 10;
-    const int MAXJOBSLEFT = NUMTHREADS * 3;
-    ThreadPool validatePool(NUMTHREADS, "ValidatePool");
+    const constexpr unsigned int NUMTHREADS = 10;
+    boost::executors::basic_thread_pool validatePool{NUMTHREADS};
 
+    std::atomic_int32_t jobsSubmitted = 0;
     while (blockNum <= latestTxBlockNum) {
-      validatePool.AddJob([validateOneTxBlock, blockNum]() mutable -> void {
+      validatePool.submit([validateOneTxBlock, blockNum, &jobsSubmitted]() mutable {
+        ++jobsSubmitted;
         validateOneTxBlock(blockNum);
+        --jobsSubmitted;
       });
-
-      while (validatePool.GetJobsLeft() > MAXJOBSLEFT) {
-      }
 
       blockNum++;
     }
 
-    while (validatePool.GetJobsLeft() > 0) {
+    while (jobsSubmitted > 0) {
       std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
@@ -1291,7 +1289,7 @@ bool Node::StartRetrieveHistory(const SyncType syncType,
 void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
   LOG_MARKER();
 
-  if (!boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+  if (!std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
     LOG_GENERAL(WARNING, IP_MAPPING_FILE_NAME << " not existed!");
     return;
   }
@@ -1313,8 +1311,8 @@ void Node::GetIpMapping(unordered_map<string, Peer> &ipMapping) {
 void Node::RemoveIpMapping() {
   LOG_MARKER();
 
-  if (boost::filesystem::exists(IP_MAPPING_FILE_NAME)) {
-    if (boost::filesystem::remove(IP_MAPPING_FILE_NAME)) {
+  if (std::filesystem::exists(IP_MAPPING_FILE_NAME)) {
+    if (std::filesystem::remove(IP_MAPPING_FILE_NAME)) {
       LOG_GENERAL(INFO,
                   IP_MAPPING_FILE_NAME << " has been removed successfully.");
     } else {
