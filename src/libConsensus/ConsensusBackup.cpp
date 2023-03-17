@@ -279,6 +279,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Unicast to the leader
     // =====================
 
+    LOG_GENERAL(INFO, "Sending response to = "<<GetCommitteeMember(m_leaderID).second);
     P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
 

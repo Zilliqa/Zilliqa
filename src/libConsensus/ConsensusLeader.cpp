@@ -275,6 +275,9 @@ bool ConsensusLeader::StartConsensusSubsets() {
   std::random_device randomDevice;
   std::mt19937 randomEngine(randomDevice());
   shuffle(peerInfo.begin(), peerInfo.end(), randomEngine);
+  for (const auto& peer : peerInfo) {
+    LOG_GENERAL(INFO, "Sending challenge to = " << peer);
+  }
 
   P2PComm::GetInstance().SendMessage(peerInfo, challenge,
                                      zil::p2p::START_BYTE_NORMAL, true, true);
