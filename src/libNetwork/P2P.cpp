@@ -133,7 +133,7 @@ void SendMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
   }
 
   static const zbytes no_hash;
-  auto raw_msg = zil::p2p::CreateMessage(message, no_hash, startByteType,
+  auto raw_msg = CreateMessage(message, no_hash, startByteType,
                                          inject_trace_context);
 
   for (const auto& peer : peers) {
@@ -176,7 +176,7 @@ namespace {
 
 template <typename PeerList>
 void SendBroadcastMessageImpl(
-    const std::shared_ptr<zil::p2p::SendJobs>& sendJobs, const PeerList& peers,
+    const std::shared_ptr<SendJobs>& sendJobs, const PeerList& peers,
     const std::optional<Peer>& selfPeer, const zbytes& message, zbytes& hash,
     bool inject_trace_context) {
   if (message.size() <= MessageOffset::BODY) {
@@ -196,8 +196,8 @@ void SendBroadcastMessageImpl(
   sha256.Update(message);
   hash = sha256.Finalize();
 
-  auto raw_msg = zil::p2p::CreateMessage(
-      message, hash, zil::p2p::START_BYTE_BROADCAST, inject_trace_context);
+  auto raw_msg = CreateMessage(
+      message, hash, START_BYTE_BROADCAST, inject_trace_context);
 
   std::string hashStr;
   if (selfPeer) {
@@ -258,7 +258,7 @@ void P2P::SendMessageNoQueue(const Peer& peer, const zbytes& message,
   }
 
   if (!m_sendJobs) {
-    m_sendJobs = zil::p2p::SendJobs::Create();
+    m_sendJobs = SendJobs::Create();
   }
   m_sendJobs->SendMessageToPeerSynchronous(peer, message, startByteType);
 }
@@ -355,14 +355,14 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
     }
 
     ProcessBroadCastMsg(result.message, result.hash, from, result.traceInfo);
-  } else if (result.startByte == zil::p2p::START_BYTE_NORMAL) {
+  } else if (result.startByte == START_BYTE_NORMAL) {
     LOG_PAYLOAD(INFO, "Incoming normal " << from, result.message,
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
     m_dispatcher(MakeMsg(std::move(result.message), from,
-                         zil::p2p::START_BYTE_NORMAL, result.traceInfo));
-  } else if (result.startByte == zil::p2p::START_BYTE_GOSSIP) {
+                         START_BYTE_NORMAL, result.traceInfo));
+  } else if (result.startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (result.message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
       LOG_GENERAL(WARNING,
@@ -444,7 +444,7 @@ void P2P::ProcessBroadCastMsg(zbytes& message, zbytes& hash, const Peer& from,
                        << msgHashStr.substr(0, 6) << "] RECV");
 
   // Queue the message
-  m_dispatcher(MakeMsg(std::move(message), from, zil::p2p::START_BYTE_BROADCAST,
+  m_dispatcher(MakeMsg(std::move(message), from, START_BYTE_BROADCAST,
                        traceInfo));
 }
 
@@ -479,7 +479,7 @@ void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
 
       // Queue the message
       m_dispatcher(MakeMsg(std::move(tmp), remoteListener,
-                           zil::p2p::START_BYTE_GOSSIP, traceInfo));
+                           START_BYTE_GOSSIP, traceInfo));
     }
   } else {
     auto resp = m_rumorManager->RumorReceived((unsigned int)gossipMsgTyp,
@@ -490,7 +490,7 @@ void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
 
       // Queue the message
       m_dispatcher(MakeMsg(std::move(resp.second), remoteListener,
-                           zil::p2p::START_BYTE_GOSSIP, traceInfo));
+                           START_BYTE_GOSSIP, traceInfo));
     }
   }
 }

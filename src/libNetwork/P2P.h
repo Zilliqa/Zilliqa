@@ -65,18 +65,18 @@ class P2P {
 
   /// Multicasts message to specified list of peers.
   void SendMessage(const VectorOfPeer& peers, const zbytes& message,
-                   unsigned char startByteType = zil::p2p::START_BYTE_NORMAL,
+                   unsigned char startByteType = START_BYTE_NORMAL,
                    bool inject_trace_context = false);
 
   /// Multicasts message to specified list of peers.
   void SendMessage(const std::deque<Peer>& peers, const zbytes& message,
-                   unsigned char startByteType = zil::p2p::START_BYTE_NORMAL,
+                   unsigned char startByteType = START_BYTE_NORMAL,
                    bool inject_trace_context = false,
                    bool bAllowSendToRelaxedBlacklist = false);
 
   /// Sends normal message to specified peer.
   void SendMessage(const Peer& peer, const zbytes& message,
-                   unsigned char startByteType = zil::p2p::START_BYTE_NORMAL,
+                   unsigned char startByteType = START_BYTE_NORMAL,
                    bool inject_trace_context = false);
 
   /// Multicasts message of type=broadcast to specified list of peers.
@@ -91,7 +91,7 @@ class P2P {
   /// Special case for cmd line utilities only - blocking
   void SendMessageNoQueue(
       const Peer& peer, const zbytes& message,
-      unsigned char startByteType = zil::p2p::START_BYTE_NORMAL);
+      unsigned char startByteType = START_BYTE_NORMAL);
 
   bool SpreadRumor(const zbytes& message);
 
