@@ -71,6 +71,7 @@ class Mediator {
 
   /// The current epoch.
   uint64_t m_currentEpochNum = 0;
+  std::string m_currentEpochSpanIds;
 
   /// The consensus ID
   uint32_t m_consensusID;

@@ -1165,6 +1165,11 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
   {
     lock_guard<mutex> g(m_mutexShardMember);
 
+    auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+        zil::trace::FilterClass::EPOCH, "Consensus",
+        m_mediator.m_currentEpochSpanIds);
+    span.SetAttribute("consensus.role", "leader");
+
     LOG_EPOCH(INFO, m_mediator.m_currentEpochNum,
               "I am shard leader. "
                   << "m_consensusID: " << m_mediator.m_consensusID
@@ -1173,13 +1178,15 @@ bool Node::RunConsensusOnMicroBlockWhenShardLeader() {
                   << " Shard Leader: "
                   << (*m_myShardMembers)[m_consensusLeaderID].second);
 
-    auto nodeMissingTxnsFunc = [this](const zbytes& errorMsg,
-                                      const Peer& from) mutable -> bool {
+    auto nodeMissingTxnsFunc = [this, consensusSpanIds = span.GetIds()](
+                                   const zbytes& errorMsg,
+                                   const Peer& from) mutable -> bool {
       return OnNodeMissingTxns(errorMsg, 0, from);
     };
 
     auto commitFailureFunc =
-        [this](const map<unsigned int, zbytes>& m) mutable -> bool {
+        [this, consensusSpanIds = span.GetIds()](
+            const map<unsigned int, zbytes>& m) mutable -> bool {
       return OnCommitFailure(m);
     };
 
@@ -1296,31 +1303,40 @@ bool Node::RunConsensusOnMicroBlockWhenShardBackup() {
                              .GetMyHash()
                              .asBytes();
 
+  auto span = zil::trace::Tracing::CreateChildSpanOfRemoteTrace(
+      zil::trace::FilterClass::EPOCH, "Consensus",
+      m_mediator.m_currentEpochSpanIds);
+  span.SetAttribute("consensus.role", "backup");
+
   auto completeMBValidatorFunc =
-      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const zbytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
+      [this, consensusSpanIds = span.GetIds()](
+          const zbytes& input, unsigned int offset, zbytes& errorMsg,
+          const uint32_t consensusID, const uint64_t blockNumber,
+          const zbytes& blockHash, const uint16_t leaderID,
+          const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
     return MicroBlockValidator(input, offset, errorMsg, consensusID,
                                blockNumber, blockHash, leaderID, leaderKey,
                                messageToCosign);
   };
 
   auto preprepMBValidatorFunc =
-      [this](const zbytes& input, unsigned int offset, zbytes& errorMsg,
-             const uint32_t consensusID, const uint64_t blockNumber,
-             const zbytes& blockHash, const uint16_t leaderID,
-             const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
+      [this, consensusSpanIds = span.GetIds()](
+          const zbytes& input, unsigned int offset, zbytes& errorMsg,
+          const uint32_t consensusID, const uint64_t blockNumber,
+          const zbytes& blockHash, const uint16_t leaderID,
+          const PubKey& leaderKey, zbytes& messageToCosign) mutable -> bool {
     return PrePrepMicroBlockValidator(input, offset, errorMsg, consensusID,
                                       blockNumber, blockHash, leaderID,
                                       leaderKey, messageToCosign);
   };
 
-  auto postPreprepValidationFunc = [this]() -> void {
+  auto postPreprepValidationFunc = [this, consensusSpanIds =
+                                              span.GetIds()]() -> void {
     StartTxnProcessingThread();
   };
 
-  auto txnProcessingReadinessfunc = [this]() -> bool {
+  auto txnProcessingReadinessfunc = [this, consensusSpanIds =
+                                               span.GetIds()]() -> bool {
     // wait for txn processing being ready by me (backup)
     return WaitUntilTxnProcessingDone();
   };
