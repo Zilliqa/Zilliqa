@@ -107,7 +107,7 @@ class GracefulCloseImpl
         boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
-            LOG_GENERAL(DEBUG,
+            LOG_GENERAL(INFO,
                         "Expected EOF, got ec=" << ec.message() << " n=" << n);
           }
         });
@@ -196,7 +196,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     m_timer.cancel(ec);
 
-    LOG_GENERAL(DEBUG, "Connecting to " << m_peer);
+    LOG_GENERAL(INFO, "Connecting to " << m_peer);
 
     m_socket.async_connect(m_endpoint,
                            [self = shared_from_this()](const ErrorCode& ec) {
@@ -224,7 +224,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
     auto& msg = m_queue.front().msg;
 
-    LOG_GENERAL(DEBUG, "Sending " << msg.size << " bytes to " << m_peer);
+    LOG_GENERAL(INFO, "Sending " << msg.size << " bytes to " << m_peer);
 
     boost::asio::async_write(
         m_socket, boost::asio::const_buffer(msg.data.get(), msg.size),
@@ -372,7 +372,7 @@ class SendJobsImpl : public SendJobs,
       return;
     }
 
-    LOG_GENERAL(DEBUG, "Enqueueing message, size=" << message.size);
+    LOG_GENERAL(INFO, "Enqueueing message, size=" << message.size);
     LOG_GENERAL(INFO, "Sending message to peer " << peer << "message size = "<< message.size);
 
     // this fn enqueues the lambda to be executed on WorkerThread with
