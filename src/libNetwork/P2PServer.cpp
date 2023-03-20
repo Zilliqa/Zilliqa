@@ -35,6 +35,7 @@ using TcpAcceptor = boost::asio::ip::tcp::acceptor;
 using TcpEndpoint = boost::asio::ip::tcp::endpoint;
 using ErrorCode = boost::system::error_code;
 const ErrorCode OPERATION_ABORTED = boost::asio::error::operation_aborted;
+const ErrorCode END_OF_FILE = boost::asio::error::eof;
 
 class P2PServerImpl;
 
@@ -242,7 +243,10 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    LOG_GENERAL(INFO, "Read error: " << ec.message());
+    if (ec != END_OF_FILE) {
+      LOG_GENERAL(INFO,
+                  "Peer " << m_remotePeer << " read error: " << ec.message());
+    }
     OnConnectionClosed();
     return;
   }
