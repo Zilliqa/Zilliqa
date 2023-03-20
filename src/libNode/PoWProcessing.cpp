@@ -458,6 +458,9 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   m_mediator.m_DSCommittee->clear();
   LOG_GENERAL(INFO, "DS count = " << numDS);
 
+  PubKey emptyPubKey = PubKey::GetPubKeyFromString(
+      "000000000000000000000000000000000000000000000000000000000000000000");
+
   for (unsigned int i = 0; i < numDS; i++) {
     PubKey pubkey(message, cur_offset);
     cur_offset += PUB_KEY_SIZE;
@@ -478,10 +481,13 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
                      m_mediator.m_initialDSCommittee->size());
     }
     unsigned int i = 0;
-    for (auto const& dsNode : *m_mediator.m_DSCommittee) {
-      if (!(dsNode.first == m_mediator.m_initialDSCommittee->at(i))) {
-        LOG_CHECK_FAIL("DS PubKey", dsNode.first,
-                       m_mediator.m_initialDSCommittee->at(i));
+    for (auto& dsNode : *m_mediator.m_DSCommittee) {
+      const auto& initialPubKey = m_mediator.m_initialDSCommittee->at(i);
+      if (!(dsNode.first == initialPubKey)) {
+        LOG_CHECK_FAIL("DS PubKey", dsNode.first, initialPubKey);
+        if (dsNode.first == emptyPubKey) {
+          dsNode.first = initialPubKey;
+        }
       }
       i++;
     }
