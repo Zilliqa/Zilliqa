@@ -31,7 +31,7 @@
 #include "libEth/Filters.h"
 #include "libMetrics/Api.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libRemoteStorageDB/RemoteStorageDB.h"
 #include "libServer/APIServer.h"
 #include "libServer/DedicatedWebsocketServer.h"
@@ -82,8 +82,10 @@ const std::string_view StartByteToStr(unsigned char start_byte) {
     MATCH_CASE(START_BYTE_NORMAL)
     MATCH_CASE(START_BYTE_BROADCAST)
     MATCH_CASE(START_BYTE_GOSSIP)
-    MATCH_CASE(START_BYTE_SEED_TO_SEED_REQUEST)
-    MATCH_CASE(START_BYTE_SEED_TO_SEED_RESPONSE)
+
+// Removed from the updated protocol
+//    MATCH_CASE(START_BYTE_SEED_TO_SEED_REQUEST)
+//    MATCH_CASE(START_BYTE_SEED_TO_SEED_RESPONSE)
     default:
       break;
   }
@@ -218,8 +220,6 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
     Msg message;
     size_t queueSize;
     while (m_msgQueue.pop(message, queueSize)) {
-      // For now, we use a thread pool to handle this message
-      // Eventually processing will be single-threaded
       m_queuePool.AddJob([this, m = std::move(message)]() mutable -> void {
         ProcessMessage(m);
       });
@@ -280,8 +280,7 @@ Zilliqa::Zilliqa(const PairOfKey &key, const Peer &peer, SyncType syncType,
     m_n.m_runFromLate = true;
   }
 
-  P2PComm::GetInstance().SetSelfPeer(peer);
-  P2PComm::GetInstance().SetSelfKey(key);
+  zil::p2p::GetInstance().SetSelfIdentity(peer, key);
 
   // Clear any existing diagnostic data from previous runs
   BlockStorage::GetBlockStorage().ResetDB(BlockStorage::DIAGNOSTIC_NODES);

@@ -34,6 +34,8 @@ namespace zil::p2p {
 class SendJobs;
 }
 
+namespace old {
+
 /// Provides network layer functionality.
 class P2PComm {
   std::set<zbytes> m_broadcastHashes;
@@ -187,4 +189,5 @@ class P2PComm {
                      const PubKey& pubKey);
 };
 
+}  // namespace old
 #endif  // ZILLIQA_SRC_LIBNETWORK_P2PCOMM_H_

@@ -21,7 +21,7 @@
 #include "common/Constants.h"
 #include "common/Messages.h"
 #include "libMessage/Messenger.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libUtils/BitVector.h"
 #include "libUtils/Logger.h"
 
@@ -100,7 +100,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
         // Unicast to the leader
         // =====================
-        P2PComm::GetInstance().SendMessage(
+        zil::p2p::GetInstance().SendMessage(
             GetCommitteeMember(m_leaderID).second, commitFailureMsg);
 
         return true;
@@ -131,7 +131,7 @@ bool ConsensusBackup::ProcessMessageAnnounce(const zbytes& announcement,
 
     // Unicast to the leader
     // =====================
-    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+    zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        commit);
   }
   return result;
@@ -279,7 +279,7 @@ bool ConsensusBackup::ProcessMessageChallengeCore(
     // Unicast to the leader
     // =====================
 
-    P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+    zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                        response);
 
     return true;
@@ -398,7 +398,7 @@ bool ConsensusBackup::ProcessMessageCollectiveSigCore(
 
       // Unicast to the leader
       // =====================
-      P2PComm::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
+      zil::p2p::GetInstance().SendMessage(GetCommitteeMember(m_leaderID).second,
                                          finalcommit);
     }
   } else {

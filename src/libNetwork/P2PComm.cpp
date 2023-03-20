@@ -38,12 +38,12 @@
 #include "Blacklist.h"
 #include "P2PComm.h"
 #include "SendJobs.h"
+#include "common/Messages.h"
 #include "libCrypto/Sha2.h"
+#include "libMetrics/Api.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
 #include "libUtils/SafeMath.h"
-#include "common/Messages.h"
-#include "libMetrics/Api.h"
 
 using namespace std;
 using namespace boost::multiprecision;
@@ -54,6 +54,8 @@ using zil::p2p::HDR_LEN;
 const unsigned int GOSSIP_MSGTYPE_LEN = 1;
 const unsigned int GOSSIP_ROUND_LEN = 4;
 const unsigned int GOSSIP_SNDR_LISTNR_PORT_LEN = 4;
+
+namespace old {
 
 zil::p2p::Dispatcher P2PComm::m_dispatcher;
 std::mutex P2PComm::m_mutexPeerConnectionCount;
@@ -1390,3 +1392,4 @@ bool P2PComm::VerifyMessage(const zbytes& message, const Signature& toverify,
   }
   return result;
 }
+}  // namespace old

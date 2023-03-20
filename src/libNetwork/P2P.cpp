@@ -133,8 +133,8 @@ void SendMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
   }
 
   static const zbytes no_hash;
-  auto raw_msg = CreateMessage(message, no_hash, startByteType,
-                                         inject_trace_context);
+  auto raw_msg =
+      CreateMessage(message, no_hash, startByteType, inject_trace_context);
 
   for (const auto& peer : peers) {
     sendJobs->SendMessageToPeer(peer, raw_msg, bAllowSendToRelaxedBlacklist);
@@ -175,10 +175,11 @@ void P2P::SendMessage(const Peer& peer, const zbytes& message,
 namespace {
 
 template <typename PeerList>
-void SendBroadcastMessageImpl(
-    const std::shared_ptr<SendJobs>& sendJobs, const PeerList& peers,
-    const std::optional<Peer>& selfPeer, const zbytes& message, zbytes& hash,
-    bool inject_trace_context) {
+void SendBroadcastMessageImpl(const std::shared_ptr<SendJobs>& sendJobs,
+                              const PeerList& peers,
+                              const std::optional<Peer>& selfPeer,
+                              const zbytes& message, zbytes& hash,
+                              bool inject_trace_context) {
   if (message.size() <= MessageOffset::BODY) {
     return;
   }
@@ -196,8 +197,8 @@ void SendBroadcastMessageImpl(
   sha256.Update(message);
   hash = sha256.Finalize();
 
-  auto raw_msg = CreateMessage(
-      message, hash, START_BYTE_BROADCAST, inject_trace_context);
+  auto raw_msg =
+      CreateMessage(message, hash, START_BYTE_BROADCAST, inject_trace_context);
 
   std::string hashStr;
   if (selfPeer) {
@@ -291,6 +292,11 @@ void P2P::SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
   m_rumorManager->SendRumorToForeignPeers(foreignPeers, message);
 }
 
+void P2P::UpdatePeerInfoInRumorManager(const Peer& peer, const PubKey& pubKey) {
+  LOG_MARKER();
+  m_rumorManager->UpdatePeerInfo(peer, pubKey);
+}
+
 void P2P::BroadcastCleanupJob() {
   auto interval = std::chrono::seconds(std::max(1u, BROADCAST_INTERVAL));
   auto expiryTime = std::chrono::seconds(std::max(1u, BROADCAST_EXPIRY));
@@ -360,8 +366,8 @@ bool P2P::DispatchMessage(const Peer& from, ReadMessageResult& result) {
                 Logger::MAX_BYTES_TO_DISPLAY);
 
     // Queue the message
-    m_dispatcher(MakeMsg(std::move(result.message), from,
-                         START_BYTE_NORMAL, result.traceInfo));
+    m_dispatcher(MakeMsg(std::move(result.message), from, START_BYTE_NORMAL,
+                         result.traceInfo));
   } else if (result.startByte == START_BYTE_GOSSIP) {
     // Check for the maximum gossiped-message size
     if (result.message.size() >= MAX_GOSSIP_MSG_SIZE_IN_BYTES) {
@@ -444,8 +450,8 @@ void P2P::ProcessBroadCastMsg(zbytes& message, zbytes& hash, const Peer& from,
                        << msgHashStr.substr(0, 6) << "] RECV");
 
   // Queue the message
-  m_dispatcher(MakeMsg(std::move(message), from, START_BYTE_BROADCAST,
-                       traceInfo));
+  m_dispatcher(
+      MakeMsg(std::move(message), from, START_BYTE_BROADCAST, traceInfo));
 }
 
 void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
@@ -478,8 +484,8 @@ void P2P::ProcessGossipMsg(zbytes& message, const Peer& from,
       LOG_GENERAL(INFO, "Rumor size: " << tmp.size());
 
       // Queue the message
-      m_dispatcher(MakeMsg(std::move(tmp), remoteListener,
-                           START_BYTE_GOSSIP, traceInfo));
+      m_dispatcher(MakeMsg(std::move(tmp), remoteListener, START_BYTE_GOSSIP,
+                           traceInfo));
     }
   } else {
     auto resp = m_rumorManager->RumorReceived((unsigned int)gossipMsgTyp,

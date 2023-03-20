@@ -2,7 +2,6 @@ find_package(Libevent REQUIRED)
 
 add_library(Network
     Peer.cpp
-    P2PComm.cpp
     Guard.cpp
     Blacklist.cpp
     ReputationManager.cpp

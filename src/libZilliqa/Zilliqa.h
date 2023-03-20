@@ -37,7 +37,6 @@
 /// Main Zilliqa class.
 class Zilliqa {
  public:
-  // TODO shared instead of unique due to lambda move capture limitations
   using Msg = std::shared_ptr<zil::p2p::Message>;
 
  private:

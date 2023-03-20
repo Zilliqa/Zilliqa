@@ -89,9 +89,8 @@ class P2P {
                             bool inject_trace_context = false);
 
   /// Special case for cmd line utilities only - blocking
-  void SendMessageNoQueue(
-      const Peer& peer, const zbytes& message,
-      unsigned char startByteType = START_BYTE_NORMAL);
+  void SendMessageNoQueue(const Peer& peer, const zbytes& message,
+                          unsigned char startByteType = START_BYTE_NORMAL);
 
   bool SpreadRumor(const zbytes& message);
 
@@ -104,6 +103,8 @@ class P2P {
 
   void SendRumorToForeignPeers(const std::deque<Peer>& foreignPeers,
                                const zbytes& message);
+
+  void UpdatePeerInfoInRumorManager(const Peer& peer, const PubKey& pubKey);
 
  private:
   /// Broadcast cleanup thread periodic job

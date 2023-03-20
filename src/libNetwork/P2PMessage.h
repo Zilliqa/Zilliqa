@@ -28,10 +28,12 @@ namespace zil::p2p {
 constexpr unsigned char START_BYTE_NORMAL = 0x11;
 constexpr unsigned char START_BYTE_BROADCAST = 0x22;
 constexpr unsigned char START_BYTE_GOSSIP = 0x33;
-constexpr unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
-constexpr unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
 constexpr size_t HDR_LEN = 8;
 constexpr size_t HASH_LEN = 32;
+
+// These types are disabled in updated protocol
+//constexpr unsigned char START_BYTE_SEED_TO_SEED_REQUEST = 0x44;
+//constexpr unsigned char START_BYTE_SEED_TO_SEED_RESPONSE = 0x55;
 
 struct Message {
   zbytes msg;                // P2P protocol message

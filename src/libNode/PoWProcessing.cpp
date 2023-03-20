@@ -31,7 +31,7 @@
 #include "libMediator/Mediator.h"
 #include "libMessage/Messenger.h"
 #include "libNetwork/Guard.h"
-#include "libNetwork/P2PComm.h"
+#include "libNetwork/P2P.h"
 #include "libPOW/pow.h"
 #include "libUtils/DataConversion.h"
 #include "libUtils/DetachedFunction.h"
@@ -378,14 +378,7 @@ bool Node::SendPoWResultToDSComm(const uint64_t& block_num,
     }
   }
 
-  // Instead of sending whole list at once, send 1 by 1 to prevent incidents
-  // where that particular node is down and hence the whole list is being
-  // delayed or gone
-  auto& p2pComm = P2PComm::GetInstance();
-  for (const auto& p : peerList) {
-    p2pComm.SendMessage(p, powmessage);
-  }
-
+  zil::p2p::GetInstance().SendMessage(peerList, powmessage);
   return true;
 }
 
