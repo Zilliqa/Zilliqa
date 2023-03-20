@@ -267,6 +267,8 @@ int main(int argc, const char* argv[]) {
     zil::p2p::GetInstance().StartServer(ctx, my_network_info.m_listenPortHost,
                                         std::move(dispatcher));
 
+    ctx.run();
+
     if (pendingTxnUpdater.has_value()) {
       LOG_GENERAL(INFO, "Shutting down pending txn updater...");
       pendingTxnUpdater.reset();
