@@ -19,12 +19,7 @@
 #define ZILLIQA_SRC_LIBMETRICS_METRICS_H_
 
 #include <cassert>
-#include <list>
 #include <string>
-
-#ifndef HAVE_CPP_STDLIB
-#define HAVE_CPP_STDLIB
-#endif
 
 #include <opentelemetry/metrics/provider.h>
 
