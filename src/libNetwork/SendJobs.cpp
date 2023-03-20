@@ -168,7 +168,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     if (m_queue.size() == 1) {
       Connect();
     }
-    LOG_GENERAL(INFO, "m_queue size = ", m_queue.size);
+    LOG_GENERAL(INFO, "m_queue size = "<< m_queue.size());
   }
 
   void Close() {
