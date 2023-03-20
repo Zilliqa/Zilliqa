@@ -92,19 +92,27 @@ void WaitTimer(SteadyTimer& timer, Time delay, Object* obj,
   });
 }
 
+/// Returns a dummy buffer to read into (we really need to use reads in this
+/// part of the protocol just to detect EOFs)
+inline auto& GetDummyBuffer() {
+  static std::array<uint8_t, 2048> dummyArray;
+  static auto buf =
+      boost::asio::mutable_buffer(dummyArray.data(), dummyArray.size());
+  return buf;
+}
+
 /// Closes socket gracefully, waits for EOF first. Helps to avoid undesirable
 /// TCP states on both sides
 class GracefulCloseImpl
     : public std::enable_shared_from_this<GracefulCloseImpl> {
   Socket m_socket;
-  std::array<uint8_t, 8> m_dummyArray;
 
  public:
   GracefulCloseImpl(Socket&& socket) : m_socket(std::move(socket)) {}
 
   void Close() {
     m_socket.async_read_some(
-        boost::asio::mutable_buffer(m_dummyArray.data(), m_dummyArray.size()),
+        GetDummyBuffer(),
         [self = shared_from_this()](const ErrorCode& ec, size_t n) {
           if (ec != END_OF_FILE) {
             LOG_GENERAL(DEBUG,
@@ -152,14 +160,15 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   using DoneCallback = std::function<void(const Peer& peer)>;
 
-  PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb, Peer peer)
+  PeerSendQueue(AsioContext& ctx, const DoneCallback& done_cb, Peer peer,
+                bool no_wait = false)
       : m_asioContext(ctx),
         m_doneCallback(done_cb),
         m_peer(std::move(peer)),
         m_socket(m_asioContext),
         m_timer(m_asioContext),
-        m_messageExpireTime(
-            std::max(15000u, TX_DISTRIBUTE_TIME_IN_MS * 5 / 6)) {}
+        m_messageExpireTime(std::max(15000u, TX_DISTRIBUTE_TIME_IN_MS * 5 / 6)),
+        m_noWait(no_wait) {}
 
   ~PeerSendQueue() { Close(); }
 
@@ -169,8 +178,12 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     item.msg = std::move(msg);
     item.allow_relaxed_blacklist = allow_relaxed_blacklist;
     item.expires_at = Clock() + m_messageExpireTime;
-    if (m_queue.size() == 1 && !m_connected) {
-      Connect();
+    if (m_queue.size() == 1) {
+      if (!m_connected) {
+        Connect();
+      } else {
+        SendMessage();
+      }
     }
     m_inIdleTimeout = false;
   }
@@ -215,11 +228,45 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     }
     if (!ec) {
       m_connected = true;
+      WaitForEOF();
       SendMessage();
     } else {
       m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
+  }
+
+  void WaitForEOF() {
+    if (m_closed) {
+      return;
+    }
+
+    m_socket.set_option(boost::asio::socket_base::keep_alive(true));
+
+    m_socket.async_read_some(
+        GetDummyBuffer(),
+        [self = shared_from_this()](const ErrorCode& ec, size_t n) {
+          if (ec == OPERATION_ABORTED) {
+            return;
+          }
+
+          if (!ec) {
+            LOG_GENERAL(DEBUG, "Peer " << self->m_peer << " got unexpected "
+                                       << n << " bytes");
+            self->WaitForEOF();
+            return;
+          }
+
+          if (ec != END_OF_FILE) {
+            LOG_GENERAL(DEBUG, "Peer " << self->m_peer << " closed with error: "
+                                       << ec.message());
+          } else {
+            LOG_GENERAL(DEBUG, "EOF, peer=" << self->m_peer);
+          }
+
+          self->m_connected = false;
+          self->ScheduleReconnectOrGiveUp();
+        });
   }
 
   bool FindNotExpiredMessage() {
@@ -244,7 +291,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
 
   void SendMessage() {
     if (!FindNotExpiredMessage()) {
-      if (m_connected) {
+      if (m_connected && !m_noWait) {
         m_inIdleTimeout = true;
         WaitTimer(m_timer, IDLE_TIMEOUT, this, &PeerSendQueue::OnIdleTimer);
       } else {
@@ -303,6 +350,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   }
 
   void Reconnect() {
+    LOG_GENERAL(DEBUG, "Peer " << m_peer << " reconnects");
     CloseGracefully(std::move(m_socket));
     m_socket = Socket(m_asioContext);
     Connect();
@@ -346,6 +394,8 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
   bool m_connected = false;
 
   bool m_inIdleTimeout = false;
+
+  bool m_noWait = false;
 };
 
 class SendJobsImpl : public SendJobs,
@@ -393,7 +443,7 @@ class SendJobsImpl : public SendJobs,
     };
 
     auto peerCtx = std::make_shared<PeerSendQueue>(localCtx, doneCallback,
-                                                   std::move(peer));
+                                                   std::move(peer), true);
     peerCtx->Enqueue(CreateMessage(message, {}, start_byte, false), false);
 
     localCtx.run();

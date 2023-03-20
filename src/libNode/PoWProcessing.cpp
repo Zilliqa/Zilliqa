@@ -458,8 +458,7 @@ LOG_EPOCH(INFO,m_mediator.m_currentEpochNum,
   m_mediator.m_DSCommittee->clear();
   LOG_GENERAL(INFO, "DS count = " << numDS);
 
-  PubKey emptyPubKey = PubKey::GetPubKeyFromString(
-      "000000000000000000000000000000000000000000000000000000000000000000");
+  PubKey emptyPubKey;
 
   for (unsigned int i = 0; i < numDS; i++) {
     PubKey pubkey(message, cur_offset);
