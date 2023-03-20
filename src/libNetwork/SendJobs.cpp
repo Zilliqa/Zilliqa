@@ -169,9 +169,10 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
     item.msg = std::move(msg);
     item.allow_relaxed_blacklist = allow_relaxed_blacklist;
     item.expires_at = Clock() + m_messageExpireTime;
-    if (m_queue.size() == 1) {
+    if (m_queue.size() == 1 && !m_connected) {
       Connect();
     }
+    m_inIdleTimeout = false;
   }
 
   void Close() {
@@ -216,6 +217,7 @@ class PeerSendQueue : public std::enable_shared_from_this<PeerSendQueue> {
       m_connected = true;
       SendMessage();
     } else {
+      m_connected = false;
       ScheduleReconnectOrGiveUp();
     }
   }

@@ -75,15 +75,15 @@ std::optional<Peer> ExtractRemotePeer(const TcpSocket& socket) {
   std::optional<Peer> result;
   auto remote_ep = socket.remote_endpoint(ec);
   if (!ec) {
-    boost::asio::ip::address a;
-    remote_ep.address(a);
+    auto a = remote_ep.address();
     if (a.is_v4()) {
-      result.emplace(a.to_v4().to_uint(), remote_ep.port());
+      result.emplace(uint128_t(htonl(a.to_v4().to_uint())), remote_ep.port());
     } else if (a.is_v6()) {
       result.emplace(uint128_t(a.to_v6().to_bytes()), remote_ep.port());
     }
   } else {
-    // TODO log
+    LOG_GENERAL(WARNING,
+                "Cannot extract address from endpoint: " << ec.message());
   }
   return result;
 }
@@ -119,6 +119,7 @@ class P2PServerImpl : public P2PServer,
 
   bool OnMessage(uint64_t id, const Peer& from, ReadMessageResult& msg) {
     if (!m_callback(from, msg)) {
+      LOG_GENERAL(DEBUG, "Closing incoming connection from " << from);
       OnConnectionClosed(id);
       return false;
     }
@@ -128,6 +129,7 @@ class P2PServerImpl : public P2PServer,
   void OnConnectionClosed(uint64_t id) {
     m_connections.erase(id);
     // TODO metric about m_connections.size()
+    LOG_GENERAL(DEBUG, "Total incoming connections: " << m_connections.size());
   }
 
  private:
@@ -240,8 +242,7 @@ void P2PServerConnection::ReadNextMessage() {
 
 void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
   if (ec) {
-    // TODO log
-
+    LOG_GENERAL(INFO, "Read error: " << ec.message());
     OnConnectionClosed();
     return;
   }
@@ -278,8 +279,7 @@ void P2PServerConnection::OnHeaderRead(const ErrorCode& ec) {
 
 void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   if (ec) {
-    // TODO log
-
+    LOG_GENERAL(INFO, "Read error: " << ec.message());
     OnConnectionClosed();
     return;
   }
@@ -288,14 +288,14 @@ void P2PServerConnection::OnBodyRead(const ErrorCode& ec) {
   auto state = TryReadMessage(m_readBuffer.data(), m_readBuffer.size(), result);
 
   if (state != ReadState::SUCCESS) {
-    // TODO log
+    LOG_GENERAL(WARNING, "Message deserialize error: blacklisting "
+                             << m_remotePeer.GetPrintableIPAddress());
+    Blacklist::GetInstance().Add(m_remotePeer.m_ipAddress);
 
     CloseSocket();
     OnConnectionClosed();
     return;
   }
-
-  // TODO seed response ??? --- no, another way
 
   auto owner = m_owner.lock();
   if (!owner || !owner->OnMessage(m_id, m_remotePeer, result)) {
