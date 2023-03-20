@@ -6,16 +6,3 @@ bases:
 nameSuffix: normal
 commonLabels:
   type: normal
-
-
-patchesStrategicMerge:
-  - |-
-    apiVersion: apps/v1
-    kind: StatefulSet
-    metadata:
-      name: devnet-
-      labels:
-        testnet: devnet
-    spec:
-      podManagementPolicy: Parallel
-      replicas: 20
