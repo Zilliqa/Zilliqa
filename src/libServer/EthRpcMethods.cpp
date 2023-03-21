@@ -79,7 +79,7 @@ Address ToBase16AddrHelper(const std::string &addr) {
 
   if (retCode == AddressConversionCode::INVALID_ADDR) {
     throw JsonRpcException(RpcEC::RPC_INVALID_ADDRESS_OR_KEY,
-                           "invalid address");
+                           "invalid address ***");
   } else if (retCode == AddressConversionCode::INVALID_BECH32_ADDR) {
     throw JsonRpcException(RpcEC::RPC_INVALID_ADDRESS_OR_KEY,
                            "Bech32 address is invalid");
